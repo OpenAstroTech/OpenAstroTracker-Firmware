@@ -1050,7 +1050,7 @@ const DayTime Mount::currentRA() const {
 const Declination Mount::currentDEC() const {
 
   float degreePos = 1.0 * _stepperDEC->currentPosition() / _stepsPerDECDegree;
-  //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: Steps/deg  : %d"), _stepsPerDECDegree);
+  //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: Steps/deg  : %f"), _stepsPerDECDegree);
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: DEC Steps  : %d"), _stepperDEC->currentPosition());
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: POS        : %s"), String(degreePos).c_str());
 
@@ -1152,7 +1152,7 @@ void Mount::stopGuiding() {
   }
 
   #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
   #endif
 
   LOGV2(DEBUG_STEPPERS,F("STEP-stopGuiding: TRK.setSpeed(%f)"),_trackingSpeed);
@@ -1969,9 +1969,9 @@ void Mount::loop() {
   if (isGuiding()) {
     if (millis() > _guideEndTime) {
       stopGuiding();
-	  #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      LOGV2(DEBUG_STEPPERS, F("STEP-loop: DEC driver setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING);
-      _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+    #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      LOGV2(DEBUG_STEPPERS, F("STEP-loop: DEC driver setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+      _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
     #endif					
     }
     return;
