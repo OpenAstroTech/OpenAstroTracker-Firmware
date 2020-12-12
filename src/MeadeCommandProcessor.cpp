@@ -21,38 +21,42 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //------------------------------------------------------------------
 // INITIALIZE FAMILY
 //
-// :I#   - Initialize Scope
-//         This puts the Arduino in Serial Control Mode and displays RA on line 1 and
-//         DEC on line 2 of the display. Serial Control Mode can be ended manually by
-//         pressing the SELECT key, or programmatically with the :Qq# command.
-//         Returns: nothing
+// :I#   
+//      Initialize Scope
+//      This puts the Arduino in Serial Control Mode and displays RA on line 1 and
+//      DEC on line 2 of the display. Serial Control Mode can be ended manually by
+//      pressing the SELECT key, or programmatically with the :Qq# command.
+//      Returns: nothing
 //
 //------------------------------------------------------------------
 // SYNC CONTROL FAMILY
 //
-// :CM#
+// :CM# 
 //      Synchronize Declination and Right Ascension.
-//      This tells the scope what it is currently pointing at.
-//      The scope synchronizes to the current target coordinates (set with :Sd# and :Sr#)
+//      This tells the scope what it is currently pointing at. The scope synchronizes 
+//      to the current target coordinates (set with :Sd# and :Sr#)
 //      Returns: NONE#
 //
 //------------------------------------------------------------------
 // DISTANCE FAMILY
 //
 // :D#
-//      Returns slewing status
+//      Query Mount Status
+//      This queries the mount for its slewing status
 //      Returns: '|#' if slewing, ' #' if not
 //
 //------------------------------------------------------------------
 // GPS FAMILY
 //
 // :gT#
+//      Set Mount Time
 //      Attempts to set the mount time and location from the GPS for 2 minutes. This is essentially a
 //      blocking call, no other activities take place (except tracking, but only if interrupt-driven).
 //      Use :Gt# and :Gg# to retrieve Lat and Long,
 //      Returns: 1 if the data was set, 0 if not (timedout)
 //
-// :gTnnn#
+// :gTnnn# 
+//      Set Mount Time w/ timeout
 //      Attempts to set the mount time and location from the GPS with a custom timeout. This is also blocking
 //      but by using a low timeout, you can avoid long pauses and let the user know that it's not ready yet.
 //      Where nnn is an integer defining the number of milliseconds to wait for the GPS to get a bearing.
@@ -284,7 +288,8 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: 1 when all motors have stopped.
 //
 // :Qd#
-//      Stop slew in specified direction where d is n, s, e, w, a (the first four are the cardinal directions, a stands for All).
+//      Stop Slewing
+//      Stops slew in specified direction where d is n, s, e, w, a (the first four are the cardinal directions, a stands for All).
 //      Returns: nothing
 //
 // -- QUIT MOVEMENT Extensions --
@@ -317,19 +322,26 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: 1# or 0# if there is no Digital Level
 //
 // :XLGR#
-//      Get Reference pitch and roll values (Digital Level)
+//      Digital Level - Get Reference
+//      Gets the reference pitch and roll values of the mount (Digital Level addon). These
+//      values are the values of the pitch and roll when the mount is level.
 //      Returns: <pitch>,<roll># or 0# if there is no Digital Level
 //
 // :XLGC#
-//      Get current pitch and roll values (Digital Level)
+//      Digital Level - Get Values
+//      Gets the current pitch and roll values of the mount (Digital Level addon).
 //      Returns: <pitch>,<roll># or 0# if there is no Digital Level
 //
 // :XLSR#
-//      Set Reference roll (Digital Level)
+//      Digital Level - Set Reference Roll
+//      Sets the reference roll value of the mount (Digital Level addon). This is the value
+//      at which the mount is level.
 //      Returns: 1# or 0# if there is no Digital Level
 //
 // :XLSP#
-//      Set Reference pitch (Digital Level)
+//      Digital Level - Set Reference Pitch
+//      Sets the reference pitch value of the mount (Digital Level addon). This is the value
+//      at which the mount is level.
 //      Returns: 1# or 0# if there is no Digital Level
 //
 // :XGB#
@@ -339,13 +351,13 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //
 // :XGR#
 //      Get RA steps 
-//      Get the number of steps the RA stepper motor needs to take to rotate by one degree 
-//      Returns: integer#
+//      Get the number of steps the RA stepper motor needs to take to rotate RA by one degree 
+//      Returns: float#
 //
 // :XGD#
 //      Get DEC steps 
-//      Get the number of steps the DEC stepper motor needs to take to rotate by one degree 
-//      Returns: integer#
+//      Get the number of steps the DEC stepper motor needs to take to rotate DEC by one degree
+//      Returns: float#
 //
 // :XGS#
 //      Get Tracking speed adjustment
@@ -376,7 +388,7 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Get network settings
 //      Gets the current status of the Wifi connection. Reply only available when running on ESP boards.
 //      Returns: 1,<stats>,<hostname>,<ip>:<port>,<SSID>,<OATHostname>#     - if Wifi is enabled
-//      Returns: 0,#     - if Wifi is not enabled
+//      Returns: 0,#                                                        - if Wifi is not enabled
 //
 // :XGL#
 //      Get LST
@@ -388,16 +400,16 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Sets the number of steps the RA stepper motor needs to overshoot and backtrack when slewing east.
 //      Returns: nothing
 //
-// :XSRn#
+// :XSRn.n#
 //      Set RA steps 
 //      Set the number of steps the RA stepper motor needs to take to rotate by one degree.
-//      Where n is the number of steps
+//      Where n.n is the number of steps (only one decimal point is supported)
 //      Returns: nothing
 //
-// :XSDn#
+// :XSDn.n#
 //      Set DEC steps 
 //      Set the number of steps the DEC stepper motor needs to take to rotate by one degree.
-//      Where n is the number of steps
+//      Where n.n is the number of steps (only one decimal point is supported)
 //      Returns: nothing
 //
 // :XSSn.nnn#
@@ -413,13 +425,15 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: nothing
 //
 // :XSXn.nnn#
-//      Set RA manual slewing speed in degrees/sec. Max is around 2.5 degs/s.
-//      Set the speed of the RA motor, immediately. Must be in manual slewing mode.
+//      Set RA Speed
+//      Set RA manual slewing speed in degrees/sec immediately. Max is around 2.5 degs/s.
+//      Must be in manual slewing mode.
 //      Returns: nothing
 //
 // :XSYn.nnn#
-//      Set DEC manual slewing speed in degrees/sec. Max is around 2.5 degs/s.
-//      Set the speed of the DEC motor, immediately. Must be in manual slewing mode.
+//      Set DEC Speed
+//      Set DEC manual slewing speed in degrees/sec immediately. Max is around 2.5 degs/s.
+//      Must be in manual slewing mode.
 //      Returns: nothing
 //
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -792,10 +806,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd) {
   }
     else if (inCmd[0] == 'G') { // Get RA/DEC steps/deg, speedfactor
     if (inCmd[1] == 'R') {
-      return String(_mount->getStepsPerDegree(RA_STEPS)) + "#";
+      return String(_mount->getStepsPerDegree(RA_STEPS), 1) + "#";
     }
     else if (inCmd[1] == 'D') {
-      return String(_mount->getStepsPerDegree(DEC_STEPS)) + "#";
+      return String(_mount->getStepsPerDegree(DEC_STEPS),1) + "#";
     }
     else if (inCmd[1] == 'S') {
       return String(_mount->getSpeedCalibration(), 5) + "#";
@@ -832,10 +846,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd) {
   }
   else if (inCmd[0] == 'S') { // Set RA/DEC steps/deg, speedfactor
     if (inCmd[1] == 'R') {
-      _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toInt());
+      _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
     }
     else if (inCmd[1] == 'D') {
-      _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toInt());
+      _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
     }
     else if (inCmd[1] == 'S') {
       _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), true);

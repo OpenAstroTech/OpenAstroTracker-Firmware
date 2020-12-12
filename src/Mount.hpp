@@ -336,7 +336,7 @@ private:
 private:
   LcdMenu* _lcdMenu;
   float _stepsPerRADegree;
-  int _stepsPerDECDegree;
+  float _stepsPerDECDegree;
   int _stepsPerAZDegree;
   int _stepsPerALTDegree;
   int _maxRASpeed;
