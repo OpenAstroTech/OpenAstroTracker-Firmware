@@ -15,6 +15,13 @@
 // GENERIC drivers include A4988 and any Bipolar STEP/DIR based drivers. Note Microstep assignments in config_pins.
 #define RA_DRIVER_TYPE      DRIVER_TYPE_TMC2209_UART
 #define DEC_DRIVER_TYPE     DRIVER_TYPE_TMC2209_UART
+#define RA_RMSCURRENT 1200       // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
+#define DEC_RMSCURRENT 1000   // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
+#define RA_STEPPER_SPEED          1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+#define RA_STEPPER_ACCELERATION   6000
+#define DEC_STEPPER_SPEED          1300  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+#define DEC_STEPPER_ACCELERATION   6000
+
 
 // Set this to 1 if you are using a NEO6m GPS module for HA/LST and location automatic determination.
 // GPS uses Serial1 by default, which is pins 18/19 on Mega. Change pins in configuration_pins.hpp
