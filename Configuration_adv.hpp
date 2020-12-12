@@ -15,7 +15,7 @@
   #define RA_STEPPER_ACCELERATION   600   // High speeds tend to make these cheap steppers unprecice
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
   #define RA_STEPPER_SPR            400   // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
-  #ifndef RA_STEPPER SPEED
+  #ifndef RA_STEPPER_SPEED
   #define RA_STEPPER_SPEED          1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
   #endif
   #ifndef RA_STEPPER_ACCELERATION
