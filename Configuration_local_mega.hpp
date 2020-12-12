@@ -27,5 +27,5 @@
 // Set this to 1 if the mount has motorized Azimuth and Altitude adjustment. Set pins in configuration_pins.hpp. Change motor speeds in Configuration_adv.hpp
 #define AZIMUTH_ALTITUDE_MOTORS  0
 
-#define DISPLAY_TYPE DISPLAY_TYPE_NONE
-// #define DISPLAY_TYPE DISPLAY_TYPE_LCD_KEYPAD
+// #define DISPLAY_TYPE DISPLAY_TYPE_NONE
+#define DISPLAY_TYPE DISPLAY_TYPE_LCD_KEYPAD
