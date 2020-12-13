@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "InterruptCallback.hpp"
+
 #include "inc/Config.hpp"
 #include "a_inits.hpp"
 #include "LcdMenu.hpp"
@@ -13,7 +15,7 @@ LcdMenu lcdMenu(16, 2, MAXMENUITEMS);
 LcdButtons lcdButtons(LCD_PINA0, &lcdMenu);
 #endif
 
-#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
 LcdButtons lcdButtons(&lcdMenu);
 #endif
 
@@ -47,52 +49,52 @@ Mount mount(RA_STEPS_PER_DEGREE, DEC_STEPS_PER_DEGREE, &lcdMenu);
 WifiControl wifiControl(&mount, &lcdMenu);
 #endif
 
-void finishSetup();
+/////////////////////////////////
+//   Interrupt handling
+/////////////////////////////////
+/* There are three possible configurations for periodically servicing the steper drives:
+ * 1) If RUN_STEPPERS_IN_MAIN_LOOP != 0 then the stepper drivers are called from Mount::loop().
+ *    Performance depends on how fast Mount::loop() can execute. With serial or UI activity it 
+ *    is likely that steps will be missed and tracking may not be smooth. No interrupts or threads
+ *    are used, so this is simple to get running.
+ * 2) If ESP32 is #defined then a periodic task is assigned to Core 0 to service the steppers.
+ *    stepperControlTask() is scheduled to run every 1 ms (1 kHz rate). On ESP32 the default Arduino 
+ *    loop() function runs on Core 1, therefore serial and UI activity also runs on Core 1. 
+ *    Note that Wifi and Bluetooth drivers will be sharing Core 0 with stepperControlTask().
+ *    This configuration decouples stepper servicing from other OAT activities by using both cores.
+ * 3) By default (e.g. for ATmega2560) a periodic timer is configured for a 500 us (2 kHz rate interval).
+ *    This timr generates interrupts which are handled by stepperControlCallback(). The stepper 
+ *    servicing therefore suspends loop() to generate motion, ensuring smooth tracking.
+ */
+#if (RUN_STEPPERS_IN_MAIN_LOOP != 0)
+  // Nothing to do - Mount::loop() will manage steppers in-line
 
-/////////////////////////////////
-//   ESP32
-/////////////////////////////////
-#if defined(ESP32) && (RUN_STEPPERS_IN_MAIN_LOOP == 0)
-// Forward declare the two functions we run in the main loop
-void serialLoop();
+#elif defined(ESP32)
 
 TaskHandle_t StepperTask;
-TaskHandle_t  CommunicationsTask;
 
-/////////////////////////////////
-//
-// stepperControlFunc
-//
-// This task function is run on Core 1 of the ESP32
-/////////////////////////////////
+// This is the task for simulating periodic interrupts on ESP32 platforms. 
+// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
+// This task function is run on Core 0 of the ESP32 and never returns
 void IRAM_ATTR stepperControlTask(void* payload)
 {
   Mount* mount = reinterpret_cast<Mount*>(payload);
   for (;;) {
     mount->interruptLoop();
+    vTaskDelay(1);  // 1 ms 	// This will limit max stepping rate to 1 kHz
   }
 }
 
-
-
-/////////////////////////////////
-//
-// mainLoopFunc
-//
-// This task function is run on Core 2 of the ESP32
-/////////////////////////////////
-void IRAM_ATTR mainLoopTask(void* payload)
-{
-  finishSetup();
-
-  for (;;) {
-    serialLoop();
-    #ifdef BLUETOOTH_ENABLED
-    BTin();
-    #endif
-    vTaskDelay(1);
-  }
+#else
+// This is the callback function for the timer interrupt on ATMega platforms. 
+// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
+// It is called every 500 us (2 kHz rate)
+void stepperControlTimerCallback(void* payload) {
+  Mount* mount = reinterpret_cast<Mount*>(payload);
+  if (mount)
+    mount->interruptLoop();
 }
+
 #endif
 
 /////////////////////////////////
@@ -198,57 +200,19 @@ void setup() {
   LOGV2(DEBUG_ANY, F("Hello, universe, this is OAT %s!"), VERSION);
 
   EPROMStore::initialize();
-  mount.readConfiguration();
 
-  /////////////////////////////////
-  // ESP32
-  /////////////////////////////////
-  #if defined(ESP32) && (RUN_STEPPERS_IN_MAIN_LOOP == 0)
-    disableCore0WDT();
-    xTaskCreatePinnedToCore(
-      stepperControlTask,    // Function to run on this core
-      "StepperControl",      // Name of this task
-      32767,                 // Stack space in bytes
-      &mount,                // payload
-      2,                     // Priority (2 is higher than 1)
-      &StepperTask,          // The location that receives the thread id
-      0);                    // The core to run this on
-
-    delay(100);
-
-    xTaskCreatePinnedToCore(
-      mainLoopTask,             // Function to run on this core
-      "CommunicationControl",   // Name of this task
-      32767,                    // Stack space in bytes
-      NULL,                     // payload
-      1,                        // Priority (2 is higher than 1)
-      &CommunicationsTask,      // The location that receives the thread id
-      1);                       // The core to run this on
-
-    delay(100);
-
-  #else
-
-    finishSetup();
-
-  #endif
-}
-
-void finishSetup()
-{
   // Calling the LCD startup here, I2C can't be found if called earlier
   #if DISPLAY_TYPE > 0
     lcdMenu.startup();
-  #endif
 
-  LOGV1(DEBUG_ANY, F("Finishing boot..."));
-  // Show a splash screen
-  lcdMenu.setCursor(0, 0);
-  lcdMenu.printMenu("OpenAstroTracker");
-  lcdMenu.setCursor(5, 1);
-  lcdMenu.printMenu(VERSION);
+    LOGV1(DEBUG_ANY, F("Finishing boot..."));
+    // Show a splash screen
+    lcdMenu.setCursor(0, 0);
+    lcdMenu.printMenu("OpenAstroTracker");
+    lcdMenu.setCursor(5, 1);
+    lcdMenu.printMenu(VERSION);
+    delay(1000);  // Pause on splash screen
 
-  #if DISPLAY_TYPE > 0
     // Check for EEPROM reset (Button down during boot)
     if (lcdButtons.currentState() == btnDOWN){
       LOGV1(DEBUG_INFO, F("Erasing configuration in EEPROM!"));
@@ -261,8 +225,31 @@ void finishSetup()
       }
     }
 
-  unsigned long now = millis();
-  #endif
+    // Create the LCD top-level menu items
+    lcdMenu.addItem("RA", RA_Menu);
+    lcdMenu.addItem("DEC", DEC_Menu);
+
+    #if SUPPORT_POINTS_OF_INTEREST == 1
+      lcdMenu.addItem("GO", POI_Menu);
+    #else
+      lcdMenu.addItem("GO", Home_Menu);
+    #endif
+
+    lcdMenu.addItem("HA", HA_Menu);
+
+    #if SUPPORT_MANUAL_CONTROL == 1
+      lcdMenu.addItem("CTRL", Control_Menu);
+    #endif
+
+    #if SUPPORT_CALIBRATION == 1
+      lcdMenu.addItem("CAL", Calibration_Menu);
+    #endif
+
+    #if SUPPORT_INFO_DISPLAY == 1
+      lcdMenu.addItem("INFO", Status_Menu);
+    #endif
+
+  #endif // DISPLAY_TYPE > 0
   
   LOGV2(DEBUG_ANY, F("Hardware: %s"), mount.getMountHardwareInfo().c_str());
 
@@ -279,17 +266,17 @@ void finishSetup()
   // Delay for a while to get UARTs booted...
   delay(1000);  
 
-  LOGV1(DEBUG_ANY, F("Configure RA stepper..."));
   // Set the stepper motor parameters
   #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48 
+    LOGV1(DEBUG_ANY, "Configure RA stepper 28BYJ-48...");
     mount.configureRAStepper(FULLSTEP_MODE, RAmotorPin1, RAmotorPin2, RAmotorPin3, RAmotorPin4, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
   #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
+    LOGV1(DEBUG_ANY, F("Configure RA stepper NEMA..."));
     mount.configureRAStepper(DRIVER_MODE, RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
   #else
     #error New stepper type? Configure it here.
   #endif
 
-  LOGV1(DEBUG_ANY, F("Configure DEC stepper..."));
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     LOGV1(DEBUG_ANY, F("Configure DEC stepper 28BYJ-48..."));
     mount.configureDECStepper(HALFSTEP_MODE, DECmotorPin1, DECmotorPin2, DECmotorPin3, DECmotorPin4, RA_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
@@ -301,11 +288,11 @@ void finishSetup()
   #endif
 
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOGV1(DEBUG_ANY, F("Configure RA driver..."));
+    LOGV1(DEBUG_ANY, F("Configure RA driver TMC2209 UART..."));
     mount.configureRAdriver(&RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
   #endif
   #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOGV1(DEBUG_ANY, F("Configure DEC driver TMC2009 UART..."));
+    LOGV1(DEBUG_ANY, F("Configure DEC driver TMC2209 UART..."));
     mount.configureDECdriver(&DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
   #endif
 
@@ -355,47 +342,33 @@ void finishSetup()
   // For LCD screen, it's better to initialize the target to where we are (RA)
   mount.targetRA() = mount.currentRA();
 
-  // Hook into the timers for periodic interrupts to run the steppers. 
-  mount.startTimerInterrupts();
+  // Setup service to periodically service the steppers. 
+  #if (RUN_STEPPERS_IN_MAIN_LOOP != 0)
+    // Nothing to do - Mount::loop() will manage steppers in-line
+
+  #elif defined(ESP32)
+
+    disableCore0WDT();
+    xTaskCreatePinnedToCore(
+      stepperControlTask,    // Function to run on this core
+      "StepperControl",      // Name of this task
+      32767,                 // Stack space in bytes
+      &mount,                // payload
+      2,                     // Priority (2 is higher than 1)
+      &StepperTask,          // The location that receives the thread id
+      0);                    // The core to run this on
+      
+  #else
+    // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
+    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
+    {
+      LOGV1(DEBUG_MOUNT, F("CANNOT setup interrupt timer!"));
+    }
+  #endif
 
   // Start the tracker.
   LOGV1(DEBUG_ANY, F("Start Tracking..."));
   mount.startSlewing(TRACKING);
-
-  #if DISPLAY_TYPE > 0
-    LOGV1(DEBUG_ANY, F("Setup menu system..."));
-
-    // Create the LCD top-level menu items
-    lcdMenu.addItem("RA", RA_Menu);
-    lcdMenu.addItem("DEC", DEC_Menu);
-
-    #if SUPPORT_POINTS_OF_INTEREST == 1
-      lcdMenu.addItem("GO", POI_Menu);
-    #else
-      lcdMenu.addItem("GO", Home_Menu);
-    #endif
-
-    lcdMenu.addItem("HA", HA_Menu);
-
-    #if SUPPORT_MANUAL_CONTROL == 1
-      lcdMenu.addItem("CTRL", Control_Menu);
-    #endif
-
-    #if SUPPORT_CALIBRATION == 1
-      lcdMenu.addItem("CAL", Calibration_Menu);
-    #endif
-
-    #if SUPPORT_INFO_DISPLAY == 1
-      lcdMenu.addItem("INFO", Status_Menu);
-    #endif
-
-    while (millis() - now < 750) {
-      mount.loop();
-    }
-
-    LOGV1(DEBUG_ANY, F("Update display..."));
-    lcdMenu.updateDisplay();
-  #endif // DISPLAY_TYPE > 0
 
   mount.bootComplete();
   LOGV1(DEBUG_ANY, F("Boot complete!"));

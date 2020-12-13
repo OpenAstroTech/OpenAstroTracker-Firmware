@@ -138,6 +138,13 @@ void logv(int levelFlags, String input, ...);
 #endif // DEBUG_LEVEL>0
 
 class LcdButtons {
+private:
+  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+    uint8_t const KEY_ROW_1_ADC = 36;
+    uint8_t const KEY_ROW_2_ADC = 39;
+    uint8_t const KEY_ROW_3_ADC = 34;
+  #endif
+
 public:
   LcdButtons(byte pin, LcdMenu* lcdMenu) {
     _lcdMenu = lcdMenu;
@@ -149,6 +156,13 @@ public:
 
     _currentKey = -1;
     _lastKey = -2;
+
+  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+    // Initialize keypad
+    pinMode(KEY_ROW_1_ADC, INPUT);
+    pinMode(KEY_ROW_2_ADC, INPUT);
+    pinMode(KEY_ROW_3_ADC, INPUT);    
+  #endif
   }
 
   LcdButtons(LcdMenu* lcdMenu) {
@@ -202,6 +216,31 @@ private:
       if (buttons & BUTTON_RIGHT) _currentKey = btnRIGHT;
       if (buttons & BUTTON_SELECT) _currentKey = btnSELECT;
     }
+    #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+    uint16_t r1(analogRead(KEY_ROW_1_ADC));
+    uint16_t r2(analogRead(KEY_ROW_2_ADC));
+    uint16_t r3(analogRead(KEY_ROW_3_ADC));
+    _analogKeyValue = r1;
+    _currentKey = btnNONE;
+
+    if(r1 > 300) {  // Row 1 is pressed
+      if (r1 > 3600) _currentKey = btnNONE;       // SW9
+      else if (r1 > 2800) _currentKey = btnNONE;  // SW7
+      else _currentKey = btnDOWN;                 // SW8
+    }
+
+    else if(r2 > 1000) {  // Row 2 is pressed
+      if (r2 > 3600) _currentKey = btnRIGHT;      // SW6
+      else if (r2 > 2800) _currentKey = btnLEFT;  // SW4
+      else _currentKey = btnSELECT;               // SW5
+    }
+
+    else if(r3 > 1000) {  // Row 3 is pressed
+      if (r3 > 3600) _currentKey = btnNONE;       // SW3
+      else if (r3 > 2800) _currentKey = btnNONE;  // SW1
+      else _currentKey = btnUP;                   // SW2
+    }
+
     #else
     _analogKeyValue = analogRead(_analogPin);
     if (_analogKeyValue > 1000) _currentKey = btnNONE;

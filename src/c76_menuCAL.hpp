@@ -150,14 +150,14 @@ bool checkProgressiveUpDown(int *val, int minDelay = 25)
   {
     *val = *val + 1;
     mount.delay(calDelay);
-    calDelay = max(minDelay, 0.94 * calDelay);
+    calDelay = max(minDelay, int(0.94 * calDelay));
     ret = false;
   }
   else if (lcdButtons.currentState() == btnDOWN)
   {
     *val = *val - 1;
     mount.delay(calDelay);
-    calDelay = max(minDelay, 0.94 * calDelay);
+    calDelay = max(minDelay, int(0.94 * calDelay));
     ret = false;
   }
   else

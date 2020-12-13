@@ -147,10 +147,6 @@
         #error GPS module not currently configured/supported in ESP32
     #endif
 
-    #if USE_GYRO_LEVEL == 1
-        #error Digital Level not currently configured/supported in ESP32
-    #endif
-    
     //LCD pin definitions (to allow configuration on different boards)
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
         #define LCD_PINA0 0
