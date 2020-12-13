@@ -11,24 +11,40 @@
 // This is how many steps your stepper needs for a full rotation.
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
   #define RA_STEPPER_SPR            4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
-  #define RA_STEPPER_SPEED          400   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
-  #define RA_STEPPER_ACCELERATION   600   // High speeds tend to make these cheap steppers unprecice
+  #ifndef RA_STEPPER_SPEED
+    #define RA_STEPPER_SPEED          400   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
+  #endif
+  #ifndef RA_STEPPER_ACCELERATION
+    #define RA_STEPPER_ACCELERATION   600   // High speeds tend to make these cheap steppers unprecice
+  #endif
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
   #define RA_STEPPER_SPR            400   // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
-  #define RA_STEPPER_SPEED          1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
-  #define RA_STEPPER_ACCELERATION   6000
+  #ifndef RA_STEPPER_SPEED
+    #define RA_STEPPER_SPEED          1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+  #endif
+  #ifndef RA_STEPPER_ACCELERATION
+    #define RA_STEPPER_ACCELERATION   6000
+  #endif
 #else
   #error New RA Stepper type? Add it here...
 #endif
 
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
   #define DEC_STEPPER_SPR            4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
-  #define DEC_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
-  #define DEC_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+  #ifndef DEC_STEPPER_SPEED
+    #define DEC_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
+  #endif
+  #ifndef DEC_STEPPER_ACCELERATION
+    #define DEC_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+  #endif
 #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
   #define DEC_STEPPER_SPR            400   // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
-  #define DEC_STEPPER_SPEED          1300  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
-  #define DEC_STEPPER_ACCELERATION   6000
+  #ifndef DEC_STEPPER_SPEED
+    #define DEC_STEPPER_SPEED          1300  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+  #endif
+  #ifndef DEC_STEPPER_ACCELERATION
+    #define DEC_STEPPER_ACCELERATION   6000
+  #endif
 #else
   #error New DEC Stepper type? Add it here...
 #endif
@@ -80,13 +96,17 @@
 // These settings work only with TMC2209 in UART connection (single wire to TX)
 #define TRACKING_MICROSTEPPING 64  // Set the MS mode for tracking only. Slew MS is set by SET_MICROSTEPPING above
 
-#define RA_RMSCURRENT 1200       // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
+#ifndef RA_RMSCURRENT
+  #define RA_RMSCURRENT 1200       // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
+#endif
 #define RA_STALL_VALUE 100       // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
 #define DEC_SLEW_MICROSTEPPING  16  // The microstep mode used for slewing DEC
 #define DEC_GUIDE_MICROSTEPPING 64  // The microstep mode used for Guiding DEC only
 #define DEC_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
-#define DEC_RMSCURRENT 1000   // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
+#ifndef DEC_RMSCURRENT
+  #define DEC_RMSCURRENT 1000   // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
+#endif
 #define DEC_HOLDCURRENT 20    // [0, ... , 31] x/32 of the run current when standing still. 0=1/32... 31=32/32
 #define USE_AUTOHOME 0        // Autohome with TMC2209 stall detection:  ON = 1  |  OFF = 0   
 //                  ^^^ leave at 0 for now, doesnt work properly yet
