@@ -28,7 +28,7 @@ LcdMenu::LcdMenu(byte cols, byte rows, int maxItems) : _lcd(0x20),
 #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
 LcdMenu::LcdMenu(byte cols, byte rows, int maxItems) :
   _cols(cols), _rows(rows), _maxItems(maxItems),
-  _charHeightRows(2)  // 1 character = 2 rows (2x8 pixels)
+  _charHeightRows(2)  // For 7x14 font 1 character = 2 rows (2x8 pixels)
 {
 }
 #endif
@@ -37,15 +37,22 @@ void LcdMenu::startup()
 {
   LOGV1(DEBUG_INFO, F("LcdMenu:: startup"));
 
-  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-  _lcd.begin(_cols, _rows);
+  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
+    _lcd.begin(_cols, _rows);
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
+    _lcd.begin(_cols, _rows);
+    _lcd.setBacklight(RED);
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-  _lcd.begin();
-  _lcd.setPowerSave(0);
-  _lcd.setContrast(255);
-  _lcd.clear();
-  _lcd.setFont(u8x8_font_7x14_1x2_f);   // Each 7x14 character takes up 2 8-pixel rows
+    _lcd.begin();
+    _lcd.setPowerSave(0);
+    _lcd.clear();
+    _lcd.setFont(u8x8_font_7x14_1x2_f);   // Each 7x14 character takes up 2 8-pixel rows
   #endif
+
+  _brightness = EPROMStore::readUint8(EPROMStore::LCD_BRIGHTNESS);
+  if (_brightness == 0) _brightness = 10;   // Have a reasonable minimum
+  LOGV2(DEBUG_INFO, F("LCD: Brightness from EEPROM is %d"), _brightness);
+  setBacklightBrightness(_brightness, false);
 
   _numMenuItems = 0;
   _activeMenuIndex = 0;
@@ -56,15 +63,6 @@ void LcdMenu::startup()
   _lastDisplay[0] = "";
   _lastDisplay[1] = "";
   _menuItems = new MenuItem *[_maxItems];
-  
-  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-  _lcd.setBacklight(RED);
-  #endif
-
-  _brightness = EPROMStore::read(16);
-  LOGV2(DEBUG_INFO, F("LCD: Brightness from EEPROM is %d"), _brightness);
-  // pinMode(10, OUTPUT);
-  // analogWrite(10, _brightness);
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
   // Create special characters for degrees and arrows
@@ -136,14 +134,18 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 {
   _brightness = level;
 
-  //LOGV2(DEBUG_INFO, F("LCD: Writing %d as brightness"), _brightness  );
-  // analogWrite(10, _brightness);
-  //LOGV2(DEBUG_INFO, F("LCD: Wrote %d as brightness"), _brightness  );
+  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
+    analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
+    // Nothing to do?
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+    _lcd.setContrast(_brightness);
+  #endif
 
   if (persist)
   {
-    // LOGV2(DEBUG_INFO, F("LCD: Saving %d as brightness"), (_brightness & 0x00FF));
-    EPROMStore::update(16, (byte)(_brightness & 0x00FF));
+    LOGV2(DEBUG_INFO, F("LCD: Saving %d as brightness"), (_brightness & 0x00FF));
+    EPROMStore::updateUint8(EPROMStore::LCD_BRIGHTNESS, (byte)(_brightness & 0x00FF));
   }
 }
 

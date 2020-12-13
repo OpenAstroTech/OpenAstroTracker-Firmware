@@ -9,37 +9,31 @@
 #if USE_GYRO_LEVEL == 1
 #include "Gyro.hpp"
 #endif
-// HIGHLIGHT states allow you to pick one of the three sub functions.
-#define HIGHLIGHT_FIRST 1
-#define HIGHLIGHT_POLAR 1
-#define HIGHLIGHT_DRIFT 2
-#define HIGHLIGHT_SPEED 3
-#define HIGHLIGHT_RA_STEPS 4
-#define HIGHLIGHT_DEC_STEPS 5
-#define HIGHLIGHT_BACKLASH_STEPS 6
-#define HIGHLIGHT_PARKING_POS 7
-#define HIGHLIGHT_DEC_LOWER_LIMIT 8
-#define HIGHLIGHT_DEC_UPPER_LIMIT 9
 
+// HIGHLIGHT states allow you to pick one of the three sub functions.
+enum {
+  HIGHLIGHT_POLAR = 1,
+  HIGHLIGHT_DRIFT,
+  HIGHLIGHT_SPEED,
+  HIGHLIGHT_RA_STEPS,
+  HIGHLIGHT_DEC_STEPS,
+  HIGHLIGHT_BACKLASH_STEPS,
+  HIGHLIGHT_PARKING_POS,
+  HIGHLIGHT_DEC_LOWER_LIMIT,
+  HIGHLIGHT_DEC_UPPER_LIMIT,
 #if AZIMUTH_ALTITUDE_MOTORS == 1
-  #define HIGHLIGHT_AZIMUTH_ADJUSTMENT 10
-  #define HIGHLIGHT_ALTITUDE_ADJUSTMENT 11
-  #if USE_GYRO_LEVEL == 1
-    #define HIGHLIGHT_ROLL_LEVEL 12
-    #define HIGHLIGHT_PITCH_LEVEL 13
-    #define HIGHLIGHT_LAST 13
-  #else
-    #define HIGHLIGHT_LAST 11
-  #endif
-#else
-  #if USE_GYRO_LEVEL == 1
-    #define HIGHLIGHT_ROLL_LEVEL 10
-    #define HIGHLIGHT_PITCH_LEVEL 11
-    #define HIGHLIGHT_LAST 11
-  #else
-    #define HIGHLIGHT_LAST 9
-  #endif
+  HIGHLIGHT_AZIMUTH_ADJUSTMENT,
+  HIGHLIGHT_ALTITUDE_ADJUSTMENT,
 #endif
+#if USE_GYRO_LEVEL == 1
+  HIGHLIGHT_ROLL_LEVEL,
+  HIGHLIGHT_PITCH_LEVEL,
+#endif
+  HIGHLIGHT_BACKLIGHT,
+
+  HIGHLIGHT_FIRST = HIGHLIGHT_POLAR,
+  HIGHLIGHT_LAST = HIGHLIGHT_BACKLIGHT
+};
 
 // Polar calibration goes through these three states:
 //  11- moving to RA and DEC beyond Polaris and waiting on confirmation that Polaris is centered
@@ -76,7 +70,7 @@
 #define DEC_UPPER_LIMIT_CONFIRM 93
 
 // Brightness setting only has one state, allowing you to adjust the brightness with UP and DOWN
-// #define BACKLIGHT_CALIBRATION 90
+#define BACKLIGHT_CALIBRATION 95
 
 // Azimuth adjustment has one state, allowing you to move azimuth a number of minutes
 #define AZIMUTH_ADJUSTMENT 100
@@ -128,9 +122,8 @@ int setPitchZeroPoint = false;
 bool gyroStarted = false;
 #endif
 
-
 // The brightness of the backlight of the LCD shield.
-// int Brightness = 255;
+int Brightness = 255;
 
 void gotoNextMenu()
 {
@@ -191,9 +184,10 @@ void gotoNextHighlightState(int dir)
   {
     SpeedCalibration = (mount.getSpeedCalibration() - 1.0) * 10000.0 + 0.5;
   }
-  // else if (calState == HIGHLIGHT_BACKLIGHT) {
-  //   Brightness = lcdMenu.getBacklightBrightness();
-  // }
+  else if (calState == HIGHLIGHT_BACKLIGHT) 
+  {
+    Brightness = lcdMenu.getBacklightBrightness();
+  }
 }
 
 bool processCalibrationKeys()
@@ -272,16 +266,14 @@ bool processCalibrationKeys()
   {
     checkForKeyChange = checkProgressiveUpDown(&BacklashSteps);
   }
-  // else if (calState == BACKLIGHT_CALIBRATION) {
-  //   checkForKeyChange = checkProgressiveUpDown(&Brightness);
-  //   if (!checkForKeyChange) {
-  //     LOGV2(DEBUG_INFO,F("CAL: Brightness changed to %d"), Brightness);
-  //     Brightness = clamp(Brightness, 0, 255);
-  //     LOGV2(DEBUG_INFO,F("CAL: Brightness clamped to %d"), Brightness);
-  //     lcdMenu.setBacklightBrightness(Brightness, false);
-  //     LOGV2(DEBUG_INFO,F("CAL: Brightness set %d"), (int)lcdMenu.getBacklightBrightness());
-  //   }
-  // }
+  else if (calState == BACKLIGHT_CALIBRATION) {
+    checkForKeyChange = checkProgressiveUpDown(&Brightness);
+    if (!checkForKeyChange) {
+      Brightness = clamp(Brightness, 0, 255);
+      lcdMenu.setBacklightBrightness(Brightness, false);
+      LOGV2(DEBUG_INFO,F("CAL: Brightness set %d"), (int)lcdMenu.getBacklightBrightness());
+    }
+  }
   else if (calState == POLAR_CALIBRATION_WAIT_HOME)
   {
     if (!mount.isSlewingRAorDEC())
@@ -594,22 +586,23 @@ bool processCalibrationKeys()
     break;
 
 #endif
-      // case BACKLIGHT_CALIBRATION:
-      // {
-      //   // UP and DOWN are handled above
-      //   if (key == btnSELECT) {
-      //     LOGV2(DEBUG_GENERAL, F("CAL Menu: Set brightness to %d"), Brightness);
-      //     lcdMenu.setBacklightBrightness(Brightness);
-      //     lcdMenu.printMenu("Level stored.");
-      //     mount.delay(500);
-      //     calState = HIGHLIGHT_BACKLIGHT;
-      //   }
-      //   else if (key == btnRIGHT) {
-      //     gotoNextMenu();
-      //     calState = HIGHLIGHT_BACKLIGHT;
-      //   }
-      // }
-      // break;
+
+    case BACKLIGHT_CALIBRATION:
+    {
+      // UP and DOWN are handled above
+      if (key == btnSELECT) {
+        LOGV2(DEBUG_GENERAL, F("CAL Menu: Set brightness to %d"), Brightness);
+        lcdMenu.setBacklightBrightness(Brightness);
+        lcdMenu.printMenu("Level stored.");
+        mount.delay(500);
+        calState = HIGHLIGHT_BACKLIGHT;
+      }
+      else if (key == btnRIGHT) {
+        gotoNextMenu();
+        calState = HIGHLIGHT_BACKLIGHT;
+      }
+    }
+    break;
 
     case HIGHLIGHT_POLAR:
     {
@@ -943,17 +936,22 @@ bool processCalibrationKeys()
     break;
 #endif
 
-      // case HIGHLIGHT_BACKLIGHT : {
-      //   if (key == btnDOWN) gotoNextHighlightState(1);
-      //   if (key == btnUP) gotoNextHighlightState(-1);
-      //   else if (key == btnSELECT) calState = BACKLIGHT_CALIBRATION;
-      //   else if (key == btnRIGHT) {
-      //      gotoNextMenu();
-      //     calState = HIGHLIGHT_FIRST;
-      //   }
-      // }
-      // break;
+    case HIGHLIGHT_BACKLIGHT : 
+    {
+      if (key == btnDOWN)
+        gotoNextHighlightState(1);
+      if (key == btnUP)
+        gotoNextHighlightState(-1);
+      else if (key == btnSELECT)
+        calState = BACKLIGHT_CALIBRATION;
+      else if (key == btnRIGHT) 
+      {
+         gotoNextMenu();
+        calState = HIGHLIGHT_FIRST;
+      }
     }
+    break;
+  }
   }
 
   return waitForRelease;
@@ -1036,9 +1034,9 @@ void printCalibrationSubmenu()
     lcdMenu.printMenu(">Pitch Offset");
   }
 #endif
-  // else if (calState == HIGHLIGHT_BACKLIGHT) {
-  //   lcdMenu.printMenu(">LCD Brightness");
-  // }
+  else if (calState == HIGHLIGHT_BACKLIGHT) {
+     lcdMenu.printMenu(">LCD Brightness");
+  }
   else if (calState == POLAR_CALIBRATION_WAIT_CENTER_POLARIS)
   {
     if (!mount.isSlewingRAorDEC())
@@ -1143,10 +1141,10 @@ void printCalibrationSubmenu()
     lcdMenu.printMenu(disp);
   }
 #endif
-  // else if (calState == BACKLIGHT_CALIBRATION) {
-  //   sprintf(scratchBuffer, "Brightness: %d", Brightness);
-  //   lcdMenu.printMenu(scratchBuffer);
-  // }
+  else if (calState == BACKLIGHT_CALIBRATION) {
+    sprintf(scratchBuffer, "Brightness: %d", Brightness);
+    lcdMenu.printMenu(scratchBuffer);
+  }
 }
 #endif
 

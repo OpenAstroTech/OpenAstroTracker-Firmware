@@ -12,7 +12,7 @@
 
 LcdMenu lcdMenu(16, 2, MAXMENUITEMS);
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-LcdButtons lcdButtons(LCD_PINA0, &lcdMenu);
+LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
 #endif
 
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
@@ -333,7 +333,7 @@ void setup() {
   mount.readConfiguration();
   
   // Read other persisted values and set in mount
-  DayTime haTime = DayTime(EPROMStore::read(1), EPROMStore::read(2), 0);
+  DayTime haTime = DayTime(EPROMStore::readUint8(EPROMStore::HA_HOUR), EPROMStore::readUint8(EPROMStore::HA_MINUTE), 0);
 
   LOGV2(DEBUG_INFO, "SpeedCal: %s", String(mount.getSpeedCalibration(), 5).c_str());
   LOGV2(DEBUG_INFO, "TRKSpeed: %s", String(mount.getSpeed(TRACKING), 5).c_str());
