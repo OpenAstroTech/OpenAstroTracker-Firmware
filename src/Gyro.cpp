@@ -30,7 +30,7 @@ void Gyro::startup()
     // This is a read-only register which should have the value 0x68
     Wire.beginTransmission(MPU6050_I2C_ADDR);
     Wire.write(MPU6050_REG_WHO_AM_I);
-    Wire.endTransmission(false);
+    Wire.endTransmission(true);
     Wire.requestFrom(MPU6050_I2C_ADDR, 1, 1);
     byte id = (Wire.read() >> 1) & 0x3F;    
     isPresent = (id == 0x34);
