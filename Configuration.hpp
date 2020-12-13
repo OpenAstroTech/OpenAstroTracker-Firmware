@@ -108,6 +108,11 @@
 #define USE_GPS 0
 #endif
 
+// Set this according to external controlling program
+#ifndef SERIAL_BAUDRATE
+#define SERIAL_BAUDRATE SERIAL_BAUDRATE_ASCOM
+#endif
+
 // Set this to 1 if you are using a MPU6050 electronic level
 // Wire the board to 20/21 on Mega. Change pins in configuration_pins.hpp if you use other pins
 #ifndef USE_GYRO_LEVEL

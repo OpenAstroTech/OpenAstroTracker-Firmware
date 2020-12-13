@@ -37,3 +37,8 @@
 #define DRIVER_TYPE_GENERIC             1
 #define DRIVER_TYPE_TMC2209_STANDALONE  2
 #define DRIVER_TYPE_TMC2209_UART        3
+
+
+// USB serial port speed according to external controller
+#define SERIAL_BAUDRATE_STELLARIUM_DIRECT   9600
+#define SERIAL_BAUDRATE_ASCOM               57600

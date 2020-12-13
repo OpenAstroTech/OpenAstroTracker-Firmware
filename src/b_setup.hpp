@@ -191,7 +191,8 @@ void setup() {
   #endif
 // end microstepping -------------------
 
-  Serial.begin(57600);
+  Serial.begin(SERIAL_BAUDRATE);
+
   #ifdef BLUETOOTH_ENABLED 
   BLUETOOTH_SERIAL.begin("OpenAstroTracker");
   #endif
