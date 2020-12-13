@@ -173,7 +173,7 @@
   #define AZ_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
 #elif AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17
   #define AZ_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-  #define AZ_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+  #define AZ_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 1500. 
   #define AZ_STEPPER_ACCELERATION   1000
 #else
   #error New Stepper type? Add it here...
@@ -191,7 +191,7 @@
   #define ALT_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
 #elif ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17
   #define ALT_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-  #define ALT_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+  #define ALT_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 1500. 
   #define ALT_STEPPER_ACCELERATION   1000
 #else
   #error New Stepper type? Add it here...
