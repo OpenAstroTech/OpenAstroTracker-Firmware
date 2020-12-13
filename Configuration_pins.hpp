@@ -145,6 +145,8 @@
   #endif 
 
   #if USE_GPS == 1
+    #define GPS_SERIAL_PORT Serial2
+    #define GPS_BAUD_RATE 9600
     #error GPS module not currently configured/supported in ESP32
   #endif
 
