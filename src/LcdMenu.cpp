@@ -49,8 +49,7 @@ void LcdMenu::startup()
     _lcd.setFont(u8x8_font_7x14_1x2_f);   // Each 7x14 character takes up 2 8-pixel rows
   #endif
 
-  _brightness = EPROMStore::readUint8(EPROMStore::LCD_BRIGHTNESS);
-  if (_brightness == 0) _brightness = 10;   // Have a reasonable minimum
+  _brightness = EEPROMStore::getBrightness();
   LOGV2(DEBUG_INFO, F("LCD: Brightness from EEPROM is %d"), _brightness);
   setBacklightBrightness(_brightness, false);
 
@@ -144,8 +143,8 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 
   if (persist)
   {
-    LOGV2(DEBUG_INFO, F("LCD: Saving %d as brightness"), (_brightness & 0x00FF));
-    EPROMStore::updateUint8(EPROMStore::LCD_BRIGHTNESS, (byte)(_brightness & 0x00FF));
+    LOGV2(DEBUG_INFO, F("LCD: Saving %d as brightness"), _brightness);
+    EEPROMStore::storeBrightness(_brightness);
   }
 }
 

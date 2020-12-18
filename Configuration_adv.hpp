@@ -73,7 +73,9 @@
 // Valid values: 1, 2, 4, 8, 16, 32, 64, 128, 256
 // !! Values greater or equal 32 are not supported by each driver, TMC2209 supports these values.
 #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-#define SET_MICROSTEPPING 8        
+#define SET_MICROSTEPPING 8
+#else        
+#define SET_MICROSTEPPING 1   // There is no microstepping for other steppers
 #endif
 
 // TMC2209 UART settings
@@ -304,7 +306,7 @@
 //
 // DEBUG OUTPUT
 //
-#define DEBUG_LEVEL (DEBUG_NONE)
+// #define DEBUG_LEVEL (DEBUG_INFO)
 // #define DEBUG_LEVEL (DEBUG_STEPPERS|DEBUG_MOUNT)
 // #define DEBUG_LEVEL (DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
 // #define DEBUG_LEVEL (DEBUG_SERIAL|DEBUG_WIFI|DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)

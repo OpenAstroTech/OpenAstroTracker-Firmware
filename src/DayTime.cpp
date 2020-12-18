@@ -69,20 +69,31 @@ DayTime::DayTime(const DayTime &other)
 
 DayTime::DayTime(int h, int m, int s)
 {
-  LOGV4(DEBUG_INFO, "DayTime ctor(%d, %d, %d)", h, m, s);
+  //LOGV4(DEBUG_INFO, "DayTime ctor(%d, %d, %d)", h, m, s);
   long sgn = sign(h);
   h = abs(h);
   totalSeconds = sgn * ((60L* h + m) * 60L + s);
-  LOGV6(DEBUG_INFO, "DayTime ctor(%d, %d, %d) -> %l -> %s", h, m, s, totalSeconds, ToString());
+  //LOGV6(DEBUG_INFO, "DayTime ctor(%d, %d, %d) -> %l -> %s", h, m, s, totalSeconds, ToString());
 }
 
 DayTime::DayTime(float timeInHours)
 {
-  LOGV2(DEBUG_INFO, "DayTime ctor(%f)", timeInHours);
+  //LOGV2(DEBUG_INFO, "DayTime ctor(%f)", timeInHours);
   long sgn = fsign(timeInHours);
   timeInHours = abs(timeInHours);
   totalSeconds = sgn * round(timeInHours * 60 * 60);
-  LOGV4(DEBUG_INFO, "DayTime ctor(%f) -> %l -> %s", timeInHours, totalSeconds, ToString());
+  //LOGV4(DEBUG_INFO, "DayTime ctor(%f) -> %l -> %s", timeInHours, totalSeconds, ToString());
+}
+
+DayTime& DayTime::operator=(DayTime const& other) // copy assignment
+{
+  if (this != &other) // self-assignment check expected
+  {
+    totalSeconds = other.totalSeconds;
+    hourWrap = other.hourWrap;  // In case of inheritance
+  }
+
+  return *this;
 }
 
 int DayTime::getHours() const

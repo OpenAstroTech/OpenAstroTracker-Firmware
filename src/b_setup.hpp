@@ -200,7 +200,7 @@ void setup() {
   LOGV1(DEBUG_ANY, F("."));
   LOGV2(DEBUG_ANY, F("Hello, universe, this is OAT %s!"), VERSION);
 
-  EPROMStore::initialize();
+  EEPROMStore::initialize();
 
   // Calling the LCD startup here, I2C can't be found if called earlier
   #if DISPLAY_TYPE > 0
@@ -333,7 +333,7 @@ void setup() {
   mount.readConfiguration();
   
   // Read other persisted values and set in mount
-  DayTime haTime = DayTime(EPROMStore::readUint8(EPROMStore::HA_HOUR), EPROMStore::readUint8(EPROMStore::HA_MINUTE), 0);
+  DayTime haTime = EEPROMStore::getHATime();
 
   LOGV2(DEBUG_INFO, "SpeedCal: %s", String(mount.getSpeedCalibration(), 5).c_str());
   LOGV2(DEBUG_INFO, "TRKSpeed: %s", String(mount.getSpeed(TRACKING), 5).c_str());
