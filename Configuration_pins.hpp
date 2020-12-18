@@ -140,14 +140,9 @@
   #define DEC_SERIAL_PORT Serial2  // HardwareSerial port, wire to TX2 for write-only
   #define DEC_DRIVER_ADDRESS 0b01  // Set by MS1/MS2 (MS1 HIGH, MS2 LOW)
 
-  #if AZIMUTH_ALTITUDE_MOTORS == 1
-    #error Azimuth/Alt motors not currently configured/supported in ESP32
-  #endif 
-
   #if USE_GPS == 1
     #define GPS_SERIAL_PORT Serial2
     #define GPS_BAUD_RATE 9600
-    #error GPS module not currently configured/supported in ESP32
   #endif
 
   //LCD pin definitions (to allow configuration on different boards)
