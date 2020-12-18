@@ -157,11 +157,13 @@ void Mount::readPersistentData()
   _longitude = EEPROMStore::getLongitude();
   LOGV2(DEBUG_INFO,F("Mount: EEPROM: Longitude is %s"), _longitude.ToString());
 
+#if USE_GYRO_LEVEL == 1
   _pitchCalibrationAngle = EEPROMStore::getPitchCalibrationAngle();
   LOGV2(DEBUG_INFO,F("Mount: EEPROM: Pitch Offset is %f"), _pitchCalibrationAngle);
 
   _rollCalibrationAngle = EEPROMStore::getRollCalibrationAngle();
   LOGV2(DEBUG_INFO,F("Mount: EEPROM: Roll Offset is %f"), _rollCalibrationAngle);
+#endif
 
   _raParkingPos = EEPROMStore::getRAParkingPos();
   _decParkingPos = EEPROMStore::getDECParkingPos();
