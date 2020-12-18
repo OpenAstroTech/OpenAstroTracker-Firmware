@@ -6,62 +6,93 @@
 #include "Utility.hpp"
 #include "Gyro.hpp"
 
-const int MPU = 0x68; // I2C address of the MPU6050 accelerometer
+/**
+ * Tilt, roll, and temperature measurementusing the MPU-6050 MEMS gyro.
+ * See: https://invensense.tdk.com/products/motion-tracking/6-axis/mpu-6050/
+ * Datasheet: https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf
+ * Register descriptions: https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Register-Map1.pdf
+ * */
 
-int16_t Gyro::AcX, Gyro::AcY, Gyro::AcZ;
-int16_t Gyro::AcXOffset, Gyro::AcYOffset, Gyro::AcZOffset;
+bool Gyro::isPresent(false);
 
 void Gyro::startup()
+/* Starts up the MPU-6050 device.
+   Reads the WHO_AM_I register to verify if the device is present.
+   Wakes device from power-down.
+   Sets accelerometers to minimum bandwidth to reduce measurement noise.
+*/
 {
     // Initialize interface to the MPU6050
     LOGV1(DEBUG_INFO, F("GYRO:: Starting"));
     Wire.begin();
-    Wire.beginTransmission(MPU);
-    Wire.write(0x6B);
-    Wire.write(0);
+
+    // Execute 1 byte read from MPU6050_REG_WHO_AM_I
+    // This is a read-only register which should have the value 0x68
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.write(MPU6050_REG_WHO_AM_I);
+    Wire.endTransmission(true);
+    Wire.requestFrom(MPU6050_I2C_ADDR, 1, 1);
+    byte id = (Wire.read() >> 1) & 0x3F;    
+    isPresent = (id == 0x34);
+    if (!isPresent) {
+        LOGV1(DEBUG_INFO, F("GYRO:: Not found!"));
+        return;
+    }
+
+    // Execute 1 byte write to MPU6050_REG_PWR_MGMT_1
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.write(MPU6050_REG_PWR_MGMT_1);
+    Wire.write(0);      // Disable sleep, 8 MHz clock
     Wire.endTransmission(true);
 
-    // read the values 100 times for them to stabilize
-    for (int i = 0; i < 100; i++)
-    {
-        Wire.beginTransmission(MPU);
-        Wire.write(0x3B); // Start with register 0x3B (ACCEL_XOUT_H)
-        Wire.endTransmission(false);
-        Wire.requestFrom(MPU, 6, true);       // Read 6 registers total, each axis value is stored in 2 registers
-        AcX = Wire.read() << 8 | Wire.read(); // X-axis value
-        AcY = Wire.read() << 8 | Wire.read(); // Y-axis value
-        AcZ = Wire.read() << 8 | Wire.read(); // Z-axis value
-    }
+    // Execute 1 byte write to MPU6050_REG_PWR_MGMT_1
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.write(MPU6050_REG_CONFIG);
+    Wire.write(6);      // 5Hz bandwidth (lowest) for smoothing
+    Wire.endTransmission(true);
+
     LOGV1(DEBUG_INFO, F("GYRO:: Started"));
 }
 
 void Gyro::shutdown()
+/* Shuts down the MPU-6050 device.
+   Currently does nothing.
+*/
 {
     LOGV1(DEBUG_INFO, F("GYRO: Shutdown"));
-    Wire.end();
+    // Nothing to do
 }
 
 angle_t Gyro::getCurrentAngles()
+/* Returns roll & tilt angles from MPU-6050 device in angle_t object in degrees.
+   If MPU-6050 is not found then returns {0,0}.
+*/
 {
     const int windowSize = 16;
     // Read the accelerometer data
     struct angle_t result;
     result.pitchAngle = 0;
     result.rollAngle = 0;
+    if (!isPresent)
+        return result;     // Gyro is not available
+
     for (int i = 0; i < windowSize; i++)
     {
-        Wire.beginTransmission(MPU);
-        Wire.write(0x3B); // Start with register 0x3B (ACCEL_XOUT_H)
+        // Execute 6 byte read from MPU6050_REG_WHO_AM_I
+        Wire.beginTransmission(MPU6050_I2C_ADDR);
+        Wire.write(MPU6050_REG_ACCEL_XOUT_H); 
         Wire.endTransmission(false);
-        Wire.requestFrom(MPU, 6, true);       // Read 6 registers total, each axis value is stored in 2 registers
-        AcX = Wire.read() << 8 | Wire.read(); // X-axis value
-        AcY = Wire.read() << 8 | Wire.read(); // Y-axis value
-        AcZ = Wire.read() << 8 | Wire.read(); // Z-axis value
+        Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);  // Read 6 registers total, each axis value is stored in 2 registers
+        int16_t AcX = Wire.read() << 8 | Wire.read(); // X-axis value
+        int16_t AcY = Wire.read() << 8 | Wire.read(); // Y-axis value
+        int16_t AcZ = Wire.read() << 8 | Wire.read(); // Z-axis value
 
         // Calculating the Pitch angle (rotation around Y-axis)
         result.pitchAngle += ((atan(-1 * AcX / sqrt(pow(AcY, 2) + pow(AcZ, 2))) * 180.0 / PI) * 2.0) / 2.0;
         // Calculating the Roll angle (rotation around X-axis)
         result.rollAngle += ((atan(-1 * AcY / sqrt(pow(AcX, 2) + pow(AcZ, 2))) * 180.0 / PI) * 2.0) / 2.0;
+
+        delay(10);  // Decorrelate measurements
     }
 
     result.pitchAngle /= windowSize;
@@ -75,17 +106,22 @@ angle_t Gyro::getCurrentAngles()
 }
 
 float Gyro::getCurrentTemperature()
+/* Returns MPU-6050 device temperature in degree C.
+   If MPU-6050 is not found then returns 99 (C).
+*/
 {
-    // Read the temperature data
-    float result = 0.0;
-    int16_t tempValue;
-    Wire.beginTransmission(MPU);
-    Wire.write(0x41); // Start with register 0x41 (TEMP_OUT_H)
+    if (!isPresent)
+        return 99;     // Gyro is not available
+
+    // Execute 2 byte read from MPU6050_REG_TEMP_OUT_H
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.write(MPU6050_REG_TEMP_OUT_H);
     Wire.endTransmission(false);
-    Wire.requestFrom(MPU, 2, true);             // Read 2 registers total, the temperature value is stored in 2 registers
-    tempValue = Wire.read() << 8 | Wire.read(); // Raw Temperature value
+    Wire.requestFrom(MPU6050_I2C_ADDR, 2, 1);        // Read 2 registers total, the temperature value is stored in 2 registers
+    int16_t tempValue = Wire.read() << 8 | Wire.read(); // Raw Temperature value
+    
     // Calculating the actual temperature value
-    result = float(tempValue) / 340 + 36.53;
+    float result = float(tempValue) / 340 + 36.53;
     return result;
 }
 #endif

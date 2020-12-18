@@ -84,15 +84,16 @@
         #define GPS_BAUD_RATE 9600
     #endif
     
-    //LCD pin definitions (to allow configuration on different boards)
+    // LCD pin definitions (to allow configuration on different boards)
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-        #define LCD_PINA0 0
-        #define LCD_PIN4 4
-        #define LCD_PIN5 5
-        #define LCD_PIN6 6
-        #define LCD_PIN7 7
-        #define LCD_PIN8 8
-        #define LCD_PIN9 9
+        #define LCD_BRIGHTNESS_PIN 10   // Brightness PWM control (#undef to disable)
+        #define LCD_KEY_SENSE_PIN 0     // Analog input for shield keys (#undef to disable)
+        #define LCD_PIN4 4              // LCD DB4 pin
+        #define LCD_PIN5 5              // LCD DB5 pin
+        #define LCD_PIN6 6              // LCD DB6 pin
+        #define LCD_PIN7 7              // LCD DB7 pin
+        #define LCD_PIN8 8              // LCD RS pin
+        #define LCD_PIN9 9              // LCD ENABLE pin
     #endif
     
 #endif //mega
@@ -139,26 +140,26 @@
   #define DEC_SERIAL_PORT Serial2  // HardwareSerial port, wire to TX2 for write-only
   #define DEC_DRIVER_ADDRESS 0b01  // Set by MS1/MS2 (MS1 HIGH, MS2 LOW)
 
-    #if AZIMUTH_ALTITUDE_MOTORS == 1
-        #error Azimuth/Alt motors not currently configured/supported in ESP32
-    #endif 
+  #if AZIMUTH_ALTITUDE_MOTORS == 1
+    #error Azimuth/Alt motors not currently configured/supported in ESP32
+  #endif 
 
-    #if USE_GPS == 1
-        #error GPS module not currently configured/supported in ESP32
-    #endif
+  #if USE_GPS == 1
+    #define GPS_SERIAL_PORT Serial2
+    #define GPS_BAUD_RATE 9600
+    #error GPS module not currently configured/supported in ESP32
+  #endif
 
-    #if USE_GYRO_LEVEL == 1
-        #error Digital Level not currently configured/supported in ESP32
-    #endif
-    
-    //LCD pin definitions (to allow configuration on different boards)
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-        #define LCD_PINA0 0
-        #define LCD_PIN4 4
-        #define LCD_PIN5 5
-        #define LCD_PIN6 6
-        #define LCD_PIN7 7
-        #define LCD_PIN8 8
-        #define LCD_PIN9 9
-    #endif
+  //LCD pin definitions (to allow configuration on different boards)
+  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
+    #define LCD_BRIGHTNESS_PIN 10   // Brightness PWM control (#undef to disable)
+    #define LCD_KEY_SENSE_PIN 0     // Analog input for shield keys (#undef to disable)
+    #define LCD_PIN4 4              // LCD DB4 pin
+    #define LCD_PIN5 5              // LCD DB5 pin
+    #define LCD_PIN6 6              // LCD DB6 pin
+    #define LCD_PIN7 7              // LCD DB7 pin
+    #define LCD_PIN8 8              // LCD RS pin
+    #define LCD_PIN9 9              // LCD ENABLE pin
+  #endif
+
 #endif

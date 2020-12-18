@@ -40,7 +40,7 @@ DayTime DayTime::ParseFromMeade(String s)
   int mins = s.substring(i, i + 2).toInt();
   LOGV3(DEBUG_MEADE, F("DayTime: Minutes are [%s] -> mins=%d"), s.substring(i, i + 2).c_str(), mins);
   int secs = 0;
-  if (s.length() > i + 4)
+  if (int(s.length()) > i + 4)
   {
     secs = s.substring(i + 3, i + 5).toInt();
     LOGV3(DEBUG_MEADE, F("DayTime: Seconds are [%s] -> secs=%d"), s.substring(i + 3, i + 5).c_str(), secs);
