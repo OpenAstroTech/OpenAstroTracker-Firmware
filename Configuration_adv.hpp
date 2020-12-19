@@ -419,7 +419,7 @@
 #if defined(ESP32) || defined(__AVR_ATmega2560__)
   // Valid platform
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported platform configuration. Use at own risk.
 #endif
 
 // Display & keypad configurations
@@ -429,7 +429,7 @@
   || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017))
   // Valid display for ATmega
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported display configuration. Use at own risk.
 #endif
 
 // Validate motor & driver configurations
@@ -439,7 +439,7 @@
   || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
   // Valid RA stepper and driver combination
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported RA stepper configuration. Use at own risk.
 #endif
 
 #if (DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
@@ -448,7 +448,7 @@
   || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
   // Valid DEC stepper and driver combination
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported DEC stepper configuration. Use at own risk.
 #endif
 
 #if (AZIMUTH_ALTITUDE_MOTORS == 0)
@@ -460,7 +460,7 @@
   #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     // Valid AZ stepper and driver combination
   #else
-    #error Unsupported configuration. Use at own risk.
+    #error Unsupported AZ stepper configuration. Use at own risk.
   #endif
 
   // Altitude configuration
@@ -469,10 +469,10 @@
   #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     // Valid ALT stepper and driver combination
   #else
-    #error Unsupported configuration. Use at own risk.
+    #error Unsupported ALT setpper configuration. Use at own risk.
   #endif
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Configuration does not support AZ/ALT. Use at own risk.
 #endif 
 
 // Interfaces
@@ -481,7 +481,7 @@
 #elif defined(ESP32)
   // Bluetooth is only supported on ESP32
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported Bluetooth configuration. Use at own risk.
 #endif
 
 #if !defined(WIFI_ENABLED)
@@ -489,7 +489,7 @@
 #elif defined(ESP32)
   // Wifi is only supported on ESP32
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported WiFi configuration. Use at own risk.
 #endif
 
 // External sensors
@@ -498,7 +498,7 @@
 #elif defined(__AVR_ATmega2560__)
   // GPS is only supported on ATmega
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported GPS configuration. Use at own risk.
 #endif
 
 #if (USE_GYRO_LEVEL == 0)
@@ -506,7 +506,7 @@
 #elif defined(ESP32) || defined(__AVR_ATmega2560__)
   // GPS is supported on ESP32 and ATmega
 #else
-  #error Unsupported configuration. Use at own risk.
+  #error Unsupported gyro configuration. Use at own risk.
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
