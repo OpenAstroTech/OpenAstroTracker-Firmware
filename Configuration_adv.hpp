@@ -526,9 +526,14 @@
      // Required pin assignments missing
      #error Missing pin assignments for configured DEC DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
   #endif
-#elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN) || !defined(DEC_SERIAL_PORT_TX) || !defined(DEC_SERIAL_PORT_RX)
-     // Required pin assignments missing
+#elif defined(ESP32) && (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN)
+     // Required pin assignments missing (ESP32 uses hardware serial port for this driver)
+     #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
+  #endif
+#elif defined(__AVR_ATmega2560__) && (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN) || !defined(RA_SERIAL_PORT_TX) || !defined(RA_SERIAL_PORT_RX)
+     // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
      #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
   #endif
 #endif
@@ -543,9 +548,14 @@
      // Required pin assignments missing
      #error Missing pin assignments for configured RA DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
   #endif
-#elif (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#elif defined(ESP32) && (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN)
+     // Required pin assignments missing (ESP32 uses hardware serial port for this driver)
+     #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
+  #endif
+#elif defined(__AVR_ATmega2560__) && (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN) || !defined(RA_SERIAL_PORT_TX) || !defined(RA_SERIAL_PORT_RX)
-     // Required pin assignments missing
+     // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
      #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
   #endif
 #endif
@@ -558,7 +568,7 @@
     #endif
   #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN) || !defined(AZ_SERIAL_PORT_TX) || !defined(AZ_SERIAL_PORT_RX)
-      // Required pin assignments missing
+      // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
       #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
     #endif
   #endif
@@ -570,7 +580,7 @@
     #endif
   #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN) || !defined(ALT_SERIAL_PORT_TX) || !defined(ALT_SERIAL_PORT_RX)
-      // Required pin assignments missing
+      // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
       #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
     #endif
   #endif
