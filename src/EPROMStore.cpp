@@ -16,6 +16,8 @@ void EEPROMStore::initialize()
 {
   LOGV2(DEBUG_EEPROM, F("EEPROM[DUMMY]: Startup with %d bytes"), EEPROMStore::STORE_SIZE);
   memset(dummyEepromStorage, 0, sizeof(dummyEepromStorage));
+
+  displayContents();  // Will always be empty at restart
 }
 
 // Update the given location with the given value
@@ -48,12 +50,7 @@ void EEPROMStore::initialize()
   LOGV2(DEBUG_EEPROM, F("EEPROM[ESP]: Startup with %d bytes"), STORE_SIZE);
   EEPROM.begin(STORE_SIZE);
 
-  // Read the magic marker byte and state
-  uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
-  LOGV2(DEBUG_EEPROM, F("EEPROM[ESP]: Magic Marker: %04X"), marker);
-
-  LOGV1(DEBUG_INFO|DEBUG_EEPROM, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("EEPROM has values") : F("EEPROM does NOT have values"));
-  LOGV1(DEBUG_INFO|DEBUG_EEPROM, ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("EEPROM has extended values") : F("EEPROM does NOT have extended values"));
+  displayContents();
 }
 
 // Update the given location with the given value
@@ -86,12 +83,7 @@ void EEPROMStore::initialize()
 {
   LOGV1(DEBUG_EEPROM, F("EEPROM[Uno/Mega]: Startup"));
 
-  // Read the magic marker byte and state
-  uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
-  LOGV2(DEBUG_EEPROM, F("EEPROM[Uno/Mega]: Magic Marker: %04X"), marker);
-
-  LOGV1(DEBUG_INFO|DEBUG_EEPROM, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("EEPROM has values") : F("EEPROM does NOT have values"));
-  LOGV1(DEBUG_INFO|DEBUG_EEPROM, ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("EEPROM has extended values") : F("EEPROM does NOT have extended values"));
+  displayContents();
 }
 
 // Update the given location with the given value
@@ -116,6 +108,33 @@ uint8_t EEPROMStore::read(uint8_t location)
 }
 
 #endif
+
+void EEPROMStore::displayContents()
+{
+#if (DEBUG_LEVEL & (DEBUG_INFO|DEBUG_EEPROM))
+  // Read the magic marker byte and state
+  uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
+  LOGV2(DEBUG_EEPROM, F("EEPROM: Magic Marker: %04X"), marker);
+
+  LOGV1(DEBUG_INFO, F("EEPROM: Contents:"));
+  LOGV1(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("  EEPROM has values") : F("  EEPROM does NOT have values"));
+  LOGV1(DEBUG_INFO, ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("  EEPROM has extended values") : F("  EEPROM does NOT have extended values"));
+  LOGV2(DEBUG_INFO, F("  Stored HATime: %s"), getHATime().ToString());
+  LOGV2(DEBUG_INFO, F("  Stored Brightness: %d"), getBrightness());
+  LOGV2(DEBUG_INFO, F("  Stored RA Steps per Degree: %f"), getRAStepsPerDegree());
+  LOGV2(DEBUG_INFO, F("  Stored DEC Steps per Degree: %f"), getDECStepsPerDegree());
+  LOGV2(DEBUG_INFO, F("  Stored Speed Factor: %f"), getSpeedFactor());
+  LOGV2(DEBUG_INFO, F("  Stored Backlash Correction Steps: %d"), getBacklashCorrectionSteps());
+  LOGV2(DEBUG_INFO, F("  Stored Latitude: %s"), getLatitude().ToString());
+  LOGV2(DEBUG_INFO, F("  Stored Longitude: %s"), getLongitude().ToString());
+  LOGV2(DEBUG_INFO, F("  Stored Pitch Calibration Angle: %f"), getPitchCalibrationAngle());
+  LOGV2(DEBUG_INFO, F("  Stored Roll Calibration Angle: %f"), getRollCalibrationAngle());
+  LOGV2(DEBUG_INFO, F("  Stored RA Parking Position: %l"), getRAParkingPos());
+  LOGV2(DEBUG_INFO, F("  Stored DEC Parking Position: %l"), getDECParkingPos());
+  LOGV2(DEBUG_INFO, F("  Stored DEC Lower Limit: %l"), getDECLowerLimit());
+  LOGV2(DEBUG_INFO, F("  Stored DEC Upper Limit: %l"), getDECUpperLimit());
+#endif
+}
 
 ///////////////////////////////////////
 // HELPER FUNCTIONS

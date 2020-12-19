@@ -135,6 +135,8 @@ private:
   };
 
   // Helper functions
+  static void displayContents();
+
   static bool isPresent(ItemFlag item);
   static void updateFlags(ItemFlag item);
 

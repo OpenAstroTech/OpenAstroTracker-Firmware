@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Configuration_pins.hpp"
 #include "Configuration.hpp"
 
 /**
@@ -518,28 +519,34 @@
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
   #if !defined(DEC_IN1_PIN) || !defined(DEC_IN2_PIN) || !defined(DEC_IN3_PIN) || !defined(DEC_IN4_PIN)
      // Required pin assignments missing
+     #error Missing pin assignments for configured DEC DRIVER_TYPE_ULN2003 driver
   #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
   #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)
      // Required pin assignments missing
+     #error Missing pin assignments for configured DEC DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
   #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN) || !defined(DEC_SERIAL_PORT_TX) || !defined(DEC_SERIAL_PORT_RX)
      // Required pin assignments missing
+     #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
   #endif
 #endif
 
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
   #if !defined(RA_IN1_PIN) || !defined(RA_IN2_PIN) || !defined(RA_IN3_PIN) || !defined(RA_IN4_PIN)
      // Required pin assignments missing
+     #error Missing pin assignments for configured RA DRIVER_TYPE_ULN2003 driver
   #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
   #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN)
      // Required pin assignments missing
+     #error Missing pin assignments for configured RA DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
   #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN) || !defined(RA_SERIAL_PORT_TX) || !defined(RA_SERIAL_PORT_RX)
      // Required pin assignments missing
+     #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
   #endif
 #endif
 
@@ -547,32 +554,42 @@
   #if (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
     #if !defined(AZ_IN1_PIN) || !defined(AZ_IN2_PIN) || !defined(AZ_IN3_PIN) || !defined(AZ_IN4_PIN)
       // Required pin assignments missing
+      #error Missing pin assignments for configured AZ DRIVER_TYPE_ULN2003 driver
     #endif
   #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN) || !defined(AZ_SERIAL_PORT_TX) || !defined(AZ_SERIAL_PORT_RX)
       // Required pin assignments missing
+      #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
     #endif
   #endif
 
   #if (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
     #if !defined(ALT_IN1_PIN) || !defined(ALT_IN2_PIN) || !defined(ALT_IN3_PIN) || !defined(ALT_IN4_PIN)
       // Required pin assignments missing
+      #error Missing pin assignments for configured ALT DRIVER_TYPE_ULN2003 driver
     #endif
   #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN) || !defined(ALT_SERIAL_PORT_TX) || !defined(ALT_SERIAL_PORT_RX)
       // Required pin assignments missing
+      #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
     #endif
   #endif
 #endif
 
 // Displays
-#if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306) \
-  || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017)
-  // No dedicated pins required
+#if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017)
+  // No dedicated pins required apart from I2C
 #elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD)
   #if !defined(LCD_BRIGHTNESS_PIN) || !defined(LCD_KEY_SENSE_PIN) || !defined(LCD_PIN4) || !defined(LCD_PIN5) \
      || !defined(LCD_PIN6) || !defined(LCD_PIN7)  || !defined(LCD_PIN8) || !defined(LCD_PIN9)
      // Required pin assignments missing
+     #error Missing pin assignments for configured DISPLAY_TYPE_LCD_KEYPAD display
+  #endif
+#elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306)
+  // No dedicated pins required apart from I2C for display
+  #if !defined(LCD_KEY_SENSE_X_PIN) || !defined(LCD_KEY_SENSE_Y_PIN) || !defined(LCD_KEY_SENSE_PUSH_PIN)
+     // Required pin assignments missing
+     #error Missing pin assignments for configured DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 joystick
   #endif
 #endif
 

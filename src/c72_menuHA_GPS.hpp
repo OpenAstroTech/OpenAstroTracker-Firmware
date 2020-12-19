@@ -2,7 +2,6 @@
 
 #include "EPROMStore.hpp"
 #include "../Configuration_adv.hpp"
-#include "../Configuration_pins.hpp"
 
 #if USE_GPS == 1
 

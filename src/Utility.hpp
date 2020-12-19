@@ -138,13 +138,6 @@ void logv(int levelFlags, String input, ...);
 #endif // DEBUG_LEVEL>0
 
 class LcdButtons {
-private:
-  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    uint8_t const KEY_ROW_1_ADC = 36;
-    uint8_t const KEY_ROW_2_ADC = 39;
-    uint8_t const KEY_ROW_3_ADC = 34;
-  #endif
-
 public:
   LcdButtons(byte pin, LcdMenu* lcdMenu) {
     _lcdMenu = lcdMenu;
@@ -159,9 +152,9 @@ public:
 
   #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
     // Initialize keypad
-    pinMode(KEY_ROW_1_ADC, INPUT);
-    pinMode(KEY_ROW_2_ADC, INPUT);
-    pinMode(KEY_ROW_3_ADC, INPUT);    
+    pinMode(LCD_KEY_SENSE_X_PIN, INPUT);
+    pinMode(LCD_KEY_SENSE_Y_PIN, INPUT);
+    pinMode(LCD_KEY_SENSE_PUSH_PIN, INPUT);    
   #endif
   }
 
@@ -217,9 +210,9 @@ private:
       if (buttons & BUTTON_SELECT) _currentKey = btnSELECT;
     }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    uint16_t r1(analogRead(KEY_ROW_1_ADC));
-    uint16_t r2(analogRead(KEY_ROW_2_ADC));
-    uint16_t r3(analogRead(KEY_ROW_3_ADC));
+    uint16_t r1(analogRead(LCD_KEY_SENSE_X_PIN));
+    uint16_t r2(analogRead(LCD_KEY_SENSE_Y_PIN));
+    uint16_t r3(analogRead(LCD_KEY_SENSE_PUSH_PIN));
     _analogKeyValue = r1;
     _currentKey = btnNONE;
 
