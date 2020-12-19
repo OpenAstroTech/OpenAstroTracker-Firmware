@@ -37,9 +37,9 @@ LcdButtons lcdButtons(&lcdMenu);
 #endif
 
 #ifdef ESP32
-DRAM_ATTR Mount mount(RA_STEPS_PER_DEGREE, DEC_STEPS_PER_DEGREE, &lcdMenu);
+DRAM_ATTR Mount mount(&lcdMenu);
 #else
-Mount mount(RA_STEPS_PER_DEGREE, DEC_STEPS_PER_DEGREE, &lcdMenu);
+Mount mount(&lcdMenu);
 #endif
 
 #include "g_bluetooth.hpp"
@@ -117,7 +117,7 @@ void setup() {
   //   Microstepping/driver pins
   /////////////////////////////////
   #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // RA driver startup (for A4988)
-    #if RA_DRIVER_TYPE == DRIVER_TYPE_GENERIC
+    #if RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
       // include A4988 microstep pins
       //#error "Define Microstep pins and delete this error."
       digitalWrite(RA_EN_PIN, HIGH);
@@ -143,7 +143,7 @@ void setup() {
     #endif
   #endif
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // DEC driver startup (for A4988)
-    #if DEC_DRIVER_TYPE == DRIVER_TYPE_GENERIC  // DEC driver startup (for A4988)
+    #if DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC  // DEC driver startup (for A4988)
       digitalWrite(DEC_EN_PIN, HIGH);
       digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
       digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
@@ -170,7 +170,7 @@ void setup() {
   #endif
   
   #if AZIMUTH_ALTITUDE_MOTORS == 1  
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
       pinMode(AZ_EN_PIN, OUTPUT);
       digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #endif
@@ -179,7 +179,7 @@ void setup() {
       pinMode(AZ_DIAG_PIN, INPUT);
       AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
+    #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
       pinMode(ALT_EN_PIN, OUTPUT);
       digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #endif
@@ -270,20 +270,20 @@ void setup() {
   // Set the stepper motor parameters
   #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48 
     LOGV1(DEBUG_ANY, "Configure RA stepper 28BYJ-48...");
-    mount.configureRAStepper(FULLSTEP_MODE, RAmotorPin1, RAmotorPin2, RAmotorPin3, RAmotorPin4, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
+    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RAmotorPin3, RAmotorPin4, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
   #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     LOGV1(DEBUG_ANY, F("Configure RA stepper NEMA..."));
-    mount.configureRAStepper(DRIVER_MODE, RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
+    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
   #else
     #error New stepper type? Configure it here.
   #endif
 
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     LOGV1(DEBUG_ANY, F("Configure DEC stepper 28BYJ-48..."));
-    mount.configureDECStepper(HALFSTEP_MODE, DECmotorPin1, DECmotorPin2, DECmotorPin3, DECmotorPin4, RA_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DECmotorPin3, DECmotorPin4, RA_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
   #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     LOGV1(DEBUG_ANY, F("Configure DEC stepper NEMA..."));
-    mount.configureDECStepper(DRIVER_MODE, DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
   #else
     #error New stepper type? Configure it here.
   #endif
@@ -300,13 +300,9 @@ void setup() {
   #if AZIMUTH_ALTITUDE_MOTORS == 1
     LOGV1(DEBUG_ANY, F("Configure AZ stepper..."));
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003 
-      #if AZ_MICROSTEPPING == 1
-         mount.configureAZStepper(FULLSTEP_MODE, AZmotorPin1, AZmotorPin2, AZmotorPin3, AZmotorPin4, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
-      #elif AZ_MICROSTEPPING == 2
-         mount.configureAZStepper(HALFSTEP_MODE, AZmotorPin1, AZmotorPin2, AZmotorPin3, AZmotorPin4, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
-      #endif
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      mount.configureAZStepper(DRIVER_MODE, AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
+      mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZmotorPin3, AZmotorPin4, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #endif
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV1(DEBUG_ANY, F("Configure AZ driver..."));
@@ -314,13 +310,9 @@ void setup() {
     #endif
     LOGV1(DEBUG_ANY, F("Configure Alt stepper..."));
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003 
-      #if ALT_MICROSTEPPING == 1
-        mount.configureALTStepper(FULLSTEP_MODE, ALTmotorPin1, ALTmotorPin2, ALTmotorPin3, ALTmotorPin4, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
-      #elif ALT_MICROSTEPPING == 2
-        mount.configureALTStepper(HALFSTEP_MODE, ALTmotorPin1, ALTmotorPin2, ALTmotorPin3, ALTmotorPin4, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
-      #endif
-    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      mount.configureALTStepper(DRIVER_MODE, ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
+      mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALTmotorPin3, ALTmotorPin4, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
+    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #endif
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV1(DEBUG_ANY, F("Configure ALT driver..."));

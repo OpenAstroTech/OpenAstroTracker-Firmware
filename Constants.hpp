@@ -33,10 +33,10 @@
 
 
 // Supported stepper driver models
-#define DRIVER_TYPE_ULN2003             0
-#define DRIVER_TYPE_GENERIC             1
-#define DRIVER_TYPE_TMC2209_STANDALONE  2
-#define DRIVER_TYPE_TMC2209_UART        3
+#define DRIVER_TYPE_ULN2003             0   // Supports halfstepping
+#define DRIVER_TYPE_A4988_GENERIC       1   // Supports fixed microstepping
+#define DRIVER_TYPE_TMC2209_STANDALONE  2   // Supports fixed microstepping
+#define DRIVER_TYPE_TMC2209_UART        3   // Supports dynamic microstepping
 
 
 // USB serial port speed according to external controller
