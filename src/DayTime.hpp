@@ -22,6 +22,8 @@ public:
   // From hours
   DayTime(float timeInHours);
 
+  DayTime& operator=(DayTime const& other);
+
   int getHours() const;
   int getMinutes() const;
   int getSeconds() const;

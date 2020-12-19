@@ -110,7 +110,7 @@ private:
   byte _activeRow;        // The row that the LCD cursor is on
   byte _activeCol;        // The column that the LCD cursor is on
   String _lastDisplay[2]; // The last string that was displayed on each row
-  int _brightness;
+  byte _brightness;
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
   byte _degrees = 1;

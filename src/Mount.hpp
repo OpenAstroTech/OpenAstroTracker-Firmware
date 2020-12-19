@@ -32,23 +32,8 @@
 
 #define RA_STEPS  1
 #define DEC_STEPS 2
-#define SPEED_FACTOR_DECIMALS 3
-#define BACKLASH_CORRECTION 4
 #define AZIMUTH_STEPS 5
 #define ALTITUDE_STEPS 6
-
-#define EEPROM_RA 1
-#define EEPROM_DEC 2
-#define EEPROM_SPEED 3
-#define EEPROM_BACKLASH 4
-#define EEPROM_LATITUDE 5
-#define EEPROM_LONGITUDE 6
-#define EEPROM_PITCH_OFFSET 7
-#define EEPROM_ROLL_OFFSET 8
-#define EEPROM_RA_PARKING_POS 9
-#define EEPROM_DEC_PARKING_POS 10
-#define EEPROM_DEC_LOWER_LIMIT 11
-#define EEPROM_DEC_UPPER_LIMIT 12
 
 //////////////////////////////////////////////////////////////////
 //
@@ -130,10 +115,10 @@ public:
   void setRollCalibrationAngle(float angle);
 #endif
 
-  // Returns the number of steps the given motor turns to move one degree
+  // Returns the number of slew microsteps the given motor turns to move one degree
   float getStepsPerDegree(int which);
 
-  // Function to set the number of steps the given motor turns to move one 
+  // Function to set the number of slew microsteps the given motor turns to move one 
   // degree for each axis. This function stores the value in persistent storage
   void setStepsPerDegree(int which, float steps);
 
