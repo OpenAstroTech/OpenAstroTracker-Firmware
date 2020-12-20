@@ -386,8 +386,6 @@ private:
   bool _slewingToHome;
   bool _slewingToPark;
   bool _bootComplete;
-  
-  static Mount* _instance;
 };
 
 #endif

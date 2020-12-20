@@ -79,7 +79,7 @@ private:
   //
   // Locations for HATime (1/2), Brightness (16)
   //
-  // If Location 5 is 0xBF, then an extended 16-bit flag is stored in 21/22 and 
+  // If Location 5 is 0xCF, then an extended 16-bit flag is stored in 21/22 and 
   // indicates the additional fields that have been stored: 0000 0000 0000 0000
   //                                                        ^^^^ ^^^^ ^^^^ ^^^^
   //                                                                         ||

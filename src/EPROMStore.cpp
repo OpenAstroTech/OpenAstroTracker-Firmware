@@ -23,7 +23,7 @@ void EEPROMStore::initialize()
 // Update the given location with the given value
 void EEPROMStore::update(uint8_t location, uint8_t value)
 {
-  LOGV3(DEBUG_EEPROM, F("EEPROM[DUMMY]: Writing %02X to %d"), value, location);
+  LOGV3(DEBUG_EEPROM, F("EEPROM[DUMMY]: Writing %x to %d"), value, location);
   dummyEepromStorage[location] = value;
 }
 
@@ -38,7 +38,7 @@ uint8_t EEPROMStore::read(uint8_t location)
 {
   uint8_t value;
   value = dummyEepromStorage[location];
-  LOGV3(DEBUG_EEPROM, F("EEPROM[DUMMY]: Read %02X from %d"), value, location);
+  LOGV3(DEBUG_EEPROM, F("EEPROM[DUMMY]: Read %x from %d"), value, location);
   return value;
 }
 
@@ -56,7 +56,7 @@ void EEPROMStore::initialize()
 // Update the given location with the given value
 void EEPROMStore::update(uint8_t location, uint8_t value)
 {
-  LOGV3(DEBUG_EEPROM, F("EEPROM[ESP]: Writing %02X to %d"), value, location);
+  LOGV3(DEBUG_EEPROM, F("EEPROM[ESP]: Writing %x to %d"), value, location);
   EEPROM.write(location, value);
 }
 
@@ -72,7 +72,7 @@ uint8_t EEPROMStore::read(uint8_t location)
 {
   uint8_t value;
   value = EEPROM.read(location);
-  LOGV3(DEBUG_EEPROM, F("EEPROM[ESP]: Read %02X from %d"), value, location);
+  LOGV3(DEBUG_EEPROM, F("EEPROM[ESP]: Read %x from %d"), value, location);
   return value;
 }
 
@@ -81,7 +81,7 @@ uint8_t EEPROMStore::read(uint8_t location)
 // Initialize the EEPROM storage in a platform-independent abstraction
 void EEPROMStore::initialize()
 {
-  LOGV1(DEBUG_EEPROM, F("EEPROM[Uno/Mega]: Startup"));
+  LOGV1(DEBUG_EEPROM, F("EEPROM[Mega]: Startup"));
 
   displayContents();
 }
@@ -89,7 +89,7 @@ void EEPROMStore::initialize()
 // Update the given location with the given value
 void EEPROMStore::update(uint8_t location, uint8_t value)
 {
-  LOGV3(DEBUG_EEPROM, F("EEPROM[Uno/Mega]: Writing8 %02X to %d"), value, location);
+  LOGV3(DEBUG_EEPROM, F("EEPROM[Mega]: Writing8 %x to %d"), value, location);
   EEPROM.write(location, value);
 }
 
@@ -103,7 +103,7 @@ void EEPROMStore::commit()
 uint8_t EEPROMStore::read(uint8_t location)
 {
   uint8_t value = EEPROM.read(location);
-  LOGV3(DEBUG_EEPROM, F("EEPROM[Uno/Mega]: Read8 %02X from %d"), value, location);
+  LOGV3(DEBUG_EEPROM, F("EEPROM[Mega]: Read8 %x from %d"), value, location);
   return value;
 }
 
@@ -114,11 +114,13 @@ void EEPROMStore::displayContents()
 #if (DEBUG_LEVEL & (DEBUG_INFO|DEBUG_EEPROM))
   // Read the magic marker byte and state
   uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
-  LOGV2(DEBUG_EEPROM, F("EEPROM: Magic Marker: %04X"), marker);
+  LOGV2(DEBUG_EEPROM, F("EEPROM: Magic Marker: %x"), marker);
 
   LOGV1(DEBUG_INFO, F("EEPROM: Contents:"));
-  LOGV1(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("  EEPROM has values") : F("  EEPROM does NOT have values"));
-  LOGV1(DEBUG_INFO, ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("  EEPROM has extended values") : F("  EEPROM does NOT have extended values"));
+  LOGV1(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? 
+    F("  EEPROM has values") : F("  EEPROM does NOT have values"));
+  LOGV1(DEBUG_INFO, ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? 
+    F("  EEPROM has extended values") : F("  EEPROM does NOT have extended values"));
   LOGV2(DEBUG_INFO, F("  Stored HATime: %s"), getHATime().ToString());
   LOGV2(DEBUG_INFO, F("  Stored Brightness: %d"), getBrightness());
   LOGV2(DEBUG_INFO, F("  Stored RA Steps per Degree: %f"), getRAStepsPerDegree());
@@ -142,7 +144,7 @@ void EEPROMStore::displayContents()
 // Helper to update the given location with the given 8-bit value
 void EEPROMStore::updateUint8(EEPROMStore::ItemAddress location, uint8_t value)
 {
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing8 %02X (%d) to %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing8 %x (%d) to %d"), value, value, location);
   update(location, value);
 }
 
@@ -151,14 +153,14 @@ uint8_t EEPROMStore::readUint8(EEPROMStore::ItemAddress location)
 {
   uint8_t value;
   value = read(location);
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Read8 %02X(%d) from %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Read8 %x (%d) from %d"), value, value, location);
   return value;
 }
 
 // Helper to update the given location with the given 16-bit value
 void EEPROMStore::updateInt16(EEPROMStore::ItemAddress location, int16_t value)
 {
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing16 %04X (%d) to %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing16 %x (%d) to %d"), value, value, location);
   update(location, value & 0x00FF);
   update(location+1, (value >> 8) & 0x00FF);
 }
@@ -170,14 +172,14 @@ int16_t EEPROMStore::readInt16(EEPROMStore::ItemAddress location)
   uint8_t valHi = read(location+1);
   uint16_t uValue = (uint16_t)valLo + (uint16_t)valHi * 256;
   int16_t value = static_cast<int16_t>(uValue);
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Read16 %04X (%d) from %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Read16 %x (%d) from %d"), value, value, location);
   return value;
 }
 
 // Helper to update the given location with the given 16-bit value
 void EEPROMStore::updateUint16(EEPROMStore::ItemAddress location, uint16_t value)
 {
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing16 %04X (%d) to %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing16 %x (%d) to %d"), value, value, location);
   update(location, value & 0x00FF);
   update(location+1, (value >> 8) & 0x00FF);
 }
@@ -188,14 +190,14 @@ uint16_t EEPROMStore::readUint16(EEPROMStore::ItemAddress location)
   uint8_t valLo = read(location);
   uint8_t valHi = read(location+1);
   uint16_t value = (uint16_t)valLo + (uint16_t)valHi * 256;
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Read16 %04X (%d) from %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Read16 %x (%d) from %d"), value, value, location);
   return value;
 }
 
 // Helper to update the given location with the given 32-bit value
 void EEPROMStore::updateInt32(EEPROMStore::ItemAddress location, int32_t value)
 {
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing32 %08X (%l) to %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Writing32 %x (%l) to %d"), value, value, location);
   update(location, value & 0x00FF);
   update(location + 1, (value >> 8) & 0x00FF);
   update(location + 2, (value >> 16) & 0x00FF);
@@ -211,7 +213,7 @@ int32_t EEPROMStore::readInt32(EEPROMStore::ItemAddress location)
   uint8_t val4 = read(location + 3);
   uint32_t uValue = (uint32_t)val1 + (uint32_t)val2 * 256 + (uint32_t)val3 * 256 * 256 + (uint32_t)val4 * 256 * 256 * 256;
   int32_t value = static_cast<int32_t>(uValue);
-  LOGV4(DEBUG_EEPROM, F("EEPROM: Read32 %08X (%l) from %d"), value, value, location);
+  LOGV4(DEBUG_EEPROM, F("EEPROM: Read32 %x (%l) from %d"), value, value, location);
   return value;
 }
 
@@ -254,7 +256,7 @@ void EEPROMStore::updateFlags(ItemFlag item)
   updateUint16(MAGIC_MARKER_AND_FLAGS_ADDR, newMarkerAndFlags);
   // We will not commit until the actual item value has been written
 
-  LOGV3(DEBUG_EEPROM,F("EEPROM: Marker & flags updated from %04X to %04X"), existingMarkerAndFlags, newMarkerAndFlags);
+  LOGV3(DEBUG_EEPROM,F("EEPROM: Marker & flags updated from %x to %x"), existingMarkerAndFlags, newMarkerAndFlags);
 }
 
 // Updates the core & extended flags for the specified extended item to indicate it is present.
@@ -270,7 +272,7 @@ void EEPROMStore::updateFlagsExtended(ExtendedItemFlag item)
   updateUint16(EXTENDED_FLAGS_ADDR, extendedFlags | item);
   // We will not commit until the actual item value has been written
 
-  LOGV3(DEBUG_EEPROM,F("EEPROM: Extended flags updated from %04X to %04X"), extendedFlags, extendedFlags | item);
+  LOGV3(DEBUG_EEPROM,F("EEPROM: Extended flags updated from %x to %x"), extendedFlags, extendedFlags | item);
 }
 
 ///////////////////////////////////////

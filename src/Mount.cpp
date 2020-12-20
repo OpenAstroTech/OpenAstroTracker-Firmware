@@ -58,9 +58,6 @@ const char* formatStringsRA[] = {
   "%02d%02d%02d",           // Compact
 };
 
-Mount* Mount::_instance = nullptr;
-Mount Mount::instance() { return *_instance; };
-
 const float siderealDegreesInHour = 14.95904348958;
 /////////////////////////////////
 //
@@ -76,8 +73,6 @@ Mount::Mount(LcdMenu* lcdMenu) :
     _azAltWasRunning(false)
   #endif
 {
-   _instance = this;
-
   _lcdMenu = lcdMenu;
   _mountStatus = 0;
   _lastDisplayUpdate = 0;
@@ -431,6 +426,7 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage) {
   // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
   // Also compensate for higher precision microstepping in tracking mode
   _trackingSpeed = _trackingSpeedCalibration * RA_STEPS_PER_DEGREE * (RA_TRACKING_MICROSTEPPING/RA_SLEW_MICROSTEPPING) * 360.0 / SECONDS_PER_DAY;   // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+  LOGV2(DEBUG_MOUNT, F("Mount: RA steps per degree is %f steps/deg"), RA_STEPS_PER_DEGREE);
   LOGV2(DEBUG_MOUNT, F("Mount: New tracking speed is %f steps/sec"), _trackingSpeed);
 
   if (saveToStorage) 
