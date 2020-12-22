@@ -3,6 +3,8 @@ Official firmware for the OpenAstroTracker.
 
 ## Coding guidelines
 
+TBD
+
 ## Contribution
 
 This is an open source project and everyone is welcome to contribute. We will be following these rules while reviewing your pull request:
