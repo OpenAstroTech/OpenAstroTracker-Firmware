@@ -8,7 +8,6 @@ class DayTime
 {
 protected:
   long totalSeconds;
-  long hourWrap = 24;
 
 public:
   DayTime();
@@ -18,8 +17,6 @@ public:
 
   // From hours
   DayTime(float timeInHours);
-
-  DayTime& operator=(DayTime const& other);
 
   int getHours() const;
   int getMinutes() const;
@@ -62,4 +59,7 @@ public:
 protected:
   const char *formatStringImpl(char *targetBuffer, const char *format, char sgn, long degs, long mins, long secs) const;
   void printTwoDigits(char *achDegs, int num) const;
+
+private:
+  static long const secondsPerDay = 24L * 3600L;    /// Real seconds (not sidereal)
 };

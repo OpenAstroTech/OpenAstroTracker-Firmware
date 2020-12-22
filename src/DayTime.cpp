@@ -65,7 +65,6 @@ DayTime::DayTime()
 DayTime::DayTime(const DayTime &other)
 {
   totalSeconds = other.totalSeconds;
-  hourWrap = other.hourWrap;  // In case of inheritance
 }
 
 DayTime::DayTime(int h, int m, int s)
@@ -80,17 +79,6 @@ DayTime::DayTime(float timeInHours)
   long sgn = fsign(timeInHours);
   timeInHours = abs(timeInHours);
   totalSeconds = sgn * round(timeInHours * 60 * 60);
-}
-
-DayTime& DayTime::operator=(DayTime const& other) // copy assignment
-{
-  if (this != &other) // self-assignment check expected
-  {
-    totalSeconds = other.totalSeconds;
-    hourWrap = other.hourWrap;  // In case of inheritance
-  }
-
-  return *this;
 }
 
 int DayTime::getHours() const
@@ -163,15 +151,14 @@ void DayTime::addHours(int deltaHours)
 
 void DayTime::checkHours()
 {
-  long limit = hourWrap * 3600L;
-  while (totalSeconds >= limit)
+  while (totalSeconds >= secondsPerDay)
   {
-    totalSeconds -= limit;
+    totalSeconds -= secondsPerDay;
   }
 
   while (totalSeconds < 0)
   {
-    totalSeconds += limit;
+    totalSeconds += secondsPerDay;
   }
 }
 

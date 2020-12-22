@@ -36,5 +36,8 @@ protected:
 public:
   static Declination ParseFromMeade(String s);
   static Declination FromSeconds(long seconds);
+
+private:
+  static long const arcSecondsPerHemisphere = 180L * 60L * 60L;  // Arc-seconds in 180 degrees
 };
 
