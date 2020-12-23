@@ -325,7 +325,9 @@ private:
     String mountStatusString();
   #endif
 
+  #if RA_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART || DEC_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART 
   void connectToDriver( TMC2209Stepper* driver, const char *driverKind );
+  #endif
 
 private:
   LcdMenu* _lcdMenu;
