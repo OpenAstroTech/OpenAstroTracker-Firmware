@@ -325,6 +325,7 @@ private:
     String mountStatusString();
   #endif
 
+  void connectToDriver( TMC2209Stepper* driver, const char *driverKind );
 
 private:
   LcdMenu* _lcdMenu;
