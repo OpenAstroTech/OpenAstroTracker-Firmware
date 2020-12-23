@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include "b_setup.hpp"
 #include "c65_startup.hpp"
 #include "c70_menuRA.hpp"

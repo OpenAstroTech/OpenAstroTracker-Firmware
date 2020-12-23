@@ -1,6 +1,8 @@
 #include <EEPROM.h>
-#include "EPROMStore.hpp"
+
+#include "..\Configuration.hpp"
 #include "Utility.hpp"
+#include "EPROMStore.hpp"
 
 // The platform-independant EEPROM class
 
@@ -42,7 +44,7 @@ uint8_t EEPROMStore::read(uint8_t location)
   return value;
 }
 
-#elif defined(ESPBOARD)
+#elif defined(ESP32)
 
 // Initialize the EEPROM object for ESP boards, setting aside space for storage
 void EEPROMStore::initialize()

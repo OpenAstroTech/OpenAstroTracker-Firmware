@@ -1,7 +1,9 @@
-#include "MeadeCommandProcessor.hpp"
-#include "inc/Config.hpp"
 #include "inc/Globals.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
+#include "LcdMenu.hpp"
+#include "Mount.hpp"
+#include "MeadeCommandProcessor.hpp"
 #include "WifiControl.hpp"
 #include "Gyro.hpp"
 

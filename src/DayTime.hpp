@@ -3,6 +3,9 @@
 // A class to handle hours, minutes, seconds in a unified manner, allowing
 // addition of hours, minutes, seconds, other times and conversion to string.
 
+// Forward declarations
+class String;
+
 // DayTime handles a 24-hour time.
 class DayTime
 {
@@ -54,7 +57,7 @@ public:
   //protected:
   virtual void checkHours();
 
-  static DayTime ParseFromMeade(String s);
+  static DayTime ParseFromMeade(String const& s);
 
 protected:
   const char *formatStringImpl(char *targetBuffer, const char *format, char sgn, long degs, long mins, long secs) const;

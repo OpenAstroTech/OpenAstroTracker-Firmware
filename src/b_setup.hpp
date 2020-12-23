@@ -4,11 +4,11 @@
 
 #include "InterruptCallback.hpp"
 
-#include "inc/Config.hpp"
-#include "a_inits.hpp"
-#include "LcdMenu.hpp"
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
+#include "a_inits.hpp"
+#include "LcdMenu.hpp"
+#include "LcdButtons.hpp"
 
 LcdMenu lcdMenu(16, 2, MAXMENUITEMS);
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
@@ -203,7 +203,7 @@ void setup() {
   EEPROMStore::initialize();
 
   // Calling the LCD startup here, I2C can't be found if called earlier
-  #if DISPLAY_TYPE > 0
+  #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
     lcdMenu.startup();
 
     LOGV1(DEBUG_ANY, F("Finishing boot..."));

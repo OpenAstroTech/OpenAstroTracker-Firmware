@@ -1,5 +1,4 @@
 #pragma once
-#include <Arduino.h>
 
 #include "DayTime.hpp"
 #include "Latitude.hpp"

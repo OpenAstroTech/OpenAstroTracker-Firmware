@@ -1,17 +1,14 @@
 #ifndef _MOUNT_HPP_
 #define _MOUNT_HPP_
 
-#include <AccelStepper.h>
-#include "inc/Config.hpp"
+#include "Declination.hpp"
 #include "Latitude.hpp"
 #include "Longitude.hpp"
-#include "Declination.hpp"
-#include "LcdMenu.hpp"
 
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
- #include <TMCStepper.h>
- // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
-#endif
+// Forward declarations
+class AccelStepper;
+class LcdMenu;
+class TMC2209Stepper;
 
 #define NORTH                      B00000001
 #define EAST                       B00000010

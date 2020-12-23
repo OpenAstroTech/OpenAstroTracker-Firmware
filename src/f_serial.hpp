@@ -14,7 +14,7 @@ void serialLoop()
     mount.loop();
     mount.displayStepperPositionThrottled();
 
-#ifdef ESPBOARD
+#ifdef ESP32
     processSerialData();
 #endif
 
@@ -25,7 +25,7 @@ void serialLoop()
 
 //////////////////////////////////////////////////
 // Event that is triggered when the serial port receives data.
-#ifndef ESPBOARD
+#ifndef ESP32
 void serialEvent()
 {
     processSerialData();

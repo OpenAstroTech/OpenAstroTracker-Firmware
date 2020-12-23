@@ -1,7 +1,5 @@
 #ifndef _LCDMENU_HPP_
 #define _LCDMENU_HPP_
-#include <Arduino.h>
-#include "../Configuration_adv.hpp"
 
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
 #include <LiquidCrystal.h>

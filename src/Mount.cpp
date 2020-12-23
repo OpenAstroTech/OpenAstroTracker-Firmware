@@ -1,9 +1,14 @@
-#include "LcdMenu.hpp"
-#include "Mount.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
-#include "inc/Config.hpp"
-#include "inc/Globals.hpp"
+#include "LcdMenu.hpp"
+#include "Mount.hpp"
+
+#include <AccelStepper.h>
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || \
+  (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #include <TMCStepper.h>   // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
+#endif
 
 //mountstatus
 #define STATUS_PARKED              0B0000000000000000
@@ -1665,7 +1670,7 @@ void Mount::loop() {
   interruptLoop();
   #endif
 
-  #if DEBUG_LEVEL & (DEBUG_MOUNT && DEBUG_VERBOSE)
+  #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
   unsigned long now = millis();
   if (now - _lastMountPrint > 2000) {
     LOGV2(DEBUG_MOUNT, "%s",getStatusString().c_str());

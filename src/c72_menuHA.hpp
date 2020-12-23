@@ -1,6 +1,7 @@
 #pragma once
+
+#include "../Configuration.hpp"
 #include "EPROMStore.hpp"
-#include "../Configuration_adv.hpp"
 
 #if DISPLAY_TYPE > 0
 #if USE_GPS == 0

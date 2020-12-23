@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
-#include "inc/Config.hpp"
 #include "DayTime.hpp"
 
 // Declination is used to store DEC coordinate.
@@ -34,7 +32,7 @@ protected:
   virtual void checkHours() override;
 
 public:
-  static Declination ParseFromMeade(String s);
+  static Declination ParseFromMeade(String const& s);
   static Declination FromSeconds(long seconds);
 
 private:

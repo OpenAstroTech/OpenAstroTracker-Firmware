@@ -1,8 +1,5 @@
 #pragma once
 
-#include "Configuration_pins.hpp"
-#include "Configuration.hpp"
-
 /**
  * This file contains advanced configurations. Edit values here only if you know what you are doing. Invalid values
  * can lead to OAT misbehaving very bad and in worst case could even lead to hardware damage. The default values here
@@ -282,11 +279,7 @@
 
 #endif
 
-// Enable dew heater output (for boards that have MOSFETs)
-#define DEW_HEATER 0
-
-
-#if DISPLAY_TYPE > 0
+#if DISPLAY_TYPE != DISPLAY_TYPE_NONE
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                         ///
@@ -326,297 +319,26 @@
 // Enable Meade protocol communication over serial
 #define SUPPORT_SERIAL_CONTROL 1
 
-
-#if defined(ESP32)
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                //////////
-// WIFI SETTINGS  //////////
-//                //////////
-////////////////////////////
-// These settings are valid only for ESP32
-//
-// Define some things, dont change: ///
-#define ESPBOARD
-// #define BLUETOOTH_ENABLED
-#define WIFI_ENABLED 
-///////////////////////////////////////
-//
-// SETTINGS
-//
-  #define INFRA_SSID "YourSSID"
-  #define INFRA_WPAKEY "YourWPAKey"
-  #define OAT_WPAKEY "superSecret"
-  #define HOSTNAME "OATerScope"
-
-  #define WIFI_MODE 2 
-  // 0 - Infrastructure Only - Connecting to a Router
-  // 1 - AP Mode Only        - Acting as a Router
-  // 2 - Attempt Infrastructure, Fail over to AP Mode.
-  
-#endif // End WIFI SETTINGS
-
-
 // This is set to 1 for boards that do not support interrupt timers
 #define RUN_STEPPERS_IN_MAIN_LOOP 0
 
+// The port number to access OAT control over WiFi (ESP32 only)
+#define WIFI_PORT 4030
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                //////////
-// DEBUG OPTIONS  //////////
-//                //////////
-////////////////////////////
-// Debugging output control
-// Each bit in the debug level specifies a kind of debug to enable. Do not change.
-#define DEBUG_NONE           0x0000
-#define DEBUG_INFO           0x0001
-#define DEBUG_SERIAL         0x0002
-#define DEBUG_WIFI           0x0004
-#define DEBUG_MOUNT          0x0008
-#define DEBUG_MOUNT_VERBOSE  0x0010
-#define DEBUG_GENERAL        0x0020
-#define DEBUG_MEADE          0x0040
-#define DEBUG_VERBOSE        0x0080
-#define DEBUG_STEPPERS       0x0100
-#define DEBUG_EEPROM         0x0200
-#define DEBUG_GYRO           0x0400
-#define DEBUG_ANY            0xFFFF
+//                                  ////////
+// OTHER HARDWARE CONFIGURATION     ////////
+//                                  ////////
+////////////////////////////////////////////
 
-////////////////////////////
-//
-// DEBUG OUTPUT
-//
-#define DEBUG_LEVEL (DEBUG_NONE)
-// #define DEBUG_LEVEL (DEBUG_STEPPERS|DEBUG_MOUNT)
-// #define DEBUG_LEVEL (DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
-// #define DEBUG_LEVEL (DEBUG_SERIAL|DEBUG_WIFI|DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
-// #define DEBUG_LEVEL (DEBUG_ANY)
-// #define DEBUG_LEVEL (DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
-//
-// Bit Name                 Output
-//  0  DEBUG_INFO           General output, like startup variables and status
-//  1  DEBUG_SERIAL         Serial commands and replies
-//  2  DEBUG_WIFI           Wifi related output
-//  3  DEBUG_MOUNT          Mount processing output
-//  4  DEBUG_MOUNT_VERBOSE  Verbose mount processing (coordinates, etc)
-//  5  DEBUG_GENERAL        Other misc. output
-//  6  DEBUG_MEADE          Meade command handling output
-// Set this to specify the amount of debug output OAT should send to the serial port.
-// Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
-// Debug output is useful if you are using Wifi to control the OAT or if you are issuing
-// manual commands via a terminal.
-//
-
-
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                            ////////
-// VALIDATE CONFIGURATION     ////////
-//                            ////////
-//////////////////////////////////////
-
-// Platform
-#if defined(ESP32) || defined(__AVR_ATmega2560__)
-  // Valid platform
-#else
-  #error Unsupported platform configuration. Use at own risk.
-#endif
-
-// Display & keypad configurations
-#if defined(ESP32) && ((DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306))
-  // Valid display for ESP32
-#elif defined(__AVR_ATmega2560__) && ((DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD) \
-  || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017))
-  // Valid display for ATmega
-#else
-  #error Unsupported display configuration. Use at own risk.
-#endif
-
-// Validate motor & driver configurations
-#if (RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-  // Valid RA stepper and driver combination
-#elif (RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && ((RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) \
-  || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
-  // Valid RA stepper and driver combination
-#else
-  #error Unsupported RA stepper configuration. Use at own risk.
-#endif
-
-#if (DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-  // Valid DEC stepper and driver combination
-#elif (DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && ((DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) \
-  || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
-  // Valid DEC stepper and driver combination
-#else
-  #error Unsupported DEC stepper configuration. Use at own risk.
-#endif
-
-#if (AZIMUTH_ALTITUDE_MOTORS == 0)
-  // Baseline configuration without azimuth & altitude control is valid
-#elif defined(__AVR_ATmega2560__)
-  // Azimuth configuration
-  #if (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    // Valid AZ stepper and driver combination
-  #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid AZ stepper and driver combination
-  #else
-    #error Unsupported AZ stepper configuration. Use at own risk.
-  #endif
-
-  // Altitude configuration
-  #if (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    // Valid ALT stepper and driver combination
-  #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid ALT stepper and driver combination
-  #else
-    #error Unsupported ALT setpper configuration. Use at own risk.
-  #endif
-#else
-  #error Configuration does not support AZ/ALT. Use at own risk.
-#endif 
-
-// Interfaces
-#if !defined(BLUETOOTH_ENABLED)
-  // Baseline configuration without Bluetooth is valid
-#elif defined(ESP32)
-  // Bluetooth is only supported on ESP32
-#else
-  #error Unsupported Bluetooth configuration. Use at own risk.
-#endif
-
-#if !defined(WIFI_ENABLED)
-  // Baseline configuration without WiFi is valid
-#elif defined(ESP32)
-  // Wifi is only supported on ESP32
-#else
-  #error Unsupported WiFi configuration. Use at own risk.
-#endif
-
-// External sensors
-#if (USE_GPS == 0)
-  // Baseline configuration without GPS is valid
-#elif defined(__AVR_ATmega2560__)
-  // GPS is only supported on ATmega
-#else
-  #error Unsupported GPS configuration. Use at own risk.
-#endif
-
-#if (USE_GYRO_LEVEL == 0)
-  // Baseline configuration without gyro is valid
-#elif defined(ESP32) || defined(__AVR_ATmega2560__)
-  // GPS is supported on ESP32 and ATmega
-#else
-  #error Unsupported gyro configuration. Use at own risk.
-#endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                            ////////
-// VALIDATE PIN ASSIGNMENTS   ////////
-//                            ////////
-//////////////////////////////////////
-
-// Motor & driver configurations
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-  #if !defined(DEC_IN1_PIN) || !defined(DEC_IN2_PIN) || !defined(DEC_IN3_PIN) || !defined(DEC_IN4_PIN)
-     // Required pin assignments missing
-     #error Missing pin assignments for configured DEC DRIVER_TYPE_ULN2003 driver
-  #endif
-#elif (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-  #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)
-     // Required pin assignments missing
-     #error Missing pin assignments for configured DEC DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
-  #endif
-#elif defined(ESP32) && (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN)
-     // Required pin assignments missing (ESP32 uses hardware serial port for this driver)
-     #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
-  #endif
-#elif defined(__AVR_ATmega2560__) && (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN) || !defined(RA_SERIAL_PORT_TX) || !defined(RA_SERIAL_PORT_RX)
-     // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
-     #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
+// GPS
+#if USE_GPS == 1
+  #if defined(ESP32)
+    #define GPS_SERIAL_PORT Serial2
+    #define GPS_BAUD_RATE 9600
+  #elif defined(__AVR_ATmega2560__)
+    #define GPS_SERIAL_PORT Serial1
+    #define GPS_BAUD_RATE 9600
   #endif
 #endif
 
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-  #if !defined(RA_IN1_PIN) || !defined(RA_IN2_PIN) || !defined(RA_IN3_PIN) || !defined(RA_IN4_PIN)
-     // Required pin assignments missing
-     #error Missing pin assignments for configured RA DRIVER_TYPE_ULN2003 driver
-  #endif
-#elif (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN)
-     // Required pin assignments missing
-     #error Missing pin assignments for configured RA DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
-  #endif
-#elif defined(ESP32) && (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN)
-     // Required pin assignments missing (ESP32 uses hardware serial port for this driver)
-     #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
-  #endif
-#elif defined(__AVR_ATmega2560__) && (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN) || !defined(RA_SERIAL_PORT_TX) || !defined(RA_SERIAL_PORT_RX)
-     // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
-     #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
-  #endif
-#endif
-
-#if (AZIMUTH_ALTITUDE_MOTORS == 1)
-  #if (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    #if !defined(AZ_IN1_PIN) || !defined(AZ_IN2_PIN) || !defined(AZ_IN3_PIN) || !defined(AZ_IN4_PIN)
-      // Required pin assignments missing
-      #error Missing pin assignments for configured AZ DRIVER_TYPE_ULN2003 driver
-    #endif
-  #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN) || !defined(AZ_SERIAL_PORT_TX) || !defined(AZ_SERIAL_PORT_RX)
-      // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
-      #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
-    #endif
-  #endif
-
-  #if (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    #if !defined(ALT_IN1_PIN) || !defined(ALT_IN2_PIN) || !defined(ALT_IN3_PIN) || !defined(ALT_IN4_PIN)
-      // Required pin assignments missing
-      #error Missing pin assignments for configured ALT DRIVER_TYPE_ULN2003 driver
-    #endif
-  #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN) || !defined(ALT_SERIAL_PORT_TX) || !defined(ALT_SERIAL_PORT_RX)
-      // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
-      #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
-    #endif
-  #endif
-#endif
-
-// Displays
-#if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017)
-  // No dedicated pins required apart from I2C
-#elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD)
-  #if !defined(LCD_BRIGHTNESS_PIN) || !defined(LCD_KEY_SENSE_PIN) || !defined(LCD_PIN4) || !defined(LCD_PIN5) \
-     || !defined(LCD_PIN6) || !defined(LCD_PIN7)  || !defined(LCD_PIN8) || !defined(LCD_PIN9)
-     // Required pin assignments missing
-     #error Missing pin assignments for configured DISPLAY_TYPE_LCD_KEYPAD display
-  #endif
-#elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306)
-  // No dedicated pins required apart from I2C for display
-  #if !defined(LCD_KEY_SENSE_X_PIN) || !defined(LCD_KEY_SENSE_Y_PIN) || !defined(LCD_KEY_SENSE_PUSH_PIN)
-     // Required pin assignments missing
-     #error Missing pin assignments for configured DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 joystick
-  #endif
-#endif
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                ////////
-// VALIDATE CRITICAL PARAMETERS   ////////
-//                                ////////
-//////////////////////////////////////////
-
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (DEC_HOLDCURRENT < 1 || DEC_HOLDCURRENT > 31)
-  #error "Holdcurrent has to be within 1 and 31!"
-#endif
-
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (DEC_RMSCURRENT > 2000)
-  #error "Do you really want to set the RMS motorcurrent above 2 Ampere? Thats almost 3A peak! Delete this error if you know what youre doing" 
-#endif
-
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (RA_RMSCURRENT > 2000)
-  #error "Do you really want to set the RMS motorcurrent above 2 Ampere? Thats almost 3A peak! Delete this error if you know what youre doing" 
-#endif

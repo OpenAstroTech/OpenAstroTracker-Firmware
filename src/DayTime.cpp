@@ -1,3 +1,5 @@
+#include "inc/Globals.hpp"
+#include "..\Configuration.hpp"
 #include "Utility.hpp"
 #include "DayTime.hpp"
 
@@ -10,7 +12,7 @@
 // Parses the RA or DEC from a string that has an optional sign, a two digit degree, a seperator, a two digit minute, a seperator and a two digit second.
 // Does not correct for hemisphere (derived class Declination takes care of that)
 // For example:   -45*32:11 or 23:44:22
-DayTime DayTime::ParseFromMeade(String s)
+DayTime DayTime::ParseFromMeade(String const& s)
 {
   DayTime result;
   int i = 0;

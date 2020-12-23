@@ -1,8 +1,6 @@
 #pragma once
 
-// TODO (AS): This is just a tmp fix to support menuCAL, we need to get rid of these globals
+#include <Arduino.h>
+#include <WString.h>
 
-extern int RAStepsPerDegree;
-extern int DECStepsPerDegree;
-
-extern bool inSerialControl;
+extern bool inSerialControl; // True when the serial port is in control

@@ -1,3 +1,4 @@
+#include "..\Configuration.hpp"   // For NORTHERN_HEMISPHERE only
 #include "Utility.hpp"
 #include "Declination.hpp"
 
@@ -83,7 +84,7 @@ const char *Declination::ToString() const
   return achBufDeg;
 }
 
-Declination Declination::ParseFromMeade(String s)
+Declination Declination::ParseFromMeade(String const& s)
 {
   Declination result;
   LOGV2(DEBUG_GENERAL, F("Declination.Parse(%s)"), s.c_str());

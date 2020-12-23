@@ -1,9 +1,8 @@
-#include "WifiControl.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
+#include "WifiControl.hpp"
 
 #ifdef WIFI_ENABLED
-
-#define PORT 4030
 
 WifiControl::WifiControl(Mount* mount, LcdMenu* lcdMenu) 
 {
@@ -38,14 +37,14 @@ void WifiControl::setup() {
 void WifiControl::startInfrastructureMode()
 {
     LOGV1(DEBUG_WIFI,F("Wifi: Starting Infrastructure Mode Wifi"));
-    LOGV2(DEBUG_WIFI,F("Wifi:    with host name: %s"), String(HOSTNAME).c_str());
-    LOGV2(DEBUG_WIFI,F("Wifi:          for SSID: %s"), String(INFRA_SSID).c_str());
-    LOGV2(DEBUG_WIFI,F("Wifi:       and WPA key: %s"), String(INFRA_WPAKEY).c_str());
+    LOGV2(DEBUG_WIFI,F("Wifi:    with host name: %s"), String(WIFI_HOSTNAME).c_str());
+    LOGV2(DEBUG_WIFI,F("Wifi:          for SSID: %s"), String(WIFI_INFRASTRUCTURE_MODE_SSID).c_str());
+    LOGV2(DEBUG_WIFI,F("Wifi:       and WPA key: %s"), String(WIFI_INFRASTRUCTURE_MODE_WPAKEY).c_str());
 
 #if defined(ESP32)
-    WiFi.setHostname(HOSTNAME);
+    WiFi.setHostname(WIFI_HOSTNAME);
 #endif
-    WiFi.begin(INFRA_SSID, INFRA_WPAKEY);
+    WiFi.begin(WIFI_INFRASTRUCTURE_MODE_SSID, WIFI_INFRASTRUCTURE_MODE_WPAKEY);
 }
 
 void WifiControl::startAccessPointMode()
@@ -56,10 +55,10 @@ void WifiControl::startAccessPointMode()
     IPAddress subnet(255, 255, 255, 0);
     
 #if defined(ESP32)
-    WiFi.setHostname(HOSTNAME);
+    WiFi.setHostname(WIFI_HOSTNAME);
 #endif
 
-    WiFi.softAP(HOSTNAME, OAT_WPAKEY);
+    WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY);
 
     WiFi.softAPConfig(local_ip, gateway, subnet);
 }
@@ -86,8 +85,8 @@ String WifiControl::getStatus()
   result += WiFi.getHostname();
 #endif
 
-  result += "," + WiFi.localIP().toString() + ":" + PORT; 
-  result += "," + String(INFRA_SSID) + "," + String(HOSTNAME);
+  result += "," + WiFi.localIP().toString() + ":" + WIFI_PORT; 
+  result += "," + String(INFRA_SSID) + "," + String(WIFI_HOSTNAME);
   return result;
 }
 
@@ -100,14 +99,14 @@ void WifiControl::loop()
         _status = WiFi.status();
         LOGV2(DEBUG_WIFI,F("Wifi: Connected status changed to %s"), wifiStatus(_status).c_str());
         if (_status == WL_CONNECTED) {
-            _tcpServer = new WiFiServer(PORT);
+            _tcpServer = new WiFiServer(WIFI_PORT);
             _tcpServer->begin();
             _tcpServer->setNoDelay(true);
 
             _udp = new WiFiUDP();
             _udp->begin(4031);
 
-            LOGV4(DEBUG_WIFI,F("Wifi: Connecting to SSID %s at %s:%d"), INFRA_SSID, WiFi.localIP().toString().c_str(), PORT);
+            LOGV4(DEBUG_WIFI,F("Wifi: Connecting to SSID %s at %s:%d"), INFRA_SSID, WiFi.localIP().toString().c_str(), WIFI_PORT);
         }
     }
 
@@ -178,7 +177,7 @@ void WifiControl::udpLoop()
         String lookingFor = "skyfi:";;
 
         String reply = "skyfi:";
-        reply += HOSTNAME;
+        reply += WIFI_HOSTNAME;
         reply += "@";
         reply += WiFi.localIP().toString();
         LOGV4(DEBUG_WIFI,F("WifiUDP: Received %d bytes from %s, port %d"), packetSize, _udp->remoteIP().toString().c_str(), _udp->remotePort());
