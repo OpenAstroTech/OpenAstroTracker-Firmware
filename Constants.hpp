@@ -42,3 +42,6 @@
 // USB serial port speed according to external controller
 #define SERIAL_BAUDRATE_STELLARIUM_DIRECT   9600
 #define SERIAL_BAUDRATE_ASCOM               57600
+
+#define DISABLED 0
+#define ENABLED  1
