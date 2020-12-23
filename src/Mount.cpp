@@ -604,8 +604,8 @@ void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpee
   #endif  
 #endif
 
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 #if RA_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART || DEC_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART 
-
 void Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     int testConnection;
     for(int i=0; i<5; i++) {
@@ -634,6 +634,7 @@ void Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     driver->pdn_disable(true); //disable pdn
     driver->mstep_reg_select(true); //enable microstep selection over UART
 }
+#endif
 #endif
 
 /////////////////////////////////
