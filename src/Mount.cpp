@@ -1200,7 +1200,7 @@ void Mount::stopGuiding( bool ra, bool dec ) {
   }
 
   //disable pulse state if no direction is active
-  if( _mountStatus & STATUS_GUIDE_PULSE_DIR == 0 ) {
+  if( ( _mountStatus & STATUS_GUIDE_PULSE_DIR ) == 0 ) {
     _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
   }
 }
