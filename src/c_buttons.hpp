@@ -30,6 +30,8 @@
 
   void loop() {
 
+    digitalWrite(42,1);
+
     #if LCD_BUTTON_TEST == 1
       int adc_key_in;
 
@@ -222,6 +224,7 @@
     #ifdef BLUETOOTH_ENABLED
     BTin();
     #endif
+    digitalWrite(42,0);
   }
 
   #else

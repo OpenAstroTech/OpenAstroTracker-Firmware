@@ -90,9 +90,11 @@ void IRAM_ATTR stepperControlTask(void* payload)
 // It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
 // It is called every 500 us (2 kHz rate)
 void stepperControlTimerCallback(void* payload) {
+  digitalWrite(44,1);
   Mount* mount = reinterpret_cast<Mount*>(payload);
   if (mount)
     mount->interruptLoop();
+  digitalWrite(44,0);
 }
 
 #endif
@@ -103,6 +105,12 @@ void stepperControlTimerCallback(void* payload) {
 //
 /////////////////////////////////
 void setup() {
+      pinMode(39, OUTPUT);
+      pinMode(38, OUTPUT);
+      pinMode(40, OUTPUT);
+      pinMode(42, OUTPUT);
+      pinMode(44, OUTPUT);
+
 
   #if USE_GPS == 1
   GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);

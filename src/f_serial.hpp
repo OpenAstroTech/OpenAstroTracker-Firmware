@@ -35,6 +35,8 @@ void serialEvent()
 // ESP needs to call this in a loop :_(
 void processSerialData()
 {
+    digitalWrite(38,1);
+
     char buffer[2];
     while (Serial.available() > 0)
     {
@@ -65,6 +67,7 @@ void processSerialData()
 
         mount.loop();
     }
+    digitalWrite(38,0);
 }
 
 #endif

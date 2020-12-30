@@ -1972,6 +1972,7 @@ void Mount::interruptLoop()
 void Mount::loop() {
   bool raStillRunning = false;
   bool decStillRunning = false;
+  digitalWrite(40,1);
   
   // Since some of the boards cannot process timer interrupts at the required 
   // speed (or at all), we'll just stick to deterministic calls here.
@@ -2022,6 +2023,7 @@ void Mount::loop() {
       _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
     #endif					
     }
+    digitalWrite(40,0);
     return;
   }
 
@@ -2133,6 +2135,7 @@ void Mount::loop() {
     }
   }
 
+  digitalWrite(40,0);
   _stepperWasRunning = raStillRunning || decStillRunning;
 }
 

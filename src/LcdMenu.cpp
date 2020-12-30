@@ -180,7 +180,6 @@ void LcdMenu::setNextActive()
 // It then sends the string to the LCD, keeping the selector arrows centered in the same place.
 void LcdMenu::updateDisplay()
 {
-
   char bufMenu[17];
   char *pBufMenu = &bufMenu[0];
   String menuString = "";
@@ -336,6 +335,7 @@ uint8_t LcdMenu::readButtons()
 // Print a string to the LCD at the current cursor position, substituting the special arrows and padding with spaces to the end
 void LcdMenu::printMenu(String line)
 {
+  digitalWrite(39,1);
   if ((_lastDisplay[_activeRow] != line) || (_activeCol != 0))
   {
 
@@ -355,6 +355,7 @@ void LcdMenu::printMenu(String line)
       spaces--;
     }
   }
+  digitalWrite(39,0);
 }
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
