@@ -255,6 +255,21 @@
   #else
     #error Unsupported ALT stepper & driver combination. Use at own risk.
   #endif
+
+  #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    #ifndef AZ_DRIVER_ADDRESS
+      // Serial bus address must be specified for TMC2209 in UART mode
+      #error AZ driver address for DRIVER_TYPE_TMC2209_UART not specified.
+    #endif
+  #endif
+
+  #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    #ifndef ALT_DRIVER_ADDRESS
+      // Serial bus address must be specified for TMC2209 in UART mode
+      #error ALT driver address for DRIVER_TYPE_TMC2209_UART not specified.
+    #endif
+  #endif
+
 #else
   #error Configuration does not support AZ/ALT. Use at own risk.
 #endif 
