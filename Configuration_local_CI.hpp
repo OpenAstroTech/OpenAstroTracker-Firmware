@@ -74,10 +74,11 @@
     #define RA_DIAG_PIN (-1)  
     #if defined(__AVR_ATmega2560__)
         // Additional SoftSerial pins required
-        #define RA_DRIVER_ADDRESS (0)
         #define RA_SERIAL_PORT_TX (-1)  
         #define RA_SERIAL_PORT_RX  (-1)  
     #endif
+    // Additional configuration
+    #define RA_DRIVER_ADDRESS (0)
 #else
     #error Unrecognized RA driver type.
 #endif
@@ -105,10 +106,11 @@
     #define DEC_DIAG_PIN (-1)  
     #if defined(__AVR_ATmega2560__)
         // Additional SoftSerial pins required
-        #define DEC_DRIVER_ADDRESS (0)
         #define DEC_SERIAL_PORT_TX (-1)  
         #define DEC_SERIAL_PORT_RX  (-1)  
     #endif
+    // Additional configuration
+    #define DEC_DRIVER_ADDRESS (0)
 #else
     #error Unrecognized DEC driver type.
 #endif

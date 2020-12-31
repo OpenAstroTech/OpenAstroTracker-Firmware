@@ -34,16 +34,12 @@
 
 // Include the user-specific local configuration
 #if defined(ESP32) && __has_include("Configuration_local_esp32.hpp")                // ESP32
-    #warning Including Configuration_local_esp32 
     #include "Configuration_local_esp32.hpp"
 #elif defined(__AVR_ATmega2560__) && __has_include("Configuration_local_mega.hpp")  // Mega2560
-    #warning Including Configuration_local_mega 
     #include "Configuration_local_mega.hpp"
 #elif __has_include("Configuration_local_CI.hpp")                                   // CI environment on GitHub
-    #warning Including Configuration_local_CI 
     #include "Configuration_local_CI.hpp"
 #elif __has_include("Configuration_local.hpp")                                      // Custom config
-    #warning Including Configuration_local 
     #include "Configuration_local.hpp"
 #endif
 
