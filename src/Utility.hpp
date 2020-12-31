@@ -1,7 +1,7 @@
 #ifndef UTILITY_HPP_
 #define UTILITY_HPP_
 
-#include "inc\Globals.hpp"
+#include "inc/Globals.hpp"
 
 #ifndef DEBUG_LEVEL
   #error Configuration.hpp must be included before Utility.hpp for correct debug configuration
