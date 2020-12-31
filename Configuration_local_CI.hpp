@@ -17,21 +17,21 @@
  */
 
 // For testing purposes only
-/*
-#define RA_STEPPER_TYPE 0
-#define DEC_STEPPER_TYPE 0
-#define RA_DRIVER_TYPE 0
-#define DEC_DRIVER_TYPE 0
-#define USE_GPS 0
-#define USE_GYRO_LEVEL 0
-#define AZIMUTH_ALTITUDE_MOTORS 0
-#define DISPLAY_TYPE 0
+#if 0
+    #define RA_STEPPER_TYPE 1
+    #define DEC_STEPPER_TYPE 1
+    #define RA_DRIVER_TYPE 3
+    #define DEC_DRIVER_TYPE 3
+    #define USE_GPS 0
+    #define USE_GYRO_LEVEL 0
+    #define DISPLAY_TYPE 0
 
-#define AZ_STEPPER_TYPE 1
-#define AZ_DRIVER_TYPE 3
-#define ALT_STEPPER_TYPE 1
-#define ALT_DRIVER_TYPE 3
-*/
+    #define AZIMUTH_ALTITUDE_MOTORS 0
+    #define AZ_STEPPER_TYPE 1
+    #define AZ_DRIVER_TYPE 3
+    #define ALT_STEPPER_TYPE 1
+    #define ALT_DRIVER_TYPE 3
+#endif
 
 /// RA_STEPPER_TYPE
 #if (RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48)

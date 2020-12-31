@@ -368,7 +368,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 // configureAZdriver
 // TMC2209 UART only
 /////////////////////////////////
-#if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if (AZIMUTH_ALTITUDE_MOTORS == 1) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverAZ = new TMC2209Stepper(serial, rsense, driveraddress);
@@ -390,7 +390,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 // configureALTdriver
 // TMC2209 UART only
 /////////////////////////////////
-#if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if (AZIMUTH_ALTITUDE_MOTORS == 1) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverALT = new TMC2209Stepper(serial, rsense, driveraddress);
