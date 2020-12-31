@@ -1,5 +1,5 @@
 #include "inc/Globals.hpp"
-#include "..\Configuration.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "DayTime.hpp"
 

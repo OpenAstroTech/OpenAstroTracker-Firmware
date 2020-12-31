@@ -1,4 +1,4 @@
-#include "..\Configuration.hpp"   // For NORTHERN_HEMISPHERE only
+#include "../Configuration.hpp"   // For NORTHERN_HEMISPHERE only
 #include "Utility.hpp"
 #include "Declination.hpp"
 

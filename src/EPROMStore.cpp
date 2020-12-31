@@ -1,6 +1,6 @@
 #include <EEPROM.h>
 
-#include "..\Configuration.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 
