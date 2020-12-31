@@ -1,7 +1,7 @@
 #ifndef LCDBUTTONS_HPP_
 #define LCDBUTTONS_HPP_
 
-#include "inc\Globals.hpp"
+#include "inc/Globals.hpp"
 
 // LCD shield buttons
 #define btnRIGHT  0
