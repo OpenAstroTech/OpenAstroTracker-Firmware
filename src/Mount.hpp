@@ -357,8 +357,8 @@ private:
   #if AZIMUTH_ALTITUDE_MOTORS == 1
     AccelStepper* _stepperAZ;
     AccelStepper* _stepperALT;
-    const int _stepsPerAZDegree;    // u-steps/degree (from CTOR)
-    const int _stepsPerALTDegree;   // u-steps/degree (from CTOR)
+    const long _stepsPerAZDegree;    // u-steps/degree (from CTOR)
+    const long _stepsPerALTDegree;   // u-steps/degree (from CTOR)
     bool _azAltWasRunning;
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       TMC2209Stepper* _driverAZ;

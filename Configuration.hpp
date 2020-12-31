@@ -37,6 +37,8 @@
     #include "Configuration_local_esp32.hpp"
 #elif defined(__AVR_ATmega2560__) && __has_include("Configuration_local_mega.hpp")  // Mega2560
     #include "Configuration_local_mega.hpp"
+#elif __has_include("Configuration_local_CI.hpp")                                   // CI environment on GitHub
+    #include "Configuration_local_CI.hpp"
 #elif __has_include("Configuration_local.hpp")                                      // Custom config
     #include "Configuration_local.hpp"
 #endif
@@ -52,7 +54,7 @@
 
 // Used display
 #ifndef DISPLAY_TYPE
-#define DISPLAY_TYPE DISPLAY_TYPE_LCD_KEYPAD
+#define DISPLAY_TYPE DISPLAY_TYPE_NONE
 #endif
 
 // Used RA wheel version. Unless you printed your OAT before March 2020, you're using 
@@ -207,7 +209,7 @@
   || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
   // Valid RA stepper and driver combination
 #else
-  #error Unsupported RA stepper configuration. Use at own risk.
+  #error Unsupported RA stepper & driver combination. Use at own risk.
 #endif
 
 #if (DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
@@ -216,7 +218,21 @@
   || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
   // Valid DEC stepper and driver combination
 #else
-  #error Unsupported DEC stepper configuration. Use at own risk.
+  #error Unsupported DEC stepper & driver combination. Use at own risk.
+#endif
+
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #ifndef RA_DRIVER_ADDRESS
+    // Serial bus address must be specified for TMC2209 in UART mode
+    #error RA driver address for DRIVER_TYPE_TMC2209_UART not specified.
+  #endif
+#endif
+
+#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #ifndef DEC_DRIVER_ADDRESS
+    // Serial bus address must be specified for TMC2209 in UART mode
+    #error DEC driver address for DRIVER_TYPE_TMC2209_UART not specified.
+  #endif
 #endif
 
 #if (AZIMUTH_ALTITUDE_MOTORS == 0)
@@ -228,7 +244,7 @@
   #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     // Valid AZ stepper and driver combination
   #else
-    #error Unsupported AZ stepper configuration. Use at own risk.
+    #error Unsupported AZ stepper & driver combination. Use at own risk.
   #endif
 
   // Altitude configuration
@@ -237,7 +253,7 @@
   #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     // Valid ALT stepper and driver combination
   #else
-    #error Unsupported ALT setpper configuration. Use at own risk.
+    #error Unsupported ALT stepper & driver combination. Use at own risk.
   #endif
 #else
   #error Configuration does not support AZ/ALT. Use at own risk.

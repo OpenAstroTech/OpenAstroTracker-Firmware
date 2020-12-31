@@ -110,11 +110,23 @@ void LcdButtons::checkKey() {
 #else
 
 // Null implementation
-LcdButtons::LcdButtons(byte pin, LcdMenu* lcdMenu) {}
-LcdButtons::LcdButtons(LcdMenu* lcdMenu) {}
-byte LcdButtons::currentKey() { return btnNONE; }
-byte LcdButtons::currentState() { return btnNONE; }
-int LcdButtons::currentAnalogState() { return 0; }
-bool LcdButtons::keyChanged(byte* pNewKey) { return false; }
+LcdButtons::LcdButtons(byte pin, LcdMenu* lcdMenu) 
+: _lastKeyChange(0), _analogPin(pin), _analogKeyValue(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
+{    
+}
+
+LcdButtons::LcdButtons(LcdMenu* lcdMenu) 
+: _lastKeyChange(0), _analogPin(0), _analogKeyValue(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
+{    
+}
+
+bool LcdButtons::keyChanged(byte* pNewKey)
+{ 
+    return false; 
+}
+
+void LcdButtons::checkKey() 
+{ 
+}
 
 #endif

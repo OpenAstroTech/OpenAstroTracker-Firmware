@@ -282,7 +282,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
     {
-      _stepperAZ = new AccelStepper(AccelStepper::DRIVER_MODE, pin1, pin2);
+      _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
       _stepperAZ->setMaxSpeed(maxSpeed);
       _stepperAZ->setAcceleration(maxAcceleration);
       _maxAZSpeed = maxSpeed;
@@ -301,7 +301,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
     {
-      _stepperALT = new AccelStepper(AccelStepper::DRIVER_MODE, pin1, pin2);
+      _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
       _stepperALT->setMaxSpeed(maxSpeed);
       _stepperALT->setAcceleration(maxAcceleration);
       _maxALTSpeed = maxSpeed;
