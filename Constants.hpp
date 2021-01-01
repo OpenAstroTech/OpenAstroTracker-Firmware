@@ -48,7 +48,7 @@
 #define WIFI_MODE_INFRASTRUCTURE                        0   // Infrastructure Only - OAT connects to an existing Router
 #define WIFI_MODE_AP_ONLY                               1   // AP Mode Only        - OAT acts as a local Router/Hotspot
 #define WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP     2   // Attempt Infrastructure, Fail over to AP Mode - Attempt infrastructure mode, with fail over to AP Mode.
-
+#define WIFI_MODE_DISABLED                              3   // Wifi disabled, transceiver switched off
 
 // Debugging output control
 // Each bit in the debug level specifies a kind of debug to enable. Combine these into DEBUG_LEVEL for the required information e.g.:

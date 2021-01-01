@@ -218,7 +218,7 @@
     }
 
 
-    #ifdef BLUETOOTH_ENABLED
+    #if (BLUETOOTH_ENABLED == 1)
     BTin();
     #endif
   }
@@ -228,7 +228,7 @@
   void loop() {
     #ifndef ESP32
       serialLoop();
-    #ifdef BLUETOOTH_ENABLED
+    #if (BLUETOOTH_ENABLED == 1)
       BTin();
     #endif
     #endif

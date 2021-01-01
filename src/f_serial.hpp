@@ -18,7 +18,7 @@ void serialLoop()
     processSerialData();
 #endif
 
-#ifdef WIFI_ENABLED
+#if (WIFI_ENABLED == 1)
     wifiControl.loop();
 #endif
 }

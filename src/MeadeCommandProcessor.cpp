@@ -839,7 +839,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd) {
       return String(scratchBuffer);
     }
     else if (inCmd[1] == 'N') {
-#ifdef WIFI_ENABLED
+#if (WIFI_ENABLED == 1)
       return wifiControl.getStatus() + "#";
 #endif
 

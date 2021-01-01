@@ -60,30 +60,21 @@ void LcdButtons::checkKey() {
         if (buttons & BUTTON_SELECT) _currentKey = btnSELECT;
     }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    uint16_t r1(analogRead(LCD_KEY_SENSE_X_PIN));
-    uint16_t r2(analogRead(LCD_KEY_SENSE_Y_PIN));
-    uint16_t r3(analogRead(LCD_KEY_SENSE_PUSH_PIN));
-    _analogKeyValue = r1;
-    _currentKey = btnNONE;
+    uint16_t x(analogRead(LCD_KEY_SENSE_X_PIN));
+    uint16_t y(analogRead(LCD_KEY_SENSE_Y_PIN));
+    uint16_t push(analogRead(LCD_KEY_SENSE_PUSH_PIN));
 
-    if(r1 > 300) {  // Row 1 is pressed
-        if (r1 > 3600) _currentKey = btnNONE;       // SW9
-        else if (r1 > 2800) _currentKey = btnNONE;  // SW7
-        else _currentKey = btnDOWN;                 // SW8
-    }
+    // Assumes analogReadResolution(12) (the default)
+    int16_t const MIDSCALE = 4096 / 2;
+    int16_t const DEADBAND = 500;
 
-    else if(r2 > 1000) {  // Row 2 is pressed
-        if (r2 > 3600) _currentKey = btnRIGHT;      // SW6
-        else if (r2 > 2800) _currentKey = btnLEFT;  // SW4
-        else _currentKey = btnSELECT;               // SW5
-    }
-
-    else if(r3 > 1000) {  // Row 3 is pressed
-        if (r3 > 3600) _currentKey = btnNONE;       // SW3
-        else if (r3 > 2800) _currentKey = btnNONE;  // SW1
-        else _currentKey = btnUP;                   // SW2
-    }
-
+    byte _currentKey = btnNONE;
+    _analogKeyValue = y;
+    if (x > (MIDSCALE + DEADBAND)) _currentKey = btnRIGHT;
+    if (x < (MIDSCALE - DEADBAND)) _currentKey = btnLEFT;
+    if (y > (MIDSCALE + DEADBAND)) _currentKey = btnDOWN;  // Y appears reversed
+    if (y < (MIDSCALE - DEADBAND)) _currentKey = btnUP;
+    if (push < MIDSCALE) _currentKey = btnSELECT;  // Active low
     #else
     _analogKeyValue = analogRead(_analogPin);
     if (_analogKeyValue > 1000) _currentKey = btnNONE;

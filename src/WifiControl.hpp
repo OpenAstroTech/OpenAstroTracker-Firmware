@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef WIFI_ENABLED
+#if (WIFI_ENABLED == 1)
 #include "WiFiServer.h"
 #include "WiFiUdp.h"
 #include "WiFiClient.h"

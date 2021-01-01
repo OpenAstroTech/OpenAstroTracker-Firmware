@@ -52,7 +52,11 @@
 #define NORTHERN_HEMISPHERE 1
 #endif
 
-// Used display
+/**
+ * @brief Display & keypad configuration.
+ * See Constants.hpp for supported DISPLAY_TYPE options.
+ * Pin assignments vary based on display & keypad selection.
+ */
 #ifndef DISPLAY_TYPE
 #define DISPLAY_TYPE DISPLAY_TYPE_NONE
 #endif
@@ -63,7 +67,10 @@
 #define RA_WHEEL_VERSION 4
 #endif
 
-// Stepper types/models. See supported stepper values. Change according to the steppers you are using
+/**
+ * @brief Stepper motor type in use on each axis.
+ * See Constants.hpp for supported options.
+ */
 #ifndef RA_STEPPER_TYPE
 #define RA_STEPPER_TYPE     STEPPER_TYPE_28BYJ48
 #endif
@@ -77,8 +84,10 @@
 #define ALT_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
 #endif
 
-// Driver selection
-// GENERIC drivers include A4988 and any Bipolar STEP/DIR based drivers. Note Microstep assignments in config_pins.
+/**
+ * @brief Stepper driver type in use on each axis.
+ * See Constants.hpp for supported DRIVER_TYPE options.
+ */
 #ifndef RA_DRIVER_TYPE
 #define RA_DRIVER_TYPE      DRIVER_TYPE_ULN2003
 #endif
@@ -114,26 +123,78 @@
 #define ALT_CORRECTION_FACTOR    1.0000
 #endif
 
-// Set this to 1 if you are using a NEO6m GPS module for HA/LST and location automatic determination.
-// GPS uses Serial1 by default, which is pins 18/19 on Mega. Change in configuration_adv.hpp
-// If supported, download the library https://github.com/mikalhart/TinyGPSPlus/releases and extract it to C:\Users\*you*\Documents\Arduino\libraries
+/**
+ * @brief GPS receiver configuration.
+ * Set USE_GPS to 1 to enable, 0 or #undef to exclude GPS from configuration.
+ * On ATmega GPS uses hardware Serial1. No additional pins required. Change in configuration_adv.hpp
+ * On ESP32 GPS uses hardware Serial2. No additional pins required. Change in configuration_adv.hpp
+ * Note the potential serial port assignment conflict if stepper driver DRIVER_TYPE_TMC2209_UART is used.
+ */
 #ifndef USE_GPS
 #define USE_GPS 0
 #endif
 
-// Set this according to external controlling program
+/**
+ * @brief External (USB) serial port configuration.
+ * See Constants.hpp for predefined SERIAL_BAUDRATE options, or customize as required.
+ */
 #ifndef SERIAL_BAUDRATE
 #define SERIAL_BAUDRATE SERIAL_BAUDRATE_ASCOM
 #endif
 
-// #define this to turn on Wifi functionality (ESP32 only)
-#undef WIFI_ENABLED
+/**
+ * @brief Wifi configuration.
+ * Wifi is only supported on esp32.
+ * Set WIFI_ENABLED to 1 to enable, 0 or #undef to exclude Wifi from configuration.
+ * If Wifi is enabled then the WIFI_MODE and WIFI_HOSTNAME must be set.
+ * Requirements for WIFI_MODE:
+ *  WIFI_MODE_DISABLED (i.e. Wifi transceiver disabled)
+ *      No additional requirements.
+ *  WIFI_MODE_INFRASTRUCTURE (i.e. connect OAT to existing Wifi network):
+ *      WIFI_INFRASTRUCTURE_MODE_SSID & WIFI_INFRASTRUCTURE_MODE_WPAKEY must be set.
+ *  WIFI_MODE_AP_ONLY (i.e. set OAT as Wifi hotspot): 
+ *      WIFI_AP_MODE_WPAKEY must be set.
+ *  WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP (i.e. try WIFI_MODE_INFRASTRUCTURE, fall back to WIFI_MODE_AP_ONLY):
+ *      Requirements for both WIFI_MODE_INFRASTRUCTURE and WIFI_MODE_AP_ONLY must be satisfied.
+ * WIFI_INFRASTRUCTURE_MODE_WPAKEY & WIFI_AP_MODE_WPAKEY must not be shorter than 8 characters and not 
+ * longer than 32 characters. Do not use special characters or white spaces in the password (esp32 limitation).
+ * Note that enabling Wifi increases flash usage by about 420 kB.
+ */
+#ifndef WIFI_ENABLED
+  #define WIFI_ENABLED 0
+#endif
+#ifndef WIFI_MODE
+  #define WIFI_MODE WIFI_MODE_DISABLED
+#endif
+#if !defined(WIFI_HOSTNAME)
+  #define WIFI_HOSTNAME ""
+#endif
+#if !defined(WIFI_INFRASTRUCTURE_MODE_SSID)
+  #define WIFI_INFRASTRUCTURE_MODE_SSID ""
+#endif
+#if !defined(WIFI_INFRASTRUCTURE_MODE_WPAKEY)
+  #define WIFI_INFRASTRUCTURE_MODE_WPAKEY ""
+#endif
+#if !defined(WIFI_AP_MODE_WPAKEY)
+  #define WIFI_AP_MODE_WPAKEY ""
+#endif
 
-// #define this to turn on Bluetooth functionality (ESP32 only)
-#undef BLUETOOTH_ENABLED
+/**
+ * @brief Bluetooth configuration.
+ * Bluetooth is only supported on esp32.
+ * Set BLUETOOTH_ENABLED to 1 to enable, 0 or #undef to exclude Bluetooth from configuration.
+ * If Bluetooth is enabled then the BLUETOOTH_DEVICE_NAME must be set.
+ * Note that enabling Bluetooth increases flash usage by about 627 kB.
+ */
+#ifndef BLUETOOTH_ENABLED
+  #define BLUETOOTH_ENABLED 0
+#endif
 
-// Set this to 1 if you are using a MPU6050 electronic level
-// Wire the board to 20/21 on Mega. Change pins in configuration_pins.hpp if you use other pins
+/**
+ * @brief Gyro-based tilt/roll levelling configuration.
+ * Set USE_GYRO_LEVEL to 1 to enable, 0 or #undef to exclude gyro from configuration.
+ * On ATmega & ESP32 gyro uses hardware I2C. No additional pins required. 
+ */
 #ifndef USE_GYRO_LEVEL
 #define USE_GYRO_LEVEL 0
 #endif
@@ -143,7 +204,10 @@
 #define GYRO_AXIS_SWAP 1
 #endif
 
-// Set this to 1 if the mount has motorized Azimuth and Altitude adjustment. Set pins in configuration_pins.hpp. Change motor speeds in Configuration_adv.hpp
+/**
+ * @brief Automated azimuth/altitude adjustment configuration.
+ * Set AZIMUTH_ALTITUDE_MOTORS to 1 to enable, 0 or #undef to exclude AZ/ALT from configuration.
+ */
 #ifndef AZIMUTH_ALTITUDE_MOTORS
 #define AZIMUTH_ALTITUDE_MOTORS  0
 #endif
@@ -275,26 +339,33 @@
 #endif 
 
 // Interfaces
-#if !defined(BLUETOOTH_ENABLED)
+#if (BLUETOOTH_ENABLED == 0)
   // Baseline configuration without Bluetooth is valid
 #elif defined(ESP32)
   // Bluetooth is only supported on ESP32
+  #if !defined(BLUETOOTH_DEVICE_NAME)
+    #error Bluetooth device name must be provided
+  #endif
 #else
   #error Unsupported Bluetooth configuration. Use at own risk.
 #endif
 
-#if !defined(WIFI_ENABLED)
+#if (WIFI_ENABLED == 0)
   // Baseline configuration without WiFi is valid
 #elif defined(ESP32)
   // Wifi is only supported on ESP32
   #if !defined(WIFI_HOSTNAME)
     #error Wifi hostname must be provided for infrastructure and AP modes
   #endif
-  #if (WIFI_MODE == WIFI_MODE_INFRASTRUCTURE) || (WIFI_MODE == WIFI_MODE WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
+  #if (WIFI_MODE == WIFI_MODE_DISABLED)
+    // Baseline configuration with disabled WiFi is valid
+  #endif
+  #if (WIFI_MODE == WIFI_MODE_INFRASTRUCTURE) || (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
     #if !defined(WIFI_INFRASTRUCTURE_MODE_SSID) || !defined(WIFI_INFRASTRUCTURE_MODE_WPAKEY)
       #error Wifi SSID and WPA key must be provided for infrastructure mode
     #endif
-  #elif (WIFI_MODE == WIFI_MODE_AP_ONLY) || (WIFI_MODE == WIFI_MODE WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
+  #endif
+  #if (WIFI_MODE == WIFI_MODE_AP_ONLY) || (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
     #if !defined(WIFI_AP_MODE_WPAKEY)
       #error Wifi WPA key must be provided for AP mode
     #endif
@@ -308,8 +379,8 @@
 // External sensors
 #if (USE_GPS == 0)
   // Baseline configuration without GPS is valid
-#elif defined(__AVR_ATmega2560__)
-  // GPS is only supported on ATmega
+#elif defined(ESP32) || defined(__AVR_ATmega2560__)
+  // GPS is supported on ESP32 and ATmega
 #else
   #error Unsupported GPS configuration. Use at own risk.
 #endif
@@ -317,7 +388,7 @@
 #if (USE_GYRO_LEVEL == 0)
   // Baseline configuration without gyro is valid
 #elif defined(ESP32) || defined(__AVR_ATmega2560__)
-  // GPS is supported on ESP32 and ATmega
+  // Gyro is supported on ESP32 and ATmega
 #else
   #error Unsupported gyro configuration. Use at own risk.
 #endif

@@ -44,7 +44,7 @@ Mount mount(&lcdMenu);
 
 #include "g_bluetooth.hpp"
 
-#ifdef WIFI_ENABLED
+#if (WIFI_ENABLED == 1)
 #include "WifiControl.hpp"
 WifiControl wifiControl(&mount, &lcdMenu);
 #endif
@@ -193,8 +193,8 @@ void setup() {
 
   Serial.begin(SERIAL_BAUDRATE);
 
-  #ifdef BLUETOOTH_ENABLED 
-  BLUETOOTH_SERIAL.begin("OpenAstroTracker");
+  #if (BLUETOOTH_ENABLED == 1)
+  BLUETOOTH_SERIAL.begin(BLUETOOTH_DEVICE_NAME);
   #endif
 
   LOGV1(DEBUG_ANY, F("."));
@@ -258,7 +258,7 @@ void setup() {
   LOGV1(DEBUG_ANY, F("Initialize LX200 handler..."));
   MeadeCommandProcessor::createProcessor(&mount, &lcdMenu);
 
-  #ifdef WIFI_ENABLED
+  #if (WIFI_ENABLED == 1)
     LOGV1(DEBUG_ANY, F("Setup Wifi..."));
     wifiControl.setup();
   #endif

@@ -1,8 +1,10 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "WifiControl.hpp"
+#include "MeadeCommandProcessor.hpp"
+#include "Mount.hpp"
 
-#ifdef WIFI_ENABLED
+#if (WIFI_ENABLED == 1)
 
 WifiControl::WifiControl(Mount* mount, LcdMenu* lcdMenu) 
 {
@@ -17,17 +19,17 @@ void WifiControl::setup() {
   _cmdProcessor = MeadeCommandProcessor::instance();
 
   switch (WIFI_MODE) {
-  case 0: // startup Infrastructure Mode
+  case WIFI_MODE_INFRASTRUCTURE: // startup Infrastructure Mode
       startInfrastructureMode();
       break;
-  case 1: // startup AP mode
+  case WIFI_MODE_AP_ONLY: // startup AP mode
       startAccessPointMode();
       break;
-  case 2: // Attempt Infra, fail over to AP
+  case WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP: // Attempt Infra, fail over to AP
       startInfrastructureMode();
       _infraStart = millis();
       break;
-  case 3: // Disabled
+  case WIFI_MODE_DISABLED: // Disabled
       WiFi.mode(WIFI_OFF);
       btStop();
       break;
@@ -59,7 +61,6 @@ void WifiControl::startAccessPointMode()
 #endif
 
     WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY);
-
     WiFi.softAPConfig(local_ip, gateway, subnet);
 }
 
@@ -76,7 +77,7 @@ String wifiStatus(int status){
 
 String WifiControl::getStatus()
 {
-  if( WIFI_MODE == 3 ){
+  if( WIFI_MODE == WIFI_MODE_DISABLED ){
     return "0,";
   }
 
@@ -86,13 +87,13 @@ String WifiControl::getStatus()
 #endif
 
   result += "," + WiFi.localIP().toString() + ":" + WIFI_PORT; 
-  result += "," + String(INFRA_SSID) + "," + String(WIFI_HOSTNAME);
+  result += "," + String(WIFI_INFRASTRUCTURE_MODE_SSID) + "," + String(WIFI_HOSTNAME);
   return result;
 }
 
 void WifiControl::loop()
 {
-    if( WIFI_MODE == 3 ){
+    if( WIFI_MODE == WIFI_MODE_DISABLED ){
         return;
     }
     if (_status != WiFi.status()) {
