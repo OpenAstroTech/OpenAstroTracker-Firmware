@@ -1,3 +1,4 @@
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "Latitude.hpp"
 
@@ -30,7 +31,7 @@ void Latitude::checkHours()
   }
 }
 
-Latitude Latitude::ParseFromMeade(String s)
+Latitude Latitude::ParseFromMeade(String const& s)
 {
   Latitude result(0.0);
 

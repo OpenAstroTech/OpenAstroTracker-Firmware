@@ -1,7 +1,9 @@
-#include "MeadeCommandProcessor.hpp"
-#include "inc/Config.hpp"
 #include "inc/Globals.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
+#include "LcdMenu.hpp"
+#include "Mount.hpp"
+#include "MeadeCommandProcessor.hpp"
 #include "WifiControl.hpp"
 #include "Gyro.hpp"
 
@@ -837,7 +839,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd) {
       return String(scratchBuffer);
     }
     else if (inCmd[1] == 'N') {
-#ifdef WIFI_ENABLED
+#if (WIFI_ENABLED == 1)
       return wifiControl.getStatus() + "#";
 #endif
 

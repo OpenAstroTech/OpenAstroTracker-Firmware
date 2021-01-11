@@ -1,7 +1,8 @@
 #pragma once
-#include <WString.h>
-#include "Mount.hpp"
-#include "LcdMenu.hpp"
+
+// Forward declarations
+class Mount;
+class LcdMenu;
 
 class MeadeCommandProcessor
 {

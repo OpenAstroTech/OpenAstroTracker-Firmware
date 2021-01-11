@@ -1,6 +1,4 @@
 #pragma once
-#include "inc/Config.hpp"
-#include "b_setup.hpp"
 
 #if DISPLAY_TYPE > 0
 
@@ -114,6 +112,9 @@ int BacklashSteps = 0;
 // The arc minutes for the adjustment of Azimuth or Altitude
 int AzimuthMinutes = 0;
 int AltitudeMinutes = 0;
+
+int RAStepsPerDegree = RA_STEPS_PER_DEGREE * 10;       // menuCAL use higher resolution for editing
+int DECStepsPerDegree = DEC_STEPS_PER_DEGREE * 10;      // menuCAL uses higher resolution for editing
 
 // Pitch and roll offset
 #if USE_GYRO_LEVEL == 1

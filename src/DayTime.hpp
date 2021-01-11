@@ -1,17 +1,16 @@
 #pragma once
 
-#include <Arduino.h>
-#include "inc/Config.hpp"
-
 // A class to handle hours, minutes, seconds in a unified manner, allowing
 // addition of hours, minutes, seconds, other times and conversion to string.
+
+// Forward declarations
+class String;
 
 // DayTime handles a 24-hour time.
 class DayTime
 {
 protected:
   long totalSeconds;
-  long hourWrap = 24;
 
 public:
   DayTime();
@@ -58,9 +57,12 @@ public:
   //protected:
   virtual void checkHours();
 
-  static DayTime ParseFromMeade(String s);
+  static DayTime ParseFromMeade(String const& s);
 
 protected:
   const char *formatStringImpl(char *targetBuffer, const char *format, char sgn, long degs, long mins, long secs) const;
   void printTwoDigits(char *achDegs, int num) const;
+
+private:
+  static long const secondsPerDay = 24L * 3600L;    /// Real seconds (not sidereal)
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Configuration_adv.hpp"
+#include "../Configuration.hpp"
 
 #if USE_GPS == 1
 #include "Sidereal.hpp"

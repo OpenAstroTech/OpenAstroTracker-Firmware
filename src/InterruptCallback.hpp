@@ -1,7 +1,5 @@
 #pragma once
 
-#include "../Configuration_adv.hpp"
-
 //////////////////////////////////////
 // This is an hardware-independent abstraction layer over 
 // whatever timer is used for the hardware being run.

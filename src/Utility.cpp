@@ -1,11 +1,9 @@
-#include <Arduino.h>
-//#include "Configuration.hpp"
+#include "../Configuration.hpp"
+#include "Utility.hpp"
 
 #if DEBUG_LEVEL > 0
 #include <stdarg.h>
 #endif
-
-#include "Utility.hpp"
 
 #if DEBUG_LEVEL > 0
 unsigned long RealTime::_pausedTime = 0;

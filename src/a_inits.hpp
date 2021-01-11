@@ -67,7 +67,7 @@
     #define AZmotorPin3  AZ_IN2_PIN    
     #define AZmotorPin2  AZ_IN3_PIN    
     #define AZmotorPin4  AZ_IN4_PIN    
-  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define AZmotorPin1  AZ_STEP_PIN
     #define AZmotorPin2  AZ_DIR_PIN
   #endif
@@ -76,7 +76,7 @@
     #define ALTmotorPin3  ALT_IN2_PIN 
     #define ALTmotorPin2  ALT_IN3_PIN 
     #define ALTmotorPin4  ALT_IN4_PIN     
-  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define ALTmotorPin1  ALT_STEP_PIN
     #define ALTmotorPin2  ALT_DIR_PIN
   #endif
@@ -115,7 +115,6 @@ bool inStartup = false;        // Start with a guided startup
 #endif
 
 // Serial control variables
-bool inSerialControl = false; // When the serial port is in control
 bool okToUpdateMenu = true;   // Can be used to supress rendering the first line of the menu.
 bool quitSerialOnNextButtonRelease = false; // Used to detect SELECT button to quit Serial mode.
 

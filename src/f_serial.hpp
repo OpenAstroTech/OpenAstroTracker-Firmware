@@ -14,18 +14,18 @@ void serialLoop()
     mount.loop();
     mount.displayStepperPositionThrottled();
 
-#ifdef ESPBOARD
+#ifdef ESP32
     processSerialData();
 #endif
 
-#ifdef WIFI_ENABLED
+#if (WIFI_ENABLED == 1)
     wifiControl.loop();
 #endif
 }
 
 //////////////////////////////////////////////////
 // Event that is triggered when the serial port receives data.
-#ifndef ESPBOARD
+#ifndef ESP32
 void serialEvent()
 {
     processSerialData();
