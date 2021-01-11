@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef BLUETOOTH_ENABLED
+#if (BLUETOOTH_ENABLED == 1)
 #if SUPPORT_SERIAL_CONTROL == 1
 #include "MeadeCommandProcessor.hpp"
 #include "BluetoothSerial.h"
@@ -77,7 +77,7 @@ void bt_callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
 
 
 void BTin() {
-    #ifdef BLUETOOTH_ENABLED
+    #if (BLUETOOTH_ENABLED == 1)
     bluetoothLoop();
     #endif
   /*

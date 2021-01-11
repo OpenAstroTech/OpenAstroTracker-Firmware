@@ -1,10 +1,6 @@
 #pragma once
-#include "../Configuration_adv.hpp"
 
-#ifdef WIFI_ENABLED
-#include "Mount.hpp"
-#include "LcdMenu.hpp"
-#include "MeadeCommandProcessor.hpp"
+#if (WIFI_ENABLED == 1)
 #include "WiFiServer.h"
 #include "WiFiUdp.h"
 #include "WiFiClient.h"
@@ -13,6 +9,11 @@
 #include <WiFi.h>
 #include <WiFiSTA.h>
 #endif
+
+// Forward declarations
+class Mount;
+class LcdMenu;
+class MeadeCommandProcessor;
 
 class WifiControl {
 public: 

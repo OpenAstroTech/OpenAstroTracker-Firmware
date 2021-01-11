@@ -1,12 +1,9 @@
 #pragma once
-#include "inc/Config.hpp"
 
-#if USE_GPS == 1
-#include <math.h>
-
-#include <TinyGPS++.h>
 #include "DayTime.hpp"
 
+// Forward declaration
+class TinyGPSPlus;
 
 class Sidereal
 {
@@ -17,5 +14,3 @@ class Sidereal
     static const double calculateTheta(double deltaJ, double longitude, float timeUTC);
     static const int calculateDeltaJd(int year, int month, int day);
 };
-
-#endif
