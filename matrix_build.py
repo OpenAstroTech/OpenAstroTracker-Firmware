@@ -13,6 +13,7 @@ platforms = {
 matrix = {
     "PLATFORM": ['0001', '1001'],
     "BOARD": ['0001', '0002', '1001'],
+    "BOARD": ['0001', '0002', '0003', '0004', '1001'],
     "RA_STEPPER_TYPE": [0, 1],
     "DEC_STEPPER_TYPE": [0, 1],
     "RA_DRIVER_TYPE": [0, 1, 2, 3],
