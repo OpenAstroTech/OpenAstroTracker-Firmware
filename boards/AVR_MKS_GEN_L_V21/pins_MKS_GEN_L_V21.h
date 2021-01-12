@@ -135,7 +135,6 @@
   #define AZ_DIAG_PIN 18  // only needed for autohome function
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
-#endif
 #ifndef AZ_SERIAL_PORT_TX
   #define AZ_SERIAL_PORT_TX 42 // SoftwareSerial TX port
 #endif

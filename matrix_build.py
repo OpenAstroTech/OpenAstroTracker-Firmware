@@ -7,12 +7,13 @@ CONTINUE_ON_ERROR = True
 
 boards = {
     "0001": "mega2560",
-    "0002": "mks_gen_l_2",
     "1001": "esp32"
 }
 
 matrix = {
     "BOARD": ['0001', '1001'],
+    "PLATFORM": ['0001', '1001'],
+    "BOARD": ['0001', '0002', '1001'],
     "RA_STEPPER_TYPE": [0, 1],
     "DEC_STEPPER_TYPE": [0, 1],
     "RA_DRIVER_TYPE": [0, 1, 2, 3],
@@ -38,10 +39,15 @@ filters = [
     {'DEC_STEPPER_TYPE': 0, 'DEC_DRIVER_TYPE': 3},
     {'RA_STEPPER_TYPE': 1, 'RA_DRIVER_TYPE': 0},
     {'DEC_STEPPER_TYPE': 1, 'DEC_DRIVER_TYPE': 0},
-    {'BOARD': "1001", "USE_GPS": 1},
-    {'BOARD': "1001", "USE_GYRO_LEVEL": 1},
-    {'BOARD': "1001", "AZIMUTH_ALTITUDE_MOTORS": 1},
-    {'BOARD': "1001", "DISPLAY_TYPE": 1},
+    {'PLATFORM': "0001", "BOARD": "1001"},
+    {'PLATFORM': "1001", "BOARD": "0001"},
+    {'PLATFORM': "1001", "BOARD": "0002"},
+    {'PLATFORM': "1001", "USE_GPS": 1},
+    {'PLATFORM': "1001", "USE_GYRO_LEVEL": 1},
+    {'PLATFORM': "1001", "AZIMUTH_ALTITUDE_MOTORS": 1},
+    {'PLATFORM': "1001", "DISPLAY_TYPE": 1},
+    {'PLATFORM': "0002", "USE_GPS": 1},
+    {'PLATFORM': "0002", "USE_GYRO_LEVEL": 1},
     {"AZIMUTH_ALTITUDE_MOTORS": 0, "AZ_STEPPER_TYPE": 1},
     {"AZIMUTH_ALTITUDE_MOTORS": 0, "AZ_DRIVER_TYPE": 1},
     {"AZIMUTH_ALTITUDE_MOTORS": 0, "AZ_DRIVER_TYPE": 2},
@@ -119,7 +125,7 @@ for c in allowed_combinations:
     run_commands.append(
         {
             "env.PLATFORMIO_BUILD_FLAGS": flags_str,
-            "command": "pio run -e {}".format(boards[c['BOARD']])
+            "command": "pio run -e {}".format(platforms[c['PLATFORM']])
         }
     )
 
