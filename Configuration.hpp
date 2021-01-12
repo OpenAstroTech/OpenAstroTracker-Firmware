@@ -1,10 +1,10 @@
 /**
-* Configuration accumulates in order across 3 files: Configuration_local_*.hpp, Configuration.hpp, and Configuration_adv.hpp.
-*  - Configuration_local_*.hpp (see below) captures the local (primarily hardware) configuration.
-*  - Configuration.hpp (this file) adds reasonable default values for any data missing in Configuration_local_*.hpp.
+* Configuration accumulates in order across 3 files: Configuration_local.hpp, Configuration.hpp, and Configuration_adv.hpp.
+*  - Configuration_local.hpp (see below) captures the local (primarily hardware) configuration.
+*  - Configuration.hpp (this file) adds reasonable default values for any data missing in Configuration_local.hpp.
 *  - Configuration_adv.hpp holds advanced configuration data, and is not usually required to be changed.
 * 
-* There should be no user-specified parameters in this file - everything should be specified in Configuration_local_*.hpp
+* There should be no user-specified parameters in this file - everything should be specified in Configuration_local.hpp
 *
 * We support local configurations so that you can setup it up once with your hardware and pinout
 * and not need to worry about a new version from Git overwriting your setup. 
@@ -46,6 +46,11 @@
 /**
  * Use default values for any parameters the user didn't provide.
  */
+
+// If board is not defined in local configuration, assume Arduino Mega2560
+#ifndef BOARD
+  #define BOARD BOARD_AVR_MEGA2560
+#endif
 
 // Set to 1 for the northern hemisphere, 0 otherwise
 #ifndef NORTHERN_HEMISPHERE
@@ -132,6 +137,9 @@
  */
 #ifndef USE_GPS
 #define USE_GPS 0
+#endif
+#ifndef GPS_BAUD_RATE
+#define GPS_BAUD_RATE 9600
 #endif
 
 /**
@@ -242,6 +250,19 @@
 
 // Append the advanced configuration data.
 #include "Configuration_adv.hpp"
+
+// Append board specific pins data.
+#if (BOARD == BOARD_AVR_MEGA2560)
+  #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
+#elif (BOARD == BOARD_ESP32_ESP32DEV)
+  #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
+#elif (BOARD == BOARD_AVR_MKS_GEN_L_V1)
+  #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V1.h"
+#elif (BOARD == BOARD_AVR_MKS_GEN_L_V2)
+  #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V2.h"
+#elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
+  #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                            ////////
