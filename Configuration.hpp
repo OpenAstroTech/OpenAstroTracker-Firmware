@@ -385,8 +385,7 @@
     #if !defined(WIFI_INFRASTRUCTURE_MODE_SSID) || !defined(WIFI_INFRASTRUCTURE_MODE_WPAKEY)
       #error Wifi SSID and WPA key must be provided for infrastructure mode
     #endif
-  #endif
-  #if (WIFI_MODE == WIFI_MODE_AP_ONLY) || (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
+  #elif (WIFI_MODE == WIFI_MODE_AP_ONLY) || (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
     #if !defined(WIFI_AP_MODE_WPAKEY)
       #error Wifi WPA key must be provided for AP mode
     #endif
@@ -394,7 +393,7 @@
     #error Unsupported WiFi configuration. Use at own risk.
   #endif
 #else
-  #error Unsupported WiFi configuration. Use at own risk.
+  #error Unsupported WiFi configuration (WiFI only supported on ESP32). Use at own risk.
 #endif
 
 // External sensors
