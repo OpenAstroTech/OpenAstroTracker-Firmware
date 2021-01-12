@@ -63,6 +63,7 @@
     #define RA_STEP_PIN (-1)  
     #define RA_DIR_PIN  (-1)  
     #define RA_EN_PIN   (-1)  
+    #define RA_DIAG_PIN (-1)
     #define RA_MS0_PIN  (-1)  
     #define RA_MS1_PIN  (-1)  
     #define RA_MS2_PIN  (-1)  
@@ -95,6 +96,7 @@
     #define DEC_STEP_PIN (-1)  
     #define DEC_DIR_PIN  (-1)  
     #define DEC_EN_PIN   (-1)  
+    #define DEC_DIAG_PIN (-1)     
     #define DEC_MS0_PIN  (-1)  
     #define DEC_MS1_PIN  (-1)  
     #define DEC_MS2_PIN  (-1)  
@@ -141,16 +143,18 @@
         #define AZ_IN2_PIN (-1)  
         #define AZ_IN3_PIN (-1) 
         #define AZ_IN4_PIN (-1)  
-    #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        // AZ driver pins for TMC2209_UART drivers
+    #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+        // AZ driver pins for A4988, TMC2209_STANDALONE drivers, or TMC2209_UART drivers
         #define AZ_STEP_PIN (-1)  
         #define AZ_DIR_PIN  (-1)  
         #define AZ_EN_PIN   (-1)  
         #define AZ_DIAG_PIN (-1)  
-        // Additional SoftSerial pins required
-        #define AZ_DRIVER_ADDRESS (0)
-        #define AZ_SERIAL_PORT_TX (-1)  
-        #define AZ_SERIAL_PORT_RX  (-1)  
+        #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+          // Additional SoftSerial pins required
+          #define AZ_DRIVER_ADDRESS (0)
+          #define AZ_SERIAL_PORT_TX (-1)  
+          #define AZ_SERIAL_PORT_RX  (-1)  
+        #endif
     #else
         #error Unrecognized AZ driver type.
     #endif
@@ -161,16 +165,18 @@
         #define ALT_IN2_PIN (-1)  
         #define ALT_IN3_PIN (-1) 
         #define ALT_IN4_PIN (-1)  
-    #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        // ALT driver pins for TMC2209_UART drivers
+    #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+        // ALT driver pins for A4988, TMC2209_STANDALONE drivers, or TMC2209_UART drivers
         #define ALT_STEP_PIN (-1)  
         #define ALT_DIR_PIN  (-1)  
         #define ALT_EN_PIN   (-1)  
         #define ALT_DIAG_PIN (-1)  
-        // Additional SoftSerial pins required
-        #define ALT_DRIVER_ADDRESS (0)
-        #define ALT_SERIAL_PORT_TX (-1)  
-        #define ALT_SERIAL_PORT_RX  (-1)  
+        #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+          // Additional SoftSerial pins required
+          #define ALT_DRIVER_ADDRESS (0)
+          #define ALT_SERIAL_PORT_TX (-1)  
+          #define ALT_SERIAL_PORT_RX  (-1)
+        #endif
     #else
         #error Unrecognized ALT driver type.
     #endif
