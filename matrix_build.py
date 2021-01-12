@@ -5,13 +5,12 @@ import time
 
 CONTINUE_ON_ERROR = True
 
-boards = {
+platforms = {
     "0001": "mega2560",
     "1001": "esp32"
 }
 
 matrix = {
-    "BOARD": ['0001', '1001'],
     "PLATFORM": ['0001', '1001'],
     "BOARD": ['0001', '0002', '1001'],
     "RA_STEPPER_TYPE": [0, 1],
