@@ -7,6 +7,18 @@
  **/
 
 /**
+ * Supported boards. The name consists of the platform and the board name (model).
+ **/
+// AVR based boards
+#define BOARD_AVR_MEGA2560       0001
+#define BOARD_AVR_MKS_GEN_L_V21  0002
+#define BOARD_AVR_MKS_GEN_L_V2   0003
+#define BOARD_AVR_MKS_GEN_L_V1   0004
+
+// ESP32 based boards
+#define BOARD_ESP32_ESP32DEV     1001
+
+/**
  * Supported display types. Use one of these values for DISPLAY_TYPE configuration matching your used display.
  * 
  * DISPLAY_TYPE_NONE:                       No display. Use this if you don't use any display.
