@@ -6,6 +6,31 @@
 
 #include "Constants.hpp"
 
+// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
+#ifndef RA_IN1_PIN
+  #define RA_IN1_PIN  37
+#endif
+#ifndef RA_IN2_PIN
+  #define RA_IN2_PIN  17
+#endif
+#ifndef RA_IN3_PIN
+  #define RA_IN3_PIN  23
+#endif
+#ifndef RA_IN4_PIN
+  #define RA_IN4_PIN  27
+#endif
+#ifndef DEC_IN1_PIN
+  #define DEC_IN1_PIN 35
+#endif
+#ifndef DEC_IN2_PIN
+  #define DEC_IN2_PIN 16
+#endif
+#ifndef DEC_IN3_PIN
+  #define DEC_IN3_PIN 25
+#endif
+#ifndef DEC_IN4_PIN
+  #define DEC_IN4_PIN 29
+#endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
   #define RA_STEP_PIN 54  // STEP
@@ -22,6 +47,9 @@
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef RA_SERIAL_PORT_TX
   #define RA_SERIAL_PORT_TX 4 // SoftwareSerial TX port
+#endif
+#ifndef RA_SERIAL_PORT_RX
+  #define RA_SERIAL_PORT_RX 49 // SoftwareSerial RX port
 #endif
 #ifndef RA_DRIVER_ADDRESS
   #define RA_DRIVER_ADDRESS 0b00
@@ -43,34 +71,37 @@
 #ifndef DEC_SERIAL_PORT_TX
   #define DEC_SERIAL_PORT_TX 5 // SoftwareSerial TX port
 #endif
+#ifndef DEC_SERIAL_PORT_RX
+  #define DEC_SERIAL_PORT_RX 50 // SoftwareSerial RX port
+#endif
 #ifndef DEC_DRIVER_ADDRESS
   #define DEC_DRIVER_ADDRESS 0b00
 #endif
   
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef AZ_IN1_PIN
-  #define AZ_IN1_PIN 37
+  #define AZ_IN1_PIN 50
 #endif
 #ifndef AZ_IN2_PIN
-  #define AZ_IN2_PIN 17
+  #define AZ_IN2_PIN 31
 #endif
 #ifndef AZ_IN3_PIN
-  #define AZ_IN3_PIN 23
+  #define AZ_IN3_PIN 33
 #endif
 #ifndef AZ_IN4_PIN
-  #define AZ_IN4_PIN 27
+  #define AZ_IN4_PIN 49
 #endif        
 #ifndef ALT_IN1_PIN
-  #define ALT_IN1_PIN 35
+  #define ALT_IN1_PIN 52
 #endif
 #ifndef ALT_IN2_PIN
-  #define ALT_IN2_PIN 16
+  #define ALT_IN2_PIN 53
 #endif
 #ifndef ALT_IN3_PIN
-  #define ALT_IN3_PIN 25
+  #define ALT_IN3_PIN 51
 #endif
 #ifndef ALT_IN4_PIN
-  #define ALT_IN4_PIN 29
+  #define ALT_IN4_PIN 41
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef AZ_STEP_PIN
@@ -88,6 +119,9 @@
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef AZ_SERIAL_PORT_TX
   #define AZ_SERIAL_PORT_TX 6 // SoftwareSerial TX port
+#endif
+#ifndef AZ_SERIAL_PORT_RX
+  #define AZ_SERIAL_PORT_RX 51 // SoftwareSerial RX port
 #endif
 #ifndef AZ_DRIVER_ADDRESS
   #define AZ_DRIVER_ADDRESS 0b00
@@ -108,6 +142,9 @@
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef ALT_SERIAL_PORT_TX
   #define ALT_SERIAL_PORT_TX 11 // SoftwareSerial TX port
+#endif
+#ifndef ALT_SERIAL_PORT_RX
+  #define ALT_SERIAL_PORT_RX 52 // SoftwareSerial RX port
 #endif
 #ifndef ALT_DRIVER_ADDRESS
   #define ALT_DRIVER_ADDRESS 0b00
