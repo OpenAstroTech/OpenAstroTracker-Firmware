@@ -938,6 +938,7 @@ void Mount::guidePulse(byte direction, int duration) {
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _stepperDEC->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+    _guideDecEndTime = millis() + duration;
     break;
 
     case SOUTH:
@@ -948,6 +949,7 @@ void Mount::guidePulse(byte direction, int duration) {
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _stepperDEC->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+    _guideDecEndTime = millis() + duration;
     break;
 
     case WEST:
@@ -955,6 +957,7 @@ void Mount::guidePulse(byte direction, int duration) {
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);
     _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);   // Faster than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+    _guideRaEndTime = millis() + duration;
     break;
 
     case EAST:
@@ -962,10 +965,10 @@ void Mount::guidePulse(byte direction, int duration) {
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);
     _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);   // Slower than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+    _guideRaEndTime = millis() + duration;
     break;
   }
-
-  _guideEndTime = millis() + duration;
+  
   LOGV1(DEBUG_STEPPERS, F("STEP-guidePulse: < Guide Pulse"));
 }
 
