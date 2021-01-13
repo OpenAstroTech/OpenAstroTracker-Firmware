@@ -326,6 +326,16 @@
   // Azimuth configuration
   #if (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
     // Valid AZ stepper and driver combination
+  #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
+    // Valid AZ stepper and driver combination
+  #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    // Valid AZ stepper and driver combination
+  #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    // Valid AZ stepper and driver combination
+  #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
+    // Valid AZ stepper and driver combination
+  #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    // Valid AZ stepper and driver combination
   #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     // Valid AZ stepper and driver combination
   #else
@@ -334,6 +344,16 @@
 
   // Altitude configuration
   #if (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
+    // Valid ALT stepper and driver combination
+  #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
+    // Valid ALT stepper and driver combination
+  #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    // Valid ALT stepper and driver combination
+  #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    // Valid ALT stepper and driver combination
+  #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
+    // Valid ALT stepper and driver combination
+  #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
     // Valid ALT stepper and driver combination
   #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     // Valid ALT stepper and driver combination
@@ -470,6 +490,11 @@
       // Required pin assignments missing
       #error Missing pin assignments for configured AZ DRIVER_TYPE_ULN2003 driver
     #endif
+  #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)
+       // Required pin assignments missing
+       #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
+    #endif
   #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN) || !defined(AZ_SERIAL_PORT_TX) || !defined(AZ_SERIAL_PORT_RX)
       // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
@@ -481,6 +506,11 @@
     #if !defined(ALT_IN1_PIN) || !defined(ALT_IN2_PIN) || !defined(ALT_IN3_PIN) || !defined(ALT_IN4_PIN)
       // Required pin assignments missing
       #error Missing pin assignments for configured ALT DRIVER_TYPE_ULN2003 driver
+    #endif
+  #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
+       // Required pin assignments missing
+       #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
     #endif
   #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN) || !defined(ALT_SERIAL_PORT_TX) || !defined(ALT_SERIAL_PORT_RX)
