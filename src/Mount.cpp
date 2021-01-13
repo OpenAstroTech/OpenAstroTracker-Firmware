@@ -867,17 +867,45 @@ void Mount::startSlewingToTarget() {
 //
 /////////////////////////////////
 void Mount::stopGuiding() {
+  stopGuiding(true, true);
+}
 
-  _stepperDEC->stop();
-  while (_stepperDEC->isRunning()) {
-    _stepperDEC->run();
-    _stepperTRK->runSpeed();
+void Mount::stopGuiding(bool ra, bool dec)
+{
+  // Stop RA guide first, since it's just a speed change back to tracking speed
+  if (ra)
+  {
+    LOGV2(DEBUG_STEPPERS,F("STEP-stopGuiding(RA): TRK.setSpeed(%f)"), _trackingSpeed);
+    _stepperTRK->setSpeed(_trackingSpeed);
+    _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
   }
 
-  // Return to tracking, update the speed. No need to update microstepping mode (same as guiding)
-  LOGV2(DEBUG_STEPPERS,F("STEP-stopGuiding: TRK.setSpeed(%f)"),_trackingSpeed);
-  _stepperTRK->setSpeed(_trackingSpeed);
-  _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+  if (dec) 
+  {
+    LOGV1(DEBUG_STEPPERS,F("STEP-stopGuiding(DEC):"));
+
+    // Stop DEC guiding and wait for it to stop.
+    _stepperDEC->stop();
+  
+    while (_stepperDEC->isRunning()) 
+    {
+      _stepperDEC->run();
+      _stepperTRK->runSpeed();
+    }
+
+    // TODO: If microstepping for guiding is changed, re-enable this
+    // #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    //   _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+    // #endif
+
+    _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
+  }
+
+  //disable pulse state if no direction is active
+  if( ( _mountStatus & STATUS_GUIDE_PULSE_DIR ) == 0 ) 
+  {
+    _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+  }
 }
 
 /////////////////////////////////
@@ -904,7 +932,7 @@ void Mount::guidePulse(byte direction, int duration) {
   switch (direction) {
     case NORTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      // TODO: Fix broken microstep management to re-instate fine pointing
+      // TODO: Fix broken microstep management to re-instate fine pointing. Also fix code in stopGuiding()
       // _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), DEC_PULSE_MULTIPLIER * decGuidingSpeed);
@@ -914,7 +942,7 @@ void Mount::guidePulse(byte direction, int duration) {
 
     case SOUTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      // TODO: Fix broken microstep management to re-instate fine pointing
+      // TODO: Fix broken microstep management to re-instate fine pointing. Also fix code in stopGuiding()
       // _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
@@ -1706,13 +1734,16 @@ void Mount::loop() {
   #endif
   
   if (isGuiding()) {
-    if (millis() > _guideEndTime) {
-      stopGuiding();
-    #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      // TODO: Fix broken microstep management to re-instate fine pointing
-      // LOGV2(DEBUG_STEPPERS, F("STEP-loop: DEC driver setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-      // _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
-    #endif					
+    unsigned long now = millis();
+    bool stopRaGuiding = now > _guideRaEndTime;
+    bool stopDecGuiding = now > _guideDecEndTime;
+    if (stopRaGuiding || stopDecGuiding) {
+      stopGuiding(stopRaGuiding,stopDecGuiding);
+      #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        // TODO: Fix broken microstep management to re-instate fine pointing
+        // LOGV2(DEBUG_STEPPERS, F("STEP-loop: DEC driver setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+        // _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
+      #endif					
     }
     return;
   }
