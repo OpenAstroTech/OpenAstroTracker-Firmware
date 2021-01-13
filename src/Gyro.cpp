@@ -1,10 +1,10 @@
-#include "../Configuration_adv.hpp"
-
-#if USE_GYRO_LEVEL == 1
-#include <Wire.h> // I2C communication library
-
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "Gyro.hpp"
+
+#if USE_GYRO_LEVEL == 1
+
+#include <Wire.h> // I2C communication library
 
 /**
  * Tilt, roll, and temperature measurementusing the MPU-6050 MEMS gyro.

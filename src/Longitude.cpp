@@ -1,3 +1,4 @@
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "Longitude.hpp"
 
@@ -31,7 +32,7 @@ void Longitude::checkHours()
   }
 }
 
-Longitude Longitude::ParseFromMeade(String s)
+Longitude Longitude::ParseFromMeade(String const& s)
 {
   Longitude result(0.0);
   LOGV2(DEBUG_GENERAL, F("Longitude.Parse(%s)"), s.c_str());

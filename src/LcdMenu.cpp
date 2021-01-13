@@ -1,9 +1,10 @@
+#include "inc/Globals.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "LcdMenu.hpp"
-#include "inc/Config.hpp"
 
-#if DISPLAY_TYPE > 0
+#if DISPLAY_TYPE != DISPLAY_TYPE_NONE
 
 // Class that drives the LCD screen with a menu
 // You add a string and an id item and this class handles the display and navigation
@@ -49,8 +50,7 @@ void LcdMenu::startup()
     _lcd.setFont(u8x8_font_7x14_1x2_f);   // Each 7x14 character takes up 2 8-pixel rows
   #endif
 
-  _brightness = EPROMStore::readUint8(EPROMStore::LCD_BRIGHTNESS);
-  if (_brightness == 0) _brightness = 10;   // Have a reasonable minimum
+  _brightness = EEPROMStore::getBrightness();
   LOGV2(DEBUG_INFO, F("LCD: Brightness from EEPROM is %d"), _brightness);
   setBacklightBrightness(_brightness, false);
 
@@ -146,8 +146,8 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 
   if (persist)
   {
-    LOGV2(DEBUG_INFO, F("LCD: Saving %d as brightness"), (_brightness & 0x00FF));
-    EPROMStore::updateUint8(EPROMStore::LCD_BRIGHTNESS, (byte)(_brightness & 0x00FF));
+    LOGV2(DEBUG_INFO, F("LCD: Saving %d as brightness"), _brightness);
+    EEPROMStore::storeBrightness(_brightness);
   }
 }
 
@@ -478,3 +478,4 @@ void LcdMenu::printChar(char ch) {}
 void LcdMenu::printAt(int col, int row, char ch) {}
 
 #endif
+

@@ -1,5 +1,5 @@
+#include "../Configuration.hpp"
 #include "Sidereal.hpp"
-
 
 // Constants for sidereal calculation       
 // Source: http://www.stargazing.net/kepler/altaz.html
@@ -10,6 +10,7 @@
 #define J2000           2000
 
 #if USE_GPS == 1
+#include <TinyGPS++.h>
 DayTime Sidereal::calculateByGPS(TinyGPSPlus* gps){
     DayTime timeUTC = DayTime(gps->time.hour(), gps->time.minute(), gps->time.second());
     int deltaJd = calculateDeltaJd(gps->date.year(), gps->date.month(), gps->date.day());

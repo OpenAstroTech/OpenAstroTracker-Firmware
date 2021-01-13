@@ -1,3 +1,5 @@
+#include "inc/Globals.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "DayTime.hpp"
 
@@ -10,7 +12,7 @@
 // Parses the RA or DEC from a string that has an optional sign, a two digit degree, a seperator, a two digit minute, a seperator and a two digit second.
 // Does not correct for hemisphere (derived class Declination takes care of that)
 // For example:   -45*32:11 or 23:44:22
-DayTime DayTime::ParseFromMeade(String s)
+DayTime DayTime::ParseFromMeade(String const& s)
 {
   DayTime result;
   int i = 0;
@@ -69,20 +71,16 @@ DayTime::DayTime(const DayTime &other)
 
 DayTime::DayTime(int h, int m, int s)
 {
-  LOGV4(DEBUG_INFO, "DayTime ctor(%d, %d, %d)", h, m, s);
   long sgn = sign(h);
   h = abs(h);
   totalSeconds = sgn * ((60L* h + m) * 60L + s);
-  LOGV6(DEBUG_INFO, "DayTime ctor(%d, %d, %d) -> %l -> %s", h, m, s, totalSeconds, ToString());
 }
 
 DayTime::DayTime(float timeInHours)
 {
-  LOGV2(DEBUG_INFO, "DayTime ctor(%f)", timeInHours);
   long sgn = fsign(timeInHours);
   timeInHours = abs(timeInHours);
   totalSeconds = sgn * round(timeInHours * 60 * 60);
-  LOGV4(DEBUG_INFO, "DayTime ctor(%f) -> %l -> %s", timeInHours, totalSeconds, ToString());
 }
 
 int DayTime::getHours() const
@@ -155,15 +153,14 @@ void DayTime::addHours(int deltaHours)
 
 void DayTime::checkHours()
 {
-  long limit = hourWrap * 3600L;
-  while (totalSeconds >= limit)
+  while (totalSeconds >= secondsPerDay)
   {
-    totalSeconds -= limit;
+    totalSeconds -= secondsPerDay;
   }
 
   while (totalSeconds < 0)
   {
-    totalSeconds += limit;
+    totalSeconds += secondsPerDay;
   }
 }
 

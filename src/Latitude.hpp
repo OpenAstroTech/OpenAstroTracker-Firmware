@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include "DayTime.hpp"
 
 // 90 at north pole, -90 at south pole
@@ -12,7 +11,7 @@ public:
   Latitude(int h, int m, int s);
   Latitude(float inDegrees);
 
-  static Latitude ParseFromMeade(String s);
+  static Latitude ParseFromMeade(String const& s);
 
 protected:
   virtual void checkHours() override;
