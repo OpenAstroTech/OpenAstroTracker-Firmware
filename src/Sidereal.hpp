@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.h>
 #include "DayTime.hpp"
 
 // Forward declaration
