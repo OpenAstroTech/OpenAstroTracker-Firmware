@@ -166,7 +166,7 @@ void printStatusSubmenu()
 
     case 9:
     {
-        LocalDate date = mount.localDate();
+        LocalDate date = mount.getLocalDate();
         sprintf(scratchBuffer, "Date: %04d-%02d-%02d", date.year, date.month, date.day );
         lcdMenu.printMenu(scratchBuffer);
     }
@@ -174,7 +174,7 @@ void printStatusSubmenu()
 
     case 10:
     {
-        DayTime drvUtc = mount.utcTime();
+        DayTime drvUtc = mount.getUtcTime();
         sprintf(scratchBuffer, "UTC: %02d:%02d:%02d", drvUtc.getHours(), drvUtc.getMinutes(), drvUtc.getSeconds() );
         lcdMenu.printMenu(scratchBuffer);
     }

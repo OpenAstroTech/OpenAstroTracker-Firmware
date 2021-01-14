@@ -106,11 +106,11 @@ Mount::Mount(LcdMenu* lcdMenu) :
   _rollCalibrationAngle = 0;
   #endif
 
-  this->_localUtcOffset = 0;
-  this->_localStartDate.year = 2000;
-  this->_localStartDate.month = 1;
-  this->_localStartDate.day = 1;
-  this->_localStartTimeSetMillis = -1;
+  _localUtcOffset = 0;
+  _localStartDate.year = 2021;
+  _localStartDate.month = 1;
+  _localStartDate.day = 1;
+  _localStartTimeSetMillis = -1;
 }
 
 /////////////////////////////////
@@ -177,7 +177,7 @@ void Mount::readPersistentData()
 
   _decLowerLimit = EEPROMStore::getDECLowerLimit();
   _decUpperLimit = EEPROMStore::getDECUpperLimit();
-  LOGV3(DEBUG_INFO,F("Mount: EEPROM: DEC limits read as %l -> %l"), _decLowerLimit, _decUpperLimit );
+  LOGV3(DEBUG_INFO,F("Mount: EEPROM: DEC limits read as %l -> %l"), _decLowerLimit, _decUpperLimit);
 }
 
 /////////////////////////////////
@@ -692,7 +692,7 @@ void Mount::setLongitude(Longitude longitude) {
   _longitude = longitude;
   EEPROMStore::storeLongitude(_longitude);
 
-  this->autoCalcHa();
+  autoCalcHa();
 }
 
 /////////////////////////////////
@@ -911,7 +911,7 @@ void Mount::stopGuiding(bool ra, bool dec)
   }
 
   //disable pulse state if no direction is active
-  if( ( _mountStatus & STATUS_GUIDE_PULSE_DIR ) == 0 ) 
+  if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0) 
   {
     _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
   }
@@ -1616,7 +1616,7 @@ void Mount::waitUntilStopped(byte direction) {
   while (((direction & (EAST | WEST)) && _stepperRA->isRunning())
          || ((direction & (NORTH | SOUTH)) && _stepperDEC->isRunning())
          || ((direction & TRACKING) && (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning()))
-         ) {
+        ) {
     loop();
     yield();
   }
@@ -1670,7 +1670,7 @@ void Mount::interruptLoop()
     return;
   }
 
-  if (_mountStatus & STATUS_TRACKING ) {
+  if (_mountStatus & STATUS_TRACKING) {
     //if ~(_mountStatus & STATUS_SLEWING) {
       _stepperTRK->runSpeed();
     //}
@@ -1725,7 +1725,7 @@ void Mount::loop() {
     disableAzAltMotors();
     _azAltWasRunning = false;
   }
-  if (_stepperALT->isRunning() || _stepperAZ->isRunning() )
+  if (_stepperALT->isRunning() || _stepperAZ->isRunning())
   {
      _azAltWasRunning = true;
   }
@@ -2346,31 +2346,45 @@ void Mount::finishFindingHomeRA()
 }
 #endif
 
-
-DayTime Mount::utcTime() {
-  DayTime timeUTC = this->localTime();
-  timeUTC.addHours( this->_localUtcOffset );
+/////////////////////////////////
+//
+// 
+//
+/////////////////////////////////
+DayTime Mount::getUtcTime() {
+  DayTime timeUTC = getLocalTime();
+  timeUTC.addHours(_localUtcOffset);
   return timeUTC;
 }
 
-DayTime Mount::localTime() {
-  DayTime timeUTC = this->_localStartTime;
-  timeUTC.addSeconds( ( millis() - this->_localStartTimeSetMillis ) / 1000 );
+/////////////////////////////////
+//
+// localTime
+//
+/////////////////////////////////
+DayTime Mount::getLocalTime() {
+  DayTime timeUTC = _localStartTime;
+  timeUTC.addSeconds((millis() - _localStartTimeSetMillis) / 1000);
   return timeUTC;
 }
 
-LocalDate Mount::localDate() {
-  LocalDate localDate = this->_localStartDate;
-  long secondsSinceSetDayEnd = ( ( millis() - this->_localStartTimeSetMillis ) / 1000 ) - ( 86400 - this->_localStartTime.getTotalSeconds() );
+/////////////////////////////////
+//
+// localDate
+//
+/////////////////////////////////
+LocalDate Mount::getLocalDate() {
+  LocalDate localDate = _localStartDate;
+  long secondsSinceSetDayEnd = ((millis() - _localStartTimeSetMillis) / 1000) - (86400 - _localStartTime.getTotalSeconds());
   
-  while( secondsSinceSetDayEnd >= 0 ) {
+  while(secondsSinceSetDayEnd >= 0) {
     localDate.day++;
     secondsSinceSetDayEnd -= 86400;
 
     int maxDays = 31;
-    switch( localDate.month ) {
+    switch(localDate.month) {
       case 2:
-        if( ( ( localDate.year % 4 == 0) && ( localDate.year % 100 != 0 ) ) || ( localDate.year % 400 == 0 ) ) {
+        if (((localDate.year % 4 == 0) && (localDate.year % 100 != 0)) || (localDate.year % 400 == 0)) {
           maxDays = 29;
         }
         else {
@@ -2387,12 +2401,12 @@ LocalDate Mount::localDate() {
     }
 
     //calculate day overflow
-    if( localDate.day > maxDays ) {
+    if (localDate.day > maxDays) {
       localDate.day = 1;
       localDate.month++;
     }
     //calculate year overflow
-    if( localDate.month > 12 ) {
+    if (localDate.month > 12) {
       localDate.month = 1;
       localDate.year++;
     }
@@ -2401,43 +2415,77 @@ LocalDate Mount::localDate() {
   return localDate;
 }
 
-const int Mount::localUtcOffset() const {
+/////////////////////////////////
+//
+// localUtcOffset
+//
+/////////////////////////////////
+const int Mount::getLocalUtcOffset() const {
   return _localUtcOffset;
 }
 
-void Mount::setLocalStartDate( int year, int month, int day ) {
-  this->_localStartDate.year = year;
-  this->_localStartDate.month = month;
-  this->_localStartDate.day = day;
+/////////////////////////////////
+//
+// setLocalStartDate
+//
+/////////////////////////////////
+void Mount::setLocalStartDate(int year, int month, int day) {
+  _localStartDate.year = year;
+  _localStartDate.month = month;
+  _localStartDate.day = day;
 
-  this->autoCalcHa();
-}
-void Mount::setLocalStartTime( DayTime localTime ) {
-  this->_localStartTime = localTime;
-  this->_localStartTimeSetMillis = millis();
-
-  this->autoCalcHa();
-}
-void Mount::setLocalUtcOffset( int offset ) {
-  this->_localUtcOffset = offset;
-
-  this->autoCalcHa();
+  autoCalcHa();
 }
 
+/////////////////////////////////
+//
+// setLocalStartTime
+//
+/////////////////////////////////
+void Mount::setLocalStartTime(DayTime localTime) {
+  _localStartTime = localTime;
+  _localStartTimeSetMillis = millis();
 
+  autoCalcHa();
+}
+
+/////////////////////////////////
+//
+// setLocalUtcOffset
+//
+/////////////////////////////////
+void Mount::setLocalUtcOffset(int offset) {
+  _localUtcOffset = offset;
+  autoCalcHa();
+}
+
+/////////////////////////////////
+//
+// autoCalcHa
+//
+/////////////////////////////////
 void Mount::autoCalcHa() {
-  //update HA
-  this->setHA( this->calculateHa() );
+  setHA(calculateHa());
 }
 
+/////////////////////////////////
+//
+// calculateLst
+//
+/////////////////////////////////
 DayTime Mount::calculateLst() {
-  DayTime timeUTC = this->utcTime();
-  LocalDate localDate = this->localDate();
-  DayTime lst = Sidereal::calculateByDateAndTime( this->longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC );
+  DayTime timeUTC = getUtcTime();
+  LocalDate localDate = getLocalDate();
+  DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
   return lst;
 }
 
+/////////////////////////////////
+//
+// calculateHa
+//
+/////////////////////////////////
 DayTime Mount::calculateHa() {
-  DayTime lst = this->calculateLst();
-  return Sidereal::calculateHa( lst.getTotalHours() );
+  DayTime lst = calculateLst();
+  return Sidereal::calculateHa(lst.getTotalHours());
 }

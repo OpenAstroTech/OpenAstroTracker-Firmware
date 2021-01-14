@@ -290,11 +290,11 @@ public:
   // Let the mount know that the system has finished booting
   void bootComplete();
 
-  DayTime utcTime();
-  DayTime localTime();
-  LocalDate localDate();
+  DayTime getUtcTime();
+  DayTime getLocalTime();
+  LocalDate getLocalDate();
 
-  const int localUtcOffset() const;
+  const int getLocalUtcOffset() const;
 
   void setLocalStartDate( int year, int month, int day );
   void setLocalStartTime( DayTime localTime );
@@ -324,7 +324,6 @@ private:
   #if DEBUG_LEVEL&(DEBUG_MOUNT|DEBUG_MOUNT_VERBOSE)
     String mountStatusString();
   #endif
-
 
   void autoCalcHa();
 
