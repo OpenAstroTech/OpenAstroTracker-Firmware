@@ -32,6 +32,12 @@ class TMC2209Stepper;
 #define AZIMUTH_STEPS 5
 #define ALTITUDE_STEPS 6
 
+struct LocalDate {
+  int year;
+  int month;
+  int day;
+};
+
 //////////////////////////////////////////////////////////////////
 //
 // Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
@@ -283,6 +289,19 @@ public:
 
   // Let the mount know that the system has finished booting
   void bootComplete();
+
+  DayTime utcTime();
+  DayTime localTime();
+  LocalDate localDate();
+
+  const int localUtcOffset() const;
+
+  void setLocalStartDate( int year, int month, int day );
+  void setLocalStartTime( DayTime localTime );
+  void setLocalUtcOffset( int offset );
+
+  DayTime calculateLst();
+  DayTime calculateHa();
 private:
 
   // Reads values from EEPROM that configure the mount (if previously stored)
@@ -306,6 +325,8 @@ private:
     String mountStatusString();
   #endif
 
+
+  void autoCalcHa();
 
 private:
   LcdMenu* _lcdMenu;
@@ -387,6 +408,12 @@ private:
   bool _slewingToHome;
   bool _slewingToPark;
   bool _bootComplete;
+
+  int _localUtcOffset;
+  LocalDate _localStartDate;
+  DayTime _localStartTime;
+  long _localStartTimeSetMillis;
+
 };
 
 #endif
