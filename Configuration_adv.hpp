@@ -331,23 +331,6 @@
 //                                  ////////
 ////////////////////////////////////////////
 
-// Stepper drivers
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #if defined(ESP32)
-    #define RA_SERIAL_PORT Serial2    // Can be shared with DEC_SERIAL_PORT
-  #elif defined(__AVR_ATmega2560__)
-    // Uses SoftwareSerial
-  #endif
-#endif
-
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #if defined(ESP32)
-    #define DEC_SERIAL_PORT Serial2   // Can be shared with RA_SERIAL_PORT
-  #elif defined(__AVR_ATmega2560__)
-    // Uses SoftwareSerial
-  #endif
-#endif
-
 // GPS
 #if USE_GPS == 1
   #if defined(ESP32)
