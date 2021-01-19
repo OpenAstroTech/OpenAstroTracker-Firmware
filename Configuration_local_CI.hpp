@@ -77,6 +77,8 @@
         // Additional SoftSerial pins required
         #define RA_SERIAL_PORT_TX (-1)  
         #define RA_SERIAL_PORT_RX  (-1)  
+    #elif defined(ESP32)
+        #define RA_SERIAL_PORT (-1)
     #endif
     // Additional configuration
     #define RA_DRIVER_ADDRESS (0)
@@ -110,6 +112,8 @@
         // Additional SoftSerial pins required
         #define DEC_SERIAL_PORT_TX (-1)  
         #define DEC_SERIAL_PORT_RX  (-1)  
+    #elif defined(ESP32)
+        #define DEC_SERIAL_PORT (-1)
     #endif
     // Additional configuration
     #define DEC_DRIVER_ADDRESS (0)
