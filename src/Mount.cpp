@@ -594,6 +594,18 @@ String Mount::getMountHardwareInfo()
     ret += "NO_GYRO,";
   #endif
 
+  #if DISPLAY_TYPE == DISPLAY_TYPE_NONE
+    ret += "NO_LCD,";
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
+    ret += "LCD_KEYPAD,";
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008
+    ret += "LCD_I2C_MCP23008,";
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
+    ret += "LCD_I2C_MCP23017,";
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+    ret += "LCD_JOY_I2C_SSD1306,";
+  #endif
+
   return ret;
 }
 
