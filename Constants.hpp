@@ -8,7 +8,11 @@
 
 /**
  * Supported boards. The name consists of the platform and the board name (model).
+ * Applies predefined pin mappings for common boards.
+ * If BOARD_UNKNOWN is used then user is responsible for specifying complete mapping in Configuration_local.hpp
  **/
+#define BOARD_UNKNOWN            0000
+
 // AVR based boards
 #define BOARD_AVR_MEGA2560       0001
 #define BOARD_AVR_MKS_GEN_L_V21  0002
@@ -54,9 +58,6 @@
 // USB serial port speed according to external controller
 #define SERIAL_BAUDRATE_STELLARIUM_DIRECT   9600
 #define SERIAL_BAUDRATE_ASCOM               57600
-
-#define DISABLED 0
-#define ENABLED  1
 
 // Wifi operating modes (ESP32 only)
 #define WIFI_MODE_INFRASTRUCTURE                        0   // Infrastructure Only - OAT connects to an existing Router

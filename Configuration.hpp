@@ -47,9 +47,10 @@
  * Use default values for any parameters the user didn't provide.
  */
 
-// If board is not defined in local configuration, assume Arduino Mega2560
+// If board is not defined in local configuration, assume BOARD_UNKNOWN
+// Configuration checks below will capture any missing pin assignments.
 #ifndef BOARD
-  #define BOARD BOARD_AVR_MEGA2560
+  #define BOARD BOARD_UNKNOWN
 #endif
 
 // Set to 1 for the northern hemisphere, 0 otherwise
@@ -252,7 +253,9 @@
 #include "Configuration_adv.hpp"
 
 // Append board specific pins data.
-#if (BOARD == BOARD_AVR_MEGA2560)
+#if (BOARD == BOARD_UNKNOWN)
+  // Assume custom user board - no predefined pin mapping
+#elif (BOARD == BOARD_AVR_MEGA2560)
   #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
 #elif (BOARD == BOARD_ESP32_ESP32DEV)
   #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
