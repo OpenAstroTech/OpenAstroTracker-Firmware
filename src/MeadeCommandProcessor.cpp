@@ -103,8 +103,8 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 // :Gg#
 //      Get Site Longitude
 //      Returns: DDD*MM#
-//               Where DDD is the longitude in degrees and MM the minutes. Negative (W) longitudes have had 360 added to them.
-
+//               Where DDD is the longitude in degrees and MM the minutes. Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
+//
 // :Gc#
 //      Get current Clock format
 //      Returns: 24#
@@ -208,7 +208,7 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 // :SgDDD*MM#
 //      Set Site Longitude
 //      This sets the longitude of the location of the mount.
-//      Where DDD the nmber of degrees (0 to 360), MM is minutes. W Latitudes get 360 added to them. So W122 (or -122) would be 238.
+//      Where DDD the nmber of degrees (0 to 360), MM is minutes. Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
 //      Returns: 1 if successfully set, otherwise 0
 //
 // :SGsHH#

@@ -48,7 +48,9 @@ Longitude Longitude::ParseFromMeade(String const &s)
   return result;
 }
 
-const char *Longitude::formatString(char *targetBuffer, const char *format, long *) const
+char achBufLong[32];
+
+const char *Longitude::ToString() const
 {
   long secs = totalSeconds;
   if (secs < 0)
@@ -56,5 +58,26 @@ const char *Longitude::formatString(char *targetBuffer, const char *format, long
     secs += 360L * 3600L;
   }
 
-  return DayTime::formatString(targetBuffer, format, &secs);
+  String totalDegs = String((float)(1.0f * abs(totalSeconds) / 3600.0), 2);
+  String degs = String((float)(1.0f * secs / 3600.0), 2);
+  strcpy(achBufLong, degs.c_str());
+  strcat(achBufLong, " (");
+  strcat(achBufLong, totalDegs.c_str());
+  strcat(achBufLong, (totalSeconds < 0) ? "W)" : "E)");
+  return achBufLong;
+}
+
+const char *Longitude::formatString(char *targetBuffer, const char *format, long *) const
+{
+  long secs = totalSeconds;
+
+  // Map to 0..360 westwards
+  secs = 180L * 3600L - secs;
+
+  long degs = secs / 3600;
+  secs = secs - degs * 3600;
+  long mins = secs / 60;
+  secs = secs - mins * 60;
+
+  return formatStringImpl(targetBuffer, format, '\0', degs, mins, secs);
 }
