@@ -12,7 +12,7 @@
 // Parses the RA or DEC from a string that has an optional sign, a two digit degree, a seperator, a two digit minute, a seperator and a two digit second.
 // Does not correct for hemisphere (derived class Declination takes care of that)
 // For example:   -45*32:11 or 23:44:22
-DayTime DayTime::ParseFromMeade(String const& s)
+DayTime DayTime::ParseFromMeade(String const &s)
 {
   DayTime result;
   int i = 0;
@@ -73,7 +73,7 @@ DayTime::DayTime(int h, int m, int s)
 {
   long sgn = sign(h);
   h = abs(h);
-  totalSeconds = sgn * ((60L* h + m) * 60L + s);
+  totalSeconds = sgn * ((60L * h + m) * 60L + s);
 }
 
 DayTime::DayTime(float timeInHours)
@@ -260,13 +260,17 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
   const char *f = format;
   char *p = targetBuffer;
 
-  achDegs[0] = sgn;
-  int i = 1;
+  int i = 0;
+  if (sgn != '\0')
+  {
+    achDegs[0] = sgn;
+    i++;
+  }
 
   if (degs >= 100)
   {
     achDegs[i++] = '0' + (degs / 100);
-    degs /= 10;
+    degs = degs % 100;
   }
 
   printTwoDigits(achDegs + i, degs);

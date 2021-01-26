@@ -32,6 +32,12 @@ class TMC2209Stepper;
 #define AZIMUTH_STEPS 5
 #define ALTITUDE_STEPS 6
 
+struct LocalDate {
+  int year;
+  int month;
+  int day;
+};
+
 //////////////////////////////////////////////////////////////////
 //
 // Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
@@ -229,6 +235,9 @@ public:
   // Stops any guide operation in progress.
   void stopGuiding();
 
+  // Stops given guide operations in progress.
+  void stopGuiding(bool ra, bool dec);
+
   // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
   String DECString(byte type, byte active = 0);
 
@@ -280,6 +289,19 @@ public:
 
   // Let the mount know that the system has finished booting
   void bootComplete();
+
+  DayTime getUtcTime();
+  DayTime getLocalTime();
+  LocalDate getLocalDate();
+
+  const int getLocalUtcOffset() const;
+
+  void setLocalStartDate( int year, int month, int day );
+  void setLocalStartTime( DayTime localTime );
+  void setLocalUtcOffset( int offset );
+
+  DayTime calculateLst();
+  DayTime calculateHa();
 private:
 
   // Reads values from EEPROM that configure the mount (if previously stored)
@@ -303,6 +325,7 @@ private:
     String mountStatusString();
   #endif
 
+  void autoCalcHa();
 
 private:
   LcdMenu* _lcdMenu;
@@ -368,7 +391,8 @@ private:
     #endif 
   #endif
 
-  unsigned long _guideEndTime;
+  unsigned long _guideRaEndTime;
+  unsigned long _guideDecEndTime;
   unsigned long _lastMountPrint = 0;
   unsigned long _lastTrackingPrint = 0;
   float _trackingSpeed;                 // RA u-steps/sec when in tracking mode
@@ -383,6 +407,12 @@ private:
   bool _slewingToHome;
   bool _slewingToPark;
   bool _bootComplete;
+
+  int _localUtcOffset;
+  LocalDate _localStartDate;
+  DayTime _localStartTime;
+  long _localStartTimeSetMillis;
+
 };
 
 #endif

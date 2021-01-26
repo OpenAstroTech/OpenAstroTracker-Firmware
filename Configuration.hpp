@@ -33,14 +33,10 @@
 #include "Version.h"
 
 // Include the user-specific local configuration
-#if defined(ESP32) && __has_include("Configuration_local_esp32.hpp")                // ESP32
-    #include "Configuration_local_esp32.hpp"
-#elif defined(__AVR_ATmega2560__) && __has_include("Configuration_local_mega.hpp")  // Mega2560
-    #include "Configuration_local_mega.hpp"
+#if __has_include("Configuration_local.hpp")
+    #include "Configuration_local.hpp"
 #elif __has_include("Configuration_local_CI.hpp")                                   // CI environment on GitHub
     #include "Configuration_local_CI.hpp"
-#elif __has_include("Configuration_local.hpp")                                      // Custom config
-    #include "Configuration_local.hpp"
 #endif
 
 /**
@@ -405,8 +401,7 @@
     #if !defined(WIFI_INFRASTRUCTURE_MODE_SSID) || !defined(WIFI_INFRASTRUCTURE_MODE_WPAKEY)
       #error Wifi SSID and WPA key must be provided for infrastructure mode
     #endif
-  #endif
-  #if (WIFI_MODE == WIFI_MODE_AP_ONLY) || (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
+  #elif (WIFI_MODE == WIFI_MODE_AP_ONLY) || (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
     #if !defined(WIFI_AP_MODE_WPAKEY)
       #error Wifi WPA key must be provided for AP mode
     #endif
@@ -414,7 +409,7 @@
     #error Unsupported WiFi configuration. Use at own risk.
   #endif
 #else
-  #error Unsupported WiFi configuration. Use at own risk.
+  #error Unsupported WiFi configuration (WiFI only supported on ESP32). Use at own risk.
 #endif
 
 // External sensors

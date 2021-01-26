@@ -12,6 +12,7 @@ public:
   Longitude(float inDegrees);
 
   virtual const char *formatString(char *targetBuffer, const char *format, long *pSeconds = nullptr) const;
+  virtual const char *ToString() const;
 
   static Longitude ParseFromMeade(String const& s);
 

@@ -223,10 +223,10 @@
     #endif
   }
 
-  #else
+#else // DISPLAY not NONE
 
   void loop() {
-    #ifndef ESP32
+    #ifdef ESP32
       serialLoop();
     #if (BLUETOOTH_ENABLED == 1)
       BTin();
