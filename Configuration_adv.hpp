@@ -115,6 +115,11 @@
   #endif
 #endif
 
+#if defined(RA_SERIAL_PORT_RX) && defined (RA_SERIAL_PORT_TX) && defined(DEC_SERIAL_PORT_RX) && defined (DEC_SERIAL_PORT_TX)
+  #define SW_CAPABLE_PLATFORM 1
+#elif defined(RA_SERIAL_PORT) && defined(DEC_SERIAL_PORT)
+  #define SW_CAPABLE_PLATFORM 0
+#endif
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                        ////////
 // MECHANICS SETTINGS     ////////
