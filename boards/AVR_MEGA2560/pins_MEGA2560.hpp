@@ -54,7 +54,7 @@
   #define RA_MS2_PIN  34
 #endif    
 // DRIVER_TYPE_TMC2209_UART HardwareSerial port, can be shared across all drivers
-#ifndef RA_SERIAL_PORT Serial2
+#ifndef RA_SERIAL_PORT
   #define RA_SERIAL_PORT Serial2
 #endif
 #ifndef RA_DRIVER_ADDRESS
