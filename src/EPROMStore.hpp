@@ -18,6 +18,9 @@ public:
   static DayTime getHATime();
   static void storeHATime(DayTime const& ha);
 
+  static int getUtcOffset();
+  static void storeUtcOffset(int utcOffset);
+
   static byte getBrightness();
   static void storeBrightness(byte brightness);
 
@@ -81,7 +84,8 @@ private:
   // If Location 5 is 0xCF, then an extended 16-bit flag is stored in 21/22 and 
   // indicates the additional fields that have been stored: 0000 0000 0000 0000
   //                                                        ^^^^ ^^^^ ^^^^ ^^^^
-  //                                                                         ||
+  //                                                                        |||
+  //                               UTC Offset (39) -------------------------+||
   //     DEC lower (31-34) and upper (35-38) limits -------------------------+|                    
   //     RA (23-26) and DEC (27-30) Parking offsets --------------------------+
   //
@@ -107,30 +111,32 @@ private:
   enum ExtendedItemFlag {
     // The marker bits for the extended values
     PARKING_POS_MARKER_FLAG = 0x0001,
-    DEC_LIMIT_MARKER_FLAG = 0x0002
+    DEC_LIMIT_MARKER_FLAG = 0x0002,
+    UTC_OFFSET_MARKER_FLAG = 0x0004,
   };
 
   // These are the offsets to each item stored in the EEPROM
   enum ItemAddress { 
-    SPEED_FACTOR_LOW_ADDR=0, SPEED_FACTOR_HIGH_ADDR=3,  // Split as two discontinuous Uint8
-    HA_HOUR_ADDR=1, HA_MINUTE_ADDR=2, // Both Uint8
-    FLAGS_ADDR=4,  // Uint8
-    MAGIC_MARKER_ADDR=5, // Uint8
-    MAGIC_MARKER_AND_FLAGS_ADDR=4,   // Alias for Uint16 access
-    RA_STEPS_DEGREE_ADDR=6, _RA_STEPS_DEGREE_ADDR_1=7,    // Int16
-    DEC_STEPS_DEGREE_ADDR=8, _DEC_STEPS_DEGREE_ADDR_1=9,  // Int16
-    BACKLASH_STEPS_ADDR=10, _BACKLASH_STEPS_ADDR_1=11,    // Int16
-    LATITUDE_ADDR=12, _LATITUDE_ADDR_1=13,    // Int16
-    LONGITUDE_ADDR=14, _LONGITUDE_ADDR_1=13,  // Int16
-    LCD_BRIGHTNESS_ADDR=16, // Uint8
-    PITCH_OFFSET_ADDR=17, _PITCH_OFFSET_ADDR_1=18,  // Uint16
-    ROLL_OFFSET_ADDR=19, _ROLL_OFFSET_ADDR_1=20,    // Uint16
-    EXTENDED_FLAGS_ADDR=21, _EXTENDED_FLAGS_ADDR_1=22,  // Uint16
-    RA_PARKING_POS_ADDR=23, _RA_PARKING_POS_ADDR_1, _RA_PARKING_POS_ADDR_2, _RA_PARKING_POS_ADDR_3,     // Int32
-    DEC_PARKING_POS_ADDR=27, _DEC_PARKING_POS_ADDR_1, _DEC_PARKING_POS_ADDR_2, _DEC_PARKING_POS_ADDR_3, // Int32
-    DEC_LOWER_LIMIT_ADDR=31, _DEC_LOWER_LIMIT_ADDR_1, _DEC_LOWER_LIMIT_ADDR_2, _DEC_LOWER_LIMIT_ADDR_3, // Int32
-    DEC_UPPER_LIMIT_ADDR=35, _DEC_UPPER_LIMIT_ADDR_1, _DEC_UPPER_LIMIT_ADDR_2, _DEC_UPPER_LIMIT_ADDR_3, // Int32
-    STORE_SIZE=64   
+    SPEED_FACTOR_LOW_ADDR = 0, SPEED_FACTOR_HIGH_ADDR = 3,  // Split as two discontinuous Uint8
+    HA_HOUR_ADDR = 1,          HA_MINUTE_ADDR = 2, // Both Uint8
+    FLAGS_ADDR = 4,  // Uint8
+    MAGIC_MARKER_ADDR = 5, // Uint8
+    MAGIC_MARKER_AND_FLAGS_ADDR = 4,   // Alias for Uint16 access
+    RA_STEPS_DEGREE_ADDR = 6,  _RA_STEPS_DEGREE_ADDR_1 = 7,    // Int16
+    DEC_STEPS_DEGREE_ADDR = 8, _DEC_STEPS_DEGREE_ADDR_1 = 9,  // Int16
+    BACKLASH_STEPS_ADDR = 10,  _BACKLASH_STEPS_ADDR_1 = 11,    // Int16
+    LATITUDE_ADDR = 12,        _LATITUDE_ADDR_1 = 13,    // Int16
+    LONGITUDE_ADDR = 14,       _LONGITUDE_ADDR_1 = 13,  // Int16
+    LCD_BRIGHTNESS_ADDR = 16, // Uint8
+    PITCH_OFFSET_ADDR = 17,    _PITCH_OFFSET_ADDR_1 = 18,  // Uint16
+    ROLL_OFFSET_ADDR = 19,     _ROLL_OFFSET_ADDR_1 = 20,    // Uint16
+    EXTENDED_FLAGS_ADDR = 21,  _EXTENDED_FLAGS_ADDR_1 = 22,  // Uint16
+    RA_PARKING_POS_ADDR = 23,  _RA_PARKING_POS_ADDR_1, _RA_PARKING_POS_ADDR_2, _RA_PARKING_POS_ADDR_3,     // Int32
+    DEC_PARKING_POS_ADDR = 27, _DEC_PARKING_POS_ADDR_1, _DEC_PARKING_POS_ADDR_2, _DEC_PARKING_POS_ADDR_3, // Int32
+    DEC_LOWER_LIMIT_ADDR = 31, _DEC_LOWER_LIMIT_ADDR_1, _DEC_LOWER_LIMIT_ADDR_2, _DEC_LOWER_LIMIT_ADDR_3, // Int32
+    DEC_UPPER_LIMIT_ADDR = 35, _DEC_UPPER_LIMIT_ADDR_1, _DEC_UPPER_LIMIT_ADDR_2, _DEC_UPPER_LIMIT_ADDR_3, // Int32
+    UTC_OFFSET_ADDR = 39, // Int8
+    STORE_SIZE = 64   
   };
 
   // Helper functions
@@ -144,6 +150,9 @@ private:
 
   static void updateUint8(ItemAddress location, uint8_t value);
   static uint8_t readUint8(ItemAddress location);
+
+  static void updateInt8(ItemAddress location, int8_t value);
+  static int8_t readInt8(ItemAddress location);
 
   static void updateUint16(ItemAddress location, uint16_t value);
   static uint16_t readUint16(ItemAddress location);
