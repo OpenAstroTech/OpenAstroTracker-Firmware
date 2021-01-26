@@ -342,7 +342,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
 // TMC2209 UART only
 /////////////////////////////////
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-#if SW_CAPABLE_PLATFORM == 0
+#if SW_SERIAL_UART == 0
   void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverRA = new TMC2209Stepper(serial, rsense, driveraddress);
@@ -366,7 +366,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     //_driverRA->SGTHRS(10);
     _driverRA->irun(31);
   }
-#elif SW_CAPABLE_PLATFORM == 1
+#elif SW_SERIAL_UART == 1
   void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverRA = new TMC2209Stepper(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
@@ -400,7 +400,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
 // TMC2209 UART only
 /////////////////////////////////
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-#if SW_CAPABLE_PLATFORM == 0
+#if SW_SERIAL_UART == 0
   void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
@@ -421,7 +421,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverDEC->SGTHRS(stallvalue);
     _driverDEC->ihold(DEC_HOLDCURRENT);
   }
-#elif SW_CAPABLE_PLATFORM == 1
+#elif SW_SERIAL_UART == 1
   void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
@@ -451,7 +451,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
 // TMC2209 UART only
 /////////////////////////////////
 #if (AZIMUTH_ALTITUDE_MOTORS == 1) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-#if SW_CAPABLE_PLATFORM == 0
+#if SW_SERIAL_UART == 0
   void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverAZ = new TMC2209Stepper(serial, rsense, driveraddress);
@@ -466,7 +466,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverAZ->fclktrim(4);
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
   }
-#elif SW_CAPABLE_PLATFORM == 1
+#elif SW_SERIAL_UART == 1
   void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverAZ = new TMC2209Stepper(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
@@ -493,7 +493,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
 // TMC2209 UART only
 /////////////////////////////////
 #if (AZIMUTH_ALTITUDE_MOTORS == 1) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-#if SW_CAPABLE_PLATFORM == 0
+#if SW_SERIAL_UART == 0
   void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverALT = new TMC2209Stepper(serial, rsense, driveraddress);
@@ -508,7 +508,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverALT->fclktrim(4);
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
   }
-#elif SW_CAPABLE_PLATFORM == 1
+#elif SW_SERIAL_UART == 1
   void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverALT = new TMC2209Stepper(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
