@@ -32,7 +32,7 @@ void Longitude::checkHours()
   }
 }
 
-Longitude Longitude::ParseFromMeade(String const& s)
+Longitude Longitude::ParseFromMeade(String const &s)
 {
   Longitude result(0.0);
   LOGV2(DEBUG_GENERAL, F("Longitude.Parse(%s)"), s.c_str());
@@ -41,7 +41,7 @@ Longitude Longitude::ParseFromMeade(String const& s)
   DayTime dt = DayTime::ParseFromMeade(s);
 
   //from indilib driver:  Meade defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
-  result.totalSeconds = 0 - dt.getTotalSeconds();
+  result.totalSeconds = 180L * 3600L - dt.getTotalSeconds();
   result.checkHours();
 
   LOGV4(DEBUG_GENERAL, F("Longitude.Parse(%s) -> %s = %ls"), s.c_str(), result.ToString(), result.getTotalSeconds());

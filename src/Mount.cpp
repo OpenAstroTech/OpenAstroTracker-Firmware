@@ -2365,7 +2365,7 @@ void Mount::finishFindingHomeRA()
 /////////////////////////////////
 DayTime Mount::getUtcTime() {
   DayTime timeUTC = getLocalTime();
-  timeUTC.addHours(_localUtcOffset);
+  timeUTC.addHours(-_localUtcOffset);
   return timeUTC;
 }
 
@@ -2375,9 +2375,9 @@ DayTime Mount::getUtcTime() {
 //
 /////////////////////////////////
 DayTime Mount::getLocalTime() {
-  DayTime timeUTC = _localStartTime;
-  timeUTC.addSeconds((millis() - _localStartTimeSetMillis) / 1000);
-  return timeUTC;
+  DayTime timeLocal = _localStartTime;
+  timeLocal.addSeconds((millis() - _localStartTimeSetMillis) / 1000);
+  return timeLocal;
 }
 
 /////////////////////////////////
