@@ -53,7 +53,7 @@
 #ifndef RA_MS2_PIN
   #define RA_MS2_PIN  34
 #endif    
-// DRIVER_TYPE_TMC2209_UART HardwareSerial port
+// DRIVER_TYPE_TMC2209_UART HardwareSerial port, can be shared across all drivers
 #ifndef RA_SERIAL_PORT Serial2
   #define RA_SERIAL_PORT Serial2
 #endif
@@ -82,7 +82,7 @@
 #ifndef DEC_MS2_PIN
   #define DEC_MS2_PIN  35
 #endif
-// DRIVER_TYPE_TMC2209_UART HardwareSerial port
+// DRIVER_TYPE_TMC2209_UART HardwareSerial port, can be shared across all drivers
 #ifndef DEC_SERIAL_PORT
   #define DEC_SERIAL_PORT Serial2
 #endif
