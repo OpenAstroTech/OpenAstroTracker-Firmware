@@ -244,9 +244,6 @@
 #define DEBUG_LEVEL (DEBUG_NONE)
 #endif
 
-// Append the advanced configuration data.
-#include "Configuration_adv.hpp"
-
 // Append board specific pins data.
 #if (BOARD == BOARD_AVR_MEGA2560)
   #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
@@ -259,6 +256,9 @@
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
   #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
 #endif
+
+// Append the advanced configuration data.
+#include "Configuration_adv.hpp"
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                            ////////

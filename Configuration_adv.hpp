@@ -98,7 +98,7 @@
 
 // Extended TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #define RA_RMSCURRENT 1200       // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
   #define RA_STALL_VALUE 100       // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
@@ -109,6 +109,10 @@
   //                  ^^^ leave at 0 for now, doesnt work properly yet
   #define RA_AUDIO_FEEDBACK  0 // If one of these are set to 1, the respective driver will shut off the stealthchop mode, resulting in a audible whine
   #define DEC_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly. 
+  
+  #ifndef UART_CONNECTION_TEST
+    #define UART_CONNECTION_TEST 0
+  #endif
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

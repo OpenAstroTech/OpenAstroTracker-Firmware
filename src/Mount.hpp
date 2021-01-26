@@ -79,22 +79,32 @@ public:
   #endif
 #endif
 
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+  //#if RA_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART || DEC_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART 
+  bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
+  //#endif
+#endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 // Configure the RA Driver (TMC2209 UART only)
   void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  void configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   // Configure the DEC Driver (TMC2209 UART only)
   void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  void configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
 #endif
+
 
 // Configure the AZ/ALT drivers.
 #if AZIMUTH_ALTITUDE_MOTORS == 1
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
   #endif
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
   #endif
 #endif
   

@@ -19,23 +19,6 @@ LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
 LcdButtons lcdButtons(&lcdMenu);
 #endif
 
-#if defined(__AVR_ATmega2560__)
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-  SoftwareSerial RA_SERIAL_PORT(RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX);
-#endif
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-  SoftwareSerial DEC_SERIAL_PORT(DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX);
-#endif
-#if AZIMUTH_ALTITUDE_MOTORS == 1
-  #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    SoftwareSerial AZ_SERIAL_PORT(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX);
-  #endif
-  #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    SoftwareSerial ALT_SERIAL_PORT(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX);
-  #endif
-#endif
-#endif
-
 #ifdef ESP32
 DRAM_ATTR Mount mount(&lcdMenu);
 #else
@@ -139,7 +122,9 @@ void setup() {
       pinMode(RA_EN_PIN, OUTPUT);
       pinMode(RA_DIAG_PIN, INPUT);
       digitalWrite(RA_EN_PIN, LOW);  // Logic LOW to enable driver
-      RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #ifdef RA_SERIAL_PORT
+        RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #endif
     #endif
   #endif
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // DEC driver startup (for A4988)
@@ -165,7 +150,9 @@ void setup() {
       //pinMode(DEC_MS1_PIN, OUTPUT);
       digitalWrite(DEC_EN_PIN, LOW);  // Logic LOW to enable driver
       //digitalWrite(DEC_MS1_PIN, HIGH); // Logic HIGH to MS1 to get 0b01 address
-      DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #ifdef DEC_SERIAL_PORT
+        DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #endif
     #endif
   #endif
   
@@ -177,7 +164,9 @@ void setup() {
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins
       pinMode(AZ_DIAG_PIN, INPUT);
-      AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #ifdef AZ_SERIAL_PORT
+        AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #endif
     #endif
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
       pinMode(ALT_EN_PIN, OUTPUT);
@@ -186,7 +175,9 @@ void setup() {
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins
       pinMode(ALT_DIAG_PIN, INPUT);
-      ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #ifdef ALT_SERIAL_PORT
+        ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #endif
     #endif
   #endif
 // end microstepping -------------------
@@ -290,11 +281,21 @@ void setup() {
 
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("Configure RA driver TMC2209 UART..."));
-    mount.configureRAdriver(&RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
+    #ifdef RA_SERIAL_PORT
+      mount.configureRAdriver(&RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
+    #endif
+    #if defined(RA_SERIAL_PORT_RX) && defined(RA_SERIAL_PORT_TX)
+      mount.configureRAdriver(RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
+    #endif
   #endif
   #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("Configure DEC driver TMC2209 UART..."));
-    mount.configureDECdriver(&DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
+    #ifdef DEC_SERIAL_PORT
+      mount.configureDECdriver(&DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
+    #endif
+    #if defined(DEC_SERIAL_PORT_RX) && defined(DEC_SERIAL_PORT_TX)
+      mount.configureDECdriver(DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
+    #endif
   #endif
 
   #if AZIMUTH_ALTITUDE_MOTORS == 1
@@ -306,7 +307,12 @@ void setup() {
     #endif
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV1(DEBUG_ANY, F("Configure AZ driver..."));
-      mount.configureAZdriver(&AZ_SERIAL_PORT, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
+      #ifdef AZ_SERIAL_PORT
+        mount.configureAZdriver(&AZ_SERIAL_PORT, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
+      #endif
+      #if defined(AZ_SERIAL_PORT_RX) && defined(AZ_SERIAL_PORT_TX)
+        mount.configureAZdriver(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
+      #endif
     #endif
     LOGV1(DEBUG_ANY, F("Configure Alt stepper..."));
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003 
@@ -316,7 +322,12 @@ void setup() {
     #endif
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV1(DEBUG_ANY, F("Configure ALT driver..."));
-      mount.configureALTdriver(&ALT_SERIAL_PORT, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
+      #ifdef ALT_SERIAL_PORT
+        mount.configureALTdriver(&ALT_SERIAL_PORT, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
+      #endif
+      #if defined(ALT_SERIAL_PORT_RX) && defined(ALT_SERIAL_PORT_TX)
+        mount.configureALTdriver(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
+      #endif
     #endif
   #endif
 
