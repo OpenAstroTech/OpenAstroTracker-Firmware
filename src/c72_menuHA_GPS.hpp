@@ -24,12 +24,10 @@ bool gpsAqcuisitionComplete(int & indicator)
                 LOGV4(DEBUG_INFO, F("GPS UTC is %dh%dm%ds"), gps.time.hour(), gps.time.minute(), gps.time.second());
                 lcdMenu.printMenu("GPS sync'd....");
 
-                DayTime lst = Sidereal::calculateByGPS(&gps);
-                int hHAfromLST = lst.getHours() - POLARIS_RA_HOUR;
-                int mHAfromLST = lst.getMinutes() - POLARIS_RA_MINUTE;
-                mount.setHA(DayTime(hHAfromLST, mHAfromLST, 0));
-
-                EEPROMStore::storeHATime(mount.HA());
+                DayTime utcNow = DayTime(gps.time.hour(), gps.time.minute(), gps.time.second());
+                utcNow.addHours(mount.getLocalUtcOffset());
+                mount.setLocalStartTime(utcNow);
+                mount.setLocalStartDate(gps.date.year(), gps.date.month(), gps.date.day());
                 mount.setLatitude(gps.location.lat());
                 mount.setLongitude(gps.location.lng());
 
