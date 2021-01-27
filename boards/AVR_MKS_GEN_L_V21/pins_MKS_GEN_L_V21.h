@@ -95,6 +95,8 @@
 #ifndef DEC_DRIVER_ADDRESS
   #define DEC_DRIVER_ADDRESS 0b00
 #endif
+
+#define UART_CONNECTION_TEST 1
   
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef AZ_IN1_PIN

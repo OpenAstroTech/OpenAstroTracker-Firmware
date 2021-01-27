@@ -25,6 +25,7 @@ matrix = {
     #"AZ_DRIVER_TYPE": [0, 1, 2, 3],
     #"ALT_DRIVER_TYPE": [0, 1, 2, 3],
     "DISPLAY_TYPE": [0, 1],
+    "UART_CONNECTION_TEST": [0, 1],
 }
 
 # forbidden combinations
@@ -38,6 +39,12 @@ filters = [
     {'DEC_STEPPER_TYPE': 0, 'DEC_DRIVER_TYPE': 3},
     {'RA_STEPPER_TYPE': 1, 'RA_DRIVER_TYPE': 0},
     {'DEC_STEPPER_TYPE': 1, 'DEC_DRIVER_TYPE': 0},
+    {'UART_CONNECTION_TEST': 1, 'RA_DRIVER_TYPE': 0},
+    {'UART_CONNECTION_TEST': 1, 'RA_DRIVER_TYPE': 1},
+    {'UART_CONNECTION_TEST': 1, 'RA_DRIVER_TYPE': 2},
+    {'UART_CONNECTION_TEST': 1, 'DEC_DRIVER_TYPE': 0},
+    {'UART_CONNECTION_TEST': 1, 'DEC_DRIVER_TYPE': 1},
+    {'UART_CONNECTION_TEST': 1, 'DEC_DRIVER_TYPE': 2},
     {'PLATFORM': "0001", "BOARD": "1001"},
     {'PLATFORM': "1001", "BOARD": "0001"},
     {'PLATFORM': "1001", "BOARD": "0002"},
