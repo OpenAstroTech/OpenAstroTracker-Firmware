@@ -126,7 +126,7 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //
 // :GC#
 //      Get current date
-//      Returns: MM/DD/YY
+//      Returns: MM/DD/YY#
 //               Where MM is the month (1-12), day is the day (1-31) and year is the lower two digits of the year
 //
 // :GM#
@@ -604,13 +604,13 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
     {
       time.addHours(-12);
     }
-    time.formatString(achBuffer, "{d}:{m}:{s}");
+    time.formatString(achBuffer, "{d}:{m}:{s}#");
     return String(achBuffer);
   }
   case 'L':
   {
     DayTime time = _mount->getLocalTime();
-    time.formatString(achBuffer, "{d}:{m}:{s}");
+    time.formatString(achBuffer, "{d}:{m}:{s}#");
     return String(achBuffer);
   }
   case 'C':
