@@ -253,9 +253,9 @@
 #elif (BOARD == BOARD_ESP32_ESP32DEV)
   #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V1)
-  #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V1.h"
+  #include "boards/AVR_MKS_GEN_L_V1/pins_MKS_GEN_L_V1.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V2)
-  #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V2.h"
+  #include "boards/AVR_MKS_GEN_L_V2/pins_MKS_GEN_L_V2.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
   #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
 #endif
@@ -442,9 +442,12 @@
      #error Missing pin assignments for configured DEC DRIVER_TYPE_ULN2003 driver
   #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-  #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)
+  #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN)
      // Required pin assignments missing
      #error Missing pin assignments for configured DEC DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
+  #endif
+  #if !defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)
+     #warning Missing pin assignments for MS pins
   #endif
 #elif defined(ESP32) && (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN)
@@ -464,9 +467,12 @@
      #error Missing pin assignments for configured RA DRIVER_TYPE_ULN2003 driver
   #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN)
+  #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN)
      // Required pin assignments missing
      #error Missing pin assignments for configured RA DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
+  #endif
+  #if !defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN)
+     #warning Missing pin assignments for MS pins
   #endif
 #elif defined(ESP32) && (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN)
@@ -520,9 +526,12 @@
 #if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017)
   // No dedicated pins required apart from I2C
 #elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD)
-  #if !defined(LCD_BRIGHTNESS_PIN) || !defined(LCD_PIN4) || !defined(LCD_PIN5) || !defined(LCD_PIN6) || !defined(LCD_PIN7)  || !defined(LCD_PIN8) || !defined(LCD_PIN9)
+  #if !defined(LCD_PIN4) || !defined(LCD_PIN5) || !defined(LCD_PIN6) || !defined(LCD_PIN7)  || !defined(LCD_PIN8) || !defined(LCD_PIN9)
      // Required pin assignments missing
      #error Missing pin assignments for configured DISPLAY_TYPE_LCD_KEYPAD display
+  #endif
+  #if !defined(LCD_BRIGHTNESS_PIN)
+     #warning Missing pin assignment for DISPLAY_TYPE_LCD_KEYPAD brightness pin
   #endif
 #elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306)
   // No dedicated pins required apart from I2C for display

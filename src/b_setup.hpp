@@ -121,18 +121,29 @@ void setup() {
       // include A4988 microstep pins
       //#error "Define Microstep pins and delete this error."
       digitalWrite(RA_EN_PIN, HIGH);
-      digitalWrite(RA_MS0_PIN, HIGH);  // MS0
-      digitalWrite(RA_MS1_PIN, HIGH);  // MS1
-      digitalWrite(RA_MS2_PIN, HIGH);  // MS2
+      #if defined(RA_MS0_PIN)
+        digitalWrite(RA_MS0_PIN, HIGH);  // MS0
       #endif
+      #if defined(RA_MS1_PIN)
+        digitalWrite(RA_MS1_PIN, HIGH);  // MS1
+      #endif
+      #if defined(RA_MS2_PIN)
+        digitalWrite(RA_MS2_PIN, HIGH);  // MS2
+      #endif
+    #endif
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
       // include TMC2209 Standalone pins
       pinMode(RA_EN_PIN, OUTPUT);
       digitalWrite(RA_EN_PIN, LOW);  // ENABLE, LOW to enable
-      // Microstepping control via MS pins - TODO -----------------------
-      //digitalWrite(RA_MS0_PIN, HIGH);  // MS0
-      //digitalWrite(RA_MS1_PIN, HIGH);  // MS1
-      //digitalWrite(RA_MS2_PIN, HIGH);  // MS2
+      #if defined(RA_MS0_PIN)
+        digitalWrite(RA_MS0_PIN, HIGH);  // MS0
+      #endif
+      #if defined(RA_MS1_PIN)
+        digitalWrite(RA_MS1_PIN, HIGH);  // MS1
+      #endif
+      #if defined(RA_MS2_PIN)
+        digitalWrite(RA_MS2_PIN, HIGH);  // MS2
+      #endif
       #endif
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins  
@@ -145,18 +156,29 @@ void setup() {
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // DEC driver startup (for A4988)
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC  // DEC driver startup (for A4988)
       digitalWrite(DEC_EN_PIN, HIGH);
-      digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
-      digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
-      digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
+      #if defined(RA_MS0_PIN)
+        digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
+      #endif
+      #if defined(RA_MS0_PIN)
+        digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
+      #endif
+      #if defined(RA_MS0_PIN)
+        digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
+      #endif
     #endif
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
       // include TMC2209 Standalone pins
       pinMode(DEC_EN_PIN, OUTPUT);
       digitalWrite(DEC_EN_PIN, LOW);  // ENABLE, LOW to enable
-      // Microstepping control via MS pins - TODO -----------------------
-      //digitalWrite(DEC_MS0_PIN, HIGH);  // MS0
-      //digitalWrite(DEC_MS1_PIN, HIGH);  // MS1
-      //digitalWrite(DEC_MS2_PIN, HIGH);  // MS2
+      #if defined(RA_MS0_PIN)
+        digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
+      #endif
+      #if defined(RA_MS0_PIN)
+        digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
+      #endif
+      #if defined(RA_MS0_PIN)
+        digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
+      #endif
     #endif
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins  
