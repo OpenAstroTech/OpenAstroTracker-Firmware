@@ -14,7 +14,9 @@
 // 
 // This is how many steps your stepper needs for a full rotation.
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-  #define RA_STEPPER_SPR            4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #ifndef RA_STEPPER_SPR
+    #define RA_STEPPER_SPR            4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #endif
   #ifndef RA_STEPPER_SPEED
     #define RA_STEPPER_SPEED          400   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
   #endif
@@ -22,7 +24,9 @@
     #define RA_STEPPER_ACCELERATION   600   // High speeds tend to make these cheap steppers unprecice
   #endif
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-  #define RA_STEPPER_SPR            400   // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #ifndef RA_STEPPER_SPR
+    #define RA_STEPPER_SPR            400   // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #endif
   #ifndef RA_STEPPER_SPEED
     #define RA_STEPPER_SPEED          1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
   #endif
@@ -34,15 +38,19 @@
 #endif
 
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-  #define DEC_STEPPER_SPR            4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #ifndef DEC_STEPPER_SPR
+    #define DEC_STEPPER_SPR            4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #endif
   #ifndef DEC_STEPPER_SPEED
     #define DEC_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
-  #endif
+   #endif
   #ifndef DEC_STEPPER_ACCELERATION
     #define DEC_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
   #endif
 #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-  #define DEC_STEPPER_SPR            400   // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #ifndef DEC_STEPPER_SPR
+    #define DEC_STEPPER_SPR            400   // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
+  #endif
   #ifndef DEC_STEPPER_SPEED
     #define DEC_STEPPER_SPEED          1300  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
   #endif
@@ -359,3 +367,29 @@
   #endif
 #endif
 
+////////////////////////////
+//
+// DEBUG OUTPUT
+//
+#ifndef DEBUG_LEVEL
+  #define DEBUG_LEVEL (DEBUG_NONE)
+#endif
+// #define DEBUG_LEVEL (DEBUG_STEPPERS|DEBUG_MOUNT)
+// #define DEBUG_LEVEL (DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
+// #define DEBUG_LEVEL (DEBUG_SERIAL|DEBUG_WIFI|DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
+// #define DEBUG_LEVEL (DEBUG_ANY)
+// #define DEBUG_LEVEL (DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
+//
+// Bit Name                 Output
+//  0  DEBUG_INFO           General output, like startup variables and status
+//  1  DEBUG_SERIAL         Serial commands and replies
+//  2  DEBUG_WIFI           Wifi related output
+//  3  DEBUG_MOUNT          Mount processing output
+//  4  DEBUG_MOUNT_VERBOSE  Verbose mount processing (coordinates, etc)
+//  5  DEBUG_GENERAL        Other misc. output
+//  6  DEBUG_MEADE          Meade command handling output
+// Set this to specify the amount of debug output OAT should send to the serial port.
+// Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
+// Debug output is useful if you are using Wifi to control the OAT or if you are issuing
+// manual commands via a terminal.
+//
