@@ -449,7 +449,7 @@
   #if !defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)
      #warning Missing pin assignments for MS pins
   #endif
-#elif defined(ESP32) && (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN)
      // Required pin assignments missing
      #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
