@@ -79,7 +79,7 @@ DayTime::DayTime(int h, int m, int s)
 DayTime::DayTime(float timeInHours)
 {
   long sgn = fsign(timeInHours);
-  timeInHours = abs(timeInHours);
+  timeInHours = fabs(timeInHours);
   totalSeconds = sgn * round(timeInHours * 60 * 60);
 }
 
@@ -121,7 +121,7 @@ long DayTime::getTotalSeconds() const
 
 void DayTime::getTime(int &h, int &m, int &s) const
 {
-  long seconds = abs(totalSeconds);
+  long seconds = labs(totalSeconds);
 
   h = (int)(seconds / 3600L);
   seconds = seconds - (h * 3600L);
@@ -340,7 +340,7 @@ const char *DayTime::formatString(char *targetBuffer, const char *format, long *
 {
   long secs = pSecs == nullptr ? totalSeconds : *pSecs;
   char sgn = secs < 0 ? '-' : '+';
-  secs = abs(secs);
+  secs = labs(secs);
   long degs = secs / 3600;
   secs = secs - degs * 3600;
   long mins = secs / 60;

@@ -2163,7 +2163,7 @@ void Mount::displayStepperPosition() {
 
   String disp;
 
-  if ((abs(_totalDECMove) > 0.001) && (abs(_totalRAMove) > 0.001)) {
+  if ((fabs(_totalDECMove) > 0.001) && (fabs(_totalRAMove) > 0.001)) {
     // Both axes moving to target
     float decDist = 100.0 - 100.0 * _stepperDEC->distanceToGo() / _totalDECMove;
     float raDist = 100.0 - 100.0 * _stepperRA->distanceToGo() / _totalRAMove;
@@ -2177,14 +2177,14 @@ void Mount::displayStepperPosition() {
     return;
   }
 
-  if (abs(_totalDECMove) > 0.001) {
+  if (fabs(_totalDECMove) > 0.001) {
     // Only DEC moving to target
     float decDist = 100.0 - 100.0 * _stepperDEC->distanceToGo() / _totalDECMove;
     sprintf(scratchBuffer, "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int)decDist);
     _lcdMenu->setCursor(0, 1);
     _lcdMenu->printMenu(String(scratchBuffer));
   }
-  else if (abs(_totalRAMove) > 0.001) {
+  else if (fabs(_totalRAMove) > 0.001) {
     // Only RAmoving to target
     float raDist = 100.0 - 100.0 * _stepperRA->distanceToGo() / _totalRAMove;
     sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int)raDist);
