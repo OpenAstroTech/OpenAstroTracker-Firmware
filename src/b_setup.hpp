@@ -61,9 +61,9 @@ TaskHandle_t StepperTask;
 // This task function is run on Core 0 of the ESP32 and never returns
 void IRAM_ATTR stepperControlTask(void* payload)
 {
-  Mount* mount = reinterpret_cast<Mount*>(payload);
+  Mount* mountCopy = reinterpret_cast<Mount*>(payload);
   for (;;) {
-    mount->interruptLoop();
+    mountCopy->interruptLoop();
     vTaskDelay(1);  // 1 ms 	// This will limit max stepping rate to 1 kHz
   }
 }
@@ -73,9 +73,9 @@ void IRAM_ATTR stepperControlTask(void* payload)
 // It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
 // It is called every 500 us (2 kHz rate)
 void stepperControlTimerCallback(void* payload) {
-  Mount* mount = reinterpret_cast<Mount*>(payload);
-  if (mount)
-    mount->interruptLoop();
+  Mount* mountCopy = reinterpret_cast<Mount*>(payload);
+  if (mountCopy)
+    mountCopy->interruptLoop();
 }
 
 #endif

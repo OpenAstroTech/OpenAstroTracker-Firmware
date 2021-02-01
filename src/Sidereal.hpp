@@ -15,6 +15,6 @@ class Sidereal
     static DayTime calculateHa( float lstTotalHours );
 
  private:
-    static const double calculateTheta(double deltaJ, double longitude, float timeUTC);
-    static const int calculateDeltaJd(int year, int month, int day);
+    static double calculateTheta(double deltaJ, double longitude, float timeUTC);
+    static int calculateDeltaJd(int year, int month, int day);
 };

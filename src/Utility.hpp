@@ -131,6 +131,20 @@ void logv(int levelFlags, String input, ...);
 
 #endif // DEBUG_LEVEL>0
 
+// For some reason arduino just defines all float functions to be as double
+#if defined(fabsf)
+#undef fabsf
+#endif
+#if defined(roundf)
+#undef roundf
+#endif
+#if defined(atanf)
+#undef atanf
+#endif
+float fabsf(float);
+float roundf(float);
+float atanf(float);
+
 // Adjust the given number by the given adjustment, wrap around the limits.
 // Limits are inclusive, so they represent the lowest and highest valid number.
 int adjustWrap(int current, int adjustBy, int minVal, int maxVal);

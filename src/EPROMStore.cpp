@@ -1,4 +1,7 @@
+#include "inc/Globals.hpp"
+PUSH_NO_WARNINGS
 #include <EEPROM.h>
+POP_NO_WARNINGS
 
 #include "../Configuration.hpp"
 #include "Utility.hpp"
@@ -249,8 +252,8 @@ bool EEPROMStore::isPresent(ItemFlag item)
 {
   uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
 
-  int check = (MAGIC_MARKER_MASK | item);
-  int result=(MAGIC_MARKER_VALUE | item);
+  unsigned check = (MAGIC_MARKER_MASK | item);
+  unsigned result=(MAGIC_MARKER_VALUE | item);
   bool res = ((marker & check) == result);
   LOGV6(DEBUG_EEPROM, F("EEPROM: IsDataPresent (%x). Checking (%x & %x) == %x => %d"), item, marker, check, result, res);
 
@@ -469,7 +472,7 @@ float EEPROMStore::getSpeedFactor()
 void EEPROMStore::storeSpeedFactor(float speedFactor)
 {
   // Store the fractional speed factor since it is a number very close to 1
-  int32_t val = (speedFactor - 1.0) * 10000.0;
+  int32_t val = (speedFactor - 1.0f) * 10000.0f;
   val = clamp(val, (int32_t)INT16_MIN, (int32_t)INT16_MAX);
   LOGV3(DEBUG_EEPROM, "EEPROM: Storing Speed Factor to %d (%f)", val, speedFactor);
 

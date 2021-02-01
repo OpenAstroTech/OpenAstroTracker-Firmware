@@ -58,8 +58,8 @@ const char *Longitude::ToString() const
     secs += 360L * 3600L;
   }
 
-  String totalDegs = String((float)(1.0f * abs(totalSeconds) / 3600.0), 2);
-  String degs = String((float)(1.0f * secs / 3600.0), 2);
+  String totalDegs = String(1.0f * abs(totalSeconds) / 3600.0f, 2);
+  String degs = String(1.0f * secs / 3600.0f, 2);
   strcpy(achBufLong, degs.c_str());
   strcat(achBufLong, " (");
   strcat(achBufLong, totalDegs.c_str());

@@ -5,11 +5,13 @@
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 
+PUSH_NO_WARNINGS
 #include <AccelStepper.h>
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || \
   (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #include <TMCStepper.h>   // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
 #endif
+POP_NO_WARNINGS
 
 //mountstatus
 #define STATUS_PARKED              0B0000000000000000
@@ -44,7 +46,7 @@
 #define SLEW_MASK_ANY     B1111
 
 // Seconds per astronomical day (23h 56m 4.0905s)
-#define SECONDS_PER_DAY 86164.0905
+const float secondsPerDay = 86164.0905f;
 
 const char* formatStringsDEC[] = {
   "",
@@ -564,7 +566,7 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage) {
   // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
   // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
   // Also compensate for higher precision microstepping in tracking mode
-  _trackingSpeed = _trackingSpeedCalibration * RA_STEPS_PER_DEGREE * (RA_TRACKING_MICROSTEPPING/RA_SLEW_MICROSTEPPING) * 360.0 / SECONDS_PER_DAY;   // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+  _trackingSpeed = _trackingSpeedCalibration * RA_STEPS_PER_DEGREE * (RA_TRACKING_MICROSTEPPING/RA_SLEW_MICROSTEPPING) * 360.0f / secondsPerDay;   // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
   LOGV2(DEBUG_MOUNT, F("Mount: RA steps per degree is %f steps/deg"), RA_STEPS_PER_DEGREE);
   LOGV2(DEBUG_MOUNT, F("Mount: New tracking speed is %f steps/sec"), _trackingSpeed);
 
@@ -1134,7 +1136,7 @@ void Mount::runDriftAlignmentPhase(int direction, int durationSecs) {
   float const numArcMinutes(5.3);
 
   // TODO: Are we in slew mode here?
-  long numSteps = floor((_stepsPerRADegree * (numArcMinutes / 60.0)));  // u-steps/deg * minutes / (minutes/deg) = u-steps
+  long numSteps = floorf((_stepsPerRADegree * (numArcMinutes / 60.0f)));  // u-steps/deg * minutes / (minutes/deg) = u-steps
 
   // Calculate the speed at which it takes the given duration to cover the steps.
   float speed = numSteps / durationSecs;
@@ -1949,7 +1951,7 @@ void Mount::loop() {
             if (_compensateForTrackerOff) {
               unsigned long now = millis();
               unsigned long elapsed = now - _trackerStoppedAt;
-              unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0;
+              unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
               LOGV4(DEBUG_STEPPERS,F("STEP-loop: Arrived at %lms. Tracking was off for %lms (%l steps), compensating."), now, elapsed, compensationSteps);
               _stepperTRK->runToNewPosition(_stepperTRK->currentPosition() + compensationSteps);
               _compensateForTrackerOff = false;
@@ -2287,10 +2289,10 @@ void Mount::displayStepperPosition() {
 
   String disp;
 
-  if ((fabs(_totalDECMove) > 0.001) && (fabs(_totalRAMove) > 0.001)) {
+  if ((fabsf(_totalDECMove) > 0.001f) && (fabsf(_totalRAMove) > 0.001f)) {
     // Both axes moving to target
-    float decDist = 100.0 - 100.0 * _stepperDEC->distanceToGo() / _totalDECMove;
-    float raDist = 100.0 - 100.0 * _stepperRA->distanceToGo() / _totalRAMove;
+    float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove;
+    float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove;
 
     sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int)raDist);
     _lcdMenu->setCursor(0, 0);
@@ -2301,16 +2303,16 @@ void Mount::displayStepperPosition() {
     return;
   }
 
-  if (fabs(_totalDECMove) > 0.001) {
+  if (fabsf(_totalDECMove) > 0.001f) {
     // Only DEC moving to target
-    float decDist = 100.0 - 100.0 * _stepperDEC->distanceToGo() / _totalDECMove;
+    float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove;
     sprintf(scratchBuffer, "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int)decDist);
     _lcdMenu->setCursor(0, 1);
     _lcdMenu->printMenu(String(scratchBuffer));
   }
-  else if (fabs(_totalRAMove) > 0.001) {
+  else if (fabsf(_totalRAMove) > 0.001f) {
     // Only RAmoving to target
-    float raDist = 100.0 - 100.0 * _stepperRA->distanceToGo() / _totalRAMove;
+    float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove;
     sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int)raDist);
     disp = disp + String(scratchBuffer);
     _lcdMenu->setCursor(0, inSerialControl ? 0 : 1);
@@ -2370,7 +2372,7 @@ String Mount::DECString(byte type, byte active) {
   }
   else {
     //LOGV1(DEBUG_MOUNT_VERBOSE,F("DECString: CURRENT!"));
-    dec = Declination(currentDEC());
+    dec = currentDEC();
   }
   //LOGV5(DEBUG_INFO,F("DECString: Precheck  : %s   %s  %dm %ds"), dec.ToString(), dec.getDegreesDisplay().c_str(), dec.getMinutes(), dec.getSeconds());
   // dec.checkHours();
@@ -2395,10 +2397,10 @@ String Mount::DECString(byte type, byte active) {
 String Mount::RAString(byte type, byte active) {
   DayTime ra;
   if ((type & TARGET_STRING) == TARGET_STRING) {
-    ra = DayTime(_targetRA);
+    ra = _targetRA;
   }
   else {
-    ra = DayTime(currentRA());
+    ra = currentRA();
   }
 
   sprintf(scratchBuffer, formatStringsRA[type & FORMAT_STRING_MASK], ra.getHours(), ra.getMinutes(), ra.getSeconds());
@@ -2559,7 +2561,7 @@ LocalDate Mount::getLocalDate() {
 // localUtcOffset
 //
 /////////////////////////////////
-const int Mount::getLocalUtcOffset() const {
+int Mount::getLocalUtcOffset() const {
   return _localUtcOffset;
 }
 

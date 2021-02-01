@@ -318,7 +318,7 @@ public:
   DayTime getLocalTime();
   LocalDate getLocalDate();
 
-  const int getLocalUtcOffset() const;
+  int getLocalUtcOffset() const;
 
   void setLocalStartDate( int year, int month, int day );
   void setLocalStartTime( DayTime localTime );

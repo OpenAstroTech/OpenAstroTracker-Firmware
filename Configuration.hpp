@@ -119,10 +119,10 @@
 
 // Set these factors to correct Alt/Az arcsecond/step values
 #ifndef AZ_CORRECTION_FACTOR
-#define AZ_CORRECTION_FACTOR    1.0000
+#define AZ_CORRECTION_FACTOR    1.0000f
 #endif
 #ifndef ALT_CORRECTION_FACTOR
-#define ALT_CORRECTION_FACTOR    1.0000
+#define ALT_CORRECTION_FACTOR    1.0000f
 #endif
 
 /**

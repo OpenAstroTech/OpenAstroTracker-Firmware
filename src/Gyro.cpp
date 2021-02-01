@@ -4,7 +4,9 @@
 
 #if USE_GYRO_LEVEL == 1
 
+PUSH_NO_WARNINGS
 #include <Wire.h> // I2C communication library
+POP_NO_WARNINGS
 
 /**
  * Tilt, roll, and temperature measurementusing the MPU-6050 MEMS gyro.
@@ -88,9 +90,9 @@ angle_t Gyro::getCurrentAngles()
         int16_t AcZ = Wire.read() << 8 | Wire.read(); // Z-axis value
 
         // Calculating the Pitch angle (rotation around Y-axis)
-        result.pitchAngle += ((atan(-1 * AcX / sqrt(pow(AcY, 2) + pow(AcZ, 2))) * 180.0 / PI) * 2.0) / 2.0;
+        result.pitchAngle += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
         // Calculating the Roll angle (rotation around X-axis)
-        result.rollAngle += ((atan(-1 * AcY / sqrt(pow(AcX, 2) + pow(AcZ, 2))) * 180.0 / PI) * 2.0) / 2.0;
+        result.rollAngle += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
 
         delay(10);  // Decorrelate measurements
     }
@@ -111,7 +113,7 @@ float Gyro::getCurrentTemperature()
 */
 {
     if (!isPresent)
-        return 99;     // Gyro is not available
+        return 99.0f;     // Gyro is not available
 
     // Execute 2 byte read from MPU6050_REG_TEMP_OUT_H
     Wire.beginTransmission(MPU6050_I2C_ADDR);
@@ -121,7 +123,7 @@ float Gyro::getCurrentTemperature()
     int16_t tempValue = Wire.read() << 8 | Wire.read(); // Raw Temperature value
     
     // Calculating the actual temperature value
-    float result = float(tempValue) / 340 + 36.53;
+    float result = static_cast<float>(tempValue) / 340.0f + 36.53f;
     return result;
 }
 #endif
