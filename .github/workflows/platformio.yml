@@ -37,6 +37,10 @@ jobs:
           - { board: 0002, gyro: 1 }
           - { board: 0003, gyro: 1 }
           - { board: 0004, gyro: 1 }
+          - { board: 0001, UART_test: 1 }
+          - { board: 0002, UART_test: 1 }
+          - { board: 0003, UART_test: 1 }
+          - { board: 1001, UART_test: 1 }
           - { UART_test: 1, driver: 0 }
           - { UART_test: 1, driver: 1 }
           - { UART_test: 1, driver: 2 }
