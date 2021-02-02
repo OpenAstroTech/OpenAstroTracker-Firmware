@@ -90,6 +90,8 @@
   #define DEC_DRIVER_ADDRESS 0b01  // Set by MS1/MS2 (MS1 HIGH, MS2 LOW)
 #endif
 
+#define SW_SERIAL_UART 0
+
 // DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 requires 3 analog inputs in Arduino pin numbering
 #ifndef LCD_KEY_SENSE_X_PIN
   #define LCD_KEY_SENSE_X_PIN 34

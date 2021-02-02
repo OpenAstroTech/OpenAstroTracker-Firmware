@@ -90,6 +90,8 @@
   #define DEC_DRIVER_ADDRESS 0b01  // Set by MS1/MS2 (MS1 HIGH, MS2 LOW)
 #endif
 
+#define SW_SERIAL_UART 0
+
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef AZ_IN1_PIN
   #define AZ_IN1_PIN 47
