@@ -303,19 +303,17 @@ void setup() {
 
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("Configure RA driver TMC2209 UART..."));
-    #ifdef RA_SERIAL_PORT
+    #if SW_SERIAL_UART == 0
       mount.configureRAdriver(&RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
-    #endif
-    #if defined(RA_SERIAL_PORT_RX) && defined(RA_SERIAL_PORT_TX)
+    #elif SW_SERIAL_UART == 1
       mount.configureRAdriver(RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
     #endif
   #endif
   #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("Configure DEC driver TMC2209 UART..."));
-    #ifdef DEC_SERIAL_PORT
+    #if SW_SERIAL_UART == 0
       mount.configureDECdriver(&DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
-    #endif
-    #if defined(DEC_SERIAL_PORT_RX) && defined(DEC_SERIAL_PORT_TX)
+    #elif SW_SERIAL_UART == 1
       mount.configureDECdriver(DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #endif
   #endif
@@ -329,10 +327,9 @@ void setup() {
     #endif
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV1(DEBUG_ANY, F("Configure AZ driver..."));
-      #ifdef AZ_SERIAL_PORT
+      #if SW_SERIAL_UART == 0
         mount.configureAZdriver(&AZ_SERIAL_PORT, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
-      #endif
-      #if defined(AZ_SERIAL_PORT_RX) && defined(AZ_SERIAL_PORT_TX)
+      #elif SW_SERIAL_UART == 1
         mount.configureAZdriver(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
       #endif
     #endif
@@ -344,10 +341,9 @@ void setup() {
     #endif
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV1(DEBUG_ANY, F("Configure ALT driver..."));
-      #ifdef ALT_SERIAL_PORT
+      #if SW_SERIAL_UART == 0
         mount.configureALTdriver(&ALT_SERIAL_PORT, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
-      #endif
-      #if defined(ALT_SERIAL_PORT_RX) && defined(ALT_SERIAL_PORT_TX)
+      #elif SW_SERIAL_UART == 1
         mount.configureALTdriver(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
       #endif
     #endif
