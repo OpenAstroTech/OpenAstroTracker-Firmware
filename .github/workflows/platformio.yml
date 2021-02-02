@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.platform }} STEPPER=${{ matrix.stepper }} DRIVER=${{ matrix.driver }} GPS=${{ matrix.gps }} GYRO=${{ matrix.gyro }} ALTAZ=${{ matrix.azalt }} DISPLAY=${{ matrix.display }}
+    name: ${{ matrix.platform }} BOARD=${{ matrix.board }} STEPPER=${{ matrix.stepper }} DRIVER=${{ matrix.driver }} GPS=${{ matrix.gps }} GYRO=${{ matrix.gyro }} ALTAZ=${{ matrix.azalt }} DISPLAY=${{ matrix.display }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,7 +22,6 @@ jobs:
         gyro:     [0, 1]
         azalt:    [0, 1]
         display:  [0, 1]
-        UART_test: [0, 1]
         exclude:
           - { stepper: 1, driver: 0 } # NEMA17 & ULN2003
           - { stepper: 0, driver: 1 } # 28BYJ48 & GENERIC
@@ -37,13 +36,6 @@ jobs:
           - { board: 0002, gyro: 1 }
           - { board: 0003, gyro: 1 }
           - { board: 0004, gyro: 1 }
-          - { board: 0001, UART_test: 1 }
-          - { board: 0002, UART_test: 1 }
-          - { board: 0003, UART_test: 1 }
-          - { board: 1001, UART_test: 1 }
-          - { UART_test: 1, driver: 0 }
-          - { UART_test: 1, driver: 1 }
-          - { UART_test: 1, driver: 2 }
           - { platform: mega2560, board: 1001 }
           - { platform: esp32, board: 0001 }
           - { platform: esp32, board: 0002 }
@@ -71,4 +63,3 @@ jobs:
         -D USE_GYRO_LEVEL=${{ matrix.gyro }}
         -D AZIMUTH_ALTITUDE_MOTORS=${{ matrix.azalt }}
         -D DISPLAY_TYPE=${{ matrix.display }}
-        -D UART_CONNECTION_TEST=${{ matrix.UART_test }}
