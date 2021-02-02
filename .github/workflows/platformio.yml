@@ -30,6 +30,7 @@ jobs:
           - { board: 1001, gps: 1 }  # esp32 and GPS
           - { board: 1001, gyro: 1 }
           - { board: 1001, azalt: 1 }
+          - { board: 1001, display: 1 }
           - { board: 0002, gps: 1 }
           - { board: 0003, gps: 1 }
           - { board: 0004, gps: 1 }
