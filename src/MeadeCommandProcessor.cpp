@@ -401,6 +401,11 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Get the number of steps the DEC stepper motor needs to take to rotate DEC by one degree
 //      Returns: float#
 //
+// :XGDL#
+//      Get DEC limits
+//      Get the lower and upper limits for the DEC stepper motor in steps
+//      Returns: integer|integer#
+//
 // :XGS#
 //      Get Tracking speed adjustment
 //      Get the adjustment factor used to speed up (>1.0) or slow down (<1.0) the tracking speed of the mount.
@@ -452,6 +457,26 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Set DEC steps
 //      Set the number of steps the DEC stepper motor needs to take to rotate by one degree.
 //      Where n.n is the number of steps (only one decimal point is supported)
+//      Returns: nothing
+//
+// :XSDLU#
+//      Set DEC upper limit
+//      Set the upper limit for the DEC stepper motor to the current position
+//      Returns: nothing
+//
+// :XSDLu#
+//      Clear DEC upper limit
+//      Clears the upper limit for the DEC stepper motor
+//      Returns: nothing
+//
+// :XSDLL#
+//      Set DEC lower limit
+//      Set the lowerlimit for the DEC stepper motor to the current position
+//      Returns: nothing
+//
+// :XSDLl#
+//      Clear DEC lower limit
+//      Clear the lower limit for the DEC stepper motor
 //      Returns: nothing
 //
 // :XSSn.nnn#
@@ -954,8 +979,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 {
   //   0123
   // :XDmmm
-  if (inCmd[0] == 'D')
-  { // Drift Alignemnt
+  if (inCmd[0] == 'D') // XD
+  {                    // Drift Alignemnt
     int duration = inCmd.substring(1, 4).toInt() - 3;
     _lcdMenu->setCursor(0, 0);
     _lcdMenu->printMenu(">Drift Alignment");
@@ -981,48 +1006,62 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     _mount->startSlewing(TRACKING);
   }
   else if (inCmd[0] == 'G')
-  { // Get RA/DEC steps/deg, speedfactor
-    if (inCmd[1] == 'R')
+  {                      // Get RA/DEC steps/deg, speedfactor
+    if (inCmd[1] == 'R') // XGR
     {
       return String(_mount->getStepsPerDegree(RA_STEPS), 1) + "#";
     }
     else if (inCmd[1] == 'D')
     {
-      return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
+      if (inCmd.length() > 2)
+      {
+        if (inCmd[2] == 'L') // XGDL
+        {
+          long loLimit, hiLimit;
+          _mount->getDecLimitPositions(loLimit, hiLimit);
+          char scratchBuffer[20];
+          sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
+          return String(scratchBuffer);
+        }
+      }
+      else // XGD
+      {
+        return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
+      }
     }
-    else if (inCmd[1] == 'S')
+    else if (inCmd[1] == 'S') // XGS
     {
       return String(_mount->getSpeedCalibration(), 5) + "#";
     }
-    else if (inCmd[1] == 'T')
+    else if (inCmd[1] == 'T') // XGT
     {
       return String(_mount->getSpeed(TRACKING), 7) + "#";
     }
-    else if (inCmd[1] == 'B')
+    else if (inCmd[1] == 'B') // XGB
     {
       return String(_mount->getBacklashCorrection()) + "#";
     }
-    else if (inCmd[1] == 'M')
+    else if (inCmd[1] == 'M') // XGM
     {
       return String(_mount->getMountHardwareInfo()) + "#";
     }
-    else if (inCmd[1] == 'O')
+    else if (inCmd[1] == 'O') // XGO
     {
       return getLogBuffer();
     }
-    else if (inCmd[1] == 'H')
+    else if (inCmd[1] == 'H') // XGH
     {
       char scratchBuffer[10];
       sprintf(scratchBuffer, "%02d%02d%02d#", _mount->HA().getHours(), _mount->HA().getMinutes(), _mount->HA().getSeconds());
       return String(scratchBuffer);
     }
-    else if (inCmd[1] == 'L')
+    else if (inCmd[1] == 'L') // XGL
     {
       char scratchBuffer[10];
       sprintf(scratchBuffer, "%02d%02d%02d#", _mount->LST().getHours(), _mount->LST().getMinutes(), _mount->LST().getSeconds());
       return String(scratchBuffer);
     }
-    else if (inCmd[1] == 'N')
+    else if (inCmd[1] == 'N') // XGN
     {
 #if (WIFI_ENABLED == 1)
       return wifiControl.getStatus() + "#";
@@ -1032,32 +1071,54 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     }
   }
   else if (inCmd[0] == 'S')
-  { // Set RA/DEC steps/deg, speedfactor
-    if (inCmd[1] == 'R')
+  {                      // Set RA/DEC steps/deg, speedfactor
+    if (inCmd[1] == 'R') // XSR
     {
       _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'D')
+    else if (inCmd[1] == 'D') // XSD
     {
-      _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
+      if ((inCmd.length() > 3) && (inCmd[2] = 'L')) // XSDL
+      {
+        if (inCmd[3] == 'L') // XSDLL
+        {
+          _mount->setDecLimitPosition(false);
+        }
+        else if (inCmd[3] == 'U') // XSDLU
+        {
+          _mount->setDecLimitPosition(true);
+        }
+        else if (inCmd[3] == 'l') // XSDLl
+        {
+          _mount->clearDecLimitPosition(false);
+        }
+        else if (inCmd[3] == 'u') // XSDLU
+        {
+          _mount->clearDecLimitPosition(true);
+        }
+      }
+      else
+      {
+        _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
+      }
     }
-    else if (inCmd[1] == 'S')
+    else if (inCmd[1] == 'S') // XSS
     {
       _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), true);
     }
-    else if (inCmd[1] == 'M')
+    else if (inCmd[1] == 'M') // XSM
     {
       _mount->setManualSlewMode(inCmd[2] == '1');
     }
-    else if (inCmd[1] == 'X')
+    else if (inCmd[1] == 'X') // XSX
     {
       _mount->setSpeed(RA_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'Y')
+    else if (inCmd[1] == 'Y') // XSY
     {
       _mount->setSpeed(DEC_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'B')
+    else if (inCmd[1] == 'B') // XSB
     {
       _mount->setBacklashCorrection(inCmd.substring(2).toInt());
     }
@@ -1066,37 +1127,37 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
   { // Digital Level
 #if USE_GYRO_LEVEL == 1
     if (inCmd[1] == 'G')
-    { // get values
-      if (inCmd[2] == 'R')
-      { // get Calibration/Reference values
+    {                      // get values
+      if (inCmd[2] == 'R') // XLGR
+      {                    // get Calibration/Reference values
         return String(_mount->getPitchCalibrationAngle(), 4) + "," + String(_mount->getRollCalibrationAngle(), 4) + "#";
       }
-      else if (inCmd[2] == 'C')
-      { // Get current values
+      else if (inCmd[2] == 'C') // XLGC
+      {                         // Get current values
         auto angles = Gyro::getCurrentAngles();
         return String(angles.pitchAngle, 4) + "," + String(angles.rollAngle, 4) + "#";
       }
     }
     else if (inCmd[1] == 'S')
-    { // set values
-      if (inCmd[2] == 'P')
-      { // get Calibration/Reference values
+    {                      // set values
+      if (inCmd[2] == 'P') // XLSP
+      {                    // get Calibration/Reference values
         _mount->setPitchCalibrationAngle(inCmd.substring(3).toFloat());
         return String("1#");
       }
-      else if (inCmd[2] == 'R')
+      else if (inCmd[2] == 'R') // XLSR
       {
         _mount->setRollCalibrationAngle(inCmd.substring(3).toFloat());
         return String("1#");
       }
     }
-    else if (inCmd[1] == '1')
-    { // Turn on Gyro
+    else if (inCmd[1] == '1') // XL1
+    {                         // Turn on Gyro
       Gyro::startup();
       return String("1#");
     }
-    else if (inCmd[1] == '0')
-    { // Turn off Gyro
+    else if (inCmd[1] == '0') // XL0
+    {                         // Turn off Gyro
       Gyro::shutdown();
       return String("1#");
     }
@@ -1109,7 +1170,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
   }
   else if ((inCmd[0] == 'F') && (inCmd[1] == 'R'))
   {
-    _mount->clearConfiguration();
+    _mount->clearConfiguration(); // XFR
     return String("1#");
   }
 
