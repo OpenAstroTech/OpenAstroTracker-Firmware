@@ -55,13 +55,6 @@
 #define SERIAL_BAUDRATE_STELLARIUM_DIRECT   9600
 #define SERIAL_BAUDRATE_ASCOM               57600
 
-#ifndef DISABLED
-    #define DISABLED 0
-#endif
-#ifndef ENABLED
-    #define ENABLED  1
-#endif
-
 // Wifi operating modes (ESP32 only)
 #define WIFI_MODE_INFRASTRUCTURE                        0   // Infrastructure Only - OAT connects to an existing Router
 #define WIFI_MODE_AP_ONLY                               1   // AP Mode Only        - OAT acts as a local Router/Hotspot
