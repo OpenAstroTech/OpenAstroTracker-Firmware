@@ -269,7 +269,7 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
 
   if (degs >= 100)
   {
-    achDegs[i++] = '0' + (degs / 100);
+    achDegs[i++] = '0' + min(9,(degs / 100));
     degs = degs % 100;
   }
 

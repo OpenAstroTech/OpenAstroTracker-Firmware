@@ -978,7 +978,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 {
   //   0123
   // :XDmmm
-  if (inCmd[0] == 'D') // XD
+  if (inCmd[0] == 'D') // :XD
   {                    // Drift Alignemnt
     int duration = inCmd.substring(1, 4).toInt() - 3;
     _lcdMenu->setCursor(0, 0);
@@ -1006,7 +1006,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
   }
   else if (inCmd[0] == 'G')
   {                      // Get RA/DEC steps/deg, speedfactor
-    if (inCmd[1] == 'R') // XGR
+    if (inCmd[1] == 'R') // :XGR#
     {
       return String(_mount->getStepsPerDegree(RA_STEPS), 1) + "#";
     }
@@ -1014,7 +1014,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     {
       if (inCmd.length() > 2)
       {
-        if (inCmd[2] == 'L') // XGDL
+        if (inCmd[2] == 'L') // :XGDL#
         {
           long loLimit, hiLimit;
           _mount->getDecLimitPositions(loLimit, hiLimit);
@@ -1023,44 +1023,44 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
           return String(scratchBuffer);
         }
       }
-      else // XGD
+      else // :XGD#
       {
         return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
       }
     }
-    else if (inCmd[1] == 'S') // XGS
+    else if (inCmd[1] == 'S') // :XGS#
     {
       return String(_mount->getSpeedCalibration(), 5) + "#";
     }
-    else if (inCmd[1] == 'T') // XGT
+    else if (inCmd[1] == 'T') // :XGT#
     {
       return String(_mount->getSpeed(TRACKING), 7) + "#";
     }
-    else if (inCmd[1] == 'B') // XGB
+    else if (inCmd[1] == 'B') // :XGB#
     {
       return String(_mount->getBacklashCorrection()) + "#";
     }
-    else if (inCmd[1] == 'M') // XGM
+    else if (inCmd[1] == 'M') // :XGM#
     {
       return String(_mount->getMountHardwareInfo()) + "#";
     }
-    else if (inCmd[1] == 'O') // XGO
+    else if (inCmd[1] == 'O') // :XGO#
     {
       return getLogBuffer();
     }
-    else if (inCmd[1] == 'H') // XGH
+    else if (inCmd[1] == 'H') // :XGH#
     {
       char scratchBuffer[10];
       sprintf(scratchBuffer, "%02d%02d%02d#", _mount->HA().getHours(), _mount->HA().getMinutes(), _mount->HA().getSeconds());
       return String(scratchBuffer);
     }
-    else if (inCmd[1] == 'L') // XGL
+    else if (inCmd[1] == 'L') // :XGL#
     {
       char scratchBuffer[10];
       sprintf(scratchBuffer, "%02d%02d%02d#", _mount->LST().getHours(), _mount->LST().getMinutes(), _mount->LST().getSeconds());
       return String(scratchBuffer);
     }
-    else if (inCmd[1] == 'N') // XGN
+    else if (inCmd[1] == 'N') // :XGN#
     {
 #if (WIFI_ENABLED == 1)
       return wifiControl.getStatus() + "#";
@@ -1071,27 +1071,27 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
   }
   else if (inCmd[0] == 'S')
   {                      // Set RA/DEC steps/deg, speedfactor
-    if (inCmd[1] == 'R') // XSR
+    if (inCmd[1] == 'R') // :XSR#
     {
       _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'D') // XSD
+    else if (inCmd[1] == 'D') // :XSD
     {
-      if ((inCmd.length() > 3) && (inCmd[2] = 'L')) // XSDL
+      if ((inCmd.length() > 3) && (inCmd[2] = 'L')) // :XSDL
       {
-        if (inCmd[3] == 'L') // XSDLL
+        if (inCmd[3] == 'L') // :XSDLL
         {
           _mount->setDecLimitPosition(false);
         }
-        else if (inCmd[3] == 'U') // XSDLU
+        else if (inCmd[3] == 'U') // :XSDLU
         {
           _mount->setDecLimitPosition(true);
         }
-        else if (inCmd[3] == 'l') // XSDLl
+        else if (inCmd[3] == 'l') // :XSDLl
         {
           _mount->clearDecLimitPosition(false);
         }
-        else if (inCmd[3] == 'u') // XSDLU
+        else if (inCmd[3] == 'u') // :XSDLU
         {
           _mount->clearDecLimitPosition(true);
         }
@@ -1101,23 +1101,23 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
       }
     }
-    else if (inCmd[1] == 'S') // XSS
+    else if (inCmd[1] == 'S') // :XSS
     {
       _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), true);
     }
-    else if (inCmd[1] == 'M') // XSM
+    else if (inCmd[1] == 'M') // :XSM
     {
       _mount->setManualSlewMode(inCmd[2] == '1');
     }
-    else if (inCmd[1] == 'X') // XSX
+    else if (inCmd[1] == 'X') // :XSX
     {
       _mount->setSpeed(RA_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'Y') // XSY
+    else if (inCmd[1] == 'Y') // :XSY
     {
       _mount->setSpeed(DEC_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'B') // XSB
+    else if (inCmd[1] == 'B') // :XSB
     {
       _mount->setBacklashCorrection(inCmd.substring(2).toInt());
     }
@@ -1127,11 +1127,11 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 #if USE_GYRO_LEVEL == 1
     if (inCmd[1] == 'G')
     {                      // get values
-      if (inCmd[2] == 'R') // XLGR
+      if (inCmd[2] == 'R') // :XLGR
       {                    // get Calibration/Reference values
         return String(_mount->getPitchCalibrationAngle(), 4) + "," + String(_mount->getRollCalibrationAngle(), 4) + "#";
       }
-      else if (inCmd[2] == 'C') // XLGC
+      else if (inCmd[2] == 'C') // :XLGC
       {                         // Get current values
         auto angles = Gyro::getCurrentAngles();
         return String(angles.pitchAngle, 4) + "," + String(angles.rollAngle, 4) + "#";
@@ -1139,23 +1139,23 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     }
     else if (inCmd[1] == 'S')
     {                      // set values
-      if (inCmd[2] == 'P') // XLSP
+      if (inCmd[2] == 'P') // :XLSP
       {                    // get Calibration/Reference values
         _mount->setPitchCalibrationAngle(inCmd.substring(3).toFloat());
         return String("1#");
       }
-      else if (inCmd[2] == 'R') // XLSR
+      else if (inCmd[2] == 'R') // :XLSR
       {
         _mount->setRollCalibrationAngle(inCmd.substring(3).toFloat());
         return String("1#");
       }
     }
-    else if (inCmd[1] == '1') // XL1
+    else if (inCmd[1] == '1') // :XL1
     {                         // Turn on Gyro
       Gyro::startup();
       return String("1#");
     }
-    else if (inCmd[1] == '0') // XL0
+    else if (inCmd[1] == '0') // :XL0
     {                         // Turn off Gyro
       Gyro::shutdown();
       return String("1#");
@@ -1169,7 +1169,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
   }
   else if ((inCmd[0] == 'F') && (inCmd[1] == 'R'))
   {
-    _mount->clearConfiguration(); // XFR
+    _mount->clearConfiguration(); // :XFR
     return String("1#");
   }
 

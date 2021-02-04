@@ -83,4 +83,5 @@
 #define DEBUG_STEPPERS       0x0100     // Stepper motor-related activity
 #define DEBUG_EEPROM         0x0200     // Storing and retrieval of non-volatile configuration data
 #define DEBUG_GYRO           0x0400     // Gyro activity (tilt/roll) calibration
+#define DEBUG_GPS            0x0800     // Gyro activity (tilt/roll) calibration
 #define DEBUG_ANY            0xFFFF     // All debug output
