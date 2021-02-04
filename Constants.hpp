@@ -55,8 +55,12 @@
 #define SERIAL_BAUDRATE_STELLARIUM_DIRECT   9600
 #define SERIAL_BAUDRATE_ASCOM               57600
 
-#define DISABLED 0
-#define ENABLED  1
+#ifndef DISABLED
+    #define DISABLED 0
+#endif
+#ifndef ENABLED
+    #define ENABLED  1
+#endif
 
 // Wifi operating modes (ESP32 only)
 #define WIFI_MODE_INFRASTRUCTURE                        0   // Infrastructure Only - OAT connects to an existing Router
@@ -83,5 +87,4 @@
 #define DEBUG_STEPPERS       0x0100     // Stepper motor-related activity
 #define DEBUG_EEPROM         0x0200     // Storing and retrieval of non-volatile configuration data
 #define DEBUG_GYRO           0x0400     // Gyro activity (tilt/roll) calibration
-#define DEBUG_GPS            0x0800     // GPS activity, NMEA sentences
 #define DEBUG_ANY            0xFFFF     // All debug output
