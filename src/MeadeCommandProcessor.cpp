@@ -374,6 +374,11 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Gets the current pitch and roll values of the mount (Digital Level addon).
 //      Returns: <pitch>,<roll># or 0# if there is no Digital Level
 //
+// :XLGT#
+//      Digital Level - Get Temperature
+//      Get the current temperature in Celsius of the mount (Digital Level addon).
+//      Returns: <temp># or 0# if there is no Digital Level
+//
 // :XLSR#
 //      Digital Level - Set Reference Roll
 //      Sets the reference roll value of the mount (Digital Level addon). This is the value
@@ -561,69 +566,69 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
   switch (cmdOne)
   {
   case 'V':
-    if (cmdTwo == 'N')
+    if (cmdTwo == 'N') // :GVN
     {
       return String(VERSION) + "#";
     }
-    else if (cmdTwo == 'P')
+    else if (cmdTwo == 'P') // :GVP
     {
       return "OpenAstroTracker#";
     }
     break;
 
-  case 'r':
+  case 'r': // :Gr
     return _mount->RAString(MEADE_STRING | TARGET_STRING); // returns trailing #
 
-  case 'd':
+  case 'd': // :Gd
     return _mount->DECString(MEADE_STRING | TARGET_STRING); // returns trailing #
 
-  case 'R':
+  case 'R': // :GR
     return _mount->RAString(MEADE_STRING | CURRENT_STRING); // returns trailing #
 
-  case 'D':
+  case 'D': // :GD
     return _mount->DECString(MEADE_STRING | CURRENT_STRING); // returns trailing #
 
-  case 'X':
+  case 'X': // :GX
     return _mount->getStatusString() + "#";
 
   case 'I':
   {
     String retVal = "";
-    if (cmdTwo == 'S')
+    if (cmdTwo == 'S') // :GIS
     {
       retVal = _mount->isSlewingRAorDEC() ? "1" : "0";
     }
-    else if (cmdTwo == 'T')
+    else if (cmdTwo == 'T') // :GIT
     {
       retVal = _mount->isSlewingTRK() ? "1" : "0";
     }
-    else if (cmdTwo == 'G')
+    else if (cmdTwo == 'G') // :GIG
     {
       retVal = _mount->isGuiding() ? "1" : "0";
     }
     return retVal + "#";
   }
-  case 't':
+  case 't': // :Gt
   {
     _mount->latitude().formatString(achBuffer, "{d}*{m}#");
     return String(achBuffer);
   }
-  case 'g':
+  case 'g': // :Gg
   {
     _mount->longitude().formatString(achBuffer, "{d}*{m}#");
     return String(achBuffer);
   }
-  case 'c':
+  case 'c':  // :Gc
   {
     return "24#";
   }
-  case 'G':
+  case 'G': // :GG
   {
     int offset = _mount->getLocalUtcOffset();
     sprintf(achBuffer, "%+03d#", offset);
     return String(achBuffer);
   }
-  case 'a':
+  case 'a': // :Ga
   {
     DayTime time = _mount->getLocalTime();
     if (time.getHours() > 12)
@@ -631,37 +636,37 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
       time.addHours(-12);
     }
     time.formatString(achBuffer, "{d}:{m}:{s}#");
-    return String(achBuffer);
+    return String(achBuffer + 1);
   }
-  case 'L':
+  case 'L': // :GL
   {
     DayTime time = _mount->getLocalTime();
     time.formatString(achBuffer, "{d}:{m}:{s}#");
-    return String(achBuffer);
+    return String(achBuffer + 1);
   }
-  case 'C':
+  case 'C': // :GC
   {
     LocalDate date = _mount->getLocalDate();
     sprintf(achBuffer, "%02d/%02d/%02d#", date.month, date.day, date.year % 100);
     return String(achBuffer);
   }
-  case 'M':
+  case 'M': // :GM
   {
     return "OAT1#";
   }
-  case 'N':
+  case 'N': // :GN
   {
     return "OAT2#";
   }
-  case 'O':
+  case 'O': // :GO
   {
     return "OAT3#";
   }
-  case 'P':
+  case 'P': // :GP
   {
     return "OAT4#";
   }
-  case 'T':
+  case 'T': // :GT
   {
     return "60.0#"; //default MEADE Tracking Frequency
   }
@@ -1052,13 +1057,15 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     else if (inCmd[1] == 'H') // :XGH#
     {
       char scratchBuffer[10];
-      sprintf(scratchBuffer, "%02d%02d%02d#", _mount->HA().getHours(), _mount->HA().getMinutes(), _mount->HA().getSeconds());
+      DayTime ha = _mount->calculateHa();
+      sprintf(scratchBuffer, "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
       return String(scratchBuffer);
     }
     else if (inCmd[1] == 'L') // :XGL#
     {
       char scratchBuffer[10];
-      sprintf(scratchBuffer, "%02d%02d%02d#", _mount->LST().getHours(), _mount->LST().getMinutes(), _mount->LST().getSeconds());
+      DayTime lst = _mount->calculateLst();
+      sprintf(scratchBuffer, "%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
       return String(scratchBuffer);
     }
     else if (inCmd[1] == 'N') // :XGN#
@@ -1136,6 +1143,11 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
       {                         // Get current values
         auto angles = Gyro::getCurrentAngles();
         return String(angles.pitchAngle, 4) + "," + String(angles.rollAngle, 4) + "#";
+      }
+      else if (inCmd[2] == 'T') // :XLGT
+      {                         // Get current temp
+        float temp = Gyro::getCurrentTemperature();
+        return String(temp, 1) + "#";
       }
     }
     else if (inCmd[1] == 'S')
