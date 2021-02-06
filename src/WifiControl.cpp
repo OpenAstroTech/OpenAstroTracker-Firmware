@@ -217,8 +217,6 @@ void WifiControl::udpLoop()
     if (packetSize)
     {
         String lookingFor = "skyfi:";
-        ;
-
         String reply = "skyfi:";
         reply += WIFI_HOSTNAME;
         reply += "@";
