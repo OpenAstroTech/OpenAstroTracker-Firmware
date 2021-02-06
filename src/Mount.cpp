@@ -70,11 +70,9 @@ const float siderealDegreesInHour = 14.95904348958;
 // CTOR
 //
 /////////////////////////////////
-Mount::Mount(LcdMenu* lcdMenu) :
-  _stepsPerRADegree(RA_STEPS_PER_DEGREE),   // u-steps per degree when slewing
-  _stepsPerDECDegree(DEC_STEPS_PER_DEGREE)  // u-steps per degree when slewing
+Mount::Mount(LcdMenu* lcdMenu) 
   #if AZIMUTH_ALTITUDE_MOTORS == 1
-    , _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
+    : _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
     _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360),
     _azAltWasRunning(false)
   #endif
@@ -85,6 +83,9 @@ Mount::Mount(LcdMenu* lcdMenu) :
 
 void Mount::initializeVariables()
 {
+  _stepsPerRADegree = RA_STEPS_PER_DEGREE;    // u-steps per degree when slewing
+  _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
+
   _mountStatus = 0;
   _lastDisplayUpdate = 0;
   _stepperWasRunning = false;
@@ -127,8 +128,6 @@ void Mount::initializeVariables()
 void Mount::clearConfiguration()
 {
   EEPROMStore::clearConfiguration();
-  _stepsPerRADegree = RA_STEPS_PER_DEGREE;
-  _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;
   initializeVariables();
   readConfiguration();
 }
