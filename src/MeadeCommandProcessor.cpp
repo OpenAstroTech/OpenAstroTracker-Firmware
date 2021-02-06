@@ -439,8 +439,8 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 // :XGN#
 //      Get network settings
 //      Gets the current status of the Wifi connection. Reply only available when running on ESP boards.
-//      Returns: 1,<stats>,<hostname>,<ip>:<port>,<SSID>,<OATHostname>#     - if Wifi is enabled
-//      0,#                                                                 - if Wifi is not enabled
+//      Returns: 1,<mode>,<status>,<hostname>,<ip>:<port>,<SSID>,<OATHostname>#     - if Wifi is enabled
+//      0,#                                                                         - if Wifi is not enabled
 //
 // :XGL#
 //      Get LST
