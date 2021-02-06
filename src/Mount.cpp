@@ -80,6 +80,11 @@ Mount::Mount(LcdMenu* lcdMenu) :
   #endif
 {
   _lcdMenu = lcdMenu;
+  initializeVariables();
+}
+
+void Mount::initializeVariables()
+{
   _mountStatus = 0;
   _lastDisplayUpdate = 0;
   _stepperWasRunning = false;
@@ -113,6 +118,7 @@ Mount::Mount(LcdMenu* lcdMenu) :
   _localStartTimeSetMillis = -1;
 }
 
+
 /////////////////////////////////
 //
 // clearConfiguration
@@ -121,6 +127,15 @@ Mount::Mount(LcdMenu* lcdMenu) :
 void Mount::clearConfiguration()
 {
   EEPROMStore::clearConfiguration();
+  _stepsPerRADegree = RA_STEPS_PER_DEGREE;
+  _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;
+  #if AZIMUTH_ALTITUDE_MOTORS == 1
+    _stepsPerAZDegree = AZIMUTH_STEPS_PER_REV / 360;
+    _stepsPerALTDegree = ALTITUDE_STEPS_PER_REV / 360;
+    _azAltWasRunning = false;
+  #endif
+  initializeVariables();
+  readConfiguration();
 }
 
 /////////////////////////////////
