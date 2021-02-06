@@ -47,6 +47,8 @@ class Mount {
 public:
   Mount(LcdMenu* lcdMenu);
 
+  void initializeVariables();
+
   static Mount instance();
 
   // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
@@ -302,7 +304,7 @@ public:
 
   // Clear all saved configuration data from persistent storage
   void clearConfiguration();
-  
+
   // Get Mount configuration data
   String getMountHardwareInfo();
 
