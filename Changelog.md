@@ -1,3 +1,37 @@
+**V1.8.72 - Updates**
+- Factory reset now not only clears EEPROM, but also re-initializes everything.
+
+**V1.8.71 - Updates**
+- Added temperature retrieval (Digital Level addon)
+- Made get LST (:XGL) and get HA (:XGH) Meade calls return realtime data.
+- Fixed a bug in :Ga and :GL commands that returned a sign in front of the hour.
+- Added comments for Get functions.
+
+**V1.8.70 - Updates**
+- Reduced required GPS coordinate freshness to 30s
+- Changed LCD display of GPS sync to use more symbols and blink regularly
+- Added logging for GPS
+- Changed command marker comments in Meade code
+- Capped daytime hours to 999
+
+**V1.8.69 - Updates**
+- Added Meade support for querying, setting and clearing the DEC motor limits.
+
+**V1.8.68 - Updates**
+- Fixed bug that returned incorrect data for site time (delimiter was missing).
+
+**V1.8.67 - Updates**
+- GPS simply provides data to mount now (no more time calcs)
+- Added UTC menu item in CAL
+- Unified coding style (specifically braces) in CAL and EEPROM files.
+- Added UTC storage functions to EEPROM class.
+- Fixed a bug that prevented extended flags from being used in EEPROM class.
+
+**V1.8.66 - Updates**
+- Fixed Longitude code to handle LX200GPS spec. New OATControl required.
+
+**V1.8.65 - Updates**
+- Guide pulse command should handle lowercase
 
 **V1.8.64 - Updates**
 - Cleaned up Meade comments
