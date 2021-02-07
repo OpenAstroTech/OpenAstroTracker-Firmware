@@ -137,7 +137,7 @@ void WifiControl::loop()
             _udp = new WiFiUDP();
             _udp->begin(4031);
 
-            LOGV4(DEBUG_WIFI, F("Wifi: Connecting to SSID %s at %s:%d"), INFRA_SSID, WiFi.localIP().toString().c_str(), WIFI_PORT);
+            LOGV4(DEBUG_WIFI, F("Wifi: Connecting to SSID %s at %s:%d"), WIFI_INFRASTRUCTURE_MODE_SSID, WiFi.localIP().toString().c_str(), WIFI_PORT);
         }
     }
 

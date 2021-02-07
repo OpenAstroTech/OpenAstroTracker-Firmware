@@ -1085,7 +1085,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     }
     else if (inCmd[1] == 'D') // :XSD
     {
-      if ((inCmd.length() > 3) && (inCmd[2] = 'L')) // :XSDL
+      if ((inCmd.length() > 3) && (inCmd[2] == 'L')) // :XSDL
       {
         if (inCmd[3] == 'L') // :XSDLL
         {
