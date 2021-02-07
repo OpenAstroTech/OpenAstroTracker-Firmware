@@ -1,3 +1,9 @@
+**V1.8.73 - Updates**
+- Fixed network status return value
+- Added mode to network status
+- Coding style applied.
+- Updated Meade docs
+
 **V1.8.72 - Updates**
 - Factory reset now not only clears EEPROM, but also re-initializes everything.
 
