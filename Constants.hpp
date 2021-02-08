@@ -8,7 +8,11 @@
 
 /**
  * Supported boards. The name consists of the platform and the board name (model).
+ * Applies predefined pin mappings for common boards.
+ * If BOARD_UNKNOWN is used then user is responsible for specifying complete mapping in Configuration_local.hpp
  **/
+#define BOARD_UNKNOWN            0000
+
 // AVR based boards
 #define BOARD_AVR_MEGA2560       0001
 #define BOARD_AVR_MKS_GEN_L_V21  0002
