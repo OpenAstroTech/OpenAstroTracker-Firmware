@@ -171,7 +171,7 @@
   #define WIFI_MODE WIFI_MODE_DISABLED
 #endif
 #if !defined(WIFI_HOSTNAME)
-  #define WIFI_HOSTNAME ""
+  #define WIFI_HOSTNAME "OAT"
 #endif
 #if !defined(WIFI_INFRASTRUCTURE_MODE_SSID)
   #define WIFI_INFRASTRUCTURE_MODE_SSID ""
