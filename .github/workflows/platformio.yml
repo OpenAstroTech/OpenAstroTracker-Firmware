@@ -12,6 +12,7 @@ jobs:
   build:
     name: BOARD=${{ matrix.board }}
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       matrix:
         board: [ mega2560,
