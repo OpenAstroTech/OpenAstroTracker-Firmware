@@ -310,6 +310,8 @@ def solve(board):
         board = solution.pop("BOARD")
         (o, e, c) = execute(board, solution)
         if c and not CONTINUE_ON_ERROR:
+            print(o)
+            print(e)
             exit(c)
 
 
