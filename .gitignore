@@ -1,4 +1,6 @@
 .pio
 .vscode
+venv
+.idea
 
 Configuration_local*
