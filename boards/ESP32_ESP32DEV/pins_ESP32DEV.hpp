@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "Constants.hpp"
-
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef RA_IN1_PIN
   #define RA_IN1_PIN  13  
