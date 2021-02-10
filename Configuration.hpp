@@ -36,7 +36,8 @@
  * Use default values for any parameters the user didn't provide.
  */
 
-// If board is not defined in local configuration, assume Arduino Mega2560
+// Uncomment the definition and set a board (see Constants.hpp for valid values) if you build in Arduino IDE.
+// PlatformIO will set this value automatically and no action is needed.
 #ifndef BOARD
   // #define BOARD BOARD_AVR_MEGA2560
 #endif
