@@ -60,10 +60,10 @@
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef DEC_STEP_PIN
-  #define DEC_STEP_PIN 16  // STEP
+  #define DEC_STEP_PIN 32  // STEP
 #endif
 #ifndef DEC_DIR_PIN
-  #define DEC_DIR_PIN  17  // DIR
+  #define DEC_DIR_PIN  33  // DIR
 #endif
 #ifndef DEC_EN_PIN
   #define DEC_EN_PIN   5  // Enable
