@@ -2,5 +2,8 @@
 .vscode
 venv
 .idea
+cmake-*
+CMakeLists.txt
+CMakeListsPrivate.txt
 
 Configuration_local*
