@@ -171,7 +171,7 @@
   #define WIFI_MODE WIFI_MODE_DISABLED
 #endif
 #if !defined(WIFI_HOSTNAME)
-  #define WIFI_HOSTNAME ""
+  #define WIFI_HOSTNAME "OAT"
 #endif
 #if !defined(WIFI_INFRASTRUCTURE_MODE_SSID)
   #define WIFI_INFRASTRUCTURE_MODE_SSID ""
@@ -244,9 +244,6 @@
 #define DEBUG_LEVEL (DEBUG_NONE)
 #endif
 
-// Append the advanced configuration data.
-#include "Configuration_adv.hpp"
-
 // Append board specific pins data.
 #if (BOARD == BOARD_AVR_MEGA2560)
   #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
@@ -260,4 +257,5 @@
   #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
 #endif
 
+#include "Configuration_adv.hpp"
 #include "ConfigurationValidation.hpp"

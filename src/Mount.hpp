@@ -47,6 +47,8 @@ class Mount {
 public:
   Mount(LcdMenu* lcdMenu);
 
+  void initializeVariables();
+
   static Mount instance();
 
   // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
@@ -79,22 +81,44 @@ public:
   #endif
 #endif
 
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+  //#if RA_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART || DEC_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART 
+  bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
+  //#endif
+#endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 // Configure the RA Driver (TMC2209 UART only)
-  void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #if SW_SERIAL_UART == 0
+    void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #elif SW_SERIAL_UART == 1
+    void configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   // Configure the DEC Driver (TMC2209 UART only)
-  void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #if SW_SERIAL_UART == 0
+    void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #elif SW_SERIAL_UART == 1
+    void configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #endif
 #endif
+
 
 // Configure the AZ/ALT drivers.
 #if AZIMUTH_ALTITUDE_MOTORS == 1
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #if SW_SERIAL_UART == 0
+      void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #elif SW_SERIAL_UART == 1
+      void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #endif
   #endif
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #if SW_SERIAL_UART == 0
+      void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #elif SW_SERIAL_UART == 1
+      void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #endif
   #endif
 #endif
   
@@ -280,7 +304,7 @@ public:
 
   // Clear all saved configuration data from persistent storage
   void clearConfiguration();
-  
+
   // Get Mount configuration data
   String getMountHardwareInfo();
 
