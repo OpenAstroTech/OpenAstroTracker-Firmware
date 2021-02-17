@@ -946,7 +946,7 @@ void Mount::syncPosition(DayTime ra, Declination dec)
 
   long targetRAPosition, targetDECPosition;
   LOGV3(DEBUG_MOUNT, "Mount: Sync Position to RA: %s and DEC: %s", _targetRA.ToString(), _targetDEC.ToString());
-  calculateRAandDECSteppers(ra, dec, targetRAPosition, targetDECPosition);
+  calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
   LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Set current position to RA: %f and DEC: %f"), targetRAPosition, targetDECPosition);
   _stepperRA->setCurrentPosition(targetRAPosition);     // u-steps (in slew mode)
   _stepperDEC->setCurrentPosition(targetDECPosition);   // u-steps (in slew mode)
@@ -982,7 +982,7 @@ void Mount::startSlewingToTarget() {
   _currentDECStepperPosition = _stepperDEC->currentPosition();
   _currentRAStepperPosition = _stepperRA->currentPosition();
   long targetRAPosition, targetDECPosition;
-  calculateRAandDECSteppers(_targetRA, _targetDEC, targetRAPosition, targetDECPosition);
+  calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
   moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
 
   _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
@@ -2174,7 +2174,7 @@ float Mount::getSpeed(int direction) {
 //
 // This code tells the steppers to what location to move to, given the select right ascension and declination
 /////////////////////////////////
-void Mount::calculateRAandDECSteppers(DayTime const& ra, Declination const& dec, long& targetRASteps, long& targetDECSteps) const {
+void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps) const {
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());

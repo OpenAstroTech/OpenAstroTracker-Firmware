@@ -334,7 +334,7 @@ private:
   // Writes a 16-bit value to persistent (EEPROM) storage
   void writePersistentData(int which, long val);
 
-  void calculateRAandDECSteppers(DayTime const& ra, Declination const& dec, long& targetRASteps, long& targetDECSteps) const;
+  void calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps) const;
   void displayStepperPosition();
   void moveSteppersTo(float targetRA, float targetDEC);
 
