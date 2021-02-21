@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "Constants.hpp"
-
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef RA_IN1_PIN
   #define RA_IN1_PIN  63
@@ -95,6 +93,9 @@
 #ifndef DEC_DRIVER_ADDRESS
   #define DEC_DRIVER_ADDRESS 0b00
 #endif
+
+#define SW_SERIAL_UART 1
+#define UART_CONNECTION_TEST 1
   
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef AZ_IN1_PIN

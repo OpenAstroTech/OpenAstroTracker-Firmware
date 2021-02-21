@@ -103,6 +103,7 @@
  * WIFI_INFRASTRUCTURE_MODE_WPAKEY & WIFI_AP_MODE_WPAKEY must not be shorter than 8 characters and not 
  * longer than 32 characters. Do not use special characters or white spaces in the password (esp32 limitation).
  * Note that enabling Wifi increases flash usage by about 420 kB.
+ * WIFI_HOSTNAME is what you need to enter into SkySafari's Settings for the scope name.
  */
 #define WIFI_ENABLED 0
 #define WIFI_MODE WIFI_MODE_AP_ONLY
