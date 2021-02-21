@@ -272,7 +272,7 @@ class GracefulKiller:
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
-    def exit_gracefully(self, signum, frame):
+    def exit_gracefully(self):
         shutil.rmtree('.pio/build/matrix')
         self.kill_now = True
 
@@ -285,6 +285,7 @@ class GracefulKiller:
     multiple=True,
     help="Limit boards under test. Multiple values allowed.")
 def solve(board):
+    # noinspection PyUnusedLocal
     killer = GracefulKiller()
 
     problem = create_problem()
@@ -293,19 +294,17 @@ def solve(board):
     if board:
         problem.addConstraint(InSetConstraint(board), ["BOARD"])
 
-    # solutions = problem.getSolutions()
-    # print_solutions_matrix(solutions, short_strings=False)
-
     set_test_constraints(problem)
     set_ci_constraints(problem)
 
     solutions = problem.getSolutions()
-    print_solutions_matrix(solutions, short_strings=True)
+    print_solutions_matrix(solutions, short_strings=False)
 
     print("Testing {} combinations".format(len(solutions)))
 
     for num, solution in enumerate(solutions, start=1):
-        print("[{}/{}] {}".format(num, len(solutions), solution))
+        print("[{}/{}] Building ...".format(num, len(solutions)))
+        print_solutions_matrix([solution])
 
         board = solution.pop("BOARD")
         (o, e, c) = execute(board, solution)
@@ -313,6 +312,7 @@ def solve(board):
             print(o)
             print(e)
             exit(c)
+        print()
 
 
 if __name__ == '__main__':
