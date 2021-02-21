@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 
@@ -202,6 +204,24 @@ int fsign(float num)
     return -1;
   }
   return 1;
+}
+
+// float-type point implementation of fabs
+float fabsf(float x)
+{
+    return static_cast<float>(fabs(static_cast<double>(x)));
+}
+
+// float-type point implementation of round
+float roundf(float x)
+{
+    return static_cast<float>(round(static_cast<double>(x)));
+}
+
+// float-type point implementation of atan
+float atanf(float x)
+{
+    return static_cast<float>(atan(static_cast<double>(x)));
 }
 
 #if defined(ESP32)

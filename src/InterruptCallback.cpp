@@ -15,7 +15,9 @@
   #define USE_TIMER_3     false
   #define USE_TIMER_4     false
   #define USE_TIMER_5     false
+  PUSH_NO_WARNINGS
   #include "libs/TimerInterrupt/TimerInterrupt.h"
+  POP_NO_WARNINGS
 #else
   #error Unrecognized board selected. Either implement interrupt code or define the board here.
 #endif

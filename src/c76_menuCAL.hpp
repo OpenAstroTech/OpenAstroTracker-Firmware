@@ -177,11 +177,11 @@ void gotoNextHighlightState(int dir)
 
   if (calState == HIGHLIGHT_RA_STEPS)
   {
-    RAStepsPerDegree = mount.getStepsPerDegree(RA_STEPS) * 10.0;
+    RAStepsPerDegree = mount.getStepsPerDegree(RA_STEPS) * 10.0f;
   }
   else if (calState == HIGHLIGHT_DEC_STEPS)
   {
-    DECStepsPerDegree = mount.getStepsPerDegree(DEC_STEPS) * 10.0;
+    DECStepsPerDegree = mount.getStepsPerDegree(DEC_STEPS) * 10.0f;
   }
   else if (calState == HIGHLIGHT_BACKLASH_STEPS)
   {
@@ -189,7 +189,7 @@ void gotoNextHighlightState(int dir)
   }
   else if (calState == HIGHLIGHT_SPEED)
   {
-    SpeedCalibration = (mount.getSpeedCalibration() - 1.0) * 10000.0 + 0.5;
+    SpeedCalibration = (mount.getSpeedCalibration() - 1.0f) * 10000.0f + 0.5f;
   }
   else if (calState == HIGHLIGHT_BACKLIGHT)
   {
@@ -230,7 +230,7 @@ bool processCalibrationKeys()
       if (SpeedCalibration < 32760)
       {                        // Don't overflow 16 bit signed
         SpeedCalibration += 1; //0.0001;
-        mount.setSpeedCalibration(1.0 + SpeedCalibration / 10000.0, false);
+        mount.setSpeedCalibration(1.0f + SpeedCalibration / 10000.0f, false);
       }
 
       mount.delay(calDelay);
@@ -242,7 +242,7 @@ bool processCalibrationKeys()
       if (SpeedCalibration > -32760)
       {                        // Don't overflow 16 bit signed
         SpeedCalibration -= 1; //0.0001;
-        mount.setSpeedCalibration(1.0 + SpeedCalibration / 10000.0, false);
+        mount.setSpeedCalibration(1.0f + SpeedCalibration / 10000.0f, false);
       }
 
       mount.delay(calDelay);
@@ -397,14 +397,14 @@ bool processCalibrationKeys()
       // UP and DOWN are handled above
       if (key == btnSELECT)
       {
-        mount.setSpeedCalibration(1.0 + SpeedCalibration / 10000.0, true);
+        mount.setSpeedCalibration(1.0f + SpeedCalibration / 10000.0f, true);
         lcdMenu.printMenu("Speed Stored.");
         mount.delay(500);
         calState = HIGHLIGHT_SPEED;
       }
       else if (key == btnRIGHT)
       {
-        mount.setSpeedCalibration(1.0 + SpeedCalibration / 10000.0, true);
+        mount.setSpeedCalibration(1.0f + SpeedCalibration / 10000.0f, true);
         gotoNextMenu();
 
         calState = HIGHLIGHT_SPEED;
@@ -1031,7 +1031,7 @@ bool processCalibrationKeys()
 void makeIndicator(char *scratchBuffer, float angle)
 {
   angle = clamp(angle, -9.9f, 9.9f);
-  dtostrf(fabs(angle), 3, 1, &scratchBuffer[8]);
+  dtostrf(fabsf(angle), 3, 1, &scratchBuffer[8]);
   for (int i = 0; i < 5; i++)
   {
     scratchBuffer[3 + i] = '-';

@@ -1048,7 +1048,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     }
     else if (inCmd[1] == 'M') // :XGM#
     {
-      return String(_mount->getMountHardwareInfo()) + "#";
+      return _mount->getMountHardwareInfo() + "#";
     }
     else if (inCmd[1] == 'O') // :XGO#
     {
