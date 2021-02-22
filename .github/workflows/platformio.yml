@@ -16,10 +16,10 @@ jobs:
     strategy:
       matrix:
         board: [ mega2560,
-                    mksgenlv21,
-                    mksgenlv2,
-                    mksgenlv1,
-                    esp32 ]
+                 mksgenlv21,
+                 mksgenlv2,
+                 mksgenlv1,
+                 esp32 ]
 
     steps:
       - uses: actions/checkout@v1
