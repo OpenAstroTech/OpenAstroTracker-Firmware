@@ -187,7 +187,7 @@
      // Required pin assignments missing
      #error Missing pin assignments for configured DEC DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
   #endif
-  #if !defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)
+  #if (!defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)) && (BOARD != BOARD_AVR_MKS_GEN_L_V1)
      #warning Missing pin assignments for MS pins
   #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -211,7 +211,7 @@
      // Required pin assignments missing
      #error Missing pin assignments for configured RA DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
   #endif
-  #if !defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN)
+  #if (!defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN)) && (BOARD != BOARD_AVR_MKS_GEN_L_V1)
      #warning Missing pin assignments for MS pins
   #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -276,9 +276,6 @@
   #if !defined(LCD_PIN4) || !defined(LCD_PIN5) || !defined(LCD_PIN6) || !defined(LCD_PIN7)  || !defined(LCD_PIN8) || !defined(LCD_PIN9)
      // Required pin assignments missing
      #error Missing pin assignments for configured DISPLAY_TYPE_LCD_KEYPAD display
-  #endif
-  #if !defined(LCD_BRIGHTNESS_PIN)
-     #warning Missing pin assignment for DISPLAY_TYPE_LCD_KEYPAD brightness pin
   #endif
 #elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306)
   // No dedicated pins required apart from I2C for display
