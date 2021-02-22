@@ -236,6 +236,10 @@ def generate_config_file(flag_values):
 
     with open("Configuration_local_matrix.hpp", 'w') as f:
         f.write(content)
+        print("Generated local config")
+        print("Path: {}".format(os.path.abspath(f.name)))
+        print("Content:")
+        print(content)
 
 
 def create_run_environment(flag_values):
@@ -248,16 +252,15 @@ def create_run_environment(flag_values):
 def execute(board, flag_values, use_config_file=True):
     if use_config_file:
         build_env = dict(os.environ)
+        build_env["PLATFORMIO_BUILD_FLAGS"] = "-DMATRIX_LOCAL_CONFIG=1"
         generate_config_file(flag_values)
     else:
         build_env = create_run_environment(flag_values)
 
-    build_env["MATRIX_BUILD"] = "1"
-
     proc = subprocess.Popen(
-        ["pio run -e {}".format(board)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        "pio run -e {}".format(board),
+        # stdout=subprocess.PIPE,
+        # stderr=subprocess.PIPE,
         shell=True,
         env=build_env,
     )
@@ -309,8 +312,6 @@ def solve(board):
         board = solution.pop("BOARD")
         (o, e, c) = execute(board, solution)
         if c and not CONTINUE_ON_ERROR:
-            print(o)
-            print(e)
             exit(c)
         print()
 
