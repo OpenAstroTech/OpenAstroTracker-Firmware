@@ -277,9 +277,6 @@
      // Required pin assignments missing
      #error Missing pin assignments for configured DISPLAY_TYPE_LCD_KEYPAD display
   #endif
-  #if !defined(LCD_BRIGHTNESS_PIN)
-     #warning Missing pin assignment for DISPLAY_TYPE_LCD_KEYPAD brightness pin
-  #endif
 #elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306)
   // No dedicated pins required apart from I2C for display
 #endif
