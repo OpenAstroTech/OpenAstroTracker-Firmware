@@ -259,7 +259,7 @@ def execute(board, flag_values, use_config_file=True):
 
     proc = subprocess.Popen(
         "pio run -e {}".format(board),
-        stdout=subprocess.PIPE,
+        # stdout=subprocess.PIPE,
         # stderr=subprocess.PIPE,
         shell=True,
         env=build_env,
