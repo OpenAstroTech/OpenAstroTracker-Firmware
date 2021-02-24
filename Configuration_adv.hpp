@@ -219,7 +219,9 @@
 //
 // LCD BUTTON TEST
 // Set this to 1 to run a key diagnostic. No tracker functions are on at all.
-#define LCD_BUTTON_TEST 0
+#ifndef LCD_BUTTON_TEST 
+  #define LCD_BUTTON_TEST 0
+#endif
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

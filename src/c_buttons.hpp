@@ -152,9 +152,9 @@
       if (waitForButtonRelease) {
         if (lcdButtons.currentState() != btnNONE) {
           do {
-            byte key;
-            if (lcdButtons.keyChanged(&key)) {
-              if (key == btnNONE) {
+            byte waitKey;
+            if (lcdButtons.keyChanged(&waitKey)) {
+              if (waitKey == btnNONE) {
                 break;
               }
             }
@@ -219,7 +219,7 @@
 
 
     #if (BLUETOOTH_ENABLED == 1)
-    BTin();
+      BTin();
     #endif
   }
 
@@ -228,9 +228,9 @@
   void loop() {
     #ifdef ESP32
       serialLoop();
-    #if (BLUETOOTH_ENABLED == 1)
-      BTin();
-    #endif
+      #if (BLUETOOTH_ENABLED == 1)
+        BTin();
+      #endif
     #endif
   }
 
