@@ -203,7 +203,7 @@ void gotoNextHighlightState(int dir)
 
 bool processCalibrationKeys()
 {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   bool checkForKeyChange = true;
 
@@ -222,7 +222,7 @@ bool processCalibrationKeys()
   }
 #endif
 
-  byte currentButtonState = lcdButtons.currentState();
+  lcdButton_t currentButtonState = lcdButtons.currentState();
   if (calState == SPEED_CALIBRATION)
   {
     if (currentButtonState == btnUP)

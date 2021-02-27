@@ -80,7 +80,7 @@ haMenuState_t haState = STARTING_GPS;
 
 bool processHAKeys()
 {
-    byte key;
+    lcdButton_t key;
     bool waitForRelease = false;
 
     if (haState == STARTING_GPS)

@@ -54,7 +54,7 @@ byte homePOI = sizeof(pointOfInterest) / sizeof(pointOfInterest[0]) - 3;
 
 bool processPOIKeys()
 {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   if (lcdButtons.keyChanged(&key))
   {
@@ -109,6 +109,9 @@ bool processPOIKeys()
     {
       lcdMenu.setNextActive();
     }
+    break;
+
+    default:
     break;
     }
   }

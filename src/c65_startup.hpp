@@ -48,7 +48,7 @@ void startupIsCompleted() {
 }
 
 bool processStartupKeys() {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   switch (startupState) {
     case StartupIsInHomePosition: {
