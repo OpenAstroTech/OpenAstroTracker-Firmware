@@ -11,6 +11,7 @@ extra_macros = {
     'PUSH_NO_WARNINGS': ''.join([
         'DO_PRAGMA(GCC diagnostic push);',
         'DO_PRAGMA(GCC diagnostic ignored "-Wconversion");',
+        'DO_PRAGMA(GCC diagnostic ignored "-Wdouble-promotion");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wshadow");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wsign-conversion");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wsign-compare");',

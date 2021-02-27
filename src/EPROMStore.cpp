@@ -539,7 +539,7 @@ Latitude EEPROMStore::getLatitude()
 // Store the configured location Latitude.
 void EEPROMStore::storeLatitude(Latitude const &latitude)
 {
-  int32_t val = round(latitude.getTotalHours() * 100);
+  int32_t val = static_cast<int32_t>(roundf(latitude.getTotalHours() * 100.0f));
   val = clamp(val, (int32_t)INT16_MIN, (int32_t)INT16_MAX);
   LOGV3(DEBUG_EEPROM, "EEPROM: Storing Latitude as %d (%f)", val, latitude.getTotalHours());
 
@@ -570,7 +570,7 @@ Longitude EEPROMStore::getLongitude()
 // Store the configured location Longitude.
 void EEPROMStore::storeLongitude(Longitude const &longitude)
 {
-  int32_t val = round(longitude.getTotalHours() * 100);
+  int32_t val = static_cast<int32_t>(roundf(longitude.getTotalHours() * 100.0f));
   val = clamp(val, (int32_t)INT16_MIN, (int32_t)INT16_MAX);
   LOGV3(DEBUG_EEPROM, "EEPROM: Storing Longitude as %d (%f)", val, longitude.getTotalHours());
 
