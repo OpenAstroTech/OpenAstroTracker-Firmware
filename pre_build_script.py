@@ -17,6 +17,7 @@ extra_macros = {
         'DO_PRAGMA(GCC diagnostic ignored "-Wsign-compare");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wignored-qualifiers");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wuseless-cast");',
+        'DO_PRAGMA(GCC diagnostic ignored "-Wunknown-pragmas");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wall");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wextra");',
         'DO_PRAGMA(GCC diagnostic ignored "-Wpedantic");',

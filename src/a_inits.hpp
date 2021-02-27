@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Configuration.hpp"
 #include "inc/Globals.hpp"
 PUSH_NO_WARNINGS
 #include <AccelStepper.h>

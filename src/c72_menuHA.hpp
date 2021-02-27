@@ -59,6 +59,9 @@ bool processHAKeys() {
         }
       }
       break;
+
+      default:
+      break;
     }
   }
 

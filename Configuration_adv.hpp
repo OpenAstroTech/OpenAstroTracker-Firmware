@@ -343,7 +343,12 @@
 
 // Set this to 1 to support INFO menu that displays various pieces of information about the mount. 
   #define SUPPORT_INFO_DISPLAY         1
-
+#else
+  #define SUPPORT_POINTS_OF_INTEREST 0
+  #define SUPPORT_GUIDED_STARTUP     0
+  #define SUPPORT_MANUAL_CONTROL     0
+  #define SUPPORT_CALIBRATION        0
+  #define SUPPORT_INFO_DISPLAY       0
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial
