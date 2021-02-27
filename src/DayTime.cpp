@@ -80,7 +80,7 @@ DayTime::DayTime(float timeInHours)
 {
   long sgn = fsign(timeInHours);
   timeInHours = fabsf(timeInHours);
-  totalSeconds = sgn * round(timeInHours * 60 * 60);
+  totalSeconds = sgn * static_cast<long>(roundf(timeInHours * 60.0f * 60.0f));
 }
 
 int DayTime::getHours() const
