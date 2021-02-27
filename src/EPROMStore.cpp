@@ -12,7 +12,7 @@ POP_NO_WARNINGS
 ///////////////////////////////////////
 // PLATFORM-SPECIFIC IMPLEMENTATIONS
 
-#if USE_DUMMY_EEPROM == 1
+#if USE_DUMMY_EEPROM == true
 
 static uint8_t dummyEepromStorage[EEPROMStore::STORE_SIZE];
 

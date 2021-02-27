@@ -14,7 +14,7 @@ unsigned long RealTime::_suspendStart = 0;
 int RealTime::_suspended = 0;
 #endif
 
-#if BUFFER_LOGS
+#if BUFFER_LOGS == true
 #define LOG_BUFFER_SIZE 512
 char logBuffer[LOG_BUFFER_SIZE];
 int bufferWritePos = 0;
@@ -362,7 +362,7 @@ void logv(int levelFlags, String input, ...)
     unsigned long now = millis();
     va_list argp;
     va_start(argp, input);
-#if BUFFER_LOGS
+#if BUFFER_LOGS == true
     addToLogBuffer(formatArg(input.c_str(), argp));
 #else
     Serial.print("[");
