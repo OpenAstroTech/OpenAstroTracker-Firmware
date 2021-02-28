@@ -5,52 +5,58 @@
 
 bool setZeroPoint = true;
 
-#define HIGHLIGHT_MANUAL 1
-#define HIGHLIGHT_SERIAL 2
+enum ctrlState_t {
+    HIGHLIGHT_MANUAL,
+    HIGHLIGHT_SERIAL,
+    MANUAL_CONTROL_MODE,
+    MANUAL_CONTROL_CONFIRM_HOME,
+};
 
-#define MANUAL_CONTROL_MODE 10
-#define MANUAL_CONTROL_CONFIRM_HOME 11
-#define SERIAL_DISPLAY_MODE 20
-
-int ctrlState = HIGHLIGHT_MANUAL;
-
-#define LOOPS_TO_CONFIRM_KEY 10
-byte loopsWithKeyPressed = 0;
-byte keyPressed = btnNONE;
+ctrlState_t ctrlState = HIGHLIGHT_MANUAL;
 
 void setControlMode(bool state)
 {
   ctrlState = state ? MANUAL_CONTROL_MODE : HIGHLIGHT_MANUAL;
 }
 
-bool processKeyStateChanges(int key, int dir)
+/**
+ * @brief Handle commanding the mount slew direction when in manual control
+ * @defails Meant to be called continuously with the current key pressed,
+ * a keypress is only 'valid' if it is held down for at least 10 cycles.
+ * @param[in] key The current key being pressed
+ * @param[in] dir The direction the mount should slew in associated with the key
+ * @return true if the mount was commanded, false otherwise
+ */
+bool controlManualSlew(lcdButton_t key, int dir)
 {
-  bool ret = false;
-  if (keyPressed != key)
-  {
-    loopsWithKeyPressed = 0;
-    keyPressed = key;
-  }
-  else
-  {
-    if (loopsWithKeyPressed == LOOPS_TO_CONFIRM_KEY)
-    {
-      mount.stopSlewing(ALL_DIRECTIONS);
-      mount.waitUntilStopped(ALL_DIRECTIONS);
-      if (dir != 0)
-      {
-        mount.startSlewing(dir);
-      }
-      loopsWithKeyPressed++;
-      ret = true;
-    }
-    else if (loopsWithKeyPressed < LOOPS_TO_CONFIRM_KEY)
-    {
-      loopsWithKeyPressed++;
-    }
-  }
+    const int LOOPS_TO_CONFIRM_KEY = 10;
+    /// Static counter that is reset whenever there is a key change
+    static unsigned countDown = 0;
+    /// Static storage for the key that is currently commanding the mount
+    static lcdButton_t currentKeyPressed = btnINVALID;
 
-  return ret;
+    const bool keyConfirmed = (countDown == 0);
+    bool isNewSlewDirection = false;
+    if (keyConfirmed && currentKeyPressed != key) {
+        // Store the current key press as it has been confirmed
+        currentKeyPressed = key;
+        mount.stopSlewing(ALL_DIRECTIONS);
+        mount.waitUntilStopped(ALL_DIRECTIONS);
+        if (dir != 0) {
+            // Slew the mount in the desired direction
+            mount.startSlewing(dir);
+        }
+        isNewSlewDirection = true;
+    } else if (currentKeyPressed != key) {
+        countDown = LOOPS_TO_CONFIRM_KEY;
+    }
+
+    if (countDown > 0) {
+        // Always try to count down if possible
+        countDown -= 1;
+    }
+
+    return isNewSlewDirection;
 }
 
 bool processControlKeys()
@@ -62,7 +68,6 @@ bool processControlKeys()
   switch (ctrlState)
   {
   case HIGHLIGHT_MANUAL:
-  {
     if (lcdButtons.keyChanged(&key))
     {
       waitForRelease = true;
@@ -80,11 +85,9 @@ bool processControlKeys()
         lcdMenu.setNextActive();
       }
     }
-  }
   break;
 
   case HIGHLIGHT_SERIAL:
-  {
     if (lcdButtons.keyChanged(&key))
     {
       waitForRelease = true;
@@ -102,11 +105,9 @@ bool processControlKeys()
         lcdMenu.setNextActive();
       }
     }
-  }
   break;
 
   case MANUAL_CONTROL_CONFIRM_HOME:
-  {
     if (lcdButtons.keyChanged(&key))
     {
       waitForRelease = true;
@@ -142,41 +143,30 @@ bool processControlKeys()
         setZeroPoint = !setZeroPoint;
       }
     }
-  }
   break;
 
   case MANUAL_CONTROL_MODE:
-  {
     key = lcdButtons.currentState();
     switch (key)
     {
     case btnUP:
-    {
-      processKeyStateChanges(btnUP, NORTH);
-    }
+        controlManualSlew(btnUP, NORTH);
     break;
 
     case btnDOWN:
-    {
-      processKeyStateChanges(btnDOWN, SOUTH);
-    }
+        controlManualSlew(btnDOWN, SOUTH);
     break;
 
     case btnLEFT:
-    {
-      processKeyStateChanges(btnLEFT, WEST);
-    }
+        controlManualSlew(btnLEFT, WEST);
     break;
 
     case btnRIGHT:
-    {
-      processKeyStateChanges(btnRIGHT, EAST);
-    }
+        controlManualSlew(btnRIGHT, EAST);
     break;
 
     case btnSELECT:
-    {
-      if (processKeyStateChanges(btnSELECT, 0))
+      if (controlManualSlew(btnSELECT, 0))
       {
 #if SUPPORT_GUIDED_STARTUP == 1
         if (startupState == StartupWaitForPoleCompletion)
@@ -196,17 +186,13 @@ bool processControlKeys()
           waitForRelease = true;
         }
       }
-    }
     break;
 
     case btnNONE:
     case btnINVALID:
-    {
-      processKeyStateChanges(btnNONE, 0);
-    }
+        controlManualSlew(btnNONE, 0);
     break;
     }
-  }
   break;
   }
 
@@ -218,14 +204,10 @@ void printControlSubmenu()
   switch (ctrlState)
   {
   case HIGHLIGHT_MANUAL:
-  {
     lcdMenu.printMenu(">Manual slewing");
-  }
   break;
   case HIGHLIGHT_SERIAL:
-  {
     lcdMenu.printMenu(">Serial display");
-  }
   break;
   case MANUAL_CONTROL_CONFIRM_HOME:
   {
@@ -236,9 +218,7 @@ void printControlSubmenu()
   }
   break;
   default:
-  {
     mount.displayStepperPositionThrottled();
-  }
   break;
   }
 }
