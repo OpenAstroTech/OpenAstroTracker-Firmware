@@ -211,7 +211,7 @@ void printHASubmenu()
     }
     else if (haState == STARTING_GPS)
     {
-        sprintf(satBuffer, "  Found %lu sats", gps.satellites.value());
+        sprintf(satBuffer, "  Found %u sats", static_cast<unsigned>(gps.satellites.value()));
         satBuffer[0] = ind[indicator];
     }
     else if (haState == ENTER_HA_MANUALLY)

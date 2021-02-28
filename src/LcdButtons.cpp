@@ -110,12 +110,12 @@ void LcdButtons::checkKey() {
 
 // Null implementation
 LcdButtons::LcdButtons(byte pin, LcdMenu* lcdMenu) 
-: _lastKeyChange(0), _analogPin(pin), _analogKeyValue(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
+: _lastKeyChange(0), _analogPin(pin), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
 {    
 }
 
 LcdButtons::LcdButtons(LcdMenu* lcdMenu) 
-: _lastKeyChange(0), _analogPin(0), _analogKeyValue(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
+: _lastKeyChange(0), _analogPin(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
 {    
 }
 
