@@ -111,14 +111,18 @@ private:
   byte _brightness;
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-  byte _degrees = 1;
-  byte _minutes = 2;
-  byte _leftArrow = 3;
-  byte _rightArrow = 4;
-  byte _upArrow = 5;
-  byte _downArrow = 6;
-  byte _tracking = 7;
-  byte _noTracking = 0;
+  enum specialChar_t : byte {
+      _degrees,
+      _minutes,
+      _leftArrow,
+      _rightArrow,
+      _upArrow,
+      _downArrow,
+      _tracking,
+      _noTracking,
+      SPECIAL_CHAR_MAX,
+  };
+  static_assert(SPECIAL_CHAR_MAX <= 8, "LCD only supports a maximum of 8 special characters");
 
   // The special character bitmaps
   static byte RightArrowBitmap[8];
