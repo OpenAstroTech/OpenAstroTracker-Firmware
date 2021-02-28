@@ -306,14 +306,14 @@ def solve(board):
     print("Testing {} combinations".format(len(solutions)))
 
     for num, solution in enumerate(solutions, start=1):
-        print("[{}/{}] Building ...".format(num, len(solutions)))
+        print("[{}/{}] Building ...".format(num, len(solutions)), flush=True)
         print_solutions_matrix([solution])
 
         board = solution.pop("BOARD")
         (o, e, c) = execute(board, solution)
         if c and not CONTINUE_ON_ERROR:
             exit(c)
-        print()
+        print(flush=True)
 
 
 if __name__ == '__main__':
