@@ -3,6 +3,8 @@
 #if DISPLAY_TYPE > 0
 #if SUPPORT_MANUAL_CONTROL == 1
 
+#include "MappedDict.hpp"
+
 bool setZeroPoint = true;
 
 enum ctrlState_t {
@@ -57,6 +59,33 @@ bool controlManualSlew(lcdButton_t key, int dir)
     }
 
     return isNewSlewDirection;
+}
+
+/**
+ * Slew the mount in a direction depending on the input key
+ * @param[in] key The current key being pressed
+ */
+void processManualSlew(lcdButton_t key)
+{
+    MappedDict<lcdButton_t, int>::DictEntry_t lookupTable[] = {
+            {btnNONE,    0},
+            {btnSELECT,  0},
+            {btnINVALID, 0},
+            {btnUP,    NORTH},
+            {btnDOWN,  SOUTH},
+            {btnLEFT,  WEST},
+            {btnRIGHT, EAST},
+    };
+    auto directionLookup = MappedDict<lcdButton_t, int>(lookupTable, ARRAY_SIZE(lookupTable));
+    int slewDirection;
+    const bool directionInTable = directionLookup.tryGet(key, &slewDirection);
+    if (!directionInTable) {
+        LOGV2(DEBUG_MOUNT, F("Unknown LCD button value: %i"), key);
+        return;
+    }
+
+    // Slew the mount in the desired direction
+    (void) controlManualSlew(key, slewDirection);
 }
 
 bool processControlKeys()
@@ -147,51 +176,28 @@ bool processControlKeys()
 
   case MANUAL_CONTROL_MODE:
     key = lcdButtons.currentState();
-    switch (key)
+    processManualSlew(key);  // Do the slewing
+
+    if (key == btnSELECT)
     {
-    case btnUP:
-        controlManualSlew(btnUP, NORTH);
-    break;
-
-    case btnDOWN:
-        controlManualSlew(btnDOWN, SOUTH);
-    break;
-
-    case btnLEFT:
-        controlManualSlew(btnLEFT, WEST);
-    break;
-
-    case btnRIGHT:
-        controlManualSlew(btnRIGHT, EAST);
-    break;
-
-    case btnSELECT:
-      if (controlManualSlew(btnSELECT, 0))
-      {
+      // User wants to set the current position as home
 #if SUPPORT_GUIDED_STARTUP == 1
-        if (startupState == StartupWaitForPoleCompletion)
-        {
-          startupState = StartupPoleConfirmed;
-          ctrlState = HIGHLIGHT_MANUAL;
-          waitForRelease = true;
-          inStartup = true;
-        }
-        else
-#endif
-        {
-          okToUpdateMenu = false;
-          lcdMenu.setCursor(0, 0);
-          lcdMenu.printMenu("Set home pos?");
-          ctrlState = MANUAL_CONTROL_CONFIRM_HOME;
-          waitForRelease = true;
-        }
+      if (startupState == StartupWaitForPoleCompletion)
+      {
+        startupState = StartupPoleConfirmed;
+        ctrlState = HIGHLIGHT_MANUAL;
+        waitForRelease = true;
+        inStartup = true;
       }
-    break;
-
-    case btnNONE:
-    case btnINVALID:
-        controlManualSlew(btnNONE, 0);
-    break;
+      else
+#endif
+      {
+        okToUpdateMenu = false;
+        lcdMenu.setCursor(0, 0);
+        lcdMenu.printMenu("Set home pos?");
+        ctrlState = MANUAL_CONTROL_CONFIRM_HOME;
+        waitForRelease = true;
+      }
     }
   break;
   }
