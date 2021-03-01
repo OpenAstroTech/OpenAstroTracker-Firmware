@@ -131,19 +131,19 @@
 // 
 
 // the pitch of the GT2 timing belt
-#define GT2_BELT_PITCH  2.0 // mm
+#define GT2_BELT_PITCH  2.0f // mm
 
 // the Circumference of the RA wheel.  V1 = 1057.1  |  V2 = 1131.0
 #if RA_WHEEL_VERSION == 1
-  #define RA_WHEEL_CIRCUMFERENCE 1057.1
+  #define RA_WHEEL_CIRCUMFERENCE 1057.1f
 #elif RA_WHEEL_VERSION >= 2
-  #define RA_WHEEL_CIRCUMFERENCE 1132.73
+  #define RA_WHEEL_CIRCUMFERENCE 1132.73f
 #else
   #error Unsupported RA wheel version, please recheck RA_WHEEL_VERSION
 #endif
 
 // the Circumference of the DEC wheel.
-#define DEC_WHEEL_CIRCUMFERENCE 565.5
+#define DEC_WHEEL_CIRCUMFERENCE 565.5f
 
 // RA movement:
 // The radius of the surface that the belt runs on (in V1 of the ring) was 168.24mm.
@@ -154,7 +154,9 @@
 // So there are 300.1 steps/degree (108245 / 360)  (V2: 322 (115812 / 360))
 // Theoretically correct RA tracking speed is 1.246586 (300 x 14.95903 / 3600) (V2 : 1.333800 (322 x 14.95903 / 3600) steps/sec (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
-#define RA_STEPS_PER_DEGREE   (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0)
+#ifndef RA_STEPS_PER_DEGREE
+  #define RA_STEPS_PER_DEGREE   (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
+#endif
 
 // DEC movement:
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
@@ -163,7 +165,9 @@
 // Which means 57907 steps (14.14 x 4096) moves 360 degrees
 // So there are 160.85 steps/degree (57907/360) (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
-#define DEC_STEPS_PER_DEGREE  (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0)
+#ifndef DEC_STEPS_PER_DEGREE
+  #define DEC_STEPS_PER_DEGREE  (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
+#endif
 
 ////////////////////////////
 //
@@ -172,17 +176,17 @@
 // Note that the North & South (DEC) tracking speed is calculated as the +multiplier & -multiplier
 // Note that the West & East (RA) tracking speed is calculated as the (multiplier+1.0) & (multiplier-1.0)
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-  #define RA_PULSE_MULTIPLIER 1.0
+  #define RA_PULSE_MULTIPLIER 1.0f
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-  #define RA_PULSE_MULTIPLIER 1.5
+  #define RA_PULSE_MULTIPLIER 1.5f
 #else
   #error New RA Stepper type? Add it here...
 #endif
 
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-  #define DEC_PULSE_MULTIPLIER 1.0
+  #define DEC_PULSE_MULTIPLIER 1.0f
 #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-  #define DEC_PULSE_MULTIPLIER 1.0
+  #define DEC_PULSE_MULTIPLIER 1.0f
 #else
   #error New DEC Stepper type? Add it here...
 #endif
@@ -215,7 +219,9 @@
 //
 // LCD BUTTON TEST
 // Set this to 1 to run a key diagnostic. No tracker functions are on at all.
-#define LCD_BUTTON_TEST 0
+#ifndef LCD_BUTTON_TEST 
+  #define LCD_BUTTON_TEST 0
+#endif
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -269,11 +275,11 @@
 
 
   // the Circumference of the AZ rotation. 808mm dia.
-  #define AZ_CIRCUMFERENCE 2538.4
+  #define AZ_CIRCUMFERENCE 2538.4f
   // the Circumference of the AZ rotation. 770mm dia.
   #define ALT_CIRCUMFERENCE 2419
   // the ratio of the ALT gearbox (40:3)
-  #define ALT_WORMGEAR_RATIO (40/3)
+  #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
 
   #define AZIMUTH_STEPS_PER_REV           (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)   // Actually u-steps/rev
   #define ALTITUDE_STEPS_PER_REV          (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING * ALT_WORMGEAR_RATIO)   // Actually u-steps/rev

@@ -79,8 +79,8 @@ DayTime::DayTime(int h, int m, int s)
 DayTime::DayTime(float timeInHours)
 {
   long sgn = fsign(timeInHours);
-  timeInHours = fabs(timeInHours);
-  totalSeconds = sgn * round(timeInHours * 60 * 60);
+  timeInHours = fabsf(timeInHours);
+  totalSeconds = sgn * static_cast<long>(roundf(timeInHours * 60.0f * 60.0f));
 }
 
 int DayTime::getHours() const
@@ -277,7 +277,7 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
   printTwoDigits(achMins, mins);
   printTwoDigits(achSecs, secs);
 
-  char macro;
+  char macro = '\0';
   bool inMacro = false;
   while (*f)
   {

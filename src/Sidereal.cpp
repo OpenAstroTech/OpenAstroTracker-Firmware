@@ -1,40 +1,43 @@
+#include "inc/Globals.hpp"
 #include "../Configuration.hpp"
 #include "Sidereal.hpp"
 
 // Constants for sidereal calculation       
 // Source: http://www.stargazing.net/kepler/altaz.html
-#define C1              100.46
-#define C2              0.985647
-#define C3              15.0
-#define C4              -0.5125
-#define J2000           2000
+const double C1      = 100.46;
+const double C2      = 0.985647;
+const double C3      = 15.0;
+const double C4      = -0.5125;
+const unsigned J2000 = 2000;
 
 #if USE_GPS == 1
+PUSH_NO_WARNINGS
 #include <TinyGPS++.h>
-DayTime Sidereal::calculateByGPS(TinyGPSPlus* gps){
+POP_NO_WARNINGS
+DayTime Sidereal::calculateByGPS(TinyGPSPlus* gps) {
     DayTime timeUTC = DayTime(gps->time.hour(), gps->time.minute(), gps->time.second());
     int deltaJd = calculateDeltaJd(gps->date.year(), gps->date.month(), gps->date.day());
-    double deltaJ = deltaJd + ((timeUTC.getTotalHours()) / 24.0);
-    return DayTime((float)(calculateTheta(deltaJ, gps->location.lng(), timeUTC.getTotalHours()) / 15.0));
+    double deltaJ = static_cast<float>(deltaJd) + (timeUTC.getTotalHours() / 24.0f);
+    return DayTime(static_cast<float>(calculateTheta(deltaJ, gps->location.lng(), timeUTC.getTotalHours()) / 15.0));
     }
 #endif // USE_GPS
 
 DayTime Sidereal::calculateByDateAndTime( double longitude, int year, int month, int day, DayTime *timeUTC ) {
     int deltaJd = calculateDeltaJd( year, month, day );
-    double deltaJ = deltaJd + ((timeUTC->getTotalHours()) / 24.0);
-    return DayTime((float)(calculateTheta(deltaJ, longitude, timeUTC->getTotalHours()) / 15.0));
+    double deltaJ = deltaJd + ((timeUTC->getTotalHours()) / 24.0f);
+    return DayTime(static_cast<float>(calculateTheta(deltaJ, longitude, timeUTC->getTotalHours()) / 15.0));
 }
 
-const double Sidereal::calculateTheta(double deltaJ, double longitude, float timeUTC){
+double Sidereal::calculateTheta(double deltaJ, double longitude, float timeUTC){
     double theta = C1;
     theta += C2 * deltaJ;
-    theta += C3 * timeUTC;
+    theta += C3 * static_cast<double>(timeUTC);
     theta += C4;
     theta += longitude;
     return fmod(theta, 360.0);
 }
 
-const int Sidereal::calculateDeltaJd(int year, int month, int day){
+int Sidereal::calculateDeltaJd(int year, int month, int day){
     const int daysInMonth[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     // Calculating days without leapdays

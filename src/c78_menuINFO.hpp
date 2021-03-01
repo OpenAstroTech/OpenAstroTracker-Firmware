@@ -2,6 +2,8 @@
 
 #if DISPLAY_TYPE > 0
 
+#include "Utility.hpp"
+
 #if SUPPORT_INFO_DISPLAY == 1
 byte infoIndex = 0;
 byte maxInfoIndex = 15;
@@ -106,8 +108,8 @@ void printStatusSubmenu()
 
     case 3:
     {
-      float lat = fabs(mount.latitude().getTotalHours());
-      float lng = fabs(mount.longitude().getTotalHours());
+      float lat = fabsf(mount.latitude().getTotalHours());
+      float lng = fabsf(mount.longitude().getTotalHours());
       const char dirLat = (mount.latitude().getTotalHours() < 0) ? 'S' : 'N';
       const char dirLong = (mount.longitude().getTotalHours() < 0) ? 'W' : 'E';
       sprintf(scratchBuffer, "Loc %s%c %s%c", String(lat, 1).c_str(), dirLat, String(lng, 1).c_str(), dirLong);
@@ -118,8 +120,8 @@ void printStatusSubmenu()
     case 4:
     {
 #if USE_GYRO_LEVEL == 1
-      int celsius = (int)round(Gyro::getCurrentTemperature());
-      int fahrenheit = (int)round(32.0 + 9.0 * Gyro::getCurrentTemperature() / 5.0);
+      int celsius = static_cast<int>(roundf(Gyro::getCurrentTemperature()));
+      int fahrenheit = static_cast<int>(roundf(32.0f + 9.0f * Gyro::getCurrentTemperature() / 5.0f));
 
       sprintf(scratchBuffer, "Temp: %d@C %d@F", celsius, fahrenheit);
       lcdMenu.printMenu(scratchBuffer);

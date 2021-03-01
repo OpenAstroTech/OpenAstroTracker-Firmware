@@ -236,6 +236,10 @@ def generate_config_file(flag_values):
 
     with open("Configuration_local_matrix.hpp", 'w') as f:
         f.write(content)
+        print("Generated local config")
+        print("Path: {}".format(os.path.abspath(f.name)))
+        print("Content:")
+        print(content)
 
 
 def create_run_environment(flag_values):
@@ -248,16 +252,15 @@ def create_run_environment(flag_values):
 def execute(board, flag_values, use_config_file=True):
     if use_config_file:
         build_env = dict(os.environ)
+        build_env["PLATFORMIO_BUILD_FLAGS"] = "-DMATRIX_LOCAL_CONFIG=1"
         generate_config_file(flag_values)
     else:
         build_env = create_run_environment(flag_values)
 
-    build_env["MATRIX_BUILD"] = "1"
-
     proc = subprocess.Popen(
-        ["pio run -e {}".format(board)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        "pio run -e {}".format(board),
+        # stdout=subprocess.PIPE,
+        # stderr=subprocess.PIPE,
         shell=True,
         env=build_env,
     )
@@ -272,7 +275,7 @@ class GracefulKiller:
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
-    def exit_gracefully(self, signum, frame):
+    def exit_gracefully(self):
         shutil.rmtree('.pio/build/matrix')
         self.kill_now = True
 
@@ -285,6 +288,7 @@ class GracefulKiller:
     multiple=True,
     help="Limit boards under test. Multiple values allowed.")
 def solve(board):
+    # noinspection PyUnusedLocal
     killer = GracefulKiller()
 
     problem = create_problem()
@@ -293,26 +297,23 @@ def solve(board):
     if board:
         problem.addConstraint(InSetConstraint(board), ["BOARD"])
 
-    # solutions = problem.getSolutions()
-    # print_solutions_matrix(solutions, short_strings=False)
-
     set_test_constraints(problem)
     set_ci_constraints(problem)
 
     solutions = problem.getSolutions()
-    print_solutions_matrix(solutions, short_strings=True)
+    print_solutions_matrix(solutions, short_strings=False)
 
     print("Testing {} combinations".format(len(solutions)))
 
     for num, solution in enumerate(solutions, start=1):
-        print("[{}/{}] {}".format(num, len(solutions), solution))
+        print("[{}/{}] Building ...".format(num, len(solutions)), flush=True)
+        print_solutions_matrix([solution])
 
         board = solution.pop("BOARD")
         (o, e, c) = execute(board, solution)
         if c and not CONTINUE_ON_ERROR:
-            print(o)
-            print(e)
             exit(c)
+        print(flush=True)
 
 
 if __name__ == '__main__':
