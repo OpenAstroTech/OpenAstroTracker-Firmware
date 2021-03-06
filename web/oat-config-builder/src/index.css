@@ -12,3 +12,41 @@ body {
   color:green;
   margin:0px;
 }
+
+.step-title {
+  font-size:28pt;
+  color:black;
+}
+
+.step-description{
+  font-size:14pt;
+  color:darkslategray;
+  word-wrap: break-word;
+  margin: 10pt 0pt;
+}
+
+.steps-container {
+  display:flex;
+
+}
+
+.steps-column {
+  margin-right: 20pt;
+}
+
+.image-column {
+  margin-left: 40pt;
+  max-width: 180px;
+}
+
+.list-container {
+  display:flex;
+  flex-direction: column;
+  min-width:650px;
+}
+
+.back-button {
+  align-self: center;
+  text-align: center;
+  margin-top: 12pt;
+}

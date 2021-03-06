@@ -8,7 +8,6 @@ import {
 import Home from './modules/Home'
 import WizardStep from './modules/WizardStep'
 
-import logo from './logo.svg';
 import './App.css';
 import './index.css';
 
