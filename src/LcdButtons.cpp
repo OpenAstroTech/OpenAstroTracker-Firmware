@@ -10,11 +10,11 @@ LcdButtons::LcdButtons(byte pin, LcdMenu* lcdMenu) {
     _analogPin = pin;
     _lastKeyChange = 0;
 
-    _newKey = -1;
-    _lastNewKey = -2;
+    _newKey = btnNONE;
+    _lastNewKey = btnNONE;
 
-    _currentKey = -1;
-    _lastKey = -2;
+    _currentKey = btnNONE;
+    _lastKey = btnNONE;
 
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
         // Initialize keypad
@@ -28,14 +28,14 @@ LcdButtons::LcdButtons(LcdMenu* lcdMenu) {
     _lcdMenu = lcdMenu;
     _lastKeyChange = 0;
 
-    _newKey = -1;
-    _lastNewKey = -2;
+    _newKey = btnNONE;
+    _lastNewKey = btnINVALID;
 
-    _currentKey = -1;
-    _lastKey = -2;
+    _currentKey = btnNONE;
+    _lastKey = btnINVALID;
 }
   
-bool LcdButtons::keyChanged(byte* pNewKey) {
+bool LcdButtons::keyChanged(lcdButton_t* pNewKey) {
     checkKey();
     if (_newKey != _lastNewKey) {
         *pNewKey = _newKey;
@@ -45,8 +45,17 @@ bool LcdButtons::keyChanged(byte* pNewKey) {
     return false;
 }
 
-void LcdButtons::checkKey() {
+int LcdButtons::currentAnalogState() {
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
+    return 0;  // No analog value for these displays
+#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+    return analogRead(LCD_KEY_SENSE_Y_PIN);
+#else
+    return analogRead(_analogPin);
+#endif
+}
 
+void LcdButtons::checkKey() {
     #if DISPLAY_TYPE > 0
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     uint8_t buttons = _lcdMenu->readButtons();
@@ -68,21 +77,20 @@ void LcdButtons::checkKey() {
     int16_t const MIDSCALE = 4096 / 2;
     int16_t const DEADBAND = 500;
 
-    byte _currentKey = btnNONE;
-    _analogKeyValue = y;
+    _currentKey = btnNONE;
     if (x > (MIDSCALE + DEADBAND)) _currentKey = btnRIGHT;
     if (x < (MIDSCALE - DEADBAND)) _currentKey = btnLEFT;
     if (y > (MIDSCALE + DEADBAND)) _currentKey = btnDOWN;  // Y appears reversed
     if (y < (MIDSCALE - DEADBAND)) _currentKey = btnUP;
     if (push < MIDSCALE) _currentKey = btnSELECT;  // Active low
     #else
-    _analogKeyValue = analogRead(_analogPin);
-    if (_analogKeyValue > 1000) _currentKey = btnNONE;
-    else if (_analogKeyValue < 50)   _currentKey = btnRIGHT;
-    else if (_analogKeyValue < 240)  _currentKey = btnUP;
-    else if (_analogKeyValue < 400)  _currentKey = btnDOWN;
-    else if (_analogKeyValue < 600)  _currentKey = btnLEFT;
-    else if (_analogKeyValue < 920)  _currentKey = btnSELECT;
+    const int analogKeyValue = currentAnalogState();
+    if (analogKeyValue > 1000) _currentKey = btnNONE;
+    else if (analogKeyValue < 50)   _currentKey = btnRIGHT;
+    else if (analogKeyValue < 240)  _currentKey = btnUP;
+    else if (analogKeyValue < 400)  _currentKey = btnDOWN;
+    else if (analogKeyValue < 600)  _currentKey = btnLEFT;
+    else if (analogKeyValue < 920)  _currentKey = btnSELECT;
     #endif
 
     if (_currentKey != _lastKey) {
@@ -102,16 +110,16 @@ void LcdButtons::checkKey() {
 
 // Null implementation
 LcdButtons::LcdButtons(byte pin, LcdMenu* lcdMenu) 
-: _lastKeyChange(0), _analogPin(pin), _analogKeyValue(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
+: _lastKeyChange(0), _analogPin(pin), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
 {    
 }
 
 LcdButtons::LcdButtons(LcdMenu* lcdMenu) 
-: _lastKeyChange(0), _analogPin(0), _analogKeyValue(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
+: _lastKeyChange(0), _analogPin(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
 {    
 }
 
-bool LcdButtons::keyChanged(byte* pNewKey)
+bool LcdButtons::keyChanged(lcdButton_t* pNewKey)
 { 
     return false; 
 }

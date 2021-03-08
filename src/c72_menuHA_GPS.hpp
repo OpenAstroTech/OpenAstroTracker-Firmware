@@ -68,18 +68,19 @@ bool gpsAqcuisitionComplete(int &indicator)
 #if DISPLAY_TYPE > 0
 
 // States that HA menu displays goes through
-#define SHOWING_HA_SYNC 1
-#define SHOWING_HA_SET 2
-#define ENTER_HA_MANUALLY 3
-#define STARTING_GPS 4
-#define SIGNAL_AQCUIRED 5
+enum haMenuState_t {
+    SHOWING_HA_SYNC = 1,
+    SHOWING_HA_SET,
+    ENTER_HA_MANUALLY,
+    STARTING_GPS,
+};
 
 int indicator = 0;
-int haState = STARTING_GPS;
+haMenuState_t haState = STARTING_GPS;
 
 bool processHAKeys()
 {
-    byte key;
+    lcdButton_t key;
     bool waitForRelease = false;
 
     if (haState == STARTING_GPS)
@@ -210,7 +211,7 @@ void printHASubmenu()
     }
     else if (haState == STARTING_GPS)
     {
-        sprintf(satBuffer, "  Found %lu sats", gps.satellites.value());
+        sprintf(satBuffer, "  Found %u sats", static_cast<unsigned>(gps.satellites.value()));
         satBuffer[0] = ind[indicator];
     }
     else if (haState == ENTER_HA_MANUALLY)

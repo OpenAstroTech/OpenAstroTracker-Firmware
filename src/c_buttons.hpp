@@ -24,7 +24,7 @@
     byte lastKey = btnNONE;
   #endif
 
-  byte lcd_key;
+  lcdButton_t lcd_key;
   unsigned long lastTrackingStatusPrint = 0;
 
   void loop() {
@@ -152,7 +152,7 @@
       if (waitForButtonRelease) {
         if (lcdButtons.currentState() != btnNONE) {
           do {
-            byte waitKey;
+            lcdButton_t waitKey;
             if (lcdButtons.keyChanged(&waitKey)) {
               if (waitKey == btnNONE) {
                 break;

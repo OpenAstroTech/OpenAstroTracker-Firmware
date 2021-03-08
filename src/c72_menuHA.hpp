@@ -7,7 +7,7 @@
 #if USE_GPS == 0
 
 bool processHAKeys() {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   if (lcdButtons.currentState() == btnUP) {
     DayTime ha(mount.HA());
@@ -58,6 +58,9 @@ bool processHAKeys() {
           lcdMenu.setNextActive();
         }
       }
+      break;
+
+      default:
       break;
     }
   }

@@ -55,7 +55,7 @@ bool processKeyStateChanges(int key, int dir)
 
 bool processControlKeys()
 {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
 
   // User must use SELECT to enter manual control.
@@ -200,6 +200,7 @@ bool processControlKeys()
     break;
 
     case btnNONE:
+    case btnINVALID:
     {
       processKeyStateChanges(btnNONE, 0);
     }

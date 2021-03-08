@@ -12,7 +12,7 @@ unsigned long lastInfoUpdate = 0;
 
 bool processStatusKeys()
 {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   if (lcdButtons.keyChanged(&key))
   {
@@ -43,6 +43,9 @@ bool processStatusKeys()
     {
       lcdMenu.setNextActive();
     }
+    break;
+
+    default:
     break;
     }
   }
