@@ -369,16 +369,14 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverRA->toff(4);
     _driverRA->blank_time(24);
-    _driverRA->rms_current(rmscurrent);
+    _driverRA->rms_current(rmscurrent, 1.0f);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
-    _driverRA->ihold(1); // its save to assume that the only time RA stands still is during parking and the current can be limited to a minimum
     //_driverRA->semin(2);
     //_driverRA->semax(5);
     //_driverRA->sedn(0b01);
     //_driverRA->SGTHRS(10);
-    _driverRA->irun(31);
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
@@ -394,16 +392,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     //#endif
     _driverRA->toff(4);
     _driverRA->blank_time(24);
-    _driverRA->rms_current(rmscurrent);
+    _driverRA->rms_current(rmscurrent, 1.0f);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
-    _driverRA->ihold(1); // its save to assume that the only time RA stands still is during parking and the current can be limited to a minimum
-    //_driverRA->semin(2);
-    //_driverRA->semax(5);
-    //_driverRA->sedn(0b01);
-    //_driverRA->SGTHRS(10);
-    _driverRA->irun(31);
   }
 #endif
 #endif
@@ -419,6 +411,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverDEC->begin();
+    _driverDEC->toff(4);
     _driverDEC->blank_time(24);
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
@@ -426,14 +419,13 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverDEC, "DEC" );
     #endif
-    _driverDEC->rms_current(rmscurrent);
+    _driverDEC->rms_current(rmscurrent, 1.0f);
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(5);
     _driverDEC->semax(2);
     _driverDEC->sedn(0b01);
     _driverDEC->SGTHRS(stallvalue);
-    _driverDEC->ihold(DEC_HOLDCURRENT);
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
@@ -447,14 +439,14 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverDEC, "DEC" );
     #endif
-    _driverDEC->rms_current(rmscurrent);
+    _driverDEC->toff(4);
+    _driverDEC->rms_current(rmscurrent, 1.0f);
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(5);
     _driverDEC->semax(2);
     _driverDEC->sedn(0b01);
     _driverDEC->SGTHRS(stallvalue);
-    _driverDEC->ihold(DEC_HOLDCURRENT);
   }
 #endif
 #endif
@@ -475,7 +467,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverAZ->toff(4);
     _driverAZ->blank_time(24);
-    _driverAZ->rms_current(rmscurrent);
+    _driverAZ->rms_current(rmscurrent, 1.0f);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
     _driverAZ->fclktrim(4);
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -493,7 +485,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverAZ->toff(4);
     _driverAZ->blank_time(24);
-    _driverAZ->rms_current(rmscurrent);
+    _driverAZ->rms_current(rmscurrent, 1.0f);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
     _driverAZ->fclktrim(4);
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -517,7 +509,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverALT->toff(4);
     _driverALT->blank_time(24);
-    _driverALT->rms_current(rmscurrent);
+    _driverALT->rms_current(rmscurrent, 1.0f);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
     _driverALT->fclktrim(4);
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -535,7 +527,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverALT->toff(4);
     _driverALT->blank_time(24);
-    _driverALT->rms_current(rmscurrent);
+    _driverALT->rms_current(rmscurrent, 1.0f);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
     _driverALT->fclktrim(4);
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
