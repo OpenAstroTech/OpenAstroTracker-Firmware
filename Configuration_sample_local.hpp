@@ -43,8 +43,10 @@
 
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
-#define RA_RMSCURRENT 1200       // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
-#define DEC_RMSCURRENT 1000      // RMS current in mA. Warning: Peak current will be 1.414 times higher!! Do not exceed your steppers max current!
+#define RA_MOTOR_CURRENT_RATING 0       // Current rating of RA motor in mA
+#define RA_OPERATING_CURRENT_SETTING 1.00f  // RA operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
+#define DEC_MOTOR_CURRENT_RATING 0      // Current rating of DEC motor in mA
+#define DEC_OPERATING_CURRENT_SETTING 1.00f  // DEC operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
 
 /**
  * @brief GPS receiver configuration.
@@ -69,6 +71,13 @@
 #define ALT_DRIVER_TYPE     DRIVER_TYPE_ULN2003
 #define AZ_CORRECTION_FACTOR 1.000f
 #define ALT_CORRECTION_FACTOR 1.000f
+
+// TMC2209 UART settings
+// These settings work only with TMC2209 in UART connection (single wire to TX)
+#define AZ_MOTOR_CURRENT_RATING 0       // Current rating of AZ motor in mA
+#define AZ_OPERATING_CURRENT_SETTING 1.00f  // AZ operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
+#define ALT_MOTOR_CURRENT_RATING 0      // Current rating of ALT motor in mA
+#define ALT_OPERATING_CURRENT_SETTING 1.00f  // ALT operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
 
 /**
  * @brief Display & keypad configuration.

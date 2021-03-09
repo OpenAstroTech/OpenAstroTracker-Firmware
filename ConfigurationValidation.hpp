@@ -302,14 +302,66 @@
 //                                ////////
 //////////////////////////////////////////
 
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (DEC_HOLDCURRENT < 1 || DEC_HOLDCURRENT > 31)
-  #error "Holdcurrent has to be within 1 and 31!"
+#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if (DEC_MOTOR_CURRENT_RATING > 1700)
+    #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
+  #endif
+  #if (DEC_MOTOR_CURRENT_RATING == 0)
+    #error "DEC current rating/setting is not configured. Enter the current rating of your motor" 
+  #endif
+  #if  defined(DEC_OPERATING_CURRENT_SETTING)
+    #if (DEC_OPERATING_CURRENT_SETTING <= 0.0f) || (DEC_OPERATING_CURRENT_SETTING > 1.0f)
+      #error "DEC_OPERATING_CURRENT_SETTING is not within acceptable range"
+    #endif
+  #else
+      #error "DEC_OPERATING_CURRENT_SETTING not defined."
+  #endif
 #endif
 
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (DEC_RMSCURRENT > 2000)
-  #error "Do you really want to set the RMS motorcurrent above 2 Ampere? Thats almost 3A peak! Delete this error if you know what youre doing" 
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if (RA_MOTOR_CURRENT_RATING > 1700)
+    #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
+  #endif
+  #if (RA_MOTOR_CURRENT_RATING == 0)
+    #error "RA current rating/setting is not configured. Enter the current rating of your motor" 
+  #endif
+  #if  defined(RA_OPERATING_CURRENT_SETTING)
+    #if (RA_OPERATING_CURRENT_SETTING <= 0.0f) || (RA_OPERATING_CURRENT_SETTING > 1.0f)
+      #error "RA_OPERATING_CURRENT_SETTING is not within acceptable range"
+    #endif
+  #else
+      #error "RA_OPERATING_CURRENT_SETTING not defined."
+  #endif
 #endif
 
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (RA_RMSCURRENT > 2000)
-  #error "Do you really want to set the RMS motorcurrent above 2 Ampere? Thats almost 3A peak! Delete this error if you know what youre doing" 
+#if (AZIMUTH_ALTITUDE_MOTORS == 1)
+#if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if (AZ_MOTOR_CURRENT_RATING > 1700)
+    #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
+  #endif
+  #if (AZ_MOTOR_CURRENT_RATING == 0)
+    #error "RA current rating/setting is not configured. Enter the current rating of your motor" 
+  #endif
+  #if  defined(AZ_OPERATING_CURRENT_SETTING)
+    #if (AZ_OPERATING_CURRENT_SETTING <= 0.0f) || (AZ_OPERATING_CURRENT_SETTING > 1.0f)
+      #error "AZ_OPERATING_CURRENT_SETTING is not within acceptable range"
+    #endif
+  #else
+      #error "AZ_OPERATING_CURRENT_SETTING not defined."
+  #endif
+#endif
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if (ALT_MOTOR_CURRENT_RATING > 1700)
+    #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
+  #endif
+  #if (ALT_MOTOR_CURRENT_RATING == 0)
+    #error "RA current rating/setting is not configured. Enter the current rating of your motor" 
+  #endif
+  #if  defined(ALT_OPERATING_CURRENT_SETTING)
+    #if (ALT_OPERATING_CURRENT_SETTING <= 0.0f) || (ALT_OPERATING_CURRENT_SETTING > 1.0f)
+      #error "ALT_OPERATING_CURRENT_SETTING is not within acceptable range"
+    #endif
+  #else
+      #error "ALT_OPERATING_CURRENT_SETTING not defined."
+  #endif
 #endif
