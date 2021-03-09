@@ -367,16 +367,17 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverRA, "RA" );
     #endif
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverRA->I_scale_analog(0);
+    }
     _driverRA->toff(4);
     _driverRA->blank_time(24);
-    _driverRA->rms_current(rmscurrent, 1.0f);
+    _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
-    //_driverRA->semin(2);
-    //_driverRA->semax(5);
-    //_driverRA->sedn(0b01);
-    //_driverRA->SGTHRS(10);
+    _driverRA->semin(0); //disable CoolStep so that current is consistent
+    _driverRA->SGTHRS(stallvalue);
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
@@ -389,13 +390,17 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverRA, "RA" );
     #endif
-    //#endif
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverRA->I_scale_analog(0);
+    }
     _driverRA->toff(4);
     _driverRA->blank_time(24);
-    _driverRA->rms_current(rmscurrent, 1.0f);
+    _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverRA->semin(0); //disable CoolStep so that current is consistent
+    _driverRA->SGTHRS(stallvalue);
   }
 #endif
 #endif
@@ -411,20 +416,21 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverDEC->begin();
-    _driverDEC->toff(4);
-    _driverDEC->blank_time(24);
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverDEC, "DEC" );
     #endif
-    _driverDEC->rms_current(rmscurrent, 1.0f);
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverDEC->I_scale_analog(0);
+    }    
+    _driverDEC->toff(4);
+    _driverDEC->blank_time(24);
+    _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(5);
-    _driverDEC->semax(2);
-    _driverDEC->sedn(0b01);
+    _driverDEC->semin(0); //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
   }
 #elif SW_SERIAL_UART == 1
@@ -432,20 +438,22 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
     _driverDEC->begin();
-    _driverDEC->blank_time(24);
+    
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverDEC, "DEC" );
     #endif
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverDEC->I_scale_analog(0);
+    }
     _driverDEC->toff(4);
-    _driverDEC->rms_current(rmscurrent, 1.0f);
+    _driverDEC->blank_time(24);
+    _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(5);
-    _driverDEC->semax(2);
-    _driverDEC->sedn(0b01);
+    _driverDEC->semin(0); //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
   }
 #endif
@@ -465,12 +473,16 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
     #endif
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverAZ->I_scale_analog(0);
+    }
     _driverAZ->toff(4);
     _driverAZ->blank_time(24);
-    _driverAZ->rms_current(rmscurrent, 1.0f);
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverAZ->fclktrim(4);
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverAZ->semin(0); //disable CoolStep so that current is consistent
+    _driverAZ->SGTHRS(stallvalue);
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
@@ -483,12 +495,16 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverAZ, "AZ" );
     #endif
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverAZ->I_scale_analog(0);
+    }
     _driverAZ->toff(4);
     _driverAZ->blank_time(24);
-    _driverAZ->rms_current(rmscurrent, 1.0f);
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverAZ->fclktrim(4);
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverAZ->semin(0); //disable CoolStep so that current is consistent
+    _driverAZ->SGTHRS(stallvalue);
   }
 #endif
 #endif
@@ -507,12 +523,16 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
     #endif
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverALT->I_scale_analog(0);
+    }
     _driverALT->toff(4);
     _driverALT->blank_time(24);
-    _driverALT->rms_current(rmscurrent, 1.0f);
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverALT->fclktrim(4);
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverALT->semin(0); //disable CoolStep so that current is consistent
+    _driverALT->SGTHRS(stallvalue);
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
@@ -525,12 +545,16 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverAZ, "ALT" );
     #endif
+    if (rmscurrent >= 505) {  //If required rms mA is greater than 505mA, Vref can be disabled and the resulting CS (current scale) value of the TMCStepper library is >=16. 
+        _driverALT->I_scale_analog(0);
+    }
     _driverALT->toff(4);
     _driverALT->blank_time(24);
-    _driverALT->rms_current(rmscurrent, 1.0f);
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverALT->fclktrim(4);
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverALT->semin(0); //disable CoolStep so that current is consistent
+    _driverALT->SGTHRS(stallvalue);
   }
 #endif
 #endif

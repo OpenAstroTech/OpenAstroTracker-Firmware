@@ -119,6 +119,10 @@
 // Extended TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  //UART Current settings
+  #define RA_RMSCURRENT = RA_MOTOR_CURRENT_RATING * RA_OPERATING_CURRENT_SETTING / 1.414
+  #define DEC_RMSCURRENT = DEC_MOTOR_CURRENT_RATING * DEC_OPERATING_CURRENT_SETTING / 1.414
+
   #define RA_STALL_VALUE 100       // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
   #define DEC_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
   #define USE_AUTOHOME 0        // Autohome with TMC2209 stall detection:  ON = 1  |  OFF = 0   
