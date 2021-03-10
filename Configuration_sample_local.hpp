@@ -48,6 +48,8 @@
 #define DEC_MOTOR_CURRENT_RATING 0      // Current rating of DEC motor in mA
 #define DEC_OPERATING_CURRENT_SETTING 100  // DEC operating setting as a percentage of motor rating
 
+#define USE_VREF 0    //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+
 /**
  * @brief GPS receiver configuration.
  * Set USE_GPS to 1 to enable, 0 or #undef to exclude GPS from configuration.
