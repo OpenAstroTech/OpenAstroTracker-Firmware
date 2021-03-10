@@ -44,9 +44,9 @@
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
 #define RA_MOTOR_CURRENT_RATING 0       // Current rating of RA motor in mA
-#define RA_OPERATING_CURRENT_SETTING 1.00f  // RA operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
+#define RA_OPERATING_CURRENT_SETTING 100  // RA operating setting as a percentage of motor rating
 #define DEC_MOTOR_CURRENT_RATING 0      // Current rating of DEC motor in mA
-#define DEC_OPERATING_CURRENT_SETTING 1.00f  // DEC operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
+#define DEC_OPERATING_CURRENT_SETTING 100  // DEC operating setting as a percentage of motor rating
 
 /**
  * @brief GPS receiver configuration.
@@ -75,9 +75,9 @@
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
 #define AZ_MOTOR_CURRENT_RATING 0       // Current rating of AZ motor in mA
-#define AZ_OPERATING_CURRENT_SETTING 1.00f  // AZ operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
+#define AZ_OPERATING_CURRENT_SETTING 100  // AZ operating setting as a percentage of motor rating
 #define ALT_MOTOR_CURRENT_RATING 0      // Current rating of ALT motor in mA
-#define ALT_OPERATING_CURRENT_SETTING 1.00f  // ALT operating setting as a percentage of motor rating (e.g. 0.55f is 55% of full current rating)
+#define ALT_OPERATING_CURRENT_SETTING 100  // ALT operating setting as a percentage of motor rating
 
 /**
  * @brief Display & keypad configuration.

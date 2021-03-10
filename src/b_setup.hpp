@@ -130,9 +130,7 @@ void setup() {
       #endif
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins  
-      pinMode(RA_EN_PIN, OUTPUT);
       pinMode(RA_DIAG_PIN, INPUT);
-      digitalWrite(RA_EN_PIN, LOW);  // Logic LOW to enable driver
       #ifdef RA_SERIAL_PORT
         RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
       #endif
@@ -167,10 +165,8 @@ void setup() {
     #endif
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins  
-      pinMode(DEC_EN_PIN, OUTPUT);
       pinMode(DEC_DIAG_PIN, INPUT);
       //pinMode(DEC_MS1_PIN, OUTPUT);
-      digitalWrite(DEC_EN_PIN, LOW);  // Logic LOW to enable driver
       //digitalWrite(DEC_MS1_PIN, HIGH); // Logic HIGH to MS1 to get 0b01 address
       #ifdef DEC_SERIAL_PORT
         DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver

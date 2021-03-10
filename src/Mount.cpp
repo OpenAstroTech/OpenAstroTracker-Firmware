@@ -362,13 +362,13 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverRA = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverRA->begin();
     #if RA_AUDIO_FEEDBACK == 1
-    _driverRA->en_spreadCycle(1);
+      _driverRA->en_spreadCycle(1);
     #endif
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverRA, "RA" );
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverRA->I_scale_analog(0);
+      _driverRA->I_scale_analog(0);
     #endif
     _driverRA->toff(1);
     _driverRA->blank_time(24);
@@ -389,7 +389,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverRA, "RA" );
-    #endif
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverRA->I_scale_analog(0);
@@ -423,7 +422,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverDEC, "DEC" );
     #endif
-    #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverDEC->I_scale_analog(0);
     #endif
@@ -446,7 +444,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     #if UART_CONNECTION_TEST == 1
       connectToDriver( _driverDEC, "DEC" );
-    #endif
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverDEC->I_scale_analog(0);
@@ -475,6 +472,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverAZ->begin();
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
+    #endif
+    #if UART_CONNECTION_TEST == 1
+      connectToDriver( _driverAZ, "AZ" );
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverAZ->I_scale_analog(0);
@@ -525,6 +525,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverALT->begin();
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
+    #endif
+    #if UART_CONNECTION_TEST == 1
+      connectToDriver( _driverAZ, "ALT" );
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverALT->I_scale_analog(0);
