@@ -118,7 +118,7 @@
 
 // Extended TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   //UART Current settings
   #define RA_RMSCURRENT = RA_MOTOR_CURRENT_RATING * RA_OPERATING_CURRENT_SETTING / 1.414
   #define DEC_RMSCURRENT = DEC_MOTOR_CURRENT_RATING * DEC_OPERATING_CURRENT_SETTING / 1.414
@@ -129,6 +129,10 @@
   //                  ^^^ leave at 0 for now, doesnt work properly yet
   #define RA_AUDIO_FEEDBACK  0 // If one of these are set to 1, the respective driver will shut off the stealthchop mode, resulting in a audible whine
   #define DEC_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly. 
+  
+  #ifndef USE_VREF
+    #define USE_VREF 0      //By default, Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+  #endif
   
   #ifndef UART_CONNECTION_TEST
     #define UART_CONNECTION_TEST 0
@@ -300,11 +304,20 @@
 
   // ALT/AZ TMC2209 UART settings
   // These settings work only with TMC2209 in UART connection (single wire to TX)
-  #define AZ_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly. 
-  #define ALT_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly.
-  #define AZ_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
-  #define ALT_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
-
+  #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    #define AZ_RMSCURRENT = AZ_MOTOR_CURRENT_RATING * AZ_OPERATING_CURRENT_SETTING / 1.414
+    #define ALT_RMSCURRENT = ALT_MOTOR_CURRENT_RATING * ALT_OPERATING_CURRENT_SETTING / 1.414
+    
+    #define AZ_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly. 
+    #define ALT_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly.
+    
+    #define AZ_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+    #define ALT_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+    
+    #ifndef USE_VREF
+      #define USE_VREF 0      //By default, Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+    #endif
+  #endif
 #endif
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
