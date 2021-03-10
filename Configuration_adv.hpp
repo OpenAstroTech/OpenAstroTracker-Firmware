@@ -131,7 +131,7 @@
   #define DEC_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly. 
   
   #ifndef USE_VREF
-    #define USE_VREF 0      //By default, Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+    #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
   #endif
   
   #ifndef UART_CONNECTION_TEST
@@ -315,7 +315,7 @@
     #define ALT_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
     
     #ifndef USE_VREF
-      #define USE_VREF 0      //By default, Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+      #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
     #endif
   #endif
 #endif
