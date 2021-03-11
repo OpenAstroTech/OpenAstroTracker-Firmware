@@ -41,14 +41,19 @@ void LcdMenu::startup()
 
   #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
     _lcd.begin(_cols, _rows);
+    #if defined(LCD_BRIGHTNESS_PIN)
+      _lcdBadHw = testIfLcdIsBad();
+    #endif
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     _lcd.begin(_cols, _rows);
     _lcd.setBacklight(RED);
+    _lcdBadHw = false;
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
     _lcd.begin();
     _lcd.setPowerSave(0);
     _lcd.clear();
     _lcd.setFont(u8x8_font_7x14_1x2_f);   // Each 7x14 character takes up 2 8-pixel rows
+    _lcdBadHw = false;
   #endif
 
   _brightness = EEPROMStore::getBrightness();
@@ -77,6 +82,59 @@ void LcdMenu::startup()
   _lcd.createChar(_noTracking, NoTrackingBitmap);
 #endif
 }
+
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
+/**
+ * @brief Check to see if there is a problem in the LCD backlight circuit
+ * @details The 'broken' designs connect D10 directly to the base of
+ * an NPN transistor. This will cause a short when D10 is set to HIGH as there
+ * is no current limiting resistor in the path between D10 to the base and the
+ * emitter to ground.
+ * Adapted from https://forum.arduino.cc/index.php?topic=96747.0
+ * Link also notes a HW fix that can be applied to enable full brightness.
+ * @returns true if the LCD was manufactured incorrectly, false otherwise
+ */
+bool LcdMenu::testIfLcdIsBad()
+{
+    /*
+     * Set the pin to an input with pullup disabled, this should be safe on all shields.
+     * The reason for the digitalWrite() first is that only the newer Arduino
+     * cores disable the pullup when setting the pin to INPUT.
+     * On boards that have a pullup on the transistor base,
+     * this should cause the backlight to be on.
+     */
+    digitalWrite(LCD_BRIGHTNESS_PIN, LOW);
+    pinMode(LCD_BRIGHTNESS_PIN, INPUT);
+
+    /*
+     * Since the pullup was turned off above by setting the pin to input mode,
+     * it should drive the pin LOW which should be safe given the known design flaw.
+     */
+    pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
+
+    /*
+     * !!! WARNING !!!
+     * This line is NOT safe thing to use on the broken designs!
+     */
+    digitalWrite(LCD_BRIGHTNESS_PIN, HIGH);
+
+    // Now see if a short is pulling down the HIGH output.
+    delayMicroseconds(5);  // Give some time for the signal to drop
+    const int pinValue = digitalRead(LCD_BRIGHTNESS_PIN);
+
+    // Restore the pin to a safe state: Input with pullup turned off
+    digitalWrite(LCD_BRIGHTNESS_PIN, LOW);
+    pinMode(LCD_BRIGHTNESS_PIN, INPUT);
+
+    /*
+     * If the level read back is not HIGH then there is a problem because the
+     * pin is being driven HIGH by the AVR.
+     */
+    const bool lcdIsBad = (pinValue != HIGH);
+    LOGV2(DEBUG_INFO, F("LCD: HW is bad? %s"), lcdIsBad ? "YES" : "NO");
+    return lcdIsBad;
+}
+#endif
 
 // Find a menu item by its ID
 MenuItem *LcdMenu::findById(byte id)
@@ -137,8 +195,18 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 
   #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
     // Not supported on ESP32 due to lack of built-in analogWrite()
-    // TODO: Verify that this works correctly on ATmega (reports of crashes)
-    // analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
+    if (_lcdBadHw) {
+      // On 'bad' hardware you can only turn off or on
+      if (_brightness > 0) {
+        pinMode(LCD_BRIGHTNESS_PIN, INPUT);
+      }
+      else {
+        pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
+      }
+    }
+    else {
+      analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
+    }
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     // Nothing to do?
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
@@ -153,9 +221,26 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 }
 
 // Get the current brightness
-int LcdMenu::getBacklightBrightness()
+int LcdMenu::getBacklightBrightness() const
 {
   return _brightness;
+}
+
+void LcdMenu::getBacklightBrightnessRange(int *minPtr, int *maxPtr) const
+{
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
+    if (_lcdBadHw) {
+        // Bad LCD displays are either on or off
+        *minPtr = 0;
+        *maxPtr = 1;
+    }
+    else
+#endif
+    {
+        // Full range otherwise
+        *minPtr = 0;
+        *maxPtr = 255;
+    }
 }
 
 // Go to the next menu item from currently active one
