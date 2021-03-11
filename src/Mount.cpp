@@ -449,7 +449,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
-    _driverRA->beginSerial(19200);
+    _driverDEC->beginSerial(19200);
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
@@ -510,7 +510,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverAZ = new TMC2209Stepper(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
-    _driverRA->beginSerial(19200);
+    _driverAZ->beginSerial(19200);
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
     #endif
@@ -571,7 +571,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverALT = new TMC2209Stepper(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
-    _driverRA->beginSerial(19200);
+    _driverALT->beginSerial(19200);
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
     #endif
