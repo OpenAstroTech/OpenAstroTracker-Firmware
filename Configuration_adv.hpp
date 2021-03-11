@@ -120,8 +120,8 @@
 // These settings work only with TMC2209 in UART connection (single wire to TX)
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   //UART Current settings
-  #define RA_RMSCURRENT RA_MOTOR_CURRENT_RATING * (RA_OPERATING_CURRENT_SETTING / 100) / 1.414
-  #define DEC_RMSCURRENT DEC_MOTOR_CURRENT_RATING * (DEC_OPERATING_CURRENT_SETTING / 100) / 1.414
+  #define RA_RMSCURRENT RA_MOTOR_CURRENT_RATING * (RA_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
+  #define DEC_RMSCURRENT DEC_MOTOR_CURRENT_RATING * (DEC_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
 
   #define RA_STALL_VALUE 100       // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
   #define DEC_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
@@ -305,8 +305,8 @@
   // ALT/AZ TMC2209 UART settings
   // These settings work only with TMC2209 in UART connection (single wire to TX)
   #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #define AZ_RMSCURRENT AZ_MOTOR_CURRENT_RATING * (AZ_OPERATING_CURRENT_SETTING / 100) / 1.414
-    #define ALT_RMSCURRENT ALT_MOTOR_CURRENT_RATING * (ALT_OPERATING_CURRENT_SETTING / 100) / 1.414
+    #define AZ_RMSCURRENT AZ_MOTOR_CURRENT_RATING * (AZ_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
+    #define ALT_RMSCURRENT ALT_MOTOR_CURRENT_RATING * (ALT_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
     
     #define AZ_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly. 
     #define ALT_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly.
