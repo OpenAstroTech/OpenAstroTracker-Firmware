@@ -332,7 +332,7 @@ public:
 private:
 
   #if UART_CONNECTION_TEST_TX == 1
-  void testUART_vactual(TMC2209Stepper *driver);
+  void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
   #endif
 
   // Reads values from EEPROM that configure the mount (if previously stored)

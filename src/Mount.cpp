@@ -2709,18 +2709,22 @@ DayTime Mount::calculateHa() {
 /////////////////////////////////
 #if UART_CONNECTION_TEST_TX == 1
 void Mount::testRA_UART_TX(){
-    testUART_vactual(_driverRA);
+    int _speed = 1000;  //microsteps per driver clock tick
+    int _duration = 1000;    //Duration to run in ms
+    testUART_vactual(_driverRA, _speed, _duration);
 }
 void Mount::testDEC_UART_TX(){
-    testUART_vactual(_driverDEC);
+    int _speed = 1000;  //microsteps per driver clock tick
+    int _duration = 1000;    //Duration to run in ms
+    testUART_vactual(_driverDEC, _speed, _duration);
 }
-void Mount::testUART_vactual(TMC2209Stepper *driver) {
-    driver->VACTUAL(500);
-    delay(1000);
+void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) {
+    driver->VACTUAL(_speed);
+    delay(_duration);
     driver->shaft(1);
-    delay(1000);
+    delay(_duration);
     driver->shaft(0);
     driver->VACTUAL(0);
-    delay(1000);
+    delay(_duration);
 }
 #endif
