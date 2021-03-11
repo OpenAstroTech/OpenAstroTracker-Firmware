@@ -332,7 +332,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #endif
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-#if UART_CONNECTION_TEST == 1
+#if UART_CONNECTION_TEST_TXRX == 1
 bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Testing UART Connection to %s driver..."), driverKind);
     for(int i=0; i<5; i++) {
@@ -364,8 +364,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if RA_AUDIO_FEEDBACK == 1
       _driverRA->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverRA, "RA" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverRA, "RA" ) == false) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
       _driverRA->I_scale_analog(0);
@@ -391,8 +393,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if RA_AUDIO_FEEDBACK == 1
       _driverRA->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverRA, "RA" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverRA, "RA" ) == false) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverRA->I_scale_analog(0);
@@ -427,8 +431,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverDEC, "DEC" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverDEC, "DEC" ) == false) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverDEC->I_scale_analog(0);
@@ -453,8 +459,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverDEC, "DEC" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverDEC, "DEC" ) == false) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverDEC->I_scale_analog(0);
@@ -488,8 +496,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverAZ, "AZ" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverAZ, "AZ" ) == false) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverAZ->I_scale_analog(0);
@@ -514,8 +524,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverAZ, "AZ" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverAZ, "AZ" ) == false) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverAZ->I_scale_analog(0);
@@ -549,8 +561,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverAZ, "ALT" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverALT, "ALT" ) == false) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverALT->I_scale_analog(0);
@@ -575,8 +589,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverAZ, "ALT" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        if (connectToDriver( _driverALT, "ALT" ) == false) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverALT->I_scale_analog(0);
@@ -2685,3 +2701,26 @@ DayTime Mount::calculateHa() {
   DayTime lst = calculateLst();
   return Sidereal::calculateHa(lst.getTotalHours());
 }
+
+/////////////////////////////////
+//
+// testUART
+//
+/////////////////////////////////
+#if UART_CONNECTION_TEST_TX == 1
+void Mount::testRA_UART_TX(){
+    testUART_vactual(_driverRA);
+}
+void Mount::testDEC_UART_TX(){
+    testUART_vactual(_driverDEC);
+}
+void Mount::testUART_vactual(TMC2209Stepper *driver) {
+    driver->VACTUAL(500);
+    delay(1000);
+    driver->shaft(1);
+    delay(1000);
+    driver->shaft(0);
+    driver->VACTUAL(0);
+    delay(1000);
+}
+#endif

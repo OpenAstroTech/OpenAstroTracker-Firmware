@@ -131,6 +131,8 @@ void setup() {
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins  
       pinMode(RA_DIAG_PIN, INPUT);
+      pinMode(RA_EN_PIN, OUTPUT);
+      digitalWrite(RA_EN_PIN, LOW);
       #ifdef RA_SERIAL_PORT
         RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
       #endif
@@ -166,6 +168,8 @@ void setup() {
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins  
       pinMode(DEC_DIAG_PIN, INPUT);
+      pinMode(DEC_EN_PIN, OUTPUT);
+      digitalWrite(DEC_EN_PIN, LOW);
       //pinMode(DEC_MS1_PIN, OUTPUT);
       //digitalWrite(DEC_MS1_PIN, HIGH); // Logic HIGH to MS1 to get 0b01 address
       #ifdef DEC_SERIAL_PORT
@@ -383,6 +387,15 @@ void setup() {
       LOGV1(DEBUG_MOUNT, F("CANNOT setup interrupt timer!"));
     }
   #endif
+
+#if UART_CONNECTION_TEST_TX == 1
+  LOGV1(DEBUG_STEPPERS, "Moving RA axis using UART commands...");
+  mount.testRA_UART_TX();
+  LOGV1(DEBUG_STEPPERS, "Finished moving RA axis using UART commands.");
+  LOGV1(DEBUG_STEPPERS, "Moving DEC axis using UART commands...");
+  mount.testDEC_UART_TX();
+  LOGV1(DEBUG_STEPPERS, "Finished moving DEC axis using UART commands.");
+#endif
 
   // Start the tracker.
   LOGV1(DEBUG_ANY, F("Start Tracking..."));

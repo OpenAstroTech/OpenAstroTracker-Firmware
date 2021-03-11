@@ -134,8 +134,11 @@
     #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
   #endif
   
-  #ifndef UART_CONNECTION_TEST
-    #define UART_CONNECTION_TEST 0
+  #ifndef UART_CONNECTION_TEST_TXRX
+    #define UART_CONNECTION_TEST_TXRX 0
+  #endif
+  #ifndef UART_CONNECTION_TEST_TX
+    #define UART_CONNECTION_TEST_TX 0
   #endif
 #endif
 
