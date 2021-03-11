@@ -290,7 +290,7 @@ bool processCalibrationKeys()
     {
       Brightness = clamp(Brightness, 0, 255);
       lcdMenu.setBacklightBrightness(Brightness, false);
-      LOGV2(DEBUG_INFO, F("CAL: Brightness set %d"), (int)lcdMenu.getBacklightBrightness());
+      LOGV2(DEBUG_INFO, F("CAL: Brightness set %i"), lcdMenu.getBacklightBrightness());
     }
   }
   else if (calState == POLAR_CALIBRATION_WAIT_HOME)

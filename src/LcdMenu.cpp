@@ -1,6 +1,7 @@
 #include "inc/Globals.hpp"
 #include "../Configuration.hpp"
 #include "Utility.hpp"
+#include "MappedDict.hpp"
 #include "EPROMStore.hpp"
 #include "LcdMenu.hpp"
 
@@ -239,83 +240,51 @@ void LcdMenu::updateDisplay()
 void LcdMenu::printChar(char ch)
 {
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-  if (ch == '>')
-  {
-    _lcd.setFont(u8x8_font_open_iconic_arrow_1x1);
-    _lcd.draw1x2Glyph(_lcd.tx++,_lcd.ty,64+14);  // Right arrow
-  }
-  else if (ch == '<')
-  {
-    _lcd.setFont(u8x8_font_open_iconic_arrow_1x1);
-    _lcd.draw1x2Glyph(_lcd.tx++,_lcd.ty,64+13);  // Left arrow
-  }
-  else if (ch == '^')
-  {
-    _lcd.setFont(u8x8_font_open_iconic_arrow_1x1);
-    _lcd.draw1x2Glyph(_lcd.tx++,_lcd.ty,64+15);  // Up arrow  
-  }
-  else if (ch == '~')
-  {
-    _lcd.setFont(u8x8_font_open_iconic_arrow_1x1);
-    _lcd.draw1x2Glyph(_lcd.tx++,_lcd.ty,64+12);  // Down arrow
-  }
-  else if (ch == '@')
-  {
-    _lcd.setFont(u8x8_font_7x14_1x2_f); 
-    _lcd.drawGlyph(_lcd.tx++,_lcd.ty,176);    // Degrees
-  }
-  else if (ch == '&')
-  {
-    _lcd.setFont(u8x8_font_open_iconic_thing_1x1);
-    _lcd.draw1x2Glyph(_lcd.tx++,_lcd.ty,64+15);  // Tracking
-  }
-  else if (ch == '`')
-  {
-    _lcd.setFont(u8x8_font_open_iconic_thing_1x1);
-    _lcd.draw1x2Glyph(_lcd.tx++,_lcd.ty,64+4);  // Not tracking
-  }
-  else
-  {
-    _lcd.setFont(u8x8_font_7x14_1x2_f);  
-    _lcd.drawGlyph(_lcd.tx++,_lcd.ty,ch);
-  }
+    struct charData_t {
+        const uint8_t *font;
+        uint8_t encoding;
+    };
+
+    MappedDict<char, charData_t>::DictEntry_t lookupTable[] = {
+            {'>', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 14}},  // Right arrow
+            {'<', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 13}},  // Left arrow
+            {'^', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 15}},  // Up arrow
+            {'~', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 12}},  // Down arrow
+            {'@', {.font = u8x8_font_7x14_1x2_f, .encoding = 176}},                 // Degrees
+            {'&', {.font = u8x8_font_open_iconic_thing_1x1, .encoding = 64 + 15}},  // Tracking
+            {'`', {.font = u8x8_font_open_iconic_thing_1x1, .encoding = 64 + 4}},   // Not tracking
+    };
+    auto buttonLookup = MappedDict<char, charData_t>(lookupTable, ARRAY_SIZE(lookupTable));
+    charData_t specialChar = {};
+    const bool charInTable = buttonLookup.tryGet(ch, &specialChar);
+    if (charInTable) {
+        _lcd.setFont(specialChar.font);
+        _lcd.drawGlyph(_lcd.tx, _lcd.ty, specialChar.encoding);
+    } else {
+        _lcd.setFont(u8x8_font_7x14_1x2_f);
+        _lcd.drawGlyph(_lcd.tx, _lcd.ty, ch);
+    }
+
+    _lcd.tx += 1;
 #else
-  if (ch == '>')
-  {
-    _lcd.write(_rightArrow);
-  }
-  else if (ch == '<')
-  {
-    _lcd.write(_leftArrow);
-  }
-  else if (ch == '^')
-  {
-    _lcd.write(_upArrow);
-  }
-  else if (ch == '~')
-  {
-    _lcd.write(_downArrow);
-  }
-  else if (ch == '@')
-  {
-    _lcd.write(_degrees);
-  }
-  else if (ch == '\'')
-  {
-    _lcd.write(_minutes);
-  }
-  else if (ch == '&')
-  {
-    _lcd.write(_tracking);
-  }
-  else if (ch == '`')
-  {
-    _lcd.write(_noTracking);
-  }
-  else
-  {
-    _lcd.print(ch);
-  }
+    MappedDict<char, specialChar_t>::DictEntry_t lookupTable[] = {
+            {'>',  _rightArrow},
+            {'<',  _leftArrow},
+            {'^',  _upArrow},
+            {'~',  _downArrow},
+            {'@',  _degrees},
+            {'\'', _minutes},
+            {'&',  _tracking},
+            {'`',  _noTracking},
+    };
+    auto buttonLookup = MappedDict<char, specialChar_t>(lookupTable, ARRAY_SIZE(lookupTable));
+    specialChar_t specialChar;
+    const bool charInTable = buttonLookup.tryGet(ch, &specialChar);
+    if (charInTable) {
+        _lcd.write(specialChar);
+    } else {
+        _lcd.print(ch);
+    }
 #endif
 }
 
@@ -343,9 +312,9 @@ void LcdMenu::printMenu(String line)
 
     _lcd.setCursor(_activeCol, _charHeightRows*_activeRow);
     int spaces = _columns - line.length();
-    for (unsigned int i = 0; i < line.length(); i++)
+    for (char i : line)
     {
-      printChar(line[i]);
+      printChar(i);
     }
 
     // Clear the rest of the display

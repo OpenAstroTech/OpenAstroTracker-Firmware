@@ -171,4 +171,6 @@ int sign(long num);
 // Return -1 if the given number is less than zero, 1 if not.
 int fsign(float num);
 
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+
 #endif
