@@ -308,17 +308,17 @@
       #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
     #endif
     #if (DEC_MOTOR_CURRENT_RATING == 0)
-      #error "DEC current rating/setting is not configured. Enter the current rating of your motor" 
+      #error "DEC current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword.
     #endif
   #else
-      #error "DEC_MOTOR_CURRENT_RATING not defined."
+      #error "DEC_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword.
   #endif
   #if  defined(DEC_OPERATING_CURRENT_SETTING)
     #if (DEC_OPERATING_CURRENT_SETTING <= 0) || (DEC_OPERATING_CURRENT_SETTING > 100)
-      #error "DEC_OPERATING_CURRENT_SETTING is not within acceptable range"
+      #error "DEC_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
     #endif
   #else
-      #error "DEC_OPERATING_CURRENT_SETTING not defined."
+      #error "DEC_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the DEC_OPERATING_CURRENT_SETTING keyword." 
   #endif
 #endif
 
@@ -328,17 +328,17 @@
       #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
     #endif
     #if (RA_MOTOR_CURRENT_RATING == 0)
-      #error "RA current rating/setting is not configured. Enter the current rating of your motor" 
+      #error "RA current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword.
     #endif
   #else
-      #error "RA_MOTOR_CURRENT_RATING not defined."
+      #error "RA_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword.
   #endif
   #if  defined(RA_OPERATING_CURRENT_SETTING)
     #if (RA_OPERATING_CURRENT_SETTING <= 0) || (RA_OPERATING_CURRENT_SETTING > 100)
-      #error "RA_OPERATING_CURRENT_SETTING is not within acceptable range"
+      #error "RA_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
     #endif
   #else
-      #error "RA_OPERATING_CURRENT_SETTING not defined."
+      #error "RA_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the RA_OPERATING_CURRENT_SETTING keyword." 
   #endif
 #endif
 
@@ -349,17 +349,17 @@
         #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
       #endif
       #if (AZ_MOTOR_CURRENT_RATING == 0)
-        #error "AZ current rating/setting is not configured. Enter the current rating of your motor" 
+        #error "AZ current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword. 
       #endif
     #else
-        #error "AZ_MOTOR_CURRENT_RATING not defined."
+        #error "AZ_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword.
     #endif
     #if  defined(AZ_OPERATING_CURRENT_SETTING)
       #if (AZ_OPERATING_CURRENT_SETTING <= 0) || (AZ_OPERATING_CURRENT_SETTING > 100)
-        #error "AZ_OPERATING_CURRENT_SETTING is not within acceptable range"
+        #error "AZ_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
       #endif
     #else
-        #error "AZ_OPERATING_CURRENT_SETTING not defined."
+        #error "AZ_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the AZ_OPERATING_CURRENT_SETTING keyword." 
     #endif
   #endif
   #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -368,17 +368,17 @@
         #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
       #endif
       #if (ALT_MOTOR_CURRENT_RATING == 0)
-        #error "ALT current rating/setting is not configured. Enter the current rating of your motor" 
+        #error "ALT current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword.  
       #endif
     #else
-        #error "ALT_MOTOR_CURRENT_RATING not defined."
+        #error "ALT_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword.
     #endif
     #if  defined(ALT_OPERATING_CURRENT_SETTING)
       #if (ALT_OPERATING_CURRENT_SETTING <= 0) || (ALT_OPERATING_CURRENT_SETTING > 100)
-        #error "ALT_OPERATING_CURRENT_SETTING is not within acceptable range"
+        #error "ALT_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
       #endif
     #else
-        #error "ALT_OPERATING_CURRENT_SETTING not defined."
+        #error "ALT_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the ALT_OPERATING_CURRENT_SETTING keyword." 
     #endif
   #endif
 #endif
