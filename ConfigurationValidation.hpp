@@ -308,10 +308,10 @@
       #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
     #endif
     #if (DEC_MOTOR_CURRENT_RATING == 0)
-      #error "DEC current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword.
+      #error "DEC current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword."
     #endif
   #else
-      #error "DEC_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword.
+      #error "DEC_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword."
   #endif
   #if  defined(DEC_OPERATING_CURRENT_SETTING)
     #if (DEC_OPERATING_CURRENT_SETTING <= 0) || (DEC_OPERATING_CURRENT_SETTING > 100)
@@ -328,10 +328,10 @@
       #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
     #endif
     #if (RA_MOTOR_CURRENT_RATING == 0)
-      #error "RA current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword.
+      #error "RA current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword."
     #endif
   #else
-      #error "RA_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword.
+      #error "RA_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword."
   #endif
   #if  defined(RA_OPERATING_CURRENT_SETTING)
     #if (RA_OPERATING_CURRENT_SETTING <= 0) || (RA_OPERATING_CURRENT_SETTING > 100)
@@ -349,10 +349,10 @@
         #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
       #endif
       #if (AZ_MOTOR_CURRENT_RATING == 0)
-        #error "AZ current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword. 
+        #error "AZ current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword." 
       #endif
     #else
-        #error "AZ_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword.
+        #error "AZ_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword."
     #endif
     #if  defined(AZ_OPERATING_CURRENT_SETTING)
       #if (AZ_OPERATING_CURRENT_SETTING <= 0) || (AZ_OPERATING_CURRENT_SETTING > 100)
@@ -368,10 +368,10 @@
         #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
       #endif
       #if (ALT_MOTOR_CURRENT_RATING == 0)
-        #error "ALT current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword.  
+        #error "ALT current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword."
       #endif
     #else
-        #error "ALT_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword.
+        #error "ALT_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword."
     #endif
     #if  defined(ALT_OPERATING_CURRENT_SETTING)
       #if (ALT_OPERATING_CURRENT_SETTING <= 0) || (ALT_OPERATING_CURRENT_SETTING > 100)
