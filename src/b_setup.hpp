@@ -228,12 +228,13 @@ void setup() {
     delay(1000);  // Pause on splash screen
 
     // Check for EEPROM reset (Button down during boot)
-    if (lcdButtons.currentState() == btnDOWN){
+    if (lcdButtons.currentState() == btnDOWN) {
       LOGV1(DEBUG_INFO, F("Erasing configuration in EEPROM!"));
       mount.clearConfiguration();
       // Wait for button release
       lcdMenu.setCursor(13, 1);
       lcdMenu.printMenu("CLR");
+      LOGV1(DEBUG_INFO, F("Waiting for button release!"));
       while (lcdButtons.currentState() != btnNONE) {
         delay(10);
       }

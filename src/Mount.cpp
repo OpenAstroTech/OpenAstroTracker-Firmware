@@ -1843,8 +1843,9 @@ void Mount::loop() {
   interruptLoop();
   #endif
 
-  #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
   unsigned long now = millis();
+
+  #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
   if (now - _lastMountPrint > 2000) {
     LOGV2(DEBUG_MOUNT, "%s",getStatusString().c_str());
     _lastMountPrint = now;
@@ -1879,7 +1880,7 @@ void Mount::loop() {
   #endif
   
   if (isGuiding()) {
-    unsigned long now = millis();
+    now = millis();
     bool stopRaGuiding = now > _guideRaEndTime;
     bool stopDecGuiding = now > _guideDecEndTime;
     if (stopRaGuiding || stopDecGuiding) {
@@ -1941,7 +1942,7 @@ void Mount::loop() {
           #endif
           if (!isParking()) {
             if (_compensateForTrackerOff) {
-              unsigned long now = millis();
+              now = millis();
               unsigned long elapsed = now - _trackerStoppedAt;
               unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
               LOGV4(DEBUG_STEPPERS,F("STEP-loop: Arrived at %lms. Tracking was off for %lms (%l steps), compensating."), now, elapsed, compensationSteps);
