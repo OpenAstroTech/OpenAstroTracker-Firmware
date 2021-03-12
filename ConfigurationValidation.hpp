@@ -340,7 +340,7 @@
       #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
     #endif
     #if (AZ_MOTOR_CURRENT_RATING == 0)
-      #error "RA current rating/setting is not configured. Enter the current rating of your motor" 
+      #error "AZ current rating/setting is not configured. Enter the current rating of your motor" 
     #endif
     #if  defined(AZ_OPERATING_CURRENT_SETTING)
       #if (AZ_OPERATING_CURRENT_SETTING <= 0) || (AZ_OPERATING_CURRENT_SETTING > 100)
@@ -355,7 +355,7 @@
       #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing" 
     #endif
     #if (ALT_MOTOR_CURRENT_RATING == 0)
-      #error "RA current rating/setting is not configured. Enter the current rating of your motor" 
+      #error "ALT current rating/setting is not configured. Enter the current rating of your motor" 
     #endif
     #if  defined(ALT_OPERATING_CURRENT_SETTING)
       #if (ALT_OPERATING_CURRENT_SETTING <= 0) || (ALT_OPERATING_CURRENT_SETTING > 100)

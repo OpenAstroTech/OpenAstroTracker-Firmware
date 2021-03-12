@@ -311,8 +311,8 @@
     #define AZ_RMSCURRENT AZ_MOTOR_CURRENT_RATING * (AZ_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
     #define ALT_RMSCURRENT ALT_MOTOR_CURRENT_RATING * (ALT_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
     
-    #define AZ_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly. 
-    #define ALT_AUDIO_FEEDBACK 0 // of the stepper coils. Use this to verify that UART is working properly.
+    #define AZ_AUDIO_FEEDBACK 0
+    #define ALT_AUDIO_FEEDBACK 0
     
     #define AZ_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
     #define ALT_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
