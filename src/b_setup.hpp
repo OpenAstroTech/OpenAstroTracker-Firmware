@@ -2,6 +2,16 @@
 
 #pragma once
 
+#if defined(OAT_DEBUG_BUILD)
+  PUSH_NO_WARNINGS
+  #if BOARD < 1000
+    #include "avr8-stub.h"
+  #else
+    #error "Debugging not supported on this platform"
+  #endif
+  POP_NO_WARNINGS
+#endif
+
 #include "InterruptCallback.hpp"
 
 #include "Utility.hpp"
@@ -86,6 +96,14 @@ void stepperControlTimerCallback(void* payload) {
 //
 /////////////////////////////////
 void setup() {
+#if defined(OAT_DEBUG_BUILD)
+  #if BOARD < 1000
+    debug_init();  // Setup avr-stub
+    breakpoint();  // Set a breakpoint as soon as possible
+  #else
+    #error "Debugging not supported on this platform"
+  #endif
+#endif
 
   #if USE_GPS == 1
   GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
@@ -204,7 +222,9 @@ void setup() {
   #endif
 // end microstepping -------------------
 
-  Serial.begin(SERIAL_BAUDRATE);
+  #if !defined(OAT_DEBUG_BUILD)
+    Serial.begin(SERIAL_BAUDRATE);
+  #endif
 
   #if (BLUETOOTH_ENABLED == 1)
   BLUETOOTH_SERIAL.begin(BLUETOOTH_DEVICE_NAME);

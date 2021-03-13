@@ -2,7 +2,7 @@
 
 /**
  * These are only necessary for the Arduino IDE build, these are actually
- * defined in `pre_build_script.py` which is run by platformio.
+ * defined in `pre_script_custom_defines.py` which is run by platformio.
  */
 #if !defined(PUSH_NO_WARNINGS)
 #define PUSH_NO_WARNINGS ;
