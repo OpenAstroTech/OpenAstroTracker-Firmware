@@ -39,6 +39,11 @@ public:
 
   void startup();
 
+  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
+  // Function to test LCD hardware, some units are shipped with defects
+  static bool testIfLcdIsBad();
+  #endif
+
   // Find a menu item by its ID
   MenuItem* findById(byte id);
 
@@ -56,7 +61,8 @@ public:
 
   // Set and get the brightness of the backlight
   void setBacklightBrightness(int level, bool persist = true);
-  int getBacklightBrightness();
+  int getBacklightBrightness() const;
+  void getBacklightBrightnessRange(int *minPtr, int *maxPtr) const;
 
   // Pass thru utility function
   void clear();
@@ -99,6 +105,7 @@ private:
   byte const _rows;
   byte const _maxItems;
   byte const _charHeightRows;   // Height of character in display native rows
+  bool _lcdBadHw;
 
   MenuItem** _menuItems;  // The first menu item (linked list)
   byte _numMenuItems;

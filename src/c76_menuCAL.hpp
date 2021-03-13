@@ -288,7 +288,10 @@ bool processCalibrationKeys()
     checkForKeyChange = checkProgressiveUpDown(&Brightness);
     if (!checkForKeyChange)
     {
-      Brightness = clamp(Brightness, 0, 255);
+      int minBrightness;
+      int maxBrightness;
+      lcdMenu.getBacklightBrightnessRange(&minBrightness, &maxBrightness);
+      Brightness = clamp(Brightness, minBrightness, maxBrightness);
       lcdMenu.setBacklightBrightness(Brightness, false);
       LOGV2(DEBUG_INFO, F("CAL: Brightness set %i"), lcdMenu.getBacklightBrightness());
     }
