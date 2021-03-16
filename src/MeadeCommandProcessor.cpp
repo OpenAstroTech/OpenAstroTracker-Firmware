@@ -436,6 +436,15 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //            <Gyro info> is either NO_GYRO or GYRO depending on whether the Digial level is present
 //      Example: ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO#
 //
+// :XGMS#
+//      Get Mount driver configuration
+//      Returns: <RA driver>,<RA slewMS>,<RA trackMS>|<DEC driver>,<DEC slewMS>,<DEC guideMS>|#
+//      Where <driver> is one of the supported drivers: U = ULN2003, TU=TMC2209UART, TS=TMC2209STANDALONE, A=A4983
+//            <slewMS> is the microstepping divider (1, 2, 4, 8, 15, 21, 64, 128, 256) used when slewing
+//            <trackMS> is the microstepping divider (1, 2, 4, 8, 15, 21, 64, 128, 256) used when tracking RA
+//            <guideMS> is the microstepping divider (1, 2, 4, 8, 15, 21, 64, 128, 256) used when guiding DEC
+//      Example: TU,8,64|TU,16,64|#
+//
 // :XGN#
 //      Get network settings
 //      Gets the current status of the Wifi connection. Reply only available when running on ESP boards.
@@ -576,16 +585,16 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
     }
     break;
 
-  case 'r': // :Gr
+  case 'r':                                                // :Gr
     return _mount->RAString(MEADE_STRING | TARGET_STRING); // returns trailing #
 
-  case 'd': // :Gd
+  case 'd':                                                 // :Gd
     return _mount->DECString(MEADE_STRING | TARGET_STRING); // returns trailing #
 
-  case 'R': // :GR
+  case 'R':                                                 // :GR
     return _mount->RAString(MEADE_STRING | CURRENT_STRING); // returns trailing #
 
-  case 'D': // :GD
+  case 'D':                                                  // :GD
     return _mount->DECString(MEADE_STRING | CURRENT_STRING); // returns trailing #
 
   case 'X': // :GX
@@ -618,7 +627,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
     _mount->longitude().formatString(achBuffer, "{d}*{m}#");
     return String(achBuffer);
   }
-  case 'c':  // :Gc
+  case 'c': // :Gc
   {
     return "24#";
   }
@@ -1046,9 +1055,13 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     {
       return String(_mount->getBacklashCorrection()) + "#";
     }
-    else if (inCmd[1] == 'M') // :XGM#
+    else if (inCmd[1] == 'M') 
     {
-      return _mount->getMountHardwareInfo() + "#";
+      if ((inCmd.length() > 2) && (inCmd[2] == 'S')) // :XGMS#
+      { 
+        return _mount->getStepperInfo() + "#";
+      }
+      return _mount->getMountHardwareInfo() + "#"; // :XGM#
     }
     else if (inCmd[1] == 'O') // :XGO#
     {

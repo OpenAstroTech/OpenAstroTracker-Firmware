@@ -667,6 +667,56 @@ int Mount::getBacklashCorrection()
 // getMountHardwareInfo
 //
 /////////////////////////////////
+String Mount::getStepperInfo()
+{
+  String ret = "";
+
+  #if RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    ret += "U";
+  #elif RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    ret += "TU";
+  #elif RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
+    ret += "TS";
+  #elif RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
+    ret += "A";
+  #else
+    ret += "?";
+  #endif
+
+  ret += ",";
+  ret += String(RA_SLEW_MICROSTEPPING);
+  ret += ",";
+  ret += String(RA_TRACKING_MICROSTEPPING);
+
+  ret += "|";
+
+  #if DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    ret += "U";
+  #elif DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    ret += "TU";
+  #elif DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
+    ret += "TS";
+  #elif DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
+    ret += "A";
+  #else
+    ret += "?";
+  #endif
+
+  ret += ",";
+  ret += String(DEC_SLEW_MICROSTEPPING);
+  ret += ",";
+  ret += String(DEC_GUIDE_MICROSTEPPING);
+
+  ret += "|";
+
+  return ret;
+}
+
+/////////////////////////////////
+//
+// getMountHardwareInfo
+//
+/////////////////////////////////
 String Mount::getMountHardwareInfo()
 {
   String ret = "Unknown";
@@ -961,8 +1011,8 @@ void Mount::startSlewingToTarget() {
   // set Slew microsteps for TMC2209 UART // hier
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // TODO: Fix broken microstep management to re-instate fine pointing
-    // LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-    // _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+    LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+    _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
   #endif
 
   // Make sure we're slewing at full speed on a GoTo
@@ -996,8 +1046,8 @@ void Mount::startSlewingToTarget() {
       // Since we won't be moving we need to set microstepping back to tracking
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // TODO: Fix broken microstep management to re-instate fine pointing
-        // LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: No slew. Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
-        // _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: No slew. Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
+        _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
       #endif
     }
   #endif																					  
@@ -1036,10 +1086,9 @@ void Mount::stopGuiding(bool ra, bool dec)
     }
 
     // TODO: If microstepping for guiding is changed, re-enable this
-    // #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    //   _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-    // #endif
-
+     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+       _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+     #endif
     _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
   }
 
@@ -1075,9 +1124,10 @@ void Mount::guidePulse(byte direction, int duration) {
     case NORTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // TODO: Fix broken microstep management to re-instate fine pointing. Also fix code in stopGuiding()
-      // _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
+      _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+    // TODO: Use new Guide instance
     _stepperDEC->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
     _guideDecEndTime = millis() + duration;
@@ -1086,9 +1136,10 @@ void Mount::guidePulse(byte direction, int duration) {
     case SOUTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // TODO: Fix broken microstep management to re-instate fine pointing. Also fix code in stopGuiding()
-      // _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
+      _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+    // TODO: Use new Guide instance
     _stepperDEC->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
     _guideDecEndTime = millis() + duration;
@@ -1185,8 +1236,8 @@ void Mount::setManualSlewMode(bool state) {
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_MANUAL;
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // TODO: Fix broken microstep management to re-instate fine pointing
-      // LOGV2(DEBUG_STEPPERS, F("STEP-setManualSlewMode: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-      // _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+      LOGV2(DEBUG_STEPPERS, F("STEP-setManualSlewMode: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+      _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
     #endif
   }
   else {
@@ -1638,7 +1689,8 @@ void Mount::startSlewing(int direction) {
       // Start tracking
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // TODO: Fix broken microstep management to re-instate fine pointing
-        // _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+      LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Tracking: Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
+        _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
       #endif
       _stepperTRK->setSpeed(_trackingSpeed);
       
@@ -1653,7 +1705,6 @@ void Mount::startSlewing(int direction) {
       // Set move rate to last commanded slew rate
       setSlewRate(_moveRate);
       #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17 
-        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: RA Driver setMicrostep(%d)"), RA_SLEW_MICROSTEPPING);
         if (isSlewingTRK()){
           stopSlewing(TRACKING);
           _trackerStoppedAt = millis();
@@ -1665,11 +1716,13 @@ void Mount::startSlewing(int direction) {
       // Change microstep mode for slewing
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // TODO: Fix broken microstep management to re-instate fine pointing
-        // _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+        _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
       #endif
       #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // TODO: Fix broken microstep management to re-instate fine pointing
-        // _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
       #endif
 
       if (direction & NORTH) {
@@ -1798,15 +1851,14 @@ void Mount::interruptLoop()
   if (_mountStatus & STATUS_GUIDE_PULSE) {
     _stepperTRK->runSpeed();    
     if (_mountStatus & STATUS_GUIDE_PULSE_DEC) {
+      // TODO: Use new Guide instance
       _stepperDEC->runSpeed();
     }
     return;
   }
 
   if (_mountStatus & STATUS_TRACKING) {
-    //if ~(_mountStatus & STATUS_SLEWING) {
-      _stepperTRK->runSpeed();
-    //}
+    _stepperTRK->runSpeed();
   }
 
   if (_mountStatus & STATUS_SLEWING) {
@@ -1888,7 +1940,7 @@ void Mount::loop() {
       #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // TODO: Fix broken microstep management to re-instate fine pointing
         // LOGV2(DEBUG_STEPPERS, F("STEP-loop: DEC driver setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-        // _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
       #endif					
     }
     return;
@@ -1937,8 +1989,8 @@ void Mount::loop() {
         #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
           #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
             // TODO: Fix broken microstep management to re-instate fine pointing
-            // LOGV2(DEBUG_STEPPERS, F("STEP-loop: RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
-            // _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+            LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
+            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
           #endif
           if (!isParking()) {
             if (_compensateForTrackerOff) {
@@ -1969,6 +2021,7 @@ void Mount::loop() {
           _stepperRA->setCurrentPosition(0);
           LOGV1(DEBUG_STEPPERS, F("STEP-loop:  TRK.setCurrentPos(0)"));
           _stepperTRK->setCurrentPosition(0);
+          // TODO: Use new Guide instance and set to 0
           _targetRA = currentRA();
           if (isParking()) {
             LOGV1(DEBUG_MOUNT|DEBUG_STEPPERS,F("Mount::Loop:   Was parking, so no tracking. Proceeding to park position..."));
@@ -2027,7 +2080,11 @@ bool Mount::isBootComplete(){
 //
 /////////////////////////////////
 void Mount::setParkingPosition() {
-  _raParkingPos = _stepperRA->currentPosition() - _stepperTRK->currentPosition(); // TODO: These are not like-for-like if different microstepping configurations are used between TRK and RA!
+  // Calculate how far the tracker has moved in the RA coordinate system.
+  long trackedInSlewCoordinates = RA_SLEW_MICROSTEPPING * _stepperTRK->currentPosition() / RA_TRACKING_MICROSTEPPING;
+
+  _raParkingPos = _stepperRA->currentPosition() - trackedInSlewCoordinates ; 
+  // TODO: Take guide pulses on DEC into account
   _decParkingPos = _stepperDEC->currentPosition();
 
   LOGV3(DEBUG_MOUNT,F("Mount::setParkingPos: parking RA: %l  DEC:%l"), _raParkingPos, _decParkingPos);
@@ -2097,6 +2154,7 @@ void Mount::setHome(bool clearZeroPos) {
   _stepperRA->setCurrentPosition(0);
   _stepperDEC->setCurrentPosition(0);
   _stepperTRK->setCurrentPosition(0);
+  // TODO: Set New Guide Stepper to 0
 
   _targetRA = currentRA();
 

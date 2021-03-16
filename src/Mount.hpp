@@ -308,6 +308,9 @@ public:
   // Get Mount configuration data
   String getMountHardwareInfo();
 
+  // Get info about the configured steppers and drivers
+  String getStepperInfo();
+
   // Returns a flag indicating whether the mount is fully booted.
   bool isBootComplete();
 
