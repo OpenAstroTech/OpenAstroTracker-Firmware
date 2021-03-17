@@ -306,6 +306,9 @@ public:
   // Get Mount configuration data
   String getMountHardwareInfo();
 
+  // Get info about the configured steppers and drivers
+  String getStepperInfo();
+
   // Returns a flag indicating whether the mount is fully booted.
   bool isBootComplete();
 
@@ -361,7 +364,7 @@ private:
 private:
   LcdMenu* _lcdMenu;
   float _stepsPerRADegree;    // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
-  float _stepsPerDECDegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
+  float _stepsPerDECDegree;   // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
   int _maxRASpeed;
   int _maxDECSpeed;
   int _maxAZSpeed;
@@ -401,6 +404,7 @@ private:
   AccelStepper* _stepperRA;
   AccelStepper* _stepperDEC;
   AccelStepper* _stepperTRK;
+  AccelStepper* _stepperGUIDE;
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper* _driverRA;
   #endif  

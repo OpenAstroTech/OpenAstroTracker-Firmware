@@ -91,8 +91,12 @@
 // We plan to re-instate fine modes in a future release, but this will require a significant rework of the implementation.
 //
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #define RA_SLEW_MICROSTEPPING 8         // The (default) microstep mode used for slewing RA axis
-  #define RA_TRACKING_MICROSTEPPING 8     // The fine microstep mode for tracking RA axis
+  #ifndef RA_SLEW_MICROSTEPPING 
+    #define RA_SLEW_MICROSTEPPING 8         // The (default) microstep mode used for slewing RA axis
+  #endif
+  #ifndef RA_TRACKING_MICROSTEPPING 
+    #define RA_TRACKING_MICROSTEPPING 8     // The fine microstep mode for tracking RA axis
+  #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
   #define RA_SLEW_MICROSTEPPING 8         // Microstep mode set by MS pin strapping. Use the same microstep mode for both slewing & tracking   
   #define RA_TRACKING_MICROSTEPPING RA_SLEW_MICROSTEPPING   
@@ -104,8 +108,12 @@
 #endif
 
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-  #define DEC_SLEW_MICROSTEPPING  16  // The (default) microstep mode used for slewing DEC
-  #define DEC_GUIDE_MICROSTEPPING 16  // The fine microstep mode used for guiding DEC only
+  #ifndef DEC_SLEW_MICROSTEPPING 
+    #define DEC_SLEW_MICROSTEPPING  16  // The (default) microstep mode used for slewing DEC
+  #endif
+  #ifndef DEC_GUIDE_MICROSTEPPING 
+    #define DEC_GUIDE_MICROSTEPPING 16  // The fine microstep mode used for guiding DEC only
+  #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
   #define DEC_SLEW_MICROSTEPPING  16  // Only UART drivers support dynamic switching. Use the same microstep mode for both slewing & guiding
   #define DEC_GUIDE_MICROSTEPPING DEC_SLEW_MICROSTEPPING
@@ -116,9 +124,13 @@
   #error Unknown DEC driver type
 #endif
 
+
 // Extended TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if defined(RA_RMSCURRENT) || defined(DEC_RMSCURRENT)
+    #error Please delete any definitions of RA_RMSCURRENT or DEC_RMSCURRENT in your local configuration file. Define XXX_MOTOR_CURRENT_RATING and XXX_OPERATING_CURRENT_SETTING instead.
+  #endif
   //UART Current settings
   #define RA_RMSCURRENT RA_MOTOR_CURRENT_RATING * (RA_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
   #define DEC_RMSCURRENT DEC_MOTOR_CURRENT_RATING * (DEC_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
