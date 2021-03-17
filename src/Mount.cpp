@@ -332,7 +332,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #endif
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-#if UART_CONNECTION_TEST == 1
+#if UART_CONNECTION_TEST_TXRX == 1
 bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Testing UART Connection to %s driver..."), driverKind);
     for(int i=0; i<5; i++) {
@@ -361,41 +361,66 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverRA = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverRA->begin();
+    bool _UART_Rx_connected = false;
     #if RA_AUDIO_FEEDBACK == 1
-    _driverRA->en_spreadCycle(1);
+      _driverRA->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverRA, "RA" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
-    _driverRA->toff(4);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+      _driverRA->I_scale_analog(0);
+    #endif
+    _driverRA->toff(1);
     _driverRA->blank_time(24);
-    _driverRA->rms_current(rmscurrent, 1.0f);
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
+    _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
-    //_driverRA->semin(2);
-    //_driverRA->semax(5);
-    //_driverRA->sedn(0b01);
-    //_driverRA->SGTHRS(10);
+    _driverRA->semin(0); //disable CoolStep so that current is consistent
+    _driverRA->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA motor rms_current: %d mA"), _driverRA->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA CS value: %d"), _driverRA->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA vsense: %d"), _driverRA->vsense());
+    }
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverRA = new TMC2209Stepper(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
-    _driverRA->begin();
+    _driverRA->beginSerial(19200);
+    bool _UART_Rx_connected = false;
     #if RA_AUDIO_FEEDBACK == 1
       _driverRA->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverRA, "RA" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
-    //#endif
-    _driverRA->toff(4);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverRA->I_scale_analog(0);
+    #endif
+    _driverRA->toff(1);
     _driverRA->blank_time(24);
-    _driverRA->rms_current(rmscurrent, 1.0f);
+    _driverRA->semin(0); //disable CoolStep so that current is consistent
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
+    _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverRA->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA motor rms_current: %d mA"), _driverRA->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA CS value: %d"), _driverRA->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA vsense: %d"), _driverRA->vsense());
+    }
   }
 #endif
 #endif
@@ -411,42 +436,64 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverDEC->begin();
-    _driverDEC->toff(4);
-    _driverDEC->blank_time(24);
+    bool _UART_Rx_connected = false;
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverDEC, "DEC" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
-    _driverDEC->rms_current(rmscurrent, 1.0f);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverDEC->I_scale_analog(0);
+    #endif
+    _driverDEC->toff(1);
+    _driverDEC->blank_time(24);
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
+    _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(5);
-    _driverDEC->semax(2);
-    _driverDEC->sedn(0b01);
+    _driverDEC->semin(0); //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC motor rms_current: %d mA"), _driverDEC->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC CS value: %d"), _driverDEC->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC vsense: %d"), _driverDEC->vsense());
+    }
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
-    _driverDEC->begin();
-    _driverDEC->blank_time(24);
+    _driverDEC->beginSerial(19200);
+    bool _UART_Rx_connected = false;
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverDEC, "DEC" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
-    _driverDEC->toff(4);
-    _driverDEC->rms_current(rmscurrent, 1.0f);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverDEC->I_scale_analog(0);
+    #endif
+    _driverDEC->toff(1);
+    _driverDEC->blank_time(24);
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
+    _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(5);
-    _driverDEC->semax(2);
-    _driverDEC->sedn(0b01);
+    _driverDEC->semin(0); //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC motor rms_current: %d mA"), _driverDEC->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC CS value: %d"), _driverDEC->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC vsense: %d"), _driverDEC->vsense());
+    }
   }
 #endif
 #endif
@@ -462,33 +509,64 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverAZ = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverAZ->begin();
+    bool _UART_Rx_connected = false;
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
     #endif
-    _driverAZ->toff(4);
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverAZ->I_scale_analog(0);
+    #endif
+    _driverAZ->toff(1);
     _driverAZ->blank_time(24);
-    _driverAZ->rms_current(rmscurrent, 1.0f);
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverAZ->fclktrim(4);
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverAZ->semin(0); //disable CoolStep so that current is consistent
+    _driverAZ->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ motor rms_current: %d mA"), _driverAZ->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ CS value: %d"), _driverAZ->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ vsense: %d"), _driverAZ->vsense());
+    }
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverAZ = new TMC2209Stepper(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
-    _driverAZ->begin();
+    _driverAZ->beginSerial(19200);
+    bool _UART_Rx_connected = false;
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverAZ, "AZ" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
-    _driverAZ->toff(4);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverAZ->I_scale_analog(0);
+    #endif
+    _driverAZ->toff(1);
     _driverAZ->blank_time(24);
-    _driverAZ->rms_current(rmscurrent, 1.0f);
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverAZ->fclktrim(4);
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverAZ->semin(0); //disable CoolStep so that current is consistent
+    _driverAZ->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ motor rms_current: %d mA"), _driverAZ->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ CS value: %d"), _driverAZ->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ vsense: %d"), _driverAZ->vsense());
+    }
   }
 #endif
 #endif
@@ -504,33 +582,64 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverALT = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverALT->begin();
+   bool _UART_Rx_connected = false;
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
     #endif
-    _driverALT->toff(4);
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverALT->I_scale_analog(0);
+    #endif
+    _driverALT->toff(1);
     _driverALT->blank_time(24);
-    _driverALT->rms_current(rmscurrent, 1.0f);
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverALT->fclktrim(4);
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverALT->semin(0); //disable CoolStep so that current is consistent
+    _driverALT->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT motor rms_current: %d mA"), _driverALT->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT CS value: %d"), _driverALT->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT vsense: %d"), _driverALT->vsense());
+    }
   }
 #elif SW_SERIAL_UART == 1
   void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverALT = new TMC2209Stepper(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
-    _driverALT->begin();
+    _driverALT->beginSerial(19200);
+    bool _UART_Rx_connected = false;
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
     #endif
-    #if UART_CONNECTION_TEST == 1
-      connectToDriver( _driverAZ, "ALT" );
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
     #endif
-    _driverALT->toff(4);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverALT->I_scale_analog(0);
+    #endif
+    _driverALT->toff(1);
     _driverALT->blank_time(24);
-    _driverALT->rms_current(rmscurrent, 1.0f);
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
-    _driverALT->fclktrim(4);
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverALT->semin(0); //disable CoolStep so that current is consistent
+    _driverALT->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT motor rms_current: %d mA"), _driverALT->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT CS value: %d"), _driverALT->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT vsense: %d"), _driverALT->vsense());
+    }
   }
 #endif
 #endif
@@ -2625,3 +2734,30 @@ DayTime Mount::calculateHa() {
   DayTime lst = calculateLst();
   return Sidereal::calculateHa(lst.getTotalHours());
 }
+
+/////////////////////////////////
+//
+// testUART
+//
+/////////////////////////////////
+#if UART_CONNECTION_TEST_TX == 1
+void Mount::testRA_UART_TX(){
+    int _speed = 1000;  //microsteps per driver clock tick
+    int _duration = 1000;    //Duration to run in ms
+    testUART_vactual(_driverRA, _speed, _duration);
+}
+void Mount::testDEC_UART_TX(){
+    int _speed = 1000;  //microsteps per driver clock tick
+    int _duration = 1000;    //Duration to run in ms
+    testUART_vactual(_driverDEC, _speed, _duration);
+}
+void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) {
+    driver->VACTUAL(_speed);
+    delay(_duration);
+    driver->shaft(1);
+    delay(_duration);
+    driver->shaft(0);
+    driver->VACTUAL(0);
+    delay(_duration);
+}
+#endif
