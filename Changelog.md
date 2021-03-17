@@ -1,3 +1,16 @@
+**V1.9.00 - Updates**
+- Fixes RMS current setting for TMC2209 UART to be more accurate and consistent
+- Disables i_scale_analog (aka "USE_VREF") by default so that results are more consistent between users. rms_current will no longer depend on Vref, unless specifically configured by the user.
+- Changes UART baud rate to 19200 rather than the default of 115200 - the Rx channel was too unreliable and repeatedly had CRC errors at the higher baud rate.
+- Adds a test method for visual confirmation of Tx-only UART connectivity. At boot (before tracking starts), each axis will rotate slightly in each direction driven purely by UART commands. If the user sees the movement, they know UART Tx is functioning.
+- Re-enabled support for different microstepping settings for slewing and tracking.
+- Allowed microstep settings to be defined in the local config.
+- Seperated guide stepper from DEC stepper so that guiding doesn't change DEC coordinates.
+- Fixed a bug where tracking speed was not calculated correctly, nor adjusted on the fly when RA Steps/deg were changed.
+- Saved some RAM by moving strings to flash memory.
+- Fixed a bug where RA would jump a little at the beginning of a GoTo operation.
+- Added Meade command to allow querying driver settings.
+
 **V1.8.74 - Updates**
 - Fixed bug in LX200 :XSD# command that prevented DEC steps from being stored.
 - Fixed logging error in Wifi code.
