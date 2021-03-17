@@ -81,10 +81,8 @@ public:
   #endif
 #endif
 
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-  //#if RA_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART || DEC_DRIVER_TMC2209_UART_MODE == TMC2209_MODE_UART 
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
-  //#endif
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 // Configure the RA Driver (TMC2209 UART only)
@@ -329,7 +327,16 @@ public:
 
   DayTime calculateLst();
   DayTime calculateHa();
+  
+  #if UART_CONNECTION_TEST_TX == 1
+  void testRA_UART_TX();
+  void testDEC_UART_TX();
+  #endif
 private:
+
+  #if UART_CONNECTION_TEST_TX == 1
+  void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
+  #endif
 
   // Reads values from EEPROM that configure the mount (if previously stored)
   void readPersistentData();
