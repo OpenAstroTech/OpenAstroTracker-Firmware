@@ -406,6 +406,8 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverRA = new TMC2209Stepper(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
     _driverRA->beginSerial(19200);
+    _driverRA->mstep_reg_select(true);
+    _driverRA->pdn_disable(true);
     bool _UART_Rx_connected = false;
     #if RA_AUDIO_FEEDBACK == 1
       _driverRA->en_spreadCycle(1);
@@ -482,6 +484,8 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
     _driverDEC->beginSerial(19200);
+    _driverDEC->mstep_reg_select(true);
+    _driverDEC->pdn_disable(true);
     bool _UART_Rx_connected = false;
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
