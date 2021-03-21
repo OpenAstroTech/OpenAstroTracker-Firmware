@@ -119,8 +119,8 @@ int UTCOffset = 0;
 int AzimuthMinutes = 0;
 int AltitudeMinutes = 0;
 
-int RAStepsPerDegree = RA_STEPS_PER_DEGREE * 10;   // menuCAL use higher resolution for editing
-int DECStepsPerDegree = DEC_STEPS_PER_DEGREE * 10; // menuCAL uses higher resolution for editing
+long RAStepsPerDegree = RA_STEPS_PER_DEGREE * 10L;   // menuCAL use higher resolution for editing
+long DECStepsPerDegree = DEC_STEPS_PER_DEGREE * 10L; // menuCAL uses higher resolution for editing
 
 // Pitch and roll offset
 #if USE_GYRO_LEVEL == 1
@@ -142,7 +142,7 @@ void gotoNextMenu()
 #endif
 }
 
-bool checkProgressiveUpDown(int *val, int minDelay = 25)
+bool checkProgressiveUpDown(long *val, int minDelay = 25)
 {
   bool ret = true;
 
@@ -165,6 +165,17 @@ bool checkProgressiveUpDown(int *val, int minDelay = 25)
     calDelay = 150;
   }
 
+  return ret;
+}
+
+bool checkProgressiveUpDown(int *val, int minDelay = 25)
+{
+  long lval = *val;
+  bool ret = checkProgressiveUpDown(&lval, minDelay);
+  if ((lval < INT_MAX) && (lval > INT_MIN))
+  {
+    *val = (int)lval;
+  }
   return ret;
 }
 

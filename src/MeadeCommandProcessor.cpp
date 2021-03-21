@@ -396,6 +396,15 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Get the number of steps the RA stepper motor needs to overshoot and backtrack when slewing east.
 //      Returns: integer#
 //
+// :XGCn.nn*m.mm#
+//      Get stepper motor positions for target
+//      Get the positions of stepper motors when pointed at the given coordinates.
+//      Where n.nn is the RA coordinate (0.0 - 23.999)
+//            m.mm is the DEC coordinate (-90.00 - +90.00)
+//      Returns: ralong,declong#
+//      Where ralong is the stepper position of the RA stepper
+//            declong is the stepper position of the DEC stepper
+//
 // :XGR#
 //      Get RA steps
 //      Get the number of steps the RA stepper motor needs to take to rotate RA by one degree
@@ -1055,10 +1064,25 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     {
       return String(_mount->getBacklashCorrection()) + "#";
     }
-    else if (inCmd[1] == 'M') 
+    else if (inCmd[1] == 'C') // :XGCn.nn*m.mm#
+    {
+      String coords = inCmd.substring(2);
+      int star = coords.indexOf('*');
+      if (star > 0)
+      {
+        long raPos, decPos;
+        float raCoord = coords.substring(0, star).toFloat();
+        float decCoord = coords.substring(star + 1).toFloat();
+        _mount->calculatePositions(raCoord, decCoord, raPos, decPos);
+        char scratchBuffer[20];
+        sprintf(scratchBuffer, "%ld|%ld#", raPos, decPos);
+        return String(scratchBuffer);
+      }
+    }
+    else if (inCmd[1] == 'M')
     {
       if ((inCmd.length() > 2) && (inCmd[2] == 'S')) // :XGMS#
-      { 
+      {
         return _mount->getStepperInfo() + "#";
       }
       return _mount->getMountHardwareInfo() + "#"; // :XGM#

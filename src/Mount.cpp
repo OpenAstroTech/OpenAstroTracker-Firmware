@@ -1247,7 +1247,8 @@ void Mount::guidePulse(byte direction, int duration) {
   switch (direction) {
     case NORTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
+        LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse: Switching DEC driver to microsteps(%d)"), DEC_GUIDE_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
@@ -1257,6 +1258,7 @@ void Mount::guidePulse(byte direction, int duration) {
 
     case SOUTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse: Switching DEC driver to microsteps(%d)"), DEC_GUIDE_MICROSTEPPING);
       _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
@@ -2331,6 +2333,21 @@ float Mount::getSpeed(int direction) {
   return 0;
 }
 
+/////////////////////////////////
+//
+// calculatePositions
+//
+// This code calculates the stepper locations to move to, given the right ascension and declination
+/////////////////////////////////
+void Mount::calculatePositions(float raCoord, float decCoord, long& raPos, long& decPos){
+  DayTime savedRA = _targetRA;
+  Declination savedDec = _targetDEC;
+  _targetRA = DayTime(raCoord);
+  _targetDEC = Declination::FromSeconds(decCoord * 3600.0f);
+  calculateRAandDECSteppers(raPos, decPos);
+  _targetRA = savedRA;
+  _targetDEC = savedDec;
+}
 
 /////////////////////////////////
 //
