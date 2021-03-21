@@ -238,8 +238,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
   _stepperTRK->setMaxSpeed(10000);
   _stepperTRK->setAcceleration(5000);
 
-  _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE != RA_INVERT_DIR, false, false);
-  _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE != RA_INVERT_DIR, false, false);
+  _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
+  _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
 }
 #endif
 
