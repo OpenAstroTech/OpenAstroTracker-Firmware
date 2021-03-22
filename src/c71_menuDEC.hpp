@@ -3,7 +3,7 @@
 #if DISPLAY_TYPE > 0
 bool showTargetDEC = true;
 bool processDECKeys() {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   if (lcdButtons.currentState() == btnUP) {
     if (DECselect == 0) { mount.targetDEC().addDegrees(1); showTargetDEC = true; }
@@ -43,6 +43,9 @@ bool processDECKeys() {
       case btnRIGHT: {
         lcdMenu.setNextActive();
       }
+      break;
+
+      default:
       break;
     }
   }

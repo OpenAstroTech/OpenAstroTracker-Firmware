@@ -1,9 +1,8 @@
 #pragma once
-#include "../Configuration_adv.hpp"
+#include "../Configuration.hpp"
 
-#if USE_GPS == 1
 #include "Sidereal.hpp"
-#endif
+
 #if USE_GYRO_LEVEL == 1
 #include "Gyro.hpp"
 #endif
@@ -16,22 +15,24 @@
 
 void setControlMode(bool); // In CTRL menu
 
-#define StartupIsInHomePosition 1
-#define StartupSetRoll 2
-#define StartupWaitForRollCompletion 3
-#define StartupRollConfirmed 4
-#define StartupSetHATime 10
-#define StartupWaitForHACompletion 15
-#define StartupHAConfirmed 20
-#define StartupWaitForPoleCompletion 25
-#define StartupPoleConfirmed 30
-#define StartupCompleted 35
+enum startupState_t {
+    StartupIsInHomePosition,
+    StartupSetRoll,
+    StartupWaitForRollCompletion,
+    StartupRollConfirmed,
+    StartupSetHATime,
+    StartupWaitForHACompletion,
+    StartupHAConfirmed,
+    StartupWaitForPoleCompletion,
+    StartupPoleConfirmed,
+    StartupCompleted,
+};
 
 #define YES 1
 #define NO 2
 #define CANCEL 3
 
-int startupState = StartupIsInHomePosition;
+startupState_t startupState = StartupIsInHomePosition;
 int isInHomePosition = NO;
 
 void startupIsCompleted() {
@@ -49,7 +50,7 @@ void startupIsCompleted() {
 }
 
 bool processStartupKeys() {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   switch (startupState) {
     case StartupIsInHomePosition: {
@@ -160,6 +161,9 @@ bool processStartupKeys() {
       startupState = StartupIsInHomePosition;
     }
     break;
+
+    default:
+    break;
   }
 
   return waitForRelease;
@@ -193,10 +197,7 @@ void printStartupMenu() {
     }
     break;
     
-    case StartupPoleConfirmed:
-    break;
-
-    case StartupHAConfirmed:
+    default:
     break;
   }
 }

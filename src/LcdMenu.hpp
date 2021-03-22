@@ -1,7 +1,5 @@
 #ifndef _LCDMENU_HPP_
 #define _LCDMENU_HPP_
-#include <Arduino.h>
-#include "../Configuration_adv.hpp"
 
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
 #include <LiquidCrystal.h>
@@ -41,6 +39,11 @@ public:
 
   void startup();
 
+  #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
+  // Function to test LCD hardware, some units are shipped with defects
+  static bool testIfLcdIsBad();
+  #endif
+
   // Find a menu item by its ID
   MenuItem* findById(byte id);
 
@@ -58,7 +61,8 @@ public:
 
   // Set and get the brightness of the backlight
   void setBacklightBrightness(int level, bool persist = true);
-  int getBacklightBrightness();
+  int getBacklightBrightness() const;
+  void getBacklightBrightnessRange(int *minPtr, int *maxPtr) const;
 
   // Pass thru utility function
   void clear();
@@ -101,6 +105,7 @@ private:
   byte const _rows;
   byte const _maxItems;
   byte const _charHeightRows;   // Height of character in display native rows
+  bool _lcdBadHw;
 
   MenuItem** _menuItems;  // The first menu item (linked list)
   byte _numMenuItems;
@@ -110,17 +115,21 @@ private:
   byte _activeRow;        // The row that the LCD cursor is on
   byte _activeCol;        // The column that the LCD cursor is on
   String _lastDisplay[2]; // The last string that was displayed on each row
-  int _brightness;
+  byte _brightness;
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-  byte _degrees = 1;
-  byte _minutes = 2;
-  byte _leftArrow = 3;
-  byte _rightArrow = 4;
-  byte _upArrow = 5;
-  byte _downArrow = 6;
-  byte _tracking = 7;
-  byte _noTracking = 0;
+  enum specialChar_t : byte {
+      _degrees,
+      _minutes,
+      _leftArrow,
+      _rightArrow,
+      _upArrow,
+      _downArrow,
+      _tracking,
+      _noTracking,
+      SPECIAL_CHAR_MAX,
+  };
+  static_assert(SPECIAL_CHAR_MAX <= 8, "LCD only supports a maximum of 8 special characters");
 
   // The special character bitmaps
   static byte RightArrowBitmap[8];

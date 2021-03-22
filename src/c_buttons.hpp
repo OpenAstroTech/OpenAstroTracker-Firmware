@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include "b_setup.hpp"
 #include "c65_startup.hpp"
 #include "c70_menuRA.hpp"
@@ -25,7 +24,7 @@
     byte lastKey = btnNONE;
   #endif
 
-  byte lcd_key;
+  lcdButton_t lcd_key;
   unsigned long lastTrackingStatusPrint = 0;
 
   void loop() {
@@ -153,9 +152,9 @@
       if (waitForButtonRelease) {
         if (lcdButtons.currentState() != btnNONE) {
           do {
-            byte key;
-            if (lcdButtons.keyChanged(&key)) {
-              if (key == btnNONE) {
+            lcdButton_t waitKey;
+            if (lcdButtons.keyChanged(&waitKey)) {
+              if (waitKey == btnNONE) {
                 break;
               }
             }
@@ -219,19 +218,19 @@
     }
 
 
-    #ifdef BLUETOOTH_ENABLED
-    BTin();
+    #if (BLUETOOTH_ENABLED == 1)
+      BTin();
     #endif
   }
 
-  #else
+#else // DISPLAY not NONE
 
   void loop() {
-    #ifndef ESP32
+    #ifdef ESP32
       serialLoop();
-    #ifdef BLUETOOTH_ENABLED
-      BTin();
-    #endif
+      #if (BLUETOOTH_ENABLED == 1)
+        BTin();
+      #endif
     #endif
   }
 

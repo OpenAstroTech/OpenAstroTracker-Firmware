@@ -2,15 +2,17 @@
 
 #if DISPLAY_TYPE > 0
 
+#include "Utility.hpp"
+
 #if SUPPORT_INFO_DISPLAY == 1
 byte infoIndex = 0;
-byte maxInfoIndex = 9;
+byte maxInfoIndex = 15;
 byte subIndex = 0;
 unsigned long lastInfoUpdate = 0;
 
 bool processStatusKeys()
 {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   if (lcdButtons.keyChanged(&key))
   {
@@ -41,6 +43,9 @@ bool processStatusKeys()
     {
       lcdMenu.setNextActive();
     }
+    break;
+
+    default:
     break;
     }
   }
@@ -106,8 +111,8 @@ void printStatusSubmenu()
 
     case 3:
     {
-      float lat = fabs(mount.latitude().getTotalHours());
-      float lng = fabs(mount.longitude().getTotalHours());
+      float lat = fabsf(mount.latitude().getTotalHours());
+      float lng = fabsf(mount.longitude().getTotalHours());
       const char dirLat = (mount.latitude().getTotalHours() < 0) ? 'S' : 'N';
       const char dirLong = (mount.longitude().getTotalHours() < 0) ? 'W' : 'E';
       sprintf(scratchBuffer, "Loc %s%c %s%c", String(lat, 1).c_str(), dirLat, String(lng, 1).c_str(), dirLong);
@@ -118,8 +123,8 @@ void printStatusSubmenu()
     case 4:
     {
 #if USE_GYRO_LEVEL == 1
-      int celsius = (int)round(Gyro::getCurrentTemperature());
-      int fahrenheit = (int)round(32.0 + 9.0 * Gyro::getCurrentTemperature() / 5.0);
+      int celsius = static_cast<int>(roundf(Gyro::getCurrentTemperature()));
+      int fahrenheit = static_cast<int>(roundf(32.0f + 9.0f * Gyro::getCurrentTemperature() / 5.0f));
 
       sprintf(scratchBuffer, "Temp: %d@C %d@F", celsius, fahrenheit);
       lcdMenu.printMenu(scratchBuffer);
@@ -165,6 +170,54 @@ void printStatusSubmenu()
     break;
 
     case 9:
+    {
+      LocalDate date = mount.getLocalDate();
+      sprintf(scratchBuffer, "Date: %04d-%02d-%02d", date.year, date.month, date.day);
+      lcdMenu.printMenu(scratchBuffer);
+    }
+    break;
+
+    case 10:
+    {
+      DayTime drvUtc = mount.getUtcTime();
+      sprintf(scratchBuffer, "UTC: %02d:%02d:%02d", drvUtc.getHours(), drvUtc.getMinutes(), drvUtc.getSeconds());
+      lcdMenu.printMenu(scratchBuffer);
+    }
+    break;
+
+    case 11:
+    {
+      DayTime drvUtc = mount.getLocalTime();
+      sprintf(scratchBuffer, "Time: %02d:%02d:%02d", drvUtc.getHours(), drvUtc.getMinutes(), drvUtc.getSeconds());
+      lcdMenu.printMenu(scratchBuffer);
+    }
+    break;
+
+    case 12:
+    {
+      int offset = mount.getLocalUtcOffset();
+      sprintf(scratchBuffer, "Timezone: %d", offset);
+      lcdMenu.printMenu(scratchBuffer);
+    }
+    break;
+
+    case 13:
+    {
+      DayTime lst = mount.calculateLst();
+      sprintf(scratchBuffer, "LST: %02d:%02d:%02d", lst.getHours(), lst.getMinutes(), lst.getSeconds());
+      lcdMenu.printMenu(scratchBuffer);
+    }
+    break;
+
+    case 14:
+    {
+      DayTime ha = mount.calculateHa();
+      sprintf(scratchBuffer, "HA: %02d:%02d:%02d", ha.getHours(), ha.getMinutes(), ha.getSeconds());
+      lcdMenu.printMenu(scratchBuffer);
+    }
+    break;
+
+    case 15:
     {
       lcdMenu.printMenu("Firmw.: " + String(VERSION));
     }

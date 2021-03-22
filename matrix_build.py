@@ -1,147 +1,324 @@
+import copy
 import os
-import itertools
-from collections import defaultdict
-import time
+import shutil
+import signal
+import subprocess
+import click
 
-CONTINUE_ON_ERROR = True
+import tabulate
+from constraint import *
 
-boards = {
-    "0001": "mega2560",
-    "0002": "mks_gen_l_2",
-    "1001": "esp32"
-}
+CONTINUE_ON_ERROR = False
 
-matrix = {
-    "BOARD": ['0001', '1001'],
-    "RA_STEPPER_TYPE": [0, 1],
-    "DEC_STEPPER_TYPE": [0, 1],
-    "RA_DRIVER_TYPE": [0, 1, 2, 3],
-    "DEC_DRIVER_TYPE": [0, 1, 2, 3],
-    "USE_GPS": [0, 1],
-    "USE_GYRO_LEVEL": [0, 1],
-    "AZIMUTH_ALTITUDE_MOTORS": [0, 1],
-    #"AZ_STEPPER_TYPE": [0, 1],
-    #"ALT_STEPPER_TYPE": [0, 1],
-    #"AZ_DRIVER_TYPE": [0, 1, 2, 3],
-    #"ALT_DRIVER_TYPE": [0, 1, 2, 3],
-    "DISPLAY_TYPE": [0, 1],
-}
-
-# forbidden combinations
-filters = [
-    # not possible combinations
-    {'RA_STEPPER_TYPE': 0, 'RA_DRIVER_TYPE': 1},
-    {'DEC_STEPPER_TYPE': 0, 'DEC_DRIVER_TYPE': 1},
-    {'RA_STEPPER_TYPE': 0, 'RA_DRIVER_TYPE': 2},
-    {'DEC_STEPPER_TYPE': 0, 'DEC_DRIVER_TYPE': 2},
-    {'RA_STEPPER_TYPE': 0, 'RA_DRIVER_TYPE': 3},
-    {'DEC_STEPPER_TYPE': 0, 'DEC_DRIVER_TYPE': 3},
-    {'RA_STEPPER_TYPE': 1, 'RA_DRIVER_TYPE': 0},
-    {'DEC_STEPPER_TYPE': 1, 'DEC_DRIVER_TYPE': 0},
-    {'BOARD': "1001", "USE_GPS": 1},
-    {'BOARD': "1001", "USE_GYRO_LEVEL": 1},
-    {'BOARD': "1001", "AZIMUTH_ALTITUDE_MOTORS": 1},
-    {'BOARD': "1001", "DISPLAY_TYPE": 1},
-    {"AZIMUTH_ALTITUDE_MOTORS": 0, "AZ_STEPPER_TYPE": 1},
-    {"AZIMUTH_ALTITUDE_MOTORS": 0, "AZ_DRIVER_TYPE": 1},
-    {"AZIMUTH_ALTITUDE_MOTORS": 0, "AZ_DRIVER_TYPE": 2},
-    {"AZIMUTH_ALTITUDE_MOTORS": 0, "AZ_DRIVER_TYPE": 3},
-    # actually possible combinations not to be handled by this script to reduce build times
-    {'RA_STEPPER_TYPE': 0, 'DEC_STEPPER_TYPE': 1},
-    {'RA_STEPPER_TYPE': 1, 'DEC_STEPPER_TYPE': 0},
+BOARDS = [
+    "mega2560",
+    "mksgenlv21",
+    "mksgenlv2",
+    "mksgenlv1",
+    "esp32",
 ]
 
-# only allow same drivers for RA and DEC
-for r in range(4):
-    for d in range(4):
-        if (r != d):
-            filters.append(
-                {'RA_DRIVER_TYPE': r, 'DEC_DRIVER_TYPE': d}
-            )
+STEPPER_TYPES = [
+    "STEPPER_TYPE_28BYJ48",
+    "STEPPER_TYPE_NEMA17",
+]
 
-# only allow same steppers for RA and DEC
-for r in range(2):
-    for d in range(2):
-        if (r != d):
-            filters.append(
-                {'RA_STEPPER_TYPE': r, 'DEC_STEPPER_TYPE': d}
-            )
-            
-# only allow same drivers for AZ and ALT
-for r in range(4):
-    for d in range(4):
-        if (r != d):
-            filters.append(
-                {'AZ_DRIVER_TYPE': r, 'ALT_DRIVER_TYPE': d}
-            )
+DRIVER_TYPES = [
+    "DRIVER_TYPE_ULN2003",
+    "DRIVER_TYPE_A4988_GENERIC",
+    "DRIVER_TYPE_TMC2209_STANDALONE",
+    "DRIVER_TYPE_TMC2209_UART",
+]
 
-# only allow same steppers for AZ and ALT
-for r in range(2):
-    for d in range(2):
-        if (r != d):
-            filters.append(
-                {'AZ_STEPPER_TYPE': r, 'ALT_STEPPER_TYPE': d}
-            )
-            
-# all boards and flags as value tuples, regardless of the filters
-all_permutations = list(itertools.product(*(matrix.values())))
+BOOLEAN_VALUES = [0, 1]
 
-# all combinations as dict, regardless of the filters
-all_combinations = []
-for permutation in all_permutations:
-    combination = {}
-    combination_tuples = [(list(matrix.keys())[i], value)
-                          for i, value in enumerate(permutation)]
-    for t in combination_tuples:
-        combination[t[0]] = t[1]
-    all_combinations.append(combination)
+DISPLAY_TYPES = [
+    "DISPLAY_TYPE_NONE",
+    "DISPLAY_TYPE_LCD_KEYPAD",
+    "DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008",
+    "DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017",
+    "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306",
+]
 
+BUILD_FLAGS = {
+    "RA_STEPPER_TYPE": STEPPER_TYPES,
+    "RA_DRIVER_TYPE": DRIVER_TYPES,
+    "DEC_STEPPER_TYPE": STEPPER_TYPES,
+    "DEC_DRIVER_TYPE": DRIVER_TYPES,
+    "USE_GPS": BOOLEAN_VALUES,
+    "USE_GYRO_LEVEL": BOOLEAN_VALUES,
+    "AZIMUTH_ALTITUDE_MOTORS": BOOLEAN_VALUES,
+    "AZ_STEPPER_TYPE": STEPPER_TYPES,
+    "AZ_DRIVER_TYPE": DRIVER_TYPES,
+    "ALT_STEPPER_TYPE": STEPPER_TYPES,
+    "ALT_DRIVER_TYPE": DRIVER_TYPES,
+    "DISPLAY_TYPE": DISPLAY_TYPES,
+    "RA_MOTOR_CURRENT_RATING": "1",
+    "RA_OPERATING_CURRENT_SETTING": "1",
+    "DEC_MOTOR_CURRENT_RATING": "1",
+    "DEC_OPERATING_CURRENT_SETTING": "1",
+}
 
-def flagValueInCombination(flag, value, combination):
-    return flag in combination and combination[flag] == value
-
-
-def allowedCombination(combination):
-    for f in filters:
-        if all(item in combination.items() for item in f.items()):
-            return False
-    return True
+STEPPER_SUPPORT = {
+    "STEPPER_TYPE_28BYJ48": {
+        "DRIVER_TYPE_ULN2003"
+    },
+    "STEPPER_TYPE_NEMA17": {
+        "DRIVER_TYPE_A4988_GENERIC",
+        "DRIVER_TYPE_TMC2209_STANDALONE",
+        "DRIVER_TYPE_TMC2209_UART",
+    }
+}
 
 
-allowed_combinations = list(filter(allowedCombination, all_combinations))
-print(f"Testing {len(allowed_combinations)} permutations...")
-time.sleep(3)
+def update_dict(orig, patch):
+    result = copy.deepcopy(orig)
+    result.update(patch)
+    return result
 
-run_commands = []
-for c in allowed_combinations:
-    flags = ["-D {}={}".format(item[0], item[1]) for item in c.items()]
-    flags_str = " ".join(flags)
-    run_commands.append(
-        {
-            "env.PLATFORMIO_BUILD_FLAGS": flags_str,
-            "command": "pio run -e {}".format(boards[c['BOARD']])
-        }
+
+BOARD_SUPPORT = {
+    "mega2560": BUILD_FLAGS,
+    "esp32": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "AZIMUTH_ALTITUDE_MOTORS": [0],
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE",
+            "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306"
+        ]
+    }),
+    "mksgenlv21": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE",
+            "DISPLAY_TYPE_LCD_KEYPAD"
+        ],
+    }),
+    "mksgenlv2": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE",
+            "DISPLAY_TYPE_LCD_KEYPAD"
+        ],
+    }),
+    "mksgenlv1": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE",
+            "DISPLAY_TYPE_LCD_KEYPAD"
+        ],
+    }),
+}
+
+SHORT_STRINGS = {
+    0: "DISABLED",
+    1: "ENABLED",
+    "STEPPER_TYPE_28BYJ48": "28BYJ48",
+    "STEPPER_TYPE_NEMA17": "NEMA17",
+    "DRIVER_TYPE_ULN2003": "ULN2003",
+    "DRIVER_TYPE_A4988_GENERIC": "A4988_GENERIC",
+    "DRIVER_TYPE_TMC2209_STANDALONE": "TMC2209_STANDALONE",
+    "DRIVER_TYPE_TMC2209_UART": "TMC2209_UART",
+    "DISPLAY_TYPE_NONE": "NONE",
+    "DISPLAY_TYPE_LCD_KEYPAD": "LCD_KEYPAD",
+    "DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008": "LCD_KEYPAD_I2C_MCP23008",
+    "DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017": "LCD_KEYPAD_I2C_MCP23017",
+    "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306": "LCD_JOY_I2C_SSD1306",
+    "RA_STEPPER_TYPE": "RA_STEPPER",
+    "RA_DRIVER_TYPE": "RA_DRIVER",
+    "DEC_STEPPER_TYPE": "DEC_STEPPER",
+    "DEC_DRIVER_TYPE": "DEC_DRIVER",
+    "USE_GPS": "GPS",
+    "USE_GYRO_LEVEL": "GYRO",
+    "AZIMUTH_ALTITUDE_MOTORS": "AZ_ALT",
+    "AZ_STEPPER_TYPE": "AZ_STEPPER",
+    "AZ_DRIVER_TYPE": "AZ_DRIVER",
+    "ALT_STEPPER_TYPE": "ALT_STEPPER",
+    "ALT_DRIVER_TYPE": "ALT_DRIVER",
+    "DISPLAY_TYPE": "DISPLAY",
+}
+
+
+def shorten(string):
+    return SHORT_STRINGS[string] if string in SHORT_STRINGS else string
+
+
+# Define all possible parameters (boards and flags)
+def create_problem():
+    problem = Problem()
+    problem.addVariable("BOARD", BOARDS)
+    for key, values in BUILD_FLAGS.items():
+        problem.addVariable(key, values)
+    return problem
+
+
+# Set constraints to the problem based on supported features
+def set_support_constraints(problem):
+    def board_supports_flag_value(b, k, v):
+        return v in BOARD_SUPPORT[b][k]
+
+    def board_support_constraint(expected_board, expected_flag):
+        return lambda b, v: expected_board != b or board_supports_flag_value(b, expected_flag, v)
+
+    # Apply board-feature support constraints
+    for board, flags in BOARD_SUPPORT.items():
+        for key, values in flags.items():
+            constraint = board_support_constraint(board, key)
+            problem.addConstraint(constraint, ["BOARD", key])
+
+    # Apply stepper-driver support constraints
+    def driver_supports_stepper(d, s):
+        return d in STEPPER_SUPPORT[s]
+
+    problem.addConstraint(driver_supports_stepper, ["RA_DRIVER_TYPE", "RA_STEPPER_TYPE"])
+    problem.addConstraint(driver_supports_stepper, ["DEC_DRIVER_TYPE", "DEC_STEPPER_TYPE"])
+    problem.addConstraint(driver_supports_stepper, ["ALT_DRIVER_TYPE", "ALT_STEPPER_TYPE"])
+    problem.addConstraint(driver_supports_stepper, ["AZ_DRIVER_TYPE", "AZ_STEPPER_TYPE"])
+
+
+# Define constraints for excluded tests
+def set_test_constraints(problem):
+    # Reduce amount of boards under test
+    # problem.addConstraint(InSetConstraint({"mega2560", "esp32", "mksgenlv21"}), ["BOARD"])
+
+    problem.addConstraint(AllEqualConstraint(), [
+        "RA_STEPPER_TYPE",
+        "DEC_STEPPER_TYPE",
+    ])
+
+    problem.addConstraint(AllEqualConstraint(), [
+        "ALT_STEPPER_TYPE",
+        "AZ_STEPPER_TYPE",
+    ])
+
+    problem.addConstraint(AllEqualConstraint(), [
+        "RA_DRIVER_TYPE",
+        "DEC_DRIVER_TYPE",
+    ])
+
+    problem.addConstraint(AllEqualConstraint(), [
+        "ALT_DRIVER_TYPE",
+        "AZ_DRIVER_TYPE",
+    ])
+
+    # Only one permutation of alt/az steppers and motors if alt-az addon is disabled
+    problem.addConstraint(
+        lambda e, alt_s: e or alt_s == "STEPPER_TYPE_28BYJ48", ["AZIMUTH_ALTITUDE_MOTORS", "ALT_STEPPER_TYPE"]
     )
 
-# for i, command in enumerate(run_commands):
-#     print("{}: {}".format(i, command))
-# exit(0)
 
-errors = []
+def set_ci_constraints(problem):
+    problem.addConstraint(InSetConstraint({"DISPLAY_TYPE_NONE", "DISPLAY_TYPE_LCD_KEYPAD"}), ["DISPLAY_TYPE"])
+    problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
 
-for index,command in enumerate(run_commands):
-    print(f"Building {index+1} of {len(allowed_combinations)} permutations...")
-    print(command)
-    os.environ['PLATFORMIO_BUILD_FLAGS'] = command['env.PLATFORMIO_BUILD_FLAGS']
-    result = os.system(command['command'])
-    if result:
-        errors.append(command)
-        if not CONTINUE_ON_ERROR:
-            break
 
-if errors:
-    print("There were errors during the matrix build for following configurations:")
-    for error in errors:
-        print(error)
-else:
-    print(f"There were no errors found during the matrix build. {len(allowed_combinations)} permutations tested.")
+def print_solutions_matrix(solutions, short_strings=False):
+    def get_value(vb, vk):
+        matching_solutions = list(filter(lambda sol: sol["BOARD"] == vb, solutions))
+        values = set(map(lambda s: s[vk], matching_solutions))
+        if short_strings:
+            str_values = {"ALL"} if vk != "BOARD" and values == set(BUILD_FLAGS[vk]) else set(map(shorten, values))
+        else:
+            str_values = set(map(shorten, values))
+        return "\n".join(str_values)
+
+    boards = sorted(list(set(map(lambda s: s["BOARD"], solutions))))
+    keys = list(solutions[0].keys())
+    rows = [[get_value(board, key) for board in boards] for key in keys]
+
+    print(tabulate.tabulate(rows, tablefmt="grid", showindex=map(shorten, keys), colalign=("right",)))
+
+
+def generate_config_file(flag_values):
+    content = "#pragma once\n\n"
+    for key, value in flag_values.items():
+        content += "#define {} {}\n".format(key, value)
+
+    with open("Configuration_local_matrix.hpp", 'w') as f:
+        f.write(content)
+        print("Generated local config")
+        print("Path: {}".format(os.path.abspath(f.name)))
+        print("Content:")
+        print(content)
+
+
+def create_run_environment(flag_values):
+    build_env = dict(os.environ)
+    build_flags = " ".join(["-D{}={}".format(key, value) for key, value in flag_values.items()])
+    build_env["PLATFORMIO_BUILD_FLAGS"] = build_flags
+    return build_env
+
+
+def execute(board, flag_values, use_config_file=True):
+    if use_config_file:
+        build_env = dict(os.environ)
+        build_env["PLATFORMIO_BUILD_FLAGS"] = "-DMATRIX_LOCAL_CONFIG=1"
+        generate_config_file(flag_values)
+    else:
+        build_env = create_run_environment(flag_values)
+
+    proc = subprocess.Popen(
+        "pio run -e {}".format(board),
+        # stdout=subprocess.PIPE,
+        # stderr=subprocess.PIPE,
+        shell=True,
+        env=build_env,
+    )
+    (stdout, stderr) = proc.communicate()
+    return stdout, stdout, proc.returncode
+
+
+class GracefulKiller:
+    kill_now = False
+
+    def __init__(self):
+        signal.signal(signal.SIGINT, self.exit_gracefully)
+        signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+    def exit_gracefully(self):
+        shutil.rmtree('.pio/build/matrix')
+        self.kill_now = True
+
+
+@click.command()
+@click.option(
+    '--board',
+    '-b',
+    type=click.Choice(BOARDS, case_sensitive=False),
+    multiple=True,
+    help="Limit boards under test. Multiple values allowed.")
+def solve(board):
+    # noinspection PyUnusedLocal
+    killer = GracefulKiller()
+
+    problem = create_problem()
+    set_support_constraints(problem)
+
+    if board:
+        problem.addConstraint(InSetConstraint(board), ["BOARD"])
+
+    set_test_constraints(problem)
+    set_ci_constraints(problem)
+
+    solutions = problem.getSolutions()
+    print_solutions_matrix(solutions, short_strings=False)
+
+    print("Testing {} combinations".format(len(solutions)))
+
+    for num, solution in enumerate(solutions, start=1):
+        print("[{}/{}] Building ...".format(num, len(solutions)), flush=True)
+        print_solutions_matrix([solution])
+
+        board = solution.pop("BOARD")
+        (o, e, c) = execute(board, solution)
+        if c and not CONTINUE_ON_ERROR:
+            exit(c)
+        print(flush=True)
+
+
+if __name__ == '__main__':
+    solve()

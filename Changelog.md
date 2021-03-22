@@ -1,3 +1,60 @@
+**V1.9.00 - Updates**
+- Fixes RMS current setting for TMC2209 UART to be more accurate and consistent
+- Disables i_scale_analog (aka "USE_VREF") by default so that results are more consistent between users. rms_current will no longer depend on Vref, unless specifically configured by the user.
+- Changes UART baud rate to 19200 rather than the default of 115200 - the Rx channel was too unreliable and repeatedly had CRC errors at the higher baud rate.
+- Adds a test method for visual confirmation of Tx-only UART connectivity. At boot (before tracking starts), each axis will rotate slightly in each direction driven purely by UART commands. If the user sees the movement, they know UART Tx is functioning.
+- Re-enabled support for different microstepping settings for slewing and tracking.
+- Allowed microstep settings to be defined in the local config.
+- Seperated guide stepper from DEC stepper so that guiding doesn't change DEC coordinates.
+- Fixed a bug where tracking speed was not calculated correctly, nor adjusted on the fly when RA Steps/deg were changed.
+- Saved some RAM by moving strings to flash memory.
+- Fixed a bug where RA would jump a little at the beginning of a GoTo operation.
+- Added Meade command to allow querying driver settings.
+
+**V1.8.74 - Updates**
+- Fixed bug in LX200 :XSD# command that prevented DEC steps from being stored.
+- Fixed logging error in Wifi code.
+
+**V1.8.73 - Updates**
+- Fixed network status return value
+- Added mode to network status
+- Coding style applied.
+- Updated Meade docs
+
+**V1.8.72 - Updates**
+- Factory reset now not only clears EEPROM, but also re-initializes everything.
+
+**V1.8.71 - Updates**
+- Added temperature retrieval (Digital Level addon)
+- Made get LST (:XGL) and get HA (:XGH) Meade calls return realtime data.
+- Fixed a bug in :Ga and :GL commands that returned a sign in front of the hour.
+- Added comments for Get functions.
+
+**V1.8.70 - Updates**
+- Reduced required GPS coordinate freshness to 30s
+- Changed LCD display of GPS sync to use more symbols and blink regularly
+- Added logging for GPS
+- Changed command marker comments in Meade code
+- Capped daytime hours to 999
+
+**V1.8.69 - Updates**
+- Added Meade support for querying, setting and clearing the DEC motor limits.
+
+**V1.8.68 - Updates**
+- Fixed bug that returned incorrect data for site time (delimiter was missing).
+
+**V1.8.67 - Updates**
+- GPS simply provides data to mount now (no more time calcs)
+- Added UTC menu item in CAL
+- Unified coding style (specifically braces) in CAL and EEPROM files.
+- Added UTC storage functions to EEPROM class.
+- Fixed a bug that prevented extended flags from being used in EEPROM class.
+
+**V1.8.66 - Updates**
+- Fixed Longitude code to handle LX200GPS spec. New OATControl required.
+
+**V1.8.65 - Updates**
+- Guide pulse command should handle lowercase
 
 **V1.8.64 - Updates**
 - Cleaned up Meade comments

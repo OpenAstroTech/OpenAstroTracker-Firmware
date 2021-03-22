@@ -1,7 +1,10 @@
 #pragma once
 
-#include <AccelStepper.h>
+#include "../Configuration.hpp"
 #include "inc/Globals.hpp"
+PUSH_NO_WARNINGS
+#include <AccelStepper.h>
+POP_NO_WARNINGS
 
 #include "Utility.hpp"
 #include "DayTime.hpp"
@@ -10,12 +13,16 @@
 
 // TODO: we have to change driver type to DRIVER_TYPE_TMC2209 and add a new definition for the actual mode (e.g. DRIVER_MODE_UART)
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+PUSH_NO_WARNINGS
   #include <TMCStepper.h>
+POP_NO_WARNINGS
 #endif
 
 #if USE_GPS == 1
+PUSH_NO_WARNINGS
   //#include <SoftwareSerial.h>
   #include <TinyGPS++.h>
+POP_NO_WARNINGS
 
   //SoftwareSerial SoftSerial(GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN); // RX, TX
   TinyGPSPlus gps;
@@ -67,7 +74,7 @@
     #define AZmotorPin3  AZ_IN2_PIN    
     #define AZmotorPin2  AZ_IN3_PIN    
     #define AZmotorPin4  AZ_IN4_PIN    
-  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define AZmotorPin1  AZ_STEP_PIN
     #define AZmotorPin2  AZ_DIR_PIN
   #endif
@@ -76,7 +83,7 @@
     #define ALTmotorPin3  ALT_IN2_PIN 
     #define ALTmotorPin2  ALT_IN3_PIN 
     #define ALTmotorPin4  ALT_IN4_PIN     
-  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define ALTmotorPin1  ALT_STEP_PIN
     #define ALTmotorPin2  ALT_DIR_PIN
   #endif
@@ -115,7 +122,6 @@ bool inStartup = false;        // Start with a guided startup
 #endif
 
 // Serial control variables
-bool inSerialControl = false; // When the serial port is in control
 bool okToUpdateMenu = true;   // Can be used to supress rendering the first line of the menu.
 bool quitSerialOnNextButtonRelease = false; // Used to detect SELECT button to quit Serial mode.
 

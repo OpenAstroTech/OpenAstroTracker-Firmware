@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include "DayTime.hpp"
 
 // -180..180 range, 0 is at the prime meridian (through Greenwich), negative going west, positive going east
@@ -13,8 +12,9 @@ public:
   Longitude(float inDegrees);
 
   virtual const char *formatString(char *targetBuffer, const char *format, long *pSeconds = nullptr) const;
+  virtual const char *ToString() const;
 
-  static Longitude ParseFromMeade(String s);
+  static Longitude ParseFromMeade(String const& s);
 
 protected:
   virtual void checkHours() override;

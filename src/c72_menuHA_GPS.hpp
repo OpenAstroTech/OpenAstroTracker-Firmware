@@ -1,37 +1,58 @@
 #pragma once
 
+#include "../Configuration.hpp"
 #include "EPROMStore.hpp"
-#include "../Configuration_adv.hpp"
-#include "../Configuration_pins.hpp"
 
 #if USE_GPS == 1
 
-bool gpsAqcuisitionComplete(int & indicator)
+#if DEBUG_LEVEL & DEBUG_GPS
+char gpsBuf[256];
+int gpsBufPos = 0;
+#endif
+
+long lastGPSUpdate = 0;
+bool gpsAqcuisitionComplete(int &indicator)
 {
     while (GPS_SERIAL_PORT.available())
     {
         int gpsChar = GPS_SERIAL_PORT.read();
+
+        #if DEBUG_LEVEL & DEBUG_GPS
+        if ((gpsBufPos < 254) && (gpsChar > 31))
+        {
+            gpsBuf[gpsBufPos++] = gpsChar;
+        }
+        #endif
         if (gpsChar == 36)
         {
             // $ (ASCII 36) marks start of message, so we switch indicator every message
-            indicator = adjustWrap(indicator, 1, 0, 3);
+            if (millis() - lastGPSUpdate > 500)
+            {
+                indicator = adjustWrap(indicator, 1, 0, 3);
+                lastGPSUpdate = millis();
+            }
         }
         if (gps.encode(gpsChar))
         {
-            // Make sure we got a fix in the last 60seconds
-            if ((gps.location.lng() != 0) && (gps.location.age() < 60000UL))
+            #if DEBUG_LEVEL & DEBUG_GPS
+            gpsBuf[gpsBufPos++] = 0;
+            LOGV2(DEBUG_GPS, F("GPS: Sentence: [%s]"), gpsBuf);
+            gpsBufPos = 0;
+            #endif
+
+            LOGV4(DEBUG_GPS, F("GPS: Encoded. %l sats, Location is%svalid, age is %lms"), gps.satellites.value(), (gps.location.isValid() ? " " : " NOT "), gps.location.age());
+            // Make sure we got a fix in the last 30 seconds
+            if ((gps.location.lng() != 0) && (gps.location.age() < 30000UL))
             {
-                LOGV2(DEBUG_INFO, F("Found GPS location. Age is %d secs"), gps.location.age() / 1000);
-                LOGV4(DEBUG_INFO, F("GPS UTC is %dh%dm%ds"), gps.time.hour(), gps.time.minute(), gps.time.second());
+                LOGV2(DEBUG_INFO, F("GPS: Sync'd GPS location. Age is %d secs"), gps.location.age() / 1000);
+                LOGV3(DEBUG_INFO, F("GPS: Location: %f  %f"), gps.location.lat(), gps.location.lng());
+                LOGV4(DEBUG_INFO, F("GPS: UTC time is %dh%dm%ds"), gps.time.hour(), gps.time.minute(), gps.time.second());
                 lcdMenu.printMenu("GPS sync'd....");
 
-                DayTime lst = Sidereal::calculateByGPS(&gps);
-                int hHAfromLST = lst.getHours() - POLARIS_RA_HOUR;
-                int mHAfromLST = lst.getMinutes() - POLARIS_RA_MINUTE;
-                mount.setHA(DayTime(hHAfromLST, mHAfromLST, 0));
-
-                EPROMStore::updateUint8(EPROMStore::HA_HOUR, mount.HA().getHours());
-                EPROMStore::updateUint8(EPROMStore::HA_MINUTE, mount.HA().getMinutes());
+                DayTime utcNow = DayTime(gps.time.hour(), gps.time.minute(), gps.time.second());
+                utcNow.addHours(mount.getLocalUtcOffset());
+                mount.setLocalStartTime(utcNow);
+                mount.setLocalStartDate(gps.date.year(), gps.date.month(), gps.date.day());
                 mount.setLatitude(gps.location.lat());
                 mount.setLongitude(gps.location.lng());
 
@@ -47,18 +68,19 @@ bool gpsAqcuisitionComplete(int & indicator)
 #if DISPLAY_TYPE > 0
 
 // States that HA menu displays goes through
-#define SHOWING_HA_SYNC 1
-#define SHOWING_HA_SET 2
-#define ENTER_HA_MANUALLY 3
-#define STARTING_GPS 4
-#define SIGNAL_AQCUIRED 5
+enum haMenuState_t {
+    SHOWING_HA_SYNC = 1,
+    SHOWING_HA_SET,
+    ENTER_HA_MANUALLY,
+    STARTING_GPS,
+};
 
 int indicator = 0;
-int haState = STARTING_GPS;
+haMenuState_t haState = STARTING_GPS;
 
 bool processHAKeys()
 {
-    byte key;
+    lcdButton_t key;
     bool waitForRelease = false;
 
     if (haState == STARTING_GPS)
@@ -111,8 +133,7 @@ bool processHAKeys()
             if (key == btnSELECT)
             {
                 DayTime ha(mount.HA());
-                EPROMStore::updateUint8(EPROMStore::HA_HOUR, mount.HA().getHours());
-                EPROMStore::updateUint8(EPROMStore::HA_MINUTE, mount.HA().getMinutes());
+                EEPROMStore::storeHATime(mount.HA());
                 lcdMenu.printMenu("Stored.");
                 mount.delay(500);
                 haState = SHOWING_HA_SET;
@@ -178,7 +199,7 @@ bool processHAKeys()
 
 void printHASubmenu()
 {
-    const char *ind = "**  ";
+    const char *ind = "*+* ";
     char satBuffer[20];
     if (haState == SHOWING_HA_SYNC)
     {
@@ -190,7 +211,7 @@ void printHASubmenu()
     }
     else if (haState == STARTING_GPS)
     {
-        sprintf(satBuffer, "  Found %u sats", gps.satellites.value());
+        sprintf(satBuffer, "  Found %u sats", static_cast<unsigned>(gps.satellites.value()));
         satBuffer[0] = ind[indicator];
     }
     else if (haState == ENTER_HA_MANUALLY)

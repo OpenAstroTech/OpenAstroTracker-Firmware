@@ -3,7 +3,7 @@
 #if DISPLAY_TYPE > 0
 bool showTargetRA = true;
 bool processRAKeys() {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   if (lcdButtons.currentState() == btnUP) {
     if (RAselect == 0) { mount.targetRA().addHours(1); showTargetRA = true; }
@@ -45,6 +45,9 @@ bool processRAKeys() {
       case btnRIGHT: {
         lcdMenu.setNextActive();
       }
+      break;
+
+      default:
       break;
     }
   }

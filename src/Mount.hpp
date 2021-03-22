@@ -1,17 +1,14 @@
 #ifndef _MOUNT_HPP_
 #define _MOUNT_HPP_
 
-#include <AccelStepper.h>
-#include "inc/Config.hpp"
+#include "Declination.hpp"
 #include "Latitude.hpp"
 #include "Longitude.hpp"
-#include "Declination.hpp"
-#include "LcdMenu.hpp"
 
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
- #include <TMCStepper.h>
- // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
-#endif
+// Forward declarations
+class AccelStepper;
+class LcdMenu;
+class TMC2209Stepper;
 
 #define NORTH                      B00000001
 #define EAST                       B00000010
@@ -30,29 +27,16 @@
 #define TARGET_STRING      B01000
 #define CURRENT_STRING     B10000
 
-#define HALFSTEP_MODE AccelStepper::HALF4WIRE
-#define FULLSTEP_MODE AccelStepper::FULL4WIRE
-#define DRIVER_MODE AccelStepper::DRIVER
-
 #define RA_STEPS  1
 #define DEC_STEPS 2
-#define SPEED_FACTOR_DECIMALS 3
-#define BACKLASH_CORRECTION 4
 #define AZIMUTH_STEPS 5
 #define ALTITUDE_STEPS 6
 
-#define EEPROM_RA 1
-#define EEPROM_DEC 2
-#define EEPROM_SPEED 3
-#define EEPROM_BACKLASH 4
-#define EEPROM_LATITUDE 5
-#define EEPROM_LONGITUDE 6
-#define EEPROM_PITCH_OFFSET 7
-#define EEPROM_ROLL_OFFSET 8
-#define EEPROM_RA_PARKING_POS 9
-#define EEPROM_DEC_PARKING_POS 10
-#define EEPROM_DEC_LOWER_LIMIT 11
-#define EEPROM_DEC_UPPER_LIMIT 12
+struct LocalDate {
+  int year;
+  int month;
+  int day;
+};
 
 //////////////////////////////////////////////////////////////////
 //
@@ -61,56 +45,78 @@
 //////////////////////////////////////////////////////////////////
 class Mount {
 public:
-  Mount(float stepsPerRADegree, float stepsPerDECDegree, LcdMenu* lcdMenu);
+  Mount(LcdMenu* lcdMenu);
+
+  void initializeVariables();
 
   static Mount instance();
 
   // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    void configureRAStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
+    void configureRAStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
 #endif
 #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    void configureRAStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+    void configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
 #endif
 
   // Configure the DEC stepper motor.
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    void configureDECStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
+    void configureDECStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
 #endif
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    void configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+    void configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
 #endif
 
 // Configure the AZ/ALT stepper motors.
 #if AZIMUTH_ALTITUDE_MOTORS == 1
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    void configureAZStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void configureAZStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+    void configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
+  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
   #endif
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    void configureALTStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void configureALTStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+    void configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
+  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
   #endif
 #endif
 
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+  bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
+#endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 // Configure the RA Driver (TMC2209 UART only)
-  void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #if SW_SERIAL_UART == 0
+    void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #elif SW_SERIAL_UART == 1
+    void configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   // Configure the DEC Driver (TMC2209 UART only)
-  void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #if SW_SERIAL_UART == 0
+    void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #elif SW_SERIAL_UART == 1
+    void configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+  #endif
 #endif
+
 
 // Configure the AZ/ALT drivers.
 #if AZIMUTH_ALTITUDE_MOTORS == 1
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #if SW_SERIAL_UART == 0
+      void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #elif SW_SERIAL_UART == 1
+      void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #endif
   #endif
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #if SW_SERIAL_UART == 0
+      void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #elif SW_SERIAL_UART == 1
+      void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #endif
   #endif
 #endif
   
@@ -134,10 +140,10 @@ public:
   void setRollCalibrationAngle(float angle);
 #endif
 
-  // Returns the number of steps the given motor turns to move one degree
+  // Returns the number of slew microsteps the given motor turns to move one degree
   float getStepsPerDegree(int which);
 
-  // Function to set the number of steps the given motor turns to move one 
+  // Function to set the number of slew microsteps the given motor turns to move one 
   // degree for each axis. This function stores the value in persistent storage
   void setStepsPerDegree(int which, float steps);
 
@@ -251,6 +257,9 @@ public:
   // Stops any guide operation in progress.
   void stopGuiding();
 
+  // Stops given guide operations in progress.
+  void stopGuiding(bool ra, bool dec);
+
   // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
   String DECString(byte type, byte active = 0);
 
@@ -273,7 +282,7 @@ public:
   void setManualSlewMode(bool state);
 
   // Set the speed of the given motor
-  void setSpeed(int which, float speed);
+  void setSpeed(int which, float speedDegsPerSec);
 
 #if AZIMUTH_ALTITUDE_MOTORS == 1
   // Support for moving the mount in azimuth and altitude (requires extra hardware)
@@ -293,16 +302,41 @@ public:
 
   // Clear all saved configuration data from persistent storage
   void clearConfiguration();
-  
+
   // Get Mount configuration data
   String getMountHardwareInfo();
+
+  // Get info about the configured steppers and drivers
+  String getStepperInfo();
 
   // Returns a flag indicating whether the mount is fully booted.
   bool isBootComplete();
 
   // Let the mount know that the system has finished booting
   void bootComplete();
+
+  DayTime getUtcTime();
+  DayTime getLocalTime();
+  LocalDate getLocalDate();
+
+  int getLocalUtcOffset() const;
+
+  void setLocalStartDate( int year, int month, int day );
+  void setLocalStartTime( DayTime localTime );
+  void setLocalUtcOffset( int offset );
+
+  DayTime calculateLst();
+  DayTime calculateHa();
+  
+  #if UART_CONNECTION_TEST_TX == 1
+  void testRA_UART_TX();
+  void testDEC_UART_TX();
+  #endif
 private:
+
+  #if UART_CONNECTION_TEST_TX == 1
+  void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
+  #endif
 
   // Reads values from EEPROM that configure the mount (if previously stored)
   void readPersistentData();
@@ -310,7 +344,7 @@ private:
   // Writes a 16-bit value to persistent (EEPROM) storage
   void writePersistentData(int which, long val);
 
-  void calculateRAandDECSteppers(float& targetRA, float& targetDEC);
+  void calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps) const;
   void displayStepperPosition();
   void moveSteppersTo(float targetRA, float targetDEC);
 
@@ -325,13 +359,12 @@ private:
     String mountStatusString();
   #endif
 
+  void autoCalcHa();
 
 private:
   LcdMenu* _lcdMenu;
-  float _stepsPerRADegree;
-  float _stepsPerDECDegree;
-  int _stepsPerAZDegree;
-  int _stepsPerALTDegree;
+  float _stepsPerRADegree;    // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
+  float _stepsPerDECDegree;   // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
   int _maxRASpeed;
   int _maxDECSpeed;
   int _maxAZSpeed;
@@ -342,10 +375,10 @@ private:
   int _maxALTAcceleration;
   int _backlashCorrectionSteps;
   int _moveRate;
-  long _raParkingPos;
-  long _decParkingPos;
-  long _decLowerLimit;
-  long _decUpperLimit;
+  long _raParkingPos;     // Parking position in slewing steps
+  long _decParkingPos;    // Parking position in slewing steps
+  long _decLowerLimit;    // Movement limit in slewing steps
+  long _decUpperLimit;    // Movement limit in slewing steps
 
 #if USE_GYRO_LEVEL == 1
   float _pitchCalibrationAngle;
@@ -371,15 +404,19 @@ private:
   AccelStepper* _stepperRA;
   AccelStepper* _stepperDEC;
   AccelStepper* _stepperTRK;
+  AccelStepper* _stepperGUIDE;
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper* _driverRA;
   #endif  
   #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper* _driverDEC;
   #endif  
+
   #if AZIMUTH_ALTITUDE_MOTORS == 1
     AccelStepper* _stepperAZ;
     AccelStepper* _stepperALT;
+    const long _stepsPerAZDegree;    // u-steps/degree (from CTOR)
+    const long _stepsPerALTDegree;   // u-steps/degree (from CTOR)
     bool _azAltWasRunning;
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       TMC2209Stepper* _driverAZ;
@@ -389,11 +426,12 @@ private:
     #endif 
   #endif
 
-  unsigned long _guideEndTime;
+  unsigned long _guideRaEndTime;
+  unsigned long _guideDecEndTime;
   unsigned long _lastMountPrint = 0;
   unsigned long _lastTrackingPrint = 0;
-  float _trackingSpeed;
-  float _trackingSpeedCalibration;
+  float _trackingSpeed;                 // RA u-steps/sec when in tracking mode
+  float _trackingSpeedCalibration;      // Dimensionless, very close to 1.0
   unsigned long _lastDisplayUpdate;
   unsigned long _trackerStoppedAt;
   bool _compensateForTrackerOff;
@@ -404,8 +442,12 @@ private:
   bool _slewingToHome;
   bool _slewingToPark;
   bool _bootComplete;
-  
-  static Mount* _instance;
+
+  int _localUtcOffset;
+  LocalDate _localStartDate;
+  DayTime _localStartTime;
+  long _localStartTimeSetMillis;
+
 };
 
 #endif

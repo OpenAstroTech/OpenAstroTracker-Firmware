@@ -1,47 +1,66 @@
-/*
-* This Configuration file contains basic settings. Use Configuration_adv for
-* more advanced adjustments! 
+/**
+* Configuration accumulates in order across 3 files: Configuration_local.hpp, Configuration.hpp, and Configuration_adv.hpp.
+*  - Configuration_local.hpp (see below) captures the local (primarily hardware) configuration.
+*  - Configuration.hpp (this file) adds reasonable default values for any data missing in Configuration_local.hpp.
+*  - Configuration_adv.hpp holds advanced configuration data, and is not usually required to be changed.
+* 
+* There should be no user-specified parameters in this file - everything should be specified in Configuration_local.hpp
+*
+* We support local configurations so that you can setup it up once with your hardware and pinout
+* and not need to worry about a new version from Git overwriting your setup. 
+* There are multiple ways to define a local config file:
+*  - For all boards/hardware configs:
+*    Create a file called Configuration_local.hpp (best to copy configuration_sample_local.hpp and 
+*    change it as needed)
+*  - Specific to a board:
+*    Create a file called Configuration_local_<board>.hpp, where <board> is either 'mega' or 
+*    'esp32' or (here, too, best to copy Configuration_sample_local.hpp and change it as needed). 
+*    The code automatically picks the right one at compile time. This is useful if you are 
+*    developer or just have multiple OATs. 
+*  - Custom configurations or advanced builds:
+*    Use Configuration_local.hpp to include an appropriate local configuration file e.g. according to 
+*    preprocessor directives specified on the command line. This is useful if you have multiple OATs, or wish 
+*    to build the software across many software configurations on the same platform.
+* 
+* These files won't be tracked by Git and thus will remain after branch changes or code updates. 
 */
 #pragma once
 
+// Include named constants for various features
 #include "Constants.hpp"
 
-/**
- * We support local configurations so that you can setup it up once with your hardware and pinout
- * and not need to worry about a new version from Git overwriting your setup. 
- * There are multiple ways to define a local config file:
- *  - For all boards/hardware configs
- *    Create a file called configuration_local.hpp (best to copy configuration_sample_local.hpp and 
- *    change it as needed)
- *  - Specific to a board
- *    Create a file called configuration_local_<board>.hpp, where <board> is either 'mega' or 
- *    'esp32' or (here, too, best to copy Configuration_sample_local.hpp and change it as needed). 
- *    The code automatically picks the right one at compile time. This is useful if you are 
- *    developer or just have multiple OATs. 
- *  - Specific to a hardware config
- *    Create a file called configuration_local_<foo>.hpp, where <foo> is whatever you want to use
- *    to identify that setup. Then uncomment the lines 45 and 46 below. This is useful if have 
- *    multiple OATs. 
- * 
- * These files won't be tracked by Git and thus will remain after branch changes or code updates. 
-  **/
+// Include the current software version.
+#include "Version.h"
 
-#if defined(ESP32) && __has_include("Configuration_local_esp32.hpp")                // ESP32
-    #include "Configuration_local_esp32.hpp"
-#elif defined(__AVR_ATmega2560__) && __has_include("Configuration_local_mega.hpp")  // Mega2560
-    #include "Configuration_local_mega.hpp"
-#elif __has_include("Configuration_local.hpp")                                      // Custom config
-    #include "Configuration_local.hpp"
+/**
+ * Use default values for any parameters the user didn't provide.
+ */
+
+// Uncomment the definition and set a board (see Constants.hpp for valid values) if you build in Arduino IDE.
+// PlatformIO will set this value automatically and no action is needed.
+#ifndef BOARD
+  // #define BOARD BOARD_AVR_MEGA2560
 #endif
+
+#ifndef BOARD
+  #error You have to specify the board
+#endif
+
+// Include the user-specific local configuration
+#include "LocalConfiguration.hpp"
 
 // Set to 1 for the northern hemisphere, 0 otherwise
 #ifndef NORTHERN_HEMISPHERE
 #define NORTHERN_HEMISPHERE 1
 #endif
 
-// Used display
+/**
+ * @brief Display & keypad configuration.
+ * See Constants.hpp for supported DISPLAY_TYPE options.
+ * Pin assignments vary based on display & keypad selection.
+ */
 #ifndef DISPLAY_TYPE
-#define DISPLAY_TYPE DISPLAY_TYPE_LCD_KEYPAD
+#define DISPLAY_TYPE DISPLAY_TYPE_NONE
 #endif
 
 // Used RA wheel version. Unless you printed your OAT before March 2020, you're using 
@@ -50,7 +69,10 @@
 #define RA_WHEEL_VERSION 4
 #endif
 
-// Stepper types/models. See supported stepper values. Change according to the steppers you are using
+/**
+ * @brief Stepper motor type in use on each axis.
+ * See Constants.hpp for supported options.
+ */
 #ifndef RA_STEPPER_TYPE
 #define RA_STEPPER_TYPE     STEPPER_TYPE_28BYJ48
 #endif
@@ -64,8 +86,10 @@
 #define ALT_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
 #endif
 
-// Driver selection
-// GENERIC drivers include A4988 and any Bipolar STEP/DIR based drivers. Note Microstep assignments in config_pins.
+/**
+ * @brief Stepper driver type in use on each axis.
+ * See Constants.hpp for supported DRIVER_TYPE options.
+ */
 #ifndef RA_DRIVER_TYPE
 #define RA_DRIVER_TYPE      DRIVER_TYPE_ULN2003
 #endif
@@ -95,26 +119,87 @@
 
 // Set these factors to correct Alt/Az arcsecond/step values
 #ifndef AZ_CORRECTION_FACTOR
-#define AZ_CORRECTION_FACTOR    1.0000
+#define AZ_CORRECTION_FACTOR    1.0000f
 #endif
 #ifndef ALT_CORRECTION_FACTOR
-#define ALT_CORRECTION_FACTOR    1.0000
+#define ALT_CORRECTION_FACTOR    1.0000f
 #endif
 
-// Set this to 1 if you are using a NEO6m GPS module for HA/LST and location automatic determination.
-// GPS uses Serial1 by default, which is pins 18/19 on Mega. Change in configuration_adv.hpp
-// If supported, download the library https://github.com/mikalhart/TinyGPSPlus/releases and extract it to C:\Users\*you*\Documents\Arduino\libraries
+/**
+ * @brief GPS receiver configuration.
+ * Set USE_GPS to 1 to enable, 0 or #undef to exclude GPS from configuration.
+ * On ATmega GPS uses hardware Serial1. No additional pins required. Change in configuration_adv.hpp
+ * On ESP32 GPS uses hardware Serial2. No additional pins required. Change in configuration_adv.hpp
+ * Note the potential serial port assignment conflict if stepper driver DRIVER_TYPE_TMC2209_UART is used.
+ */
 #ifndef USE_GPS
 #define USE_GPS 0
 #endif
+#ifndef GPS_BAUD_RATE
+#define GPS_BAUD_RATE 9600
+#endif
 
-// Set this according to external controlling program
+/**
+ * @brief External (USB) serial port configuration.
+ * See Constants.hpp for predefined SERIAL_BAUDRATE options, or customize as required.
+ */
 #ifndef SERIAL_BAUDRATE
 #define SERIAL_BAUDRATE SERIAL_BAUDRATE_ASCOM
 #endif
 
-// Set this to 1 if you are using a MPU6050 electronic level
-// Wire the board to 20/21 on Mega. Change pins in configuration_pins.hpp if you use other pins
+/**
+ * @brief Wifi configuration.
+ * Wifi is only supported on esp32.
+ * Set WIFI_ENABLED to 1 to enable, 0 or #undef to exclude Wifi from configuration.
+ * If Wifi is enabled then the WIFI_MODE and WIFI_HOSTNAME must be set.
+ * Requirements for WIFI_MODE:
+ *  WIFI_MODE_DISABLED (i.e. Wifi transceiver disabled)
+ *      No additional requirements.
+ *  WIFI_MODE_INFRASTRUCTURE (i.e. connect OAT to existing Wifi network):
+ *      WIFI_INFRASTRUCTURE_MODE_SSID & WIFI_INFRASTRUCTURE_MODE_WPAKEY must be set.
+ *  WIFI_MODE_AP_ONLY (i.e. set OAT as Wifi hotspot): 
+ *      WIFI_AP_MODE_WPAKEY must be set.
+ *  WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP (i.e. try WIFI_MODE_INFRASTRUCTURE, fall back to WIFI_MODE_AP_ONLY):
+ *      Requirements for both WIFI_MODE_INFRASTRUCTURE and WIFI_MODE_AP_ONLY must be satisfied.
+ * WIFI_INFRASTRUCTURE_MODE_WPAKEY & WIFI_AP_MODE_WPAKEY must not be shorter than 8 characters and not 
+ * longer than 32 characters. Do not use special characters or white spaces in the password (esp32 limitation).
+ * Note that enabling Wifi increases flash usage by about 420 kB.
+ */
+#ifndef WIFI_ENABLED
+  #define WIFI_ENABLED 0
+#endif
+#ifndef WIFI_MODE
+  #define WIFI_MODE WIFI_MODE_DISABLED
+#endif
+#if !defined(WIFI_HOSTNAME)
+  #define WIFI_HOSTNAME "OAT"
+#endif
+#if !defined(WIFI_INFRASTRUCTURE_MODE_SSID)
+  #define WIFI_INFRASTRUCTURE_MODE_SSID ""
+#endif
+#if !defined(WIFI_INFRASTRUCTURE_MODE_WPAKEY)
+  #define WIFI_INFRASTRUCTURE_MODE_WPAKEY ""
+#endif
+#if !defined(WIFI_AP_MODE_WPAKEY)
+  #define WIFI_AP_MODE_WPAKEY ""
+#endif
+
+/**
+ * @brief Bluetooth configuration.
+ * Bluetooth is only supported on esp32.
+ * Set BLUETOOTH_ENABLED to 1 to enable, 0 or #undef to exclude Bluetooth from configuration.
+ * If Bluetooth is enabled then the BLUETOOTH_DEVICE_NAME must be set.
+ * Note that enabling Bluetooth increases flash usage by about 627 kB.
+ */
+#ifndef BLUETOOTH_ENABLED
+  #define BLUETOOTH_ENABLED 0
+#endif
+
+/**
+ * @brief Gyro-based tilt/roll levelling configuration.
+ * Set USE_GYRO_LEVEL to 1 to enable, 0 or #undef to exclude gyro from configuration.
+ * On ATmega & ESP32 gyro uses hardware I2C. No additional pins required. 
+ */
 #ifndef USE_GYRO_LEVEL
 #define USE_GYRO_LEVEL 0
 #endif
@@ -124,9 +209,17 @@
 #define GYRO_AXIS_SWAP 1
 #endif
 
-// Set this to 1 if the mount has motorized Azimuth and Altitude adjustment. Set pins in configuration_pins.hpp. Change motor speeds in Configuration_adv.hpp
+/**
+ * @brief Automated azimuth/altitude adjustment configuration.
+ * Set AZIMUTH_ALTITUDE_MOTORS to 1 to enable, 0 or #undef to exclude AZ/ALT from configuration.
+ */
 #ifndef AZIMUTH_ALTITUDE_MOTORS
 #define AZIMUTH_ALTITUDE_MOTORS  0
+#endif
+
+// Enable dew heater output (for boards that have MOSFETs)
+#ifndef DEW_HEATER
+#define DEW_HEATER 0
 #endif
 
 // These values are needed to calculate the current position during initial alignment.
@@ -143,3 +236,27 @@
 #ifndef POLARIS_RA_SECOND
 #define POLARIS_RA_SECOND   34
 #endif
+
+// Set this to specify the amount of debug output OAT should send to the serial port.
+// Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
+// Debug output is useful if you are using Wifi to control the OAT or if you are issuing
+// manual commands via a terminal.
+#ifndef DEBUG_LEVEL
+#define DEBUG_LEVEL (DEBUG_NONE)
+#endif
+
+// Append board specific pins data.
+#if (BOARD == BOARD_AVR_MEGA2560)
+  #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
+#elif (BOARD == BOARD_ESP32_ESP32DEV)
+  #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
+#elif (BOARD == BOARD_AVR_MKS_GEN_L_V1)
+  #include "boards/AVR_MKS_GEN_L_V1/pins_MKS_GEN_L_V1.h"
+#elif (BOARD == BOARD_AVR_MKS_GEN_L_V2)
+  #include "boards/AVR_MKS_GEN_L_V2/pins_MKS_GEN_L_V2.h"
+#elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
+  #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
+#endif
+
+#include "Configuration_adv.hpp"
+#include "ConfigurationValidation.hpp"

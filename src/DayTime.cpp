@@ -1,3 +1,5 @@
+#include "inc/Globals.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "DayTime.hpp"
 
@@ -10,7 +12,7 @@
 // Parses the RA or DEC from a string that has an optional sign, a two digit degree, a seperator, a two digit minute, a seperator and a two digit second.
 // Does not correct for hemisphere (derived class Declination takes care of that)
 // For example:   -45*32:11 or 23:44:22
-DayTime DayTime::ParseFromMeade(String s)
+DayTime DayTime::ParseFromMeade(String const &s)
 {
   DayTime result;
   int i = 0;
@@ -69,20 +71,16 @@ DayTime::DayTime(const DayTime &other)
 
 DayTime::DayTime(int h, int m, int s)
 {
-  LOGV4(DEBUG_INFO, "DayTime ctor(%d, %d, %d)", h, m, s);
   long sgn = sign(h);
   h = abs(h);
-  totalSeconds = sgn * ((60L* h + m) * 60L + s);
-  LOGV6(DEBUG_INFO, "DayTime ctor(%d, %d, %d) -> %l -> %s", h, m, s, totalSeconds, ToString());
+  totalSeconds = sgn * ((60L * h + m) * 60L + s);
 }
 
 DayTime::DayTime(float timeInHours)
 {
-  LOGV2(DEBUG_INFO, "DayTime ctor(%f)", timeInHours);
   long sgn = fsign(timeInHours);
-  timeInHours = abs(timeInHours);
-  totalSeconds = sgn * round(timeInHours * 60 * 60);
-  LOGV4(DEBUG_INFO, "DayTime ctor(%f) -> %l -> %s", timeInHours, totalSeconds, ToString());
+  timeInHours = fabsf(timeInHours);
+  totalSeconds = sgn * static_cast<long>(roundf(timeInHours * 60.0f * 60.0f));
 }
 
 int DayTime::getHours() const
@@ -123,7 +121,7 @@ long DayTime::getTotalSeconds() const
 
 void DayTime::getTime(int &h, int &m, int &s) const
 {
-  long seconds = abs(totalSeconds);
+  long seconds = labs(totalSeconds);
 
   h = (int)(seconds / 3600L);
   seconds = seconds - (h * 3600L);
@@ -155,15 +153,14 @@ void DayTime::addHours(int deltaHours)
 
 void DayTime::checkHours()
 {
-  long limit = hourWrap * 3600L;
-  while (totalSeconds >= limit)
+  while (totalSeconds >= secondsPerDay)
   {
-    totalSeconds -= limit;
+    totalSeconds -= secondsPerDay;
   }
 
   while (totalSeconds < 0)
   {
-    totalSeconds += limit;
+    totalSeconds += secondsPerDay;
   }
 }
 
@@ -263,20 +260,24 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
   const char *f = format;
   char *p = targetBuffer;
 
-  achDegs[0] = sgn;
-  int i = 1;
+  int i = 0;
+  if (sgn != '\0')
+  {
+    achDegs[0] = sgn;
+    i++;
+  }
 
   if (degs >= 100)
   {
-    achDegs[i++] = '0' + (degs / 100);
-    degs /= 10;
+    achDegs[i++] = '0' + min(9L,(degs / 100));
+    degs = degs % 100;
   }
 
   printTwoDigits(achDegs + i, degs);
   printTwoDigits(achMins, mins);
   printTwoDigits(achSecs, secs);
 
-  char macro;
+  char macro = '\0';
   bool inMacro = false;
   while (*f)
   {
@@ -339,7 +340,7 @@ const char *DayTime::formatString(char *targetBuffer, const char *format, long *
 {
   long secs = pSecs == nullptr ? totalSeconds : *pSecs;
   char sgn = secs < 0 ? '-' : '+';
-  secs = abs(secs);
+  secs = labs(secs);
   long degs = secs / 3600;
   secs = secs - degs * 3600;
   long mins = secs / 60;

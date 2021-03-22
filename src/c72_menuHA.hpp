@@ -1,12 +1,13 @@
 #pragma once
+
+#include "../Configuration.hpp"
 #include "EPROMStore.hpp"
-#include "../Configuration_adv.hpp"
 
 #if DISPLAY_TYPE > 0
 #if USE_GPS == 0
 
 bool processHAKeys() {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
   if (lcdButtons.currentState() == btnUP) {
     DayTime ha(mount.HA());
@@ -35,8 +36,7 @@ bool processHAKeys() {
       break;
 
       case btnSELECT: {
-        EPROMStore::updateUint8(EPROMStore::HA_HOUR, mount.HA().getHours());
-        EPROMStore::updateUint8(EPROMStore::HA_MINUTE, mount.HA().getMinutes());
+        EEPROMStore::storeHATime(mount.HA());
         lcdMenu.printMenu("Stored.");
         mount.delay(500);
 
@@ -58,6 +58,9 @@ bool processHAKeys() {
           lcdMenu.setNextActive();
         }
       }
+      break;
+
+      default:
       break;
     }
   }

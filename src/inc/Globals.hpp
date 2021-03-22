@@ -1,8 +1,19 @@
 #pragma once
 
-// TODO (AS): This is just a tmp fix, we need to get rid of these globals
+/**
+ * These are only necessary for the Arduino IDE build, these are actually
+ * defined in `pre_build_script.py` which is run by platformio.
+ */
+#if !defined(PUSH_NO_WARNINGS)
+#define PUSH_NO_WARNINGS ;
+#endif
+#if !defined(POP_NO_WARNINGS)
+#define POP_NO_WARNINGS ;
+#endif
 
-extern int RAStepsPerDegree;
-extern int DECStepsPerDegree;
+PUSH_NO_WARNINGS
+#include <Arduino.h>
+#include <WString.h>
+POP_NO_WARNINGS
 
-extern bool inSerialControl;
+extern bool inSerialControl; // True when the serial port is in control

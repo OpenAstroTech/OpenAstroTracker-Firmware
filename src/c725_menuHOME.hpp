@@ -6,7 +6,7 @@
 byte subGoIndex = 0;
 
 bool processHomeKeys() {
-  byte key;
+  lcdButton_t key;
   bool waitForRelease = false;
 
   if (lcdButtons.keyChanged(&key)) {
@@ -35,6 +35,9 @@ bool processHomeKeys() {
       case btnRIGHT: {
         lcdMenu.setNextActive();
       }
+      break;
+
+      default:
       break;
     }
   }

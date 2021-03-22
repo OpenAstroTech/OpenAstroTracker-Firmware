@@ -1,9 +1,17 @@
-#include "LcdMenu.hpp"
-#include "Mount.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
-#include "inc/Config.hpp"
-#include "inc/Globals.hpp"
+#include "LcdMenu.hpp"
+#include "Mount.hpp"
+#include "Sidereal.hpp"
+
+PUSH_NO_WARNINGS
+#include <AccelStepper.h>
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || \
+  (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #include <TMCStepper.h>   // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
+#endif
+POP_NO_WARNINGS
 
 //mountstatus
 #define STATUS_PARKED              0B0000000000000000
@@ -37,48 +45,8 @@
 #define SLEW_MASK_WEST    B1000
 #define SLEW_MASK_ANY     B1111
 
-// EPROM constants
-#define EEPROM_MAGIC_MASK                  0xFE00    // If these bits are set to 0xBE00, something has been written to the EEPROM
-#define EEPROM_MAGIC_EXTENDED_MASK         0xFF00    // If these bits are set to 0xBF00, an extended value has been written to the EEPROM
-#define EEPROM_MAGIC_MARKER                0xCE00    // Changed to 0xCxxx in V1.8.60 since we changed RA and DEC Steps to be 10x (previous settings ignored)
-#define EEPROM_MAGIC_EXTENDED_MARKER       0xCF00    // Changed to 0xCxxx in V1.8.60 since we changed RA and DEC Steps to be 10x
-
-// The markjer bits for the first 8 values stored in EEPROM.
-#define EEPROM_RA_STEPS_BIT                0x0001
-#define EEPROM_DEC_STEPS_BIT               0x0002
-#define EEPROM_SPEED_FACTOR_BIT            0x0004
-#define EEPROM_BACKLASH_STEPS_BIT          0x0008
-#define EEPROM_LATITUDE_BIT                0x0010
-#define EEPROM_LONGITUDE_BIT               0x0020
-#define EEPROM_PITCH_OFFSET_BIT            0x0040
-#define EEPROM_ROLL_OFFSET_BIT             0x0080
-
-// The mask bits to test what is stored
-#define EEPROM_MAGIC_MASK_RA_STEPS         (EEPROM_MAGIC_MASK | EEPROM_RA_STEPS_BIT) 
-#define EEPROM_MAGIC_MASK_DEC_STEPS        (EEPROM_MAGIC_MASK | EEPROM_DEC_STEPS_BIT) 
-#define EEPROM_MAGIC_MASK_SPEED_FACTOR     (EEPROM_MAGIC_MASK | EEPROM_SPEED_FACTOR_BIT) 
-#define EEPROM_MAGIC_MASK_BACKLASH_STEPS   (EEPROM_MAGIC_MASK | EEPROM_BACKLASH_STEPS_BIT) 
-#define EEPROM_MAGIC_MASK_LATITUDE         (EEPROM_MAGIC_MASK | EEPROM_LATITUDE_BIT) 
-#define EEPROM_MAGIC_MASK_LONGITUDE        (EEPROM_MAGIC_MASK | EEPROM_LONGITUDE_BIT) 
-#define EEPROM_MAGIC_MASK_PITCH_OFFSET     (EEPROM_MAGIC_MASK | EEPROM_PITCH_OFFSET_BIT) 
-#define EEPROM_MAGIC_MASK_ROLL_OFFSET      (EEPROM_MAGIC_MASK | EEPROM_ROLL_OFFSET_BIT) 
-
-// The result bits (after masking with above mask) to indicate what is stored
-#define EEPROM_RA_STEPS_MARKER_BIT         (EEPROM_MAGIC_MARKER | EEPROM_RA_STEPS_BIT) 
-#define EEPROM_DEC_STEPS_MARKER_BIT        (EEPROM_MAGIC_MARKER | EEPROM_DEC_STEPS_BIT)
-#define EEPROM_SPEED_FACTOR_MARKER_BIT     (EEPROM_MAGIC_MARKER | EEPROM_SPEED_FACTOR_BIT) 
-#define EEPROM_BACKLASH_STEPS_MARKER_BIT   (EEPROM_MAGIC_MARKER | EEPROM_BACKLASH_STEPS_BIT) 
-#define EEPROM_LATITUDE_MARKER_BIT         (EEPROM_MAGIC_MARKER | EEPROM_LATITUDE_BIT) 
-#define EEPROM_LONGITUDE_MARKER_BIT        (EEPROM_MAGIC_MARKER | EEPROM_LONGITUDE_BIT) 
-#define EEPROM_PITCH_OFFSET_MARKER_BIT     (EEPROM_MAGIC_MARKER | EEPROM_PITCH_OFFSET_BIT) 
-#define EEPROM_ROLL_OFFSET_MARKER_BIT      (EEPROM_MAGIC_MARKER | EEPROM_ROLL_OFFSET_BIT) 
-
-// Extended bits
-#define EEPROM_PARKING_POS_MARKER_BIT         0x0001
-#define EEPROM_DEC_LIMIT_MARKER_BIT           0x0002
-
 // Seconds per astronomical day (23h 56m 4.0905s)
-#define SECONDS_PER_DAY 86164.0905
+const float secondsPerDay = 86164.0905f;
 
 const char* formatStringsDEC[] = {
   "",
@@ -98,29 +66,28 @@ const char* formatStringsRA[] = {
   "%02d%02d%02d",           // Compact
 };
 
-Mount* Mount::_instance = nullptr;
-Mount Mount::instance() { return *_instance; };
-
 const float siderealDegreesInHour = 14.95904348958;
 /////////////////////////////////
 //
 // CTOR
 //
 /////////////////////////////////
-Mount::Mount(float stepsPerRADegree, float stepsPerDECDegree, LcdMenu* lcdMenu) {
-   _instance = this;
-   
-  #if RA_DRIVER_TYPE != DRIVER_TYPE_ULN2003
-  _stepsPerRADegree = stepsPerRADegree * SET_MICROSTEPPING; // hier
-  #else
-  _stepsPerRADegree = stepsPerRADegree;
+Mount::Mount(LcdMenu* lcdMenu) 
+  #if AZIMUTH_ALTITUDE_MOTORS == 1
+    : _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
+    _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360),
+    _azAltWasRunning(false)
   #endif
-  #if DEC_DRIVER_TYPE != DRIVER_TYPE_ULN2003
-  _stepsPerDECDegree = stepsPerDECDegree * DEC_SLEW_MICROSTEPPING;
-  #else
-  _stepsPerDECDegree = stepsPerDECDegree;
-  #endif
+{
   _lcdMenu = lcdMenu;
+  initializeVariables();
+}
+
+void Mount::initializeVariables()
+{
+  _stepsPerRADegree = RA_STEPS_PER_DEGREE;    // u-steps per degree when slewing
+  _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
+
   _mountStatus = 0;
   _lastDisplayUpdate = 0;
   _stepperWasRunning = false;
@@ -130,20 +97,10 @@ Mount::Mount(float stepsPerRADegree, float stepsPerDECDegree, LcdMenu* lcdMenu) 
   _compensateForTrackerOff = false;
   _trackerStoppedAt = 0;
 
-  #if AZIMUTH_ALTITUDE_MOTORS == 1
-  _azAltWasRunning = false;
-  _stepsPerAZDegree = AZIMUTH_STEPS_PER_REV / 360;
-  _stepsPerALTDegree = ALTITUDE_STEPS_PER_REV / 360;
-  #endif
-
   _totalDECMove = 0;
   _totalRAMove = 0;
   _moveRate = 4;
-#if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-  _backlashCorrectionSteps = 16;
-#else
   _backlashCorrectionSteps = 0;
-#endif
   _correctForBacklash = false;
   _slewingToHome = false;
   _slewingToPark = false;
@@ -156,7 +113,14 @@ Mount::Mount(float stepsPerRADegree, float stepsPerDECDegree, LcdMenu* lcdMenu) 
   _pitchCalibrationAngle = 0;
   _rollCalibrationAngle = 0;
   #endif
+
+  _localUtcOffset = 0;
+  _localStartDate.year = 2021;
+  _localStartDate.month = 1;
+  _localStartDate.day = 1;
+  _localStartTimeSetMillis = -1;
 }
+
 
 /////////////////////////////////
 //
@@ -165,8 +129,9 @@ Mount::Mount(float stepsPerRADegree, float stepsPerDECDegree, LcdMenu* lcdMenu) 
 /////////////////////////////////
 void Mount::clearConfiguration()
 {
-  EPROMStore::updateUint16(EPROMStore::MAGIC_MARKER_AND_FLAGS, 0);  // Clear the magic marker and flags
-  EPROMStore::updateUint16(EPROMStore::EXTENDED_FLAGS, 0);          // Clear the extended flags
+  EEPROMStore::clearConfiguration();
+  initializeVariables();
+  readConfiguration();
 }
 
 /////////////////////////////////
@@ -186,285 +151,47 @@ void Mount::readConfiguration()
 // readPersistentData
 //
 /////////////////////////////////
-//
-// EEPROM storage location 5 must be 0xBE or 0xBF for the mount to read any data
-// Location 4 indicates what has been stored so far: 0000 0000
-//                                                   ^^^^ ^^^^
-//                                                   |||| ||||
-//                    Roll angle offset (19/20) -----+||| ||||
-//                   Pitch angle offset (17/18) ------+|| ||||
-//                            Longitude (14/15) -------+| ||||
-//                             Latitude (12/13) --------+ ||||
-//                       Backlash steps (10/11) ----------+|||
-//                           Speed factor (0/3) -----------+||
-//     DEC stepper motor steps per degree (8/9) ------------+|
-//      RA stepper motor steps per degree (6/7) -------------+
-//
-// If Location 5 is 0xBF, then an extended 16-bit flag is stored in 21/22 and 
-// indicates the additional fields that have been stored: 0000 0000 0000 0000
-//                                                        ^^^^ ^^^^ ^^^^ ^^^^
-//                                                                          |
-//     RA (23-26) and DEC (27-30) Parking offsets --------------------------+
-//
-/////////////////////////////////
 void Mount::readPersistentData()
 {
-  // Read the magic marker byte and state
-  uint16_t marker = EPROMStore::readUint16(EPROMStore::MAGIC_MARKER_AND_FLAGS);
-  LOGV2(DEBUG_INFO|DEBUG_EEPROM, F("Mount: EEPROM: Magic Marker: %x "), marker);
+  // EEPROMStore will always return valid data, even if no data is present in the store
 
-  #if DEBUG_LEVEL & DEBUG_EEPROM 
-    LOGV1(DEBUG_EEPROM, ((marker & EEPROM_MAGIC_MASK) == EEPROM_MAGIC_MARKER) ? F("EEPROM has values") : F("EEPROM does NOT have values"));
-    LOGV1(DEBUG_EEPROM, ((marker & EEPROM_MAGIC_EXTENDED_MASK) == EEPROM_MAGIC_EXTENDED_MARKER) ? F("EEPROM has extended values") : F("EEPROM does NOT have extended values"));
-  #endif
+  _stepsPerRADegree = EEPROMStore::getRAStepsPerDegree();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: RA steps/deg is %f"), _stepsPerRADegree);
 
+  _stepsPerDECDegree = EEPROMStore::getDECStepsPerDegree();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: DEC steps/deg is %f"), _stepsPerDECDegree);
 
-  if ((marker & EEPROM_MAGIC_MASK_RA_STEPS) == EEPROM_RA_STEPS_MARKER_BIT) {
-    _stepsPerRADegree = 0.1 * EPROMStore::readInt16(EPROMStore::RA_STEPS_DEGREE);
-    LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: RA Marker OK! RA steps/deg is %f"), _stepsPerRADegree);
-  }
-  else{
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for RA steps"));
-  }
+  float speed = EEPROMStore::getSpeedFactor();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: Speed factor is %f"), speed);
+  setSpeedCalibration(speed, false);
 
-  if ((marker & EEPROM_MAGIC_MASK_DEC_STEPS) == EEPROM_DEC_STEPS_MARKER_BIT) {
-    _stepsPerDECDegree = 0.1 * EPROMStore::readInt16(EPROMStore::DEC_STEPS_DEGREE);
-    LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: DEC Marker OK! DEC steps/deg is %f"), _stepsPerDECDegree);
-  }
-  else{
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for DEC steps"));
-  }
+  _backlashCorrectionSteps = EEPROMStore::getBacklashCorrectionSteps();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: Backlash correction is %d"), _backlashCorrectionSteps);
 
-  float speed = 1.0;
-  if ((marker & EEPROM_MAGIC_MASK_SPEED_FACTOR) == EEPROM_SPEED_FACTOR_MARKER_BIT) {
-    int adjust = EPROMStore::readUint8(EPROMStore::SPEED_FACTOR_LOW) + (int)EPROMStore::readUint8(EPROMStore::SPEED_FACTOR_HIGH) * 256;
-    speed = 1.0 + 1.0 * adjust / 10000.0;
-    LOGV3(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Speed Marker OK! Speed adjust is %d, speedFactor is %f"), adjust, speed);
-  }
-  else{
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for speed factor"));
-  }
+  _latitude = EEPROMStore::getLatitude();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: Latitude is %s"), _latitude.ToString());
 
-  if ((marker & EEPROM_MAGIC_MASK_BACKLASH_STEPS) == EEPROM_BACKLASH_STEPS_MARKER_BIT) {
-    _backlashCorrectionSteps = EPROMStore::readInt16(EPROMStore::BACKLASH_STEPS);
-    LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Backlash Steps Marker OK! Backlash correction is %d"), _backlashCorrectionSteps);
-  }
-  else {
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for backlash correction"));
-  }
+  _longitude = EEPROMStore::getLongitude();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: Longitude is %s"), _longitude.ToString());
 
-  if ((marker & EEPROM_MAGIC_MASK_LATITUDE) == EEPROM_LATITUDE_MARKER_BIT) {
-    _latitude = Latitude(1.0f * EPROMStore::readInt16(EPROMStore::LATITUDE) / 100.0f);
-    LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Latitude Marker OK! Latitude is %f"), _latitude.ToString());
-  } 
-  else {
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for latitude"));
-  }
-
-  if ((marker & EEPROM_MAGIC_MASK_LONGITUDE) == EEPROM_LONGITUDE_MARKER_BIT) {
-    _longitude = Longitude(1.0f * EPROMStore::readInt16(EPROMStore::LONGITUDE) / 100.0f);
-    LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Longitude Marker OK! Longitude is %f"), _longitude.ToString());
-  } 
-  else {
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for longitude"));
-  }
+  _localUtcOffset = EEPROMStore::getUtcOffset();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: UTC offset is %d"), _localUtcOffset);
 
 #if USE_GYRO_LEVEL == 1
-  if ((marker & EEPROM_MAGIC_MASK_PITCH_OFFSET) == EEPROM_PITCH_OFFSET_MARKER_BIT) {
-    uint16_t angleValue = EPROMStore::readUint16(EPROMStore::PITCH_OFFSET);
-    _pitchCalibrationAngle = (((long)angleValue) - 16384) / 100.0;
-    LOGV3(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Pitch Offset Marker OK! Pitch Offset is %x (%f)"), angleValue, _pitchCalibrationAngle);
-  }
-    else{
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for Pitch Offset"));
-  }
+  _pitchCalibrationAngle = EEPROMStore::getPitchCalibrationAngle();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: Pitch Offset is %f"), _pitchCalibrationAngle);
 
-  if ((marker & EEPROM_MAGIC_MASK_ROLL_OFFSET) == EEPROM_ROLL_OFFSET_MARKER_BIT) {
-    uint16_t angleValue = EPROMStore::readUint16(EPROMStore::ROLL_OFFSET);
-    _rollCalibrationAngle = (((long)angleValue) - 16384) / 100.0;
-    LOGV3(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Roll Offset Marker OK! Roll Offset is %x (%f)"), angleValue, _rollCalibrationAngle);
-  }
-  else {
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for Roll Offset"));
-  }
+  _rollCalibrationAngle = EEPROMStore::getRollCalibrationAngle();
+  LOGV2(DEBUG_INFO,F("Mount: EEPROM: Roll Offset is %f"), _rollCalibrationAngle);
 #endif
 
-  if ((marker & EEPROM_MAGIC_EXTENDED_MASK) == EEPROM_MAGIC_EXTENDED_MARKER) {
-    LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Magic Marker is %x, reading extended"), marker);
-    uint16_t nextMarker = EPROMStore::readUint16(EPROMStore::EXTENDED_FLAGS);
-    LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: ExtendedMarker bitfield is %x"), nextMarker);
-    if (nextMarker & EEPROM_PARKING_POS_MARKER_BIT){
-      _raParkingPos = EPROMStore::readInt32(EPROMStore::RA_PARKING_POS);
-      _decParkingPos = EPROMStore::readInt32(EPROMStore::DEC_PARKING_POS);
-      LOGV3(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: Parking position read as R:%l, D:%l"), _raParkingPos, _decParkingPos);
-    }
-    else{
-      LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for Parking position"));
-    }
-    if (nextMarker & EEPROM_DEC_LIMIT_MARKER_BIT){
-      _decLowerLimit = EPROMStore::readInt32(EPROMStore::DEC_LOWER_LIMIT);
-      _decUpperLimit = EPROMStore::readInt32(EPROMStore::DEC_UPPER_LIMIT);
-      LOGV3(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: DEC limitsread as %l -> %l"), _decLowerLimit, _decUpperLimit );
-    }
-    else{
-      LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No stored value for Parking position"));
-    }
-    
-  } 
-  else {
-    LOGV1(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM: No ExtendedMarker present"));
-  }
+  _raParkingPos = EEPROMStore::getRAParkingPos();
+  _decParkingPos = EEPROMStore::getDECParkingPos();
+  LOGV3(DEBUG_INFO,F("Mount: EEPROM: Parking position read as R:%l, D:%l"), _raParkingPos, _decParkingPos);
 
-  setSpeedCalibration(speed, false);
-}
-
-/////////////////////////////////
-//
-// writePersistentData
-//
-/////////////////////////////////
-void Mount::writePersistentData(int which, long val)
-{
-  uint8_t flag = 0;
-  uint16_t extendedFlag  = 0x0000;
-  bool writeExtended = false;
-
-  // If we're written something before...
-  uint16_t magicMarker = EPROMStore::readUint16(EPROMStore::MAGIC_MARKER_AND_FLAGS);
-  LOGV3(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write(%d): Marker is %x"), which, magicMarker);
-  if ((magicMarker & EEPROM_MAGIC_MASK) == EEPROM_MAGIC_MARKER) {
-    // ... read the current state ...
-    flag = magicMarker & 0xFF;
-    if ((magicMarker & EEPROM_MAGIC_EXTENDED_MASK) == EEPROM_MAGIC_EXTENDED_MARKER) {
-      extendedFlag = EPROMStore::readUint16(EPROMStore::EXTENDED_FLAGS);
-      LOGV4(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Marker is 0xCF, flag is %x, extended flag is %x (%d)"), flag, extendedFlag, extendedFlag);
-    }
-    else{
-      LOGV3(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Marker is 0xCE, flag is %x (%d)"), flag, flag);
-    }
-  }
-
-  switch (which) {
-    case EEPROM_RA:
-    {
-      // ... set bit 0 to indicate RA value has been written
-      flag |= EEPROM_RA_STEPS_BIT;
-      EPROMStore::updateInt16(EPROMStore::RA_STEPS_DEGREE, val);
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating RA steps to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_DEC:
-    {
-      // ... set bit 1 to indicate DEC value has been written
-      flag |= EEPROM_DEC_STEPS_BIT;
-      EPROMStore::updateInt16(EPROMStore::DEC_STEPS_DEGREE, val);
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating DEC steps to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_SPEED:
-    {
-      // ... set bit 3 to indicate speed factor value has been written
-      flag |= EEPROM_SPEED_FACTOR_BIT;
-      EPROMStore::updateUint8(EPROMStore::SPEED_FACTOR_LOW, val & 0xFF);
-      EPROMStore::updateUint8(EPROMStore::SPEED_FACTOR_HIGH, (val >> 8) & 0xFF);
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating Speed factor to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_BACKLASH:
-    {
-      // ... set bit 4 to indicate backlash has been written
-      flag |= EEPROM_BACKLASH_STEPS_BIT;
-      EPROMStore::updateInt16(EPROMStore::BACKLASH_STEPS, val);
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating Backlash to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_LATITUDE:
-    {
-      // ... set bit 5 to indicate Latitude x100 has been written
-      flag |= EEPROM_LATITUDE_BIT;
-      EPROMStore::updateInt16(EPROMStore::LATITUDE, val);   // Latitude has already been scaled
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating Latitude to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_LONGITUDE:
-    {
-      // ... set bit 6 to indicate Longitude x100 has been written
-      flag |= EEPROM_LONGITUDE_BIT;
-      EPROMStore::updateInt16(EPROMStore::LONGITUDE, val); // Longitude has already been scaled
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating Longitude to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_PITCH_OFFSET:
-    {
-      // ... set bit 7 to indicate pitch offset angle value has been written
-      flag |= EEPROM_PITCH_OFFSET_BIT;
-      EPROMStore::updateUint16(EPROMStore::PITCH_OFFSET, val);  // Pitch has already been scaled
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating Pitch Offset to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_ROLL_OFFSET:
-    {
-      // ... set bit 8 to indicate pitch offset angle value has been written
-      flag |= EEPROM_ROLL_OFFSET_BIT;
-      EPROMStore::updateUint16(EPROMStore::ROLL_OFFSET, val);   // Roll has already been scaled
-      LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating Roll Offset to %d"), (int)val);
-    }
-    break;
-
-    case EEPROM_RA_PARKING_POS:
-    case EEPROM_DEC_PARKING_POS:
-    {
-      // ... set bit 0 in extended flag to indicate Parking pos has been written to 23-30
-      writeExtended = true;
-      extendedFlag |= EEPROM_PARKING_POS_MARKER_BIT;
-      if (which == EEPROM_RA_PARKING_POS ){
-        EPROMStore::updateInt32(EPROMStore::RA_PARKING_POS, val);
-        LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating RA Parking Pos to %l"), val);
-      }
-      else{
-        EPROMStore::updateInt32(EPROMStore::DEC_PARKING_POS, val);
-        LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating DEC Parking Pos to %l"), val);
-      }
-    }
-    break;
-
-    case EEPROM_DEC_UPPER_LIMIT:
-    case EEPROM_DEC_LOWER_LIMIT:
-    {
-      // ... set bit 1 in extended flag to indicate Parking pos has been written to 23-30
-      writeExtended = true;
-      extendedFlag |= EEPROM_DEC_LIMIT_MARKER_BIT;
-      if (which == EEPROM_DEC_UPPER_LIMIT ){
-        EPROMStore::updateInt32(EPROMStore::DEC_UPPER_LIMIT, val);
-        LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating DEC Upper limit to %l"), val);
-      }
-      else {
-        EPROMStore::updateInt32(EPROMStore::DEC_LOWER_LIMIT, val);
-        LOGV2(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: Updating DEC Lower limit to %l"), val);
-      }
-    }
-    break;
-  }
-
-  if (writeExtended) {
-    magicMarker |= EEPROM_MAGIC_EXTENDED_MARKER;
-    LOGV4(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: New Marker is %x, extended flag is %x (%d)"), magicMarker, extendedFlag, extendedFlag);
-    EPROMStore::updateUint8(EPROMStore::MAGIC_MARKER, magicMarker >> 8);
-    EPROMStore::updateUint16(EPROMStore::EXTENDED_FLAGS, extendedFlag);
-  }
-  else {
-    magicMarker = (magicMarker & ~EEPROM_MAGIC_MASK) | EEPROM_MAGIC_MARKER;
-    LOGV4(DEBUG_INFO|DEBUG_EEPROM,F("Mount: EEPROM Write: New Marker is %x, flag is %x (%d)"), magicMarker, flag, flag);
-    EPROMStore::updateUint8(EPROMStore::MAGIC_MARKER, magicMarker >> 8);
-    EPROMStore::updateUint8(EPROMStore::FLAGS, flag);
-  }
+  _decLowerLimit = EEPROMStore::getDECLowerLimit();
+  _decUpperLimit = EEPROMStore::getDECUpperLimit();
+  LOGV3(DEBUG_INFO,F("Mount: EEPROM: DEC limits read as %l -> %l"), _decLowerLimit, _decUpperLimit);
 }
 
 /////////////////////////////////
@@ -473,12 +200,12 @@ void Mount::writePersistentData(int which, long val)
 //
 /////////////////////////////////
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-void Mount::configureRAStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
+void Mount::configureRAStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
 {
 #if NORTHERN_HEMISPHERE
-  _stepperRA = new AccelStepper(stepMode, pin4, pin3, pin2, pin1);
+  _stepperRA = new AccelStepper((RA_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
 #else
-  _stepperRA = new AccelStepper(stepMode, pin1, pin2, pin3, pin4);
+  _stepperRA = new AccelStepper((RA_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
 #endif
   _stepperRA->setMaxSpeed(maxSpeed);
   _stepperRA->setAcceleration(maxAcceleration);
@@ -487,38 +214,43 @@ void Mount::configureRAStepper(byte stepMode, byte pin1, byte pin2, byte pin3, b
 
   // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
 #if NORTHERN_HEMISPHERE
-  _stepperTRK = new AccelStepper(HALFSTEP_MODE, pin4, pin3, pin2, pin1);
+  _stepperTRK = new AccelStepper((RA_TRACKING_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
 #else
-  _stepperTRK = new AccelStepper(HALFSTEP_MODE, pin1, pin2, pin3, pin4);
+  _stepperTRK = new AccelStepper((RA_TRACKING_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
 #endif
-  _stepperTRK->setMaxSpeed(10);
+  _stepperTRK->setMaxSpeed(10000);
   _stepperTRK->setAcceleration(2500);
 }
 #endif
 
 #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-void Mount::configureRAStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-  _stepperRA = new AccelStepper(stepMode, pin1, pin2);
+  _stepperRA = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
   _stepperRA->setMaxSpeed(maxSpeed);
   _stepperRA->setAcceleration(maxAcceleration);
   _maxRASpeed = maxSpeed;
   _maxRAAcceleration = maxAcceleration;
 
   // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-  _stepperTRK = new AccelStepper(DRIVER_MODE, pin1, pin2);
+  _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
-  _stepperTRK->setMaxSpeed(500);
+  _stepperTRK->setMaxSpeed(10000);
   _stepperTRK->setAcceleration(5000);
 
-  #if NORTHERN_HEMISPHERE != 1
-  _stepperRA->setPinsInverted(true, false, false);
-  _stepperTRK->setPinsInverted(true, false, false);
+  #if NORTHERN_HEMISPHERE != 1 && RA_INVERT_DIR == 0
+    _stepperRA->setPinsInverted(true, false, false);
+    _stepperTRK->setPinsInverted(true, false, false);
   #endif
   
-  #if RA_INVERT_DIR == 1
-  _stepperRA->setPinsInverted(true, false, false);
-  _stepperTRK->setPinsInverted(true, false, false);
+  #if RA_INVERT_DIR == 1 && NORTHERN_HEMISPHERE == 1
+    _stepperRA->setPinsInverted(true, false, false);
+    _stepperTRK->setPinsInverted(true, false, false);
+  #endif
+
+  #if NORTHERN_HEMISPHERE != 1 && RA_INVERT_DIR == 1
+    _stepperRA->setPinsInverted(false, false, false);
+    _stepperTRK->setPinsInverted(false, false, false);
   #endif
 }
 #endif
@@ -529,31 +261,42 @@ void Mount::configureRAStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed
 //
 /////////////////////////////////
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
+void Mount::configureDECStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
 {
 #if NORTHERN_HEMISPHERE
-  _stepperDEC = new AccelStepper(stepMode, pin1, pin2, pin3, pin4);
+  _stepperDEC = new AccelStepper((DEC_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
 #else
-  _stepperDEC = new AccelStepper(stepMode, pin4, pin3, pin2, pin1);
+  _stepperDEC = new AccelStepper((DEC_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
 #endif
   _stepperDEC->setMaxSpeed(maxSpeed);
   _stepperDEC->setAcceleration(maxAcceleration);
   _maxDECSpeed = maxSpeed;
   _maxDECAcceleration = maxAcceleration;
+
+  _stepperGUIDE = new AccelStepper((DEC_GUIDE_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
+  _stepperGUIDE->setMaxSpeed(10000); 
+  _stepperGUIDE->setAcceleration(6000);
 }
 #endif
 
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-  _stepperDEC = new AccelStepper(stepMode, pin1, pin2);
+  _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
   _stepperDEC->setMaxSpeed(maxSpeed);
   _stepperDEC->setAcceleration(maxAcceleration);
   _maxDECSpeed = maxSpeed;
   _maxDECAcceleration = maxAcceleration;
   
+  // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
+  _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+
+  _stepperGUIDE->setMaxSpeed(10000);
+  _stepperGUIDE->setAcceleration(5000);
+
   #if DEC_INVERT_DIR == 1
   _stepperDEC->setPinsInverted(true, false, false);
+  _stepperGUIDE->setPinsInverted(true, false, false);
   #endif
 }
 #endif
@@ -565,18 +308,18 @@ void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpee
 /////////////////////////////////
 #if AZIMUTH_ALTITUDE_MOTORS == 1
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    void Mount::configureAZStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
+    void Mount::configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
     {
-      _stepperAZ = new AccelStepper(stepMode, pin1, pin2, pin3, pin4);
+      _stepperAZ = new AccelStepper((AZ_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
       _stepperAZ->setSpeed(0);
       _stepperAZ->setMaxSpeed(maxSpeed);
       _stepperAZ->setAcceleration(maxAcceleration);
     }
   #endif
-  #if AZ_DRIVER_TYPE == DRIVER_TYPE_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void Mount::configureAZStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+  #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
     {
-      _stepperAZ = new AccelStepper(stepMode, pin1, pin2);
+      _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
       _stepperAZ->setMaxSpeed(maxSpeed);
       _stepperAZ->setAcceleration(maxAcceleration);
       _maxAZSpeed = maxSpeed;
@@ -584,18 +327,18 @@ void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpee
     }
   #endif
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    void Mount::configureALTStepper(byte stepMode, byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
+    void Mount::configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
     {
-      _stepperALT = new AccelStepper(stepMode, pin1, pin2, pin3, pin4);
+      _stepperALT = new AccelStepper((ALT_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
       _stepperALT->setSpeed(0);
       _stepperALT->setMaxSpeed(maxSpeed);
       _stepperALT->setAcceleration(maxAcceleration);
     }
   #endif
-  #if ALT_DRIVER_TYPE == DRIVER_TYPE_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void Mount::configureALTStepper(byte stepMode, byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+  #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
     {
-      _stepperALT = new AccelStepper(stepMode, pin1, pin2);
+      _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
       _stepperALT->setMaxSpeed(maxSpeed);
       _stepperALT->setAcceleration(maxAcceleration);
       _maxALTSpeed = maxSpeed;
@@ -604,32 +347,102 @@ void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpee
   #endif  
 #endif
 
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if UART_CONNECTION_TEST_TXRX == 1
+bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
+    LOGV2(DEBUG_STEPPERS, F("Testing UART Connection to %s driver..."), driverKind);
+    for(int i=0; i<5; i++) {
+        if(driver->test_connection() == 0) {
+            LOGV2(DEBUG_STEPPERS, F("UART connection to %s driver successful."), driverKind);
+            return true;
+        }
+        else {
+          delay(500);
+        }
+    }
+    LOGV2(DEBUG_STEPPERS, F("UART connection to %s driver failed."), driverKind);
+    return false;
+}
+#endif
+#endif
+
 /////////////////////////////////
 //
 // configureRAdriver
 // TMC2209 UART only
 /////////////////////////////////
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if SW_SERIAL_UART == 0
   void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverRA = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverRA->begin();
+    bool _UART_Rx_connected = false;
     #if RA_AUDIO_FEEDBACK == 1
-    _driverRA->en_spreadCycle(1);
+      _driverRA->en_spreadCycle(1);
     #endif
-    _driverRA->toff(4);
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverRA->toff(0);    
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+      _driverRA->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
+    _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverRA->toff(1);
     _driverRA->blank_time(24);
-    _driverRA->rms_current(rmscurrent);
-    _driverRA->microsteps(TRACKING_MICROSTEPPING);
+    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
-    _driverRA->ihold(1); // its save to assume that the only time RA stands still is during parking and the current can be limited to a minimum
-    //_driverRA->semin(2);
-    //_driverRA->semax(5);
-    //_driverRA->sedn(0b01);
-    //_driverRA->SGTHRS(10);
-    _driverRA->irun(31);
+    _driverRA->semin(0); //disable CoolStep so that current is consistent
+    _driverRA->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA motor rms_current: %d mA"), _driverRA->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA CS value: %d"), _driverRA->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA vsense: %d"), _driverRA->vsense());
+    }
   }
+#elif SW_SERIAL_UART == 1
+  void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+  {
+    _driverRA = new TMC2209Stepper(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
+    _driverRA->beginSerial(19200);
+    _driverRA->mstep_reg_select(true);
+    _driverRA->pdn_disable(true);
+    bool _UART_Rx_connected = false;
+    #if RA_AUDIO_FEEDBACK == 1
+      _driverRA->en_spreadCycle(1);
+    #endif
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverRA->toff(0);   
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverRA->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
+    _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverRA->toff(1);
+    _driverRA->blank_time(24);
+    _driverRA->semin(0); //disable CoolStep so that current is consistent
+    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
+    _driverRA->fclktrim(4);
+    _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverRA->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA motor rms_current: %d mA"), _driverRA->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA CS value: %d"), _driverRA->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA vsense: %d"), _driverRA->vsense());
+    }
+  }
+#endif
 #endif
 
 /////////////////////////////////
@@ -638,23 +451,75 @@ void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpee
 // TMC2209 UART only
 /////////////////////////////////
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if SW_SERIAL_UART == 0
   void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverDEC->begin();
-    _driverDEC->blank_time(24);
+    bool _UART_Rx_connected = false;
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
     #endif
-    _driverDEC->rms_current(rmscurrent);
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverDEC->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverDEC->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
+    _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverDEC->toff(1);
+    _driverDEC->blank_time(24);
+    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(5);
-    _driverDEC->semax(2);
-    _driverDEC->sedn(0b01);
+    _driverDEC->semin(0); //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
-    _driverDEC->ihold(DEC_HOLDCURRENT);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC motor rms_current: %d mA"), _driverDEC->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC CS value: %d"), _driverDEC->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC vsense: %d"), _driverDEC->vsense());
+    }
   }
+#elif SW_SERIAL_UART == 1
+  void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+  {
+    _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
+    _driverDEC->beginSerial(19200);
+    _driverDEC->mstep_reg_select(true);
+    _driverDEC->pdn_disable(true);
+    bool _UART_Rx_connected = false;
+    #if DEC_AUDIO_FEEDBACK == 1
+    _driverDEC->en_spreadCycle(1);
+    #endif
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverDEC->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverDEC->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
+    _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverDEC->toff(1);
+    _driverDEC->blank_time(24);
+    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
+    _driverDEC->TCOOLTHRS(0xFFFFF);
+    _driverDEC->semin(0); //disable CoolStep so that current is consistent
+    _driverDEC->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC motor rms_current: %d mA"), _driverDEC->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC CS value: %d"), _driverDEC->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC vsense: %d"), _driverDEC->vsense());
+    }
+  }
+#endif
 #endif
 
 /////////////////////////////////
@@ -662,21 +527,76 @@ void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpee
 // configureAZdriver
 // TMC2209 UART only
 /////////////////////////////////
-#if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if (AZIMUTH_ALTITUDE_MOTORS == 1) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#if SW_SERIAL_UART == 0
   void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverAZ = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverAZ->begin();
+    bool _UART_Rx_connected = false;
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
     #endif
-    _driverAZ->toff(4);
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverAZ->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverAZ->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->toff(1);
     _driverAZ->blank_time(24);
-    _driverAZ->rms_current(rmscurrent);
-    _driverAZ->microsteps(AZ_MICROSTEPPING);
-    _driverAZ->fclktrim(4);
+    _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverAZ->semin(0); //disable CoolStep so that current is consistent
+    _driverAZ->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ motor rms_current: %d mA"), _driverAZ->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ CS value: %d"), _driverAZ->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ vsense: %d"), _driverAZ->vsense());
+    }
   }
+#elif SW_SERIAL_UART == 1
+  void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+  {
+    _driverAZ = new TMC2209Stepper(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
+    _driverAZ->beginSerial(19200);
+    _driverAZ->mstep_reg_select(true);
+    _driverAZ->pdn_disable(true);
+    bool _UART_Rx_connected = false;
+    #if AZ_AUDIO_FEEDBACK == 1
+      _driverAZ->en_spreadCycle(1);
+    #endif
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverAZ->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverAZ->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->toff(1);
+    _driverAZ->blank_time(24);
+    _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
+    _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverAZ->semin(0); //disable CoolStep so that current is consistent
+    _driverAZ->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ motor rms_current: %d mA"), _driverAZ->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ CS value: %d"), _driverAZ->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ vsense: %d"), _driverAZ->vsense());
+    }
+  }
+#endif
 #endif
 
 /////////////////////////////////
@@ -684,21 +604,76 @@ void Mount::configureDECStepper(byte stepMode, byte pin1, byte pin2, int maxSpee
 // configureALTdriver
 // TMC2209 UART only
 /////////////////////////////////
-#if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if (AZIMUTH_ALTITUDE_MOTORS == 1) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#if SW_SERIAL_UART == 0
   void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverALT = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverALT->begin();
+   bool _UART_Rx_connected = false;
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
     #endif
-    _driverALT->toff(4);
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverALT->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverALT->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverALT->toff(1);
     _driverALT->blank_time(24);
-    _driverALT->rms_current(rmscurrent);
-    _driverALT->microsteps(ALT_MICROSTEPPING);
-    _driverALT->fclktrim(4);
+    _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverALT->semin(0); //disable CoolStep so that current is consistent
+    _driverALT->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT motor rms_current: %d mA"), _driverALT->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT CS value: %d"), _driverALT->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT vsense: %d"), _driverALT->vsense());
+    }
   }
+#elif SW_SERIAL_UART == 1
+  void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+  {
+    _driverALT = new TMC2209Stepper(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
+    _driverALT->beginSerial(19200);
+    _driverALT->mstep_reg_select(true);
+    _driverALT->pdn_disable(true);    
+    bool _UART_Rx_connected = false;
+    #if ALT_AUDIO_FEEDBACK == 1
+      _driverALT->en_spreadCycle(1);
+    #endif
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverALT->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverALT->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverALT->toff(1);
+    _driverALT->blank_time(24);
+    _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
+    _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverALT->semin(0); //disable CoolStep so that current is consistent
+    _driverALT->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT motor rms_current: %d mA"), _driverALT->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT CS value: %d"), _driverALT->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT vsense: %d"), _driverALT->vsense());
+    }
+  }
+#endif
 #endif
 
 /////////////////////////////////
@@ -722,22 +697,16 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage) {
   LOGV2(DEBUG_MOUNT, F("Mount: Current tracking speed is %f steps/sec"), _trackingSpeed);
 
   // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
-  // This is 23h 56m 4.0905s
-  #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-  _trackingSpeed = _trackingSpeedCalibration * RA_STEPS_PER_DEGREE * TRACKING_MICROSTEPPING * 360.0 / SECONDS_PER_DAY;
-  #else
-  _trackingSpeed = _trackingSpeedCalibration * RA_STEPS_PER_DEGREE * 360.0 / SECONDS_PER_DAY;
-  #endif
+  // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
+  // Also compensate for higher precision microstepping in tracking mode
+  _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING/RA_SLEW_MICROSTEPPING) * 360.0f / secondsPerDay;   // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+  LOGV2(DEBUG_MOUNT, F("Mount: RA steps per degree is %f steps/deg"), _stepsPerRADegree);
   LOGV2(DEBUG_MOUNT, F("Mount: New tracking speed is %f steps/sec"), _trackingSpeed);
 
-  if (saveToStorage) {
-    val = (val - 1.0) * 10000;
-    if (val > 32766) val = 32766;
-    if (val < -32766) val = -32766;
-    writePersistentData(EEPROM_SPEED, (int)floor(val));
-  }
+  if (saveToStorage) 
+    EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
 
-  // If we are currently tracking, update the speed.
+  // If we are currently tracking, update the speed. No need to update microstepping mode
   if (isSlewingTRK()) {
     LOGV2(DEBUG_STEPPERS, F("SpeedCal: TRK.setSpeed(%f)"), _trackingSpeed);
     _stepperTRK->setSpeed(_trackingSpeed);
@@ -763,10 +732,8 @@ float Mount::getPitchCalibrationAngle()
 /////////////////////////////////
 void Mount::setPitchCalibrationAngle(float angle)
 {
-    uint16_t angleValue = (angle * 100) + 16384;
-    LOGV3(DEBUG_GYRO, "Mount: Setting Pitch calibration to %d (%f)", angleValue, angle);
-    writePersistentData(EEPROM_PITCH_OFFSET, angleValue);
-    _pitchCalibrationAngle = angle;
+  _pitchCalibrationAngle = angle;
+  EEPROMStore::storePitchCalibrationAngle(_pitchCalibrationAngle);
 }
 
 /////////////////////////////////
@@ -787,10 +754,8 @@ float Mount::getRollCalibrationAngle()
 /////////////////////////////////
 void Mount::setRollCalibrationAngle(float angle)
 {
-    uint16_t angleValue = (angle * 100) + 16384;
-    LOGV3(DEBUG_GYRO, "Mount: Setting Roll calibration to %d (%f)", angleValue, angle);
-    writePersistentData(EEPROM_ROLL_OFFSET, angleValue);
-    _rollCalibrationAngle = angle;
+  _rollCalibrationAngle = angle;
+  EEPROMStore::storeRollCalibrationAngle(_rollCalibrationAngle);
 }
 #endif
 
@@ -802,10 +767,10 @@ void Mount::setRollCalibrationAngle(float angle)
 float Mount::getStepsPerDegree(int which)
 {
   if (which == RA_STEPS) {
-    return _stepsPerRADegree;
+    return _stepsPerRADegree;   // u-steps/degree
   }
   if (which == DEC_STEPS) {
-    return _stepsPerDECDegree;
+    return _stepsPerDECDegree;  // u-steps/degree
   }
 
   return 0;
@@ -817,18 +782,15 @@ float Mount::getStepsPerDegree(int which)
 //
 /////////////////////////////////
 // Function to set steps per degree for each axis. This function stores the value in persistent storage.
-// The EEPROM storage location 5 is set to 0xBE if this value has ever been written. The storage location 4
-// contains a bitfield indicating which values have been stored. Currently bit 0 is used for RA and bit 1 for DEC.
-// We store 10x the amount of steps (essentially storing 1/10th resolution)
 void Mount::setStepsPerDegree(int which, float steps) {
   if (which == DEC_STEPS) {
-    writePersistentData(EEPROM_DEC, (int)round(steps * 10));
     _stepsPerDECDegree = steps;
-
+    EEPROMStore::storeDECStepsPerDegree(_stepsPerDECDegree);
   }
   else if (which == RA_STEPS) {
-    writePersistentData(EEPROM_RA , (int)round(steps * 10));
     _stepsPerRADegree = steps;
+    EEPROMStore::storeRAStepsPerDegree(_stepsPerRADegree);
+    setSpeedCalibration(_trackingSpeedCalibration, false);
   }
 }
 
@@ -847,19 +809,69 @@ int Mount::getBacklashCorrection()
 // getMountHardwareInfo
 //
 /////////////////////////////////
+String Mount::getStepperInfo()
+{
+  String ret = "";
+
+  #if RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    ret += "U";
+  #elif RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    ret += "TU";
+  #elif RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
+    ret += "TS";
+  #elif RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
+    ret += "A";
+  #else
+    ret += "?";
+  #endif
+
+  ret += ",";
+  ret += String(RA_SLEW_MICROSTEPPING);
+  ret += ",";
+  ret += String(RA_TRACKING_MICROSTEPPING);
+
+  ret += "|";
+
+  #if DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    ret += "U";
+  #elif DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    ret += "TU";
+  #elif DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
+    ret += "TS";
+  #elif DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
+    ret += "A";
+  #else
+    ret += "?";
+  #endif
+
+  ret += ",";
+  ret += String(DEC_SLEW_MICROSTEPPING);
+  ret += ",";
+  ret += String(DEC_GUIDE_MICROSTEPPING);
+
+  ret += "|";
+
+  return ret;
+}
+
+/////////////////////////////////
+//
+// getMountHardwareInfo
+//
+/////////////////////////////////
 String Mount::getMountHardwareInfo()
 {
-  String ret = "Unknown";
+  String ret = F("Unknown");
   #if defined(ESP32)
-    ret = "ESP32,";
+    ret = F("ESP32,");
   #elif defined(__AVR_ATmega2560__)
-    ret = "Mega,";
+    ret = F("Mega,");
   #endif
 
   #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    ret += "28BYJ|";
+    ret += F("28BYJ|");
   #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    ret += "NEMA|";
+    ret += F("NEMA|");
   #else
     ret += "?|";
   #endif
@@ -867,9 +879,9 @@ String Mount::getMountHardwareInfo()
   ret += String(RA_STEPPER_SPR)+",";
 
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    ret += "28BYJ|";
+    ret += F("28BYJ|");
   #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    ret += "NEMA|";
+    ret += F("NEMA|");
   #else
     ret += "?|";
   #endif
@@ -878,21 +890,33 @@ String Mount::getMountHardwareInfo()
   ret += String(DEC_STEPPER_SPR)+",";
 
   #if USE_GPS == 1
-    ret += "GPS,";
+    ret += F("GPS,");
   #else
-    ret += "NO_GPS,";
+    ret += F("NO_GPS,");
   #endif
 
   #if AZIMUTH_ALTITUDE_MOTORS == 1
-    ret += "AUTO_AZ_ALT,";
+    ret += F("AUTO_AZ_ALT,");
   #else
-    ret += "NO_AZ_ALT,";
+    ret += F("NO_AZ_ALT,");
   #endif
 
   #if USE_GYRO_LEVEL == 1
-    ret += "GYRO,";
+    ret += F("GYRO,");
   #else
-    ret += "NO_GYRO,";
+    ret += F("NO_GYRO,");
+  #endif
+
+  #if DISPLAY_TYPE == DISPLAY_TYPE_NONE
+    ret += F("NO_LCD,");
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
+    ret += F("LCD_KEYPAD,");
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008
+    ret += F("LCD_I2C_MCP23008,");
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
+    ret += F("LCD_I2C_MCP23017,");
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+    ret += F("LCD_JOY_I2C_SSD1306,");
   #endif
 
   return ret;
@@ -905,11 +929,10 @@ String Mount::getMountHardwareInfo()
 //
 /////////////////////////////////
 // Function to set steps per degree for each axis. This function stores the value in persistent storage.
-// The EEPROM storage location 5 is set to 0xBE if this value has ever been written. The storage location 4
-// contains a bitfield indicating which values have been stored. Currently bit 0 is used for RA and bit 1 for DEC.
-void Mount::setBacklashCorrection(int steps) {
+void Mount::setBacklashCorrection(int steps) 
+{
   _backlashCorrectionSteps = steps;
-  writePersistentData(EEPROM_BACKLASH, steps);
+  EEPROMStore::storeBacklashCorrectionSteps(_backlashCorrectionSteps);
 }
 
 /////////////////////////////////
@@ -982,7 +1005,7 @@ void Mount::setLST(const DayTime& lst) {
 /////////////////////////////////
 void Mount::setLatitude(Latitude latitude) {
   _latitude = latitude;
-  writePersistentData(EEPROM_LATITUDE, round(latitude.getTotalHours() * 100));
+  EEPROMStore::storeLatitude(_latitude);
 }
 
 /////////////////////////////////
@@ -992,7 +1015,9 @@ void Mount::setLatitude(Latitude latitude) {
 /////////////////////////////////
 void Mount::setLongitude(Longitude longitude) {
   _longitude = longitude;
-  writePersistentData(EEPROM_LONGITUDE, round(longitude.getTotalHours() * 100));
+  EEPROMStore::storeLongitude(_longitude);
+
+  autoCalcHa();
 }
 
 /////////////////////////////////
@@ -1040,12 +1065,9 @@ Declination& Mount::targetDEC() {
 // Get current RA value.
 const DayTime Mount::currentRA() const {
   // How many steps moves the RA ring one sidereal hour along. One sidereal hour moves just shy of 15 degrees
-  float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;
-  #if RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-  float hourPos = 2.0 * -_stepperRA->currentPosition() / stepsPerSiderealHour;
-  #else
-  float hourPos =  -_stepperRA->currentPosition() / stepsPerSiderealHour;
-  #endif
+  float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;   // u-steps/degree * degrees/hr = u-steps/hr
+  float hourPos =  -_stepperRA->currentPosition() / stepsPerSiderealHour;   // u-steps / u-steps/hr = hr
+
   LOGV4(DEBUG_MOUNT_VERBOSE,F("CurrentRA: Steps/h    : %s (%f x %s)"), String(stepsPerSiderealHour, 2).c_str(), _stepsPerRADegree, String(siderealDegreesInHour, 5).c_str());
   LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentRA: RA Steps   : %d"), _stepperRA->currentPosition());
   LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentRA: POS        : %s"), String(hourPos).c_str());
@@ -1078,8 +1100,7 @@ const DayTime Mount::currentRA() const {
 /////////////////////////////////
 // Get current DEC value.
 const Declination Mount::currentDEC() const {
-
-  float degreePos = 1.0 * _stepperDEC->currentPosition() / _stepsPerDECDegree;
+  float degreePos = _stepperDEC->currentPosition() / _stepsPerDECDegree;  // u-steps / u-steps/deg = deg
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: Steps/deg  : %f"), _stepsPerDECDegree);
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: DEC Steps  : %d"), _stepperDEC->currentPosition());
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: POS        : %s"), String(degreePos).c_str());
@@ -1106,12 +1127,12 @@ void Mount::syncPosition(DayTime ra, Declination dec)
   _targetRA = ra;
   _targetDEC = dec;
 
-  float targetRA, targetDEC;
+  long targetRAPosition, targetDECPosition;
   LOGV3(DEBUG_MOUNT, "Mount: Sync Position to RA: %s and DEC: %s", _targetRA.ToString(), _targetDEC.ToString());
-  calculateRAandDECSteppers(targetRA, targetDEC);
-  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Set current position to RA: %f and DEC: %f"), targetRA, targetDEC);
-  _stepperRA->setCurrentPosition(targetRA);
-  _stepperDEC->setCurrentPosition(targetDEC);
+  calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
+  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Set current position to RA: %f and DEC: %f"), targetRAPosition, targetDECPosition);
+  _stepperRA->setCurrentPosition(targetRAPosition);     // u-steps (in slew mode)
+  _stepperDEC->setCurrentPosition(targetDECPosition);   // u-steps (in slew mode)
 }
 
 /////////////////////////////////
@@ -1126,30 +1147,24 @@ void Mount::startSlewingToTarget() {
     stopGuiding();
   }
 
-  // set Slew microsteps for TMC2209 UART // hier
-  #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching RA driver to microsteps(%d)"), SET_MICROSTEPPING);
-    _driverRA->microsteps(SET_MICROSTEPPING);
-  #endif
-
   // Make sure we're slewing at full speed on a GoTo
   LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Set DEC to MaxSpeed(%d)"), _maxDECSpeed);
   _stepperDEC->setMaxSpeed(_maxDECSpeed);
   LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Set RA  to MaxSpeed(%d)"), _maxRASpeed);
   _stepperRA->setMaxSpeed(_maxRASpeed);
 
-  // Calculate new RA stepper target (and DEC)
+  // Calculate new RA stepper target (and DEC). We are never in guding mode here.
   _currentDECStepperPosition = _stepperDEC->currentPosition();
   _currentRAStepperPosition = _stepperRA->currentPosition();
-  float targetRA, targetDEC;
-  calculateRAandDECSteppers(targetRA, targetDEC);
-  moveSteppersTo(targetRA, targetDEC);
+  long targetRAPosition, targetDECPosition;
+  calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
+  moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
 
   _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
   _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
   _totalRAMove = 1.0f * _stepperRA->distanceToGo();
   LOGV3(DEBUG_MOUNT, "Mount: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-  #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // tracking while slewing causes audible lagging
+  #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // tracking while slewing causes problems (can only run one AccelStepper at a time)
     if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0)) {
       // Only stop tracking if we're actually going to slew somewhere else, otherwise the 
       // mount::loop() code won't detect the end of the slewing operation...
@@ -1157,13 +1172,18 @@ void Mount::startSlewingToTarget() {
       stopSlewing(TRACKING);
       _trackerStoppedAt = millis();
       _compensateForTrackerOff = true;
-      LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: TRK stopped at %lms"), _trackerStoppedAt);
-    } else {
-      // Since we won't be moving we need to set microstepping back to tracking
+
+      // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: No slew. Switching RA driver to microsteps(%d)"), TRACKING_MICROSTEPPING);
-        _driverRA->microsteps(TRACKING_MICROSTEPPING);
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+        _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
       #endif
+      #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+      #endif
+
+      LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: TRK stopped at %lms"), _trackerStoppedAt);
     }
   #endif																					  
 }
@@ -1174,20 +1194,47 @@ void Mount::startSlewingToTarget() {
 //
 /////////////////////////////////
 void Mount::stopGuiding() {
+  stopGuiding(true, true);
+}
 
-  _stepperDEC->stop();
-  while (_stepperDEC->isRunning()) {
-    _stepperDEC->run();
-    _stepperTRK->runSpeed();
+void Mount::stopGuiding(bool ra, bool dec)
+{
+  // Stop RA guide first, since it's just a speed change back to tracking speed
+  if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
+  {
+    LOGV2(DEBUG_STEPPERS,F("STEP-stopGuiding(RA): TRK.setSpeed(%f)"), _trackingSpeed);
+    _stepperTRK->setSpeed(_trackingSpeed);
+    _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
   }
 
-  #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-  #endif
+  if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC)) 
+  {
+    LOGV1(DEBUG_STEPPERS,F("STEP-stopGuiding(DEC): Stop motor"));
 
-  LOGV2(DEBUG_STEPPERS,F("STEP-stopGuiding: TRK.setSpeed(%f)"),_trackingSpeed);
-  _stepperTRK->setSpeed(_trackingSpeed);
-  _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+    // Stop DEC guiding and wait for it to stop.
+    _stepperGUIDE->stop();
+  
+    while (_stepperGUIDE->isRunning()) 
+    {
+      _stepperGUIDE->run();
+      _stepperTRK->runSpeed();
+    }
+    
+    LOGV2(DEBUG_STEPPERS, F("STEP-stopGuiding(DEC): GuideStepper stopped at %l"), _stepperGUIDE->currentPosition());
+
+     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        LOGV2(DEBUG_STEPPERS, F("STEP-stopGuiding(DEC): setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+       _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+     #endif
+
+    _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
+  }
+
+  //disable pulse state if no direction is active
+  if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0) 
+  {
+    _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+  }
 }
 
 /////////////////////////////////
@@ -1199,75 +1246,55 @@ void Mount::guidePulse(byte direction, int duration) {
   LOGV3(DEBUG_STEPPERS, F("STEP-guidePulse: > Guide Pulse %d for %dms"), direction, duration);
 
   // DEC stepper moves at sidereal rate in both directions
-  // RA stepper moves at either 2x sidereal rate or stops.
-  // TODO: Do we need to adjust with _trackingSpeedCalibration?
-  float decTrackingSpeed = _stepsPerDECDegree * siderealDegreesInHour / 3600.0f;
-  #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-  float raTrackingSpeed = _stepsPerRADegree * siderealDegreesInHour / 3600.0f;
-  #else
-  float raTrackingSpeed = 1.0 * _stepsPerRADegree * TRACKING_MICROSTEPPING * siderealDegreesInHour / (3600.0f * SET_MICROSTEPPING);
-  #endif
+  // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
+  // Also compensate for microstepping mode change between slew & guiding/tracking
+  float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING/DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour / 3600.0f;    // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+  float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING/RA_SLEW_MICROSTEPPING) * siderealDegreesInHour / 3600.0f;     // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+  raGuidingSpeed *= _trackingSpeedCalibration;
 
-  // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
+  // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation? 
   // If so, we need to remember where we were when we started the guide pulse. Then at the end,
-  // we can calculate the difference.
-  // long raPos = _stepperTRK->currentPosition();
-  // long decPos = _stepperDEC->currentPosition();
+  // we can calculate the difference. Ignore DEC Guide for now.
+  // TODO: Take guide pulses on DEC into account
 
   switch (direction) {
     case NORTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING);
+      _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
-    #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), decTrackingSpeed);
-    _stepperDEC->setSpeed(decTrackingSpeed * 1.0);
-    #else // NEMA
-      LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), decTrackingSpeed * DEC_PULSE_MULTIPLIER);
-    _stepperDEC->setSpeed(decTrackingSpeed * DEC_PULSE_MULTIPLIER);
-    #endif
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+    _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+    _guideDecEndTime = millis() + duration;
     break;
 
     case SOUTH:
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING);
+      _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
     #endif
-    #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -decTrackingSpeed);
-    _stepperDEC->setSpeed(-decTrackingSpeed * 1.0);
-    #else // NEMA
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -decTrackingSpeed * DEC_PULSE_MULTIPLIER);
-    _stepperDEC->setSpeed(-decTrackingSpeed * DEC_PULSE_MULTIPLIER);
-    #endif
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+    _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+    _guideDecEndTime = millis() + duration;
     break;
 
     case WEST:
-    
-    #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), raTrackingSpeed * 2.0);
-    _stepperTRK->setSpeed(raTrackingSpeed * 2.0);
-    #else  // NEMA
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), raTrackingSpeed * RA_PULSE_MULTIPLIER);
-    _stepperTRK->setSpeed(raTrackingSpeed * RA_PULSE_MULTIPLIER);
-    #endif
+    // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);
+    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);   // Faster than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+    _guideRaEndTime = millis() + duration;
     break;
 
     case EAST:
-    #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-      LOGV1(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(0)"));
-      _stepperTRK->setSpeed(0);
-    #else // NEMA
-      LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), raTrackingSpeed * (RA_PULSE_MULTIPLIER - 1));
-      _stepperTRK->setSpeed(raTrackingSpeed * (RA_PULSE_MULTIPLIER - 1));
-    #endif
+    // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);
+    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);   // Slower than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+    _guideRaEndTime = millis() + duration;
     break;
   }
-
-  _guideEndTime = millis() + duration;
+  
   LOGV1(DEBUG_STEPPERS, F("STEP-guidePulse: < Guide Pulse"));
 }
 
@@ -1281,13 +1308,17 @@ void Mount::guidePulse(byte direction, int duration) {
 // The first time with EAST, second with WEST and then with 0.
 /////////////////////////////////
 void Mount::runDriftAlignmentPhase(int direction, int durationSecs) {
-  // Calculate the speed at which it takes the given duration to cover 400 steps.
-  float speed = 400.0 / durationSecs;
+
+  float const numArcMinutes(5.3);
+  long numSteps = floorf((_stepsPerRADegree * (numArcMinutes / 60.0f)));  // u-steps/deg * minutes / (minutes/deg) = u-steps
+
+  // Calculate the speed at which it takes the given duration to cover the steps.
+  float speed = numSteps / durationSecs;
   switch (direction) {
     case EAST:
-    // Move 400 steps east at the calculated speed, synchronously
+    // Move steps east at the calculated speed, synchronously
     _stepperRA->setMaxSpeed(speed);
-    _stepperRA->move(400);
+    _stepperRA->move(numSteps);
     while (_stepperRA->run()) {
       yield();
     }
@@ -1301,9 +1332,9 @@ void Mount::runDriftAlignmentPhase(int direction, int durationSecs) {
     break;
 
     case WEST:
-    // Move 400 steps west at the calculated speed, synchronously
+    // Move steps west at the calculated speed, synchronously
     _stepperRA->setMaxSpeed(speed);
-    _stepperRA->move(-400);
+    _stepperRA->move(-numSteps);
     while (_stepperRA->run()) {
       yield();
     }
@@ -1335,8 +1366,8 @@ void Mount::setManualSlewMode(bool state) {
     waitUntilStopped(ALL_DIRECTIONS);
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_MANUAL;
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      LOGV2(DEBUG_STEPPERS, F("STEP-setManualSlewMode: Switching RA driver to microsteps(%d)"), SET_MICROSTEPPING);
-      _driverRA->microsteps(SET_MICROSTEPPING);
+      LOGV2(DEBUG_STEPPERS, F("STEP-setManualSlewMode: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+      _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
     #endif
   }
   else {
@@ -1360,13 +1391,15 @@ void Mount::setManualSlewMode(bool state) {
 /////////////////////////////////
 void Mount::setSpeed(int which, float speedDegsPerSec) {
   if (which == RA_STEPS) {
-    float stepsPerSec = speedDegsPerSec  * _stepsPerRADegree;
+    float stepsPerSec = speedDegsPerSec * _stepsPerRADegree;   // deg/sec * u-steps/deg = u-steps/sec
     LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set RA speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
+    // TODO: Are we already in slew mode?
     _stepperRA->setSpeed(stepsPerSec);
   }
   else if (which == DEC_STEPS) {
-    float stepsPerSec = speedDegsPerSec * _stepsPerDECDegree;
+    float stepsPerSec = speedDegsPerSec * _stepsPerDECDegree;   // deg/sec * u-steps/deg = u-steps/sec
     LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set DEC speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
+    // TODO: Are we already in slew mode?
     _stepperDEC->setSpeed(stepsPerSec);
   }
   #if AZIMUTH_ALTITUDE_MOTORS == 1
@@ -1392,8 +1425,8 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
       else if (speedDegsPerSec == 0) {
         _stepperAZ->disableOutputs();
       }
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;  // deg/sec * u-steps/deg = u-steps/sec
       LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set AZ speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
       _stepperAZ->setSpeed(stepsPerSec);  
     #endif
@@ -1420,8 +1453,8 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
       else if (speedDegsPerSec == 0) {
         _stepperALT->disableOutputs();
       }
-    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;
+    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;   // deg/sec * u-steps/deg = u-steps/sec
       LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set ALT speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
       _stepperALT->setSpeed(stepsPerSec);  
     #endif
@@ -1606,29 +1639,29 @@ String Mount::mountStatusString() {
 String Mount::getStatusString() {
   String status;
   if (_mountStatus == STATUS_PARKED) {
-    status = "Parked,";
+    status = F("Parked,");
   }
   else if ((_mountStatus & STATUS_PARKING) || (_mountStatus & STATUS_PARKING_POS)) {
-    status = "Parking,";
+    status = F("Parking,");
   }
   else if (isGuiding()) {
-    status = "Guiding,";
+    status = F("Guiding,");
   }
   else if (isFindingHome()) {
-    status = "Homing,";
+    status = F("Homing,");
   }
   else if (slewStatus() & SLEW_MASK_ANY) {
     if (_mountStatus & STATUS_SLEWING_TO_TARGET) {
-      status = "SlewToTarget,";
+      status = F("SlewToTarget,");
     }
     else if (_mountStatus & STATUS_SLEWING_FREE) {
-      status = "FreeSlew,";
+      status = F("FreeSlew,");
     }
     else if (_mountStatus & STATUS_SLEWING_MANUAL) {
-      status = "ManualSlew,";
+      status = F("ManualSlew,");
     }
     else if (slewStatus() & SLEWING_TRACKING) {
-      status = "Tracking,";
+      status = F("Tracking,");
     }
   }
   else {
@@ -1783,29 +1816,40 @@ void Mount::startSlewing(int direction) {
     }
 
     if (direction & TRACKING) {
+      // Start tracking
+      #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Tracking: Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
+        _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+      #endif
       _stepperTRK->setSpeed(_trackingSpeed);
-
       
       // Turn on tracking
       _mountStatus |= STATUS_TRACKING;
 
     }
     else {
+      // Start slewing
       int sign = NORTHERN_HEMISPHERE ? 1 : -1;
 
       // Set move rate to last commanded slew rate
       setSlewRate(_moveRate);
       #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17 
-        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: RA Driver setMicrostep(%d)"), SET_MICROSTEPPING);
         if (isSlewingTRK()){
           stopSlewing(TRACKING);
           _trackerStoppedAt = millis();
           _compensateForTrackerOff = true;
           LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: stopped TRK at %l"), _trackerStoppedAt);
         }
-        #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-          _driverRA->microsteps(SET_MICROSTEPPING);
-        #endif
+      #endif
+
+      // Change microstep mode for slewing
+      #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+        _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+      #endif
+      #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
       #endif
 
       if (direction & NORTH) {
@@ -1885,7 +1929,7 @@ void Mount::waitUntilStopped(byte direction) {
   while (((direction & (EAST | WEST)) && _stepperRA->isRunning())
          || ((direction & (NORTH | SOUTH)) && _stepperDEC->isRunning())
          || ((direction & TRACKING) && (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning()))
-         ) {
+        ) {
     loop();
     yield();
   }
@@ -1934,15 +1978,13 @@ void Mount::interruptLoop()
   if (_mountStatus & STATUS_GUIDE_PULSE) {
     _stepperTRK->runSpeed();    
     if (_mountStatus & STATUS_GUIDE_PULSE_DEC) {
-      _stepperDEC->runSpeed();
+      _stepperGUIDE->runSpeed();
     }
     return;
   }
 
-  if (_mountStatus & STATUS_TRACKING ) {
-    //if ~(_mountStatus & STATUS_SLEWING) {
-      _stepperTRK->runSpeed();
-    //}
+  if (_mountStatus & STATUS_TRACKING) {
+    _stepperTRK->runSpeed();
   }
 
   if (_mountStatus & STATUS_SLEWING) {
@@ -1979,8 +2021,9 @@ void Mount::loop() {
   interruptLoop();
   #endif
 
-  #if DEBUG_LEVEL & (DEBUG_MOUNT && DEBUG_VERBOSE)
   unsigned long now = millis();
+
+  #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
   if (now - _lastMountPrint > 2000) {
     LOGV2(DEBUG_MOUNT, "%s",getStatusString().c_str());
     _lastMountPrint = now;
@@ -1994,7 +2037,7 @@ void Mount::loop() {
     disableAzAltMotors();
     _azAltWasRunning = false;
   }
-  if (_stepperALT->isRunning() || _stepperAZ->isRunning() )
+  if (_stepperALT->isRunning() || _stepperAZ->isRunning())
   {
      _azAltWasRunning = true;
   }
@@ -2015,12 +2058,11 @@ void Mount::loop() {
   #endif
   
   if (isGuiding()) {
-    if (millis() > _guideEndTime) {
-      stopGuiding();
-    #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      LOGV2(DEBUG_STEPPERS, F("STEP-loop: DEC driver setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-      _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-    #endif					
+    now = millis();
+    bool stopRaGuiding = now > _guideRaEndTime;
+    bool stopDecGuiding = now > _guideDecEndTime;
+    if (stopRaGuiding || stopDecGuiding) {
+      stopGuiding(stopRaGuiding, stopDecGuiding);
     }
     return;
   }
@@ -2045,6 +2087,9 @@ void Mount::loop() {
     }    
     
     else {
+      //
+      // Arrived at target after Slew!
+      //
       _mountStatus &= ~(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
 
       if (_stepperWasRunning) {
@@ -2067,14 +2112,14 @@ void Mount::loop() {
         _currentRAStepperPosition = _stepperRA->currentPosition();
         #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
           #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            LOGV2(DEBUG_STEPPERS, F("STEP-loop: RA driver setMicrosteps(%d)"), TRACKING_MICROSTEPPING);
-            _driverRA->microsteps(TRACKING_MICROSTEPPING);
+            LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
+            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
           #endif
           if (!isParking()) {
             if (_compensateForTrackerOff) {
-              unsigned long now = millis();
+              now = millis();
               unsigned long elapsed = now - _trackerStoppedAt;
-              unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0;
+              unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
               LOGV4(DEBUG_STEPPERS,F("STEP-loop: Arrived at %lms. Tracking was off for %lms (%l steps), compensating."), now, elapsed, compensationSteps);
               _stepperTRK->runToNewPosition(_stepperTRK->currentPosition() + compensationSteps);
               _compensateForTrackerOff = false;
@@ -2099,6 +2144,8 @@ void Mount::loop() {
           _stepperRA->setCurrentPosition(0);
           LOGV1(DEBUG_STEPPERS, F("STEP-loop:  TRK.setCurrentPos(0)"));
           _stepperTRK->setCurrentPosition(0);
+          _stepperGUIDE->setCurrentPosition(0);
+
           _targetRA = currentRA();
           if (isParking()) {
             LOGV1(DEBUG_MOUNT|DEBUG_STEPPERS,F("Mount::Loop:   Was parking, so no tracking. Proceeding to park position..."));
@@ -2157,13 +2204,17 @@ bool Mount::isBootComplete(){
 //
 /////////////////////////////////
 void Mount::setParkingPosition() {
-  _raParkingPos = _stepperRA->currentPosition() - _stepperTRK->currentPosition();
+  // Calculate how far the tracker has moved in the RA coordinate system.
+  long trackedInSlewCoordinates = RA_SLEW_MICROSTEPPING * _stepperTRK->currentPosition() / RA_TRACKING_MICROSTEPPING;
+
+  _raParkingPos = _stepperRA->currentPosition() - trackedInSlewCoordinates ; 
+  // TODO: Take guide pulses on DEC into account
   _decParkingPos = _stepperDEC->currentPosition();
 
   LOGV3(DEBUG_MOUNT,F("Mount::setParkingPos: parking RA: %l  DEC:%l"), _raParkingPos, _decParkingPos);
 
-  writePersistentData(EEPROM_RA_PARKING_POS, _raParkingPos);
-  writePersistentData(EEPROM_DEC_PARKING_POS, _decParkingPos);
+  EEPROMStore::storeRAParkingPos(_raParkingPos);
+  EEPROMStore::storeDECParkingPos(_decParkingPos);
 }
 
 /////////////////////////////////
@@ -2174,12 +2225,12 @@ void Mount::setParkingPosition() {
 void Mount::setDecLimitPosition(bool upper) {
   if (upper) {
     _decUpperLimit = _stepperDEC->currentPosition();
-    writePersistentData(EEPROM_DEC_UPPER_LIMIT, _decUpperLimit);
+    EEPROMStore::storeDECUpperLimit(_decUpperLimit);
     LOGV3(DEBUG_MOUNT,F("Mount::setDecLimitPosition(Upper): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
   }
   else{
     _decLowerLimit = _stepperDEC->currentPosition();
-    writePersistentData(EEPROM_DEC_LOWER_LIMIT, _decLowerLimit);
+    EEPROMStore::storeDECLowerLimit(_decLowerLimit);
     LOGV3(DEBUG_MOUNT,F("Mount::setDecLimitPosition(Lower): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
   }
 }
@@ -2192,12 +2243,12 @@ void Mount::setDecLimitPosition(bool upper) {
 void Mount::clearDecLimitPosition(bool upper) {
   if (upper) {
     _decUpperLimit = 0;
-    writePersistentData(EEPROM_DEC_UPPER_LIMIT, _decUpperLimit);
+    EEPROMStore::storeDECUpperLimit(_decUpperLimit);
     LOGV3(DEBUG_MOUNT,F("Mount::clearDecLimitPosition(Upper): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
   }
   else{
     _decLowerLimit = 0;
-    writePersistentData(EEPROM_DEC_LOWER_LIMIT, _decLowerLimit);
+    EEPROMStore::storeDECLowerLimit(_decLowerLimit);
     LOGV3(DEBUG_MOUNT,F("Mount::clearDecLimitPosition(Lower): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
   }
 }
@@ -2227,6 +2278,7 @@ void Mount::setHome(bool clearZeroPos) {
   _stepperRA->setCurrentPosition(0);
   _stepperDEC->setCurrentPosition(0);
   _stepperTRK->setCurrentPosition(0);
+  // TODO: Set New Guide Stepper to 0
 
   _targetRA = currentRA();
 
@@ -2243,7 +2295,7 @@ void Mount::setHome(bool clearZeroPos) {
 /////////////////////////////////
 void Mount::setTargetToHome() {
   
-  float trackedSeconds = _stepperTRK->currentPosition() / _trackingSpeed; // steps/steps/s
+  float trackedSeconds = _stepperTRK->currentPosition() / _trackingSpeed; // steps / steps/s = seconds
   
   LOGV2(DEBUG_MOUNT,F("Mount::setTargetToHome() called with %fs elapsed tracking"), trackedSeconds);
 
@@ -2299,7 +2351,7 @@ float Mount::getSpeed(int direction) {
 //
 // This code tells the steppers to what location to move to, given the select right ascension and declination
 /////////////////////////////////
-void Mount::calculateRAandDECSteppers(float& targetRA, float& targetDEC) {
+void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps) const {
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
@@ -2319,21 +2371,15 @@ void Mount::calculateRAandDECSteppers(float& targetRA, float& targetDEC) {
     //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: RA>12 so -24. New Target RA: %s, DEC: %s"), DayTime(hourPos).ToString(), _targetDEC.ToString());
   }
 
-  // How many steps moves the RA ring one sidereal hour along. One sidereal hour moves just shy of 15 degrees
-  float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;
+  // How many u-steps moves the RA ring one sidereal hour along when slewing. One sidereal hour moves just shy of 15 degrees
+  float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;   // u-steps/deg * deg/hr = u-steps/hr
 
   // Where do we want to move RA to?
-  #if RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-  float moveRA = hourPos * stepsPerSiderealHour / 2;
-  #else
-  float moveRA = hourPos * stepsPerSiderealHour;
-  #endif
-
-
+  float moveRA = hourPos * stepsPerSiderealHour;  // hr * u-steps/hr = u-steps
 
   // Where do we want to move DEC to?
   // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
-  float moveDEC = -_targetDEC.getTotalDegrees() * _stepsPerDECDegree;
+  float moveDEC = -_targetDEC.getTotalDegrees() * _stepsPerDECDegree;   // deg * u-steps/deg = u-steps
 
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: RA Steps/deg: %d   Steps/srhour: %f"), _stepsPerRADegree, stepsPerSiderealHour);
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
@@ -2347,22 +2393,12 @@ void Mount::calculateRAandDECSteppers(float& targetRA, float& targetDEC) {
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
-  #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    #if NORTHERN_HEMISPHERE == 1 
-      float RALimitL = (5.0f * stepsPerSiderealHour / 2);
-      float RALimitR = (7.0f * stepsPerSiderealHour / 2);
-    #else
-      float RALimitL = (7.0f * stepsPerSiderealHour / 2);
-      float RALimitR = (5.0f * stepsPerSiderealHour / 2);  
-    #endif
+  #if NORTHERN_HEMISPHERE == 1 
+    float const RALimitL = (5.0f * stepsPerSiderealHour);
+    float const RALimitR = (7.0f * stepsPerSiderealHour);
   #else
-    #if NORTHERN_HEMISPHERE == 1 
-      float RALimitL = (5.0f * stepsPerSiderealHour);
-      float RALimitR = (7.0f * stepsPerSiderealHour);
-    #else
-      float RALimitL = (7.0f * stepsPerSiderealHour);
-      float RALimitR = (5.0f * stepsPerSiderealHour);  
-    #endif
+    float const RALimitL = (7.0f * stepsPerSiderealHour);
+    float const RALimitR = (5.0f * stepsPerSiderealHour);  
   #endif
 
   // If we reach the limit in the positive direction ...
@@ -2370,11 +2406,8 @@ void Mount::calculateRAandDECSteppers(float& targetRA, float& targetDEC) {
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: RA is past +limit: %f, DEC: %f"), RALimit);
 
     // ... turn both RA and DEC axis around
-    #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-      moveRA -= long(12.0f * stepsPerSiderealHour / 2);
-    #else
-      moveRA -= long(12.0f * stepsPerSiderealHour);
-    #endif
+
+    moveRA -= long(12.0f * stepsPerSiderealHour);
     moveDEC = -moveDEC;
     //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: Adjusted Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
   }
@@ -2382,11 +2415,8 @@ void Mount::calculateRAandDECSteppers(float& targetRA, float& targetDEC) {
   else if (moveRA < -RALimitL) {
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: RA is past -limit: %f, DEC: %f"), -RALimit);
     // ... turn both RA and DEC axis around
-    #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-      moveRA += long(12.0f * stepsPerSiderealHour / 2);
-    #else
-      moveRA += long(12.0f * stepsPerSiderealHour);
-    #endif
+
+    moveRA += long(12.0f * stepsPerSiderealHour);
     moveDEC = -moveDEC;
     //LOGV1(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPost: Adjusted Target. Moved RA, inverted DEC"));
   }
@@ -2394,8 +2424,8 @@ void Mount::calculateRAandDECSteppers(float& targetRA, float& targetDEC) {
   LOGV3(DEBUG_MOUNT,F("Mount::CalcSteppersPost: Target Steps RA: %f, DEC: %f"), -moveRA, moveDEC);
   //    float targetRA = clamp(-moveRA, -RAStepperLimit, RAStepperLimit);
   //    float targetDEC = clamp(moveDEC, DECStepperUpLimit, DECStepperDownLimit);
-  targetRA = -moveRA;
-  targetDEC = moveDEC;
+  targetRASteps = -moveRA;
+  targetDECSteps = moveDEC;
 
   // Can we get there without physical issues? (not doing anything with this yet)
   //  isUnreachable = ((targetRA != -moveRA) || (targetDEC != moveDEC));
@@ -2413,30 +2443,30 @@ void Mount::calculateRAandDECSteppers(float& targetRA, float& targetDEC) {
 // moveSteppersTo
 //
 /////////////////////////////////
-void Mount::moveSteppersTo(float targetRA, float targetDEC) {
+void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps) {   // Units are u-steps (in slew mode)
   // Show time: tell the steppers where to go!
   _correctForBacklash = false;
-  LOGV3(DEBUG_MOUNT,F("Mount::MoveSteppersTo: RA  From: %l  To: %f"), _stepperRA->currentPosition(), targetRA);
-  LOGV3(DEBUG_MOUNT,F("Mount::MoveSteppersTo: DEC From: %l  To: %f"), _stepperDEC->currentPosition(), targetDEC);
+  LOGV3(DEBUG_MOUNT,F("Mount::MoveSteppersTo: RA  From: %l  To: %f"), _stepperRA->currentPosition(), targetRASteps);
+  LOGV3(DEBUG_MOUNT,F("Mount::MoveSteppersTo: DEC From: %l  To: %f"), _stepperDEC->currentPosition(), targetDECSteps);
 
-  if ((_backlashCorrectionSteps != 0) && ((_stepperRA->currentPosition() - targetRA) > 0)) {
+  if ((_backlashCorrectionSteps != 0) && ((_stepperRA->currentPosition() - targetRASteps) > 0)) {
     LOGV2(DEBUG_MOUNT,F("Mount::MoveSteppersTo: Needs backlash correction of %d!"), _backlashCorrectionSteps);
-    targetRA -= _backlashCorrectionSteps;
+    targetRASteps -= _backlashCorrectionSteps;
     _correctForBacklash = true;
   }
 
-  _stepperRA->moveTo(targetRA);
+  _stepperRA->moveTo(targetRASteps);
 
   if (_decUpperLimit != 0) {
-    targetDEC = min(targetDEC, (float)_decUpperLimit);
-    LOGV2(DEBUG_MOUNT,F("Mount::MoveSteppersTo: DEC Upper Limit enforced. To: %f"), targetDEC);
+    targetDECSteps = min(targetDECSteps, (float)_decUpperLimit);
+    LOGV2(DEBUG_MOUNT,F("Mount::MoveSteppersTo: DEC Upper Limit enforced. To: %f"), targetDECSteps);
   }
   if (_decLowerLimit != 0) {
-    targetDEC = max(targetDEC, (float)_decLowerLimit);
-    LOGV2(DEBUG_MOUNT,F("Mount::MoveSteppersTo: DEC Lower Limit enforced. To: %f"), targetDEC);
+    targetDECSteps = max(targetDECSteps, (float)_decLowerLimit);
+    LOGV2(DEBUG_MOUNT,F("Mount::MoveSteppersTo: DEC Lower Limit enforced. To: %f"), targetDECSteps);
   }
 
-  _stepperDEC->moveTo(targetDEC);
+  _stepperDEC->moveTo(targetDECSteps);
 }
 
 
@@ -2450,10 +2480,10 @@ void Mount::displayStepperPosition() {
 
   String disp;
 
-  if ((abs(_totalDECMove) > 0.001) && (abs(_totalRAMove) > 0.001)) {
+  if ((fabsf(_totalDECMove) > 0.001f) && (fabsf(_totalRAMove) > 0.001f)) {
     // Both axes moving to target
-    float decDist = 100.0 - 100.0 * _stepperDEC->distanceToGo() / _totalDECMove;
-    float raDist = 100.0 - 100.0 * _stepperRA->distanceToGo() / _totalRAMove;
+    float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove;
+    float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove;
 
     sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int)raDist);
     _lcdMenu->setCursor(0, 0);
@@ -2464,16 +2494,16 @@ void Mount::displayStepperPosition() {
     return;
   }
 
-  if (abs(_totalDECMove) > 0.001) {
+  if (fabsf(_totalDECMove) > 0.001f) {
     // Only DEC moving to target
-    float decDist = 100.0 - 100.0 * _stepperDEC->distanceToGo() / _totalDECMove;
+    float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove;
     sprintf(scratchBuffer, "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int)decDist);
     _lcdMenu->setCursor(0, 1);
     _lcdMenu->printMenu(String(scratchBuffer));
   }
-  else if (abs(_totalRAMove) > 0.001) {
+  else if (fabsf(_totalRAMove) > 0.001f) {
     // Only RAmoving to target
-    float raDist = 100.0 - 100.0 * _stepperRA->distanceToGo() / _totalRAMove;
+    float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove;
     sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int)raDist);
     disp = disp + String(scratchBuffer);
     _lcdMenu->setCursor(0, inSerialControl ? 0 : 1);
@@ -2533,7 +2563,7 @@ String Mount::DECString(byte type, byte active) {
   }
   else {
     //LOGV1(DEBUG_MOUNT_VERBOSE,F("DECString: CURRENT!"));
-    dec = Declination(currentDEC());
+    dec = currentDEC();
   }
   //LOGV5(DEBUG_INFO,F("DECString: Precheck  : %s   %s  %dm %ds"), dec.ToString(), dec.getDegreesDisplay().c_str(), dec.getMinutes(), dec.getSeconds());
   // dec.checkHours();
@@ -2558,10 +2588,10 @@ String Mount::DECString(byte type, byte active) {
 String Mount::RAString(byte type, byte active) {
   DayTime ra;
   if ((type & TARGET_STRING) == TARGET_STRING) {
-    ra = DayTime(_targetRA);
+    ra = _targetRA;
   }
   else {
-    ra = DayTime(currentRA());
+    ra = currentRA();
   }
 
   sprintf(scratchBuffer, formatStringsRA[type & FORMAT_STRING_MASK], ra.getHours(), ra.getMinutes(), ra.getSeconds());
@@ -2581,7 +2611,6 @@ String Mount::RAString(byte type, byte active) {
 
 void Mount::startFindingHomeDEC()  {
   _driverDEC->SGTHRS(10);
-  _driverDEC->microsteps(16);
   _driverDEC->rms_current(700);
   
 
@@ -2611,7 +2640,8 @@ void Mount::finishFindingHomeDEC()
 void Mount::startFindingHomeRA()  {
   _driverRA->SGTHRS(50);
   _driverRA->rms_current(1000);
-  _driverRA->microsteps(FULLSTEP);
+  // TODO: Fix broken microstep management to re-instate fine pointing
+  // _driverRA->microsteps(FULLSTEP);
   _driverRA->semin(0);  // turn off coolstep
   _driverRA->semin(5);
   //_driverRA->TCOOLTHRS(0xFF);  // turn autocurrent threshold down to prevent false reading
@@ -2643,5 +2673,178 @@ void Mount::finishFindingHomeRA()
    startSlewing(TRACKING);
    setHome(true);
 
+}
+#endif
+
+/////////////////////////////////
+//
+// 
+//
+/////////////////////////////////
+DayTime Mount::getUtcTime() {
+  DayTime timeUTC = getLocalTime();
+  timeUTC.addHours(-_localUtcOffset);
+  return timeUTC;
+}
+
+/////////////////////////////////
+//
+// localTime
+//
+/////////////////////////////////
+DayTime Mount::getLocalTime() {
+  DayTime timeLocal = _localStartTime;
+  timeLocal.addSeconds((millis() - _localStartTimeSetMillis) / 1000);
+  return timeLocal;
+}
+
+/////////////////////////////////
+//
+// localDate
+//
+/////////////////////////////////
+LocalDate Mount::getLocalDate() {
+  LocalDate localDate = _localStartDate;
+  long secondsSinceSetDayEnd = ((millis() - _localStartTimeSetMillis) / 1000) - (86400 - _localStartTime.getTotalSeconds());
+  
+  while(secondsSinceSetDayEnd >= 0) {
+    localDate.day++;
+    secondsSinceSetDayEnd -= 86400;
+
+    int maxDays = 31;
+    switch(localDate.month) {
+      case 2:
+        if (((localDate.year % 4 == 0) && (localDate.year % 100 != 0)) || (localDate.year % 400 == 0)) {
+          maxDays = 29;
+        }
+        else {
+          maxDays = 28;
+        }
+      break;
+
+      case 4:
+      case 6:
+      case 9:
+      case 11:
+        maxDays = 30;
+      break;
+    }
+
+    //calculate day overflow
+    if (localDate.day > maxDays) {
+      localDate.day = 1;
+      localDate.month++;
+    }
+    //calculate year overflow
+    if (localDate.month > 12) {
+      localDate.month = 1;
+      localDate.year++;
+    }
+  }
+
+  return localDate;
+}
+
+/////////////////////////////////
+//
+// localUtcOffset
+//
+/////////////////////////////////
+int Mount::getLocalUtcOffset() const {
+  return _localUtcOffset;
+}
+
+/////////////////////////////////
+//
+// setLocalStartDate
+//
+/////////////////////////////////
+void Mount::setLocalStartDate(int year, int month, int day) {
+  _localStartDate.year = year;
+  _localStartDate.month = month;
+  _localStartDate.day = day;
+
+  autoCalcHa();
+}
+
+/////////////////////////////////
+//
+// setLocalStartTime
+//
+/////////////////////////////////
+void Mount::setLocalStartTime(DayTime localTime) {
+  _localStartTime = localTime;
+  _localStartTimeSetMillis = millis();
+
+  autoCalcHa();
+}
+
+/////////////////////////////////
+//
+// setLocalUtcOffset
+//
+/////////////////////////////////
+void Mount::setLocalUtcOffset(int offset) {
+  _localUtcOffset = offset;
+  EEPROMStore::storeUtcOffset(_localUtcOffset);
+
+  autoCalcHa();
+}
+
+/////////////////////////////////
+//
+// autoCalcHa
+//
+/////////////////////////////////
+void Mount::autoCalcHa() {
+  setHA(calculateHa());
+}
+
+/////////////////////////////////
+//
+// calculateLst
+//
+/////////////////////////////////
+DayTime Mount::calculateLst() {
+  DayTime timeUTC = getUtcTime();
+  LocalDate localDate = getLocalDate();
+  DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
+  return lst;
+}
+
+/////////////////////////////////
+//
+// calculateHa
+//
+/////////////////////////////////
+DayTime Mount::calculateHa() {
+  DayTime lst = calculateLst();
+  return Sidereal::calculateHa(lst.getTotalHours());
+}
+
+/////////////////////////////////
+//
+// testUART
+//
+/////////////////////////////////
+#if UART_CONNECTION_TEST_TX == 1
+void Mount::testRA_UART_TX(){
+    int _speed = 1000;  //microsteps per driver clock tick
+    int _duration = 1000;    //Duration to run in ms
+    testUART_vactual(_driverRA, _speed, _duration);
+}
+void Mount::testDEC_UART_TX(){
+    int _speed = 1000;  //microsteps per driver clock tick
+    int _duration = 1000;    //Duration to run in ms
+    testUART_vactual(_driverDEC, _speed, _duration);
+}
+void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) {
+    driver->VACTUAL(_speed);
+    delay(_duration);
+    driver->shaft(1);
+    delay(_duration);
+    driver->shaft(0);
+    driver->VACTUAL(0);
+    delay(_duration);
 }
 #endif

@@ -1,12 +1,14 @@
-#include "MeadeCommandProcessor.hpp"
-#include "inc/Config.hpp"
 #include "inc/Globals.hpp"
+#include "../Configuration.hpp"
 #include "Utility.hpp"
+#include "LcdMenu.hpp"
+#include "Mount.hpp"
+#include "MeadeCommandProcessor.hpp"
 #include "WifiControl.hpp"
 #include "Gyro.hpp"
 
 #if USE_GPS == 1
-bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
+bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 #endif
 /////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -21,7 +23,7 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //------------------------------------------------------------------
 // INITIALIZE FAMILY
 //
-// :I#   
+// :I#
 //      Initialize Scope
 //      This puts the Arduino in Serial Control Mode and displays RA on line 1 and
 //      DEC on line 2 of the display. Serial Control Mode can be ended manually by
@@ -31,9 +33,9 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //------------------------------------------------------------------
 // SYNC CONTROL FAMILY
 //
-// :CM# 
+// :CM#
 //      Synchronize Declination and Right Ascension.
-//      This tells the scope what it is currently pointing at. The scope synchronizes 
+//      This tells the scope what it is currently pointing at. The scope synchronizes
 //      to the current target coordinates (set with :Sd# and :Sr#)
 //      Returns: NONE#
 //
@@ -55,7 +57,7 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Use :Gt# and :Gg# to retrieve Lat and Long,
 //      Returns: 1 if the data was set, 0 if not (timedout)
 //
-// :gTnnn# 
+// :gTnnn#
 //      Set Mount Time w/ timeout
 //      Attempts to set the mount time and location from the GPS with a custom timeout. This is also blocking
 //      but by using a low timeout, you can avoid long pauses and let the user know that it's not ready yet.
@@ -97,12 +99,55 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Get Site Latitude
 //      Returns: sDD*MM#
 //               Where s is + or - and DD is the latitude in degrees and MM the minutes.
-//       
+//
 // :Gg#
 //      Get Site Longitude
 //      Returns: DDD*MM#
-//               Where DDD is the longitude in degrees and MM the minutes. Negative (W) longitudes have had 360 added to them.
-//       
+//               Where DDD is the longitude in degrees and MM the minutes. Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
+//
+// :Gc#
+//      Get current Clock format
+//      Returns: 24#
+//
+// :GG#
+//      Get UTC offset time
+//      Returns: sHH#
+//               Where s is the sign and HH are the number of hours that need to be added to local time to convert to UTC time
+//
+// :Ga#
+//      Get local time in 12h format
+//      Returns: HH:MM:SS#
+//               Where HH are hours (modulo 12), MM are minutes and SS are seconds of the local time.
+//
+// :GL#
+//      Get local time in 24h format
+//      Returns: HH:MM:SS#
+//               Where HH are hours, MM are minutes and SS are seconds of the local time.
+//
+// :GC#
+//      Get current date
+//      Returns: MM/DD/YY#
+//               Where MM is the month (1-12), day is the day (1-31) and year is the lower two digits of the year
+//
+// :GM#
+//      Get Site Name 1
+//      Returns: OAT1#
+//
+// :GN#
+//      Get Site Name 2
+//      Returns: OAT2#
+//
+// :GO#
+//      Get Site Name 3
+//      Returns: OAT2#
+//
+// :GP#
+//      Get Site Name 4
+//      Returns: OAT4#
+//
+// :GT#
+//      Get tracking rate
+//      Returns: 60.0#
 //
 // -- GET Extensions --
 // :GIS#
@@ -121,22 +166,21 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Get Mount Status
 //      Returns: string reflecting the mounts' status. The string is a comma-delimited list of statuses:
 //               Idle,--T--,11219,0,927,071906,+900000,#
-//                 |    |     |   |  |     |      |    
-//                 |    |     |   |  |     |      |    
-//                 |    |     |   |  |     |      |    
+//                 |    |     |   |  |     |      |
+//                 |    |     |   |  |     |      |
+//                 |    |     |   |  |     |      |
 //                 |    |     |   |  |     |      +------------------ [6] The current DEC position
 //                 |    |     |   |  |     +------------------------- [5] The current RA position
 //                 |    |     |   |  +------------------------------- [4] The Tracking stepper position
 //                 |    |     |   +---------------------------------- [3] The DEC stepper position
 //                 |    |     +-------------------------------------- [2] The RA stepper position
-//                 |    +-------------------------------------------- [1] The motion state. 
-//                 |                                                      First character is RA slewing state ('R' is East, 'r' is West, '-' is stopped). 
-//                 |                                                      Second character is DEC slewing state ('d' is North, 'D' is South, '-' is stopped). 
-//                 |                                                      Third character is TRK slewing state ('T' is Tracking, '-' is stopped). 
-//                 |                                                      * Fourth character is AZ slewing state ('Z' and 'z' is adjusting, '-' is stopped). 
-//                 |                                                      * Fifth character is ALT slewing state ('A' and 'a' is adjusting, '-' is stopped). 
+//                 |    +-------------------------------------------- [1] The motion state.
+//                 |                                                      First character is RA slewing state ('R' is East, 'r' is West, '-' is stopped).
+//                 |                                                      Second character is DEC slewing state ('d' is North, 'D' is South, '-' is stopped).
+//                 |                                                      Third character is TRK slewing state ('T' is Tracking, '-' is stopped).
+//                 |                                                      * Fourth character is AZ slewing state ('Z' and 'z' is adjusting, '-' is stopped).
+//                 |                                                      * Fifth character is ALT slewing state ('A' and 'a' is adjusting, '-' is stopped).
 //                 +------------------------------------------------- [0] The mount status. One of 'Idle', 'Parked', 'Parking', 'Guiding', 'SlewToTarget', 'FreeSlew', 'ManualSlew', 'Tracking', 'Homing'
-//
 //       * Az and Alt are optional. The string may only be 3 characters long
 //
 //------------------------------------------------------------------
@@ -163,29 +207,26 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 // :SgDDD*MM#
 //      Set Site Longitude
 //      This sets the longitude of the location of the mount.
-//      Where DDD the nmber of degrees (0 to 360), MM is minutes. W Latitudes get 360 added to them. So W122 (or -122) would be 238.
+//      Where DDD the nmber of degrees (0 to 360), MM is minutes. Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
 //      Returns: 1 if successfully set, otherwise 0
 //
 // :SGsHH#
 //      Set Site UTC Offset
 //      This sets the offset of the timezone in which the mount is in hours from UTC.
 //      Where s is the sign and HH is the number of hours.
-//      CURRENTLY IGNORED.
-//      Returns: 1 
+//      Returns: 1
 //
 // :SLHH:MM:SS#
 //      Set Site Local Time
 //      This sets the local time of the timezone in which the mount is located.
 //      Where HH is hours, MM is minutes and SS is seconds.
-//      CURRENTLY IGNORED.
-//      Returns: 1 
+//      Returns: 1
 //
 // :SCMM/DD/YY#
 //      Set Site Date
 //      This sets the date
-//      Where HHMM is the month, DD is teh day and YY is the year since 2000.
-//      CURRENTLY IGNORED.
-//      Returns: 1Updating Planetary Data# 
+//      Where HHMM is the month, DD is the day and YY is the year since 2000.
+//      Returns: 1Updating Planetary Data#                              #
 //
 // -- SET Extensions --
 // :SHHH:MM#
@@ -197,10 +238,10 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 // :SHP#
 //      Set Home Point
 //      This sets the current orientation of the scope as its home point.
-//      Returns: 1 
+//      Returns: 1
 //
 // :SHLHH:MM#
-//      Set LST Time 
+//      Set LST Time
 //      This sets the scopes LST (and HA).
 //      Where HH is hours, MM is minutes.
 //      Returns: 1 if successfully set, otherwise 0
@@ -218,6 +259,7 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Set Slew rate
 //      Where s is one of 'S', 'M', 'C', or 'G' in order of decreasing speed
 //      Returns: nothing
+//
 //------------------------------------------------------------------
 // MOVEMENT FAMILY
 //
@@ -241,13 +283,13 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: 1
 //
 // :Mc#
-//      Start slewing 
+//      Start slewing
 //      This starts slewing the mount in the given direction.
-//      Where c is one of 'n', 'e', 'w', or 's'. 
+//      Where c is one of 'n', 'e', 'w', or 's'.
 //      Returns: nothing
 //
 // :MAZn.nn#
-//      Move Azimuth 
+//      Move Azimuth
 //      If the scope supports automated azimuth operation, move azimuth by n.nn arcminutes
 //      Where n.nn is a signed floating point number representing the number of arcminutes to move the mount left or right.
 //      Returns: nothing
@@ -268,7 +310,7 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: Nothing
 //
 // :hF#
-//      Move Scope to Home position 
+//      Move Scope to Home position
 //      This slews the scope back to its home position (RA ring centered, DEC
 //      at 90, basically pointing at celestial pole). Mount will keep tracking.
 //      Returns: Nothing
@@ -309,7 +351,7 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 // :XDnnn#
 //      Run drift alignment
 //      This runs a drift alignment procedure where the mounts slews east, pauses, slews west and pauses.
-//      Where nnn is the number of seconds the entire alignment should take. The call is blocking and will 
+//      Where nnn is the number of seconds the entire alignment should take. The call is blocking and will
 //      only return once the drift alignment is complete.
 //      Returns: nothing
 //
@@ -332,6 +374,11 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Gets the current pitch and roll values of the mount (Digital Level addon).
 //      Returns: <pitch>,<roll># or 0# if there is no Digital Level
 //
+// :XLGT#
+//      Digital Level - Get Temperature
+//      Get the current temperature in Celsius of the mount (Digital Level addon).
+//      Returns: <temp># or 0# if there is no Digital Level
+//
 // :XLSR#
 //      Digital Level - Set Reference Roll
 //      Sets the reference roll value of the mount (Digital Level addon). This is the value
@@ -345,19 +392,24 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: 1# or 0# if there is no Digital Level
 //
 // :XGB#
-//      Get Backlash correction steps 
+//      Get Backlash correction steps
 //      Get the number of steps the RA stepper motor needs to overshoot and backtrack when slewing east.
 //      Returns: integer#
 //
 // :XGR#
-//      Get RA steps 
-//      Get the number of steps the RA stepper motor needs to take to rotate RA by one degree 
+//      Get RA steps
+//      Get the number of steps the RA stepper motor needs to take to rotate RA by one degree
 //      Returns: float#
 //
 // :XGD#
-//      Get DEC steps 
+//      Get DEC steps
 //      Get the number of steps the DEC stepper motor needs to take to rotate DEC by one degree
 //      Returns: float#
+//
+// :XGDL#
+//      Get DEC limits
+//      Get the lower and upper limits for the DEC stepper motor in steps
+//      Returns: integer|integer#
 //
 // :XGS#
 //      Get Tracking speed adjustment
@@ -375,7 +427,7 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: HHMMSS#
 //
 // :XGM#
-//      Get Mount configuration settings 
+//      Get Mount configuration settings
 //      Returns: <board>,<RA Stepper Info>,<DEC Stepper Info>,<GPS info>,<AzAlt info>,<Gyro info>#
 //      Where <board> is one of the supported boards (currently Mega, ESP32)
 //            <Stepper Info> is a pipe-delimited string of Motor type (NEMA or 28BYJ), Pulley Teeth, Steps per revolution)
@@ -384,11 +436,20 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //            <Gyro info> is either NO_GYRO or GYRO depending on whether the Digial level is present
 //      Example: ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO#
 //
+// :XGMS#
+//      Get Mount driver configuration
+//      Returns: <RA driver>,<RA slewMS>,<RA trackMS>|<DEC driver>,<DEC slewMS>,<DEC guideMS>|#
+//      Where <driver> is one of the supported drivers: U = ULN2003, TU=TMC2209UART, TS=TMC2209STANDALONE, A=A4983
+//            <slewMS> is the microstepping divider (1, 2, 4, 8, 15, 21, 64, 128, 256) used when slewing
+//            <trackMS> is the microstepping divider (1, 2, 4, 8, 15, 21, 64, 128, 256) used when tracking RA
+//            <guideMS> is the microstepping divider (1, 2, 4, 8, 15, 21, 64, 128, 256) used when guiding DEC
+//      Example: TU,8,64|TU,16,64|#
+//
 // :XGN#
 //      Get network settings
 //      Gets the current status of the Wifi connection. Reply only available when running on ESP boards.
-//      Returns: 1,<stats>,<hostname>,<ip>:<port>,<SSID>,<OATHostname>#     - if Wifi is enabled
-//      Returns: 0,#                                                        - if Wifi is not enabled
+//      Returns: 1,<mode>,<status>,<hostname>,<ip>:<port>,<SSID>,<OATHostname>#     - if Wifi is enabled
+//      0,#                                                                         - if Wifi is not enabled
 //
 // :XGL#
 //      Get LST
@@ -396,20 +457,40 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: HHMMSS
 //
 // :XSBn#
-//      Set Backlash correction steps 
+//      Set Backlash correction steps
 //      Sets the number of steps the RA stepper motor needs to overshoot and backtrack when slewing east.
 //      Returns: nothing
 //
 // :XSRn.n#
-//      Set RA steps 
+//      Set RA steps
 //      Set the number of steps the RA stepper motor needs to take to rotate by one degree.
 //      Where n.n is the number of steps (only one decimal point is supported)
 //      Returns: nothing
 //
 // :XSDn.n#
-//      Set DEC steps 
+//      Set DEC steps
 //      Set the number of steps the DEC stepper motor needs to take to rotate by one degree.
 //      Where n.n is the number of steps (only one decimal point is supported)
+//      Returns: nothing
+//
+// :XSDLU#
+//      Set DEC upper limit
+//      Set the upper limit for the DEC stepper motor to the current position
+//      Returns: nothing
+//
+// :XSDLu#
+//      Clear DEC upper limit
+//      Clears the upper limit for the DEC stepper motor
+//      Returns: nothing
+//
+// :XSDLL#
+//      Set DEC lower limit
+//      Set the lowerlimit for the DEC stepper motor to the current position
+//      Returns: nothing
+//
+// :XSDLl#
+//      Clear DEC lower limit
+//      Clear the lower limit for the DEC stepper motor
 //      Returns: nothing
 //
 // :XSSn.nnn#
@@ -436,14 +517,16 @@ bool gpsAqcuisitionComplete(int & indicator); // defined in c72_menuHA_GPS.hpp
 //      Must be in manual slewing mode.
 //      Returns: nothing
 //
+//------------------------------------------------------------------
 /////////////////////////////////////////////////////////////////////////////////////////
 
-MeadeCommandProcessor* MeadeCommandProcessor::_instance = nullptr;
+MeadeCommandProcessor *MeadeCommandProcessor::_instance = nullptr;
 
 /////////////////////////////
-// Create the processor 
+// Create the processor
 /////////////////////////////
-MeadeCommandProcessor* MeadeCommandProcessor::createProcessor(Mount* mount, LcdMenu* lcdMenu) {
+MeadeCommandProcessor *MeadeCommandProcessor::createProcessor(Mount *mount, LcdMenu *lcdMenu)
+{
   _instance = new MeadeCommandProcessor(mount, lcdMenu);
   return _instance;
 }
@@ -451,14 +534,16 @@ MeadeCommandProcessor* MeadeCommandProcessor::createProcessor(Mount* mount, LcdM
 /////////////////////////////
 // Get the singleton
 /////////////////////////////
-MeadeCommandProcessor* MeadeCommandProcessor::instance() {
+MeadeCommandProcessor *MeadeCommandProcessor::instance()
+{
   return _instance;
 }
 
 /////////////////////////////
-// Constructor 
+// Constructor
 /////////////////////////////
-MeadeCommandProcessor::MeadeCommandProcessor(Mount* mount, LcdMenu* lcdMenu) {
+MeadeCommandProcessor::MeadeCommandProcessor(Mount *mount, LcdMenu *lcdMenu)
+{
   _mount = mount;
 
   // In case of DISPLAY_TYPE_NONE mode, the lcdMenu is just an empty shell class to save having to null check everywhere
@@ -468,7 +553,8 @@ MeadeCommandProcessor::MeadeCommandProcessor(Mount* mount, LcdMenu* lcdMenu) {
 /////////////////////////////
 // INIT
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeInit(String inCmd) {
+String MeadeCommandProcessor::handleMeadeInit(String inCmd)
+{
   inSerialControl = true;
   _lcdMenu->setCursor(0, 0);
   _lcdMenu->printMenu("Remote control");
@@ -480,54 +566,119 @@ String MeadeCommandProcessor::handleMeadeInit(String inCmd) {
 /////////////////////////////
 // GET INFO
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd) {
+String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
+{
   char cmdOne = inCmd[0];
   char cmdTwo = (inCmd.length() > 1) ? inCmd[1] : '\0';
+  char achBuffer[20];
 
-  switch (cmdOne) {
-    case 'V':
-    if (cmdTwo == 'N') {
+  switch (cmdOne)
+  {
+  case 'V':
+    if (cmdTwo == 'N') // :GVN
+    {
       return String(VERSION) + "#";
     }
-    else if (cmdTwo == 'P') {
+    else if (cmdTwo == 'P') // :GVP
+    {
       return "OpenAstroTracker#";
     }
     break;
 
-    case 'r': return _mount->RAString(MEADE_STRING | TARGET_STRING); // returns trailing #
+  case 'r':                                                // :Gr
+    return _mount->RAString(MEADE_STRING | TARGET_STRING); // returns trailing #
 
-    case 'd': return _mount->DECString(MEADE_STRING | TARGET_STRING); // returns trailing #
+  case 'd':                                                 // :Gd
+    return _mount->DECString(MEADE_STRING | TARGET_STRING); // returns trailing #
 
-    case 'R': return _mount->RAString(MEADE_STRING | CURRENT_STRING); // returns trailing #
+  case 'R':                                                 // :GR
+    return _mount->RAString(MEADE_STRING | CURRENT_STRING); // returns trailing #
 
-    case 'D': return _mount->DECString(MEADE_STRING | CURRENT_STRING); // returns trailing #
+  case 'D':                                                  // :GD
+    return _mount->DECString(MEADE_STRING | CURRENT_STRING); // returns trailing #
 
-    case 'X': return _mount->getStatusString() + "#";
+  case 'X': // :GX
+    return _mount->getStatusString() + "#";
 
-    case 'I':
+  case 'I':
+  {
+    String retVal = "";
+    if (cmdTwo == 'S') // :GIS
     {
-      String retVal = "";
-      if (cmdTwo == 'S') {
-        retVal = _mount->isSlewingRAorDEC() ? "1" : "0";
-      }
-      else if (cmdTwo == 'T') {
-        retVal = _mount->isSlewingTRK() ? "1" : "0";
-      }
-      else if (cmdTwo == 'G') {
-        retVal = _mount->isGuiding() ? "1" : "0";
-      }
-      return retVal + "#";
+      retVal = _mount->isSlewingRAorDEC() ? "1" : "0";
     }
-    case 't': {
-      char achBuffer[20];
-      _mount->latitude().formatString(achBuffer,"{d}*{m}#");
-      return String(achBuffer);
+    else if (cmdTwo == 'T') // :GIT
+    {
+      retVal = _mount->isSlewingTRK() ? "1" : "0";
     }
-    case 'g': {
-      char achBuffer[20];
-      _mount->longitude().formatString(achBuffer,"{d}*{m}#");
-      return String(achBuffer);
+    else if (cmdTwo == 'G') // :GIG
+    {
+      retVal = _mount->isGuiding() ? "1" : "0";
     }
+    return retVal + "#";
+  }
+  case 't': // :Gt
+  {
+    _mount->latitude().formatString(achBuffer, "{d}*{m}#");
+    return String(achBuffer);
+  }
+  case 'g': // :Gg
+  {
+    _mount->longitude().formatString(achBuffer, "{d}*{m}#");
+    return String(achBuffer);
+  }
+  case 'c': // :Gc
+  {
+    return "24#";
+  }
+  case 'G': // :GG
+  {
+    int offset = _mount->getLocalUtcOffset();
+    sprintf(achBuffer, "%+03d#", offset);
+    return String(achBuffer);
+  }
+  case 'a': // :Ga
+  {
+    DayTime time = _mount->getLocalTime();
+    if (time.getHours() > 12)
+    {
+      time.addHours(-12);
+    }
+    time.formatString(achBuffer, "{d}:{m}:{s}#");
+    return String(achBuffer + 1);
+  }
+  case 'L': // :GL
+  {
+    DayTime time = _mount->getLocalTime();
+    time.formatString(achBuffer, "{d}:{m}:{s}#");
+    return String(achBuffer + 1);
+  }
+  case 'C': // :GC
+  {
+    LocalDate date = _mount->getLocalDate();
+    sprintf(achBuffer, "%02d/%02d/%02d#", date.month, date.day, date.year % 100);
+    return String(achBuffer);
+  }
+  case 'M': // :GM
+  {
+    return "OAT1#";
+  }
+  case 'N': // :GN
+  {
+    return "OAT2#";
+  }
+  case 'O': // :GO
+  {
+    return "OAT3#";
+  }
+  case 'P': // :GP
+  {
+    return "OAT4#";
+  }
+  case 'T': // :GT
+  {
+    return "60.0#"; //default MEADE Tracking Frequency
+  }
   }
 
   return "";
@@ -536,24 +687,29 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd) {
 /////////////////////////////
 // GPS CONTROL
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd) {
-  #if USE_GPS == 1
-  if (inCmd[0] == 'T') {
+String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
+{
+#if USE_GPS == 1
+  if (inCmd[0] == 'T')
+  {
     unsigned long timeoutLen = 2UL * 60UL * 1000UL;
-    if (inCmd.length() > 1) {
+    if (inCmd.length() > 1)
+    {
       timeoutLen = inCmd.substring(1).toInt();
     }
     // Wait at most 2 minutes
     unsigned long timeoutTime = millis() + timeoutLen;
     int indicator = 0;
-    while (millis() < timeoutTime) {
-      if (gpsAqcuisitionComplete(indicator)) {
+    while (millis() < timeoutTime)
+    {
+      if (gpsAqcuisitionComplete(indicator))
+      {
         LOGV1(DEBUG_MEADE, F("MEADE: GPS startup, GPS acquired"));
         return "1";
       }
     }
   }
-  #endif
+#endif
   LOGV1(DEBUG_MEADE, F("MEADE: GPS startup, no GPS signal"));
   return "0";
 }
@@ -561,8 +717,10 @@ String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd) {
 /////////////////////////////
 // SYNC CONTROL
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd) {
-  if (inCmd[0] == 'M') {
+String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd)
+{
+  if (inCmd[0] == 'M')
+  {
     _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
     return "NONE#";
   }
@@ -573,8 +731,10 @@ String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd) {
 /////////////////////////////
 // SET INFO
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd) {
-  if ((inCmd[0] == 'd') && (inCmd.length() == 10)) {
+String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
+{
+  if ((inCmd[0] == 'd') && (inCmd.length() == 10))
+  {
     // Set DEC
     //   0123456789
     // :Sd+84*03:02
@@ -585,12 +745,14 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd) {
       LOGV2(DEBUG_MEADE, F("MEADE: SetInfo: Received Target DEC: %s"), _mount->targetDEC().ToString());
       return "1";
     }
-    else {
+    else
+    {
       // Did not understand the coordinate
       return "0";
     }
   }
-  else if (inCmd[0] == 'r' && (inCmd.length() == 9)) {
+  else if (inCmd[0] == 'r' && (inCmd.length() == 9))
+  {
     // :Sr11:04:57#
     // Set RA
     //   012345678
@@ -601,18 +763,22 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd) {
       LOGV2(DEBUG_MEADE, F("MEADE: SetInfo: Received Target RA: %s"), _mount->targetRA().ToString());
       return "1";
     }
-    else {
+    else
+    {
       // Did not understand the coordinate
       return "0";
     }
   }
-  else if (inCmd[0] == 'H') {
-    if (inCmd[1] == 'L') {
+  else if (inCmd[0] == 'H')
+  {
+    if (inCmd[1] == 'L')
+    {
       // Set LST
       int hLST = inCmd.substring(2, 4).toInt();
       int minLST = inCmd.substring(4, 6).toInt();
       int secLST = 0;
-      if (inCmd.length() > 7) {
+      if (inCmd.length() > 7)
+      {
         secLST = inCmd.substring(6, 8).toInt();
       }
 
@@ -620,12 +786,14 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd) {
       LOGV4(DEBUG_MEADE, F("MEADE: SetInfo: Received LST: %d:%d:%d"), hLST, minLST, secLST);
       _mount->setLST(lst);
     }
-    else if (inCmd[1] == 'P') {
+    else if (inCmd[1] == 'P')
+    {
       // Set home point
       _mount->setHome(false);
       _mount->startSlewing(TRACKING);
     }
-    else {
+    else
+    {
       // Set HA
       int hHA = inCmd.substring(1, 3).toInt();
       int minHA = inCmd.substring(4, 6).toInt();
@@ -635,11 +803,13 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd) {
 
     return "1";
   }
-  else if ((inCmd[0] == 'Y') && inCmd.length() == 19) {
+  else if ((inCmd[0] == 'Y') && inCmd.length() == 19)
+  {
     // Sync RA, DEC - current position is the given coordinate
     //   0123456789012345678
     // :SY+84*03:02.18:34:12
-    if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':') && (inCmd[10] == '.') && (inCmd[13] == ':') && (inCmd[16] == ':')) {
+    if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':') && (inCmd[10] == '.') && (inCmd[13] == ':') && (inCmd[16] == ':'))
+    {
       Declination dec = Declination::ParseFromMeade(inCmd.substring(1, 9));
       DayTime ra = DayTime::ParseFromMeade(inCmd.substring(11));
 
@@ -657,22 +827,37 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd) {
   else if (inCmd[0] == 'g') // longitude :Sg097*34#
   {
     Longitude lon = Longitude::ParseFromMeade(inCmd.substring(1));
-    
-     _mount->setLongitude(lon);
-     return "1";
+
+    _mount->setLongitude(lon);
+    return "1";
   }
   else if (inCmd[0] == 'G') // utc offset :SG+05#
   {
+    int offset = inCmd.substring(1, 4).toInt();
+    _mount->setLocalUtcOffset(offset);
     return "1";
   }
   else if (inCmd[0] == 'L') // Local time :SL19:33:03#
   {
+    _mount->setLocalStartTime(DayTime::ParseFromMeade(inCmd.substring(1)));
     return "1";
   }
-  else if (inCmd[0] == 'C') { // Set Date (MM/DD/YY) :SC04/30/20#
-    return "1Updating Planetary Data#"; // 
+  else if (inCmd[0] == 'C')
+  { // Set Date (MM/DD/YY) :SC04/30/20#
+    int month = inCmd.substring(1, 3).toInt();
+    int day = inCmd.substring(4, 6).toInt();
+    int year = 2000 + inCmd.substring(7, 9).toInt();
+    _mount->setLocalStartDate(year, month, day);
+
+    /*
+    From https://www.astro.louisville.edu/software/xmtel/archive/xmtel-indi-6.0/xmtel-6.0l/support/lx200/CommandSet.html :
+    SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long. 
+    The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
+    */
+    return "1Updating Planetary Data#                              #"; //
   }
-  else {
+  else
+  {
     return "0";
   }
 }
@@ -680,68 +865,90 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd) {
 /////////////////////////////
 // MOVEMENT
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeMovement(String inCmd) {
-  if (inCmd[0] == 'S') {
+String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
+{
+  if (inCmd[0] == 'S')
+  {
     _mount->startSlewingToTarget();
     return "0";
   }
-  else if (inCmd[0] == 'T') {
-    if (inCmd.length() > 1) {
-      if (inCmd[1] == '1') {
+  else if (inCmd[0] == 'T')
+  {
+    if (inCmd.length() > 1)
+    {
+      if (inCmd[1] == '1')
+      {
         _mount->startSlewing(TRACKING);
         return "1";
       }
-      else if (inCmd[1] == '0') {
+      else if (inCmd[1] == '0')
+      {
         _mount->stopSlewing(TRACKING);
         return "1";
       }
     }
-    else {
+    else
+    {
       return "0";
     }
   }
-  else if (inCmd[0] == 'G') {
+  else if ((inCmd[0] == 'G') || (inCmd[0] == 'g'))
+  {
+    // The spec calls for lowercase, but ASCOM Drivers prior to 0.3.1.0 sends uppercase, so we allow both for now.
     // Guide pulse
     //   012345678901
     // :MGd0403
-    if (inCmd.length() == 6) {
+    if (inCmd.length() == 6)
+    {
       byte direction = EAST;
-      if (inCmd[1] == 'N') direction = NORTH;
-      else if (inCmd[1] == 'S') direction = SOUTH;
-      else if (inCmd[1] == 'E') direction = EAST;
-      else if (inCmd[1] == 'W') direction = WEST;
+      inCmd.toLowerCase();
+      if (inCmd[1] == 'n')
+        direction = NORTH;
+      else if (inCmd[1] == 's')
+        direction = SOUTH;
+      else if (inCmd[1] == 'e')
+        direction = EAST;
+      else if (inCmd[1] == 'w')
+        direction = WEST;
       int duration = (inCmd[2] - '0') * 1000 + (inCmd[3] - '0') * 100 + (inCmd[4] - '0') * 10 + (inCmd[5] - '0');
       _mount->guidePulse(direction, duration);
       return "1";
     }
   }
-  else if (inCmd[0] == 'A') {
-    // Move Azimuth or Altitude by given arcminutes
-    // :MAZ+32.1# or :MAL-32.1#
-    #if AZIMUTH_ALTITUDE_MOTORS == 1
+  else if (inCmd[0] == 'A')
+  {
+// Move Azimuth or Altitude by given arcminutes
+// :MAZ+32.1# or :MAL-32.1#
+#if AZIMUTH_ALTITUDE_MOTORS == 1
     float arcMinute = inCmd.substring(2).toFloat();
-    if (inCmd[1] == 'Z'){
+    if (inCmd[1] == 'Z')
+    {
       _mount->moveBy(AZIMUTH_STEPS, arcMinute);
     }
-    else if (inCmd[1] == 'L'){
+    else if (inCmd[1] == 'L')
+    {
       _mount->moveBy(ALTITUDE_STEPS, arcMinute);
     }
-    #endif
+#endif
     return "";
   }
-  else if (inCmd[0] == 'e') {
+  else if (inCmd[0] == 'e')
+  {
     _mount->startSlewing(EAST);
     return "";
   }
-  else if (inCmd[0] == 'w') {
+  else if (inCmd[0] == 'w')
+  {
     _mount->startSlewing(WEST);
     return "";
   }
-  else if (inCmd[0] == 'n') {
+  else if (inCmd[0] == 'n')
+  {
     _mount->startSlewing(NORTH);
     return "";
   }
-  else if (inCmd[0] == 's') {
+  else if (inCmd[0] == 's')
+  {
     _mount->startSlewing(SOUTH);
     return "";
   }
@@ -752,22 +959,28 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd) {
 /////////////////////////////
 // HOME
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeHome(String inCmd) {
-  if (inCmd[0] == 'P') {  // Park
+String MeadeCommandProcessor::handleMeadeHome(String inCmd)
+{
+  if (inCmd[0] == 'P')
+  { // Park
     _mount->park();
   }
-  else if (inCmd[0] == 'F') {  // Home
+  else if (inCmd[0] == 'F')
+  { // Home
     _mount->goHome();
   }
-  else if (inCmd[0] == 'U') {  // Unpark
+  else if (inCmd[0] == 'U')
+  { // Unpark
     _mount->startSlewing(TRACKING);
     return "1";
   }
   return "";
 }
 
-String MeadeCommandProcessor::handleMeadeDistance(String inCmd) {
-  if (_mount->isSlewingRAorDEC()){
+String MeadeCommandProcessor::handleMeadeDistance(String inCmd)
+{
+  if (_mount->isSlewingRAorDEC())
+  {
     return "|#";
   }
   return " #";
@@ -776,10 +989,12 @@ String MeadeCommandProcessor::handleMeadeDistance(String inCmd) {
 /////////////////////////////
 // EXTRA COMMANDS
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd) {
+String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
+{
   //   0123
   // :XDmmm
-  if (inCmd[0] == 'D') {  // Drift Alignemnt
+  if (inCmd[0] == 'D') // :XD
+  {                    // Drift Alignemnt
     int duration = inCmd.substring(1, 4).toInt() - 3;
     _lcdMenu->setCursor(0, 0);
     _lcdMenu->printMenu(">Drift Alignment");
@@ -804,142 +1019,221 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd) {
     _lcdMenu->setCursor(0, 1);
     _mount->startSlewing(TRACKING);
   }
-    else if (inCmd[0] == 'G') { // Get RA/DEC steps/deg, speedfactor
-    if (inCmd[1] == 'R') {
+  else if (inCmd[0] == 'G')
+  {                      // Get RA/DEC steps/deg, speedfactor
+    if (inCmd[1] == 'R') // :XGR#
+    {
       return String(_mount->getStepsPerDegree(RA_STEPS), 1) + "#";
     }
-    else if (inCmd[1] == 'D') {
-      return String(_mount->getStepsPerDegree(DEC_STEPS),1) + "#";
+    else if (inCmd[1] == 'D')
+    {
+      if (inCmd.length() > 2)
+      {
+        if (inCmd[2] == 'L') // :XGDL#
+        {
+          long loLimit, hiLimit;
+          _mount->getDecLimitPositions(loLimit, hiLimit);
+          char scratchBuffer[20];
+          sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
+          return String(scratchBuffer);
+        }
+      }
+      else // :XGD#
+      {
+        return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
+      }
     }
-    else if (inCmd[1] == 'S') {
+    else if (inCmd[1] == 'S') // :XGS#
+    {
       return String(_mount->getSpeedCalibration(), 5) + "#";
     }
-    else if (inCmd[1] == 'T') {
+    else if (inCmd[1] == 'T') // :XGT#
+    {
       return String(_mount->getSpeed(TRACKING), 7) + "#";
     }
-    else if (inCmd[1] == 'B') {
+    else if (inCmd[1] == 'B') // :XGB#
+    {
       return String(_mount->getBacklashCorrection()) + "#";
     }
-    else if (inCmd[1] == 'M') {
-      return String(_mount->getMountHardwareInfo()) + "#";
+    else if (inCmd[1] == 'M') 
+    {
+      if ((inCmd.length() > 2) && (inCmd[2] == 'S')) // :XGMS#
+      { 
+        return _mount->getStepperInfo() + "#";
+      }
+      return _mount->getMountHardwareInfo() + "#"; // :XGM#
     }
-    else if (inCmd[1] == 'O') {
+    else if (inCmd[1] == 'O') // :XGO#
+    {
       return getLogBuffer();
     }
-    else if (inCmd[1] == 'H') {
+    else if (inCmd[1] == 'H') // :XGH#
+    {
       char scratchBuffer[10];
-      sprintf(scratchBuffer, "%02d%02d%02d#", _mount->HA().getHours(), _mount->HA().getMinutes(), _mount->HA().getSeconds());
+      DayTime ha = _mount->calculateHa();
+      sprintf(scratchBuffer, "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
       return String(scratchBuffer);
     }
-    else if (inCmd[1] == 'L') {
+    else if (inCmd[1] == 'L') // :XGL#
+    {
       char scratchBuffer[10];
-      sprintf(scratchBuffer, "%02d%02d%02d#", _mount->LST().getHours(), _mount->LST().getMinutes(), _mount->LST().getSeconds());
+      DayTime lst = _mount->calculateLst();
+      sprintf(scratchBuffer, "%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
       return String(scratchBuffer);
     }
-    else if (inCmd[1] == 'N') {
-#ifdef WIFI_ENABLED
+    else if (inCmd[1] == 'N') // :XGN#
+    {
+#if (WIFI_ENABLED == 1)
       return wifiControl.getStatus() + "#";
 #endif
 
       return "0,#";
     }
   }
-  else if (inCmd[0] == 'S') { // Set RA/DEC steps/deg, speedfactor
-    if (inCmd[1] == 'R') {
+  else if (inCmd[0] == 'S')
+  {                      // Set RA/DEC steps/deg, speedfactor
+    if (inCmd[1] == 'R') // :XSR#
+    {
       _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'D') {
-      _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
+    else if (inCmd[1] == 'D') // :XSD
+    {
+      if ((inCmd.length() > 3) && (inCmd[2] == 'L')) // :XSDL
+      {
+        if (inCmd[3] == 'L') // :XSDLL
+        {
+          _mount->setDecLimitPosition(false);
+        }
+        else if (inCmd[3] == 'U') // :XSDLU
+        {
+          _mount->setDecLimitPosition(true);
+        }
+        else if (inCmd[3] == 'l') // :XSDLl
+        {
+          _mount->clearDecLimitPosition(false);
+        }
+        else if (inCmd[3] == 'u') // :XSDLU
+        {
+          _mount->clearDecLimitPosition(true);
+        }
+      }
+      else
+      {
+        _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
+      }
     }
-    else if (inCmd[1] == 'S') {
+    else if (inCmd[1] == 'S') // :XSS
+    {
       _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), true);
     }
-    else if (inCmd[1] == 'M') {
+    else if (inCmd[1] == 'M') // :XSM
+    {
       _mount->setManualSlewMode(inCmd[2] == '1');
     }
-    else if (inCmd[1] == 'X') {
+    else if (inCmd[1] == 'X') // :XSX
+    {
       _mount->setSpeed(RA_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'Y') {
+    else if (inCmd[1] == 'Y') // :XSY
+    {
       _mount->setSpeed(DEC_STEPS, inCmd.substring(2).toFloat());
     }
-    else if (inCmd[1] == 'B') {
+    else if (inCmd[1] == 'B') // :XSB
+    {
       _mount->setBacklashCorrection(inCmd.substring(2).toInt());
     }
   }
-  else if (inCmd[0] == 'L') { // Digital Level
-    #if USE_GYRO_LEVEL == 1
-    if (inCmd[1] == 'G') { // get values
-      if (inCmd[2] == 'R') { // get Calibration/Reference values
-        return String (_mount->getPitchCalibrationAngle(),4) + "," + String (_mount->getRollCalibrationAngle(),4) +"#";
+  else if (inCmd[0] == 'L')
+  { // Digital Level
+#if USE_GYRO_LEVEL == 1
+    if (inCmd[1] == 'G')
+    {                      // get values
+      if (inCmd[2] == 'R') // :XLGR
+      {                    // get Calibration/Reference values
+        return String(_mount->getPitchCalibrationAngle(), 4) + "," + String(_mount->getRollCalibrationAngle(), 4) + "#";
       }
-      else if (inCmd[2] == 'C') { // Get current values
+      else if (inCmd[2] == 'C') // :XLGC
+      {                         // Get current values
         auto angles = Gyro::getCurrentAngles();
-        return String (angles.pitchAngle,4) + "," + String (angles.rollAngle,4) +"#";
+        return String(angles.pitchAngle, 4) + "," + String(angles.rollAngle, 4) + "#";
+      }
+      else if (inCmd[2] == 'T') // :XLGT
+      {                         // Get current temp
+        float temp = Gyro::getCurrentTemperature();
+        return String(temp, 1) + "#";
       }
     }
-    else if (inCmd[1] == 'S') { // set values
-      if (inCmd[2] == 'P') { // get Calibration/Reference values
+    else if (inCmd[1] == 'S')
+    {                      // set values
+      if (inCmd[2] == 'P') // :XLSP
+      {                    // get Calibration/Reference values
         _mount->setPitchCalibrationAngle(inCmd.substring(3).toFloat());
         return String("1#");
       }
-      else if (inCmd[2] == 'R') { 
+      else if (inCmd[2] == 'R') // :XLSR
+      {
         _mount->setRollCalibrationAngle(inCmd.substring(3).toFloat());
         return String("1#");
       }
     }
-    else if (inCmd[1] == '1') { // Turn on Gyro
+    else if (inCmd[1] == '1') // :XL1
+    {                         // Turn on Gyro
       Gyro::startup();
       return String("1#");
     }
-    else if (inCmd[1] == '0') { // Turn off Gyro
+    else if (inCmd[1] == '0') // :XL0
+    {                         // Turn off Gyro
       Gyro::shutdown();
       return String("1#");
     }
-    else{
+    else
+    {
       return "Unknown Level command: X" + inCmd;
     }
-    #endif
+#endif
     return String("0#");
   }
-  else if ((inCmd[0]== 'F') && (inCmd[1]== 'R'))
+  else if ((inCmd[0] == 'F') && (inCmd[1] == 'R'))
   {
-    _mount->clearConfiguration();
+    _mount->clearConfiguration(); // :XFR
     return String("1#");
   }
-  
+
   return "";
 }
 
 /////////////////////////////
 // QUIT
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeQuit(String inCmd) {
+String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
+{
   // :Q# stops a motors - remains in Control mode
   // :Qq# command does not stop motors, but quits Control mode
-  if (inCmd.length() == 0) {
+  if (inCmd.length() == 0)
+  {
     _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
     _mount->waitUntilStopped(ALL_DIRECTIONS);
     return "1";
   }
 
-  switch (inCmd[0]) {
-    case 'a':
+  switch (inCmd[0])
+  {
+  case 'a':
     _mount->stopSlewing(ALL_DIRECTIONS);
     break;
-    case 'e':
+  case 'e':
     _mount->stopSlewing(EAST);
     break;
-    case 'w':
+  case 'w':
     _mount->stopSlewing(WEST);
     break;
-    case 'n':
+  case 'n':
     _mount->stopSlewing(NORTH);
     break;
-    case 's':
+  case 's':
     _mount->stopSlewing(SOUTH);
     break;
-    case 'q':
+  case 'q':
     inSerialControl = false;
     _lcdMenu->setCursor(0, 0);
     _lcdMenu->updateDisplay();
@@ -952,46 +1246,71 @@ String MeadeCommandProcessor::handleMeadeQuit(String inCmd) {
 /////////////////////////////
 // Set Slew Rates
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd) {
-  switch (inCmd[0]) {
-    case 'S': _mount->setSlewRate(4); break; // Slew   - Fastest
-    case 'M': _mount->setSlewRate(3); break; // Find   - 2nd Fastest
-    case 'C': _mount->setSlewRate(2); break; // Center - 2nd Slowest
-    case 'G': _mount->setSlewRate(1); break; // Guide  - Slowest
-    default:
+String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
+{
+  switch (inCmd[0])
+  {
+  case 'S':
+    _mount->setSlewRate(4);
+    break; // Slew   - Fastest
+  case 'M':
+    _mount->setSlewRate(3);
+    break; // Find   - 2nd Fastest
+  case 'C':
+    _mount->setSlewRate(2);
+    break; // Center - 2nd Slowest
+  case 'G':
+    _mount->setSlewRate(1);
+    break; // Guide  - Slowest
+  default:
     break;
   }
   return "";
 }
 
-String MeadeCommandProcessor::processCommand(String inCmd) {
-  if (inCmd[0] == ':') {
+String MeadeCommandProcessor::processCommand(String inCmd)
+{
+  if (inCmd[0] == ':')
+  {
 
     LOGV2(DEBUG_MEADE, F("MEADE: Received command '%s'"), inCmd.c_str());
 
     // Apparently some LX200 implementations put spaces in their commands..... remove them with impunity.
     int spacePos;
-    while ((spacePos = inCmd.indexOf(' ')) != -1) {
+    while ((spacePos = inCmd.indexOf(' ')) != -1)
+    {
       inCmd.remove(spacePos, 1);
     }
 
     LOGV2(DEBUG_MEADE, F("MEADE: Processing command '%s'"), inCmd.c_str());
     char command = inCmd[1];
     inCmd = inCmd.substring(2);
-    switch (command) {
-      case 'S': return handleMeadeSetInfo(inCmd);
-      case 'M': return handleMeadeMovement(inCmd);
-      case 'G': return handleMeadeGetInfo(inCmd);
-      case 'g': return handleMeadeGPSCommands(inCmd);
-      case 'C': return handleMeadeSyncControl(inCmd);
-      case 'h': return handleMeadeHome(inCmd);
-      case 'I': return handleMeadeInit(inCmd);
-      case 'Q': return handleMeadeQuit(inCmd);
-      case 'R': return handleMeadeSetSlewRate(inCmd);
-      case 'D': return handleMeadeDistance(inCmd);
-      case 'X': return handleMeadeExtraCommands(inCmd);
-      default:
-        LOGV2(DEBUG_MEADE, F("MEADE: Received unknown command '%s'"), inCmd.c_str());
+    switch (command)
+    {
+    case 'S':
+      return handleMeadeSetInfo(inCmd);
+    case 'M':
+      return handleMeadeMovement(inCmd);
+    case 'G':
+      return handleMeadeGetInfo(inCmd);
+    case 'g':
+      return handleMeadeGPSCommands(inCmd);
+    case 'C':
+      return handleMeadeSyncControl(inCmd);
+    case 'h':
+      return handleMeadeHome(inCmd);
+    case 'I':
+      return handleMeadeInit(inCmd);
+    case 'Q':
+      return handleMeadeQuit(inCmd);
+    case 'R':
+      return handleMeadeSetSlewRate(inCmd);
+    case 'D':
+      return handleMeadeDistance(inCmd);
+    case 'X':
+      return handleMeadeExtraCommands(inCmd);
+    default:
+      LOGV2(DEBUG_MEADE, F("MEADE: Received unknown command '%s'"), inCmd.c_str());
       break;
     }
   }

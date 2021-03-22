@@ -1,11 +1,11 @@
-#include <Arduino.h>
-//#include "Configuration.hpp"
+#include <math.h>
+
+#include "../Configuration.hpp"
+#include "Utility.hpp"
 
 #if DEBUG_LEVEL > 0
 #include <stdarg.h>
 #endif
-
-#include "Utility.hpp"
 
 #if DEBUG_LEVEL > 0
 unsigned long RealTime::_pausedTime = 0;
@@ -14,7 +14,7 @@ unsigned long RealTime::_suspendStart = 0;
 int RealTime::_suspended = 0;
 #endif
 
-#if BUFFER_LOGS
+#if BUFFER_LOGS == true
 #define LOG_BUFFER_SIZE 512
 char logBuffer[LOG_BUFFER_SIZE];
 int bufferWritePos = 0;
@@ -206,6 +206,24 @@ int fsign(float num)
   return 1;
 }
 
+// float-type point implementation of fabs
+float fabsf(float x)
+{
+    return static_cast<float>(fabs(static_cast<double>(x)));
+}
+
+// float-type point implementation of round
+float roundf(float x)
+{
+    return static_cast<float>(round(static_cast<double>(x)));
+}
+
+// float-type point implementation of atan
+float atanf(float x)
+{
+    return static_cast<float>(atan(static_cast<double>(x)));
+}
+
 #if defined(ESP32)
 int freeMemory()
 {
@@ -344,7 +362,7 @@ void logv(int levelFlags, String input, ...)
     unsigned long now = millis();
     va_list argp;
     va_start(argp, input);
-#if BUFFER_LOGS
+#if BUFFER_LOGS == true
     addToLogBuffer(formatArg(input.c_str(), argp));
 #else
     Serial.print("[");
