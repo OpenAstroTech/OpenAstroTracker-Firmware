@@ -193,6 +193,14 @@
   #define RA_STEPS_PER_DEGREE   (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
+// RA limits
+#ifndef RA_LIMIT_LEFT 
+  #define RA_LIMIT_LEFT 5.0f
+#endif
+#ifndef RA_LIMIT_RIGHT
+  #define RA_LIMIT_RIGHT 7.0f
+#endif
+
 // DEC movement:
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
 // DEC wheel is 2 x PI x 90mm circumference which is 565.5mm
