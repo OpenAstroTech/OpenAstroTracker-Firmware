@@ -2394,11 +2394,11 @@ void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps)
   * worst case if the target is located right before the 5h mark during slewing. 
   */
   #if NORTHERN_HEMISPHERE == 1 
-    float const RALimitL = (5.0f * stepsPerSiderealHour);
-    float const RALimitR = (7.0f * stepsPerSiderealHour);
+    float const RALimitL = (RA_LIMIT_LEFT * stepsPerSiderealHour);
+    float const RALimitR = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
   #else
-    float const RALimitL = (7.0f * stepsPerSiderealHour);
-    float const RALimitR = (5.0f * stepsPerSiderealHour);  
+    float const RALimitL = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
+    float const RALimitR = (RA_LIMIT_LEFT * stepsPerSiderealHour);  
   #endif
 
   // If we reach the limit in the positive direction ...
