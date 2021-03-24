@@ -390,7 +390,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->toff(1);
     _driverRA->blank_time(24);
-    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
+    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->semin(0); //disable CoolStep so that current is consistent
@@ -425,7 +425,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverRA->toff(1);
     _driverRA->blank_time(24);
     _driverRA->semin(0); //disable CoolStep so that current is consistent
-    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
+    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->SGTHRS(stallvalue);
@@ -1163,11 +1163,11 @@ void Mount::startSlewingToTarget() {
       // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+        _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
       #endif
       #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
-        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
       #endif
 
       LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: TRK stopped at %lms"), _trackerStoppedAt);
@@ -1356,7 +1356,7 @@ void Mount::setManualSlewMode(bool state) {
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_MANUAL;
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV2(DEBUG_STEPPERS, F("STEP-setManualSlewMode: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-      _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+      _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
     #endif
   }
   else {
@@ -1808,7 +1808,7 @@ void Mount::startSlewing(int direction) {
       // Start tracking
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Tracking: Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
-        _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+        _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
       #endif
       _stepperTRK->setSpeed(_trackingSpeed);
       
@@ -1834,11 +1834,11 @@ void Mount::startSlewing(int direction) {
       // Change microstep mode for slewing
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+        _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
       #endif
       #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
-        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
       #endif
 
       if (direction & NORTH) {
@@ -2102,7 +2102,7 @@ void Mount::loop() {
         #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
           #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
             LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
-            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
           #endif
           if (!isParking()) {
             if (_compensateForTrackerOff) {
