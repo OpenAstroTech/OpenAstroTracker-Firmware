@@ -238,15 +238,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
   _stepperTRK->setMaxSpeed(10000);
   _stepperTRK->setAcceleration(5000);
 
-  #if NORTHERN_HEMISPHERE != 1
-  _stepperRA->setPinsInverted(true, false, false);
-  _stepperTRK->setPinsInverted(true, false, false);
-  #endif
-  
-  #if RA_INVERT_DIR == 1
-  _stepperRA->setPinsInverted(true, false, false);
-  _stepperTRK->setPinsInverted(true, false, false);
-  #endif
+  _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
+  _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
 }
 #endif
 
@@ -406,6 +399,8 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverRA = new TMC2209Stepper(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
     _driverRA->beginSerial(19200);
+    _driverRA->mstep_reg_select(true);
+    _driverRA->pdn_disable(true);
     bool _UART_Rx_connected = false;
     #if RA_AUDIO_FEEDBACK == 1
       _driverRA->en_spreadCycle(1);
@@ -482,6 +477,8 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
     _driverDEC->beginSerial(19200);
+    _driverDEC->mstep_reg_select(true);
+    _driverDEC->pdn_disable(true);
     bool _UART_Rx_connected = false;
     #if DEC_AUDIO_FEEDBACK == 1
     _driverDEC->en_spreadCycle(1);
@@ -557,6 +554,8 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverAZ = new TMC2209Stepper(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
     _driverAZ->beginSerial(19200);
+    _driverAZ->mstep_reg_select(true);
+    _driverAZ->pdn_disable(true);
     bool _UART_Rx_connected = false;
     #if AZ_AUDIO_FEEDBACK == 1
       _driverAZ->en_spreadCycle(1);
@@ -632,6 +631,8 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverALT = new TMC2209Stepper(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
     _driverALT->beginSerial(19200);
+    _driverALT->mstep_reg_select(true);
+    _driverALT->pdn_disable(true);    
     bool _UART_Rx_connected = false;
     #if ALT_AUDIO_FEEDBACK == 1
       _driverALT->en_spreadCycle(1);
@@ -2388,22 +2389,38 @@ void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps)
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: RA Steps/deg: %d   Steps/srhour: %f"), _stepsPerRADegree, stepsPerSiderealHour);
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
-  // We can move 6 hours in either direction. Outside of that we need to flip directions.
-  float const RALimit = (6.0f * stepsPerSiderealHour);
+  /*
+  * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
+  * Since tracking does not trigger the meridian flip, we try to extend the possible tracking time 
+  * without reaching the RA ring end by executing the meridian flip before slewing to the target.
+  * For this flip the RA and DEC rings have to be flipped by 180° (which is 12 RA hours). Based
+  * on the physical RA ring limits, this means that the flip can only be executed during +/-[5h to 7h]
+  * sections around the home position of RA. The tracking time will still be limited to around 2h in
+  * worst case if the target is located right before the 5h mark during slewing. 
+  */
+  #if NORTHERN_HEMISPHERE == 1 
+    float const RALimitL = (RA_LIMIT_LEFT * stepsPerSiderealHour);
+    float const RALimitR = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
+  #else
+    float const RALimitL = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
+    float const RALimitR = (RA_LIMIT_LEFT * stepsPerSiderealHour);  
+  #endif
 
   // If we reach the limit in the positive direction ...
-  if (moveRA > RALimit) {
+  if (moveRA > RALimitR) {
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: RA is past +limit: %f, DEC: %f"), RALimit);
 
     // ... turn both RA and DEC axis around
+
     moveRA -= long(12.0f * stepsPerSiderealHour);
     moveDEC = -moveDEC;
     //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: Adjusted Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
   }
   // If we reach the limit in the negative direction...
-  else if (moveRA < -RALimit) {
+  else if (moveRA < -RALimitL) {
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersIn: RA is past -limit: %f, DEC: %f"), -RALimit);
     // ... turn both RA and DEC axis around
+
     moveRA += long(12.0f * stepsPerSiderealHour);
     moveDEC = -moveDEC;
     //LOGV1(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPost: Adjusted Target. Moved RA, inverted DEC"));
