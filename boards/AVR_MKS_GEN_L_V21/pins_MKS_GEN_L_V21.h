@@ -95,7 +95,6 @@
 #endif
 
 #define SW_SERIAL_UART 1
-#define UART_CONNECTION_TEST_TXRX 1
   
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef AZ_IN1_PIN

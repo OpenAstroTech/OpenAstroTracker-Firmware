@@ -389,10 +389,13 @@ void setup() {
     }
   #endif
 
-#if UART_CONNECTION_TEST_TX == 1
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   LOGV1(DEBUG_STEPPERS, "Moving RA axis using UART commands...");
   mount.testRA_UART_TX();
   LOGV1(DEBUG_STEPPERS, "Finished moving RA axis using UART commands.");
+#endif
+
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   LOGV1(DEBUG_STEPPERS, "Moving DEC axis using UART commands...");
   mount.testDEC_UART_TX();
   LOGV1(DEBUG_STEPPERS, "Finished moving DEC axis using UART commands.");
