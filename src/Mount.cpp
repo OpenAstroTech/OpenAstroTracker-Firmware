@@ -338,6 +338,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #endif
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
+#if UART_CONNECTION_TEST_TXRX == 1
 bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Testing UART Connection to %s driver..."), driverKind);
     for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++) {
@@ -353,6 +354,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     return false;
 }
 #endif
+#endif
 
 /////////////////////////////////
 //
@@ -366,12 +368,13 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverRA = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverRA->begin();
 
-    bool _UART_Rx_connected = false;
-    _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(RA_EN_PIN, HIGH);    // Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
-    _driverRA->toff(0);    
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverRA->toff(0);     
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
       _driverRA->I_scale_analog(0);
     #endif
@@ -401,12 +404,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverRA->mstep_reg_select(true);
     _driverRA->pdn_disable(true);
 
-    bool _UART_Rx_connected = false;
-    _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(RA_EN_PIN, HIGH);    // Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
-
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
     _driverRA->toff(0);   
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverRA->I_scale_analog(0);
@@ -441,12 +444,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverDEC->begin();
-    
-    bool _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
-
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
     _driverDEC->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverDEC->I_scale_analog(0);
@@ -475,11 +478,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverDEC->beginSerial(19200);
     _driverDEC->mstep_reg_select(true);
     _driverDEC->pdn_disable(true);
-
-    bool _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(DEC_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
     _driverDEC->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverDEC->I_scale_analog(0);
@@ -513,11 +517,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverAZ = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverAZ->begin();
-    bool _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
-    
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
     _driverAZ->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverAZ->I_scale_analog(0);
@@ -546,11 +551,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverAZ->beginSerial(19200);
     _driverAZ->mstep_reg_select(true);
     _driverAZ->pdn_disable(true);
-    bool _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
-
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(AZ_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
     _driverAZ->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverAZ->I_scale_analog(0);
@@ -584,11 +590,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverALT = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverALT->begin();
-    bool _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
-
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
     _driverALT->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverALT->I_scale_analog(0);
@@ -617,11 +624,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverALT->beginSerial(19200);
     _driverALT->mstep_reg_select(true);
     _driverALT->pdn_disable(true);    
-    bool _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
-    if (!_UART_Rx_connected) {
-        digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-    }
-
+    #if UART_CONNECTION_TEST_TXRX == 1
+        bool _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
     _driverALT->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverALT->I_scale_analog(0);
@@ -2811,7 +2819,7 @@ DayTime Mount::calculateHa() {
 // testUART
 //
 /////////////////////////////////
-
+#if UART_CONNECTION_TEST_TX == 1
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 void Mount::testRA_UART_TX(){
     int _speed = 1000;  //microsteps per driver clock tick
@@ -2838,4 +2846,5 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) 
     driver->VACTUAL(0);
     delay(_duration);
 }
+#endif
 #endif
