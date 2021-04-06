@@ -65,10 +65,6 @@
   #endif
 #endif
 
-#ifdef UART_CONNECTION_TEST_TXRX
-    #warning The UART Connection test is now standard. This directive is obsolete and can be removed from your configuration.
-#endif
-
 #if (AZIMUTH_ALTITUDE_MOTORS == 0)
   // Baseline configuration without azimuth & altitude control is valid
 #elif defined(__AVR_ATmega2560__)
