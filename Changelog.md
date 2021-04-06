@@ -1,3 +1,10 @@
+**V1.9.03 - Updates**
+- Removed connection test check and made it standard.
+- Switched motors to normal mode (better perf), but allowed silent mode through XX_UART_STEALTH_MODE defines.
+- Made DEC driver be in Guide microstep mode unless slewing.
+- Added command to Meade protocol to calculate stepper positions for stellar coordinates.
+- Fixed an overflow bug in the CAL LCD menu for RA/DEC steps (esoteric mounts).
+
 **V1.9.00 - Updates**
 - Fixes RMS current setting for TMC2209 UART to be more accurate and consistent
 - Disables i_scale_analog (aka "USE_VREF") by default so that results are more consistent between users. rms_current will no longer depend on Vref, unless specifically configured by the user.

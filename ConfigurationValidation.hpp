@@ -48,12 +48,20 @@
     // Serial bus address must be specified for TMC2209 in UART mode
     #error RA driver address for DRIVER_TYPE_TMC2209_UART not specified.
   #endif
+  #if (RA_UART_STEALTH_MODE != 0) && (RA_UART_STEALTH_MODE != 1)
+    // Stealth mode must be zero or 1
+    #error RA stealth mode must be 0 (off) or 1 (on)
+  #endif
 #endif
 
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #ifndef DEC_DRIVER_ADDRESS
     // Serial bus address must be specified for TMC2209 in UART mode
     #error DEC driver address for DRIVER_TYPE_TMC2209_UART not specified.
+  #endif
+  #if (DEC_UART_STEALTH_MODE != 0) && (DEC_UART_STEALTH_MODE != 1)
+    // Stealth mode must be zero or 1
+    #error DEC stealth mode must be 0 (off) or 1 (on)
   #endif
 #endif
 

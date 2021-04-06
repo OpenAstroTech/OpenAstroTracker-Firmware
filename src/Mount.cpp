@@ -45,6 +45,8 @@ POP_NO_WARNINGS
 #define SLEW_MASK_WEST    B1000
 #define SLEW_MASK_ANY     B1111
 
+#define UART_CONNECTION_TEST_RETRIES 5
+
 // Seconds per astronomical day (23h 56m 4.0905s)
 const float secondsPerDay = 86164.0905f;
 
@@ -335,12 +337,12 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   #endif  
 #endif
 
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 #if UART_CONNECTION_TEST_TXRX == 1
 bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Testing UART Connection to %s driver..."), driverKind);
-    for(int i=0; i<5; i++) {
-        if(driver->test_connection() == 0) {
+    for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++) {
+        if (driver->test_connection() == 0) {
             LOGV2(DEBUG_STEPPERS, F("UART connection to %s driver successful."), driverKind);
             return true;
         }
@@ -366,24 +368,22 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverRA = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverRA->begin();
     bool _UART_Rx_connected = false;
-    #if RA_AUDIO_FEEDBACK == 1
-      _driverRA->en_spreadCycle(1);
-    #endif
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
         if (!_UART_Rx_connected) {
             digitalWrite(RA_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
         }
     #endif
-    _driverRA->toff(0);    
+    _driverRA->toff(0);     
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
       _driverRA->I_scale_analog(0);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->toff(1);
+    _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0); 
     _driverRA->blank_time(24);
-    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
+    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->semin(0); //disable CoolStep so that current is consistent
@@ -394,7 +394,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual RA vsense: %d"), _driverRA->vsense());
     }
   }
+
 #elif SW_SERIAL_UART == 1
+
   void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverRA = new TMC2209Stepper(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
@@ -402,9 +404,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverRA->mstep_reg_select(true);
     _driverRA->pdn_disable(true);
     bool _UART_Rx_connected = false;
-    #if RA_AUDIO_FEEDBACK == 1
-      _driverRA->en_spreadCycle(1);
-    #endif
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverRA, "RA" );
         if (!_UART_Rx_connected) {
@@ -418,9 +417,10 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->toff(1);
+    _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0); 
     _driverRA->blank_time(24);
     _driverRA->semin(0); //disable CoolStep so that current is consistent
-    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
+    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->SGTHRS(stallvalue);
@@ -445,9 +445,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverDEC->begin();
     bool _UART_Rx_connected = false;
-    #if DEC_AUDIO_FEEDBACK == 1
-    _driverDEC->en_spreadCycle(1);
-    #endif
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
         if (!_UART_Rx_connected) {
@@ -461,8 +458,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->toff(1);
+    _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0); 
     _driverDEC->blank_time(24);
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
+    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0); //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -472,7 +470,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual DEC vsense: %d"), _driverDEC->vsense());
     }
   }
+
 #elif SW_SERIAL_UART == 1
+
   void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
@@ -480,9 +480,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverDEC->mstep_reg_select(true);
     _driverDEC->pdn_disable(true);
     bool _UART_Rx_connected = false;
-    #if DEC_AUDIO_FEEDBACK == 1
-    _driverDEC->en_spreadCycle(1);
-    #endif
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverDEC, "DEC" );
         if (!_UART_Rx_connected) {
@@ -496,8 +493,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->toff(1);
+    _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0); 
     _driverDEC->blank_time(24);
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);   // If 1 then disable microstepping
+    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0); //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -522,9 +520,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverAZ = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverAZ->begin();
     bool _UART_Rx_connected = false;
-    #if AZ_AUDIO_FEEDBACK == 1
-      _driverAZ->en_spreadCycle(1);
-    #endif
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
         if (!_UART_Rx_connected) {
@@ -538,6 +533,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
     _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
+    _driverAZ->en_spreadCycle(1);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -549,7 +545,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual AZ vsense: %d"), _driverAZ->vsense());
     }
   }
+
 #elif SW_SERIAL_UART == 1
+
   void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverAZ = new TMC2209Stepper(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
@@ -557,9 +555,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverAZ->mstep_reg_select(true);
     _driverAZ->pdn_disable(true);
     bool _UART_Rx_connected = false;
-    #if AZ_AUDIO_FEEDBACK == 1
-      _driverAZ->en_spreadCycle(1);
-    #endif
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverAZ, "AZ" );
         if (!_UART_Rx_connected) {
@@ -573,6 +568,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
     _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
+    _driverAZ->en_spreadCycle(1);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -598,10 +594,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverALT = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverALT->begin();
-   bool _UART_Rx_connected = false;
-    #if ALT_AUDIO_FEEDBACK == 1
-      _driverALT->en_spreadCycle(1);
-    #endif
+    bool _UART_Rx_connected = false;
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
         if (!_UART_Rx_connected) {
@@ -615,6 +608,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
     _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
+    _driverALT->en_spreadCycle(1);
     _driverALT->blank_time(24);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -626,7 +620,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT vsense: %d"), _driverALT->vsense());
     }
   }
+
 #elif SW_SERIAL_UART == 1
+
   void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
     _driverALT = new TMC2209Stepper(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
@@ -634,9 +630,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverALT->mstep_reg_select(true);
     _driverALT->pdn_disable(true);    
     bool _UART_Rx_connected = false;
-    #if ALT_AUDIO_FEEDBACK == 1
-      _driverALT->en_spreadCycle(1);
-    #endif
     #if UART_CONNECTION_TEST_TXRX == 1
         _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
         if (!_UART_Rx_connected) {
@@ -650,6 +643,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
     _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
+    _driverALT->en_spreadCycle(1);
     _driverALT->blank_time(24);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -690,6 +684,8 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage) {
   _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING/RA_SLEW_MICROSTEPPING) * 360.0f / secondsPerDay;   // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
   LOGV2(DEBUG_MOUNT, F("Mount: RA steps per degree is %f steps/deg"), _stepsPerRADegree);
   LOGV2(DEBUG_MOUNT, F("Mount: New tracking speed is %f steps/sec"), _trackingSpeed);
+
+  LOGV3(DEBUG_MOUNT, F("Mount: FactorToSpeed : %s, %s"), String(val,6).c_str(), String(_trackingSpeed,6).c_str());
 
   if (saveToStorage) 
     EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
@@ -1164,16 +1160,18 @@ void Mount::startSlewingToTarget() {
       // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
-      #endif
-      #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
-        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+        _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
       #endif
 
       LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: TRK stopped at %lms"), _trackerStoppedAt);
     }
   #endif																					  
+
+  #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
+    LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
+    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+  #endif
 }
 
 /////////////////////////////////
@@ -1210,11 +1208,6 @@ void Mount::stopGuiding(bool ra, bool dec)
     
     LOGV2(DEBUG_STEPPERS, F("STEP-stopGuiding(DEC): GuideStepper stopped at %l"), _stepperGUIDE->currentPosition());
 
-     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        LOGV2(DEBUG_STEPPERS, F("STEP-stopGuiding(DEC): setMicrosteps(%d)"), DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-       _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-     #endif
-
     _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
   }
 
@@ -1247,9 +1240,6 @@ void Mount::guidePulse(byte direction, int duration) {
 
   switch (direction) {
     case NORTH:
-    #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
-    #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
@@ -1257,9 +1247,6 @@ void Mount::guidePulse(byte direction, int duration) {
     break;
 
     case SOUTH:
-    #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping
-    #endif
     LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  DEC.setSpeed(%f)"), -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
@@ -1355,7 +1342,7 @@ void Mount::setManualSlewMode(bool state) {
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_MANUAL;
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       LOGV2(DEBUG_STEPPERS, F("STEP-setManualSlewMode: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-      _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+      _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
     #endif
   }
   else {
@@ -1807,7 +1794,7 @@ void Mount::startSlewing(int direction) {
       // Start tracking
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Tracking: Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
-        _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+        _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
       #endif
       _stepperTRK->setSpeed(_trackingSpeed);
       
@@ -1833,11 +1820,12 @@ void Mount::startSlewing(int direction) {
       // Change microstep mode for slewing
       #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING);
+        _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
       #endif
       #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: Slewing: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
-        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
       #endif
 
       if (direction & NORTH) {
@@ -2101,7 +2089,7 @@ void Mount::loop() {
         #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
           #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
             LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
-            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING);
+            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
           #endif
           if (!isParking()) {
             if (_compensateForTrackerOff) {
@@ -2115,6 +2103,13 @@ void Mount::loop() {
             startSlewing(TRACKING);					   
           }
         #endif
+
+        // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+        #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+          LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. DEC driver setMicrosteps(%d)"), DEC_GUIDE_MICROSTEPPING);
+          _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
+        #endif
+
         if (_correctForBacklash) {
           LOGV3(DEBUG_MOUNT|DEBUG_STEPPERS,F("Mount::Loop:   Reached target at %d. Compensating by %d"), (int)_currentRAStepperPosition, _backlashCorrectionSteps);
           _currentRAStepperPosition += _backlashCorrectionSteps;
@@ -2332,6 +2327,21 @@ float Mount::getSpeed(int direction) {
   return 0;
 }
 
+/////////////////////////////////
+//
+// calculateStepperPositions
+//
+// This code calculates the stepper locations to move to, given the right ascension and declination
+/////////////////////////////////
+void Mount::calculateStepperPositions(float raCoord, float decCoord, long& raPos, long& decPos){
+  DayTime savedRA = _targetRA;
+  Declination savedDec = _targetDEC;
+  _targetRA = DayTime(raCoord);
+  _targetDEC = Declination::FromSeconds(decCoord * 3600.0f);
+  calculateRAandDECSteppers(raPos, decPos);
+  _targetRA = savedRA;
+  _targetDEC = savedDec;
+}
 
 /////////////////////////////////
 //
@@ -2816,16 +2826,23 @@ DayTime Mount::calculateHa() {
 //
 /////////////////////////////////
 #if UART_CONNECTION_TEST_TX == 1
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 void Mount::testRA_UART_TX(){
     int _speed = 1000;  //microsteps per driver clock tick
     int _duration = 1000;    //Duration to run in ms
     testUART_vactual(_driverRA, _speed, _duration);
 }
+#endif
+
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::testDEC_UART_TX(){
     int _speed = 1000;  //microsteps per driver clock tick
     int _duration = 1000;    //Duration to run in ms
     testUART_vactual(_driverDEC, _speed, _duration);
 }
+#endif
+
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) {
     driver->VACTUAL(_speed);
     delay(_duration);
@@ -2835,4 +2852,5 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) 
     driver->VACTUAL(0);
     delay(_duration);
 }
+#endif
 #endif

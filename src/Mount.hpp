@@ -178,6 +178,8 @@ public:
   // Set the current RA and DEC position to be the given coordinates
   void syncPosition(DayTime ra, Declination dec);
 
+  void calculateStepperPositions(float raCoord, float decCoord, long& raPos, long& decPos);
+
   // Calculates movement parameters and program steppers to move
   // there. Must call loop() frequently to actually move.
   void startSlewingToTarget();
@@ -328,15 +330,21 @@ public:
   DayTime calculateLst();
   DayTime calculateHa();
   
-  #if UART_CONNECTION_TEST_TX == 1
+#if UART_CONNECTION_TEST_TX == 1
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
   void testRA_UART_TX();
+#endif
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   void testDEC_UART_TX();
-  #endif
+#endif
+#endif
 private:
 
-  #if UART_CONNECTION_TEST_TX == 1
+#if UART_CONNECTION_TEST_TX == 1
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
-  #endif
+#endif
+#endif
 
   // Reads values from EEPROM that configure the mount (if previously stored)
   void readPersistentData();
