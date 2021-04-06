@@ -178,7 +178,7 @@ public:
   // Set the current RA and DEC position to be the given coordinates
   void syncPosition(DayTime ra, Declination dec);
 
-  void calculatePositions(float raCoord, float decCoord, long& raPos, long& decPos);
+  void calculateStepperPositions(float raCoord, float decCoord, long& raPos, long& decPos);
 
   // Calculates movement parameters and program steppers to move
   // there. Must call loop() frequently to actually move.

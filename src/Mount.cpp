@@ -45,6 +45,8 @@ POP_NO_WARNINGS
 #define SLEW_MASK_WEST    B1000
 #define SLEW_MASK_ANY     B1111
 
+#define UART_CONNECTION_TEST_RETRIES 5
+
 // Seconds per astronomical day (23h 56m 4.0905s)
 const float secondsPerDay = 86164.0905f;
 
@@ -338,7 +340,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Testing UART Connection to %s driver..."), driverKind);
-    for(int i = 0; i < 5; i++) {
+    for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++) {
         if (driver->test_connection() == 0) {
             LOGV2(DEBUG_STEPPERS, F("UART connection to %s driver successful."), driverKind);
             return true;
@@ -376,7 +378,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->toff(1);
-    _driverRA->en_spreadCycle(1 - RA_UART_STEALTH_MODE); 
+    _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0); 
     _driverRA->blank_time(24);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
     _driverRA->fclktrim(4);
@@ -412,7 +414,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverRA->toff(1);
-    _driverRA->en_spreadCycle(1 - RA_UART_STEALTH_MODE); 
+    _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0); 
     _driverRA->blank_time(24);
     _driverRA->semin(0); //disable CoolStep so that current is consistent
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);   // System starts in tracking mode
@@ -452,7 +454,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->toff(1);
-    _driverDEC->en_spreadCycle(1 - DEC_UART_STEALTH_MODE); 
+    _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0); 
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
@@ -485,7 +487,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverDEC->toff(1);
-    _driverDEC->en_spreadCycle(1 - DEC_UART_STEALTH_MODE); 
+    _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0); 
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);   // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
@@ -2089,7 +2091,7 @@ void Mount::loop() {
         #endif
 
         // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
-        #if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17 && DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
           LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. DEC driver setMicrosteps(%d)"), DEC_GUIDE_MICROSTEPPING);
           _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
         #endif
@@ -2313,11 +2315,11 @@ float Mount::getSpeed(int direction) {
 
 /////////////////////////////////
 //
-// calculatePositions
+// calculateStepperPositions
 //
 // This code calculates the stepper locations to move to, given the right ascension and declination
 /////////////////////////////////
-void Mount::calculatePositions(float raCoord, float decCoord, long& raPos, long& decPos){
+void Mount::calculateStepperPositions(float raCoord, float decCoord, long& raPos, long& decPos){
   DayTime savedRA = _targetRA;
   Declination savedDec = _targetDEC;
   _targetRA = DayTime(raCoord);

@@ -172,7 +172,7 @@ bool checkProgressiveUpDown(int *val, int minDelay = 25)
 {
   long lval = *val;
   bool ret = checkProgressiveUpDown(&lval, minDelay);
-  if ((lval < 32766L) && (lval > -32765L))
+  if ((lval < INT16_MAX) && (lval > INT16_MIN))
   {
     *val = (int)lval;
   }

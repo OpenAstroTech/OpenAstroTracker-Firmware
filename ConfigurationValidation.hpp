@@ -48,9 +48,7 @@
     // Serial bus address must be specified for TMC2209 in UART mode
     #error RA driver address for DRIVER_TYPE_TMC2209_UART not specified.
   #endif
-  #ifndef RA_UART_STEALTH_MODE 
-    #error RA stealth mode not set! 
-  #elif (RA_UART_STEALTH_MODE != 0) && (RA_UART_STEALTH_MODE != 1)
+  #if (RA_UART_STEALTH_MODE != 0) && (RA_UART_STEALTH_MODE != 1)
     // Stealth mode must be zero or 1
     #error RA stealth mode must be 0 (off) or 1 (on)
   #endif
@@ -61,16 +59,14 @@
     // Serial bus address must be specified for TMC2209 in UART mode
     #error DEC driver address for DRIVER_TYPE_TMC2209_UART not specified.
   #endif
-  #ifndef DEC_UART_STEALTH_MODE 
-    #error DEC stealth mode not set! 
-  #elif (DEC_UART_STEALTH_MODE != 0) && (DEC_UART_STEALTH_MODE != 1)
+  #if (DEC_UART_STEALTH_MODE != 0) && (DEC_UART_STEALTH_MODE != 1)
     // Stealth mode must be zero or 1
     #error DEC stealth mode must be 0 (off) or 1 (on)
   #endif
 #endif
 
 #ifdef UART_CONNECTION_TEST_TXRX
-    #error The UART Connection test is now standard. This directive is obsolete and can be removed from your configuration.
+    #warning The UART Connection test is now standard. This directive is obsolete and can be removed from your configuration.
 #endif
 
 #if (AZIMUTH_ALTITUDE_MOTORS == 0)

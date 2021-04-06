@@ -1073,7 +1073,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         long raPos, decPos;
         float raCoord = coords.substring(0, star).toFloat();
         float decCoord = coords.substring(star + 1).toFloat();
-        _mount->calculatePositions(raCoord, decCoord, raPos, decPos);
+        _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
         char scratchBuffer[20];
         sprintf(scratchBuffer, "%ld|%ld#", raPos, decPos);
         return String(scratchBuffer);
