@@ -303,18 +303,20 @@ void setup() {
   #endif
 
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOGV1(DEBUG_ANY, F("Configure RA driver TMC2209 UART..."));
     #if SW_SERIAL_UART == 0
+      LOGV1(DEBUG_ANY, F("Configure RA driver TMC2209 UART via HW Serial ..."));
       mount.configureRAdriver(&RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
+      LOGV1(DEBUG_ANY, F("Configure RA driver TMC2209 UART via SW Serial ..."));
       mount.configureRAdriver(RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
     #endif
   #endif
   #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOGV1(DEBUG_ANY, F("Configure DEC driver TMC2209 UART..."));
     #if SW_SERIAL_UART == 0
+      LOGV1(DEBUG_ANY, F("Configure DEC driver TMC2209 UART via HW Serial..."));
       mount.configureDECdriver(&DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
+      LOGV1(DEBUG_ANY, F("Configure DEC driver TMC2209 UART via SW Serial..."));
       mount.configureDECdriver(DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #endif
   #endif

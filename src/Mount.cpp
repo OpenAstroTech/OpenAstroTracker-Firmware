@@ -21,13 +21,14 @@ POP_NO_WARNINGS
 #define STATUS_SLEWING_MANUAL      0B0000000100000000
 #define STATUS_TRACKING            0B0000000000001000
 #define STATUS_PARKING             0B0000000000010000
+#define STATUS_FINDING_RA_HOME     0B0000010000000000
+#define STATUS_FINDING_DEC_HOME    0B0000100000000000
 #define STATUS_PARKING_POS         0B0001000000000000
 #define STATUS_GUIDE_PULSE         0B0000000010000000
 #define STATUS_GUIDE_PULSE_DIR     0B0000000001100000
 #define STATUS_GUIDE_PULSE_RA      0B0000000001000000
 #define STATUS_GUIDE_PULSE_DEC     0B0000000000100000
 #define STATUS_GUIDE_PULSE_MASK    0B0000000011100000
-#define STATUS_FINDING_HOME        0B0010000000000000
 
 // slewingStatus()
 #define SLEWING_DEC                B00000010
@@ -1584,6 +1585,8 @@ String Mount::mountStatusString() {
     disp = "GUIDING ";
   }
   else {
+    if (_mountStatus & STATUS_FINDING_RA_HOME) disp += "RHOM ";
+    if (_mountStatus & STATUS_FINDING_DEC_HOME) disp += "DHOM ";
     if (_mountStatus & STATUS_TRACKING) disp += "TRK ";
     if (_mountStatus & STATUS_SLEWING) disp += "SLW-";
     if (_mountStatus & STATUS_SLEWING_TO_TARGET) disp += "2TRG ";
@@ -1773,7 +1776,7 @@ bool Mount::isParking() const {
 //
 /////////////////////////////////
 bool Mount::isFindingHome() const {
-  return _mountStatus & STATUS_FINDING_HOME;
+  return _mountStatus & (STATUS_FINDING_RA_HOME | STATUS_FINDING_DEC_HOME);
 }
 
 /////////////////////////////////
@@ -2021,15 +2024,22 @@ void Mount::loop() {
 
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && USE_AUTOHOME == 1
   if (isFindingHome()) {
-    if (digitalRead(DEC_DIAG_PIN) == HIGH) {
-      finishFindingHomeDEC();
-      return;
-    }
-    if (digitalRead(RA_DIAG_PIN) == HIGH) {
-      finishFindingHomeRA();
-      return;
-    }    
-    //return;
+    // if (digitalRead(DEC_DIAG_PIN) == HIGH) {
+    //   finishFindingHomeDEC();
+    //   return;
+    // }
+    
+    LOGV3(DEBUG_MOUNT,F("HOMING: StallGuard value is %s. Pin is %d"), String(_driverRA->SG_RESULT() ).c_str() ,digitalRead(RA_DIAG_PIN) ); 
+
+    //  if (digitalRead(RA_DIAG_PIN) == HIGH) {
+    //    _lcdMenu->printAt(0,0,'1');
+    // //   endStopReachedInRA();
+    // //   return;
+    //  }
+    //  else
+    //  {
+    //     _lcdMenu->printAt(0,0,'0');
+    //  }
   }
   #endif
   
@@ -2607,70 +2617,120 @@ String Mount::RAString(byte type, byte active) {
 // Automatically home the mount. Only with TMC2209 in UART mode
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && USE_AUTOHOME == 1
 
-void Mount::startFindingHomeDEC()  {
-  _driverDEC->SGTHRS(10);
-  _driverDEC->rms_current(700);
+// void Mount::startFindingHomeDEC()  {
+//   _driverDEC->SGTHRS(10);
+//   _driverDEC->rms_current(700);
   
 
-  setManualSlewMode(true);
-  _mountStatus |= STATUS_FINDING_HOME;
-  _stepperDEC->setMaxSpeed(3000);
-  _stepperDEC->setSpeed(-3000);
-}
-
-void Mount::finishFindingHomeDEC() 
-{  
-  _stepperDEC->stop();   
-   setManualSlewMode(false);
-   _stepperDEC->setMaxSpeed(1000);
-  _stepperDEC->setSpeed(1000);
-  //_stepperDEC->move(2350);
-  _stepperDEC->move(100);
-  while (_stepperDEC->run());
+//   setManualSlewMode(true);
   
-  setManualSlewMode(false);
+//   _mountStatus |= STATUS_FINDING_HOME;
+//   _stepperDEC->setMaxSpeed(3000);
+//   _stepperDEC->setSpeed(-3000);
+// }
 
-  delay(100);
+// void Mount::finishFindingHomeDEC() 
+// {  
+//   _stepperDEC->stop();   
+//    setManualSlewMode(false);
+//    _stepperDEC->setMaxSpeed(1000);
+//   _stepperDEC->setSpeed(1000);
+//   //_stepperDEC->move(2350);
+//   _stepperDEC->move(100);
+//   while (_stepperDEC->run());
   
-  startFindingHomeRA(); 
-}
+//   setManualSlewMode(false);
 
-void Mount::startFindingHomeRA()  {
-  _driverRA->SGTHRS(50);
-  _driverRA->rms_current(1000);
-  // TODO: Fix broken microstep management to re-instate fine pointing
-  // _driverRA->microsteps(FULLSTEP);
-  _driverRA->semin(0);  // turn off coolstep
-  _driverRA->semin(5);
-  //_driverRA->TCOOLTHRS(0xFF);  // turn autocurrent threshold down to prevent false reading
+//   delay(100);
   
-  setManualSlewMode(true);
-  //_mountStatus |= STATUS_FINDING_HOME;
-  
-  _stepperRA->setMaxSpeed(500);
-  _stepperRA->setAcceleration(500);
-  _stepperRA->setSpeed(-500);
-}
+//   startFindingHomeRA(); 
+// }
 
-void Mount::finishFindingHomeRA() 
+void Mount::startFindingHomeRA()  
 {
   
+  LOGV1(DEBUG_MOUNT,F("Mount: Starting RA homing"));
+
+  // Stop all motion
+  stopSlewing(TRACKING | ALL_DIRECTIONS);
+
+  _isFindingNegativeStop = true;
+
+  // // Configure RA for max speed
+  // _driverRA->SGTHRS(RA_STALL_VALUE);  // Detection value for stall 
+
+  // //_driverRA->rms_current(1000);
+  // // TODO: Fix broken microstep management to re-instate fine pointing
+  // _driverRA->semin(0);  // turn off coolstep
+  // //_driverRA->semin(5);
+  // _driverRA->TCOOLTHRS(1);  // Stall signal ouutput becomes active above this velocity.
+  
+  setManualSlewMode(true); // Stops all motion and sets microsteps to Slew
+  _mountStatus |= STATUS_FINDING_RA_HOME;
+  
+  // Override microstepping to use full steps
+  _driverRA->microsteps(1);
+  
+  LOGV1(DEBUG_MOUNT,F("Mount: Running RA at -1500"));
+  _stepperRA->setMaxSpeed(1500);
+  _stepperRA->setAcceleration(1000);
+  _stepperRA->setSpeed(-1500);
+}
+
+void Mount::endStopReachedInRA() 
+{
+  // Hit a stop!
+  if (_isFindingNegativeStop)
+  {
+    LOGV2(DEBUG_MOUNT,F("Mount: RA hit end stop on neg side at %l"), _stepperRA->currentPosition());
+    // Found the negative stop, store its position
+    _negativeEndPos = _stepperRA->currentPosition();
+  }
+  else 
+  {
+    LOGV2(DEBUG_MOUNT,F("Mount: RA hit end stop on pos side at %l"), _stepperRA->currentPosition());
+    // Found the positive stop, store its position
+    _positiveEndPos=_stepperRA->currentPosition();
+  }
+
+  // Either way, tell the motor to stop and wait for it to stop
+  LOGV1(DEBUG_MOUNT,F("Mount: Stopping RA "));
   _stepperRA->stop();   
-  
-  _stepperRA->setSpeed(1000);
-  //_stepperRA->move(15850.0);
-  setManualSlewMode(false);
-  _stepperRA->move(1000);  
-  
-  while (_stepperRA->run());
-  
+  while (_stepperRA->isRunning())
+  {
+    _stepperRA->runSpeed();   
+  }
 
-   //setManualSlewMode(false);
-   
-   
-   startSlewing(TRACKING);
-   setHome(true);
+  // Where are we?
+  if (_isFindingNegativeStop)
+  {
+    LOGV1(DEBUG_MOUNT,F("Mount: Running RA at +500"));
+    // We found the negative stop, so now run the motor in the positive direction.
+    _stepperRA->setSpeed(500);
+    _isFindingNegativeStop = false;
+  }
+  else
+  {
+    // We found the positive stop, so now calculate the midpoint and move there.
+    long range = abs(_negativeEndPos - _positiveEndPos);
+    long homePos = range / 2;
+    LOGV4(DEBUG_MOUNT,F("Mount: Autohoming ended, range is %l, home is %l, running RA to %l"), range, homePos, _negativeEndPos + homePos);
+    _stepperRA->moveTo(_negativeEndPos + homePos);
+    while (_stepperRA->isRunning())
+    {
+      _stepperRA->runSpeed();   
+    }
 
+    // Ok, homing is done for RA
+    _mountStatus &= ~STATUS_FINDING_RA_HOME;
+
+    LOGV1(DEBUG_MOUNT,F("Mount: Autohoming complete!"));
+
+    // TODO: This is where we would start DEC homing
+    setManualSlewMode(false);
+    startSlewing(TRACKING);
+    setHome(true);
+  }
 }
 #endif
 
@@ -2826,6 +2886,15 @@ DayTime Mount::calculateHa() {
 //
 /////////////////////////////////
 #if UART_CONNECTION_TEST_TX == 1
+
+void wait(unsigned long milliseconds)
+{
+  unsigned long stopAt = millis() + milliseconds;
+  while (millis() < stopAt) {
+    ;
+  }
+}
+
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 void Mount::testRA_UART_TX(){
     int _speed = 1000;  //microsteps per driver clock tick
@@ -2845,12 +2914,12 @@ void Mount::testDEC_UART_TX(){
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) {
     driver->VACTUAL(_speed);
-    delay(_duration);
+    wait(_duration);
     driver->shaft(1);
-    delay(_duration);
+    wait(_duration);
     driver->shaft(0);
     driver->VACTUAL(0);
-    delay(_duration);
+    wait(_duration);
 }
 #endif
 #endif

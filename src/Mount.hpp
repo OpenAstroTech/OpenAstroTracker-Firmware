@@ -245,9 +245,9 @@ public:
   // Auto Home with TMC2209 UART
   #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     void startFindingHomeRA();
-    void startFindingHomeDEC();
-    void finishFindingHomeRA();
-    void finishFindingHomeDEC();
+    //void startFindingHomeDEC();
+    void endStopReachedInRA();
+    //void finishFindingHomeDEC();
   #endif
 
   // Asynchronously parks the mount. Moves to the home position and stops all motors. 
@@ -450,6 +450,11 @@ private:
   bool _slewingToHome;
   bool _slewingToPark;
   bool _bootComplete;
+  #ifdef USE_AUTOHOME
+  bool _isFindingNegativeStop;
+  long _negativeEndPos;
+  long _positiveEndPos;
+  #endif
 
   int _localUtcOffset;
   LocalDate _localStartDate;

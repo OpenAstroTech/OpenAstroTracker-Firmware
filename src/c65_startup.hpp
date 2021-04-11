@@ -17,6 +17,7 @@ void setControlMode(bool); // In CTRL menu
 
 enum startupState_t {
     StartupIsInHomePosition,
+    StartupWaitForRAHomeCompletion,
     StartupSetRoll,
     StartupWaitForRollCompletion,
     StartupRollConfirmed,
@@ -71,37 +72,45 @@ bool processStartupKeys() {
           }
           else if (isInHomePosition == NO) {
             #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && USE_AUTOHOME == 1
-            mount.startFindingHomeDEC();
-            if (mount.isFindingHome()) {
-              startupState = StartupWaitForPoleCompletion;            
+              mount.startFindingHomeRA();
+              startupState = StartupWaitForRAHomeCompletion;
               lcdMenu.clear();
               lcdMenu.setCursor(0, 0);
-              lcdMenu.printMenu("Finding Home....");
+              lcdMenu.printMenu("Homing RA ...");
               lcdMenu.setCursor(0, 1);
-              lcdMenu.printMenu("Please Wait");              
-              //break;
-              
-            }
-            else {
-              startupState = StartupSetHATime;
-            }
+              lcdMenu.printMenu("Please Wait...");              
 
             #else
-            startupState = StartupWaitForPoleCompletion;
-            inStartup = false;
-            okToUpdateMenu = false;
-            lcdMenu.setCursor(0, 0);
-            lcdMenu.printMenu("Home with ^~<>");
-            lcdMenu.setActive(Control_Menu);
+              startupState = StartupWaitForPoleCompletion;
+              inStartup = false;
+              okToUpdateMenu = false;
+              lcdMenu.setCursor(0, 0);
+              lcdMenu.printMenu("Home with ^~<>");
+              lcdMenu.setActive(Control_Menu);
 
-            // Skip the 'Manual control' prompt
-            setControlMode(true);
+              // Skip the 'Manual control' prompt
+              setControlMode(true);
             #endif
           }
           else if (isInHomePosition == CANCEL) {
             startupIsCompleted();
           }
         }
+      }
+    }
+    break;
+
+    case StartupWaitForRAHomeCompletion:
+    {
+      if (!mount.isFindingHome()){
+        LOGV1(DEBUG_INFO, F("STARTUP: Mount has auto-homed!"));
+        #if USE_GYRO_LEVEL == 1
+          startupState = StartupSetRoll;
+          LOGV1(DEBUG_INFO, F("STARTUP: State is set Roll confirm!"));
+        #else
+          LOGV1(DEBUG_INFO, F("STARTUP: State is set to HA entry!"));
+          startupState = StartupSetHATime;
+        #endif
       }
     }
     break;

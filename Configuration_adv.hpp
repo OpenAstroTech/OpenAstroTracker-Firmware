@@ -141,10 +141,15 @@
   #define RA_RMSCURRENT RA_MOTOR_CURRENT_RATING * (RA_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
   #define DEC_RMSCURRENT DEC_MOTOR_CURRENT_RATING * (DEC_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
 
+#ifndef RA_STALL_VALUE 
   #define RA_STALL_VALUE 100       // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+#endif  
   #define DEC_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
-  #define USE_AUTOHOME 0        // Autohome with TMC2209 stall detection:  ON = 1  |  OFF = 0   
-  //                  ^^^ leave at 0 for now, doesnt work properly yet
+  #ifndef USE_AUTOHOME 
+    #define USE_AUTOHOME 0        // Autohome with TMC2209 stall detection:  ON = 1  |  OFF = 0   
+    //                  ^^^ leave at 0 for now, doesnt work properly yet
+  #endif
+  
   #ifndef RA_AUDIO_FEEDBACK
     #define RA_AUDIO_FEEDBACK  0 // If one of these are set to 1, the respective driver will shut off the stealthchop mode, resulting in a audible whine
   #endif
