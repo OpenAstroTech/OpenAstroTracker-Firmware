@@ -152,15 +152,15 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 // -- GET Extensions --
 // :GIS#
 //      Get DEC or RA Slewing
-//      Returns: 1 if either RA or DEC is slewing. 0 if not.
+//      Returns: 1# if either RA or DEC is slewing. 0# if not.
 //
 // :GIT#
 //      Get Tracking
-//      Returns: 1 if tracking is on. 0 if not.
+//      Returns: 1# if tracking is on. 0# if not.
 //
 // :GIG#
 //      Get Guiding
-//      Returns: 1 if currently guiding. 0 if not.
+//      Returns: 1# if currently guiding. 0# if not.
 //
 // :GX#
 //      Get Mount Status
@@ -1237,7 +1237,7 @@ String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
   {
     _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
     _mount->waitUntilStopped(ALL_DIRECTIONS);
-    return "1";
+    return "";
   }
 
   switch (inCmd[0])
