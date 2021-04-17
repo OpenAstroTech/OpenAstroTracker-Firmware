@@ -921,7 +921,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         direction = WEST;
       int duration = (inCmd[2] - '0') * 1000 + (inCmd[3] - '0') * 100 + (inCmd[4] - '0') * 10 + (inCmd[5] - '0');
       _mount->guidePulse(direction, duration);
-      return "1";
+      return "";
     }
   }
   else if (inCmd[0] == 'A')
