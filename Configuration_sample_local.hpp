@@ -50,6 +50,11 @@
 
 #define USE_VREF 0    //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
 
+// TMC2209 Stealth Mode (spreadCycle)
+// More precise tracking when not in stealth mode, but steppers will sound
+#define RA_UART_STEALTH_MODE   1
+#define DEC_UART_STEALTH_MODE   1
+
 /**
  * @brief GPS receiver configuration.
  * Set USE_GPS to 1 to enable, 0 or #undef to exclude GPS from configuration.
