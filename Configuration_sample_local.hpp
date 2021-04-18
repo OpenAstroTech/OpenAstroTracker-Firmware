@@ -52,8 +52,8 @@
 
 // TMC2209 Stealth Mode (spreadCycle)
 // More precise tracking when not in stealth mode, but steppers will sound
-#define RA_UART_STEALTH_MODE   1
-#define DEC_UART_STEALTH_MODE   1
+#define RA_UART_STEALTH_MODE    0
+#define DEC_UART_STEALTH_MODE   0
 
 /**
  * @brief GPS receiver configuration.
