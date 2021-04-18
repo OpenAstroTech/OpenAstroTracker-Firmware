@@ -31,13 +31,16 @@
  * DISPLAY_TYPE_LCD_JOY_I2C_SSD1306:        I2C 32x128 OLED display module with SSD1306 controller, plus mini joystick
  *                                          Display: https://www.banggood.com/Geekcreit-0_91-Inch-128x32-IIC-I2C-Blue-OLED-LCD-Display-DIY-Module-SSD1306-Driver-IC-DC-3_3V-5V-p-1140506.html
  *                                          Joystick: https://www.banggood.com/3pcs-JoyStick-Module-Shield-2_54mm-5-pin-Biaxial-Buttons-Rocker-for-PS2-Joystick-Game-Controller-Sensor-p-1586026.html
+ * DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306:                I2C 32X128 OLED display module with SSD1306 controller, plus Keyes_AD_key keypad
+ *                                          Keypad: https://www.banggood.com/AD-Analog-Keyboard-Module-Electronic-Building-Blocks-5-Keys-DIY-p-1374279.html
+ *                                          Display: https://www.banggood.com/Geekcreit-0_91-Inch-128x32-IIC-I2C-Blue-OLED-LCD-Display-DIY-Module-SSD1306-Driver-IC-DC-3_3V-5V-p-1140506.html
  **/
 #define DISPLAY_TYPE_NONE                       0
 #define DISPLAY_TYPE_LCD_KEYPAD                 1
 #define DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008    2
 #define DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017    3
 #define DISPLAY_TYPE_LCD_JOY_I2C_SSD1306        4
-
+#define DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306     5
 
 // Supported stepper models
 #define STEPPER_TYPE_28BYJ48    0

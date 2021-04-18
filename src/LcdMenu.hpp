@@ -5,7 +5,7 @@
 #include <LiquidCrystal.h>
 #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
 #include <LiquidTWI2.h>
-#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
 #include <U8x8lib.h>        // https://github.com/olikraus/u8g2
 #endif
 
@@ -97,7 +97,7 @@ private:
     LiquidCrystal _lcd;   // The LCD screen that we'll display the menu on
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     LiquidTWI2 _lcd;   // The LCD screen that we'll display the menu on
-  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
     U8X8_SSD1306_128X32_UNIVISION_HW_I2C _lcd;  
   #endif
   
@@ -117,7 +117,7 @@ private:
   String _lastDisplay[2]; // The last string that was displayed on each row
   byte _brightness;
 
-#if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+#if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 && DISPLAY_TYPE != DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
   enum specialChar_t : byte {
       _degrees,
       _minutes,
