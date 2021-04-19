@@ -24,4 +24,4 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Check if version was changed
-        run:  if [[ $(git diff develop... Version.h) ]]; then exit 0; else exit 1; fi
+        run:  if [[ $(git diff origin/develop Version.h) ]]; then exit 0; else exit 1; fi
