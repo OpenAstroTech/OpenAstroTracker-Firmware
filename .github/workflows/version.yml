@@ -26,8 +26,7 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Check if version was changed
-        run:  |
-          git branch -r
+        run: |
           if [[ $(git diff origin/develop Version.h) ]]; then
             echo "Version was changed"
             exit 0 
