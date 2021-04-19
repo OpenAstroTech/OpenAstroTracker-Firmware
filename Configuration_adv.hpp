@@ -396,7 +396,9 @@
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial
-#define SUPPORT_SERIAL_CONTROL 1
+#if !defined(SUPPORT_SERIAL_CONTROL)
+  #define SUPPORT_SERIAL_CONTROL 1
+#endif
 
 // This is set to 1 for boards that do not support interrupt timers
 #define RUN_STEPPERS_IN_MAIN_LOOP 0
@@ -463,4 +465,26 @@
 // Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
 // Debug output is useful if you are using Wifi to control the OAT or if you are issuing
 // manual commands via a terminal.
-//
+
+#if defined(OAT_DEBUG_BUILD)
+  // AVR based boards have numbers < 1000
+  #if BOARD < 1000
+    /*
+     * Debugging on the mega2560 using avr-stub dissallows application-code from
+     * using the normal (USB) serial port
+     */
+    // Disable debug output
+    #if defined(DEBUG_LEVEL)
+      #undef DEBUG_LEVEL
+    #endif
+    #define DEBUG_LEVEL (DEBUG_NONE)
+
+    // Disable serial control
+    #if defined(SUPPORT_SERIAL_CONTROL)
+      #undef SUPPORT_SERIAL_CONTROL
+    #endif
+    #define SUPPORT_SERIAL_CONTROL 0
+  #else
+    #error "Debugging not supported on this platform"
+  #endif
+#endif
