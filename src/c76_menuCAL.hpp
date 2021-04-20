@@ -21,8 +21,10 @@ enum
   HIGHLIGHT_DEC_LOWER_LIMIT,
   HIGHLIGHT_DEC_UPPER_LIMIT,
   HIGHLIGHT_UTC_OFFSET,
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if AZIMUTH_MOTOR == 1
   HIGHLIGHT_AZIMUTH_ADJUSTMENT,
+#endif
+#if ALTITUDE_MOTOR == 1
   HIGHLIGHT_ALTITUDE_ADJUSTMENT,
 #endif
 #if USE_GYRO_LEVEL == 1
@@ -270,18 +272,22 @@ bool processCalibrationKeys()
     checkForKeyChange = checkProgressiveUpDown(&UTCOffset);
   }
 
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if AZIMUTH_MOTOR == 1
   else if (calState == AZIMUTH_ADJUSTMENT)
   {
     checkForKeyChange = checkProgressiveUpDown(&AzimuthMinutes);
     AzimuthMinutes = clamp(AzimuthMinutes, -60, 60); // Only allow one arc hour at a time. Azimuth range is 2 arc hours
   }
+#endif
+
+#if ALTITUDE_MOTOR == 1
   else if (calState == ALTITUDE_ADJUSTMENT)
   {
     checkForKeyChange = checkProgressiveUpDown(&AltitudeMinutes);
     AltitudeMinutes = clamp(AltitudeMinutes, -60, 60);
   }
 #endif
+
   else if (calState == RA_STEP_CALIBRATION)
   {
     checkForKeyChange = checkProgressiveUpDown(&RAStepsPerDegree, 5);
@@ -317,7 +323,7 @@ bool processCalibrationKeys()
   }
   else if (calState == POLAR_CALIBRATION_WAIT_CENTER_POLARIS)
   {
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if ALTITUDE_MOTOR == 1
     if (currentButtonState == btnUP)
     {
       if (!mount.isRunningALT())
@@ -332,7 +338,9 @@ bool processCalibrationKeys()
         mount.setSpeed(ALTITUDE_STEPS, -ALT_STEPPER_SPEED);
       }
     }
-    else if (currentButtonState == btnRIGHT)
+#endif
+#if AZIMUTH_MOTOR == 1
+    if (currentButtonState == btnRIGHT)
     {
       if (!mount.isRunningAZ())
       {
@@ -346,16 +354,22 @@ bool processCalibrationKeys()
         mount.setSpeed(AZIMUTH_STEPS, -AZ_STEPPER_SPEED);
       }
     }
-    else if (currentButtonState == btnNONE)
+#endif
+#if (AZIMUTH_MOTOR == 1) || (ALTITUDE_MOTOR == 1)    
+    if (currentButtonState == btnNONE)
     {
-      if (mount.isRunningALT())
-      {
-        mount.setSpeed(ALTITUDE_STEPS, 0);
-      }
-      if (mount.isRunningAZ())
-      {
-        mount.setSpeed(AZIMUTH_STEPS, 0);
-      }
+      #if (AZIMUTH_MOTOR == 1) 
+        if (mount.isRunningAZ())
+        {
+          mount.setSpeed(AZIMUTH_STEPS, 0);
+        }
+      #endif
+      #if (ALTITUDE_MOTOR == 1)    
+        if (!mount.isRunningALT())
+        {
+          mount.setSpeed(ALTITUDE_STEPS, -ALT_STEPPER_SPEED);
+        }
+      #endif
     }
 #endif
   }
@@ -480,7 +494,7 @@ bool processCalibrationKeys()
     }
     break;
 
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if AZIMUTH_MOTOR == 1
     case AZIMUTH_ADJUSTMENT:
     {
       // UP, DOWN, LEFT, and RIGHT are handled above
@@ -498,7 +512,9 @@ bool processCalibrationKeys()
       }
     }
     break;
+#endif
 
+#if ALTITUDE_MOTOR == 1
     case ALTITUDE_ADJUSTMENT:
     {
       // UP, DOWN, LEFT, and RIGHT are handled above
@@ -953,7 +969,7 @@ bool processCalibrationKeys()
     }
     break;
 
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if AZIMUTH_MOTOR == 1
     case HIGHLIGHT_AZIMUTH_ADJUSTMENT:
     {
       if (key == btnDOWN)
@@ -969,7 +985,9 @@ bool processCalibrationKeys()
       }
     }
     break;
+#endif
 
+#if ALTITUDE_MOTOR == 1
     case HIGHLIGHT_ALTITUDE_ADJUSTMENT:
     {
       if (key == btnDOWN)
@@ -1102,11 +1120,13 @@ void printCalibrationSubmenu()
   {
     lcdMenu.printMenu(">UTC Offset");
   }
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if AZIMUTH_MOTOR == 1
   else if (calState == HIGHLIGHT_AZIMUTH_ADJUSTMENT)
   {
     lcdMenu.printMenu(">Azimuth Adjst.");
   }
+#endif
+#if ALTITUDE_MOTOR == 1
   else if (calState == HIGHLIGHT_ALTITUDE_ADJUSTMENT)
   {
     lcdMenu.printMenu(">Altitude Adjst.");
@@ -1194,12 +1214,14 @@ void printCalibrationSubmenu()
     sprintf(scratchBuffer, "UTC : %d", UTCOffset);
     lcdMenu.printMenu(scratchBuffer);
   }
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if AZIMUTH_MOTOR == 1
   else if (calState == AZIMUTH_ADJUSTMENT)
   {
     sprintf(scratchBuffer, "Az: %d arcmins", AzimuthMinutes);
     lcdMenu.printMenu(scratchBuffer);
   }
+#endif
+#if ALTITUDE_MOTOR == 1
   else if (calState == ALTITUDE_ADJUSTMENT)
   {
     sprintf(scratchBuffer, "Alt: %d arcmins", AltitudeMinutes);

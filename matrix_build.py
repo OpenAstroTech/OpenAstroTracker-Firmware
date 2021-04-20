@@ -47,7 +47,8 @@ BUILD_FLAGS = {
     "DEC_DRIVER_TYPE": DRIVER_TYPES,
     "USE_GPS": BOOLEAN_VALUES,
     "USE_GYRO_LEVEL": BOOLEAN_VALUES,
-    "AZIMUTH_ALTITUDE_MOTORS": BOOLEAN_VALUES,
+    "AZIMUTH_MOTOR": BOOLEAN_VALUES,
+    "ALTITUDE_MOTOR": BOOLEAN_VALUES,
     "AZ_STEPPER_TYPE": STEPPER_TYPES,
     "AZ_DRIVER_TYPE": DRIVER_TYPES,
     "ALT_STEPPER_TYPE": STEPPER_TYPES,
@@ -82,7 +83,8 @@ BOARD_SUPPORT = {
     "esp32": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
-        "AZIMUTH_ALTITUDE_MOTORS": [0],
+        "AZIMUTH_MOTOR": [0],
+        "ALTITUDE_MOTOR": [0],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306"
@@ -134,7 +136,8 @@ SHORT_STRINGS = {
     "DEC_DRIVER_TYPE": "DEC_DRIVER",
     "USE_GPS": "GPS",
     "USE_GYRO_LEVEL": "GYRO",
-    "AZIMUTH_ALTITUDE_MOTORS": "AZ_ALT",
+    "AZIMUTH_MOTOR": "ALT",
+    "ALTITUDE_MOTOR": "AZ",
     "AZ_STEPPER_TYPE": "AZ_STEPPER",
     "AZ_DRIVER_TYPE": "AZ_DRIVER",
     "ALT_STEPPER_TYPE": "ALT_STEPPER",
@@ -207,7 +210,7 @@ def set_test_constraints(problem):
 
     # Only one permutation of alt/az steppers and motors if alt-az addon is disabled
     problem.addConstraint(
-        lambda e, alt_s: e or alt_s == "STEPPER_TYPE_28BYJ48", ["AZIMUTH_ALTITUDE_MOTORS", "ALT_STEPPER_TYPE"]
+        lambda e, alt_s: e or alt_s == "STEPPER_TYPE_28BYJ48", ["AZIMUTH_MOTOR", "AZ_STEPPER_TYPE"]
     )
 
 

@@ -196,7 +196,7 @@ void setup() {
     #endif
   #endif
   
-  #if AZIMUTH_ALTITUDE_MOTORS == 1  
+  #if AZIMUTH_MOTOR == 1  
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
       pinMode(AZ_EN_PIN, OUTPUT);
       digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -208,6 +208,9 @@ void setup() {
         AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
       #endif
     #endif
+  #endif
+    
+  #if ALTITUDE_MOTOR == 1  
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
       pinMode(ALT_EN_PIN, OUTPUT);
       digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -339,7 +342,7 @@ void setup() {
     #endif
   #endif
 
-  #if AZIMUTH_ALTITUDE_MOTORS == 1
+  #if AZIMUTH_MOTOR == 1
     LOGV1(DEBUG_ANY, F("Configure AZ stepper..."));
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003 
       mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZmotorPin3, AZmotorPin4, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
@@ -354,6 +357,8 @@ void setup() {
         mount.configureAZdriver(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
       #endif
     #endif
+  #endif
+  #if ALTITUDE_MOTOR == 1
     LOGV1(DEBUG_ANY, F("Configure Alt stepper..."));
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003 
       mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALTmotorPin3, ALTmotorPin4, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);

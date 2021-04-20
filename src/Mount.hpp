@@ -67,13 +67,17 @@ public:
     void configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
 #endif
 
-// Configure the AZ/ALT stepper motors.
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+// Configure the AZ stepper motors.
+#if AZIMUTH_MOTOR == 1
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
   #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
   #endif
+#endif
+
+// Configure the ALT stepper motors.
+#if ALTITUDE_MOTOR == 1
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
   #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -102,8 +106,8 @@ public:
 #endif
 
 
-// Configure the AZ/ALT drivers.
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+// Configure the AZ driver.
+#if AZIMUTH_MOTOR == 1
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if SW_SERIAL_UART == 0
       void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
@@ -111,6 +115,10 @@ public:
       void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #endif
   #endif
+#endif
+
+// Configure the ALT driver.
+#if ALTITUDE_MOTOR == 1
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if SW_SERIAL_UART == 0
       void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
@@ -194,10 +202,11 @@ public:
   bool isParking() const;
   bool isGuiding() const;
   bool isFindingHome() const;
-  #if AZIMUTH_ALTITUDE_MOTORS == 1
+  #if AZIMUTH_MOTOR == 1
   bool isRunningAZ() const;
+  #endif
+  #if ALTITUDE_MOTOR == 1
   bool isRunningALT() const;
-  void getAltAzPositions(long * altSteps, long* azSteps, float* altDelta, float*  azDelta);
   #endif
 
   // Starts manual slewing in one of eight directions or tracking
@@ -286,7 +295,7 @@ public:
   // Set the speed of the given motor
   void setSpeed(int which, float speedDegsPerSec);
 
-#if AZIMUTH_ALTITUDE_MOTORS == 1
+#if (AZIMUTH_MOTOR == 1) || (ALTITUDE_MOTOR == 1)
   // Support for moving the mount in azimuth and altitude (requires extra hardware)
   void moveBy(int direction, float arcMinutes);
   void disableAzAltMotors();
@@ -420,18 +429,23 @@ private:
     TMC2209Stepper* _driverDEC;
   #endif  
 
-  #if AZIMUTH_ALTITUDE_MOTORS == 1
-    AccelStepper* _stepperAZ;
-    AccelStepper* _stepperALT;
-    const long _stepsPerAZDegree;    // u-steps/degree (from CTOR)
-    const long _stepsPerALTDegree;   // u-steps/degree (from CTOR)
+  #if (AZIMUTH_MOTOR == 1) || (ALTITUDE_MOTOR == 1)
     bool _azAltWasRunning;
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      TMC2209Stepper* _driverAZ;
-    #endif 
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      TMC2209Stepper* _driverALT;
-    #endif 
+    #if AZIMUTH_MOTOR == 1
+      AccelStepper* _stepperAZ;
+      const long _stepsPerAZDegree;    // u-steps/degree (from CTOR)
+      #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        TMC2209Stepper* _driverAZ;
+      #endif 
+    #endif
+    #if ALTITUDE_MOTOR == 1
+      AccelStepper* _stepperALT;
+      const long _stepsPerALTDegree;   // u-steps/degree (from CTOR)
+
+      #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        TMC2209Stepper* _driverALT;
+      #endif 
+    #endif
   #endif
 
   unsigned long _guideRaEndTime;

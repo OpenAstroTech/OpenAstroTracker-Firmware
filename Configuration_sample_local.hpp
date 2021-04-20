@@ -69,9 +69,10 @@
 
 /**
  * @brief Automated azimuth/altitude adjustment configuration.
- * Set AZIMUTH_ALTITUDE_MOTORS to 1 to enable, 0 or #undef to exclude AZ/ALT from configuration.
+ * Set AZIMUTH_MOTOR and ALTITUDE_MOTOR to 1 to enable, 0 or #undef to exclude AZ/ALT from configuration.
  */
-#define AZIMUTH_ALTITUDE_MOTORS  0
+#define ALTITUDE_MOTOR 0
+#define AZIMUTH_MOTOR 0
 #define AZ_STEPPER_TYPE     STEPPER_TYPE_28BYJ48
 #define ALT_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
 #define AZ_DRIVER_TYPE      DRIVER_TYPE_ULN2003
