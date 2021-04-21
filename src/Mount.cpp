@@ -537,9 +537,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverAZ->I_scale_analog(0);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
-    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
-    _driverAZ->en_spreadCycle(1);
+    _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -572,9 +572,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverAZ->I_scale_analog(0);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
-    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
-    _driverAZ->en_spreadCycle(1);
+    _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);   // If 1 then disable microstepping
     _driverAZ->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -612,9 +612,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverALT->I_scale_analog(0);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
-    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverALT->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
-    _driverALT->en_spreadCycle(1);
+    _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -647,9 +647,9 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverALT->I_scale_analog(0);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
-    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
+    _driverALT->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
-    _driverALT->en_spreadCycle(1);
+    _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);   // If 1 then disable microstepping
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
