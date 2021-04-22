@@ -204,7 +204,7 @@ def set_test_constraints(problem):
 
     # Only one permutation of alt/az steppers and motors if alt-az addon is disabled
     problem.addConstraint(
-        lambda e, alt_s: e or alt_s == "STEPPER_TYPE_28BYJ48", ["AZ_STEPPER_TYPE"]
+        lambda e, alt_s: e or alt_s == "STEPPER_TYPE_28BYJ48", ["ALT_DRIVER_TYPE", "AZ_DRIVER_TYPE"]
     )
 
 
