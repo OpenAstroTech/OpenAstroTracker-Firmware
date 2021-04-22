@@ -65,6 +65,10 @@
   #endif
 #endif
 
+#ifdef AZIMUTH_ALTITUDE_MOTORS
+  #error Configuration out of date! Please remove AZIMUTH_ALTITUDE_MOTORS and replace with AZ_STEPPER_TYPE, AZ_DRIVER_TYPE and ALT_STEPPER_TYPE, ALT_DRIVER_TYPE, or run the online configurator again.
+#endif
+
 #if (AZ_STEPPER_TYPE == STEPPER_TYPE_NONE)
   // Baseline configuration without azimuth control is valid
   #if (AZ_DRIVER_TYPE == DRIVER_TYPE_NONE)

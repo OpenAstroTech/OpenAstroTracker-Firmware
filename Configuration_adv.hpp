@@ -279,6 +279,17 @@
 //                                     ///
 //////////////////////////////////////////
 //
+// Backwards compatability. V1.9.07 changed from combined Azimuth/Altitude addon to seperate controls for each
+#ifdef AZIMUTH_ALTITUDE_MOTORS
+  #if AZIMUTH_ALTITUDE_MOTORS == 1
+    #ifdef ALT_STEPPER_TYPE || AZ_STEPPER_TYPE
+      #error Please remove AZIMUTH_ALTITUDE_MOTORS definition and use only ALT_STEPPER_TYPE and AZ_STEPPER_TYPE
+    #endif
+    #define AZ_STEPPER_TYPE  STEPPER_TYPE_28BYJ48
+    #define AZ_DRIVER_TYPE   DRIVER_TYPE_ULN2003
+  #endif
+  #undef AZIMUTH_ALTITUDE_MOTORS
+#endif
 
 // Enable Azimuth and Altitude motor functionality in Configuration.hpp
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
