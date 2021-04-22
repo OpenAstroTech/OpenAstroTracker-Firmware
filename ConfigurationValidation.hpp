@@ -67,6 +67,11 @@
 
 #if (AZ_STEPPER_TYPE == STEPPER_TYPE_NONE)
   // Baseline configuration without azimuth control is valid
+  #if (AZ_DRIVER_TYPE == DRIVER_TYPE_NONE)
+    // Valid ALT stepper and driver combination
+  #else
+    #error Defined an AZ driver, but no AZ stepper.
+  #endif
 #elif defined(__AVR_ATmega2560__)
   // Azimuth configuration
   #if (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
@@ -100,6 +105,11 @@
 
 #if (ALT_STEPPER_TYPE == STEPPER_TYPE_NONE)
   // Baseline configuration without altitude control is valid
+  #if (ALT_DRIVER_TYPE == DRIVER_TYPE_NONE)
+    // Valid ALT stepper and driver combination
+  #else
+    #error Defined an ALT driver, but no ALT stepper.
+  #endif
 #elif defined(__AVR_ATmega2560__)
   // Altitude configuration
   #if (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)

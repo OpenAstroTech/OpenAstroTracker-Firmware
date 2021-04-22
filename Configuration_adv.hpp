@@ -288,7 +288,7 @@
   #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define AZ_MICROSTEPPING        32
   #else
-    #error Unknown AZ driver type
+    #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
   #endif
   #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define AZ_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
@@ -330,7 +330,7 @@
   #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define ALT_MICROSTEPPING        32
   #else
-    #error Unknown ALT driver type
+    #error Unknown ALT driver type. Did you define ALT_DRIVER_TYPE?
   #endif
   #if ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define ALT_STEPPER_SPR            2048  // 28BYJ-48 in full step mode

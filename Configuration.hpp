@@ -97,10 +97,10 @@
 #define DEC_DRIVER_TYPE     DRIVER_TYPE_ULN2003
 #endif
 #ifndef AZ_DRIVER_TYPE
-#define AZ_DRIVER_TYPE     DRIVER_TYPE_ULN2003
+#define AZ_DRIVER_TYPE     DRIVER_TYPE_NONE
 #endif
 #ifndef ALT_DRIVER_TYPE
-#define ALT_DRIVER_TYPE     DRIVER_TYPE_ULN2003
+#define ALT_DRIVER_TYPE     DRIVER_TYPE_NONE
 #endif
 
 // Your pulley tooth count. 16 for the bought (aluminium) one, 20 for the printed one.
