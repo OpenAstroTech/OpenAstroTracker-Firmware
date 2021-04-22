@@ -81,6 +81,8 @@ BOARD_SUPPORT = {
     "esp32": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        "ALT_STEPPER_TYPE": ["STEPPER_TYPE_NONE"],
+        "AZ_STEPPER_TYPE": ["STEPPER_TYPE_NONE"],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306"
