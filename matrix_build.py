@@ -86,7 +86,20 @@ def update_dict(orig, patch):
 
 
 BOARD_SUPPORT = {
-    "mega2560": BUILD_FLAGS,
+    "mega2560": update_dict(BUILD_FLAGS, {
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "AZ_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "ALT_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+    }),
     "esp32": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
