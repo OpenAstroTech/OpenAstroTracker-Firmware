@@ -928,14 +928,14 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
   {
     // Move Azimuth or Altitude by given arcminutes
     // :MAZ+32.1# or :MAL-32.1#
-    #if AZIMUTH_MOTOR == 1
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
       if (inCmd[1] == 'Z')
       {
         float arcMinute = inCmd.substring(2).toFloat();
         _mount->moveBy(AZIMUTH_STEPS, arcMinute);
       }
     #endif
-    #if ALTITUDE_MOTOR == 1
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
       if (inCmd[1] == 'L')
       {
         float arcMinute = inCmd.substring(2).toFloat();

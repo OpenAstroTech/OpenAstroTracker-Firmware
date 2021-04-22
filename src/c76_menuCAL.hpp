@@ -21,10 +21,10 @@ enum
   HIGHLIGHT_DEC_LOWER_LIMIT,
   HIGHLIGHT_DEC_UPPER_LIMIT,
   HIGHLIGHT_UTC_OFFSET,
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   HIGHLIGHT_AZIMUTH_ADJUSTMENT,
 #endif
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   HIGHLIGHT_ALTITUDE_ADJUSTMENT,
 #endif
 #if USE_GYRO_LEVEL == 1
@@ -272,7 +272,7 @@ bool processCalibrationKeys()
     checkForKeyChange = checkProgressiveUpDown(&UTCOffset);
   }
 
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == AZIMUTH_ADJUSTMENT)
   {
     checkForKeyChange = checkProgressiveUpDown(&AzimuthMinutes);
@@ -280,7 +280,7 @@ bool processCalibrationKeys()
   }
 #endif
 
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == ALTITUDE_ADJUSTMENT)
   {
     checkForKeyChange = checkProgressiveUpDown(&AltitudeMinutes);
@@ -323,7 +323,7 @@ bool processCalibrationKeys()
   }
   else if (calState == POLAR_CALIBRATION_WAIT_CENTER_POLARIS)
   {
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (currentButtonState == btnUP)
     {
       if (!mount.isRunningALT())
@@ -339,7 +339,7 @@ bool processCalibrationKeys()
       }
     }
 #endif
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (currentButtonState == btnRIGHT)
     {
       if (!mount.isRunningAZ())
@@ -355,16 +355,16 @@ bool processCalibrationKeys()
       }
     }
 #endif
-#if (AZIMUTH_MOTOR == 1) || (ALTITUDE_MOTOR == 1)    
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (currentButtonState == btnNONE)
     {
-      #if (AZIMUTH_MOTOR == 1) 
+      #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         if (mount.isRunningAZ())
         {
           mount.setSpeed(AZIMUTH_STEPS, 0);
         }
       #endif
-      #if (ALTITUDE_MOTOR == 1)    
+      #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         if (!mount.isRunningALT())
         {
           mount.setSpeed(ALTITUDE_STEPS, -ALT_STEPPER_SPEED);
@@ -494,7 +494,7 @@ bool processCalibrationKeys()
     }
     break;
 
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     case AZIMUTH_ADJUSTMENT:
     {
       // UP, DOWN, LEFT, and RIGHT are handled above
@@ -514,7 +514,7 @@ bool processCalibrationKeys()
     break;
 #endif
 
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     case ALTITUDE_ADJUSTMENT:
     {
       // UP, DOWN, LEFT, and RIGHT are handled above
@@ -969,7 +969,7 @@ bool processCalibrationKeys()
     }
     break;
 
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     case HIGHLIGHT_AZIMUTH_ADJUSTMENT:
     {
       if (key == btnDOWN)
@@ -987,7 +987,7 @@ bool processCalibrationKeys()
     break;
 #endif
 
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     case HIGHLIGHT_ALTITUDE_ADJUSTMENT:
     {
       if (key == btnDOWN)
@@ -1120,13 +1120,13 @@ void printCalibrationSubmenu()
   {
     lcdMenu.printMenu(">UTC Offset");
   }
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == HIGHLIGHT_AZIMUTH_ADJUSTMENT)
   {
     lcdMenu.printMenu(">Azimuth Adjst.");
   }
 #endif
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == HIGHLIGHT_ALTITUDE_ADJUSTMENT)
   {
     lcdMenu.printMenu(">Altitude Adjst.");
@@ -1214,14 +1214,14 @@ void printCalibrationSubmenu()
     sprintf(scratchBuffer, "UTC : %d", UTCOffset);
     lcdMenu.printMenu(scratchBuffer);
   }
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == AZIMUTH_ADJUSTMENT)
   {
     sprintf(scratchBuffer, "Az: %d arcmins", AzimuthMinutes);
     lcdMenu.printMenu(scratchBuffer);
   }
 #endif
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == ALTITUDE_ADJUSTMENT)
   {
     sprintf(scratchBuffer, "Alt: %d arcmins", AltitudeMinutes);

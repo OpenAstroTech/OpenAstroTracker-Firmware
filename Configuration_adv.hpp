@@ -281,7 +281,7 @@
 //
 
 // Enable Azimuth and Altitude motor functionality in Configuration.hpp
-#if AZIMUTH_MOTOR == 1
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
@@ -323,7 +323,7 @@
 
 #endif
 
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define ALT_MICROSTEPPING        1     // Fullstep mode using ULN2003 driver

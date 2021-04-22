@@ -69,10 +69,9 @@
 
 /**
  * @brief Automated azimuth/altitude adjustment configuration.
- * Set AZIMUTH_MOTOR and ALTITUDE_MOTOR to 1 to enable, 0 or #undef to exclude AZ/ALT from configuration.
+ * Set AZ_STEPPER_TYPE and ALT_STEPPER_TYPE to the correct stepper type to 
+ * enable, or to STEPPER_TYPE_NONE to exclude AZ/ALT from configuration.
  */
-#define ALTITUDE_MOTOR 0
-#define AZIMUTH_MOTOR 0
 #define AZ_STEPPER_TYPE     STEPPER_TYPE_28BYJ48
 #define ALT_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
 #define AZ_DRIVER_TYPE      DRIVER_TYPE_ULN2003
@@ -82,9 +81,9 @@
 
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
-#define AZ_MOTOR_CURRENT_RATING 0       // Current rating of AZ motor in mA
-#define AZ_OPERATING_CURRENT_SETTING 100  // AZ operating setting as a percentage of motor rating
-#define ALT_MOTOR_CURRENT_RATING 0      // Current rating of ALT motor in mA
+#define AZ_MOTOR_CURRENT_RATING 0          // Current rating of AZ motor in mA
+#define AZ_OPERATING_CURRENT_SETTING 100   // AZ operating setting as a percentage of motor rating
+#define ALT_MOTOR_CURRENT_RATING 0         // Current rating of ALT motor in mA
 #define ALT_OPERATING_CURRENT_SETTING 100  // ALT operating setting as a percentage of motor rating
 
 /**

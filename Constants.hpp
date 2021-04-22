@@ -40,6 +40,7 @@
 
 
 // Supported stepper models
+#define STEPPER_TYPE_NONE       -1
 #define STEPPER_TYPE_28BYJ48    0
 #define STEPPER_TYPE_NEMA17     1
 

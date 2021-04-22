@@ -65,7 +65,7 @@
   #endif
 #endif
 
-#if (AZIMUTH_MOTOR == 0)
+#if (AZ_STEPPER_TYPE == STEPPER_TYPE_NONE)
   // Baseline configuration without azimuth control is valid
 #elif defined(__AVR_ATmega2560__)
   // Azimuth configuration
@@ -98,7 +98,7 @@
   #error Configuration does not support AZ. Use at own risk.
 #endif 
 
-#if (ALTITUDE_MOTOR == 0)
+#if (ALT_STEPPER_TYPE == STEPPER_TYPE_NONE)
   // Baseline configuration without altitude control is valid
 #elif defined(__AVR_ATmega2560__)
   // Altitude configuration
@@ -240,7 +240,7 @@
   #endif
 #endif
 
-#if (AZIMUTH_MOTOR == 1)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
     #if !defined(AZ_IN1_PIN) || !defined(AZ_IN2_PIN) || !defined(AZ_IN3_PIN) || !defined(AZ_IN4_PIN)
       // Required pin assignments missing
@@ -263,7 +263,7 @@
   #endif
 #endif
 
-#if (ALTITUDE_MOTOR == 1)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
     #if !defined(ALT_IN1_PIN) || !defined(ALT_IN2_PIN) || !defined(ALT_IN3_PIN) || !defined(ALT_IN4_PIN)
       // Required pin assignments missing
@@ -359,7 +359,7 @@
   #endif
 #endif
 
-#if (AZIMUTH_MOTOR == 1)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if defined(AZ_MOTOR_CURRENT_RATING)
       #if (AZ_MOTOR_CURRENT_RATING > 1700)
@@ -381,7 +381,7 @@
   #endif
 #endif 
 
-#if (ALTITUDE_MOTOR == 1)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if defined(ALT_MOTOR_CURRENT_RATING)
       #if (ALT_MOTOR_CURRENT_RATING > 1700)

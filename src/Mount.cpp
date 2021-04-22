@@ -75,13 +75,13 @@ const float siderealDegreesInHour = 14.95904348958;
 //
 /////////////////////////////////
 Mount::Mount(LcdMenu* lcdMenu)
-  #if (ALTITUDE_MOTOR == 1) || (AZIMUTH_MOTOR == 1)
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     : _azAltWasRunning(false)
   #endif
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     , _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360)
   #endif
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     , _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
   #endif
 {
@@ -300,7 +300,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 // configureAZStepper / configureALTStepper
 //
 /////////////////////////////////
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void Mount::configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
     {
@@ -321,7 +321,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     }
   #endif
 #endif
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void Mount::configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
     {
@@ -519,7 +519,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
 // configureAZdriver
 // TMC2209 UART only
 /////////////////////////////////
-#if (AZIMUTH_MOTOR == 1) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
 #if SW_SERIAL_UART == 0
   void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
@@ -594,7 +594,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
 // configureALTdriver
 // TMC2209 UART only
 /////////////////////////////////
-#if (ALTITUDE_MOTOR == 1) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
 #if SW_SERIAL_UART == 0
   void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
   {
@@ -885,11 +885,11 @@ String Mount::getMountHardwareInfo()
     ret += F("NO_GPS,");
   #endif
 
-  #if (AZIMUTH_MOTOR == 1) && (ALTITUDE_MOTOR == 1)
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) && (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     ret += F("AUTO_AZ_ALT,");
-  #elif AZIMUTH_MOTOR == 1
+  #elif (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     ret += F("AUTO_AZ,");
-  #elif ALTITUDE_MOTOR == 1
+  #elif (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     ret += F("AUTO_ALT,");
   #else
     ret += F("NO_AZ_ALT,");
@@ -1387,7 +1387,7 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
     // TODO: Are we already in slew mode?
     _stepperDEC->setSpeed(stepsPerSec);
   }
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (which == AZIMUTH_STEPS) {
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       float curAzSpeed = _stepperAZ->speed();
@@ -1417,7 +1417,7 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
     #endif
   }
   #endif
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (which == ALTITUDE_STEPS) {
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       float curAltSpeed = _stepperALT->speed();
@@ -1479,7 +1479,7 @@ void Mount::goHome()
   _slewingToHome = true;
 }
 
-#if AZIMUTH_MOTOR == 1
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
 // isRunningAZ
@@ -1491,7 +1491,7 @@ bool Mount::isRunningAZ() const {
 
 #endif
 
-#if ALTITUDE_MOTOR == 1
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
 // isRunningALT
@@ -1503,7 +1503,7 @@ bool Mount::isRunningALT() const {
 #endif
 
 
-#if (ALTITUDE_MOTOR == 1) || (AZIMUTH_MOTOR == 1)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
 // moveBy
@@ -1511,7 +1511,7 @@ bool Mount::isRunningALT() const {
 /////////////////////////////////
 void Mount::moveBy(int direction, float arcMinutes)
 {
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == AZIMUTH_STEPS) {
       enableAzAltMotors();
       #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
@@ -1522,7 +1522,7 @@ void Mount::moveBy(int direction, float arcMinutes)
       _stepperAZ->move(stepsToMove);
     }
   #endif
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == ALTITUDE_STEPS) {
       enableAzAltMotors();
       #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
@@ -1542,26 +1542,26 @@ void Mount::moveBy(int direction, float arcMinutes)
 //
 /////////////////////////////////
 void Mount::disableAzAltMotors() {
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   _stepperAZ->stop();
   #endif
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   _stepperALT->stop();
   #endif
 
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   while (_stepperAZ->isRunning()) {
     loop();
   }
   #endif
 
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   while (_stepperALT->isRunning()) {
     loop();
   }
   #endif
 
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       _stepperAZ->disableOutputs();
     #else
@@ -1569,7 +1569,7 @@ void Mount::disableAzAltMotors() {
     #endif
   #endif
 
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       _stepperALT->disableOutputs();
     #else
@@ -1584,7 +1584,7 @@ void Mount::disableAzAltMotors() {
 //
 /////////////////////////////////
 void Mount::enableAzAltMotors() {
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       _stepperAZ->enableOutputs();
     #else
@@ -1592,7 +1592,7 @@ void Mount::enableAzAltMotors() {
     #endif
   #endif
 
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       _stepperALT->enableOutputs();
     #else
@@ -1699,10 +1699,10 @@ String Mount::getStatusString() {
   else if (isSlewingTRK()) {
     disp[2] = 'T';
   }
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperAZ->isRunning()) disp[3] = _stepperAZ->speed() < 0 ? 'Z' : 'z';
   #endif
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperALT->isRunning()) disp[4] = _stepperALT->speed() < 0 ? 'A' : 'a';
   #endif
 
@@ -2022,10 +2022,10 @@ void Mount::interruptLoop()
     }
   }
 
-  #if AZIMUTH_MOTOR == 1
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   _stepperAZ->run();
   #endif
-  #if ALTITUDE_MOTOR == 1
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   _stepperALT->run();
   #endif
   
@@ -2057,12 +2057,12 @@ void Mount::loop() {
   #endif
 
 
-  #if (ALTITUDE_MOTOR == 1) || (AZIMUTH_MOTOR == 1)
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   bool oneIsRunning = false;
-  #if (AZIMUTH_MOTOR == 1)
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     oneIsRunning |= _stepperAZ->isRunning();
   #endif
-  #if (ALTITUDE_MOTOR == 1)
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     oneIsRunning |= _stepperALT->isRunning();
   #endif
 
@@ -2074,10 +2074,10 @@ void Mount::loop() {
   }
 
   oneIsRunning = false;
-  #if (AZIMUTH_MOTOR == 1)
+  #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     oneIsRunning |= _stepperAZ->isRunning();
   #endif
-  #if (ALTITUDE_MOTOR == 1)
+  #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     oneIsRunning |= _stepperALT->isRunning();
   #endif
 

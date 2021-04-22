@@ -80,10 +80,10 @@
 #define DEC_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
 #endif
 #ifndef AZ_STEPPER_TYPE
-#define AZ_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
+#define AZ_STEPPER_TYPE    STEPPER_TYPE_NONE
 #endif
 #ifndef ALT_STEPPER_TYPE
-#define ALT_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
+#define ALT_STEPPER_TYPE    STEPPER_TYPE_NONE
 #endif
 
 /**
@@ -207,22 +207,6 @@
 // Set this to 1 if your gyro is mounted such that roll and pitch are in the wrong direction
 #ifndef GYRO_AXIS_SWAP
   #define GYRO_AXIS_SWAP 1
-#endif
-
-/**
- * @brief Automated altitude adjustment configuration.
- * Set ALTITUDE_MOTOR to 1 to enable, 0 or #undef to exclude ALT from configuration.
- */
-#ifndef ALTITUDE_MOTOR
-  #define ALTITUDE_MOTOR  0
-#endif
-
-/**
- * @brief Automated azimuth adjustment configuration.
- * Set AZIMUTH_MOTOR to 1 to enable, 0 or #undef to exclude AZ from configuration.
- */
-#ifndef AZIMUTH_MOTOR
-  #define AZIMUTH_MOTOR  0
 #endif
 
 // Enable dew heater output (for boards that have MOSFETs)
