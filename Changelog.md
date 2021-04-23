@@ -1,3 +1,12 @@
+**V1.9.07 - Updates**
+- ALT and AZ steppers can now be enabled and configured seperately.
+- Reduced hold current for AZ and ALT to 10% if using TMCs and NEMAs.
+- Fixed incorrect response in Meade LX200 guide pulse command.
+
+**V1.9.05 - Updates**
+- Lowered connection baudrate to 19200.
+- Fixed incorrect response in Meade LX200 quit command.
+
 **V1.9.03 - Updates**
 - Removed connection test check and made it standard.
 - Switched motors to normal mode (better perf), but allowed silent mode through XX_UART_STEALTH_MODE defines.
