@@ -1,4 +1,7 @@
 **V1.9.07 - Updates**
+- Continuous integration improvements. Checking for version and changelog changes automatically
+
+**V1.9.07 - Updates**
 - ALT and AZ steppers can now be enabled and configured seperately.
 - Reduced hold current for AZ and ALT to 10% if using TMCs and NEMAs.
 - Fixed incorrect response in Meade LX200 guide pulse command.
