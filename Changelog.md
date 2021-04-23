@@ -1,4 +1,4 @@
-**V1.9.07 - Updates**
+**V1.9.08 - Updates**
 - Continuous integration improvements. Checking for version and changelog changes automatically
 
 **V1.9.07 - Updates**
