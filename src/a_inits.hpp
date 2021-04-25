@@ -66,9 +66,9 @@ POP_NO_WARNINGS
     #define DECmotorPin2  DEC_DIR_PIN
 #endif
 
-// AZ/ALT Motor pins
-#if AZIMUTH_ALTITUDE_MOTORS == 1
-  // AZ/ALT Pins are defined based on driver type rather than stepper type since the 28BYJ may be used with a TMC2209 or similar driver when modified to bipolar mode
+// AZ Motor pins
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  // AZ Pins are defined based on driver type rather than stepper type since the 28BYJ may be used with a TMC2209 or similar driver when modified to bipolar mode
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define AZmotorPin1  AZ_IN1_PIN    
     #define AZmotorPin3  AZ_IN2_PIN    
@@ -78,6 +78,10 @@ POP_NO_WARNINGS
     #define AZmotorPin1  AZ_STEP_PIN
     #define AZmotorPin2  AZ_DIR_PIN
   #endif
+#endif
+
+// ALT Motor pins
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define ALTmotorPin1  ALT_IN1_PIN 
     #define ALTmotorPin3  ALT_IN2_PIN 
@@ -87,7 +91,6 @@ POP_NO_WARNINGS
     #define ALTmotorPin1  ALT_STEP_PIN
     #define ALTmotorPin2  ALT_DIR_PIN
   #endif
-
 #endif
 // End Stepper Definitions //////////////
 /////////////////////////////////////////

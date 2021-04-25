@@ -19,11 +19,13 @@ BOARDS = [
 ]
 
 STEPPER_TYPES = [
+    "STEPPER_TYPE_NONE",
     "STEPPER_TYPE_28BYJ48",
     "STEPPER_TYPE_NEMA17",
 ]
 
 DRIVER_TYPES = [
+    "DRIVER_TYPE_NONE",
     "DRIVER_TYPE_ULN2003",
     "DRIVER_TYPE_A4988_GENERIC",
     "DRIVER_TYPE_TMC2209_STANDALONE",
@@ -41,13 +43,12 @@ DISPLAY_TYPES = [
 ]
 
 BUILD_FLAGS = {
-    "RA_STEPPER_TYPE": STEPPER_TYPES,
-    "RA_DRIVER_TYPE": DRIVER_TYPES,
+    "RA_STEPPER_TYPE": [x for x in STEPPER_TYPES if x != "STEPPER_TYPE_NONE"],
+    "RA_DRIVER_TYPE": [x for x in DRIVER_TYPES if x != "DRIVER_TYPE_NONE"],
     "DEC_STEPPER_TYPE": STEPPER_TYPES,
     "DEC_DRIVER_TYPE": DRIVER_TYPES,
     "USE_GPS": BOOLEAN_VALUES,
     "USE_GYRO_LEVEL": BOOLEAN_VALUES,
-    "AZIMUTH_ALTITUDE_MOTORS": BOOLEAN_VALUES,
     "AZ_STEPPER_TYPE": STEPPER_TYPES,
     "AZ_DRIVER_TYPE": DRIVER_TYPES,
     "ALT_STEPPER_TYPE": STEPPER_TYPES,
@@ -57,9 +58,16 @@ BUILD_FLAGS = {
     "RA_OPERATING_CURRENT_SETTING": "1",
     "DEC_MOTOR_CURRENT_RATING": "1",
     "DEC_OPERATING_CURRENT_SETTING": "1",
+    "ALT_MOTOR_CURRENT_RATING": "1",
+    "ALT_OPERATING_CURRENT_SETTING": "1",
+    "AZ_MOTOR_CURRENT_RATING": "1",
+    "AZ_OPERATING_CURRENT_SETTING": "1",
 }
 
 STEPPER_SUPPORT = {
+    "STEPPER_TYPE_NONE": {
+        "DRIVER_TYPE_NONE"
+    },
     "STEPPER_TYPE_28BYJ48": {
         "DRIVER_TYPE_ULN2003"
     },
@@ -78,15 +86,39 @@ def update_dict(orig, patch):
 
 
 BOARD_SUPPORT = {
-    "mega2560": BUILD_FLAGS,
+    "mega2560": update_dict(BUILD_FLAGS, {
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "AZ_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "ALT_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+    }),
     "esp32": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
-        "AZIMUTH_ALTITUDE_MOTORS": [0],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306"
-        ]
+        ],
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "AZ_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "ALT_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
     }),
     "mksgenlv21": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
@@ -117,8 +149,10 @@ BOARD_SUPPORT = {
 SHORT_STRINGS = {
     0: "DISABLED",
     1: "ENABLED",
+    "STEPPER_TYPE_NONE": "NONE",
     "STEPPER_TYPE_28BYJ48": "28BYJ48",
     "STEPPER_TYPE_NEMA17": "NEMA17",
+    "DRIVER_TYPE_NONE": "NONE",
     "DRIVER_TYPE_ULN2003": "ULN2003",
     "DRIVER_TYPE_A4988_GENERIC": "A4988_GENERIC",
     "DRIVER_TYPE_TMC2209_STANDALONE": "TMC2209_STANDALONE",
@@ -134,7 +168,6 @@ SHORT_STRINGS = {
     "DEC_DRIVER_TYPE": "DEC_DRIVER",
     "USE_GPS": "GPS",
     "USE_GYRO_LEVEL": "GYRO",
-    "AZIMUTH_ALTITUDE_MOTORS": "AZ_ALT",
     "AZ_STEPPER_TYPE": "AZ_STEPPER",
     "AZ_DRIVER_TYPE": "AZ_DRIVER",
     "ALT_STEPPER_TYPE": "ALT_STEPPER",
@@ -205,15 +238,10 @@ def set_test_constraints(problem):
         "AZ_DRIVER_TYPE",
     ])
 
-    # Only one permutation of alt/az steppers and motors if alt-az addon is disabled
-    problem.addConstraint(
-        lambda e, alt_s: e or alt_s == "STEPPER_TYPE_28BYJ48", ["AZIMUTH_ALTITUDE_MOTORS", "ALT_STEPPER_TYPE"]
-    )
-
 
 def set_ci_constraints(problem):
     problem.addConstraint(InSetConstraint({"DISPLAY_TYPE_NONE", "DISPLAY_TYPE_LCD_KEYPAD"}), ["DISPLAY_TYPE"])
-    problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
+    # problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
 
 
 def print_solutions_matrix(solutions, short_strings=False):

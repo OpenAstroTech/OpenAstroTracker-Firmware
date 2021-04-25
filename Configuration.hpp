@@ -80,10 +80,10 @@
 #define DEC_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
 #endif
 #ifndef AZ_STEPPER_TYPE
-#define AZ_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
+#define AZ_STEPPER_TYPE    STEPPER_TYPE_NONE
 #endif
 #ifndef ALT_STEPPER_TYPE
-#define ALT_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
+#define ALT_STEPPER_TYPE    STEPPER_TYPE_NONE
 #endif
 
 /**
@@ -97,10 +97,10 @@
 #define DEC_DRIVER_TYPE     DRIVER_TYPE_ULN2003
 #endif
 #ifndef AZ_DRIVER_TYPE
-#define AZ_DRIVER_TYPE     DRIVER_TYPE_ULN2003
+#define AZ_DRIVER_TYPE     DRIVER_TYPE_NONE
 #endif
 #ifndef ALT_DRIVER_TYPE
-#define ALT_DRIVER_TYPE     DRIVER_TYPE_ULN2003
+#define ALT_DRIVER_TYPE     DRIVER_TYPE_NONE
 #endif
 
 // Your pulley tooth count. 16 for the bought (aluminium) one, 20 for the printed one.
@@ -201,25 +201,17 @@
  * On ATmega & ESP32 gyro uses hardware I2C. No additional pins required. 
  */
 #ifndef USE_GYRO_LEVEL
-#define USE_GYRO_LEVEL 0
+  #define USE_GYRO_LEVEL 0
 #endif
 
 // Set this to 1 if your gyro is mounted such that roll and pitch are in the wrong direction
 #ifndef GYRO_AXIS_SWAP
-#define GYRO_AXIS_SWAP 1
-#endif
-
-/**
- * @brief Automated azimuth/altitude adjustment configuration.
- * Set AZIMUTH_ALTITUDE_MOTORS to 1 to enable, 0 or #undef to exclude AZ/ALT from configuration.
- */
-#ifndef AZIMUTH_ALTITUDE_MOTORS
-#define AZIMUTH_ALTITUDE_MOTORS  0
+  #define GYRO_AXIS_SWAP 1
 #endif
 
 // Enable dew heater output (for boards that have MOSFETs)
 #ifndef DEW_HEATER
-#define DEW_HEATER 0
+  #define DEW_HEATER 0
 #endif
 
 // These values are needed to calculate the current position during initial alignment.
@@ -228,13 +220,13 @@
 // This value is from 13.Aug.2020, next adjustment suggested at end 2020
 // The same could be done for the DEC coordinates but they dont change significantly for the next 5 years
 #ifndef POLARIS_RA_HOUR
-#define POLARIS_RA_HOUR     2
+  #define POLARIS_RA_HOUR     2
 #endif
 #ifndef POLARIS_RA_MINUTE
-#define POLARIS_RA_MINUTE   58
+  #define POLARIS_RA_MINUTE   58
 #endif
 #ifndef POLARIS_RA_SECOND
-#define POLARIS_RA_SECOND   34
+  #define POLARIS_RA_SECOND   34
 #endif
 
 // Set this to specify the amount of debug output OAT should send to the serial port.
@@ -242,7 +234,7 @@
 // Debug output is useful if you are using Wifi to control the OAT or if you are issuing
 // manual commands via a terminal.
 #ifndef DEBUG_LEVEL
-#define DEBUG_LEVEL (DEBUG_NONE)
+  #define DEBUG_LEVEL (DEBUG_NONE)
 #endif
 
 // Append board specific pins data.

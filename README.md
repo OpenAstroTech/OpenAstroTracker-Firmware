@@ -19,3 +19,33 @@ This is an open source project and everyone is welcome to contribute. We will be
 ## Development
 
 Even if Arduino IDE is supported, we highly recommend using VSCode with [PlatformIO](https://platformio.org/) for development. It allows automatic dependency management, powerful IDE, debugging, automatic build flags definition and more.
+
+### Debugging
+
+#### ATmega2560
+
+> :warning: **Debugging is only supported on mega2560 platforms at the moment!**
+
+For this example we will be using the `mega2560` environment, but you can use any derived environment as well
+
+> You may need to set `debug_port` in your `platformio.ini`, platformio says it will auto-detect the port but it doesn't seem to be working at the moment
+
+Start a gdb shell debugging the current firmware:
+```shell
+pio run -e mega2560 -t clean  # Clean the environment
+piodebuggdb -e mega2560  # Initialize a debug session.
+# This will build the firmware in debug mode, and then initialize a remote gdb session
+# You may have visual debug capabilities in your IDE if it has platformio integration as well
+```
+
+When using `avr-stub` as a debug interface, it requires 2 things:
+1. Serial link 0 must not be used in the firmware
+    - As such, all external interfaces using `Serial` are disabled in a debug build (`Serial1`, `Serial2` etc are ok)
+2. Exclusive access to an interrupt vector
+    - This requires hot-patching the arduino framework (specifically `WInterrupts.c`) to disable the ISR registration. The implementation of this is in `pre_script_patch_debug.py`, which should happen automagically
+
+> Note that while avr-stub is in RAM mode, the firmware will run very slowly and timing-related functions might not work correctly
+
+Debugging is still a bit flakey, so you may need to try multiple times in order to get a solid debugging session.
+
+More information is available in the [avr-stub documentation](https://github.com/jdolinay/avr_debug/tree/master/doc)

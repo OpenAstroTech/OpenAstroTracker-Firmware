@@ -43,11 +43,13 @@
 #define DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306     5
 
 // Supported stepper models
+#define STEPPER_TYPE_NONE       -1
 #define STEPPER_TYPE_28BYJ48    0
 #define STEPPER_TYPE_NEMA17     1
 
 
 // Supported stepper driver models
+#define DRIVER_TYPE_NONE                -1
 #define DRIVER_TYPE_ULN2003             0   // Supports halfstepping
 #define DRIVER_TYPE_A4988_GENERIC       1   // Supports fixed microstepping
 #define DRIVER_TYPE_TMC2209_STANDALONE  2   // Supports fixed microstepping

@@ -279,16 +279,27 @@
 //                                     ///
 //////////////////////////////////////////
 //
+// Backwards compatability. V1.9.07 changed from combined Azimuth/Altitude addon to seperate controls for each
+#ifdef AZIMUTH_ALTITUDE_MOTORS
+  #if AZIMUTH_ALTITUDE_MOTORS == 1
+    #ifdef ALT_STEPPER_TYPE || AZ_STEPPER_TYPE
+      #error Please remove AZIMUTH_ALTITUDE_MOTORS definition and use only ALT_STEPPER_TYPE and AZ_STEPPER_TYPE
+    #endif
+    #define AZ_STEPPER_TYPE  STEPPER_TYPE_28BYJ48
+    #define AZ_DRIVER_TYPE   DRIVER_TYPE_ULN2003
+  #endif
+  #undef AZIMUTH_ALTITUDE_MOTORS
+#endif
 
 // Enable Azimuth and Altitude motor functionality in Configuration.hpp
-#ifdef AZIMUTH_ALTITUDE_MOTORS
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 
   #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
   #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define AZ_MICROSTEPPING        32
   #else
-    #error Unknown AZ driver type
+    #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
   #endif
   #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define AZ_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
@@ -302,13 +313,35 @@
     #error Unknown AZ stepper type
   #endif
 
+  // the Circumference of the AZ rotation. 808mm dia.
+  #define AZ_CIRCUMFERENCE 2538.4f
+  #define AZIMUTH_STEPS_PER_REV           (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)   // Actually u-steps/rev
+  #define AZIMUTH_STEPS_PER_ARC_MINUTE    (AZIMUTH_STEPS_PER_REV / (360 * 60.0f)) // Used to determine move distance in steps
+
+  // AZ TMC2209 UART settings
+  // These settings work only with TMC2209 in UART connection (single wire to TX)
+  #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) 
+    #define AZ_RMSCURRENT AZ_MOTOR_CURRENT_RATING * (AZ_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
+    
+    #define AZ_AUDIO_FEEDBACK 0
+    
+    #define AZ_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+    
+    #ifndef USE_VREF
+      #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+    #endif
+  #endif
+
+#endif
+
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 
   #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define ALT_MICROSTEPPING        1     // Fullstep mode using ULN2003 driver
   #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #define ALT_MICROSTEPPING        32
   #else
-    #error Unknown ALT driver type
+    #error Unknown ALT driver type. Did you define ALT_DRIVER_TYPE?
   #endif
   #if ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define ALT_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
@@ -322,29 +355,21 @@
     #error Unknown ALT stepper type
   #endif
 
-
-  // the Circumference of the AZ rotation. 808mm dia.
-  #define AZ_CIRCUMFERENCE 2538.4f
   // the Circumference of the AZ rotation. 770mm dia.
   #define ALT_CIRCUMFERENCE 2419
   // the ratio of the ALT gearbox (40:3)
   #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
 
-  #define AZIMUTH_STEPS_PER_REV           (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)   // Actually u-steps/rev
   #define ALTITUDE_STEPS_PER_REV          (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING * ALT_WORMGEAR_RATIO)   // Actually u-steps/rev
-  #define AZIMUTH_STEPS_PER_ARC_MINUTE    (AZIMUTH_STEPS_PER_REV / (360 * 60.0f)) // Used to determine move distance in steps
   #define ALTITUDE_STEPS_PER_ARC_MINUTE   (ALTITUDE_STEPS_PER_REV / (360 * 60.0f)) // Used to determine move distance in steps
 
-  // ALT/AZ TMC2209 UART settings
+  // ALT TMC2209 UART settings
   // These settings work only with TMC2209 in UART connection (single wire to TX)
-  #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #define AZ_RMSCURRENT AZ_MOTOR_CURRENT_RATING * (AZ_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
+  #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #define ALT_RMSCURRENT ALT_MOTOR_CURRENT_RATING * (ALT_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
     
-    #define AZ_AUDIO_FEEDBACK 0
     #define ALT_AUDIO_FEEDBACK 0
     
-    #define AZ_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
     #define ALT_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
     
     #ifndef USE_VREF
@@ -396,7 +421,9 @@
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial
-#define SUPPORT_SERIAL_CONTROL 1
+#if !defined(SUPPORT_SERIAL_CONTROL)
+  #define SUPPORT_SERIAL_CONTROL 1
+#endif
 
 // This is set to 1 for boards that do not support interrupt timers
 #define RUN_STEPPERS_IN_MAIN_LOOP 0
@@ -463,4 +490,26 @@
 // Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
 // Debug output is useful if you are using Wifi to control the OAT or if you are issuing
 // manual commands via a terminal.
-//
+
+#if defined(OAT_DEBUG_BUILD)
+  // AVR based boards have numbers < 1000
+  #if BOARD < 1000
+    /*
+     * Debugging on the mega2560 using avr-stub dissallows application-code from
+     * using the normal (USB) serial port
+     */
+    // Disable debug output
+    #if defined(DEBUG_LEVEL)
+      #undef DEBUG_LEVEL
+    #endif
+    #define DEBUG_LEVEL (DEBUG_NONE)
+
+    // Disable serial control
+    #if defined(SUPPORT_SERIAL_CONTROL)
+      #undef SUPPORT_SERIAL_CONTROL
+    #endif
+    #define SUPPORT_SERIAL_CONTROL 0
+  #else
+    #error "Debugging not supported on this platform"
+  #endif
+#endif
