@@ -441,7 +441,7 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Where <board> is one of the supported boards (currently Mega, ESP32)
 //            <Stepper Info> is a pipe-delimited string of Motor type (NEMA or 28BYJ), Pulley Teeth, Steps per revolution)
 //            <GPS info> is either NO_GPS or GPS, depending on whether a GPS module is present
-//            <AzAlt info> is either NO_AZ_ALT or AUTO_AZ_ALT, depending on whether the AutoPA stepper motors are present
+//            <AzAlt info> is either NO_AZ_ALT, AUTO_AZ_ALT, AUTO_AZ, or AUTO_ALT, depending on which AutoPA stepper motors are present
 //            <Gyro info> is either NO_GYRO or GYRO depending on whether the Digial level is present
 //      Example: ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO#
 //
@@ -926,19 +926,22 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
   }
   else if (inCmd[0] == 'A')
   {
-// Move Azimuth or Altitude by given arcminutes
-// :MAZ+32.1# or :MAL-32.1#
-#if AZIMUTH_ALTITUDE_MOTORS == 1
-    float arcMinute = inCmd.substring(2).toFloat();
-    if (inCmd[1] == 'Z')
-    {
-      _mount->moveBy(AZIMUTH_STEPS, arcMinute);
-    }
-    else if (inCmd[1] == 'L')
-    {
-      _mount->moveBy(ALTITUDE_STEPS, arcMinute);
-    }
-#endif
+    // Move Azimuth or Altitude by given arcminutes
+    // :MAZ+32.1# or :MAL-32.1#
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+      if (inCmd[1] == 'Z')
+      {
+        float arcMinute = inCmd.substring(2).toFloat();
+        _mount->moveBy(AZIMUTH_STEPS, arcMinute);
+      }
+    #endif
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+      if (inCmd[1] == 'L')
+      {
+        float arcMinute = inCmd.substring(2).toFloat();
+        _mount->moveBy(ALTITUDE_STEPS, arcMinute);
+      }
+    #endif
     return "";
   }
   else if (inCmd[0] == 'e')
