@@ -84,6 +84,7 @@ Mount::Mount(LcdMenu* lcdMenu)
   #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     , _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
   #endif
+  
 {
   _lcdMenu = lcdMenu;
   initializeVariables();
@@ -93,6 +94,12 @@ void Mount::initializeVariables()
 {
   _stepsPerRADegree = RA_STEPS_PER_DEGREE;    // u-steps per degree when slewing
   _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
+
+  // CHANGE BEGIN focus-instances ------------------------------------------------------
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _focusDefaultSpeed = FOCUS_DEFAULT_SPEED;
+  #endif
+  // CHANGE END focus-instances ------------------------------------------------------
 
   _mountStatus = 0;
   _lastDisplayUpdate = 0;
@@ -342,6 +349,30 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     }
   #endif  
 #endif
+
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    void Mount::configureFocusStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
+    {
+      _stepperFocus = new AccelStepper((ALT_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
+      _stepperFocus->setSpeed(0);
+      _stepperFocus->setMaxSpeed(maxSpeed);
+      _stepperFocus->setAcceleration(maxAcceleration);
+    }
+  #endif
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+    {
+      _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+      _stepperFocus->setMaxSpeed(maxSpeed);
+      _stepperFocus->setAcceleration(maxAcceleration);
+      _maxFocusSpeed = maxSpeed;
+      _maxFocusAcceleration = maxAcceleration;
+    }
+  #endif  
+#endif
+// CHANGE END focus-instances ------------------------------------------------------
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 #if UART_CONNECTION_TEST_TXRX == 1
@@ -663,6 +694,83 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   }
 #endif
 #endif
+
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+/////////////////////////////////
+//
+// configureFocusdriver
+// TMC2209 UART only
+/////////////////////////////////
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+#if SW_SERIAL_UART == 0
+  void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+  {
+    _driverFocus = new TMC2209Stepper(serial, rsense, driveraddress);
+    _driverFocus->begin();
+    bool _UART_Rx_connected = false;
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverFocus, "Focus" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverFocus->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverFocus->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
+    _driverFocus->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->toff(1);
+    _driverFocus->en_spreadCycle(0);
+    _driverFocus->blank_time(24);
+    _driverFocus->microsteps(FOCUS_MICROSTEPPING == 1 ? 0 : FOCUS_MICROSTEPPING);   // If 1 then disable microstepping
+    _driverFocus->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverFocus->semin(0); //disable CoolStep so that current is consistent
+    _driverFocus->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus motor rms_current: %d mA"), _driverFocus->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus CS value: %d"), _driverFocus->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus vsense: %d"), _driverFocus->vsense());
+    }
+  }
+
+#elif SW_SERIAL_UART == 1
+
+  void Mount::configureFocusDriver(uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+  {
+    _driverFocus = new TMC2209Stepper(FOCUS_SW_RX, FOCUS_SW_TX, rsense, driveraddress);
+    _driverFocus->beginSerial(19200);
+    _driverFocus->mstep_reg_select(true);
+    _driverFocus->pdn_disable(true);    
+    bool _UART_Rx_connected = false;
+    #if UART_CONNECTION_TEST_TXRX == 1
+        _UART_Rx_connected = connectToDriver( _driverFocus, "Focus" );
+        if (!_UART_Rx_connected) {
+            digitalWrite(FOCUS_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+        }
+    #endif
+    _driverFocus->toff(0);
+    #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
+        _driverFocus->I_scale_analog(0);
+    #endif
+    LOGV2(DEBUG_STEPPERS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
+    _driverFocus->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->toff(1);
+    _driverFocus->en_spreadCycle(0);
+    _driverFocus->blank_time(24);
+    _driverFocus->microsteps(FOCUS_MICROSTEPPING == 1 ? 0 : FOCUS_MICROSTEPPING);   // If 1 then disable microstepping
+    _driverFocus->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverFocus->semin(0); //disable CoolStep so that current is consistent
+    _driverFocus->SGTHRS(stallvalue);
+    if (_UART_Rx_connected){
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus motor rms_current: %d mA"), _driverFocus->rms_current());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus CS value: %d"), _driverFocus->cs_actual());
+        LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus vsense: %d"), _driverFocus->vsense());
+    }
+  }
+#endif
+#endif
+// CHANGE END focus-instances ------------------------------------------------------
 
 /////////////////////////////////
 //
@@ -1447,6 +1555,38 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
     #endif
   }
   #endif
+
+  // CHANGE BEGIN focus-instances ------------------------------------------------------
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  else if (which == FOCUS_STEPS) {
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+      float curFocusSpeed = _stepperFocus->speed();
+
+      // If we are changing directions or asking for a stop, do a stop
+      if ((signbit(speedDegsPerSec) != signbit(curFocusSpeed)) || (speedDegsPerSec == 0))
+      {
+        _stepperFocus->stop();
+        while (_stepperFocus->isRunning()){
+          loop();
+        }
+      }
+
+      // Are we starting a move or changing speeds?
+      if (speedDegsPerSec != 0) {
+        _stepperFocus->enableOutputs();
+        _stepperFocus->setSpeed(speedDegsPerSec);
+        _stepperFocus->move(speedDegsPerSec * 100000);
+      } // Are we stopping a move?
+      else if (speedDegsPerSec == 0) {
+        _stepperFocus->disableOutputs();
+      }
+    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      LOGV2(DEBUG_STEPPERS, F("STEP-setSpeed: Set Focus speed %f"), _focusDefaultSpeed);
+      _stepperFocus->setSpeed(_focusDefaultSpeed);  
+    #endif
+  }
+  #endif
+  // CHANGE END focus-instances --------------------------------------------------------
 }
 
 /////////////////////////////////
@@ -1602,6 +1742,106 @@ void Mount::enableAzAltMotors() {
 }
 
 #endif
+
+
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+/////////////////////////////////
+//
+// isRunningFocus
+//
+/////////////////////////////////
+bool Mount::isRunningFocus() const {
+  return _stepperFocus->isRunning();
+}
+#endif
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+/////////////////////////////////
+//
+// focusContinuesMove
+//
+/////////////////////////////////
+void Mount::focusContinuesMove(int direction)
+{
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  if(direction == 0)
+  {
+    enableFocusMotor();
+    //_stepper->setSpeed(currentSpeed);
+    _stepperFocus->setPinsInverted(false, false, true);
+    _stepperFocus->runSpeed();
+    
+  }
+  else
+  {
+    enableFocusMotor();
+    _stepperFocus->setPinsInverted(true, true, true);
+    _stepperFocus->runSpeed();
+  }
+  #endif
+}
+
+/////////////////////////////////
+//
+// focusContinuesMove
+//
+/////////////////////////////////
+void Mount::focusMoveBy(int steps)
+{
+   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+
+   #endif
+}
+
+/////////////////////////////////
+//
+// disableFocusMotor
+//
+/////////////////////////////////
+void Mount::disableFocusMotor() {
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  while (_stepperFocus->isRunning()) {
+    loop();
+  }
+  #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+      _stepperFocus->disableOutputs();
+    #else
+      digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable driver
+    #endif
+  #endif
+}
+
+/////////////////////////////////
+//
+// enableFocusMotor
+//
+/////////////////////////////////
+void Mount::enableFocusMotor() {
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+      _stepperFocus->enableOutputs();
+    #else
+      digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
+    #endif
+  #endif
+}
+
+/////////////////////////////////
+//
+// enableAzAltMotors
+//
+/////////////////////////////////
+void Mount::focusStop() {
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _stepperFocus->stop();
+  #endif
+}
+
+#endif
+// CHANGE END focus-instances ------------------------------------------------------
 
 /////////////////////////////////
 //

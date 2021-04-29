@@ -72,10 +72,10 @@
  * Set AZ_STEPPER_TYPE and ALT_STEPPER_TYPE to the correct stepper type to 
  * enable, or to STEPPER_TYPE_NONE to exclude AZ/ALT from configuration.
  */
-#define AZ_STEPPER_TYPE     STEPPER_TYPE_28BYJ48
-#define ALT_STEPPER_TYPE    STEPPER_TYPE_28BYJ48
-#define AZ_DRIVER_TYPE      DRIVER_TYPE_ULN2003
-#define ALT_DRIVER_TYPE     DRIVER_TYPE_ULN2003
+#define AZ_STEPPER_TYPE     STEPPER_TYPE_NONE
+#define ALT_STEPPER_TYPE    STEPPER_TYPE_NONE
+#define AZ_DRIVER_TYPE      DRIVER_TYPE_NONE
+#define ALT_DRIVER_TYPE     DRIVER_TYPE_NONE
 #define AZ_CORRECTION_FACTOR 1.000f
 #define ALT_CORRECTION_FACTOR 1.000f
 
@@ -85,6 +85,21 @@
 #define AZ_OPERATING_CURRENT_SETTING 100   // AZ operating setting as a percentage of motor rating
 #define ALT_MOTOR_CURRENT_RATING 0         // Current rating of ALT motor in mA
 #define ALT_OPERATING_CURRENT_SETTING 100  // ALT operating setting as a percentage of motor rating
+
+/**
+ * @brief Focus
+ * Set FOCUS_STEPPER_TYPE to the correct stepper type to 
+ * enable, or to STEPPER_TYPE_NONE to exclude Focus from configuration.
+ */
+#define FOCUS_STEPPER_TYPE    STEPPER_TYPE_NEMA17
+#define FOCUS_DRIVER_TYPE     DRIVER_TYPE_TMC2209_UART
+#define FOCUS_CORRECTION_FACTOR 1.000f
+#define FOCUS_DEFAULT_SPEED 400
+
+// TMC2209 UART settings
+// These settings work only with TMC2209 in UART connection (single wire to TX)
+#define FOCUS_MOTOR_CURRENT_RATING 0          // Current rating of Focus motor in mA
+#define FOCUS_OPERATING_CURRENT_SETTING 100   // Focus operating setting as a percentage of motor rating
 
 /**
  * @brief Display & keypad configuration.

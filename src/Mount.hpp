@@ -31,6 +31,9 @@ class TMC2209Stepper;
 #define DEC_STEPS 2
 #define AZIMUTH_STEPS 5
 #define ALTITUDE_STEPS 6
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+#define FOCUS_STEPS 7
+// CHANGE END focus-instances ------------------------------------------------------
 
 struct LocalDate {
   int year;
@@ -85,6 +88,17 @@ public:
   #endif
 #endif
 
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+// Configure the Focus stepper motors.
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    void configureFocusStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
+  #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+  #endif
+#endif
+// CHANGE END focus-instances ------------------------------------------------------
+
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
 #endif
@@ -127,6 +141,19 @@ public:
     #endif
   #endif
 #endif
+
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+// Configure the Focus driver.
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #if SW_SERIAL_UART == 0
+      void configureFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #elif SW_SERIAL_UART == 1
+      void configureFocusDriver(uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #endif
+  #endif
+#endif
+// CHANGE END focus-instances ------------------------------------------------------
   
   // Get the current RA tracking speed factor
   float getSpeedCalibration();
@@ -208,6 +235,12 @@ public:
   #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   bool isRunningALT() const;
   #endif
+
+  // CHANGE BEGIN focus-instances ------------------------------------------------------
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  bool isRunningFocus() const;
+  #endif
+  // CHANGE END focus-instances ------------------------------------------------------
 
   // Starts manual slewing in one of eight directions or tracking
   void startSlewing(int direction);
@@ -302,6 +335,17 @@ public:
   void enableAzAltMotors();
 #endif
 
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  // Support for focus motor (requires extra hardware)
+  void focusContinuesMove(int direction);
+  void focusMoveBy(int steps);
+  void disableFocusMotor();
+  void enableFocusMotor();
+  void focusStop();
+#endif
+// CHANGE END focus-instances ------------------------------------------------------
+
   // Set the number of steps to use for backlash correction
   void setBacklashCorrection(int steps);
 
@@ -386,10 +430,12 @@ private:
   int _maxDECSpeed;
   int _maxAZSpeed;
   int _maxALTSpeed;
+  int _maxFocusSpeed;
   int _maxRAAcceleration;
   int _maxDECAcceleration;
   int _maxAZAcceleration;
   int _maxALTAcceleration;
+  int _maxFocusAcceleration;
   int _backlashCorrectionSteps;
   int _moveRate;
   long _raParkingPos;     // Parking position in slewing steps
@@ -446,6 +492,19 @@ private:
       #endif 
     #endif
   #endif
+
+  // CHANGE BEGIN focus-instances ------------------------------------------------------
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    bool _focusWasRunning;
+    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+      AccelStepper* _stepperFocus;
+      long _focusDefaultSpeed;
+      #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        TMC2209Stepper* _driverFocus;
+      #endif 
+    #endif
+  #endif
+  // CHANGE END focus-instances ------------------------------------------------------
 
   unsigned long _guideRaEndTime;
   unsigned long _guideDecEndTime;

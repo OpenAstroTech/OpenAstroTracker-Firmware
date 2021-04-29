@@ -92,6 +92,22 @@ POP_NO_WARNINGS
     #define ALTmotorPin2  ALT_DIR_PIN
   #endif
 #endif
+
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+// Focus Motor pins
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    #define FOCUSmotorPin1  FOCUS_IN1_PIN 
+    #define FOCUSmotorPin3  FOCUS_IN2_PIN 
+    #define FOCUSmotorPin2  FOCUS_IN3_PIN 
+    #define FOCUSmotorPin4  FOCUS_IN4_PIN     
+  #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #define FOCUSmotorPin1  FOCUS_STEP_PIN
+    #define FOCUSmotorPin2  FOCUS_DIR_PIN
+  #endif
+#endif
+// CHANGE END focus-instances ------------------------------------------------------
+
 // End Stepper Definitions //////////////
 /////////////////////////////////////////
 

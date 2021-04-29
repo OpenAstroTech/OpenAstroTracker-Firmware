@@ -378,6 +378,44 @@
   #endif
 #endif
 
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    #define FOCUS_MICROSTEPPING        1     // Fullstep mode using ULN2003 driver
+  #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #define FOCUS_MICROSTEPPING        32
+  #else
+    #error Unknown Focus driver type. Did you define FOCUS_DRIVER_TYPE?
+  #endif
+  #if FOCUS_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
+    #define FOCUS_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
+    #define FOCUS_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
+    #define FOCUS_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+  #elif FOCUS_STEPPER_TYPE == STEPPER_TYPE_NEMA17
+    #define FOCUS_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+    #define FOCUS_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+    #define FOCUS_STEPPER_ACCELERATION   1000
+  #else
+    #error Unknown ALT stepper type
+  #endif
+
+  // FOCUS TMC2209 UART settings
+  // These settings work only with TMC2209 in UART connection (single wire to TX)
+  #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    #define FOCUS_RMSCURRENT FOCUS_MOTOR_CURRENT_RATING * (FOCUS_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
+    
+    #define FOCUS_AUDIO_FEEDBACK 0
+    
+    #define FOCUS_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+    
+    #ifndef USE_VREF
+      #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+    #endif
+  #endif
+#endif
+// CHANGE END - FOCUS INSTANCES ------------------------------------------------------
+
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

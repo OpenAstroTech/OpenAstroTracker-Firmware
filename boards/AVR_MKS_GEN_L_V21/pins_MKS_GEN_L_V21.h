@@ -169,6 +169,46 @@
   #define ALT_DRIVER_ADDRESS 0b00
 #endif
 
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+
+// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
+#ifndef FOCUS_IN1_PIN
+  #define FOCUS_IN1_PIN -1
+#endif
+#ifndef FOCUS_IN2_PIN
+  #define FOCUS_IN2_PIN -1
+#endif
+#ifndef FOCUS_IN3_PIN
+  #define FOCUS_IN3_PIN -1
+#endif
+#ifndef FOCUS_IN4_PIN
+  #define FOCUS_IN4_PIN -1
+#endif        
+// DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
+#ifndef FOCUS_STEP_PIN
+  #define FOCUS_STEP_PIN 36  // STEP
+#endif
+#ifndef FOCUS_DIR_PIN
+  #define FOCUS_DIR_PIN  34  // DIR
+#endif
+#ifndef FOCUS_EN_PIN
+  #define FOCUS_EN_PIN   30  // Enable
+#endif
+#ifndef FOCUS_DIAG_PIN
+  #define FOCUS_DIAG_PIN 15  // only needed for autohome function
+#endif
+// DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
+#ifndef FOCUS_SERIAL_PORT_TX
+  #define FOCUS_SERIAL_PORT_TX 20 // SoftwareSerial TX port
+#endif
+#ifndef FOCUS_SERIAL_PORT_RX
+  #define FOCUS_SERIAL_PORT_RX 12 // SoftwareSerial RX port
+#endif
+#ifndef FOCUS_DRIVER_ADDRESS
+  #define FOCUS_DRIVER_ADDRESS 0b00
+#endif
+// --- CHANGE END --------------------
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
   #define GPS_SERIAL_PORT Serial1

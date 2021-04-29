@@ -1295,6 +1295,35 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
   return "";
 }
 
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+/////////////////////////////
+// FOCUS COMMANDS
+/////////////////////////////
+String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
+{
+  if (inCmd[0] == '+') // :F+
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Pull In"));
+    _mount->focusContinuesMove(0);
+    return "";
+  }
+  else if (inCmd[0] == '-') // :F-
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Pull Out"));
+    _mount->focusContinuesMove(1);
+    return "";
+  }
+  else if (inCmd[0] == 'Q') // FQ
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Stop"));
+    _mount->focusStop();
+    return "";
+  }
+
+  return "";
+}
+// CHANGE END focus-instances ------------------------------------------------------
+
 String MeadeCommandProcessor::processCommand(String inCmd)
 {
   if (inCmd[0] == ':')
@@ -1336,6 +1365,10 @@ String MeadeCommandProcessor::processCommand(String inCmd)
       return handleMeadeDistance(inCmd);
     case 'X':
       return handleMeadeExtraCommands(inCmd);
+// CHANGE BEGIN focus-instances ------------------------------------------------------
+    case 'F':
+      return handleMeadeFocusCommands(inCmd);
+// CHANGE END focus-instances ------------------------------------------------------
     default:
       LOGV2(DEBUG_MEADE, F("MEADE: Received unknown command '%s'"), inCmd.c_str());
       break;
