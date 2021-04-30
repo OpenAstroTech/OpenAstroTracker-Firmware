@@ -239,6 +239,7 @@ public:
   // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   bool isRunningFocus() const;
+  unsigned long _lastFocusMovementTimestamp;
   #endif
   // CHANGE END focus-instances ------------------------------------------------------
 
@@ -340,6 +341,7 @@ public:
   // Support for focus motor (requires extra hardware)
   void focusContinuesMove(int direction);
   void focusMoveBy(int steps);
+  long focusGetStepperPosition();
   void disableFocusMotor();
   void enableFocusMotor();
   void focusStop();

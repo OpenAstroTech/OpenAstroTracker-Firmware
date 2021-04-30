@@ -384,7 +384,7 @@
   #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define FOCUS_MICROSTEPPING        1     // Fullstep mode using ULN2003 driver
   #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #define FOCUS_MICROSTEPPING        32
+    #define FOCUS_MICROSTEPPING        8
   #else
     #error Unknown Focus driver type. Did you define FOCUS_DRIVER_TYPE?
   #endif
@@ -397,7 +397,7 @@
     #define FOCUS_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
     #define FOCUS_STEPPER_ACCELERATION   1000
   #else
-    #error Unknown ALT stepper type
+    #error Unknown Focus stepper type
   #endif
 
   // FOCUS TMC2209 UART settings
@@ -405,9 +405,7 @@
   #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #define FOCUS_RMSCURRENT FOCUS_MOTOR_CURRENT_RATING * (FOCUS_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
     
-    #define FOCUS_AUDIO_FEEDBACK 0
-    
-    #define FOCUS_STALL_VALUE 10    // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+    #define FOCUS_STALL_VALUE 1    // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
     
     #ifndef USE_VREF
       #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.

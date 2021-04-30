@@ -94,12 +94,13 @@
 #define FOCUS_STEPPER_TYPE    STEPPER_TYPE_NEMA17
 #define FOCUS_DRIVER_TYPE     DRIVER_TYPE_TMC2209_UART
 #define FOCUS_CORRECTION_FACTOR 1.000f
-#define FOCUS_DEFAULT_SPEED 400
 
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
 #define FOCUS_MOTOR_CURRENT_RATING 0          // Current rating of Focus motor in mA
-#define FOCUS_OPERATING_CURRENT_SETTING 100   // Focus operating setting as a percentage of motor rating
+#define FOCUS_OPERATING_CURRENT_SETTING 100     // Focus operating setting as a percentage of motor rating
+#define FOCUS_DEFAULT_SPEED 200                 // Default speed when moving focus motor
+#define FOCUS_DISABLE_TIME 5                    // Disable Focus motor after X seconds of idle
 
 /**
  * @brief Display & keypad configuration.

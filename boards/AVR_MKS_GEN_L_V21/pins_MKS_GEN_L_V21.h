@@ -173,17 +173,17 @@
 
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef FOCUS_IN1_PIN
-  #define FOCUS_IN1_PIN -1
+  #define FOCUS_IN1_PIN 66
 #endif
 #ifndef FOCUS_IN2_PIN
-  #define FOCUS_IN2_PIN -1
+  #define FOCUS_IN2_PIN 30
 #endif
 #ifndef FOCUS_IN3_PIN
-  #define FOCUS_IN3_PIN -1
+  #define FOCUS_IN3_PIN 36
 #endif
 #ifndef FOCUS_IN4_PIN
-  #define FOCUS_IN4_PIN -1
-#endif        
+  #define FOCUS_IN4_PIN 34
+#endif     
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef FOCUS_STEP_PIN
   #define FOCUS_STEP_PIN 36  // STEP
@@ -207,6 +207,7 @@
 #ifndef FOCUS_DRIVER_ADDRESS
   #define FOCUS_DRIVER_ADDRESS 0b00
 #endif
+
 // --- CHANGE END --------------------
 
 //GPS pin configuration

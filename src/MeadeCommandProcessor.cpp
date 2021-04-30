@@ -1301,17 +1301,37 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
 {
-  if (inCmd[0] == '+') // :F+
+  // TODO - Move by x steps
+  // TODO - Set focus speed to 1,2,3,4
+  if (inCmd[0] == '+') // F+
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Pull In"));
+    LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuesMove IN"));
     _mount->focusContinuesMove(0);
     return "";
   }
-  else if (inCmd[0] == '-') // :F-
+  else if (inCmd[0] == '-') // F-
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Pull Out"));
+    LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuesMove OUT"));
     _mount->focusContinuesMove(1);
     return "";
+  }
+  else if (inCmd[0] == 'P') // FP
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Focus stepperPosition"));
+    long focusPos = _mount->focusGetStepperPosition();
+    return String(focusPos);
+  }
+  else if (inCmd[0] == 'M') // FM
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Focus isRunningFocus"));
+    if(_mount->isRunningFocus() == true)
+    {
+      return "1";
+    }
+    else
+    {
+      return "0";
+    }
   }
   else if (inCmd[0] == 'Q') // FQ
   {
@@ -1319,6 +1339,7 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     _mount->focusStop();
     return "";
   }
+  
 
   return "";
 }
