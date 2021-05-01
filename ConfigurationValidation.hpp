@@ -147,7 +147,7 @@
 
 // CHANGE BEGIN focus-instances ------------------------------------------------------
 #if (FOCUS_STEPPER_TYPE == STEPPER_TYPE_NONE)
-  // Baseline configuration without altitude control is valid
+  // Baseline configuration without focus control is valid
   #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_NONE)
     // Valid Focus stepper and driver combination
   #else

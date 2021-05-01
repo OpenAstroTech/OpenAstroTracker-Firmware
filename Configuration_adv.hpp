@@ -390,12 +390,22 @@
   #endif
   #if FOCUS_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define FOCUS_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
-    #define FOCUS_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
-    #define FOCUS_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+    #ifndef FOCUS_STEPPER_SPEED
+      #define FOCUS_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
+    #endif
+    #ifndef FOCUS_STEPPER_ACCELERATION
+      #define FOCUS_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+    #endif
   #elif FOCUS_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    #define FOCUS_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-    #define FOCUS_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
-    #define FOCUS_STEPPER_ACCELERATION   1000
+    #ifndef FOCUS_STEPPER_SPR
+      #define FOCUS_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+    #endif
+    #ifndef FOCUS_STEPPER_SPEED
+      #define FOCUS_STEPPER_SPEED        1000  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+    #endif
+    #ifndef FOCUS_STEPPER_ACCELERATION
+      #define FOCUS_STEPPER_ACCELERATION   1000
+    #endif
   #else
     #error Unknown Focus stepper type
   #endif

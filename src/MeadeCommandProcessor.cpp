@@ -541,19 +541,32 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //
 // :Fn#
 //      Set speed factor
-//      set focuser speed to <n> where <n> is an ASCII digit 1..4
+//      Set focuser speed to <n> where <n> is an ASCII digit 1..4. 1 is slowest, 4 i fastest
 //      Returns: nothing
 //
-// :FM#
-//      Set movement speed
-//      Sets the movemment speed between 1-4.
-//      Where n is 1, 2, 3, 4
+// :FS#
+//      Set slowest speed factor
+//      Set focuser to the slowest speed it can use
 //      Returns: nothing
 //
-// -- FOCUS Extensions --
-// :Qq#
-//      Disconnect, Quit Control mode
-//      This quits Serial Control mode and starts tracking.
+// :FF#
+//      Set fastest speed factor
+//      Set focuser speed to the fastest speed it can use
+//      Returns: nothing
+//
+// :Fp#
+//      Get position
+//      Get the current position of the focus stepper motor
+//      Returns: nnn# where nnn is the current position of the stepper
+//
+// :FB#
+//      Get focuser state
+//      Gets the state of the focuser stepper.
+//      Returns: 0 if the focuser is idle. 1 if the focuser is moving.
+//
+// :FQ#
+//      Stop focuser
+//      Stops the stepper motor of teh focuser.
 //      Returns: nothing
 //
 //------------------------------------------------------------------
@@ -956,22 +969,22 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
   }
   else if (inCmd[0] == 'A')
   {
-    // Move Azimuth or Altitude by given arcminutes
-    // :MAZ+32.1# or :MAL-32.1#
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      if (inCmd[1] == 'Z')
-      {
-        float arcMinute = inCmd.substring(2).toFloat();
-        _mount->moveBy(AZIMUTH_STEPS, arcMinute);
-      }
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      if (inCmd[1] == 'L')
-      {
-        float arcMinute = inCmd.substring(2).toFloat();
-        _mount->moveBy(ALTITUDE_STEPS, arcMinute);
-      }
-    #endif
+// Move Azimuth or Altitude by given arcminutes
+// :MAZ+32.1# or :MAL-32.1#
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    if (inCmd[1] == 'Z')
+    {
+      float arcMinute = inCmd.substring(2).toFloat();
+      _mount->moveBy(AZIMUTH_STEPS, arcMinute);
+    }
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    if (inCmd[1] == 'L')
+    {
+      float arcMinute = inCmd.substring(2).toFloat();
+      _mount->moveBy(ALTITUDE_STEPS, arcMinute);
+    }
+#endif
     return "";
   }
   else if (inCmd[0] == 'e')
@@ -1331,71 +1344,66 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
 {
-  // TODO - Move by x steps
-  // TODO - Set focus speed to 1,2,3,4
-  if (inCmd[0] == '+') // F+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  if (inCmd[0] == '+') // :F+
   {
     LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuousMove IN"));
     _mount->focusContinuousMove(-1);
-    return "";
   }
-  else if (inCmd[0] == '-') // F-
+  else if (inCmd[0] == '-') // :F-
   {
     LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuousMove OUT"));
     _mount->focusContinuousMove(+1);
-    return "";
   }
-  else if (inCmd[0] == '1') // F1 - Slowest
+  else if (inCmd[0] == 'M') // :FMnnnn
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 1"));
-    _mount->focusSetSpeed(1);
-    return "";
+    long steps = inCmd.substring(1).toInt();
+    LOGV2(DEBUG_MEADE, F("Serial: Focus move by %l steps"), steps);
+    _mount->focusMoveBy(steps);
   }
-  else if (inCmd[0] == '2') // F2
+  else if ((inCmd[0] >= '1') && (inCmd[0] <= '4')) // :F1 - Slowest, F4 fastest
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 2"));
-    _mount->focusSetSpeed(2);
-    return "";
+    int speed = inCmd[0] - '0';
+    LOGV2(DEBUG_MEADE, F("Serial: Focus setSpeed %d"), speed);
+    _mount->focusSetSpeedByRate(speed);
   }
-  else if (inCmd[0] == '3') // F3
+  else if (inCmd[0] == 'F') // :FF
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 3"));
-    _mount->focusSetSpeed(3);
-    return "";
+    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed fastest"));
+    _mount->focusSetSpeedByRate(4);
   }
-  else if (inCmd[0] == '4') // F4 - Fastest
+  else if (inCmd[0] == 'S') // :FS
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 4"));
-    _mount->focusSetSpeed(4);
-    return "";
+    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed slowest"));
+    _mount->focusSetSpeedByRate(1);
   }
-  else if (inCmd[0] == 'p') // Fp
-
+  else if (inCmd[0] == 'p') // :Fp
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Focus stepperPosition"));
+    LOGV1(DEBUG_MEADE, F("Serial: Focus get stepperPosition"));
     long focusPos = _mount->focusGetStepperPosition();
-    return String(focusPos);
+    return String(focusPos) + "#";
   }
-  else if (inCmd[0] == 'M') // FM
+  else if (inCmd[0] == 'B') // :FB
   {
     LOGV1(DEBUG_MEADE, F("Serial: Focus isRunningFocus"));
-    if(_mount->isRunningFocus() == true)
-    {
-      return "1";
-    }
-    else
-    {
-      return "0";
-    }
+    return _mount->isRunningFocus() ? "1" : "0";
   }
-  else if (inCmd[0] == 'Q') // FQ
+  else if (inCmd[0] == 'Q') // :FQ
   {
     LOGV1(DEBUG_MEADE, F("Serial: Focus stop"));
     _mount->focusStop();
-    return "";
   }
-  
+#else
+  if (inCmd[0] == 'p') // :Fp
+  {
+    return "0#";
+  }
+  else if (inCmd[0] == 'B') // :FB
+  {
+    return "0";
+  }
 
+#endif
   return "";
 }
 // CHANGE END focus-instances ------------------------------------------------------
@@ -1441,10 +1449,10 @@ String MeadeCommandProcessor::processCommand(String inCmd)
       return handleMeadeDistance(inCmd);
     case 'X':
       return handleMeadeExtraCommands(inCmd);
-// CHANGE BEGIN focus-instances ------------------------------------------------------
+      // CHANGE BEGIN focus-instances ------------------------------------------------------
     case 'F':
       return handleMeadeFocusCommands(inCmd);
-// CHANGE END focus-instances ------------------------------------------------------
+      // CHANGE END focus-instances ------------------------------------------------------
     default:
       LOGV2(DEBUG_MEADE, F("MEADE: Received unknown command '%s'"), inCmd.c_str());
       break;

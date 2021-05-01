@@ -339,9 +339,9 @@ public:
 // CHANGE BEGIN focus-instances ------------------------------------------------------
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   // Support for focus motor (requires extra hardware)
-  void focusSetSpeed(int rate);
+  void focusSetSpeedByRate(int rate);
   void focusContinuousMove(int direction);
-  void focusMoveBy(int steps);
+  void focusMoveBy(long steps);
   long focusGetStepperPosition();
   void disableFocusMotor();
   void enableFocusMotor();
@@ -498,10 +498,12 @@ private:
 
   // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    bool _focusWasRunning;
+    bool _focuserWasRunning = false;
+    int _focuserMode = 0;
+    long _lastFocusMovementTimestamp;
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
       AccelStepper* _stepperFocus;
-      long _focusDefaultSpeed;
+      int _focusRate;
       #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         TMC2209Stepper* _driverFocus;
       #endif 

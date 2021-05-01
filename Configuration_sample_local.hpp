@@ -97,10 +97,11 @@
 
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
-#define FOCUS_MOTOR_CURRENT_RATING 0          // Current rating of Focus motor in mA
-#define FOCUS_OPERATING_CURRENT_SETTING 100     // Focus operating setting as a percentage of motor rating
-#define FOCUS_DEFAULT_SPEED 200                 // Default speed when moving focus motor
-#define FOCUS_DISABLE_TIME 5                    // Disable Focus motor after X seconds of idle
+#define FOCUS_MOTOR_CURRENT_RATING         0     // Current rating of focus motor in mA
+#define FOCUS_OPERATING_CURRENT_SETTING  100     // Operating setting as a percentage of focus motor rating
+#define FOCUS_STEPPER_SPEED              200     // Default speed when moving focus motor in steps/s
+#define FOCUS_DISABLE_TIME                 5     // Disable Focus motor after X seconds of idle
+#define FOCUS_UART_STEALTH_MODE            1     // Run the focuser silently
 
 /**
  * @brief Display & keypad configuration.
