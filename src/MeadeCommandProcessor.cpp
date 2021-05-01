@@ -527,6 +527,36 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns: nothing
 //
 //------------------------------------------------------------------
+// FOCUS FAMILY
+//
+// :F+#
+//      Start Focuser moving inward (toward objective)
+//      Continues pull in until stopped
+//      Returns: nothing
+//
+// :F-#
+//      Pull out
+//      Continues pull out until stopped
+//      Returns: nothing
+//
+// :Fn#
+//      Set speed factor
+//      set focuser speed to <n> where <n> is an ASCII digit 1..4
+//      Returns: nothing
+//
+// :FM#
+//      Set movement speed
+//      Sets the movemment speed between 1-4.
+//      Where n is 1, 2, 3, 4
+//      Returns: nothing
+//
+// -- FOCUS Extensions --
+// :Qq#
+//      Disconnect, Quit Control mode
+//      This quits Serial Control mode and starts tracking.
+//      Returns: nothing
+//
+//------------------------------------------------------------------
 /////////////////////////////////////////////////////////////////////////////////////////
 
 MeadeCommandProcessor *MeadeCommandProcessor::_instance = nullptr;
@@ -1315,6 +1345,32 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     _mount->focusContinuesMove(1);
     return "";
   }
+
+  else if (inCmd[0] == '1') // F1 - Slowest
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 1"));
+    _mount->focusSetSpeed(1);
+    return "";
+  }
+  else if (inCmd[0] == '2') // F2
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 2"));
+    _mount->focusSetSpeed(2);
+    return "";
+  }
+  else if (inCmd[0] == '3') // F3
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 3"));
+    _mount->focusSetSpeed(3);
+    return "";
+  }
+  else if (inCmd[0] == '4') // F4 - Fastest
+  {
+    LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 4"));
+    _mount->focusSetSpeed(4);
+    return "";
+  }
+  
   else if (inCmd[0] == 'P') // FP
   {
     LOGV1(DEBUG_MEADE, F("Serial: Focus stepperPosition"));
@@ -1335,7 +1391,7 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
   }
   else if (inCmd[0] == 'Q') // FQ
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Stop"));
+    LOGV1(DEBUG_MEADE, F("Serial: Focus stop"));
     _mount->focusStop();
     return "";
   }

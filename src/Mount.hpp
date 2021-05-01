@@ -339,6 +339,7 @@ public:
 // CHANGE BEGIN focus-instances ------------------------------------------------------
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   // Support for focus motor (requires extra hardware)
+  void focusSetSpeed(int rate);
   void focusContinuesMove(int direction);
   void focusMoveBy(int steps);
   long focusGetStepperPosition();

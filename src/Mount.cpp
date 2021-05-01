@@ -373,7 +373,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
       _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
       _stepperFocus->setMaxSpeed(maxSpeed);
       _stepperFocus->setAcceleration(maxAcceleration);
-      _stepperFocus->setSpeed(0);
+      _stepperFocus->setSpeed(maxSpeed);
       _stepperFocus->setCurrentPosition(0);
       _maxFocusSpeed = maxSpeed;
       _maxFocusAcceleration = maxAcceleration;
@@ -1763,9 +1763,24 @@ void Mount::enableAzAltMotors() {
 bool Mount::isRunningFocus() const {
   return _stepperFocus->isRunning();
 }
-#endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+/////////////////////////////////
+//
+// focusSetSpeed
+//
+/////////////////////////////////
+void Mount::focusSetSpeed(int rate)
+{
+    _moveRate = clamp(rate, 1, 4);
+    float speedFactor[] = { 0, 0.05, 0.2, 0.5, 1.0};
+    LOGV3(DEBUG_MOUNT,F("Mount::focusSetSpeed: rate is %d -> %f"),_moveRate , speedFactor[_moveRate ]);
+    _stepperFocus->setMaxSpeed(speedFactor[_moveRate ] * _maxFocusSpeed);
+
+    if(_stepperFocus->isRunning()) {
+       _stepperFocus->setSpeed(speedFactor[_moveRate ] * _maxFocusSpeed);
+    }
+}
+
 /////////////////////////////////
 //
 // focusContinuesMove
@@ -1778,13 +1793,13 @@ void Mount::focusContinuesMove(int direction)
   {
     enableFocusMotor();
     _stepperFocus->setPinsInverted(false, false, true);
-    _stepperFocus->setSpeed(FOCUS_DEFAULT_SPEED);
+    _stepperFocus->setSpeed(_stepperFocus->maxSpeed());
   }
   else
   {
     enableFocusMotor();
     _stepperFocus->setPinsInverted(true, true, true);
-    _stepperFocus->setSpeed(FOCUS_DEFAULT_SPEED);
+    _stepperFocus->setSpeed(_stepperFocus->maxSpeed());
   }
   #endif
 }
@@ -1823,13 +1838,11 @@ void Mount::disableFocusMotor() {
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperFocus->stop();
   #endif
-/*
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     while (_stepperFocus->isRunning()) {
       loop();
     }
   #endif
-*/
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       _stepperFocus->disableOutputs();
