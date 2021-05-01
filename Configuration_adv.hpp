@@ -384,7 +384,9 @@
   #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     #define FOCUS_MICROSTEPPING        1     // Fullstep mode using ULN2003 driver
   #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #define FOCUS_MICROSTEPPING        8
+    #ifndef FOCUS_MICROSTEPPING
+      #define FOCUS_MICROSTEPPING        8
+    #endif
   #else
     #error Unknown Focus driver type. Did you define FOCUS_DRIVER_TYPE?
   #endif

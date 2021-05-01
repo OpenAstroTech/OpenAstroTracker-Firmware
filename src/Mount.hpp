@@ -500,6 +500,7 @@ private:
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _focuserWasRunning = false;
     int _focuserMode = 0;
+    float _maxFocusRateSpeed;
     long _lastFocusMovementTimestamp;
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
       AccelStepper* _stepperFocus;
