@@ -184,7 +184,7 @@
 #ifndef FOCUS_IN4_PIN
   #define FOCUS_IN4_PIN 34
 #endif     
-// DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
+// DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering. This is the E1 port.
 #ifndef FOCUS_STEP_PIN
   #define FOCUS_STEP_PIN 36  // STEP
 #endif

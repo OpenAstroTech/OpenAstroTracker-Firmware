@@ -16,6 +16,7 @@ class TMC2209Stepper;
 #define WEST                       B00001000
 #define ALL_DIRECTIONS             B00001111
 #define TRACKING                   B00010000
+#define FOCUSING                   B00100000
 
 #define LCDMENU_STRING      B0001
 #define MEADE_STRING        B0010
@@ -239,7 +240,6 @@ public:
   // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   bool isRunningFocus() const;
-  unsigned long _lastFocusMovementTimestamp;
   #endif
   // CHANGE END focus-instances ------------------------------------------------------
 
@@ -340,7 +340,7 @@ public:
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   // Support for focus motor (requires extra hardware)
   void focusSetSpeed(int rate);
-  void focusContinuesMove(int direction);
+  void focusContinuousMove(int direction);
   void focusMoveBy(int steps);
   long focusGetStepperPosition();
   void disableFocusMotor();

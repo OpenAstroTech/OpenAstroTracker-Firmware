@@ -1335,17 +1335,16 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
   // TODO - Set focus speed to 1,2,3,4
   if (inCmd[0] == '+') // F+
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuesMove IN"));
-    _mount->focusContinuesMove(0);
+    LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuousMove IN"));
+    _mount->focusContinuousMove(-1);
     return "";
   }
   else if (inCmd[0] == '-') // F-
   {
-    LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuesMove OUT"));
-    _mount->focusContinuesMove(1);
+    LOGV1(DEBUG_MEADE, F("Serial: Focus focusContinuousMove OUT"));
+    _mount->focusContinuousMove(+1);
     return "";
   }
-
   else if (inCmd[0] == '1') // F1 - Slowest
   {
     LOGV1(DEBUG_MEADE, F("Serial: Focus setSpeed 1"));
@@ -1370,8 +1369,8 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     _mount->focusSetSpeed(4);
     return "";
   }
-  
-  else if (inCmd[0] == 'P') // FP
+  else if (inCmd[0] == 'p') // Fp
+
   {
     LOGV1(DEBUG_MEADE, F("Serial: Focus stepperPosition"));
     long focusPos = _mount->focusGetStepperPosition();

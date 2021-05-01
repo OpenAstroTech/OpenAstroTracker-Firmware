@@ -360,7 +360,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void Mount::configureFocusStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
     {
-      _stepperFocus = new AccelStepper((ALT_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
+      _stepperFocus = new AccelStepper((FOCUS_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
       _stepperFocus->setSpeed(0);
       _stepperFocus->setMaxSpeed(maxSpeed);
       _stepperFocus->setAcceleration(maxAcceleration);
@@ -1563,7 +1563,7 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
     #endif
   }
   #endif
-  /*
+  
   // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (which == FOCUS_STEPS) {
@@ -1594,7 +1594,7 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
       #endif
     }
   #endif
-  */
+  
   // CHANGE END focus-instances --------------------------------------------------------
 }
 
@@ -1783,38 +1783,24 @@ void Mount::focusSetSpeed(int rate)
 
 /////////////////////////////////
 //
-// focusContinuesMove
+// focusContinuousMove
 //
 /////////////////////////////////
-void Mount::focusContinuesMove(int direction)
+void Mount::focusContinuousMove(int direction)
 {
-  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-  if(direction == 0)
-  {
-    enableFocusMotor();
-    _stepperFocus->setPinsInverted(false, false, true);
-    _stepperFocus->setSpeed(_stepperFocus->maxSpeed());
-  }
-  else
-  {
-    enableFocusMotor();
-    _stepperFocus->setPinsInverted(true, true, true);
-    _stepperFocus->setSpeed(_stepperFocus->maxSpeed());
-  }
-  #endif
+  enableFocusMotor();
+  _stepperFocus->setSpeed(direction * _stepperFocus->maxSpeed());
 }
 
 /////////////////////////////////
 //
-// focusContinuesMove
+// focusContinuousMove
 //
 /////////////////////////////////
 void Mount::focusMoveBy(int steps)
 {
-  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   long targetPosition = _stepperFocus->currentPosition()+steps;
   _stepperFocus->moveTo(targetPosition);
-  #endif
 }
 
 /////////////////////////////////
@@ -1824,9 +1810,7 @@ void Mount::focusMoveBy(int steps)
 /////////////////////////////////
 long Mount::focusGetStepperPosition()
 {
-   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
    return _stepperFocus->currentPosition();
-   #endif
 }
 
 /////////////////////////////////
@@ -1835,14 +1819,10 @@ long Mount::focusGetStepperPosition()
 //
 /////////////////////////////////
 void Mount::disableFocusMotor() {
-  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperFocus->stop();
-  #endif
-  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    while (_stepperFocus->isRunning()) {
-      loop();
-    }
-  #endif
+  _stepperFocus->stop();
+
+  waitUntilStopped(FOCUSING);
+
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       _stepperFocus->disableOutputs();
@@ -1858,12 +1838,10 @@ void Mount::disableFocusMotor() {
 //
 /////////////////////////////////
 void Mount::enableFocusMotor() {
-  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
       _stepperFocus->enableOutputs();
     #else
       digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
-    #endif
   #endif
 }
 
@@ -1873,13 +1851,15 @@ void Mount::enableFocusMotor() {
 //
 /////////////////////////////////
 void Mount::focusStop() {
-  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperFocus->setSpeed(0.0);
     _stepperFocus->stop();
+
+     waitUntilStopped(FOCUSING);
+
      // TODO: This is weird, I dont get a full stop unless I call this here
-    _stepperFocus->moveTo(_stepperFocus->currentPosition());
-  #endif
+    //_stepperFocus->moveTo(_stepperFocus->currentPosition());
 }
+
 #endif
 // CHANGE END focus-instances ------------------------------------------------------
 
@@ -1969,7 +1949,7 @@ String Mount::getStatusString() {
     status = "Idle,";
   }
 
-  String disp = "-----,";
+  String disp = "------,";
   if (_mountStatus & STATUS_SLEWING) {
     byte slew = slewStatus();
     if (slew & SLEWING_RA) disp[0] = _stepperRA->speed() < 0 ? 'R' : 'r';
@@ -1984,6 +1964,10 @@ String Mount::getStatusString() {
   #endif
   #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperALT->isRunning()) disp[4] = _stepperALT->speed() < 0 ? 'A' : 'a';
+  #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    if (_stepperFocus->isRunning()) disp[5] = _stepperFocus->speed() < 0 ? 'F' : 'f';
   #endif
 
   status += disp;
@@ -2233,6 +2217,9 @@ void Mount::waitUntilStopped(byte direction) {
   while (((direction & (EAST | WEST)) && _stepperRA->isRunning())
          || ((direction & (NORTH | SOUTH)) && _stepperDEC->isRunning())
          || ((direction & TRACKING) && (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning()))
+         #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+         || ((direction & FOCUSING) && _stepperFocus->isRunning())
+         #endif
         ) {
     loop();
     yield();
@@ -2375,20 +2362,20 @@ void Mount::loop() {
 
   // CHANGE BEGIN focus-instances ------------------------------------------------------
   // TODO - Not quite working
-  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOGV2(DEBUG_MOUNT, F("Mount: running %d"), _stepperFocus->isRunning());
+  // #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  //   LOGV2(DEBUG_MOUNT, F("Mount: running %d"), _stepperFocus->isRunning());
 
-    if(_stepperFocus->isRunning())
-    {
-      LOGV2(DEBUG_MOUNT, F("Mount: speed %f"), _stepperFocus->speed());
-      _lastFocusMovementTimestamp = now;
-    }
-    if((now - _lastFocusMovementTimestamp) >= 2000)
-    {
-      LOGV1(DEBUG_MOUNT, F("Stepper: Disabling focus motor due to timeout"));
-      disableFocusMotor();
-    }
-  #endif
+  //   if(_stepperFocus->isRunning())
+  //   {
+  //     LOGV2(DEBUG_MOUNT, F("Mount: speed %f"), _stepperFocus->speed());
+  //     _lastFocusMovementTimestamp = now;
+  //   }
+  //   if((now - _lastFocusMovementTimestamp) >= 2000)
+  //   {
+  //     LOGV1(DEBUG_MOUNT, F("Stepper: Disabling focus motor due to timeout"));
+  //     disableFocusMotor();
+  //   }
+  // #endif
   // CHANGE END focus-instances ------------------------------------------------------
 
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && USE_AUTOHOME == 1
