@@ -2304,7 +2304,14 @@ void Mount::interruptLoop()
 
   // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperFocus->runSpeed();
+    if (_focuserMode == FOCUS_TO_TARGET)
+    {
+      _stepperFocus->run();
+    }
+    else if (_focuserMode == FOCUS_CONTINUOUS)
+    {
+      _stepperFocus->runSpeed();
+    }
   #endif
   // CHANGE END focus-instances ------------------------------------------------------
 
