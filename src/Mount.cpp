@@ -1030,6 +1030,12 @@ String Mount::getMountHardwareInfo()
     ret += F("LCD_JOY_I2C_SSD1306,");
   #endif
 
+  #if FOCUS_STEPPER_TYPE == STEPPER_TYPE_NONE
+    ret += F("NO_FOC,");
+  #else
+    ret += F("FOC,");
+  #endif
+
   return ret;
 }
 
