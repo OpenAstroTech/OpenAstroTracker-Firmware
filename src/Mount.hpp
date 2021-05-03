@@ -240,6 +240,7 @@ public:
   // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   bool isRunningFocus() const;
+  float getFocusSpeed() const;
   #endif
   // CHANGE END focus-instances ------------------------------------------------------
 

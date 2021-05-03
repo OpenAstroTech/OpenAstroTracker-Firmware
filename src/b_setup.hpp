@@ -299,6 +299,10 @@ void setup() {
       lcdMenu.addItem("CAL", Calibration_Menu);
     #endif
 
+    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+      lcdMenu.addItem("FOC", Focuser_Menu);
+    #endif
+
     #if SUPPORT_INFO_DISPLAY == 1
       lcdMenu.addItem("INFO", Status_Menu);
     #endif

@@ -9,6 +9,7 @@
 #include "c72_menuHA_GPS.hpp"
 #include "c75_menuCTRL.hpp"
 #include "c76_menuCAL.hpp"
+#include "c77_menuFOC.hpp"
 #include "c78_menuINFO.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
@@ -135,6 +136,10 @@
           break;
   #endif
 
+          case Focuser_Menu:
+          waitForButtonRelease = processFocuserKeys();
+          break;
+  
   #if SUPPORT_MANUAL_CONTROL == 1
           case Control_Menu:
           waitForButtonRelease = processControlKeys();
@@ -205,6 +210,12 @@
   #if SUPPORT_CALIBRATION == 1
           else if (activeMenu == Calibration_Menu) {
             printCalibrationSubmenu();
+          }
+  #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+          else if (activeMenu == Focuser_Menu) {
+            printFocusSubmenu();
           }
   #endif
 

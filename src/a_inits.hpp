@@ -126,13 +126,14 @@ POP_NO_WARNINGS
 #define HA_Menu 3
 #define Heat_Menu 4
 #define Calibration_Menu 5
-#define Control_Menu 6
-#define Home_Menu 7
-#define POI_Menu 8
-#define Status_Menu 9
+#define Focuser_Menu 6
+#define Control_Menu 7
+#define Home_Menu 8
+#define POI_Menu 9
+#define Status_Menu 10
 
 // How many menu items at most?
-#define MAXMENUITEMS 10
+#define MAXMENUITEMS 11
 
 #if SUPPORT_GUIDED_STARTUP == 1
 bool inStartup = true;        // Start with a guided startup
