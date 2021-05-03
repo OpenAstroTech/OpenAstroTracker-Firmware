@@ -27,6 +27,8 @@ void Gyro::startup()
     // Initialize interface to the MPU6050
     LOGV1(DEBUG_INFO, F("GYRO:: Starting"));
     Wire.begin();
+    Wire.setClock(100000);          // Set lowest clock speed to make the communication more reliable
+    Wire.setWireTimeout(3000, true); // Set I2C timeout if the Wire.h calls are hanging due to a HW issue 
 
     // Execute 1 byte read from MPU6050_REG_WHO_AM_I
     // This is a read-only register which should have the value 0x68
@@ -34,7 +36,7 @@ void Gyro::startup()
     Wire.write(MPU6050_REG_WHO_AM_I);
     Wire.endTransmission(true);
     Wire.requestFrom(MPU6050_I2C_ADDR, 1, 1);
-    byte id = (Wire.read() >> 1) & 0x3F;    
+    byte id = (Wire.read() >> 1) & 0x3F;
     isPresent = (id == 0x34);
     if (!isPresent) {
         LOGV1(DEBUG_INFO, F("GYRO:: Not found!"));
@@ -61,7 +63,7 @@ void Gyro::shutdown()
    Currently does nothing.
 */
 {
-    LOGV1(DEBUG_INFO, F("GYRO: Shutdown"));
+    LOGV1(DEBUG_INFO, F("GYRO:: Shutdown"));
     // Nothing to do
 }
 
@@ -82,7 +84,7 @@ angle_t Gyro::getCurrentAngles()
     {
         // Execute 6 byte read from MPU6050_REG_WHO_AM_I
         Wire.beginTransmission(MPU6050_I2C_ADDR);
-        Wire.write(MPU6050_REG_ACCEL_XOUT_H); 
+        Wire.write(MPU6050_REG_ACCEL_XOUT_H);
         Wire.endTransmission(false);
         Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);  // Read 6 registers total, each axis value is stored in 2 registers
         int16_t AcX = Wire.read() << 8 | Wire.read(); // X-axis value
@@ -99,6 +101,11 @@ angle_t Gyro::getCurrentAngles()
 
     result.pitchAngle /= windowSize;
     result.rollAngle /= windowSize;
+    if (Wire.getWireTimeoutFlag()){
+        LOGV1(DEBUG_INFO, F("GYRO:: WARN: I2C Timeout."));
+        Wire.clearWireTimeoutFlag();
+    }
+    
 #if GYRO_AXIS_SWAP == 1
     float temp = result.pitchAngle;
     result.pitchAngle = result.rollAngle;
