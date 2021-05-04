@@ -349,7 +349,6 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   #endif  
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 /////////////////////////////////
 //
 // configureFocusStepper
@@ -381,7 +380,6 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     }
   #endif  
 #endif
-// CHANGE END focus-instances ------------------------------------------------------
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART 
 #if UART_CONNECTION_TEST_TXRX == 1
@@ -704,7 +702,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
 #endif
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 /////////////////////////////////
 //
 // configureFocusdriver
@@ -779,7 +776,6 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   }
 #endif
 #endif
-// CHANGE END focus-instances ------------------------------------------------------
 
 /////////////////////////////////
 //
@@ -1571,7 +1567,6 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
   }
   #endif
   
-  // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (which == FOCUS_STEPS) {
       LOGV2(DEBUG_MOUNT, F("Mount: Focuser setSpeed %f"), speedDegsPerSec);
@@ -1617,7 +1612,6 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
     }
   #endif
   
-  // CHANGE END focus-instances --------------------------------------------------------
 }
 
 /////////////////////////////////
@@ -1774,7 +1768,6 @@ void Mount::enableAzAltMotors() {
 
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
@@ -1894,7 +1887,6 @@ void Mount::focusStop() {
 }
 
 #endif
-// CHANGE END focus-instances ------------------------------------------------------
 
 /////////////////////////////////
 //
@@ -2329,7 +2321,6 @@ void Mount::interruptLoop()
   _stepperALT->run();
   #endif
 
-  // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_focuserMode == FOCUS_TO_TARGET)
     {
@@ -2340,7 +2331,6 @@ void Mount::interruptLoop()
       _stepperFocus->runSpeed();
     }
   #endif
-  // CHANGE END focus-instances ------------------------------------------------------
 
 }
 
@@ -2400,7 +2390,6 @@ void Mount::loop() {
   }
   #endif
 
-  // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // LOGV2(DEBUG_MOUNT, F("Mount: Focuser running:  %d"), _stepperFocus->isRunning());
 
@@ -2420,7 +2409,6 @@ void Mount::loop() {
     }
 
   #endif
-  // CHANGE END focus-instances ------------------------------------------------------
 
   #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && USE_AUTOHOME == 1
   if (isFindingHome()) {

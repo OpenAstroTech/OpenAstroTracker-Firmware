@@ -378,7 +378,6 @@
   #endif
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 
   #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
@@ -424,7 +423,6 @@
     #endif
   #endif
 #endif
-// CHANGE END - FOCUS INSTANCES ------------------------------------------------------
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
 

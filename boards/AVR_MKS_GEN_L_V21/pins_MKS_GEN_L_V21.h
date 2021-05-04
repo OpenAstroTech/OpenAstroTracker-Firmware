@@ -171,8 +171,6 @@
   #define ALT_DRIVER_ADDRESS 0b00
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
-
 // DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef FOCUS_IN1_PIN
   #define FOCUS_IN1_PIN 66
@@ -209,8 +207,6 @@
 #ifndef FOCUS_DRIVER_ADDRESS
   #define FOCUS_DRIVER_ADDRESS 0b00
 #endif
-
-// --- CHANGE END --------------------
 
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT

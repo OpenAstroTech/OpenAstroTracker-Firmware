@@ -1338,7 +1338,6 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
   return "";
 }
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 /////////////////////////////
 // FOCUS COMMANDS
 /////////////////////////////
@@ -1406,7 +1405,6 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
 #endif
   return "";
 }
-// CHANGE END focus-instances ------------------------------------------------------
 
 String MeadeCommandProcessor::processCommand(String inCmd)
 {
@@ -1449,10 +1447,8 @@ String MeadeCommandProcessor::processCommand(String inCmd)
       return handleMeadeDistance(inCmd);
     case 'X':
       return handleMeadeExtraCommands(inCmd);
-      // CHANGE BEGIN focus-instances ------------------------------------------------------
     case 'F':
       return handleMeadeFocusCommands(inCmd);
-      // CHANGE END focus-instances ------------------------------------------------------
     default:
       LOGV2(DEBUG_MEADE, F("MEADE: Received unknown command '%s'"), inCmd.c_str());
       break;

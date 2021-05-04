@@ -224,8 +224,7 @@ void setup() {
     #endif
   #endif
 
-  // CHANGE BEGIN focus-instances ------------------------------------------------------
-    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
       pinMode(FOCUS_EN_PIN, OUTPUT);
       digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -238,7 +237,6 @@ void setup() {
       #endif
     #endif
   #endif
-  // CHANGE END focus-instances ------------------------------------------------------
 // end microstepping -------------------
 
   #if !defined(OAT_DEBUG_BUILD)
@@ -395,7 +393,6 @@ void setup() {
     #endif
   #endif
 
-  // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOGV1(DEBUG_ANY, F("Configure Focus stepper..."));
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003 
@@ -412,7 +409,6 @@ void setup() {
       #endif
     #endif
   #endif
-  // CHANGE END focus-instances ------------------------------------------------------
 
   // The mount uses EEPROM storage locations 0-10 that it reads during construction
   // The LCD uses EEPROM storage location 11

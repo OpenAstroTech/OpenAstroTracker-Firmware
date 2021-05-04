@@ -32,9 +32,7 @@ class TMC2209Stepper;
 #define DEC_STEPS 2
 #define AZIMUTH_STEPS 5
 #define ALTITUDE_STEPS 6
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 #define FOCUS_STEPS 7
-// CHANGE END focus-instances ------------------------------------------------------
 
 struct LocalDate {
   int year;
@@ -89,7 +87,6 @@ public:
   #endif
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 // Configure the Focus stepper motors.
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
@@ -98,7 +95,6 @@ public:
     void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
   #endif
 #endif
-// CHANGE END focus-instances ------------------------------------------------------
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
@@ -143,7 +139,6 @@ public:
   #endif
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 // Configure the Focus driver.
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -154,7 +149,6 @@ public:
     #endif
   #endif
 #endif
-// CHANGE END focus-instances ------------------------------------------------------
   
   // Get the current RA tracking speed factor
   float getSpeedCalibration();
@@ -237,12 +231,10 @@ public:
   bool isRunningALT() const;
   #endif
 
-  // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   bool isRunningFocus() const;
   float getFocusSpeed() const;
   #endif
-  // CHANGE END focus-instances ------------------------------------------------------
 
   // Starts manual slewing in one of eight directions or tracking
   void startSlewing(int direction);
@@ -337,7 +329,6 @@ public:
   void enableAzAltMotors();
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   // Support for focus motor (requires extra hardware)
   void focusSetSpeedByRate(int rate);
@@ -348,7 +339,6 @@ public:
   void enableFocusMotor();
   void focusStop();
 #endif
-// CHANGE END focus-instances ------------------------------------------------------
 
   // Set the number of steps to use for backlash correction
   void setBacklashCorrection(int steps);
@@ -497,7 +487,6 @@ private:
     #endif
   #endif
 
-  // CHANGE BEGIN focus-instances ------------------------------------------------------
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _focuserWasRunning = false;
     int _focuserMode = 0;
@@ -511,7 +500,6 @@ private:
       #endif 
     #endif
   #endif
-  // CHANGE END focus-instances ------------------------------------------------------
 
   unsigned long _guideRaEndTime;
   unsigned long _guideDecEndTime;

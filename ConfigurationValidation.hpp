@@ -145,7 +145,6 @@
   #error Configuration does not support ALT. Use at own risk.
 #endif 
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 #if (FOCUS_STEPPER_TYPE == STEPPER_TYPE_NONE)
   // Baseline configuration without focus control is valid
   #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_NONE)
@@ -183,7 +182,6 @@
 #else
   #error Configuration does not support Focus. Use at own risk.
 #endif 
-// CHANGE END - FOCUS INSTANCES ------------------------------------------------------
 
 // Interfaces
 #if (BLUETOOTH_ENABLED == 0)
@@ -340,8 +338,6 @@
   #endif
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
-
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
     #if !defined(ALT_IN1_PIN) || !defined(ALT_IN2_PIN) || !defined(ALT_IN3_PIN) || !defined(ALT_IN4_PIN)
@@ -364,8 +360,6 @@
     #endif
   #endif
 #endif
-
-// CHANGE END - FOCUS INSTANCES ------------------------------------------------------
 
 // Displays
 #if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017)

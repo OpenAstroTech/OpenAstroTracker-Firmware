@@ -93,7 +93,6 @@ POP_NO_WARNINGS
   #endif
 #endif
 
-// CHANGE BEGIN focus-instances ------------------------------------------------------
 // Focus Motor pins
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
@@ -106,7 +105,6 @@ POP_NO_WARNINGS
     #define FOCUSmotorPin2  FOCUS_DIR_PIN
   #endif
 #endif
-// CHANGE END focus-instances ------------------------------------------------------
 
 // End Stepper Definitions //////////////
 /////////////////////////////////////////
