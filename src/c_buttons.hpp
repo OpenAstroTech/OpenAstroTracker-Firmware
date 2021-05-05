@@ -136,9 +136,11 @@
           break;
   #endif
 
+  #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
           case Focuser_Menu:
           waitForButtonRelease = processFocuserKeys();
           break;
+  #endif
   
   #if SUPPORT_MANUAL_CONTROL == 1
           case Control_Menu:
