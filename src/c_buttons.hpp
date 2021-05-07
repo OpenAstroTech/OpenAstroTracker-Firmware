@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LcdButtons.hpp"
 #include "b_setup.hpp"
 #include "c65_startup.hpp"
 #include "c70_menuRA.hpp"
@@ -22,7 +23,7 @@
   int lastLoopKey = -1;
 
   #if LCD_BUTTON_TEST == 1
-    byte lastKey = btnNONE;
+    lcdButton_t lastKey = btnNONE;
   #endif
 
   lcdButton_t lcd_key;
@@ -53,6 +54,7 @@
         case btnRIGHT: state += "Right"; break;
         case btnUP: state += "Up"; break;
         case btnDOWN: state += "Down"; break;
+        default: state += "Invalid" ; break;
       }
 
       lcdMenu.printMenu(state);

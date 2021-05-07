@@ -1,5 +1,9 @@
+**V1.9.10 - Updates**
+- Fixed a bug that caused a compilation fail when enabling LCD_BUTTON_TEST
+- Allowed connection test to be set in local config
+
 **V1.9.09 - Updates**
-- Sample Local Config - Disabled as default
+- Sample Local Config - disabled as default
 
 **V1.9.08 - Updates**
 - Continuous integration improvements. Checking for version and changelog changes automatically
