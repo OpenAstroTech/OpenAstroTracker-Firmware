@@ -1,5 +1,5 @@
 **V1.9.10 - Updates**
-- Fixed a compiler bug when enabling LCD_BUTTON_TEST
+- Fixed a bug that caused a compilation fail when enabling LCD_BUTTON_TEST
 - Allowed connection test to be set in local config
 
 **V1.9.09 - Updates**
