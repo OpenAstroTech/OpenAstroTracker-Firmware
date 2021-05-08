@@ -3,17 +3,17 @@
 #if (DISPLAY_TYPE > 0) && (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 
 // HIGHLIGHT states allow you to pick one of the sub functions.
-enum
+enum FocusMenuItem
 {
   HIGHLIGHT_FOCUS_FIRST = 1,
   HIGHLIGHT_FOCUS_ADJUSTMENT = 1,
 
-  HIGHLIGHT_FOCUS_LAST = HIGHLIGHT_FOCUS_ADJUSTMENT
+  HIGHLIGHT_FOCUS_LAST = HIGHLIGHT_FOCUS_ADJUSTMENT,
+  
+  FOCUS_ADJUSTMENT,
 };
 
-#define FOCUS_ADJUSTMENT 90
-
-byte focState = HIGHLIGHT_FOCUS_FIRST;
+FocusMenuItem focState = HIGHLIGHT_FOCUS_FIRST;
 byte rateIndex = 3;
 
 bool processFocuserKeys()
@@ -30,14 +30,14 @@ bool processFocuserKeys()
     {
       if (!mount.isRunningFocus())
       {
-        mount.focusContinuousMove(-1);
+        mount.focusContinuousMove(FOCUS_BACKWARD);
       }
     }
     else if (currentButtonState == btnDOWN)
     {
       if (!mount.isRunningFocus())
       {
-        mount.focusContinuousMove(1);
+        mount.focusContinuousMove(FOCUS_FORWARD);
       }
     }
   }

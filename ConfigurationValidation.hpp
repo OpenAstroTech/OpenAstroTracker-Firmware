@@ -142,7 +142,7 @@
   #endif
 
 #else
-  #error Configuration does not support ALT. Use at own risk.
+  #warning Configuration does not support ALT. Use at own risk.
 #endif 
 
 #if (FOCUS_STEPPER_TYPE == STEPPER_TYPE_NONE)
@@ -180,7 +180,7 @@
   #endif
 
 #else
-  #error Configuration does not support Focus. Use at own risk.
+  #warning Configuration does not support Focus. Use at own risk.
 #endif 
 
 // Interfaces

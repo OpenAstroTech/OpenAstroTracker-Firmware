@@ -95,7 +95,7 @@
 #endif
 
 #define SW_SERIAL_UART 1
-#ifndef UART_CONNECTION_TEST_TXRX 
+#ifndef UART_CONNECTION_TEST_TXRX
   #define UART_CONNECTION_TEST_TXRX 1
 #endif
   

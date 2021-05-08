@@ -45,11 +45,6 @@ POP_NO_WARNINGS
 #define SLEW_MASK_WEST    B1000
 #define SLEW_MASK_ANY     B1111
 
-// Focuser support
-#define FOCUS_IDLE       0
-#define FOCUS_TO_TARGET  1
-#define FOCUS_CONTINUOUS 2
-
 #define UART_CONNECTION_TEST_RETRIES 5
 
 // Seconds per astronomical day (23h 56m 4.0905s)
@@ -673,12 +668,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverALT->beginSerial(19200);
     _driverALT->mstep_reg_select(true);
     _driverALT->pdn_disable(true);    
-    bool _UART_Rx_connected = false;
     #if UART_CONNECTION_TEST_TXRX == 1
-        _UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
-        if (!_UART_Rx_connected) {
-            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-        }
+      bool UART_Rx_connected = false;
+      UART_Rx_connected = connectToDriver( _driverALT, "ALT" );
+      if (!_UART_Rx_connected) {
+          digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+      }
     #endif
     _driverALT->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
@@ -693,11 +688,13 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverALT->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverALT->semin(0); //disable CoolStep so that current is consistent
     _driverALT->SGTHRS(stallvalue);
-    if (_UART_Rx_connected){
-        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT motor rms_current: %d mA"), _driverALT->rms_current());
-        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT CS value: %d"), _driverALT->cs_actual());
-        LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT vsense: %d"), _driverALT->vsense());
-    }
+    #if UART_CONNECTION_TEST_TXRX == 1
+      if (UART_Rx_connected){
+          LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT motor rms_current: %d mA"), _driverALT->rms_current());
+          LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT CS value: %d"), _driverALT->cs_actual());
+          LOGV2(DEBUG_STEPPERS, F("Mount: Actual ALT vsense: %d"), _driverALT->vsense());
+      }
+    #endif
   }
 #endif
 #endif
@@ -713,12 +710,12 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
   {
     _driverFocus = new TMC2209Stepper(serial, rsense, driveraddress);
     _driverFocus->begin();
-    bool _UART_Rx_connected = false;
     #if UART_CONNECTION_TEST_TXRX == 1
-        _UART_Rx_connected = connectToDriver( _driverFocus, "Focus" );
-        if (!_UART_Rx_connected) {
-            digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-        }
+      bool UART_Rx_connected = false;
+      UART_Rx_connected = connectToDriver( _driverFocus, "Focus" );
+      if (!UART_Rx_connected) {
+          digitalWrite(ALT_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+      }
     #endif
     _driverFocus->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
@@ -733,11 +730,13 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverFocus->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverFocus->semin(0); //disable CoolStep so that current is consistent
     _driverFocus->SGTHRS(stallvalue);
-    if (_UART_Rx_connected){
+    #if UART_CONNECTION_TEST_TXRX == 1
+      if (UART_Rx_connected){
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus motor rms_current: %d mA"), _driverFocus->rms_current());
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus CS value: %d"), _driverFocus->cs_actual());
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus vsense: %d"), _driverFocus->vsense());
-    }
+      }
+    #endif
   }
 
 #elif SW_SERIAL_UART == 1
@@ -748,19 +747,19 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverFocus->beginSerial(19200);
     _driverFocus->mstep_reg_select(true);
     _driverFocus->pdn_disable(true);    
-    bool _UART_Rx_connected = false;
     #if UART_CONNECTION_TEST_TXRX == 1
-        _UART_Rx_connected = connectToDriver( _driverFocus, "Focus" );
-        if (!_UART_Rx_connected) {
-            digitalWrite(FOCUS_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
-        }
+      bool UART_Rx_connected = false;
+      UART_Rx_connected = connectToDriver( _driverFocus, "Focus" );
+      if (!UART_Rx_connected) {
+          digitalWrite(FOCUS_EN_PIN, HIGH);    //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
+      }
     #endif
     _driverFocus->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
         _driverFocus->I_scale_analog(0);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
-    _driverFocus->rms_current(rmscurrent, 0.01f); //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
     _driverFocus->toff(1);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
@@ -768,11 +767,13 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     _driverFocus->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverFocus->semin(0); //disable CoolStep so that current is consistent
     _driverFocus->SGTHRS(stallvalue);
-    if (_UART_Rx_connected){
+    #if UART_CONNECTION_TEST_TXRX == 1
+      if (UART_Rx_connected){
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus motor rms_current: %d mA"), _driverFocus->rms_current());
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus CS value: %d"), _driverFocus->cs_actual());
         LOGV2(DEBUG_STEPPERS, F("Mount: Actual Focus vsense: %d"), _driverFocus->vsense());
-    }
+      }
+    #endif
   }
 #endif
 #endif
@@ -1568,50 +1569,49 @@ void Mount::setSpeed(int which, float speedDegsPerSec) {
   #endif
   
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == FOCUS_STEPS) {
-      LOGV2(DEBUG_MOUNT, F("Mount: Focuser setSpeed %f"), speedDegsPerSec);
+  else if (which == FOCUS_STEPS) {
+    LOGV2(DEBUG_MOUNT, F("Mount: Focuser setSpeed %f"), speedDegsPerSec);
 
-      #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-        float curFocusSpeed = _stepperFocus->speed();
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+      float curFocusSpeed = _stepperFocus->speed();
 
-        // If we are changing directions or asking for a stop, do a stop
-        if ((signbit(speedDegsPerSec) != signbit(curFocusSpeed)) || (speedDegsPerSec == 0))
-        {
-          _stepperFocus->stop();
-          waitUntilStopped(FOCUSING);
-        }
+      // If we are changing directions or asking for a stop, do a stop
+      if ((signbit(speedDegsPerSec) != signbit(curFocusSpeed)) || (speedDegsPerSec == 0))
+      {
+        _stepperFocus->stop();
+        waitUntilStopped(FOCUSING);
+      }
 
-        // Are we starting a move or changing speeds?
-        if (speedDegsPerSec != 0) 
-        {
-          enableFocusMotor();
-          _stepperFocus->setMaxSpeed(speedDegsPerSec);
-          _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
-          _focuserMode = FOCUS_TO_TARGET; //?
-        } // Are we stopping a move?
-        else if (speedDegsPerSec == 0) 
-        {
-          _stepperFocus->stop();
-        }
-      #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        if (speedDegsPerSec != 0)
-        {
-          LOGV2(DEBUG_STEPPERS, F("STEP-setSpeed: Enabling motor and setting speed. Continuous"), speedDegsPerSec);
-          enableFocusMotor();
-          _stepperFocus->setMaxSpeed(speedDegsPerSec);  
-          _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
-          _focuserMode = FOCUS_TO_TARGET; //?
-        }
-        else 
-        {
-          LOGV2(DEBUG_STEPPERS, F("STEP-setSpeed: Stopping motor."), speedDegsPerSec);
-          _stepperFocus->stop();
-        }
+      // Are we starting a move or changing speeds?
+      if (speedDegsPerSec != 0) 
+      {
+        enableFocusMotor();
+        _stepperFocus->setMaxSpeed(speedDegsPerSec);
+        _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
+        _focuserMode = FOCUS_TO_TARGET;
+      } // Are we stopping a move?
+      else if (speedDegsPerSec == 0) 
+      {
+        _stepperFocus->stop();
+      }
+    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      if (speedDegsPerSec != 0)
+      {
+        LOGV2(DEBUG_STEPPERS, F("STEP-setSpeed: Enabling motor and setting speed. Continuous"), speedDegsPerSec);
+        enableFocusMotor();
+        _stepperFocus->setMaxSpeed(speedDegsPerSec);  
+        _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
+        _focuserMode = FOCUS_TO_TARGET;
+      }
+      else 
+      {
+        LOGV2(DEBUG_STEPPERS, F("STEP-setSpeed: Stopping motor."), speedDegsPerSec);
+        _stepperFocus->stop();
+      }
 
-      #endif
-    }
+    #endif
+  }
   #endif
-  
 }
 
 /////////////////////////////////
@@ -1812,10 +1812,10 @@ void Mount::focusSetSpeedByRate(int rate)
 // focusContinuousMove
 //
 /////////////////////////////////
-void Mount::focusContinuousMove(int direction)
+void Mount::focusContinuousMove(FocuserDirection direction)
 {
   // maxSpeed is set to what the rate dictates
-  setSpeed(FOCUS_STEPS, direction * _maxFocusRateSpeed);
+  setSpeed(FOCUS_STEPS, (int)direction * _maxFocusRateSpeed);
 }
 
 /////////////////////////////////
@@ -2396,7 +2396,7 @@ void Mount::loop() {
     if(_stepperFocus->isRunning())
     {
       LOGV2(DEBUG_MOUNT, F("Mount: Focuser running at speed %f"), _stepperFocus->speed());
-      _lastFocusMovementTimestamp = now;
+      _focuserWasRunning = true;
     }
     else if (_focuserWasRunning)
     {

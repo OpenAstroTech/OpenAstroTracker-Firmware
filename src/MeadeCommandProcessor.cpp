@@ -1347,12 +1347,12 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
   if (inCmd[0] == '+') // :F+
   {
     LOGV1(DEBUG_MEADE, F("Meade: Focus focusContinuousMove IN"));
-    _mount->focusContinuousMove(-1);
+    _mount->focusContinuousMove(FOCUS_BACKWARD);
   }
   else if (inCmd[0] == '-') // :F-
   {
     LOGV1(DEBUG_MEADE, F("Meade: Focus focusContinuousMove OUT"));
-    _mount->focusContinuousMove(+1);
+    _mount->focusContinuousMove(FOCUS_FORWARD);
   }
   else if (inCmd[0] == 'M') // :FMnnnn
   {

@@ -40,6 +40,18 @@ struct LocalDate {
   int day;
 };
 
+// Focuser support
+enum FocuserMode {
+  FOCUS_IDLE,
+  FOCUS_TO_TARGET,
+  FOCUS_CONTINUOUS,
+} ;
+
+enum FocuserDirection {
+  FOCUS_BACKWARD = -1,
+  FOCUS_FORWARD = 1
+} ;
+
 //////////////////////////////////////////////////////////////////
 //
 // Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
@@ -332,7 +344,7 @@ public:
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   // Support for focus motor (requires extra hardware)
   void focusSetSpeedByRate(int rate);
-  void focusContinuousMove(int direction);
+  void focusContinuousMove(FocuserDirection direction);
   void focusMoveBy(long steps);
   long focusGetStepperPosition();
   void disableFocusMotor();
@@ -489,9 +501,8 @@ private:
 
   #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _focuserWasRunning = false;
-    int _focuserMode = 0;
+    FocuserMode _focuserMode = FOCUS_IDLE;
     float _maxFocusRateSpeed;
-    long _lastFocusMovementTimestamp;
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
       AccelStepper* _stepperFocus;
       int _focusRate;
