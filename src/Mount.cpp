@@ -415,7 +415,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverRA->toff(0);     
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-      _driverRA->I_scale_analog(0);
+      _driverRA->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
@@ -451,7 +451,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverRA->toff(0);   
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverRA->I_scale_analog(0);
+        _driverRA->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested RA motor rms_current: %d mA"), rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
@@ -492,7 +492,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverDEC->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverDEC->I_scale_analog(0);
+        _driverDEC->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
@@ -527,7 +527,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverDEC->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverDEC->I_scale_analog(0);
+        _driverDEC->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested DEC motor rms_current: %d mA"), rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
@@ -567,7 +567,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverAZ->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverAZ->I_scale_analog(0);
+        _driverAZ->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
     _driverAZ->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
@@ -602,7 +602,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverAZ->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverAZ->I_scale_analog(0);
+        _driverAZ->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
     _driverAZ->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
@@ -642,7 +642,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverALT->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverALT->I_scale_analog(0);
+        _driverALT->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
     _driverALT->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
@@ -677,7 +677,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverALT->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverALT->I_scale_analog(0);
+        _driverALT->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
     _driverALT->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
@@ -719,7 +719,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverFocus->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverFocus->I_scale_analog(0);
+        _driverFocus->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
     _driverFocus->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
@@ -756,7 +756,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
     #endif
     _driverFocus->toff(0);
     #if USE_VREF == 0  //By default, Vref is ignored when using UART to specify rms current.
-        _driverFocus->I_scale_analog(0);
+        _driverFocus->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
     _driverFocus->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
@@ -1815,7 +1815,7 @@ void Mount::focusSetSpeedByRate(int rate)
 void Mount::focusContinuousMove(FocuserDirection direction)
 {
   // maxSpeed is set to what the rate dictates
-  setSpeed(FOCUS_STEPS, (int)direction * _maxFocusRateSpeed);
+  setSpeed(FOCUS_STEPS, static_cast<int>(direction) * _maxFocusRateSpeed);
 }
 
 /////////////////////////////////
