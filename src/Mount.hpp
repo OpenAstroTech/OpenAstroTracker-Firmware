@@ -16,6 +16,7 @@ class TMC2209Stepper;
 #define WEST                       B00001000
 #define ALL_DIRECTIONS             B00001111
 #define TRACKING                   B00010000
+#define FOCUSING                   B00100000
 
 #define LCDMENU_STRING      B0001
 #define MEADE_STRING        B0010
@@ -31,12 +32,25 @@ class TMC2209Stepper;
 #define DEC_STEPS 2
 #define AZIMUTH_STEPS 5
 #define ALTITUDE_STEPS 6
+#define FOCUS_STEPS 7
 
 struct LocalDate {
   int year;
   int month;
   int day;
 };
+
+// Focuser support
+enum FocuserMode {
+  FOCUS_IDLE,
+  FOCUS_TO_TARGET,
+  FOCUS_CONTINUOUS,
+} ;
+
+enum FocuserDirection {
+  FOCUS_BACKWARD = -1,
+  FOCUS_FORWARD = 1
+} ;
 
 //////////////////////////////////////////////////////////////////
 //
@@ -85,6 +99,15 @@ public:
   #endif
 #endif
 
+// Configure the Focus stepper motors.
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    void configureFocusStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
+  #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+  #endif
+#endif
+
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
   bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
 #endif
@@ -124,6 +147,17 @@ public:
       void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #elif SW_SERIAL_UART == 1
       void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #endif
+  #endif
+#endif
+
+// Configure the Focus driver.
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #if SW_SERIAL_UART == 0
+      void configureFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    #elif SW_SERIAL_UART == 1
+      void configureFocusDriver(uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #endif
   #endif
 #endif
@@ -207,6 +241,11 @@ public:
   #endif
   #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   bool isRunningALT() const;
+  #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  bool isRunningFocus() const;
+  float getFocusSpeed() const;
   #endif
 
   // Starts manual slewing in one of eight directions or tracking
@@ -302,6 +341,17 @@ public:
   void enableAzAltMotors();
 #endif
 
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  // Support for focus motor (requires extra hardware)
+  void focusSetSpeedByRate(int rate);
+  void focusContinuousMove(FocuserDirection direction);
+  void focusMoveBy(long steps);
+  long focusGetStepperPosition();
+  void disableFocusMotor();
+  void enableFocusMotor();
+  void focusStop();
+#endif
+
   // Set the number of steps to use for backlash correction
   void setBacklashCorrection(int steps);
 
@@ -386,10 +436,12 @@ private:
   int _maxDECSpeed;
   int _maxAZSpeed;
   int _maxALTSpeed;
+  int _maxFocusSpeed;
   int _maxRAAcceleration;
   int _maxDECAcceleration;
   int _maxAZAcceleration;
   int _maxALTAcceleration;
+  int _maxFocusAcceleration;
   int _backlashCorrectionSteps;
   int _moveRate;
   long _raParkingPos;     // Parking position in slewing steps
@@ -443,6 +495,19 @@ private:
       const long _stepsPerALTDegree;   // u-steps/degree (from CTOR)
       #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         TMC2209Stepper* _driverALT;
+      #endif 
+    #endif
+  #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    bool _focuserWasRunning = false;
+    FocuserMode _focuserMode = FOCUS_IDLE;
+    float _maxFocusRateSpeed;
+    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+      AccelStepper* _stepperFocus;
+      int _focusRate;
+      #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        TMC2209Stepper* _driverFocus;
       #endif 
     #endif
   #endif

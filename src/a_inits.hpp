@@ -92,6 +92,20 @@ POP_NO_WARNINGS
     #define ALTmotorPin2  ALT_DIR_PIN
   #endif
 #endif
+
+// Focus Motor pins
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+  #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    #define FOCUSmotorPin1  FOCUS_IN1_PIN 
+    #define FOCUSmotorPin3  FOCUS_IN2_PIN 
+    #define FOCUSmotorPin2  FOCUS_IN3_PIN 
+    #define FOCUSmotorPin4  FOCUS_IN4_PIN     
+  #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #define FOCUSmotorPin1  FOCUS_STEP_PIN
+    #define FOCUSmotorPin2  FOCUS_DIR_PIN
+  #endif
+#endif
+
 // End Stepper Definitions //////////////
 /////////////////////////////////////////
 
@@ -110,13 +124,14 @@ POP_NO_WARNINGS
 #define HA_Menu 3
 #define Heat_Menu 4
 #define Calibration_Menu 5
-#define Control_Menu 6
-#define Home_Menu 7
-#define POI_Menu 8
-#define Status_Menu 9
+#define Focuser_Menu 6
+#define Control_Menu 7
+#define Home_Menu 8
+#define POI_Menu 9
+#define Status_Menu 10
 
 // How many menu items at most?
-#define MAXMENUITEMS 10
+#define MAXMENUITEMS 11
 
 #if SUPPORT_GUIDED_STARTUP == 1
 bool inStartup = true;        // Start with a guided startup

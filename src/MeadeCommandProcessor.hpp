@@ -24,6 +24,7 @@ private:
   String handleMeadeDistance(String inCmd);
   String handleMeadeSetSlewRate(String inCmd);
   String handleMeadeExtraCommands(String inCmd);
+  String handleMeadeFocusCommands(String inCmd);
   Mount* _mount;
   LcdMenu* _lcdMenu;
   static MeadeCommandProcessor* _instance;

@@ -87,6 +87,21 @@
 #define ALT_OPERATING_CURRENT_SETTING 100  // ALT operating setting as a percentage of motor rating
 
 /**
+ * @brief Focus
+ * Set FOCUS_STEPPER_TYPE to the correct stepper type to 
+ * enable, or to STEPPER_TYPE_NONE to exclude Focus from configuration.
+ */
+#define FOCUS_STEPPER_TYPE    STEPPER_TYPE_NEMA17
+#define FOCUS_DRIVER_TYPE     DRIVER_TYPE_TMC2209_UART
+
+// TMC2209 UART settings
+// These settings work only with TMC2209 in UART connection (single wire to TX)
+#define FOCUS_MOTOR_CURRENT_RATING         0     // Current rating of focus motor in mA
+#define FOCUS_OPERATING_CURRENT_SETTING  100     // Operating setting as a percentage of focus motor rating
+#define FOCUS_STEPPER_SPEED              200     // Default speed when moving focus motor in steps/s
+#define FOCUS_UART_STEALTH_MODE            1     // Run the focuser silently
+
+/**
  * @brief Display & keypad configuration.
  * See Constants.hpp for supported DISPLAY_TYPE options.
  * Pin assignments vary based on display & keypad selection.
