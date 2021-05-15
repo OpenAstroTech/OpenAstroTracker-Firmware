@@ -1,3 +1,6 @@
+**V1.9.12 - Updates**
+- Fix southern hemisphere returning incorrect DEC values
+
 **V1.9.11 - Updates**
 - Add support for focuser on E1 motor for MKS board. 
 - Add focuser command support to LX200 protocol.
