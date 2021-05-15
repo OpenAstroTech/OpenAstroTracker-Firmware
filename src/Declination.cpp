@@ -107,6 +107,6 @@ Declination Declination::FromSeconds(long seconds)
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const
 {
   long secs = totalSeconds;
-  secs = NORTHERN_HEMISPHERE ? (secs + arcSecondsPerHemisphere/2) : (-arcSecondsPerHemisphere/2 - secs);
+  secs = NORTHERN_HEMISPHERE ? (secs + arcSecondsPerHemisphere/2) : (secs - arcSecondsPerHemisphere/2);
   return DayTime::formatString(targetBuffer, format, &secs);
 }
