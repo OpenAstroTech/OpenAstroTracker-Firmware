@@ -1,10 +1,30 @@
 /**
  * @brief a pins configuration file for an ESP32-based OAT.
+ * 
+ *    3.3V  -|                  |-  GND
+ *    EN    -|                  |-  23
+ *    VP    -|                  |-  22
+ *    VN    -|                  |-  TX
+ *    34    -|                  |-  RX
+ *    35    -|                  |-  21
+ *    32    -|                  |-  GND
+ *    33    -|                  |-  19
+ *    25    -|                  |-  18
+ *    26    -|      ESP32       |-  5
+ *    27    -|      DevKit C    |-  17
+ *    14    -|      V4          |-  16
+ *    12    -|                  |-  4
+ *    GND   -|                  |-  0
+ *    13    -|                  |-  2
+ *    D2    -|                  |-  15
+ *    D3    -|                  |-  D1
+ *    CMD   -|                  |-  D0
+ *    5V    -|                  |-  CLK
  */
 
 #pragma once
 
-/*/ DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
+// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
 #ifndef RA_IN1_PIN
   #define RA_IN1_PIN  13  
 #endif
@@ -29,7 +49,7 @@
 #ifndef DEC_IN4_PIN
   #define DEC_IN4_PIN  32  
 #endif
-*/
+
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
   #define RA_STEP_PIN 18  // STEP
