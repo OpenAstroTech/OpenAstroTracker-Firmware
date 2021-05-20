@@ -106,7 +106,11 @@ void setup() {
 #endif
 
   #if USE_GPS == 1
-  GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
+    #if defined(ESP32)
+      GPS_SERIAL_PORT.begin(GPS_BAUD_RATE, SERIAL_8N1, GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN);
+    #elif
+      GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
+    #endif
   #endif
 
   //Turn on dew heater
@@ -152,10 +156,16 @@ void setup() {
       pinMode(RA_EN_PIN, OUTPUT);
       digitalWrite(RA_EN_PIN, LOW);
       #ifdef RA_SERIAL_PORT
-        RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+        #if defined(ESP32)
+          RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX);  // Start HardwareSerial comms with driver
+        #else
+          RA_SERIAL_PORT.begin(57600);
+        #endif
       #endif
     #endif
   #endif
+
+
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // DEC driver startup (for A4988)
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC  // DEC driver startup (for A4988)
       digitalWrite(DEC_EN_PIN, HIGH);
@@ -191,10 +201,15 @@ void setup() {
       //pinMode(DEC_MS1_PIN, OUTPUT);
       //digitalWrite(DEC_MS1_PIN, HIGH); // Logic HIGH to MS1 to get 0b01 address
       #ifdef DEC_SERIAL_PORT
-        DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+        #if defined(ESP32)
+          DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX);  // Start HardwareSerial comms with driver
+        #else
+          DEC_SERIAL_PORT.begin(57600);
+        #endif
       #endif
     #endif
   #endif
+
   
   #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
