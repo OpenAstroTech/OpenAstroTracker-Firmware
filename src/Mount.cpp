@@ -1219,7 +1219,7 @@ const Declination Mount::currentDEC() const {
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: DEC Steps  : %d"), _stepperDEC->currentPosition());
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: POS        : %s"), String(degreePos).c_str());
 
-  if (degreePos > 0 && NORTHERN_HEMISPHERE)
+  if (NORTHERN_HEMISPHERE ? degreePos > 0 : degreePos < 0)
   {
     degreePos = -degreePos;
     //LOGV1(DEBUG_MOUNT_VERBOSE,F("CurrentDEC: Greater Zero, flipping."));
