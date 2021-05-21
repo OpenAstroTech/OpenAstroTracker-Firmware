@@ -1,4 +1,7 @@
 **V1.9.12 - Updates**
+- Fix southern hemisphere returning incorrect DEC values (edge case)
+
+**V1.9.12 - Updates**
 - Fix southern hemisphere returning incorrect DEC values
 
 **V1.9.11 - Updates**
