@@ -965,7 +965,7 @@ String Mount::getStepperInfo()
 /////////////////////////////////
 String Mount::getMountHardwareInfo()
 {
-  String ret = F("Unknown");
+  String ret = F("Unknown,");
   #if defined(ESP32)
     ret = F("ESP32,");
   #elif defined(__AVR_ATmega2560__)

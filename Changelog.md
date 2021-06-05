@@ -1,3 +1,6 @@
+**V1.9.14 - Updates**
+- Fix hardware reporting for "Unknown" boards
+
 **V1.9.13 - Updates**
 - Fix southern hemisphere returning incorrect DEC values (edge case)
 
