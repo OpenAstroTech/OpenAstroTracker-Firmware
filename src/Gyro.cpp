@@ -6,10 +6,10 @@
 
 PUSH_NO_WARNINGS
 #if USE_GYRO_WITH_SOFTWAREI2C == 1
-    #include "SlowSoftWire.h"   // I2C communication library
-    SlowSoftWire Wire(GYRO_SOFTWARE_SDA_PIN, GYRO_SOFTWARE_SCL_PIN);
+#include "SlowSoftWire.h" // I2C communication library
+SlowSoftWire Wire(GYRO_SOFTWARE_SDA_PIN, GYRO_SOFTWARE_SCL_PIN);
 #else
-    #include <Wire.h> // I2C communication library
+#include <Wire.h> // I2C communication library
 #endif
 POP_NO_WARNINGS
 
@@ -27,12 +27,12 @@ bool Gyro::isPresent = false;
 // Sets accelerometers to minimum bandwidth to reduce measurement noise.
 void Gyro::startup()
 {
-    // Initialize interface to the MPU6050
-    #if USE_GYRO_WITH_SOFTWAREI2C == 1
-        LOGV1(DEBUG_INFO, F("GYRO:: Starting software I2C for MPU6050 comms."));
-    #else
-        LOGV1(DEBUG_INFO, F("GYRO:: Starting hardware I2C for MPU6050 comms."));
-    #endif
+// Initialize interface to the MPU6050
+#if USE_GYRO_WITH_SOFTWAREI2C == 1
+    LOGV1(DEBUG_INFO, F("GYRO:: Starting software I2C for MPU6050 comms."));
+#else
+    LOGV1(DEBUG_INFO, F("GYRO:: Starting hardware I2C for MPU6050 comms."));
+#endif
 
     Wire.begin();
 
@@ -57,16 +57,16 @@ void Gyro::startup()
     Wire.write(0); // Disable sleep, 8 MHz clock
     Wire.endTransmission(true);
 
-    // Execute 1 byte read/write to MPU6050_REG_ACCEL_CONFIG to set 4g sensititvity
+    // Execute 1 byte read/write to MPU6050_REG_ACCEL_CONFIG to set 2g sensitivity
     Wire.beginTransmission(MPU6050_I2C_ADDR);
     Wire.write(MPU6050_REG_ACCEL_CONFIG);
     Wire.endTransmission();
     Wire.requestFrom(MPU6050_I2C_ADDR, 1);
-    byte x = Wire.read(); //the value of Register-28 is in x
-    x = (x & 0b11100111);     //clear values of Bit4 and Bit3 fo 2g sensitivity
+    byte accelConfigReg = Wire.read();              //the value of Register-28 is in x
+    accelConfigReg = (accelConfigReg & 0b11100111); //clear values of Bit4 and Bit3 fo 2g sensitivity
     Wire.beginTransmission(MPU6050_I2C_ADDR);
     Wire.write(MPU6050_REG_ACCEL_CONFIG);
-    Wire.write(x);
+    Wire.write(accelConfigReg);
     Wire.endTransmission();
 
     // Execute 1 byte write to MPU6050_REG_CONFIG to set slowest refresh rate
@@ -104,24 +104,22 @@ angle_t Gyro::getCurrentAngles()
         Wire.beginTransmission(MPU6050_I2C_ADDR);
         Wire.write(MPU6050_REG_ACCEL_XOUT_H);
         Wire.endTransmission(false);
-        Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);     // Read 6 registers total, each axis value is stored in 2 registers
-        uint8_t b0 =  Wire.read();
-        uint8_t b1 =  Wire.read();
-        uint8_t b2 =  Wire.read();
-        uint8_t b3 =  Wire.read();
-        uint8_t b4 =  Wire.read();
-        uint8_t b5 =  Wire.read();
-        
-        int16_t AcX = b0 << 8 | b1; // X-axis value
-        int16_t AcY = b2 << 8 | b3; // Y-axis value
-        int16_t AcZ = b4 << 8 | b5; // Z-axis value
+        Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1); // Read 6 registers total, each axis value is stored in 2 registers
+        const uint8_t accelXMSByte = Wire.read();
+        const uint8_t accelXLSByte = Wire.read();
+        const uint8_t accelYMSByte= Wire.read();
+        const uint8_t accelYLSByte= Wire.read();
+        const uint8_t accelZMSByte= Wire.read();
+        const uint8_t accelZLSByte= Wire.read();
 
-        //LOGV7(DEBUG_INFO, F("GYRO: Values : %d, %d   %d, %d   %d, %d"), b0,b1,b2,b3,b4,b5);
+        const int16_t accelInX = accelXMSByte << 8 | accelXLSByte; // X-axis value
+        const int16_t accelInY = accelYMSByte << 8 | accelYLSByte; // Y-axis value
+        const int16_t accelInZ = accelZMSByte << 8 | accelZLSByte; // Z-axis value
 
         // Calculating the Pitch angle (rotation around Y-axis)
-        result.pitchAngle += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        result.pitchAngle += ((atanf(-1 * accelInX / sqrtf(powf(accelInY, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
         // Calculating the Roll angle (rotation around X-axis)
-        result.rollAngle += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        result.rollAngle += ((atanf(-1 * accelInY / sqrtf(powf(accelInX, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
 
         delay(5); // Decorrelate measurements
     }
