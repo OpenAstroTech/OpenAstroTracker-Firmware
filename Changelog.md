@@ -1,3 +1,6 @@
+**V1.9.17 - Updates**
+- clang-format codebase
+
 **V1.9.16 - Updates**
 - Add Meade extension command to move steppers by steps.
 
