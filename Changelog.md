@@ -1,3 +1,6 @@
+**V1.9.15 - Updates**
+- Fixed incorrect speed for DEC when using 28BYJ-48 steppers
+
 **V1.9.14 - Updates**
 - Fix hardware reporting for "Unknown" boards
 
