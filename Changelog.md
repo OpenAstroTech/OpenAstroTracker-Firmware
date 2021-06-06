@@ -1,4 +1,4 @@
-**V1.9.16 - Updates**
+**V1.9.15 - Updates**
 - Fixed incorrect speed for DEC when using 28BYJ-48 steppers
 
 **V1.9.14 - Updates**
