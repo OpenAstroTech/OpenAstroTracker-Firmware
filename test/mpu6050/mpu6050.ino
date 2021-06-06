@@ -1,4 +1,4 @@
-#define SW_I2C 
+//#define SW_I2C 
 
 
 
@@ -73,23 +73,23 @@ void setup() {
   Wire.write(0); // Disable sleep, 8 MHz clock
   Wire.endTransmission(true);
 
-//  // Execute 1 byte write to MPU6050_REG_ACCEL_CONFIG to set 4g sensititvity
-//  Wire.beginTransmission(MPU6050_I2C_ADDR);
-//  Wire.write(MPU6050_REG_ACCEL_CONFIG);
-//  Wire.endTransmission();
-//  Wire.requestFrom(MPU6050_I2C_ADDR, 1);
-//  byte x = Wire.read(); //the value of Register-28 is in x
-//  x = (x & 0b11100111) | 0b00000000;     //appending values of Bit4 and Bit3
-//  
-//  Wire.beginTransmission(MPU6050_I2C_ADDR);
-//  Wire.write(MPU6050_REG_ACCEL_CONFIG);
-//  Wire.write(x);
-//  Wire.endTransmission();
+  // Execute 1 byte write to MPU6050_REG_ACCEL_CONFIG to set 4g sensititvity
+  Wire.beginTransmission(MPU6050_I2C_ADDR);
+  Wire.write(MPU6050_REG_ACCEL_CONFIG);
+  Wire.endTransmission();
+  Wire.requestFrom(MPU6050_I2C_ADDR, 1);
+  byte x = Wire.read(); //the value of Register-28 is in x
+  x = (x & 0b11100111) | 0b00000000;     //appending values of Bit4 and Bit3
+  
+  Wire.beginTransmission(MPU6050_I2C_ADDR);
+  Wire.write(MPU6050_REG_ACCEL_CONFIG);
+  Wire.write(x);
+  Wire.endTransmission();
 
   // Execute 1 byte write to MPU6050_REG_PWR_MGMT_1
   Wire.beginTransmission(MPU6050_I2C_ADDR);
   Wire.write(MPU6050_REG_CONFIG);
-  Wire.write(3); // 5Hz bandwidth (lowest) for smoothing
+  Wire.write(6); // 5Hz bandwidth (lowest) for smoothing
   Wire.endTransmission(true);
 
   Serial.println("GYRO:: Started");
@@ -111,13 +111,15 @@ String padString(int16_t i) {
   return res;
 }
 
-const int window = 6;
+const int window = 1;
 
 void loop() {
   if (!isPresent)
     return; // Gyro is not available
 
   float ax=0,ay=0,az=0;
+  float rollAngle=0;
+  float pitchAngle=0;
   for (int i=0; i<window; i++)
   {
     // Execute 6 byte read from MPU6050_REG_WHO_AM_I
@@ -126,26 +128,29 @@ void loop() {
     Wire.endTransmission(false);
     
     Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);     // Read 6 registers total, each axis value is stored in 2 registers
-    int8_t b0 =  Wire.read();
-    int8_t b1 =  Wire.read();
-    int8_t b2 =  Wire.read();
-    int8_t b3 =  Wire.read();
-    int8_t b4 =  Wire.read();
-    int8_t b5 =  Wire.read();
+    uint8_t b0 =  Wire.read();
+    uint8_t b1 =  Wire.read();
+    uint8_t b2 =  Wire.read();
+    uint8_t b3 =  Wire.read();
+    uint8_t b4 =  Wire.read();
+    uint8_t b5 =  Wire.read();
+    ax+=b0;
+    ay+=b1;
     
-    int16_t AcX = (static_cast<int16_t>(b0) << 8) + b1; // X-axis value
-    int16_t AcY = (static_cast<int16_t>(b2) << 8) + b3; // Y-axis value
-    int16_t AcZ = (static_cast<int16_t>(b4) << 8) + b5; // Z-axis value
-    ax+=AcX;
-    ay+=AcY;
-    az+=AcZ;
+    int16_t AcX = static_cast<int16_t>((b0 << 8) + b1); // X-axis value
+    int16_t AcY = static_cast<int16_t>((b2 << 8) + b3); // Y-axis value
+    int16_t AcZ = static_cast<int16_t>((b4 << 8) + b5); // Z-axis value
+
+
+    rollAngle += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+    pitchAngle += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+  
+    Serial.println("Accel : "+padString(ax,1)+" "+padString(ay,1)+" "+padString(AcX,1)+ "  Roll:"+padString(rollAngle,3)+ "  Roll:"+padString(pitchAngle,3));
   }
 
-  ax/=window;
-  ay/=window;
-  az/=window;
-  
-  float rollAngle = ((atanf(-1 * ay / sqrtf(powf(ax, 2) + powf(az, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+  rollAngle /= window;
+  ax /= window;
+  ay /= window;
   
   Wire.beginTransmission(MPU6050_I2C_ADDR);
   Wire.write(MPU6050_REG_TEMP_OUT_H);
@@ -157,7 +162,7 @@ void loop() {
   int16_t t = 256 * th;
   t = t + tl;
   float temp = ((float)t/340.0) + 36.53;
-  Serial.println("Accel : "+padString(ax)+" "+padString(ay)+" "+padString(az)+ " Roll:"+padString(rollAngle,3) +"    Temp: "+padString(temp,1)+"C");
+  //Serial.println("Accel : "+padString(ax,1)+" "+padString(ay,1)+ " Roll:"+padString(rollAngle,3) +"    Temp: "+padString(temp,1)+"C");
   
   //Serial.println("Accel Bytes: "+String(b0,HEX)+" "+String(b1,HEX)+" "+String(b2,HEX)+" "+String(b3,HEX)+" "+String(b4,HEX)+" "+String(b5,HEX));
   //Serial.println("Temp: "+String(temp,1)+"C Bytes: "+String(th,HEX)+" "+String(tl,HEX));
