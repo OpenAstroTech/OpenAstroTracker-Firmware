@@ -196,7 +196,7 @@
 // Theoretically correct RA tracking speed is 1.246586 (300 x 14.95903 / 3600) (V2 : 1.333800 (322 x 14.95903 / 3600) steps/sec (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef RA_STEPS_PER_DEGREE
-  #define RA_STEPS_PER_DEGREE   (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
+  #define RA_STEPS_PER_DEGREE   ((RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH)) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 // RA limits
@@ -215,7 +215,7 @@
 // So there are 160.85 steps/degree (57907/360) (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef DEC_STEPS_PER_DEGREE
-  #define DEC_STEPS_PER_DEGREE  (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
+  #define DEC_STEPS_PER_DEGREE  ((DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH)) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 ////////////////////////////
@@ -448,7 +448,9 @@
   #define SUPPORT_POINTS_OF_INTEREST   1
 
 // Set this to 1 to support Guided Startup 
-  #define SUPPORT_GUIDED_STARTUP       1
+  #ifndef SUPPORT_GUIDED_STARTUP
+    #define SUPPORT_GUIDED_STARTUP       1
+  #endif
 
 // Set this to 1 to support CTRL menu, allowing you to manually slew the mount with the buttons. 
   #define SUPPORT_MANUAL_CONTROL       1
@@ -459,6 +461,7 @@
 // Set this to 1 to support INFO menu that displays various pieces of information about the mount. 
   #define SUPPORT_INFO_DISPLAY         1
 #else
+  #undef SUPPORT_GUIDED_STARTUP
   #define SUPPORT_POINTS_OF_INTEREST 0
   #define SUPPORT_GUIDED_STARTUP     0
   #define SUPPORT_MANUAL_CONTROL     0

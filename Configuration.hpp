@@ -209,6 +209,9 @@
 #ifndef USE_GYRO_LEVEL
   #define USE_GYRO_LEVEL 0
 #endif
+#ifndef USE_GYRO_WITH_SOFTWAREI2C
+  #define USE_GYRO_WITH_SOFTWAREI2C 0
+#endif
 
 // Set this to 1 if your gyro is mounted such that roll and pitch are in the wrong direction
 #ifndef GYRO_AXIS_SWAP

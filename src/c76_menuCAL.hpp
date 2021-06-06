@@ -227,12 +227,13 @@ bool processCalibrationKeys()
     Gyro::startup();
     gyroStarted = true;
   }
-
+  #if SUPPORT_GUIDED_STARTUP == 1
   if ((startupState == StartupWaitForRollCompletion) && (calState != ROLL_OFFSET_CALIBRATION))
   {
     LOGV1(DEBUG_INFO, F("CAL: In Startup, so going to Roll confirm!"));
     calState = ROLL_OFFSET_CALIBRATION;
   }
+  #endif
 #endif
 
   lcdButton_t currentButtonState = lcdButtons.currentState();
@@ -539,6 +540,7 @@ bool processCalibrationKeys()
     {
       if (key == btnSELECT)
       {
+        #if SUPPORT_GUIDED_STARTUP == 1
         if (startupState == StartupWaitForRollCompletion)
         {
           LOGV1(DEBUG_INFO, F("CAL: Confirmed roll. Going back to Startup, Roll confirmed!"));
@@ -548,6 +550,7 @@ bool processCalibrationKeys()
           calState = HIGHLIGHT_FIRST;
         }
         else
+        #endif
         {
           calState = ROLL_OFFSET_CONFIRM;
           okToUpdateMenu = false;
@@ -557,18 +560,22 @@ bool processCalibrationKeys()
       }
       else if (key == btnLEFT)
       {
+        #if SUPPORT_GUIDED_STARTUP == 1
         if (startupState != StartupWaitForRollCompletion)
         {
           calState = HIGHLIGHT_ROLL_LEVEL;
         }
+        #endif
       }
       else if (key == btnRIGHT)
       {
+        #if SUPPORT_GUIDED_STARTUP == 1
         if (startupState != StartupWaitForRollCompletion)
         {
           gotoNextMenu();
           calState = HIGHLIGHT_ROLL_LEVEL;
         }
+        #endif
       }
     }
     break;

@@ -19,6 +19,7 @@ private:
 
     // Register addresses
     MPU6050_REG_CONFIG = 0x1A,
+    MPU6050_REG_ACCEL_CONFIG = 0x1C,
     MPU6050_REG_ACCEL_XOUT_H = 0x3B,
     MPU6050_REG_TEMP_OUT_H = 0x41,
     MPU6050_REG_PWR_MGMT_1 = 0x6B,
