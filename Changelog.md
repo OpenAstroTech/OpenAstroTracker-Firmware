@@ -1,5 +1,8 @@
-**V1.9.15 - Updates**
+**V1.9.16 - Updates**
 - Add Meade extension command to move steppers by steps.
+
+**V1.9.15 - Updates**
+- Fixed incorrect speed for DEC when using 28BYJ-48 steppers
 
 **V1.9.14 - Updates**
 - Fix hardware reporting for "Unknown" boards
