@@ -1,3 +1,6 @@
+**V1.9.15 - Updates**
+- Support software I2C so that Digital Level can be used on MKS board.
+
 **V1.9.14 - Updates**
 - Fix hardware reporting for "Unknown" boards
 

@@ -388,6 +388,13 @@
   #endif
 #endif
 
+// Digital Level on SW I2C
+#if USE_GYRO_WITH_SOFTWAREI2C == 1
+  #if !defined(GYRO_SOFTWARE_SDA_PIN) || !defined(GYRO_SOFTWARE_SCL_PIN)
+     #error Missing pin assignments for Digital level with software I2C (defined GYRO_SOFTWARE_SDA_PIN and GYRO_SOFTWARE_SCL_PIN in local config)
+  #endif  
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                ////////
 // VALIDATE CRITICAL PARAMETERS   ////////
