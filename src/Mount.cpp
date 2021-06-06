@@ -2767,7 +2767,7 @@ void Mount::calculateStepperPositions(float raCoord, float decCoord, long& raPos
 //
 // This code tells the steppers to what location to move to, given the select right ascension and declination
 /////////////////////////////////
-void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps, long* pSolutions) const {
+void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps, long pSolutions[6]) const {
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
@@ -2817,14 +2817,14 @@ void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps,
     float const RALimitR = (RA_LIMIT_LEFT * stepsPerSiderealHour);  
   #endif
 
-  if (pSolutions != NULL)
+  if (pSolutions != nullptr)
   {
-    *(pSolutions + 0) = long(-moveRA);
-    *(pSolutions + 1) = long(moveDEC);
-    *(pSolutions + 2) = long(-(moveRA - long(12.0f * stepsPerSiderealHour)));
-    *(pSolutions + 3) = long(-moveDEC);
-    *(pSolutions + 4) = long(-(moveRA + long(12.0f * stepsPerSiderealHour)));
-    *(pSolutions + 5) = long(-moveDEC);
+    pSolutions[0] = long(-moveRA);
+    pSolutions[1] = long(moveDEC);
+    pSolutions[2] = long(-(moveRA - long(12.0f * stepsPerSiderealHour)));
+    pSolutions[3] = long(-moveDEC);
+    pSolutions[4] = long(-(moveRA + long(12.0f * stepsPerSiderealHour)));
+    pSolutions[5] = long(-moveDEC);
   }
 
   // If we reach the limit in the positive direction ...
@@ -2897,7 +2897,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps) {   // Uni
 
 /////////////////////////////////
 //
-// moveSteppersTo
+// moveStepperBy
 //
 /////////////////////////////////
 void Mount::moveStepperBy(StepperAxis direction, long steps)
