@@ -1,5 +1,25 @@
+**V1.9.15 - Updates**
+- Fixed incorrect speed for DEC when using 28BYJ-48 steppers
+
+**V1.9.14 - Updates**
+- Fix hardware reporting for "Unknown" boards
+
+**V1.9.13 - Updates**
+- Fix southern hemisphere returning incorrect DEC values (edge case)
+
+**V1.9.12 - Updates**
+- Fix southern hemisphere returning incorrect DEC values
+
+**V1.9.11 - Updates**
+- Add support for focuser on E1 motor for MKS board. 
+- Add focuser command support to LX200 protocol.
+
+**V1.9.10 - Updates**
+- Fixed a bug that caused a compilation fail when enabling LCD_BUTTON_TEST
+- Allowed connection test to be set in local config
+
 **V1.9.09 - Updates**
-- Sample Local Config - Disabled as default
+- Sample Local Config - disabled as default
 
 **V1.9.08 - Updates**
 - Continuous integration improvements. Checking for version and changelog changes automatically

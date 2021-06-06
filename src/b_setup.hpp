@@ -223,6 +223,20 @@ void setup() {
       #endif
     #endif
   #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART  
+      pinMode(FOCUS_EN_PIN, OUTPUT);
+      digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
+    #endif
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      // include TMC2209 UART pins
+      pinMode(FOCUS_DIAG_PIN, INPUT);
+      #ifdef FOCUS_SERIAL_PORT
+        FOCUS_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+      #endif
+    #endif
+  #endif
 // end microstepping -------------------
 
   #if !defined(OAT_DEBUG_BUILD)
@@ -283,6 +297,10 @@ void setup() {
       lcdMenu.addItem("CAL", Calibration_Menu);
     #endif
 
+    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+      lcdMenu.addItem("FOC", Focuser_Menu);
+    #endif
+
     #if SUPPORT_INFO_DISPLAY == 1
       lcdMenu.addItem("INFO", Status_Menu);
     #endif
@@ -317,7 +335,7 @@ void setup() {
 
   #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     LOGV1(DEBUG_ANY, F("Configure DEC stepper 28BYJ-48..."));
-    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DECmotorPin3, DECmotorPin4, RA_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DECmotorPin3, DECmotorPin4, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
   #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     LOGV1(DEBUG_ANY, F("Configure DEC stepper NEMA..."));
     mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
@@ -371,6 +389,23 @@ void setup() {
         mount.configureALTdriver(&ALT_SERIAL_PORT, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
       #elif SW_SERIAL_UART == 1
         mount.configureALTdriver(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
+      #endif
+    #endif
+  #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    LOGV1(DEBUG_ANY, F("Configure Focus stepper..."));
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003 
+      mount.configureFocusStepper(FOCUSmotorPin1, FOCUSmotorPin2, FOCUSmotorPin3, FOCUSmotorPin4, FOCUS_STEPPER_SPEED, FOCUS_STEPPER_ACCELERATION);
+    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      mount.configureFocusStepper(FOCUSmotorPin1, FOCUSmotorPin2, FOCUS_STEPPER_SPEED, FOCUS_STEPPER_ACCELERATION);
+    #endif
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      LOGV1(DEBUG_ANY, F("Configure Focus driver..."));
+      #if SW_SERIAL_UART == 0
+        mount.configureFocusDriver(&FOCUS_SERIAL_PORT, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
+      #elif SW_SERIAL_UART == 1
+        mount.configureFocusDriver(FOCUS_SERIAL_PORT_RX, FOCUS_SERIAL_PORT_TX, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
       #endif
     #endif
   #endif

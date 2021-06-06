@@ -85,6 +85,9 @@
 #ifndef ALT_STEPPER_TYPE
 #define ALT_STEPPER_TYPE    STEPPER_TYPE_NONE
 #endif
+#ifndef FOCUS_STEPPER_TYPE
+#define FOCUS_STEPPER_TYPE    STEPPER_TYPE_NONE
+#endif
 
 /**
  * @brief Stepper driver type in use on each axis.
@@ -101,6 +104,9 @@
 #endif
 #ifndef ALT_DRIVER_TYPE
 #define ALT_DRIVER_TYPE     DRIVER_TYPE_NONE
+#endif
+#ifndef FOCUS_DRIVER_TYPE
+#define FOCUS_DRIVER_TYPE     DRIVER_TYPE_NONE
 #endif
 
 // Your pulley tooth count. 16 for the bought (aluminium) one, 20 for the printed one.

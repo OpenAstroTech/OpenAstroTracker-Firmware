@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LcdButtons.hpp"
 #include "b_setup.hpp"
 #include "c65_startup.hpp"
 #include "c70_menuRA.hpp"
@@ -9,6 +10,7 @@
 #include "c72_menuHA_GPS.hpp"
 #include "c75_menuCTRL.hpp"
 #include "c76_menuCAL.hpp"
+#include "c77_menuFOC.hpp"
 #include "c78_menuINFO.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
@@ -21,7 +23,7 @@
   int lastLoopKey = -1;
 
   #if LCD_BUTTON_TEST == 1
-    byte lastKey = btnNONE;
+    lcdButton_t lastKey = btnNONE;
   #endif
 
   lcdButton_t lcd_key;
@@ -52,6 +54,7 @@
         case btnRIGHT: state += "Right"; break;
         case btnUP: state += "Up"; break;
         case btnDOWN: state += "Down"; break;
+        default: state += "Invalid" ; break;
       }
 
       lcdMenu.printMenu(state);
@@ -135,6 +138,12 @@
           break;
   #endif
 
+  #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+          case Focuser_Menu:
+          waitForButtonRelease = processFocuserKeys();
+          break;
+  #endif
+  
   #if SUPPORT_MANUAL_CONTROL == 1
           case Control_Menu:
           waitForButtonRelease = processControlKeys();
@@ -205,6 +214,12 @@
   #if SUPPORT_CALIBRATION == 1
           else if (activeMenu == Calibration_Menu) {
             printCalibrationSubmenu();
+          }
+  #endif
+
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+          else if (activeMenu == Focuser_Menu) {
+            printFocusSubmenu();
           }
   #endif
 
