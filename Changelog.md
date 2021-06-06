@@ -1,3 +1,6 @@
+**V1.9.15 - Updates**
+- Add Meade extension command to move steppers by steps.
+
 **V1.9.14 - Updates**
 - Fix hardware reporting for "Unknown" boards
 

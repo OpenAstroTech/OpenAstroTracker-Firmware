@@ -288,6 +288,12 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Where c is one of 'n', 'e', 'w', or 's'.
 //      Returns: nothing
 //
+// :MXxnnnnn#
+//      Move stepper
+//      This starts moving one of the steppers by the given amount of steps and returns immediately.
+//      Where x is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, t for ALT) and nnnn is the number of steps.
+//      Returns: 1 if successfully scheduled
+//      
 // :MAZn.nn#
 //      Move Azimuth
 //      If the scope supports automated azimuth operation, move azimuth by n.nn arcminutes
@@ -919,12 +925,12 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 {
-  if (inCmd[0] == 'S')
+  if (inCmd[0] == 'S')  // :MS#
   {
     _mount->startSlewingToTarget();
     return "0";
   }
-  else if (inCmd[0] == 'T')
+  else if (inCmd[0] == 'T') // :MT1
   {
     if (inCmd.length() > 1)
     {
@@ -944,7 +950,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
       return "0";
     }
   }
-  else if ((inCmd[0] == 'G') || (inCmd[0] == 'g'))
+  else if ((inCmd[0] == 'G') || (inCmd[0] == 'g')) // MG
   {
     // The spec calls for lowercase, but ASCOM Drivers prior to 0.3.1.0 sends uppercase, so we allow both for now.
     // Guide pulse
@@ -972,14 +978,14 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 // Move Azimuth or Altitude by given arcminutes
 // :MAZ+32.1# or :MAL-32.1#
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (inCmd[1] == 'Z')
+    if (inCmd[1] == 'Z')  // :MAZ
     {
       float arcMinute = inCmd.substring(2).toFloat();
       _mount->moveBy(AZIMUTH_STEPS, arcMinute);
     }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (inCmd[1] == 'L')
+    if (inCmd[1] == 'L') // :MAL
     {
       float arcMinute = inCmd.substring(2).toFloat();
       _mount->moveBy(ALTITUDE_STEPS, arcMinute);
@@ -1006,6 +1012,17 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
   {
     _mount->startSlewing(SOUTH);
     return "";
+  }
+  else if (inCmd[0]== 'X') // :MX
+  {
+    long steps = inCmd.substring(2).toInt();
+    if (inCmd[1]=='r') _mount->moveStepperBy(RA_STEPS, steps);
+    else if (inCmd[1]=='d') _mount->moveStepperBy(DEC_STEPS, steps);
+    else if (inCmd[1]=='z') _mount->moveStepperBy(AZIMUTH_STEPS, steps);
+    else if (inCmd[1]=='l') _mount->moveStepperBy(ALTITUDE_STEPS, steps);
+    else if (inCmd[1]=='f') _mount->moveStepperBy(FOCUS_STEPS, steps);
+    else return "0";
+    return "1";
   }
 
   return "0";
