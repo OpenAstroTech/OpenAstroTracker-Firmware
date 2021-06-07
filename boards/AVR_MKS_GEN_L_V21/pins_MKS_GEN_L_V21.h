@@ -208,6 +208,15 @@
   #define FOCUS_DRIVER_ADDRESS 0b00
 #endif
 
+// Digital Level addon
+#ifndef GYRO_SOFTWARE_SCL_PIN
+  #define GYRO_SOFTWARE_SCL_PIN 11
+#endif
+
+#ifndef GYRO_SOFTWARE_SDA_PIN
+  #define GYRO_SOFTWARE_SDA_PIN 21
+#endif
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
   #define GPS_SERIAL_PORT Serial1

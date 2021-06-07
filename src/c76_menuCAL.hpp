@@ -94,6 +94,13 @@ enum
 // Start off with Polar Alignment higlighted.
 byte calState = HIGHLIGHT_FIRST;
 
+// Variables to accumulate and smooth the accelerometer readings of the digital level
+#if USE_GYRO_LEVEL == 1
+  byte calCount = 0;
+  angle_t accumulator;
+  #define ACCUMULATOR_COUNT 4
+#endif
+
 // Speed adjustment variable. Added to 1.0 after dividing by 10000 to get final speed
 float SpeedCalibration;
 
@@ -227,13 +234,13 @@ bool processCalibrationKeys()
     Gyro::startup();
     gyroStarted = true;
   }
-  #if SUPPORT_GUIDED_STARTUP == 1
+#if SUPPORT_GUIDED_STARTUP == 1
   if ((startupState == StartupWaitForRollCompletion) && (calState != ROLL_OFFSET_CALIBRATION))
   {
     LOGV1(DEBUG_INFO, F("CAL: In Startup, so going to Roll confirm!"));
     calState = ROLL_OFFSET_CALIBRATION;
   }
-  #endif
+#endif
 #endif
 
   lcdButton_t currentButtonState = lcdButtons.currentState();
@@ -359,42 +366,42 @@ bool processCalibrationKeys()
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (currentButtonState == btnNONE)
     {
-      #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        if (mount.isRunningAZ())
-        {
-          mount.setSpeed(AZIMUTH_STEPS, 0);
-        }
-      #endif
-      #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        if (!mount.isRunningALT())
-        {
-          mount.setSpeed(ALTITUDE_STEPS, -ALT_STEPPER_SPEED);
-        }
-      #endif
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+      if (mount.isRunningAZ())
+      {
+        mount.setSpeed(AZIMUTH_STEPS, 0);
+      }
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+      if (!mount.isRunningALT())
+      {
+        mount.setSpeed(ALTITUDE_STEPS, -ALT_STEPPER_SPEED);
+      }
+#endif
     }
 #endif
   }
   else if (calState == DRIFT_CALIBRATION_RUNNING)
   {
     lcdMenu.setCursor(0, 1);
-    lcdMenu.printMenu("Pause 1.5s ...");
+    lcdMenu.printMenu(F("Pause 1.5s ..."));
     mount.stopSlewing(TRACKING);
     mount.delay(1500);
 
     lcdMenu.setCursor(0, 1);
-    lcdMenu.printMenu("Eastward pass...");
+    lcdMenu.printMenu(F("Eastward pass..."));
     mount.runDriftAlignmentPhase(EAST, driftDuration);
 
     lcdMenu.setCursor(0, 1);
-    lcdMenu.printMenu("Pause 1.5s ...");
+    lcdMenu.printMenu(F("Pause 1.5s ..."));
     mount.delay(1500);
 
     lcdMenu.setCursor(0, 1);
-    lcdMenu.printMenu("Westward pass...");
+    lcdMenu.printMenu(F("Westward pass..."));
     mount.runDriftAlignmentPhase(WEST, driftDuration);
 
     lcdMenu.setCursor(0, 1);
-    lcdMenu.printMenu("Done. Pause 1.5s");
+    lcdMenu.printMenu(F("Done. Pause 1.5s"));
     mount.delay(1500);
     mount.runDriftAlignmentPhase(0, 0);
 
@@ -427,7 +434,7 @@ bool processCalibrationKeys()
       if (key == btnSELECT)
       {
         mount.setSpeedCalibration(1.0f + SpeedCalibration / 10000.0f, true);
-        lcdMenu.printMenu("Speed Stored.");
+        lcdMenu.printMenu(F("Speed Stored."));
         mount.delay(500);
         calState = HIGHLIGHT_SPEED;
       }
@@ -447,7 +454,7 @@ bool processCalibrationKeys()
       if (key == btnSELECT)
       {
         mount.setStepsPerDegree(RA_STEPS, 0.1 * RAStepsPerDegree);
-        lcdMenu.printMenu("RA steps stored");
+        lcdMenu.printMenu(F("RA steps stored"));
         mount.delay(500);
         calState = HIGHLIGHT_RA_STEPS;
       }
@@ -465,7 +472,7 @@ bool processCalibrationKeys()
       if (key == btnSELECT)
       {
         mount.setStepsPerDegree(DEC_STEPS, 0.1 * DECStepsPerDegree);
-        lcdMenu.printMenu("DEC steps stored.");
+        lcdMenu.printMenu(F("DEC steps stored."));
         mount.delay(500);
         calState = HIGHLIGHT_DEC_STEPS;
       }
@@ -483,7 +490,7 @@ bool processCalibrationKeys()
       if (key == btnSELECT)
       {
         mount.setBacklashCorrection(BacklashSteps);
-        lcdMenu.printMenu("Backlash stored.");
+        lcdMenu.printMenu(F("Backlash stored."));
         mount.delay(500);
         calState = HIGHLIGHT_BACKLASH_STEPS;
       }
@@ -540,7 +547,7 @@ bool processCalibrationKeys()
     {
       if (key == btnSELECT)
       {
-        #if SUPPORT_GUIDED_STARTUP == 1
+#if SUPPORT_GUIDED_STARTUP == 1
         if (startupState == StartupWaitForRollCompletion)
         {
           LOGV1(DEBUG_INFO, F("CAL: Confirmed roll. Going back to Startup, Roll confirmed!"));
@@ -550,7 +557,7 @@ bool processCalibrationKeys()
           calState = HIGHLIGHT_FIRST;
         }
         else
-        #endif
+#endif
         {
           calState = ROLL_OFFSET_CONFIRM;
           okToUpdateMenu = false;
@@ -560,22 +567,22 @@ bool processCalibrationKeys()
       }
       else if (key == btnLEFT)
       {
-        #if SUPPORT_GUIDED_STARTUP == 1
+#if SUPPORT_GUIDED_STARTUP == 1
         if (startupState != StartupWaitForRollCompletion)
         {
           calState = HIGHLIGHT_ROLL_LEVEL;
         }
-        #endif
+#endif
       }
       else if (key == btnRIGHT)
       {
-        #if SUPPORT_GUIDED_STARTUP == 1
+#if SUPPORT_GUIDED_STARTUP == 1
         if (startupState != StartupWaitForRollCompletion)
         {
           gotoNextMenu();
           calState = HIGHLIGHT_ROLL_LEVEL;
         }
-        #endif
+#endif
       }
     }
     break;
@@ -587,13 +594,13 @@ bool processCalibrationKeys()
         auto angles = Gyro::getCurrentAngles();
         if (setRollZeroPoint)
         {
-          LOGV2(DEBUG_GYRO, "CAL: Confirmed Roll offset is %f", angles.rollAngle);
+          LOGV2(DEBUG_GYRO, F("CAL: Confirmed Roll offset is %f"), angles.rollAngle);
           mount.setRollCalibrationAngle(angles.rollAngle);
-          LOGV2(DEBUG_GYRO, "CAL: New Roll offset is %f", mount.getRollCalibrationAngle());
+          LOGV2(DEBUG_GYRO, F("CAL: New Roll offset is %f"), mount.getRollCalibrationAngle());
         }
         else
         {
-          LOGV2(DEBUG_GYRO, "CAL: Did not confirm, Roll offset was %f", angles.rollAngle);
+          LOGV2(DEBUG_GYRO, F("CAL: Did not confirm, Roll offset was %f"), angles.rollAngle);
         }
         calState = HIGHLIGHT_ROLL_LEVEL;
         okToUpdateMenu = true;
@@ -633,12 +640,12 @@ bool processCalibrationKeys()
         auto angles = Gyro::getCurrentAngles();
         if (setPitchZeroPoint)
         {
-          LOGV2(DEBUG_GYRO, "CAL: Confirmed Pitch offset is %f", angles.pitchAngle);
+          LOGV2(DEBUG_GYRO, F("CAL: Confirmed Pitch offset is %f"), angles.pitchAngle);
           mount.setPitchCalibrationAngle(angles.pitchAngle);
         }
         else
         {
-          LOGV2(DEBUG_GYRO, "CAL: Did not confirm, Pitch offset was %f", angles.pitchAngle);
+          LOGV2(DEBUG_GYRO, F("CAL: Did not confirm, Pitch offset was %f"), angles.pitchAngle);
         }
         calState = HIGHLIGHT_PITCH_LEVEL;
         okToUpdateMenu = true;
@@ -659,7 +666,7 @@ bool processCalibrationKeys()
       {
         LOGV2(DEBUG_GENERAL, F("CAL Menu: Set brightness to %d"), Brightness);
         lcdMenu.setBacklightBrightness(Brightness);
-        lcdMenu.printMenu("Level stored.");
+        lcdMenu.printMenu(F("Level stored."));
         mount.delay(500);
         calState = HIGHLIGHT_BACKLIGHT;
       }
@@ -677,7 +684,7 @@ bool processCalibrationKeys()
       if (key == btnSELECT)
       {
         mount.setLocalUtcOffset(UTCOffset);
-        lcdMenu.printMenu("UTC stored.");
+        lcdMenu.printMenu(F("UTC stored."));
         mount.delay(500);
         calState = HIGHLIGHT_UTC_OFFSET;
       }
@@ -721,7 +728,7 @@ bool processCalibrationKeys()
       if (key == btnSELECT)
       {
         calState = POLAR_CALIBRATION_WAIT_HOME;
-        lcdMenu.printMenu("Aligned, homing");
+        lcdMenu.printMenu(F("Aligned, homing"));
         mount.delay(750);
 
         // Sync the mount to Polaris, since that's where it's pointing
@@ -804,18 +811,18 @@ bool processCalibrationKeys()
         if (parkYesNoIndex == 0)
         { // Yes
           mount.setParkingPosition();
-          lcdMenu.printMenu("Position stored.");
+          lcdMenu.printMenu(F("Position stored."));
           mount.delay(800);
         }
         else
         {
-          lcdMenu.printMenu("Use CTRL to move");
+          lcdMenu.printMenu(F("Use CTRL to move"));
           mount.delay(750);
           lcdMenu.setCursor(0, 1);
-          lcdMenu.printMenu("OAT to park pos,");
+          lcdMenu.printMenu(F("OAT to park pos,"));
           mount.delay(750);
           lcdMenu.setCursor(0, 1);
-          lcdMenu.printMenu("then come back.");
+          lcdMenu.printMenu(F("then come back."));
           mount.delay(700);
         }
         calState = HIGHLIGHT_PARKING_POS;
@@ -841,25 +848,25 @@ bool processCalibrationKeys()
         if (limitSetClearCancelIndex == 0)
         { // Set
           mount.setDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
-          lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit stored" : "LowLimit stored");
+          lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? F("UprLimit stored") : F("LowLimit stored"));
           mount.delay(800);
         }
         if (limitSetClearCancelIndex == 1)
         { // Clear
           mount.clearDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
-          lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit cleared" : "LowLimit cleared");
+          lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? F("UprLimit cleared") : F("LowLimit cleared"));
           mount.delay(800);
         }
         else if (limitSetClearCancelIndex == 2)
         { // Cancel
 
-          lcdMenu.printMenu("Use CTRL to move");
+          lcdMenu.printMenu(F("Use CTRL to move"));
           mount.delay(750);
           lcdMenu.setCursor(0, 1);
-          lcdMenu.printMenu("OAT to limit,");
+          lcdMenu.printMenu(F("OAT to limit,"));
           mount.delay(750);
           lcdMenu.setCursor(0, 1);
-          lcdMenu.printMenu("then come back.");
+          lcdMenu.printMenu(F("then come back."));
           mount.delay(700);
         }
         calState = (calState == DEC_UPPER_LIMIT_CONFIRM) ? HIGHLIGHT_DEC_UPPER_LIMIT : HIGHLIGHT_DEC_LOWER_LIMIT;
@@ -1069,18 +1076,21 @@ bool processCalibrationKeys()
 
 void makeIndicator(char *scratchBuffer, float angle)
 {
-  angle = clamp(angle, -9.9f, 9.9f);
-  dtostrf(fabsf(angle), 3, 1, &scratchBuffer[8]);
-  for (int i = 0; i < 5; i++)
+  angle = clamp(angle, -2.9f, 2.9f);
+  for (int i = 3; i < 16; i++)
   {
-    scratchBuffer[3 + i] = '-';
-    scratchBuffer[11 + i] = '-';
+    scratchBuffer[i] = '-';
   }
 
-  int pos = clamp((int)round(angle * 4), -5, 5);
+  int pos = clamp((int)round(angle * 6), -6, 6);
   if (pos != 0)
   {
-    scratchBuffer[pos + ((pos < 0) ? 8 : 10)] = (pos < 0) ? '>' : '<';
+    scratchBuffer[9] = '|';
+    scratchBuffer[9 + pos] = (pos < 0) ? '>' : '<';
+  }
+  else
+  {
+    scratchBuffer[9] = '^';
   }
 }
 
@@ -1089,79 +1099,79 @@ void printCalibrationSubmenu()
   char scratchBuffer[20];
   if (calState == HIGHLIGHT_POLAR)
   {
-    lcdMenu.printMenu(">Polar alignment");
+    lcdMenu.printMenu(F(">Polar alignment"));
   }
   else if (calState == HIGHLIGHT_SPEED)
   {
-    lcdMenu.printMenu(">Speed calibratn");
+    lcdMenu.printMenu(F(">Speed calibratn"));
   }
   else if (calState == HIGHLIGHT_DRIFT)
   {
-    lcdMenu.printMenu(">Drift alignment");
+    lcdMenu.printMenu(F(">Drift alignment"));
   }
   else if (calState == HIGHLIGHT_RA_STEPS)
   {
-    lcdMenu.printMenu(">RA Step Adjust");
+    lcdMenu.printMenu(F(">RA Step Adjust"));
   }
   else if (calState == HIGHLIGHT_DEC_STEPS)
   {
-    lcdMenu.printMenu(">DEC Step Adjust");
+    lcdMenu.printMenu(F(">DEC Step Adjust"));
   }
   else if (calState == HIGHLIGHT_BACKLASH_STEPS)
   {
-    lcdMenu.printMenu(">Backlash Adjust");
+    lcdMenu.printMenu(F(">Backlash Adjust"));
   }
   else if (calState == HIGHLIGHT_PARKING_POS)
   {
-    lcdMenu.printMenu(">Set Parking Pos");
+    lcdMenu.printMenu(F(">Set Parking Pos"));
   }
   else if (calState == HIGHLIGHT_DEC_LOWER_LIMIT)
   {
-    lcdMenu.printMenu(">DEC Lower Limit");
+    lcdMenu.printMenu(F(">DEC Lower Limit"));
   }
   else if (calState == HIGHLIGHT_DEC_UPPER_LIMIT)
   {
-    lcdMenu.printMenu(">DEC Upper Limit");
+    lcdMenu.printMenu(F(">DEC Upper Limit"));
   }
   else if (calState == HIGHLIGHT_UTC_OFFSET)
   {
-    lcdMenu.printMenu(">UTC Offset");
+    lcdMenu.printMenu(F(">UTC Offset"));
   }
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == HIGHLIGHT_AZIMUTH_ADJUSTMENT)
   {
-    lcdMenu.printMenu(">Azimuth Adjst.");
+    lcdMenu.printMenu(F(">Azimuth Adjst."));
   }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   else if (calState == HIGHLIGHT_ALTITUDE_ADJUSTMENT)
   {
-    lcdMenu.printMenu(">Altitude Adjst.");
+    lcdMenu.printMenu(F(">Altitude Adjst."));
   }
 #endif
 
 #if USE_GYRO_LEVEL == 1
   else if (calState == HIGHLIGHT_ROLL_LEVEL)
   {
-    lcdMenu.printMenu(">Roll Offset");
+    lcdMenu.printMenu(F(">Roll Offset"));
   }
   else if (calState == HIGHLIGHT_PITCH_LEVEL)
   {
-    lcdMenu.printMenu(">Pitch Offset");
+    lcdMenu.printMenu(F(">Pitch Offset"));
   }
 #endif
   else if (calState == HIGHLIGHT_BACKLIGHT)
   {
-    lcdMenu.printMenu(">LCD Brightness");
+    lcdMenu.printMenu(F(">LCD Brightness"));
   }
   else if (calState == POLAR_CALIBRATION_WAIT_CENTER_POLARIS)
   {
     if (!mount.isSlewingRAorDEC())
     {
       lcdMenu.setCursor(0, 0);
-      lcdMenu.printMenu("Center Polaris");
+      lcdMenu.printMenu(F("Center Polaris"));
       lcdMenu.setCursor(0, 1);
-      lcdMenu.printMenu(">Centered");
+      lcdMenu.printMenu(F(">Centered"));
     }
   }
   else if (calState == SPEED_CALIBRATION)
@@ -1200,7 +1210,7 @@ void printCalibrationSubmenu()
   else if (calState == DEC_LOWER_LIMIT_CONFIRM)
   {
     lcdMenu.setCursor(0, 0);
-    lcdMenu.printMenu("DEC Lower Limit");
+    lcdMenu.printMenu(F("DEC Lower Limit"));
     lcdMenu.setCursor(0, 1);
 
     sprintf(scratchBuffer, " Set  Clr  Cancl");
@@ -1210,7 +1220,7 @@ void printCalibrationSubmenu()
   else if (calState == DEC_UPPER_LIMIT_CONFIRM)
   {
     lcdMenu.setCursor(0, 0);
-    lcdMenu.printMenu("DEC Upper Limit");
+    lcdMenu.printMenu(F("DEC Upper Limit"));
     lcdMenu.setCursor(0, 1);
     sprintf(scratchBuffer, " Set  Clr  Cancl");
     scratchBuffer[limitSetClearCancelIndex * 5] = '>';
@@ -1238,28 +1248,46 @@ void printCalibrationSubmenu()
 #if USE_GYRO_LEVEL == 1
   else if (calState == ROLL_OFFSET_CALIBRATION)
   {
+    calCount++;
     auto angles = Gyro::getCurrentAngles();
-    sprintf(scratchBuffer, "R: -------------");
-    makeIndicator(scratchBuffer, angles.rollAngle - mount.getRollCalibrationAngle());
-    lcdMenu.printMenu(scratchBuffer);
+    accumulator.rollAngle += angles.rollAngle;
+    if (calCount >= ACCUMULATOR_COUNT)
+    {
+      accumulator.rollAngle /= (float)ACCUMULATOR_COUNT;
+      sprintf(scratchBuffer, "R: ");
+      makeIndicator(scratchBuffer, accumulator.rollAngle - mount.getRollCalibrationAngle());
+      scratchBuffer[16] = 0;
+      lcdMenu.printMenu(scratchBuffer);
+      calCount = 0;
+      accumulator.rollAngle = 0;
+    }
   }
   else if (calState == ROLL_OFFSET_CONFIRM)
   {
-    String disp = " Yes  No  ";
+    String disp = F(" Yes  No  ");
     disp.setCharAt(setRollZeroPoint ? 0 : 5, '>');
     disp.setCharAt(setRollZeroPoint ? 4 : 8, '<');
     lcdMenu.printMenu(disp);
   }
   else if (calState == PITCH_OFFSET_CALIBRATION)
   {
+    calCount++;
     auto angles = Gyro::getCurrentAngles();
-    sprintf(scratchBuffer, "P: -------------");
-    makeIndicator(scratchBuffer, angles.pitchAngle - mount.getPitchCalibrationAngle());
-    lcdMenu.printMenu(scratchBuffer);
+    accumulator.pitchAngle += angles.pitchAngle;
+    if (calCount >= ACCUMULATOR_COUNT)
+    {
+      accumulator.pitchAngle /= (float)ACCUMULATOR_COUNT;
+      sprintf(scratchBuffer, "P: ");
+      makeIndicator(scratchBuffer, accumulator.pitchAngle - mount.getPitchCalibrationAngle());
+      scratchBuffer[16] = 0;
+      lcdMenu.printMenu(scratchBuffer);
+      calCount = 0;
+      accumulator.pitchAngle = 0;
+    }
   }
   else if (calState == PITCH_OFFSET_CONFIRM)
   {
-    String disp = " Yes  No  ";
+    String disp = F(" Yes  No  ");
     disp.setCharAt(setPitchZeroPoint ? 0 : 5, '>');
     disp.setCharAt(setPitchZeroPoint ? 4 : 8, '<');
     lcdMenu.printMenu(disp);

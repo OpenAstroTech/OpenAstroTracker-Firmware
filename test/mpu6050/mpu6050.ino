@@ -1,4 +1,4 @@
-//#define SW_I2C 
+#define SW_I2C 
 
 
 
@@ -36,6 +36,9 @@ enum {
   MPU6050_REG_WHO_AM_I = 0x75
 };
 
+char achBuffer[100];
+
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(57600);
@@ -43,7 +46,7 @@ void setup() {
     ;
   Serial.println("\nStart...");
 
-  #ifdef SW_I2C
+    #ifdef SW_I2C
 //    Wire.setTxBuffer(wireTxBuffer, sizeof(wireTxBuffer));
 //    Wire.setRxBuffer(wireRxBuffer, sizeof(wireRxBuffer));
 //    Wire.setDelay_us(5);
@@ -111,8 +114,8 @@ String padString(int16_t i) {
   return res;
 }
 
-const int window = 1;
 
+const int window = 1;
 void loop() {
   if (!isPresent)
     return; // Gyro is not available
@@ -120,6 +123,12 @@ void loop() {
   float ax=0,ay=0,az=0;
   float rollAngle=0;
   float pitchAngle=0;
+  float deltaPitch=0;
+  float maxDeltaPitch=0;
+  float lastPitch=0, temp;
+  memset(achBuffer, 32, 99);
+  achBuffer[99]=0;
+    
   for (int i=0; i<window; i++)
   {
     // Execute 6 byte read from MPU6050_REG_WHO_AM_I
@@ -128,29 +137,45 @@ void loop() {
     Wire.endTransmission(false);
     
     Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);     // Read 6 registers total, each axis value is stored in 2 registers
-    uint8_t b0 =  Wire.read();
-    uint8_t b1 =  Wire.read();
-    uint8_t b2 =  Wire.read();
-    uint8_t b3 =  Wire.read();
-    uint8_t b4 =  Wire.read();
-    uint8_t b5 =  Wire.read();
-    ax+=b0;
-    ay+=b1;
-    
-    int16_t AcX = static_cast<int16_t>((b0 << 8) + b1); // X-axis value
-    int16_t AcY = static_cast<int16_t>((b2 << 8) + b3); // Y-axis value
-    int16_t AcZ = static_cast<int16_t>((b4 << 8) + b5); // Z-axis value
+    const uint8_t accelXMSByte = Wire.read();
+    const uint8_t accelXLSByte = Wire.read();
+    const uint8_t accelYMSByte = Wire.read();
+    const uint8_t accelYLSByte = Wire.read();
+    const uint8_t accelZMSByte = Wire.read();
+    const uint8_t accelZLSByte = Wire.read();
 
+    const int16_t accelInX = accelXMSByte << 8 | accelXLSByte; // X-axis value
+    const int16_t accelInY = accelYMSByte << 8 | accelYLSByte; // Y-axis value
+    const int16_t accelInZ = accelZMSByte << 8 | accelZLSByte; // Z-axis value
 
-    rollAngle += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
-    pitchAngle += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
-  
-    Serial.println("Accel : "+padString(ax,1)+" "+padString(ay,1)+" "+padString(AcX,1)+ "  Roll:"+padString(rollAngle,3)+ "  Roll:"+padString(pitchAngle,3));
+    // Calculating the Pitch angle (rotation around Y-axis)
+    temp = ((atanf(-1 * accelInX / sqrtf(powf(accelInY, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+    if (i>0){
+      
+      deltaPitch=temp-lastPitch;
+      if (fabs(deltaPitch)>maxDeltaPitch)
+      {
+        maxDeltaPitch=deltaPitch;
+      }
+      lastPitch=temp;
+    }
+    pitchAngle += temp;
+    // Calculating the Roll angle (rotation around X-axis)
+    rollAngle += ((atanf(-1 * accelInY / sqrtf(powf(accelInX, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;  
+    //Serial.println("Accel : "+padString(pitchAngle,2)+ "  Roll:"+padString(rollAngle,2)+ "  Roll:"+padString(pitchAngle,3));
+
   }
-
-  rollAngle /= window;
-  ax /= window;
-  ay /= window;
+  
+  pitchAngle /= window;
+  rollAngle /=window;
+  
+  achBuffer[45]='|';
+  pitchAngle=45+pitchAngle*20;
+  if (pitchAngle<0) pitchAngle=0;
+  if (pitchAngle>98) pitchAngle=98;
+  achBuffer[(int)(pitchAngle)]='*';
+  Serial.print(achBuffer);
+  Serial.println(String(maxDeltaPitch*1000,1));
   
   Wire.beginTransmission(MPU6050_I2C_ADDR);
   Wire.write(MPU6050_REG_TEMP_OUT_H);
@@ -161,7 +186,7 @@ void loop() {
   int8_t tl =  Wire.read();
   int16_t t = 256 * th;
   t = t + tl;
-  float temp = ((float)t/340.0) + 36.53;
+  temp = ((float)t/340.0) + 36.53;
   //Serial.println("Accel : "+padString(ax,1)+" "+padString(ay,1)+ " Roll:"+padString(rollAngle,3) +"    Temp: "+padString(temp,1)+"C");
   
   //Serial.println("Accel Bytes: "+String(b0,HEX)+" "+String(b1,HEX)+" "+String(b2,HEX)+" "+String(b3,HEX)+" "+String(b4,HEX)+" "+String(b5,HEX));

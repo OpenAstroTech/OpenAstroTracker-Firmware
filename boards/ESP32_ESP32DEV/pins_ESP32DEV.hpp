@@ -90,6 +90,8 @@
 
 #define SW_SERIAL_UART 0
 
+// Digital Level addon - not officially supported on ESP32. If you find two free pins, add GYRO_SOFTWARE_SCL_PIN  and GYRO_SOFTWARE_SDA_PIN to your local config
+
 // DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 requires 3 analog inputs in Arduino pin numbering
 #ifndef LCD_KEY_SENSE_X_PIN
   #define LCD_KEY_SENSE_X_PIN 34
