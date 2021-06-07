@@ -1,3 +1,6 @@
+**V1.9.16 - Updates**
+- Support software I2C so that Digital Level can be used on MKS board.
+
 **V1.9.15 - Updates**
 - Fixed incorrect speed for DEC when using 28BYJ-48 steppers
 

@@ -116,6 +116,8 @@
   #define ALT_IN4_PIN 52
 #endif
 
+// Digital Level addon - uses hardware I2C on Mega2560 standalone. Pin 21 for Clock and pin 20 for data
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
   #define GPS_SERIAL_PORT Serial1
