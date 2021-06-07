@@ -38,7 +38,7 @@ void Gyro::startup()
     Wire.setClock(100000); // Set lowest clock speed (100kHz) to make the communication more reliable
 
 #if USE_GYRO_WITH_SOFTWAREI2C == 0
-    Wire.setWireTimeout(3000, true); // Set I2C timeout if the Wire.h calls are hanging due to a HW issue
+    // Wire.setWireTimeout(3000, true); // Set I2C timeout if the Wire.h calls are hanging due to a HW issue
 #endif
     // Execute 1 byte read from MPU6050_REG_WHO_AM_I
     // This is a read-only register which should have the value 0x68
@@ -125,11 +125,11 @@ angle_t Gyro::getCurrentAngles()
     result.rollAngle += ((atanf(-1 * accelInY / sqrtf(powf(accelInX, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
 
 #if USE_GYRO_WITH_SOFTWAREI2C == 0
-    if (Wire.getWireTimeoutFlag())
-    {
-        LOGV1(DEBUG_INFO, F("GYRO:: WARN: I2C Timeout."));
-        Wire.clearWireTimeoutFlag();
-    }
+    // if (Wire.getWireTimeoutFlag())
+    // {
+    //     LOGV1(DEBUG_INFO, F("GYRO:: WARN: I2C Timeout."));
+    //     Wire.clearWireTimeoutFlag();
+    // }
 #endif
 
 #if GYRO_AXIS_SWAP == 1
