@@ -2,6 +2,7 @@
 # Can be used to populate WIKI
 
 import os
+import re
 
 MEADE_HPP = "..\\src\\MeadeCommandProcessor.cpp"
 MODULE_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -21,8 +22,26 @@ class Command:
         self.long = str()
         self.returns = str()
 
-def removeLinePrefix(line):
-    return line.replace("// ", "").strip()
+def remove_line_prefix(line):
+    fixed_line = line.replace("// ", "").strip()
+    fixed_line = fixed_line.replace("|", "\|")
+    fixed_line = re.sub(r"[\n\t]*", "", fixed_line)
+    return fixed_line
+
+def format_return_string(line):
+    line = line.replace("//            ", " ")
+    line = line.replace("//      ", " ")
+    word_split = line.split(" ")
+    for i in range(len(word_split)):
+        word_split[i] = word_split[i].replace("<", "")
+        word_split[i] = word_split[i].replace(">", "")
+        if '#' in word_split[i]:
+            word_split[i] = "`" + word_split[i] + "`"
+            
+    new_line = ' '.join(word_split)
+    print(new_line)
+    return new_line
+
 
 #Meade hpp File
 with open(os.path.join(MODULE_PATH, MEADE_HPP)) as f:
@@ -59,7 +78,7 @@ for i in range(len(familyDividers) - 1):
     
     newFamily = Family()
     if "//------------------------------------------------------------------" in content[start]:
-        newFamily.name = removeLinePrefix(content[start + 1])
+        newFamily.name = remove_line_prefix(content[start + 1])
     elif "// --" in content[start]:
         nameCleanup = content[start].replace("// -- ", "")
         nameCleanup = nameCleanup.replace(" --", "")
@@ -70,33 +89,60 @@ for i in range(len(familyDividers) - 1):
 
         # Command
         if content[y].startswith("// :"):
-            newCommand.command = removeLinePrefix(content[y])
+            newCommand.command = remove_line_prefix(content[y])
         
             # Short Description
-            newCommand.short = removeLinePrefix(content[y + 1])
+            newCommand.short = remove_line_prefix(content[y + 1])
             y+=2
 
             k = y
             while not content[k].startswith("//      Returns:"):
-                newCommand.long += removeLinePrefix(content[k])
+                newCommand.long += remove_line_prefix(content[k])
                 k += 1
             y = k
-        
         
         if content[y].startswith("//      Returns:"):
-            newCommand.returns += content[y].replace("//      Returns: ", "")
+            newCommand.returns += format_return_string(content[y].replace("//      Returns: ", ""))
             k = y+1
             while content[k] != "//":
-                newCommand.returns += content[k].replace("//               ", " ").strip()
+                return_line = content[k].replace("//               ", "")
+                newCommand.returns += format_return_string(return_line)
                 k += 1
             y = k
-        
+
         if newCommand.command:
             newFamily.commands.append(newCommand)
 
     allCommands.append(newFamily)
 
 
+def output_wiki():
+    f = open("./scripts/MeadeToWikiOutput.txt", "w")
+    
+    f.write("# MEADE Command Index\n\n")
+    for fam in allCommands:
+        f.write(f"## {fam.name}\n")
+
+        for cmd in fam.commands:
+            f.write(f"### {cmd.short}\n")
+            f.write(f"**Command:** `{cmd.command}`\n")
+            f.write("\n")
+            f.write("**Description:**\n")
+            f.write(f"{cmd.long}\n")
+            f.write("\n")
+            f.write("**Returns:**\n")
+            f.write(f"{cmd.returns}\n")
+            f.write("<br>\n")
+
+    f.write("\n\n")
+
+    f.close()
+    print("FilOutpute written to: ./scripts/MeadeToWikiOutput.txt")
+
+if __name__ == "__main__":
+    output_wiki()
+
+"""
 # Example of printing output
 for fam in allCommands:
     print("***** {0} *****".format(fam.name))
@@ -112,3 +158,4 @@ print("Family Count: {0}".format(len(allCommands)))
 for fam in allCommands:
     print("{0}".format(fam.name))
     print("\t{0}".format(len(fam.commands)))
+"""
