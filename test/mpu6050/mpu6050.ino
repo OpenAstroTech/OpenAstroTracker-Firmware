@@ -41,7 +41,7 @@ char achBuffer[100];
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(57600);
+  Serial.begin(19200);
   while (!Serial)
     ;
   Serial.println("\nStart...");
@@ -114,6 +114,8 @@ String padString(int16_t i) {
   return res;
 }
 
+float accum = 0;
+float LPF_Beta = 0.15;
 
 const int window = 1;
 void loop() {
@@ -164,18 +166,22 @@ void loop() {
     rollAngle += ((atanf(-1 * accelInY / sqrtf(powf(accelInX, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;  
     //Serial.println("Accel : "+padString(pitchAngle,2)+ "  Roll:"+padString(rollAngle,2)+ "  Roll:"+padString(pitchAngle,3));
 
+    accum = accum - (LPF_Beta * (accum-temp));
   }
   
   pitchAngle /= window;
   rollAngle /=window;
   
   achBuffer[45]='|';
+  pitchAngle=accum ;
+
+  
   pitchAngle=45+pitchAngle*20;
   if (pitchAngle<0) pitchAngle=0;
   if (pitchAngle>98) pitchAngle=98;
-  achBuffer[(int)(pitchAngle)]='*';
-  Serial.print(achBuffer);
-  Serial.println(String(maxDeltaPitch*1000,1));
+//  achBuffer[(int)(pitchAngle)]='*';
+//  Serial.print(achBuffer);
+  Serial.println(String((1.5+accum)*10,2));
   
   Wire.beginTransmission(MPU6050_I2C_ADDR);
   Wire.write(MPU6050_REG_TEMP_OUT_H);

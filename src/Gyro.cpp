@@ -65,8 +65,7 @@ void Gyro::startup()
     Wire.write(MPU6050_REG_ACCEL_CONFIG);
     Wire.endTransmission();
     Wire.requestFrom(MPU6050_I2C_ADDR, 1);
-    byte accelConfigReg = Wire.read();              //the value of Register-28 is in x
-    accelConfigReg = (accelConfigReg & 0b11100111); //clear values of Bit4 and Bit3 fo 2g sensitivity
+    const byte accelConfigReg = Wire.read() & 0b11100111; //clear values of Bit4 and Bit3 fo 2g sensitivity
     Wire.beginTransmission(MPU6050_I2C_ADDR);
     Wire.write(MPU6050_REG_ACCEL_CONFIG);
     Wire.write(accelConfigReg);
@@ -102,27 +101,33 @@ angle_t Gyro::getCurrentAngles()
         return result; // Gyro is not available
     }
 
-    // Execute 6 byte read from MPU6050_REG_WHO_AM_I
-    Wire.beginTransmission(MPU6050_I2C_ADDR);
-    Wire.write(MPU6050_REG_ACCEL_XOUT_H);
-    Wire.endTransmission(false);
-    Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1); // Read 6 registers total, each axis value is stored in 2 registers
-    const uint8_t accelXMSByte = Wire.read();
-    const uint8_t accelXLSByte = Wire.read();
-    const uint8_t accelYMSByte = Wire.read();
-    const uint8_t accelYLSByte = Wire.read();
-    const uint8_t accelZMSByte = Wire.read();
-    const uint8_t accelZLSByte = Wire.read();
+    for (int i = 0; i < 4; i++)
+    {
+        // Execute 6 byte read from MPU6050_REG_WHO_AM_I
+        Wire.beginTransmission(MPU6050_I2C_ADDR);
+        Wire.write(MPU6050_REG_ACCEL_XOUT_H);
+        Wire.endTransmission(false);
+        Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1); // Read 6 registers total, each axis value is stored in 2 registers
+        const uint8_t accelXMSByte = Wire.read();
+        const uint8_t accelXLSByte = Wire.read();
+        const uint8_t accelYMSByte = Wire.read();
+        const uint8_t accelYLSByte = Wire.read();
+        const uint8_t accelZMSByte = Wire.read();
+        const uint8_t accelZLSByte = Wire.read();
 
-    const int16_t accelInX = accelXMSByte << 8 | accelXLSByte; // X-axis value
-    const int16_t accelInY = accelYMSByte << 8 | accelYLSByte; // Y-axis value
-    const int16_t accelInZ = accelZMSByte << 8 | accelZLSByte; // Z-axis value
+        const int16_t accelInX = accelXMSByte << 8 | accelXLSByte; // X-axis value
+        const int16_t accelInY = accelYMSByte << 8 | accelYLSByte; // Y-axis value
+        const int16_t accelInZ = accelZMSByte << 8 | accelZLSByte; // Z-axis value
 
-    // Calculating the Pitch angle (rotation around Y-axis)
-    result.pitchAngle += ((atanf(-1 * accelInX / sqrtf(powf(accelInY, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        // Calculating the Pitch angle (rotation around Y-axis)
+        result.pitchAngle += ((atanf(-1 * accelInX / sqrtf(powf(accelInY, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
 
-    // Calculating the Roll angle (rotation around X-axis)
-    result.rollAngle += ((atanf(-1 * accelInY / sqrtf(powf(accelInX, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        // Calculating the Roll angle (rotation around X-axis)
+        result.rollAngle += ((atanf(-1 * accelInY / sqrtf(powf(accelInX, 2) + powf(accelInZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+    }
+
+    result.pitchAngle /= 4.0f;
+    result.rollAngle /= 4.0f;
 
 #if USE_GYRO_WITH_SOFTWAREI2C == 0
     // if (Wire.getWireTimeoutFlag())

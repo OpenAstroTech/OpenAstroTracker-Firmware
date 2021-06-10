@@ -150,7 +150,7 @@
   #define ALT_DRIVER_ADDRESS 0b00
 #endif
 
-// Digital Level addon - not officially supported on ESP32. If you find two free pins, add GYRO_SOFTWARE_SCL_PIN  and GYRO_SOFTWARE_SDA_PIN to your local config
+// Digital Level addon - not officially supported on MKS V1. If you find two free pins, add GYRO_SOFTWARE_SCL_PIN  and GYRO_SOFTWARE_SDA_PIN to your local config
 
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT

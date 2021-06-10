@@ -96,9 +96,8 @@ byte calState = HIGHLIGHT_FIRST;
 
 // Variables to accumulate and smooth the accelerometer readings of the digital level
 #if USE_GYRO_LEVEL == 1
-  byte calCount = 0;
-  angle_t accumulator;
-  #define ACCUMULATOR_COUNT 4
+angle_t accumulator;
+float LPFBeta = 0.6f;
 #endif
 
 // Speed adjustment variable. Added to 1.0 after dividing by 10000 to get final speed
@@ -232,6 +231,7 @@ bool processCalibrationKeys()
   {
     LOGV1(DEBUG_INFO, F("CAL: Starting Gyro!"));
     Gyro::startup();
+    accumulator.pitchAngle = accumulator.rollAngle = 0.0f;
     gyroStarted = true;
   }
 #if SUPPORT_GUIDED_STARTUP == 1
@@ -1248,18 +1248,16 @@ void printCalibrationSubmenu()
 #if USE_GYRO_LEVEL == 1
   else if (calState == ROLL_OFFSET_CALIBRATION)
   {
-    calCount++;
     auto angles = Gyro::getCurrentAngles();
-    accumulator.rollAngle += angles.rollAngle;
-    if (calCount >= ACCUMULATOR_COUNT)
+    float delta = accumulator.rollAngle - angles.rollAngle;
+    if ((fabs(delta) < 5.0) && !isnan(angles.rollAngle))
     {
-      accumulator.rollAngle /= (float)ACCUMULATOR_COUNT;
+      accumulator.rollAngle = accumulator.rollAngle - LPFBeta * (delta);
+      LOGV3(DEBUG_INFO, F("GYRO: Readings : Roll: %f     AccumRoll: %f"), angles.rollAngle, accumulator.rollAngle);
       sprintf(scratchBuffer, "R: ");
       makeIndicator(scratchBuffer, accumulator.rollAngle - mount.getRollCalibrationAngle());
-      scratchBuffer[16] = 0;
+      scratchBuffer[16] = '\0';
       lcdMenu.printMenu(scratchBuffer);
-      calCount = 0;
-      accumulator.rollAngle = 0;
     }
   }
   else if (calState == ROLL_OFFSET_CONFIRM)
@@ -1271,19 +1269,12 @@ void printCalibrationSubmenu()
   }
   else if (calState == PITCH_OFFSET_CALIBRATION)
   {
-    calCount++;
     auto angles = Gyro::getCurrentAngles();
-    accumulator.pitchAngle += angles.pitchAngle;
-    if (calCount >= ACCUMULATOR_COUNT)
-    {
-      accumulator.pitchAngle /= (float)ACCUMULATOR_COUNT;
-      sprintf(scratchBuffer, "P: ");
-      makeIndicator(scratchBuffer, accumulator.pitchAngle - mount.getPitchCalibrationAngle());
-      scratchBuffer[16] = 0;
-      lcdMenu.printMenu(scratchBuffer);
-      calCount = 0;
-      accumulator.pitchAngle = 0;
-    }
+    accumulator.pitchAngle = accumulator.pitchAngle - LPFBeta * (accumulator.pitchAngle - angles.pitchAngle);
+    sprintf(scratchBuffer, "P: ");
+    makeIndicator(scratchBuffer, accumulator.pitchAngle - mount.getPitchCalibrationAngle());
+    scratchBuffer[16] = '\0';
+    lcdMenu.printMenu(scratchBuffer);
   }
   else if (calState == PITCH_OFFSET_CONFIRM)
   {
