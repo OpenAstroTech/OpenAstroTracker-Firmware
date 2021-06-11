@@ -1,3 +1,6 @@
+**V1.9.25 - Updates**
+- clang-format codebase
+
 **V1.9.24 - Updates**
 - Fix hold currents of AZ/ALT/Focuser drivers.
 

@@ -2,7 +2,8 @@ name: Check changelog and version are matching
 
 on:
   pull_request:
-    branches: [ develop ]
+    branches:
+      - '*'
 
 jobs:
   check:
