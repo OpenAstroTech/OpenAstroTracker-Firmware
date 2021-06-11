@@ -4,8 +4,7 @@
 #include "inc/Globals.hpp"
 
 // LCD shield buttons
-enum lcdButton_t
-{
+enum lcdButton_t {
     btnRIGHT,
     btnUP,
     btnDOWN,
@@ -18,39 +17,37 @@ enum lcdButton_t
 // Forward declaration
 class LcdMenu;
 
-class LcdButtons
-{
-  public:
-    LcdButtons(byte pin, LcdMenu *lcdMenu);
-    LcdButtons(LcdMenu *lcdMenu);
+class LcdButtons {
+public:
+  LcdButtons(byte pin, LcdMenu* lcdMenu);
+  LcdButtons(LcdMenu* lcdMenu);
 
-    lcdButton_t currentKey()
-    {
-        checkKey();
-        return _newKey;
-    }
+  lcdButton_t currentKey() {
+    checkKey();
+    return _newKey;
+  }
 
-    lcdButton_t currentState()
-    {
-        checkKey();
-        return _currentKey;
-    }
+  lcdButton_t currentState() {
+    checkKey();
+    return _currentKey;
+  }
 
-    int currentAnalogState();
+  int currentAnalogState();
 
-    bool keyChanged(lcdButton_t *pNewKey);
+  bool keyChanged(lcdButton_t* pNewKey);
 
-  private:
-    void checkKey();
+private:
+  void checkKey();
+    
+private:
 
-  private:
-    unsigned long _lastKeyChange;
-    byte _analogPin;
-    lcdButton_t _lastKey;
-    lcdButton_t _newKey;
-    lcdButton_t _lastNewKey;
-    lcdButton_t _currentKey;
-    LcdMenu *_lcdMenu;
+  unsigned long _lastKeyChange;
+  byte _analogPin;
+  lcdButton_t _lastKey;
+  lcdButton_t _newKey;
+  lcdButton_t _lastNewKey;
+  lcdButton_t _currentKey;
+  LcdMenu* _lcdMenu;
 };
 
-#endif  // LCDBUTTONS_HPP_
+#endif // LCDBUTTONS_HPP_

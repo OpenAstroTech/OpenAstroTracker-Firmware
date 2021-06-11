@@ -1,14 +1,13 @@
 #pragma once
 
 #if DISPLAY_TYPE > 0
-    #if SUPPORT_MANUAL_CONTROL == 1
+#if SUPPORT_MANUAL_CONTROL == 1
 
-        #include "MappedDict.hpp"
+#include "MappedDict.hpp"
 
 bool setZeroPoint = true;
 
-enum ctrlState_t
-{
+enum ctrlState_t {
     HIGHLIGHT_MANUAL,
     HIGHLIGHT_SERIAL,
     MANUAL_CONTROL_MODE,
@@ -19,7 +18,7 @@ ctrlState_t ctrlState = HIGHLIGHT_MANUAL;
 
 void setControlMode(bool state)
 {
-    ctrlState = state ? MANUAL_CONTROL_MODE : HIGHLIGHT_MANUAL;
+  ctrlState = state ? MANUAL_CONTROL_MODE : HIGHLIGHT_MANUAL;
 }
 
 /**
@@ -50,8 +49,7 @@ bool controlManualSlew(lcdButton_t key, int dir)
             mount.startSlewing(dir);
         }
         isNewSlewDirection = true;
-    }
-    else if (currentKeyPressed != key) {
+    } else if (currentKeyPressed != key) {
         countDown = LOOPS_TO_CONFIRM_KEY;
     }
 
@@ -70,13 +68,13 @@ bool controlManualSlew(lcdButton_t key, int dir)
 void processManualSlew(lcdButton_t key)
 {
     MappedDict<lcdButton_t, int>::DictEntry_t lookupTable[] = {
-        {btnNONE, 0},
-        {btnSELECT, 0},
-        {btnINVALID, 0},
-        {btnUP, NORTH},
-        {btnDOWN, SOUTH},
-        {btnLEFT, WEST},
-        {btnRIGHT, EAST},
+            {btnNONE,    0},
+            {btnSELECT,  0},
+            {btnINVALID, 0},
+            {btnUP,    NORTH},
+            {btnDOWN,  SOUTH},
+            {btnLEFT,  WEST},
+            {btnRIGHT, EAST},
     };
     auto directionLookup = MappedDict<lcdButton_t, int>(lookupTable, ARRAY_SIZE(lookupTable));
     int slewDirection;
@@ -92,128 +90,144 @@ void processManualSlew(lcdButton_t key)
 
 bool processControlKeys()
 {
-    lcdButton_t key;
-    bool waitForRelease = false;
+  lcdButton_t key;
+  bool waitForRelease = false;
 
-    // User must use SELECT to enter manual control.
-    switch (ctrlState) {
-    case HIGHLIGHT_MANUAL:
-        if (lcdButtons.keyChanged(&key)) {
-            waitForRelease = true;
-            if (key == btnSELECT) {
-                ctrlState = MANUAL_CONTROL_MODE;
-                mount.stopSlewing(ALL_DIRECTIONS);
-            }
-            else if ((key == btnDOWN) || (key == btnUP)) {
-                ctrlState = HIGHLIGHT_SERIAL;
-            }
-            else if (key == btnRIGHT) {
-                lcdMenu.setNextActive();
-            }
-        }
-        break;
-
-    case HIGHLIGHT_SERIAL:
-        if (lcdButtons.keyChanged(&key)) {
-            waitForRelease = true;
-            if (key == btnSELECT) {
-                inSerialControl = !inSerialControl;
-            }
-            else if ((key == btnDOWN) || (key == btnUP)) {
-                ctrlState = HIGHLIGHT_MANUAL;
-            }
-            else if (key == btnRIGHT) {
-                inSerialControl = false;
-                lcdMenu.setNextActive();
-            }
-        }
-        break;
-
-    case MANUAL_CONTROL_CONFIRM_HOME:
-        if (lcdButtons.keyChanged(&key)) {
-            waitForRelease = true;
-            if (key == btnSELECT) {
-                if (setZeroPoint) {
-                    // Leaving Control Menu, so set stepper motor positions to zero.
-                    LOGV1(DEBUG_GENERAL, F("CTRL menu: Calling setHome(true)!"));
-                    mount.setHome(true);
-                    LOGV3(DEBUG_GENERAL,
-                          F("CTRL menu: setHome(true) returned: RA Current %s, Target: %f"),
-                          mount.RAString(CURRENT_STRING | COMPACT_STRING).c_str(),
-                          mount.RAString(TARGET_STRING | COMPACT_STRING).c_str());
-                    mount.startSlewing(TRACKING);
-                }
-
-        #if SUPPORT_GUIDED_STARTUP == 1
-                if (startupState == StartupWaitForPoleCompletion) {
-                    startupState = StartupPoleConfirmed;
-                    inStartup    = true;
-                }
-                else
-        #endif
-                {
-                    lcdMenu.setNextActive();
-                }
-
-                ctrlState      = HIGHLIGHT_MANUAL;
-                okToUpdateMenu = true;
-                setZeroPoint   = true;
-            }
-            else if (key == btnLEFT) {
-                setZeroPoint = !setZeroPoint;
-            }
-        }
-        break;
-
-    case MANUAL_CONTROL_MODE:
-        key = lcdButtons.currentState();
-        processManualSlew(key);  // Do the slewing
-
-        if (key == btnSELECT) {
-                // User wants to set the current position as home
-        #if SUPPORT_GUIDED_STARTUP == 1
-            if (startupState == StartupWaitForPoleCompletion) {
-                startupState   = StartupPoleConfirmed;
-                ctrlState      = HIGHLIGHT_MANUAL;
-                waitForRelease = true;
-                inStartup      = true;
-            }
-            else
-        #endif
-            {
-                okToUpdateMenu = false;
-                lcdMenu.setCursor(0, 0);
-                lcdMenu.printMenu("Set home pos?");
-                ctrlState      = MANUAL_CONTROL_CONFIRM_HOME;
-                waitForRelease = true;
-            }
-        }
-        break;
+  // User must use SELECT to enter manual control.
+  switch (ctrlState)
+  {
+  case HIGHLIGHT_MANUAL:
+    if (lcdButtons.keyChanged(&key))
+    {
+      waitForRelease = true;
+      if (key == btnSELECT)
+      {
+        ctrlState = MANUAL_CONTROL_MODE;
+        mount.stopSlewing(ALL_DIRECTIONS);
+      }
+      else if ((key == btnDOWN) || (key == btnUP))
+      {
+        ctrlState = HIGHLIGHT_SERIAL;
+      }
+      else if (key == btnRIGHT)
+      {
+        lcdMenu.setNextActive();
+      }
     }
+  break;
 
-    return waitForRelease;
+  case HIGHLIGHT_SERIAL:
+    if (lcdButtons.keyChanged(&key))
+    {
+      waitForRelease = true;
+      if (key == btnSELECT)
+      {
+        inSerialControl = !inSerialControl;
+      }
+      else if ((key == btnDOWN) || (key == btnUP))
+      {
+        ctrlState = HIGHLIGHT_MANUAL;
+      }
+      else if (key == btnRIGHT)
+      {
+        inSerialControl = false;
+        lcdMenu.setNextActive();
+      }
+    }
+  break;
+
+  case MANUAL_CONTROL_CONFIRM_HOME:
+    if (lcdButtons.keyChanged(&key))
+    {
+      waitForRelease = true;
+      if (key == btnSELECT)
+      {
+        if (setZeroPoint)
+        {
+          // Leaving Control Menu, so set stepper motor positions to zero.
+          LOGV1(DEBUG_GENERAL, F("CTRL menu: Calling setHome(true)!"));
+          mount.setHome(true);
+          LOGV3(DEBUG_GENERAL, F("CTRL menu: setHome(true) returned: RA Current %s, Target: %f"), mount.RAString(CURRENT_STRING | COMPACT_STRING).c_str(), mount.RAString(TARGET_STRING | COMPACT_STRING).c_str());
+          mount.startSlewing(TRACKING);
+        }
+
+#if SUPPORT_GUIDED_STARTUP == 1
+        if (startupState == StartupWaitForPoleCompletion)
+        {
+          startupState = StartupPoleConfirmed;
+          inStartup = true;
+        }
+        else
+#endif
+        {
+          lcdMenu.setNextActive();
+        }
+
+        ctrlState = HIGHLIGHT_MANUAL;
+        okToUpdateMenu = true;
+        setZeroPoint = true;
+      }
+      else if (key == btnLEFT)
+      {
+        setZeroPoint = !setZeroPoint;
+      }
+    }
+  break;
+
+  case MANUAL_CONTROL_MODE:
+    key = lcdButtons.currentState();
+    processManualSlew(key);  // Do the slewing
+
+    if (key == btnSELECT)
+    {
+      // User wants to set the current position as home
+#if SUPPORT_GUIDED_STARTUP == 1
+      if (startupState == StartupWaitForPoleCompletion)
+      {
+        startupState = StartupPoleConfirmed;
+        ctrlState = HIGHLIGHT_MANUAL;
+        waitForRelease = true;
+        inStartup = true;
+      }
+      else
+#endif
+      {
+        okToUpdateMenu = false;
+        lcdMenu.setCursor(0, 0);
+        lcdMenu.printMenu("Set home pos?");
+        ctrlState = MANUAL_CONTROL_CONFIRM_HOME;
+        waitForRelease = true;
+      }
+    }
+  break;
+  }
+
+  return waitForRelease;
 }
 
 void printControlSubmenu()
 {
-    switch (ctrlState) {
-    case HIGHLIGHT_MANUAL:
-        lcdMenu.printMenu(">Manual slewing");
-        break;
-    case HIGHLIGHT_SERIAL:
-        lcdMenu.printMenu(">Serial display");
-        break;
-    case MANUAL_CONTROL_CONFIRM_HOME: {
-        String disp = " Yes  No  ";
-        disp.setCharAt(setZeroPoint ? 0 : 5, '>');
-        disp.setCharAt(setZeroPoint ? 4 : 8, '<');
-        lcdMenu.printMenu(disp);
-    } break;
-    default:
-        mount.displayStepperPositionThrottled();
-        break;
-    }
+  switch (ctrlState)
+  {
+  case HIGHLIGHT_MANUAL:
+    lcdMenu.printMenu(">Manual slewing");
+  break;
+  case HIGHLIGHT_SERIAL:
+    lcdMenu.printMenu(">Serial display");
+  break;
+  case MANUAL_CONTROL_CONFIRM_HOME:
+  {
+    String disp = " Yes  No  ";
+    disp.setCharAt(setZeroPoint ? 0 : 5, '>');
+    disp.setCharAt(setZeroPoint ? 4 : 8, '<');
+    lcdMenu.printMenu(disp);
+  }
+  break;
+  default:
+    mount.displayStepperPositionThrottled();
+  break;
+  }
 }
 
-    #endif
+#endif
 #endif
