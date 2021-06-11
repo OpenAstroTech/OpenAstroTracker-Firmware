@@ -22,166 +22,270 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //
 //------------------------------------------------------------------
 // INITIALIZE FAMILY
-//
+// 
 // :I#
-//      Initialize Scope
-//      This puts the Arduino in Serial Control Mode and displays RA on line 1 and
-//      DEC on line 2 of the display. Serial Control Mode can be ended manually by
-//      pressing the SELECT key, or programmatically with the :Qq# command.
-//      Returns: nothing
+//      Description:
+//        Initialize Scope
+//      Information:
+//        This puts the Arduino in Serial Control Mode and displays RA on line 1 and
+//        DEC on line 2 of the display. Serial Control Mode can be ended manually by
+//        pressing the SELECT key, or programmatically with the :Qq# command.
+//      Returns:
+//        nothing
 //
 //------------------------------------------------------------------
 // SYNC CONTROL FAMILY
 //
 // :CM#
-//      Synchronize Declination and Right Ascension.
-//      This tells the scope what it is currently pointing at. The scope synchronizes
-//      to the current target coordinates (set with :Sd# and :Sr#)
-//      Returns: NONE#
+//      Description:
+//        Synchronize Declination and Right Ascension.
+//      Information:
+//        This tells the scope what it is currently pointing at. The scope synchronizes
+//        to the current target coordinates
+//      Remarks:
+//        Set with ":Sd#" and ":Sr#"
+//      Returns:
+//        "NONE#"
 //
 //------------------------------------------------------------------
 // DISTANCE FAMILY
 //
 // :D#
-//      Query Mount Status
-//      This queries the mount for its slewing status
-//      Returns: '|#' if slewing, ' #' if not
+//      Description:
+//        Query Mount Status
+//      Information:
+//        This queries the mount for its slewing status
+//      Returns:
+//        "|#" if slewing
+//        " #" if not
 //
 //------------------------------------------------------------------
 // GPS FAMILY
 //
 // :gT#
-//      Set Mount Time
-//      Attempts to set the mount time and location from the GPS for 2 minutes. This is essentially a
-//      blocking call, no other activities take place (except tracking, but only if interrupt-driven).
-//      Use :Gt# and :Gg# to retrieve Lat and Long,
-//      Returns: 1 if the data was set, 0 if not (timedout)
+//      Description:
+//        Set Mount Time
+//      Information:
+//        Attempts to set the mount time and location from the GPS for 2 minutes. This is essentially a
+//        blocking call, no other activities take place (except tracking, but only if interrupt-driven).
+//      Remarks:
+//        Use ":Gt#" and ":Gg#" to retrieve Lat and Long,
+//      Returns:
+//        "1" if the data was set
+//        "0" if not (timedout)
 //
 // :gTnnn#
-//      Set Mount Time w/ timeout
-//      Attempts to set the mount time and location from the GPS with a custom timeout. This is also blocking
-//      but by using a low timeout, you can avoid long pauses and let the user know that it's not ready yet.
-//      Where nnn is an integer defining the number of milliseconds to wait for the GPS to get a bearing.
-//      Returns: 1 if the data was set, 0 if not (timedout)
+//      Description:
+//        Set Mount Time w/ timeout
+//      Information:
+//        Attempts to set the mount time and location from the GPS with a custom timeout. This is also blocking
+//        but by using a low timeout, you can avoid long pauses and let the user know that it's not ready yet.
+//      Returns:
+//        "1" if the data was set
+//        "0" if not (timedout)
+//      Parameters:
+//        "nnn" is an integer defining the number of milliseconds to wait for the GPS to get a bearing
 //
 //------------------------------------------------------------------
 // GET FAMILY
 //
 // :GVP#
-//      Get the Product Name
-//      Returns: 'OpenAstroTracker#'
+//      Description:
+//        Get the Product Name
+//      Returns:
+//        "OpenAstroTracker#"
 //
 // :GVN#
-//      Get the Firmware Version Number
-//      Returns: 'V1.major.minor#' from version.h
+//      Description:
+//        Get the Firmware Version Number
+//      Returns:
+//        "V1.major.minor#" from version.h
 //
 // :Gd#
-//      Get Target Declination
-//      Returns: sDD*MM'SS#
-//               Where s is + or -, DD is degrees, MM is minutes, SS is seconds.
+//      Description:
+//        Get Target Declination
+//      Returns:
+//        "sDD*MM'SS#"
+//      Parameters:
+//        "s" is + or -
+//        "DD" is degrees
+//        "MM" is minutes
+//        "SS" is seconds
 //
 // :GD#
-//      Get Current Declination
-//      Returns: sDD*MM'SS#
-//               Where s is + or -, DD is degrees, MM is minutes, SS is seconds.
+//      Description:
+//        Get Current Declination
+//      Returns:
+//        "sDD*MM'SS#"
+//      Parameters:
+//        "s" is + or -
+//        "DD" is degrees
+//        "MM" is minutes
+//        "SS" is seconds.
 //
 // :Gr#
-//      Get Target Right Ascension
-//      Returns: HH:MM:SS#
-//               Where HH is hour, MM is minutes, SS is seconds.
+//      Description:
+//        Get Target Right Ascension
+//      Returns:
+//        HH:MM:SS#
+//      Parameters:
+//        "HH" is hour
+//        "MM" is minutes
+//        "SS" is seconds
 //
 // :GR#
-//      Get Current Right Ascension
-//      Returns: HH:MM:SS#
-//               Where HH is hour, MM is minutes, SS is seconds.
+//      Description:
+//        Get Current Right Ascension
+//      Returns:
+//        "HH:MM:SS#"
+//      Parameters:
+//        "HH" is hour
+//        "MM" is minutes
+//        "SS" is seconds
 //
 // :Gt#
-//      Get Site Latitude
-//      Returns: sDD*MM#
-//               Where s is + or - and DD is the latitude in degrees and MM the minutes.
+//      Description:
+//        Get Site Latitude
+//      Returns:
+//        "sDD*MM#"
+//      Parameters:
+//        "s" is + or -
+//        "DD" is the latitude in degrees
+//        "MM" the minutes
 //
 // :Gg#
-//      Get Site Longitude
-//      Returns: DDD*MM#
-//               Where DDD is the longitude in degrees and MM the minutes. Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
+//      Description:
+//        Get Site Longitude
+//      Returns:
+//        "DDD*MM#"
+//      Parameters:
+//        "DDD" is the longitude in degrees
+//        "MM" the minutes
+//      Remarks:
+//        Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
 //
 // :Gc#
-//      Get current Clock format
-//      Returns: 24#
+//      Description:
+//        Get current Clock format
+//      Returns:
+//        "24#"
 //
 // :GG#
-//      Get UTC offset time
-//      Returns: sHH#
-//               Where s is the sign and HH are the number of hours that need to be added to local time to convert to UTC time
+//      Description:
+//        Get UTC offset time
+//      Returns:
+//        "sHH#"
+//      Parameters:
+//        "s" is the sign
+//        "HH" are the number of hours that need to be added to local time to convert to UTC time
 //
 // :Ga#
-//      Get local time in 12h format
-//      Returns: HH:MM:SS#
-//               Where HH are hours (modulo 12), MM are minutes and SS are seconds of the local time.
+//      Description:
+//        Get local time in 12h format
+//      Returns:
+//        "HH:MM:SS#"
+//      Parameters:
+//        "HH" are hours (modulo 12)
+//        "MM" are minutes
+//        "SS" are seconds of the local time
 //
 // :GL#
-//      Get local time in 24h format
-//      Returns: HH:MM:SS#
-//               Where HH are hours, MM are minutes and SS are seconds of the local time.
+//      Description:
+//        Get local time in 24h format
+//      Returns:
+//        "HH:MM:SS#"
+//      Parameters:
+//        "HH" are hours
+//        "MM" are minutes
+//        "SS" are seconds of the local time
 //
 // :GC#
-//      Get current date
-//      Returns: MM/DD/YY#
-//               Where MM is the month (1-12), day is the day (1-31) and year is the lower two digits of the year
+//      Description:
+//        Get current date
+//      Returns:
+//        "MM/DD/YY#"
+//      Parameters:
+//        "MM" is the month (1-12)
+//        "day" is the day (1-31)
+//        "year" is the lower two digits of the year
 //
 // :GM#
-//      Get Site Name 1
-//      Returns: OAT1#
+//      Description:
+//        Get Site Name 1
+//      Returns:
+//        "OAT1#"
 //
 // :GN#
-//      Get Site Name 2
-//      Returns: OAT2#
+//      Description:
+//        Get Site Name 2
+//      Returns:
+//        "OAT2#"
 //
 // :GO#
-//      Get Site Name 3
-//      Returns: OAT2#
+//      Description:
+//        Get Site Name 3
+//      Returns:
+//        OAT2#
 //
 // :GP#
-//      Get Site Name 4
-//      Returns: OAT4#
+//      Description:
+//        Get Site Name 4
+//      Returns:
+//        OAT4#
 //
 // :GT#
-//      Get tracking rate
-//      Returns: 60.0#
+//      Description:
+//        Get tracking rate
+//      Returns:
+//        60.0#
 //
-// -- GET Extensions --
+//------------------------------------------------------------------
+// GET EXTENSIONS
+//
 // :GIS#
-//      Get DEC or RA Slewing
-//      Returns: 1# if either RA or DEC is slewing. 0# if not.
+//      Description:
+//        Get DEC or RA Slewing
+//      Returns:
+//        "1#" if either RA or DEC is slewing
+//        "0#" if not
 //
 // :GIT#
-//      Get Tracking
-//      Returns: 1# if tracking is on. 0# if not.
+//      Description:
+//        Get Tracking
+//      Returns:
+//        "1#" if tracking is on
+//        "0#" if not
 //
 // :GIG#
-//      Get Guiding
-//      Returns: 1# if currently guiding. 0# if not.
+//      Description:
+//        Get Guiding
+//      Returns:
+//        "1#" if currently guiding
+//        "0#" if not
 //
 // :GX#
-//      Get Mount Status
-//      Returns: string reflecting the mounts' status. The string is a comma-delimited list of statuses:
-//               Idle,--T--,11219,0,927,071906,+900000,#
-//                 |    |     |   |  |     |      |
-//                 |    |     |   |  |     |      |
-//                 |    |     |   |  |     |      |
-//                 |    |     |   |  |     |      +------------------ [6] The current DEC position
-//                 |    |     |   |  |     +------------------------- [5] The current RA position
-//                 |    |     |   |  +------------------------------- [4] The Tracking stepper position
-//                 |    |     |   +---------------------------------- [3] The DEC stepper position
-//                 |    |     +-------------------------------------- [2] The RA stepper position
-//                 |    +-------------------------------------------- [1] The motion state.
-//                 |                                                      First character is RA slewing state ('R' is East, 'r' is West, '-' is stopped).
-//                 |                                                      Second character is DEC slewing state ('d' is North, 'D' is South, '-' is stopped).
-//                 |                                                      Third character is TRK slewing state ('T' is Tracking, '-' is stopped).
-//                 |                                                      * Fourth character is AZ slewing state ('Z' and 'z' is adjusting, '-' is stopped).
-//                 |                                                      * Fifth character is ALT slewing state ('A' and 'a' is adjusting, '-' is stopped).
-//                 +------------------------------------------------- [0] The mount status. One of 'Idle', 'Parked', 'Parking', 'Guiding', 'SlewToTarget', 'FreeSlew', 'ManualSlew', 'Tracking', 'Homing'
-//       * Az and Alt are optional. The string may only be 3 characters long
+//      Description:
+//        Get Mount Status
+//      Information:
+//         String reflecting the mounts' status. The string is a comma-delimited list of statuses
+//      Returns:
+//        "Idle,--T--,11219,0,927,071906,+900000,#"
+//      Parameters:
+//        [0] The mount status. One of 'Idle', 'Parked', 'Parking', 'Guiding', 'SlewToTarget', 'FreeSlew', 'ManualSlew', 'Tracking', 'Homing'
+//        [1] The motion state.
+//        [2] The RA stepper position
+//        [3] The DEC stepper position
+//        [4] The Tracking stepper position
+//        [5] The current RA position
+//        [6] The current DEC position
+//      Remarks:
+//        The motion state
+//        First character is RA slewing state ('R' is East, 'r' is West, '-' is stopped).
+//        Second character is DEC slewing state ('d' is North, 'D' is South, '-' is stopped).
+//        Third character is TRK slewing state ('T' is Tracking, '-' is stopped).
+//        Fourth character is AZ slewing state ('Z' and 'z' is adjusting, '-' is stopped).
+//        Fifth character is ALT slewing state ('A' and 'a' is adjusting, '-' is stopped).
+//        Az and Alt are optional. The string may only be 3 characters long
 //
 //------------------------------------------------------------------
 // SET FAMILY
@@ -268,7 +372,8 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      This starts slewing the scope to the target RA and DEC coordinates and returns immediately.
 //      Returns: 0
 //
-// -- MOVEMENT Extensions --
+//------------------------------------------------------------------
+// MOVEMENT EXTENSIONS
 //
 // :MGdnnnn#
 //      Run a Guide pulse
