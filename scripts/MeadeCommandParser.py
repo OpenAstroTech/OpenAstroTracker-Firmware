@@ -31,7 +31,7 @@ class Command:
         self.__returns = list()
         self.__parameters = list()
         self.__remarks = list()
-        self.__x = list()
+        self.__example = list()
 
     def set_data(self, attribute, data):
         setattr(self, attribute, data)
@@ -87,6 +87,15 @@ class Command:
     def remarks(self, val):
         if val not in self.__remarks:
             self.__remarks.append(val)
+    
+    @property
+    def example(self):
+        return self.__example
+
+    @example.setter
+    def example(self, val):
+        if val not in self.__example:
+            self.__example.append(val)
 
 
 command_sepparators = ["//      Description::",
@@ -94,6 +103,8 @@ command_sepparators = ["//      Description::",
                        "//      Returns:",
                        "//      Parameters:",
                        "//      Remarks:",
+                       "//      Remarks:",
+                       "//      Example:",
                        "//"]
 
 
@@ -128,19 +139,19 @@ END_LINE = startStop[1]
 
 print(("Start and end of block: {0}, {1} ".format(START_LINE, END_LINE)))
 
-familyDividers = []
+family_dividers = []
 for i in range(START_LINE, END_LINE):
     for div in ["//------------------------------------------------------------------", "// --"]:
         if div in content[i]:
-            familyDividers.append(i)
+            family_dividers.append(i)
 
-print(("Found {0} family groups ".format(len(familyDividers))))
+print(("Found {0} family groups ".format(len(family_dividers))))
 
 all_commands = []
-# for i in range(len(familyDividers) - 1):
-for i in range(0, 6):
-    start = familyDividers[i] + 1
-    end = familyDividers[i + 1]
+for i in range(len(family_dividers) - 1):
+#for i in range(0, 6):
+    start = family_dividers[i] + 1
+    end = family_dividers[i + 1]
 
     new_family = Family()
     new_family.name = remove_line_prefix(content[start])
@@ -200,33 +211,39 @@ for i in range(0, 6):
                     command.parameters = remove_line_prefix(content[m])
                     m += 1
                 l = m
-        
-        
 
-        new_family.commands.append(command)
+             # Example
+            if content[l].startswith("//      Example:"):
+                m = l+1
+                while not check_command_sepparator(content[m]):
+                    command.example = remove_line_prefix(content[m])
+                    m += 1
+                l = m
         
+        new_family.commands.append(command)
     all_commands.append(new_family)
 
 def output_wiki():
     f = open("./scripts/MeadeToWikiOutput.txt", "w")
     
-    f.write("# MEADE Command Index\n\n")
-    f.write("<br>\n\n")
+    #f.write("# MEADE Command Index\n\n")
+    #f.write("<br>\n\n")
     for fam in all_commands:
         f.write(f"## {fam.name}\n")
+        f.write("<br>\n\n")
 
         for cmd in fam.commands:
             f.write(f"### {cmd.description}\n")
             
+            if cmd.information:
+                #f.write("**Information:**\n")
+                for line in cmd.information:
+                    f.write(f"{line}")
+                f.write("\n\n")
+
             f.write(f"**Command:**\n")
             f.write(f"`{cmd.command}`\n")
-            f.write("\n")
-            
-            if cmd.information:
-                f.write("**Information:**\n")
-                for line in cmd.information:
-                    f.write(f"{line}\n")
-                f.write("\n")    
+            f.write("\n")  
 
             f.write("**Returns:**\n")
             for line in cmd.returns:
@@ -244,6 +261,12 @@ def output_wiki():
                 for param in cmd.remarks:
                     f.write(f"{param}\n")
                 f.write("\n")
+
+            if cmd.example:
+                f.write("**Example:**\n")
+                for param in cmd.example:
+                    f.write(f"- {param}\n")
+                f.write("\n")
             
             f.write("<br>")
             f.write("\n")
@@ -252,7 +275,7 @@ def output_wiki():
     f.write("\n\n")
 
     f.close()
-    print("FilOutpute written to: ./scripts/MeadeToWikiOutput.txt")
+    print("File written to: ./scripts/MeadeToWikiOutput.txt")
 
 if __name__ == "__main__":
     output_wiki()
