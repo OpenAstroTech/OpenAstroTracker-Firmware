@@ -1,3 +1,6 @@
+**V1.9.20 - Updates**
+- clang-format codebase
+
 **V1.9.19 - Updates**
 - Added support to reset the focus stepper position
 - Fixed some focus validation tests
