@@ -1,7 +1,3 @@
-**V1.9.17 - Updates**
-- Reformat of Meade cpp header for wiki parser
-- Updated parser script
-
 **V1.9.16 - Updates**
 - Add Meade extension command to move steppers by steps.
 
