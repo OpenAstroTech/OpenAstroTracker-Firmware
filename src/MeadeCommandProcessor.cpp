@@ -621,7 +621,7 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //        values are the values of the pitch and roll when the mount is level.
 //      Returns:
 //        "<pitch>,<roll>#"
-//        "0#"" if there is no Digital Level
+//        "0#" if there is no Digital Level
 //
 // :XLGC#
 //      Description:
