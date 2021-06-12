@@ -224,10 +224,12 @@ for i in range(len(family_dividers) - 1):
     all_commands.append(new_family)
 
 def output_wiki():
+    """
+    Writes content to a .txt file 
+    """
+    
     f = open("./scripts/MeadeToWikiOutput.txt", "w")
     
-    #f.write("# MEADE Command Index\n\n")
-    #f.write("<br>\n\n")
     for fam in all_commands:
         f.write(f"## {fam.name}\n")
         f.write("<br>\n\n")
@@ -279,7 +281,9 @@ def output_wiki():
 
 if __name__ == "__main__":
     output_wiki()
+
 """
+# Output Excample
 for fam in all_commands:
     print("-----")
     print(fam.name)
