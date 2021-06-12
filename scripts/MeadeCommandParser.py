@@ -98,23 +98,26 @@ class Command:
             self.__example.append(val)
 
 
-command_sepparators = ["//      Description::",
-                       "//      Information:",
-                       "//      Returns:",
-                       "//      Parameters:",
-                       "//      Remarks:",
-                       "//      Remarks:",
-                       "//      Example:",
+command_sepparators = ["Description::",
+                       "Information:",
+                       "Returns:",
+                       "Parameters:",
+                       "Remarks:",
+                       "Remarks:",
+                       "Example:",
                        "//"]
 
 
 def remove_line_prefix(line):
-    fixed_line = line.replace("//", "").lstrip()
-    fixed_line = fixed_line.replace("\"", "`")
-    return fixed_line
+    striped_line = line.replace("//", "").lstrip()
+    striped_line = striped_line.replace("\"", "`")
+    return striped_line
 
 def check_command_sepparator(line):
+    striped_line = line.replace("//", "").lstrip()
     if line in command_sepparators:
+        return True
+    elif line.startswith("//") and striped_line in command_sepparators: 
         return True
     else:
         return False
@@ -177,11 +180,11 @@ for i in range(len(family_dividers) - 1):
                 command.command = remove_line_prefix(content[l])
 
             # Description
-            if content[l].startswith("//      Description:"):
+            if content[l].startswith("//") and "Description:" in content[l]:
                 command.description = remove_line_prefix(content[l+1])
 
             # Information
-            if content[l].startswith("//      Information:"):
+            if content[l].startswith("//") and "Information:" in content[l]:
                 m = l+1
                 while not check_command_sepparator(content[m]):
                     command.information = remove_line_prefix(content[m])
@@ -189,7 +192,7 @@ for i in range(len(family_dividers) - 1):
                 l = m
             
             # Returns
-            if content[l].startswith("//      Returns:"):
+            if content[l].startswith("//") and "Returns:" in content[l]:
                 m = l+1
                 while not check_command_sepparator(content[m]):
                     command.returns = remove_line_prefix(content[m])
@@ -197,7 +200,7 @@ for i in range(len(family_dividers) - 1):
                 l = m
 
             # Remarks
-            if content[l].startswith("//      Remarks:"):
+            if content[l].startswith("//") and "Remarks:" in content[l]:
                 m = l+1
                 while not check_command_sepparator(content[m]):
                     command.remarks = remove_line_prefix(content[m])
@@ -205,7 +208,7 @@ for i in range(len(family_dividers) - 1):
                 l = m
 
             # Parameters
-            if content[l].startswith("//      Parameters:"):
+            if content[l].startswith("//") and "Parameters:" in content[l]:
                 m = l+1
                 while not check_command_sepparator(content[m]):
                     command.parameters = remove_line_prefix(content[m])
@@ -213,7 +216,7 @@ for i in range(len(family_dividers) - 1):
                 l = m
 
              # Example
-            if content[l].startswith("//      Example:"):
+            if content[l].startswith("//") and "Example:" in content[l]:
                 m = l+1
                 while not check_command_sepparator(content[m]):
                     command.example = remove_line_prefix(content[m])
@@ -225,9 +228,9 @@ for i in range(len(family_dividers) - 1):
 
 def output_wiki():
     """
-    Writes content to a .txt file 
+    Writes content to a MeadeToWikiOutput.txt file 
     """
-    
+
     f = open("./scripts/MeadeToWikiOutput.txt", "w")
     
     for fam in all_commands:
