@@ -1412,8 +1412,8 @@ void Mount::guidePulse(byte direction, int duration) {
 
     case EAST:
     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (raGuidingSpeed * (-1.0f * RA_PULSE_MULTIPLIER + 1) + raGuidingSpeed));
-    _stepperTRK->setSpeed(raGuidingSpeed * (-1.0f * RA_PULSE_MULTIPLIER + 1) + raGuidingSpeed);   // Slower than siderael
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER)));
+    _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));   // Slower than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
     _guideRaEndTime = millis() + duration;
     break;
