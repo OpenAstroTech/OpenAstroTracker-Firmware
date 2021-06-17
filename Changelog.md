@@ -1,3 +1,6 @@
+**V1.9.17 - Updates**
+- Fix southern hemisphere -12hr RA offset
+
 **V1.9.16 - Updates**
 - Add Meade extension command to move steppers by steps.
 
