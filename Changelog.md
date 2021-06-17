@@ -1,3 +1,6 @@
+**V1.9.18 - Updates**
+- Fix RA guiding multiplier not being applied correct
+
 **V1.9.17 - Updates**
 - Fix southern hemisphere returning RA offset by -12hr
 
