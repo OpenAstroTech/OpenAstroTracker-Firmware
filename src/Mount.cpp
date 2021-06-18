@@ -245,8 +245,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
   // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
   _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
-  _stepperTRK->setMaxSpeed(10000);
-  _stepperTRK->setAcceleration(5000);
+  _stepperTRK->setMaxSpeed(2000);
+  _stepperTRK->setAcceleration(15000);
 
   _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
   _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
@@ -289,8 +289,8 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
   _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
-  _stepperGUIDE->setMaxSpeed(10000);
-  _stepperGUIDE->setAcceleration(5000);
+  _stepperGUIDE->setMaxSpeed(2000);
+  _stepperGUIDE->setAcceleration(15000);
 
   #if DEC_INVERT_DIR == 1
   _stepperDEC->setPinsInverted(true, false, false);
@@ -1404,16 +1404,16 @@ void Mount::guidePulse(byte direction, int duration) {
 
     case WEST:
     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);
-    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);   // Faster than siderael
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER * raGuidingSpeed));
+    _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);   // Faster than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
     _guideRaEndTime = millis() + duration;
     break;
 
     case EAST:
     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);
-    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);   // Slower than siderael
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER)));
+    _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));   // Slower than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
     _guideRaEndTime = millis() + duration;
     break;
