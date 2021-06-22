@@ -28,11 +28,13 @@ class TMC2209Stepper;
 #define TARGET_STRING      B01000
 #define CURRENT_STRING     B10000
 
-#define RA_STEPS  1
-#define DEC_STEPS 2
-#define AZIMUTH_STEPS 5
-#define ALTITUDE_STEPS 6
-#define FOCUS_STEPS 7
+enum StepperAxis {
+  RA_STEPS,
+  DEC_STEPS,
+  AZIMUTH_STEPS,
+  ALTITUDE_STEPS,
+  FOCUS_STEPS
+};
 
 struct LocalDate {
   int year;
@@ -183,11 +185,11 @@ public:
 #endif
 
   // Returns the number of slew microsteps the given motor turns to move one degree
-  float getStepsPerDegree(int which);
+  float getStepsPerDegree(StepperAxis which);
 
   // Function to set the number of slew microsteps the given motor turns to move one 
   // degree for each axis. This function stores the value in persistent storage
-  void setStepsPerDegree(int which, float steps);
+  void setStepsPerDegree(StepperAxis which, float steps);
 
   // Sets the slew rate of the mount. rate is between 1 (slowest) and 4 (fastest)
   void setSlewRate(int rate);
@@ -332,7 +334,7 @@ public:
   void setManualSlewMode(bool state);
 
   // Set the speed of the given motor
-  void setSpeed(int which, float speedDegsPerSec);
+  void setSpeed(StepperAxis which, float speedDegsPerSec);
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
   // Support for moving the mount in azimuth and altitude (requires extra hardware)
@@ -351,6 +353,9 @@ public:
   void enableFocusMotor();
   void focusStop();
 #endif
+
+  // Move the giuven stepper motor by the given amount of steps.
+  void moveStepperBy(StepperAxis which, long steps);
 
   // Set the number of steps to use for backlash correction
   void setBacklashCorrection(int steps);
@@ -382,9 +387,9 @@ public:
 
   int getLocalUtcOffset() const;
 
-  void setLocalStartDate( int year, int month, int day );
-  void setLocalStartTime( DayTime localTime );
-  void setLocalUtcOffset( int offset );
+  void setLocalStartDate(int year, int month, int day);
+  void setLocalStartTime(DayTime localTime);
+  void setLocalUtcOffset(int offset);
 
   DayTime calculateLst();
   DayTime calculateHa();
@@ -411,7 +416,7 @@ private:
   // Writes a 16-bit value to persistent (EEPROM) storage
   void writePersistentData(int which, long val);
 
-  void calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps) const;
+  void calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps, long pSolutions[6] = nullptr) const;
   void displayStepperPosition();
   void moveSteppersTo(float targetRA, float targetDEC);
 
@@ -522,6 +527,9 @@ private:
   unsigned long _trackerStoppedAt;
   bool _compensateForTrackerOff;
   volatile int _mountStatus;
+  long _homeOffsetRA;
+  long _homeOffsetDEC;
+
   char scratchBuffer[24];
   bool _stepperWasRunning;
   bool _correctForBacklash;

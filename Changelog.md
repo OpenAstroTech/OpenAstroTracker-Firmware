@@ -1,3 +1,18 @@
+**V1.9.18 - Updates**
+- Fix RA guiding multiplier not being applied correct
+
+**V1.9.17 - Updates**
+- Fix southern hemisphere returning RA offset by -12hr
+
+**V1.9.16 - Updates**
+- Add Meade extension command to move steppers by steps.
+
+**V1.9.15 - Updates**
+- Fixed incorrect speed for DEC when using 28BYJ-48 steppers
+
+**V1.9.14 - Updates**
+- Fix hardware reporting for "Unknown" boards
+
 **V1.9.13 - Updates**
 - Fix southern hemisphere returning incorrect DEC values (edge case)
 

@@ -106,6 +106,9 @@ void Mount::initializeVariables()
 
   _totalDECMove = 0;
   _totalRAMove = 0;
+  _homeOffsetRA = 0;
+  _homeOffsetDEC = 0;
+
   _moveRate = 4;
   _backlashCorrectionSteps = 0;
   _correctForBacklash = false;
@@ -242,8 +245,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
   // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
   _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
-  _stepperTRK->setMaxSpeed(10000);
-  _stepperTRK->setAcceleration(5000);
+  _stepperTRK->setMaxSpeed(2000);
+  _stepperTRK->setAcceleration(15000);
 
   _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
   _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
@@ -286,8 +289,8 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
   _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
-  _stepperGUIDE->setMaxSpeed(10000);
-  _stepperGUIDE->setAcceleration(5000);
+  _stepperGUIDE->setMaxSpeed(2000);
+  _stepperGUIDE->setAcceleration(15000);
 
   #if DEC_INVERT_DIR == 1
   _stepperDEC->setPinsInverted(true, false, false);
@@ -868,7 +871,7 @@ void Mount::setRollCalibrationAngle(float angle)
 // getStepsPerDegree
 //
 /////////////////////////////////
-float Mount::getStepsPerDegree(int which)
+float Mount::getStepsPerDegree(StepperAxis which)
 {
   if (which == RA_STEPS) {
     return _stepsPerRADegree;   // u-steps/degree
@@ -886,7 +889,7 @@ float Mount::getStepsPerDegree(int which)
 //
 /////////////////////////////////
 // Function to set steps per degree for each axis. This function stores the value in persistent storage.
-void Mount::setStepsPerDegree(int which, float steps) {
+void Mount::setStepsPerDegree(StepperAxis which, float steps) {
   if (which == DEC_STEPS) {
     _stepsPerDECDegree = steps;
     EEPROMStore::storeDECStepsPerDegree(_stepsPerDECDegree);
@@ -965,7 +968,7 @@ String Mount::getStepperInfo()
 /////////////////////////////////
 String Mount::getMountHardwareInfo()
 {
-  String ret = F("Unknown");
+  String ret = F("Unknown,");
   #if defined(ESP32)
     ret = F("ESP32,");
   #elif defined(__AVR_ATmega2560__)
@@ -1189,9 +1192,7 @@ const DayTime Mount::currentRA() const {
   // LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentRA: ZeroPos    : %s"), _zeroPosRA.ToString());
   // LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentRA: POS (+zp)  : %s"), DayTime(hourPos).ToString());
 
-  bool flipRA = NORTHERN_HEMISPHERE ?
-    _stepperDEC->currentPosition() < 0
-    : _stepperDEC->currentPosition() > 0;
+  bool flipRA = _stepperDEC->currentPosition() < 0;
   if (flipRA)
   {
     hourPos += 12;
@@ -1238,13 +1239,24 @@ const Declination Mount::currentDEC() const {
 // to be at the calculated positions (that they would be if we were slewing there).
 void Mount::syncPosition(DayTime ra, Declination dec)
 {
+  long solutions[6];
   _targetRA = ra;
   _targetDEC = dec;
 
   long targetRAPosition, targetDECPosition;
   LOGV3(DEBUG_MOUNT, "Mount: Sync Position to RA: %s and DEC: %s", _targetRA.ToString(), _targetDEC.ToString());
-  calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
-  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Set current position to RA: %f and DEC: %f"), targetRAPosition, targetDECPosition);
+  calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
+
+  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Solution 1: RA %l and DEC: %l"), solutions[0],solutions[1]);
+  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Solution 2: RA %l and DEC: %l"), solutions[2],solutions[3]);
+  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Solution 3: RA %l and DEC: %l"), solutions[4],solutions[5]);
+  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Chose solution RA: %l and DEC: %l"), targetRAPosition, targetDECPosition);
+
+  long raMove = targetRAPosition - _stepperRA->currentPosition();
+  long decMove = targetDECPosition - _stepperDEC->currentPosition();
+  LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Moving steppers by RA: %l and DEC: %l"), raMove, decMove);
+  _homeOffsetRA -= raMove;
+  _homeOffsetDEC -= decMove;
   _stepperRA->setCurrentPosition(targetRAPosition);     // u-steps (in slew mode)
   _stepperDEC->setCurrentPosition(targetDECPosition);   // u-steps (in slew mode)
 }
@@ -1272,6 +1284,13 @@ void Mount::startSlewingToTarget() {
   _currentRAStepperPosition = _stepperRA->currentPosition();
   long targetRAPosition, targetDECPosition;
   calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
+
+  if (_slewingToHome)
+  {
+    targetRAPosition -= _homeOffsetRA;
+    targetDECPosition -= _homeOffsetDEC;
+  }
+
   moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
 
   _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
@@ -1385,16 +1404,16 @@ void Mount::guidePulse(byte direction, int duration) {
 
     case WEST:
     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);
-    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);   // Faster than siderael
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER * raGuidingSpeed));
+    _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);   // Faster than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
     _guideRaEndTime = millis() + duration;
     break;
 
     case EAST:
     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);
-    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);   // Slower than siderael
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER)));
+    _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));   // Slower than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
     _guideRaEndTime = millis() + duration;
     break;
@@ -1494,7 +1513,7 @@ void Mount::setManualSlewMode(bool state) {
 // setSpeed
 //
 /////////////////////////////////
-void Mount::setSpeed(int which, float speedDegsPerSec) {
+void Mount::setSpeed(StepperAxis which, float speedDegsPerSec) {
   if (which == RA_STEPS) {
     float stepsPerSec = speedDegsPerSec * _stepsPerRADegree;   // deg/sec * u-steps/deg = u-steps/sec
     LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set RA speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
@@ -1641,7 +1660,6 @@ void Mount::goHome()
   stopGuiding();
   setTargetToHome();
   startSlewingToTarget();
-  _slewingToHome = true;
 }
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -2002,6 +2020,11 @@ String Mount::getStatusString() {
 
   status += RAString(COMPACT_STRING | CURRENT_STRING) + ",";
   status += DECString(COMPACT_STRING | CURRENT_STRING) + ",";
+  #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+      status += String(_stepperFocus->currentPosition()) + ",";
+  #else
+    status += ",";
+  #endif
 
   return status;
 }
@@ -2519,6 +2542,8 @@ void Mount::loop() {
           LOGV1(DEBUG_STEPPERS, F("STEP-loop:  TRK.setCurrentPos(0)"));
           _stepperTRK->setCurrentPosition(0);
           _stepperGUIDE->setCurrentPosition(0);
+          _homeOffsetRA = 0;
+          _homeOffsetDEC = 0;
 
           _targetRA = currentRA();
           if (isParking()) {
@@ -2740,7 +2765,7 @@ void Mount::calculateStepperPositions(float raCoord, float decCoord, long& raPos
 //
 // This code tells the steppers to what location to move to, given the select right ascension and declination
 /////////////////////////////////
-void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps) const {
+void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps, long pSolutions[6]) const {
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
   //LOGV3(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
   //LOGV2(DEBUG_MOUNT_VERBOSE,F("Mount::CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
@@ -2789,6 +2814,16 @@ void Mount::calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps)
     float const RALimitL = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
     float const RALimitR = (RA_LIMIT_LEFT * stepsPerSiderealHour);  
   #endif
+
+  if (pSolutions != nullptr)
+  {
+    pSolutions[0] = long(-moveRA);
+    pSolutions[1] = long(moveDEC);
+    pSolutions[2] = long(-(moveRA - long(12.0f * stepsPerSiderealHour)));
+    pSolutions[3] = long(-moveDEC);
+    pSolutions[4] = long(-(moveRA + long(12.0f * stepsPerSiderealHour)));
+    pSolutions[5] = long(-moveDEC);
+  }
 
   // If we reach the limit in the positive direction ...
   if (moveRA > RALimitR) {
@@ -2858,6 +2893,67 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps) {   // Uni
   _stepperDEC->moveTo(targetDECSteps);
 }
 
+/////////////////////////////////
+//
+// moveStepperBy
+//
+/////////////////////////////////
+void Mount::moveStepperBy(StepperAxis direction, long steps)
+{
+  switch (direction)
+  {
+    case RA_STEPS :
+      moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
+      _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+      _totalRAMove = 1.0f * _stepperRA->distanceToGo();
+      #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // tracking while slewing causes problems (can only run one AccelStepper at a time)
+        if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0)) {
+          // Only stop tracking if we're actually going to slew somewhere else, otherwise the 
+          // mount::loop() code won't detect the end of the slewing operation...
+          LOGV1(DEBUG_STEPPERS, "STEP-moveStepperBy: Stop tracking (NEMA steppers)");
+          stopSlewing(TRACKING);
+          _trackerStoppedAt = millis();
+          _compensateForTrackerOff = true;
+
+          // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+          #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+            _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
+          #endif
+
+          LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: TRK stopped at %lms"), _trackerStoppedAt);
+        }
+      #endif																					  
+      break;
+    case DEC_STEPS :
+      moveSteppersTo(_stepperRA->targetPosition(), _stepperDEC->targetPosition() + steps);
+      _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+      _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
+
+      #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
+        LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
+        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+      #endif
+
+      break;
+    case FOCUS_STEPS:
+      #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+        focusMoveBy(steps);
+      #endif
+      break;
+    case AZIMUTH_STEPS:
+      #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+        _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
+      #endif
+      break;
+    case ALTITUDE_STEPS:
+      #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+        _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
+      #endif
+      break;
+  }
+}
 
 /////////////////////////////////
 //
