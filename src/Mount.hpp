@@ -349,6 +349,7 @@ public:
   void focusContinuousMove(FocuserDirection direction);
   void focusMoveBy(long steps);
   long focusGetStepperPosition();
+  void focusSetStepperPosition(long steps);
   void disableFocusMotor();
   void enableFocusMotor();
   void focusStop();

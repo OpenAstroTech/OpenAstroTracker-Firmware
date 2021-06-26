@@ -447,8 +447,10 @@
 // If this is set to 0 you still have a GO menu that has Home and Park.
   #define SUPPORT_POINTS_OF_INTEREST   1
 
-// Set this to 1 to support Guided Startup 
-  #define SUPPORT_GUIDED_STARTUP       1
+  // Set this to 1 to support Guided Startup 
+  #ifndef SUPPORT_GUIDED_STARTUP       
+    #define SUPPORT_GUIDED_STARTUP       1
+  #endif
 
 // Set this to 1 to support CTRL menu, allowing you to manually slew the mount with the buttons. 
   #define SUPPORT_MANUAL_CONTROL       1
@@ -460,7 +462,9 @@
   #define SUPPORT_INFO_DISPLAY         1
 #else
   #define SUPPORT_POINTS_OF_INTEREST 0
-  #define SUPPORT_GUIDED_STARTUP     0
+  #ifndef SUPPORT_GUIDED_STARTUP       
+    #define SUPPORT_GUIDED_STARTUP   0
+  #endif
   #define SUPPORT_MANUAL_CONTROL     0
   #define SUPPORT_CALIBRATION        0
   #define SUPPORT_INFO_DISPLAY       0
@@ -495,6 +499,15 @@
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if defined(ESP32)
     #define DEC_SERIAL_PORT Serial2   // Can be shared with RA_SERIAL_PORT
+  #elif defined(__AVR_ATmega2560__)
+    // Uses SoftwareSerial
+  #endif
+#endif
+
+// Focuser
+#if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if defined(ESP32)
+    #define FOCUS_SERIAL_PORT Serial2   // Can be shared with RA_SERIAL_PORT
   #elif defined(__AVR_ATmega2560__)
     // Uses SoftwareSerial
   #endif

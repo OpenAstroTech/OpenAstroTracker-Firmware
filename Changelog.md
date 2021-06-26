@@ -1,3 +1,7 @@
+**V1.9.19 - Updates**
+- Added support to reset the focus stepper position
+- Fixed some focus validation tests
+
 **V1.9.18 - Updates**
 - Fix RA guiding multiplier not being applied correct
 
