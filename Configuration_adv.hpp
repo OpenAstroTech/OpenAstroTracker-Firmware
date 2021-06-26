@@ -431,10 +431,6 @@
 // FEATURE SUPPORT SECTION ///
 //                         ///
 //////////////////////////////
-// Since the Arduino Uno has very little memory (32KB code, 2KB data) all features
-// stretch the Uno a little too far. So in order to save memory we allow you to enable 
-// and disable features to help manage memory usage.
-// If you run the tracker with an Arduino Mega, you can set all the features to 1.
 //
 // If you feel comfortable with configuring the OAT at startup manually, you should set
 // SUPPORT_GUIDED_STARTUP to 0 (maybe after you've used it for a while you know what to do).
@@ -460,14 +456,18 @@
 
 // Set this to 1 to support INFO menu that displays various pieces of information about the mount. 
   #define SUPPORT_INFO_DISPLAY         1
-#else
+
+#else   // No Display section
+ 
   #define SUPPORT_POINTS_OF_INTEREST 0
-  #ifndef SUPPORT_GUIDED_STARTUP       
-    #define SUPPORT_GUIDED_STARTUP   0
+  #if SUPPORT_GUIDED_STARTUP == 1
+    #error "Guided startup is only available with a display."
   #endif
+  #define SUPPORT_GUIDED_STARTUP     0
   #define SUPPORT_MANUAL_CONTROL     0
   #define SUPPORT_CALIBRATION        0
   #define SUPPORT_INFO_DISPLAY       0
+  
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial
