@@ -340,23 +340,23 @@
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
   #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    #if !defined(ALT_IN1_PIN) || !defined(ALT_IN2_PIN) || !defined(ALT_IN3_PIN) || !defined(ALT_IN4_PIN)
+    #if !defined(FOCUS_IN1_PIN) || !defined(FOCUS_IN2_PIN) || !defined(FOCUS_IN3_PIN) || !defined(FOCUS_IN4_PIN)
       // Required pin assignments missing
-      #error Missing pin assignments for configured ALT DRIVER_TYPE_ULN2003 driver
+      #error Missing pin assignments for configured Focuser DRIVER_TYPE_ULN2003 driver
     #endif
-  #elif (FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
+  #elif (FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN)
        // Required pin assignments missing
-       #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
+       #error Missing pin assignments for configured Focuser DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
     #endif
   #elif (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN) || !defined(FOCUS_DIAG_PIN) || !defined(FOCUS_SERIAL_PORT_TX) || !defined(FOCUS_SERIAL_PORT_RX)
+    #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN) || !defined(FOCUS_SERIAL_PORT_TX) || !defined(FOCUS_SERIAL_PORT_RX)
       // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
-      #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
+      #error Missing pin assignments for configured Focuser DRIVER_TYPE_TMC2209_UART driver
     #endif
     #if !((defined(FOCUS_SERIAL_PORT_TX) && defined(FOCUS_SERIAL_PORT_RX)) || defined(FOCUS_SERIAL_PORT))
        // Required pin assignments missing for UART serial
-       #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver serial connection
+       #error Missing pin assignments for configured Focuser DRIVER_TYPE_TMC2209_UART driver serial connection
     #endif
   #endif
 #endif

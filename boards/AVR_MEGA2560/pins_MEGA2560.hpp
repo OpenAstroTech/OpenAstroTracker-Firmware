@@ -116,6 +116,28 @@
   #define ALT_IN4_PIN 52
 #endif
 
+// Focuser pin configuration
+// DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
+#ifndef FOCUS_STEP_PIN
+  #define FOCUS_STEP_PIN    32
+#endif
+#ifndef FOCUS_DIR_PIN
+  #define FOCUS_DIR_PIN     33 
+#endif
+#ifndef FOCUS_EN_PIN
+  #define FOCUS_EN_PIN      34 
+#endif
+#ifndef FOCUS_SERIAL_PORT_TX
+  #define FOCUS_SERIAL_PORT_TX 36 // SoftwareSerial TX port
+#endif
+#ifndef FOCUS_SERIAL_PORT_RX
+  #define FOCUS_SERIAL_PORT_RX 37 // SoftwareSerial RX port
+#endif
+
+#ifndef FOCUS_DRIVER_ADDRESS
+  #define FOCUS_DRIVER_ADDRESS 0b00
+#endif
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
   #define GPS_SERIAL_PORT Serial1

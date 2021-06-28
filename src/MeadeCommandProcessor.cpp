@@ -922,9 +922,18 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Get the current position of the focus stepper motor
 //      Returns:
-//        "nnn#"
+//        "nnn#" "nnn" is the current position of the stepper
+//        
+//
+// :FPnnn#
+//      Description:
+//        Set position
+//      Information:
+//        Sets the current position of the focus stepper motor 
+//      Returns:
+//        "1" 
 //      Parameters:
-//        "nnn" is the current position of the stepper
+//        "nnn" is the new position of the stepper. The stepper is not moved.
 //
 // :FB#
 //      Description:
@@ -1766,6 +1775,13 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     LOGV1(DEBUG_MEADE, F("Meade: Focus get stepperPosition"));
     long focusPos = _mount->focusGetStepperPosition();
     return String(focusPos) + "#";
+  }
+  else if (inCmd[0] == 'P') // :FPnnn
+  {
+    long steps = inCmd.substring(1).toInt();
+    LOGV2(DEBUG_MEADE, F("Meade: Focus set stepperPosition %d"), steps);
+    _mount->focusSetStepperPosition(steps);
+    return "1";
   }
   else if (inCmd[0] == 'B') // :FB
   {

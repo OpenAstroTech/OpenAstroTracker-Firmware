@@ -1862,6 +1862,16 @@ long Mount::focusGetStepperPosition()
 
 /////////////////////////////////
 //
+// focusSetPosition
+//
+/////////////////////////////////
+void Mount::focusSetStepperPosition(long steps)
+{
+   _stepperFocus->setCurrentPosition(steps);
+}
+
+/////////////////////////////////
+//
 // disableFocusMotor
 //
 /////////////////////////////////
