@@ -27,7 +27,7 @@ LcdMenu::LcdMenu(byte cols, byte rows, int maxItems) : _lcd(0x20),
   _lcd.setMCPType(LTI_TYPE_MCP23008);
   #endif
 }
-#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
 LcdMenu::LcdMenu(byte cols, byte rows, int maxItems) :
   _cols(cols), _rows(rows), _maxItems(maxItems),
   _charHeightRows(2)  // For 7x14 font 1 character = 2 rows (2x8 pixels)
@@ -48,7 +48,7 @@ void LcdMenu::startup()
     _lcd.begin(_cols, _rows);
     _lcd.setBacklight(RED);
     _lcdBadHw = false;
-  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
     _lcd.begin();
     _lcd.setPowerSave(0);
     _lcd.clear();
@@ -70,7 +70,7 @@ void LcdMenu::startup()
   _lastDisplay[1] = "";
   _menuItems = new MenuItem *[_maxItems];
 
-#if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+#if (DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 && DISPLAY_TYPE != DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306)
   // Create special characters for degrees and arrows
   _lcd.createChar(_degrees, DegreesBitmap);
   _lcd.createChar(_minutes, MinutesBitmap);
@@ -209,7 +209,7 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
     }
   #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     // Nothing to do?
-  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+  #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
     _lcd.setContrast(_brightness);
   #endif
 
@@ -266,7 +266,7 @@ void LcdMenu::setNextActive()
 // It then sends the string to the LCD, keeping the selector arrows centered in the same place.
 void LcdMenu::updateDisplay()
 {
-
+  
   char bufMenu[17];
   char *pBufMenu = &bufMenu[0];
   String menuString = "";
@@ -324,7 +324,7 @@ void LcdMenu::updateDisplay()
 // Print the given character to the LCD, converting some special ones to our bitmaps
 void LcdMenu::printChar(char ch)
 {
-#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
     struct charData_t {
         const uint8_t *font;
         uint8_t encoding;
@@ -411,7 +411,7 @@ void LcdMenu::printMenu(String line)
   }
 }
 
-#if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+#if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 && DISPLAY_TYPE != DISPLAY_TYPE_LCD_KEYPAD_I2C_SSD1306
 
 // The right arrow bitmap
 byte LcdMenu::RightArrowBitmap[8] = {
