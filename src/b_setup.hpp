@@ -105,6 +105,11 @@ void setup() {
   #endif
 #endif
 
+  #if PELTIER == 1
+    digitalWrite(FAN_PIN, HIGH);
+    pinMode(PELTIER_PIN, OUTPUT);
+  #endif
+
   #if USE_GPS == 1
   GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
   #endif

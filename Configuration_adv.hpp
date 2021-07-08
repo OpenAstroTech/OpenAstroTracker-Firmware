@@ -524,6 +524,22 @@
   #endif
 #endif
 
+// Temperature Control
+#if PELTIER == 1
+  #define THERMISTOR 1
+  #ifndef TARGETTEMP
+    #define TARGETTEMP 10
+  #endif
+
+#endif
+#if THERMISTOR == 1
+  #define NUMSAMPLES 10            // Number of measurements to average out
+  #define TEMPERATURENOMINAL 25    // Temperatur for nominal resistance (usually 25C)
+  #define THERMISTORNOMINAL 100000 // thermistor resistance at TEMPERATURENOMINAL (100k)
+  #define BCOEFFICIENT 3950        // Beta coefficient of thermistor
+  #define SERIESRESISTOR 4700      // value of other resistor in system (4.7k pullup)
+#endif
+
 ////////////////////////////
 //
 // DEBUG OUTPUT

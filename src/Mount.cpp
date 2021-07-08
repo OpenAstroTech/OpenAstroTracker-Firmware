@@ -5,6 +5,10 @@
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 
+#if THERMISTOR == 1
+ #include "temperature.hpp"
+#endif
+
 PUSH_NO_WARNINGS
 #include <AccelStepper.h>
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || \
@@ -2590,6 +2594,19 @@ void Mount::loop() {
   }
 
   _stepperWasRunning = raStillRunning || decStillRunning;
+
+  //Serial.print("T: ");
+  //Serial.println(Temperature::calcTemp());
+
+  #if PELTIER == 1
+    //Temperature::calcTemp();
+    if (Temperature::calcTemp() > TARGETTEMP){
+      digitalWrite(PELTIER_PIN, HIGH);
+    } 
+    else digitalWrite(PELTIER_PIN, LOW);
+    
+  #endif
+  
 }
 
 /////////////////////////////////

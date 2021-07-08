@@ -243,3 +243,14 @@
   #define DEW_HEATER_PIN 10
 #endif
  
+// Temperature Control
+#ifndef FAN_PIN
+  #define FAN_PIN 9
+#endif
+#ifndef PELTIER_PIN
+  #define PELTIER_PIN 8
+#endif
+#ifndef THERMISTOR_PIN
+  #define THERMISTOR_PIN 14
+#endif
+
