@@ -3,7 +3,7 @@
 #include "Constants.hpp"
 
 #if defined(NO_LOCAL_CONFIG)
-    // Don't load local configuration file
+// Don't load local configuration file
 #elif defined(MATRIX_LOCAL_CONFIG)
     #include "Configuration_local_matrix.hpp"
 #elif BOARD == BOARD_AVR_MEGA2560 && __has_include("Configuration_local_mega2560.hpp")

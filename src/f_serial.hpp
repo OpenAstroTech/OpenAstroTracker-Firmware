@@ -3,7 +3,7 @@
 #include "b_setup.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
-#include "MeadeCommandProcessor.hpp"
+    #include "MeadeCommandProcessor.hpp"
 
 void processSerialData();
 
@@ -14,50 +14,44 @@ void serialLoop()
     mount.loop();
     mount.displayStepperPositionThrottled();
 
-#ifdef ESP32
+    #ifdef ESP32
     processSerialData();
-#endif
+    #endif
 
-#if (WIFI_ENABLED == 1)
+    #if (WIFI_ENABLED == 1)
     wifiControl.loop();
-#endif
+    #endif
 }
 
-//////////////////////////////////////////////////
-// Event that is triggered when the serial port receives data.
-#ifndef ESP32
+    //////////////////////////////////////////////////
+    // Event that is triggered when the serial port receives data.
+    #ifndef ESP32
 void serialEvent()
 {
     processSerialData();
 }
-#endif
+    #endif
 
 // ESP needs to call this in a loop :_(
 void processSerialData()
 {
     char buffer[2];
-    while (Serial.available() > 0)
-    {
-        if (Serial.readBytes(buffer, 1) == 1)
-        {
-            if (buffer[0] == 0x06)
-            {
+    while (Serial.available() > 0) {
+        if (Serial.readBytes(buffer, 1) == 1) {
+            if (buffer[0] == 0x06) {
                 LOGV1(DEBUG_SERIAL, F("Serial: Received: ACK request, replying 1"));
                 Serial.print('1');
             }
-            else
-            {
+            else {
                 String inCmd = String(buffer[0]) + Serial.readStringUntil('#');
                 LOGV3(DEBUG_SERIAL, F("Serial: ReceivedCommand(%d): [%s]"), inCmd.length(), inCmd.c_str());
 
                 String retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
-                if (retVal != "")
-                {
+                if (retVal != "") {
                     LOGV2(DEBUG_SERIAL, F("Serial: RepliedWith:  [%s]"), retVal.c_str());
                     Serial.print(retVal);
                 }
-                else
-                {
+                else {
                     LOGV1(DEBUG_SERIAL, F("Serial: NoReply"));
                 }
             }
