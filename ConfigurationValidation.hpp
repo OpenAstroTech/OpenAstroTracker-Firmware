@@ -16,9 +16,9 @@
 // Display & keypad configurations
 #if defined(ESP32) && ((DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306))
 // Valid display for ESP32
-#elif defined(__AVR_ATmega2560__)                                                                                      \
-    && ((DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD)                               \
-        || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008) || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017))
+#elif defined(__AVR_ATmega2560__)                                                                                                          \
+    && ((DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD) || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008)         \
+        || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017))
 // Valid display for ATmega
 #else
     #error Unsupported display configuration. Use at own risk.
@@ -27,8 +27,8 @@
 // Validate motor & driver configurations
 #if (RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
 // Valid RA stepper and driver combination
-#elif (RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17)                                                                         \
-    && ((RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)            \
+#elif (RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17)                                                                                             \
+    && ((RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)                                \
         || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
 // Valid RA stepper and driver combination
 #else
@@ -37,8 +37,8 @@
 
 #if (DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
 // Valid DEC stepper and driver combination
-#elif (DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17)                                                                        \
-    && ((DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)          \
+#elif (DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17)                                                                                            \
+    && ((DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)                              \
         || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
 // Valid DEC stepper and driver combination
 #else
@@ -306,8 +306,8 @@
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)              \
-            || !defined(AZ_SERIAL_PORT_TX) || !defined(AZ_SERIAL_PORT_RX)
+        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN) || !defined(AZ_SERIAL_PORT_TX)   \
+            || !defined(AZ_SERIAL_PORT_RX)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
         #endif
@@ -330,7 +330,7 @@
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)          \
+        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)                              \
             || !defined(ALT_SERIAL_PORT_TX) || !defined(ALT_SERIAL_PORT_RX)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
@@ -354,8 +354,8 @@
             #error Missing pin assignments for configured Focuser DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN)                              \
-            || !defined(FOCUS_SERIAL_PORT_TX) || !defined(FOCUS_SERIAL_PORT_RX)
+        #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN) || !defined(FOCUS_SERIAL_PORT_TX)                \
+            || !defined(FOCUS_SERIAL_PORT_RX)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured Focuser DRIVER_TYPE_TMC2209_UART driver
         #endif
@@ -367,12 +367,11 @@
 #endif
 
 // Displays
-#if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008)                      \
+#if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008)                                          \
     || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017)
 // No dedicated pins required apart from I2C
 #elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD)
-    #if !defined(LCD_PIN4) || !defined(LCD_PIN5) || !defined(LCD_PIN6) || !defined(LCD_PIN7) || !defined(LCD_PIN8)     \
-        || !defined(LCD_PIN9)
+    #if !defined(LCD_PIN4) || !defined(LCD_PIN5) || !defined(LCD_PIN6) || !defined(LCD_PIN7) || !defined(LCD_PIN8) || !defined(LCD_PIN9)
         // Required pin assignments missing
         #error Missing pin assignments for configured DISPLAY_TYPE_LCD_KEYPAD display
     #endif
@@ -381,7 +380,7 @@
 #endif
 
 // Keypad
-#if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008)                      \
+#if (DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008)                                          \
     || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017)
 // No dedicated pins required apart from I2C
 #elif (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD)
@@ -408,11 +407,11 @@
             #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
         #endif
         #if (DEC_MOTOR_CURRENT_RATING == 0)
-            #error                                                                                                     \
+            #error                                                                                                                         \
                 "DEC current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword."
         #endif
     #else
-        #error                                                                                                         \
+        #error                                                                                                                             \
             "DEC_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the DEC_MOTOR_CURRENT_RATING keyword."
     #endif
     #if defined(DEC_OPERATING_CURRENT_SETTING)
@@ -420,7 +419,7 @@
             #error "DEC_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
         #endif
     #else
-        #error                                                                                                         \
+        #error                                                                                                                             \
             "DEC_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the DEC_OPERATING_CURRENT_SETTING keyword."
     #endif
 #endif
@@ -431,11 +430,11 @@
             #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
         #endif
         #if (RA_MOTOR_CURRENT_RATING == 0)
-            #error                                                                                                     \
+            #error                                                                                                                         \
                 "RA current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword."
         #endif
     #else
-        #error                                                                                                         \
+        #error                                                                                                                             \
             "RA_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the RA_MOTOR_CURRENT_RATING keyword."
     #endif
     #if defined(RA_OPERATING_CURRENT_SETTING)
@@ -443,7 +442,7 @@
             #error "RA_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
         #endif
     #else
-        #error                                                                                                         \
+        #error                                                                                                                             \
             "RA_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the RA_OPERATING_CURRENT_SETTING keyword."
     #endif
 #endif
@@ -452,15 +451,14 @@
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if defined(AZ_MOTOR_CURRENT_RATING)
             #if (AZ_MOTOR_CURRENT_RATING > 1700)
-                #error                                                                                                 \
-                    "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
+                #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
             #endif
             #if (AZ_MOTOR_CURRENT_RATING == 0)
-                #error                                                                                                 \
+                #error                                                                                                                     \
                     "AZ current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword."
             #endif
         #else
-            #error                                                                                                     \
+            #error                                                                                                                         \
                 "AZ_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the AZ_MOTOR_CURRENT_RATING keyword."
         #endif
         #if defined(AZ_OPERATING_CURRENT_SETTING)
@@ -468,7 +466,7 @@
                 #error "AZ_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
             #endif
         #else
-            #error                                                                                                     \
+            #error                                                                                                                         \
                 "AZ_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the AZ_OPERATING_CURRENT_SETTING keyword."
         #endif
     #endif
@@ -478,15 +476,14 @@
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if defined(ALT_MOTOR_CURRENT_RATING)
             #if (ALT_MOTOR_CURRENT_RATING > 1700)
-                #error                                                                                                 \
-                    "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
+                #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
             #endif
             #if (ALT_MOTOR_CURRENT_RATING == 0)
-                #error                                                                                                 \
+                #error                                                                                                                     \
                     "ALT current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword."
             #endif
         #else
-            #error                                                                                                     \
+            #error                                                                                                                         \
                 "ALT_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the ALT_MOTOR_CURRENT_RATING keyword."
         #endif
         #if defined(ALT_OPERATING_CURRENT_SETTING)
@@ -494,7 +491,7 @@
                 #error "ALT_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
             #endif
         #else
-            #error                                                                                                     \
+            #error                                                                                                                         \
                 "ALT_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the ALT_OPERATING_CURRENT_SETTING keyword."
         #endif
     #endif

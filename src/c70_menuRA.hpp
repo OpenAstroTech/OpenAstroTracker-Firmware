@@ -6,20 +6,25 @@ bool processRAKeys()
 {
     lcdButton_t key;
     bool waitForRelease = false;
-    if (lcdButtons.currentState() == btnUP) {
-        if (RAselect == 0) {
+    if (lcdButtons.currentState() == btnUP)
+    {
+        if (RAselect == 0)
+        {
             mount.targetRA().addHours(1);
             showTargetRA = true;
         }
-        if (RAselect == 1) {
+        if (RAselect == 1)
+        {
             mount.targetRA().addMinutes(1);
             showTargetRA = true;
         }
-        if (RAselect == 2) {
+        if (RAselect == 2)
+        {
             mount.targetRA().addSeconds(1);
             showTargetRA = true;
         }
-        if (RAselect == 3) {
+        if (RAselect == 3)
+        {
             showTargetRA   = !showTargetRA;
             waitForRelease = true;
         }
@@ -27,20 +32,25 @@ bool processRAKeys()
         // slow down key repetitions
         mount.delay(200);
     }
-    else if (lcdButtons.currentState() == btnDOWN) {
-        if (RAselect == 0) {
+    else if (lcdButtons.currentState() == btnDOWN)
+    {
+        if (RAselect == 0)
+        {
             mount.targetRA().addHours(-1);
             showTargetRA = true;
         }
-        if (RAselect == 1) {
+        if (RAselect == 1)
+        {
             mount.targetRA().addMinutes(-1);
             showTargetRA = true;
         }
-        if (RAselect == 2) {
+        if (RAselect == 2)
+        {
             mount.targetRA().addSeconds(-1);
             showTargetRA = true;
         }
-        if (RAselect == 3) {
+        if (RAselect == 3)
+        {
             showTargetRA   = !showTargetRA;
             waitForRelease = true;
         }
@@ -48,25 +58,31 @@ bool processRAKeys()
         // slow down key repetitions
         mount.delay(200);
     }
-    else if (lcdButtons.keyChanged(&key)) {
+    else if (lcdButtons.keyChanged(&key))
+    {
         waitForRelease = true;
-        switch (key) {
+        switch (key)
+        {
         case btnLEFT: {
             RAselect = adjustWrap(RAselect, 1, 0, 3);
-        } break;
+        }
+        break;
 
         case btnSELECT: {
-            if (mount.isSlewingRAorDEC()) {
+            if (mount.isSlewingRAorDEC())
+            {
                 mount.stopSlewing(ALL_DIRECTIONS);
                 mount.waitUntilStopped(ALL_DIRECTIONS);
             }
 
             mount.startSlewingToTarget();
-        } break;
+        }
+        break;
 
         case btnRIGHT: {
             lcdMenu.setNextActive();
-        } break;
+        }
+        break;
 
         default:
             break;
@@ -78,9 +94,9 @@ bool processRAKeys()
 
 void printRASubmenu()
 {
-    if (mount.isSlewingIdle()) {
-        String ra = mount.RAString(LCDMENU_STRING | (showTargetRA ? TARGET_STRING : CURRENT_STRING), RAselect)
-                        .substring(0, 12);
+    if (mount.isSlewingIdle())
+    {
+        String ra = mount.RAString(LCDMENU_STRING | (showTargetRA ? TARGET_STRING : CURRENT_STRING), RAselect).substring(0, 12);
         ra += (RAselect == 3) ? ">" : " ";
         ra += showTargetRA ? "Ta" : "Cu";
         lcdMenu.printMenu(ra);

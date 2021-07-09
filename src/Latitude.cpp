@@ -19,11 +19,13 @@ Latitude::Latitude(float inDegrees) : DayTime(inDegrees)
 
 void Latitude::checkHours()
 {
-    if (totalSeconds > 90L * 3600L) {
+    if (totalSeconds > 90L * 3600L)
+    {
         LOGV1(DEBUG_GENERAL, F("LatitudeCheckHours: Degrees is more than 90, clamping"));
         totalSeconds = 90L * 3600L;
     }
-    if (totalSeconds < (-90L * 3600L)) {
+    if (totalSeconds < (-90L * 3600L))
+    {
         LOGV1(DEBUG_GENERAL, F("LatitudeCheckHours: Degrees is less than -90, clamping"));
         totalSeconds = -90L * 3600L;
     }

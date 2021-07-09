@@ -25,7 +25,7 @@ LcdMenu lcdMenu(16, 2, MAXMENUITEMS);
 LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
 #endif
 
-#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008       \
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008                           \
     || DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
 LcdButtons lcdButtons(&lcdMenu);
 #endif
@@ -73,7 +73,8 @@ TaskHandle_t StepperTask;
 void IRAM_ATTR stepperControlTask(void *payload)
 {
     Mount *mountCopy = reinterpret_cast<Mount *>(payload);
-    for (;;) {
+    for (;;)
+    {
         mountCopy->interruptLoop();
         vTaskDelay(1);  // 1 ms 	// This will limit max stepping rate to 1 kHz
     }
@@ -200,7 +201,7 @@ void setup()
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                \
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                    \
         || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     pinMode(AZ_EN_PIN, OUTPUT);
     digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -215,7 +216,7 @@ void setup()
 #endif
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE              \
+    #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
         || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     pinMode(ALT_EN_PIN, OUTPUT);
     digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -230,7 +231,7 @@ void setup()
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE          \
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                              \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     pinMode(FOCUS_EN_PIN, OUTPUT);
     digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -270,14 +271,16 @@ void setup()
     delay(1000);  // Pause on splash screen
 
     // Check for EEPROM reset (Button down during boot)
-    if (lcdButtons.currentState() == btnDOWN) {
+    if (lcdButtons.currentState() == btnDOWN)
+    {
         LOGV1(DEBUG_INFO, F("Erasing configuration in EEPROM!"));
         mount.clearConfiguration();
         // Wait for button release
         lcdMenu.setCursor(13, 1);
         lcdMenu.printMenu("CLR");
         LOGV1(DEBUG_INFO, F("Waiting for button release!"));
-        while (lcdButtons.currentState() != btnNONE) {
+        while (lcdButtons.currentState() != btnNONE)
+        {
             delay(10);
         }
     }
@@ -330,8 +333,7 @@ void setup()
 // Set the stepper motor parameters
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     LOGV1(DEBUG_ANY, "Configure RA stepper 28BYJ-48...");
-    mount.configureRAStepper(
-        RAmotorPin1, RAmotorPin2, RAmotorPin3, RAmotorPin4, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
+    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RAmotorPin3, RAmotorPin4, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     LOGV1(DEBUG_ANY, F("Configure RA stepper NEMA..."));
     mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
@@ -341,8 +343,7 @@ void setup()
 
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     LOGV1(DEBUG_ANY, F("Configure DEC stepper 28BYJ-48..."));
-    mount.configureDECStepper(
-        DECmotorPin1, DECmotorPin2, DECmotorPin3, DECmotorPin4, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DECmotorPin3, DECmotorPin4, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
 #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     LOGV1(DEBUG_ANY, F("Configure DEC stepper NEMA..."));
     mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
@@ -355,8 +356,7 @@ void setup()
     #if SW_SERIAL_UART == 0
     mount.configureRAdriver(&RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
-    mount.configureRAdriver(
-        RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
+    mount.configureRAdriver(RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
     #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -364,17 +364,15 @@ void setup()
     #if SW_SERIAL_UART == 0
     mount.configureDECdriver(&DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
-    mount.configureDECdriver(
-        DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
+    mount.configureDECdriver(DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #endif
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOGV1(DEBUG_ANY, F("Configure AZ stepper..."));
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    mount.configureAZStepper(
-        AZmotorPin1, AZmotorPin2, AZmotorPin3, AZmotorPin4, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE              \
+    mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZmotorPin3, AZmotorPin4, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
         || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #endif
@@ -383,17 +381,15 @@ void setup()
         #if SW_SERIAL_UART == 0
     mount.configureAZdriver(&AZ_SERIAL_PORT, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
         #elif SW_SERIAL_UART == 1
-    mount.configureAZdriver(
-        AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
+    mount.configureAZdriver(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
         #endif
     #endif
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOGV1(DEBUG_ANY, F("Configure Alt stepper..."));
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    mount.configureALTStepper(
-        ALTmotorPin1, ALTmotorPin2, ALTmotorPin3, ALTmotorPin4, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
-    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE            \
+    mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALTmotorPin3, ALTmotorPin4, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
+    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                \
         || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #endif
@@ -402,8 +398,7 @@ void setup()
         #if SW_SERIAL_UART == 0
     mount.configureALTdriver(&ALT_SERIAL_PORT, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
         #elif SW_SERIAL_UART == 1
-    mount.configureALTdriver(
-        ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
+    mount.configureALTdriver(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
         #endif
     #endif
 #endif
@@ -411,13 +406,9 @@ void setup()
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOGV1(DEBUG_ANY, F("Configure Focus stepper..."));
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    mount.configureFocusStepper(FOCUSmotorPin1,
-                                FOCUSmotorPin2,
-                                FOCUSmotorPin3,
-                                FOCUSmotorPin4,
-                                FOCUS_STEPPER_SPEED,
-                                FOCUS_STEPPER_ACCELERATION);
-    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE        \
+    mount.configureFocusStepper(
+        FOCUSmotorPin1, FOCUSmotorPin2, FOCUSmotorPin3, FOCUSmotorPin4, FOCUS_STEPPER_SPEED, FOCUS_STEPPER_ACCELERATION);
+    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     mount.configureFocusStepper(FOCUSmotorPin1, FOCUSmotorPin2, FOCUS_STEPPER_SPEED, FOCUS_STEPPER_ACCELERATION);
     #endif
@@ -464,7 +455,8 @@ void setup()
 
 #else
     // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
-    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount)) {
+    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
+    {
         LOGV1(DEBUG_MOUNT, F("CANNOT setup interrupt timer!"));
     }
 #endif

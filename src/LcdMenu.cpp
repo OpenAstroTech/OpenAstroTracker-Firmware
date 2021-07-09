@@ -28,8 +28,7 @@ LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
 }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
 LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
-    : _cols(cols), _rows(rows), _maxItems(maxItems),
-      _charHeightRows(2)  // For 7x14 font 1 character = 2 rows (2x8 pixels)
+    : _cols(cols), _rows(rows), _maxItems(maxItems), _charHeightRows(2)  // For 7x14 font 1 character = 2 rows (2x8 pixels)
 {
 }
     #endif
@@ -138,8 +137,10 @@ bool LcdMenu::testIfLcdIsBad()
 // Find a menu item by its ID
 MenuItem *LcdMenu::findById(byte id)
 {
-    for (byte i = 0; i < _numMenuItems; i++) {
-        if (_menuItems[i]->id() == id) {
+    for (byte i = 0; i < _numMenuItems; i++)
+    {
+        if (_menuItems[i]->id() == id)
+        {
             return _menuItems[i];
         }
     }
@@ -162,8 +163,10 @@ byte LcdMenu::getActive()
 // Set the active menu item
 void LcdMenu::setActive(byte id)
 {
-    for (byte i = 0; i < _numMenuItems; i++) {
-        if (_menuItems[i]->id() == id) {
+    for (byte i = 0; i < _numMenuItems; i++)
+    {
+        if (_menuItems[i]->id() == id)
+        {
             _activeMenuIndex = i;
             break;
         }
@@ -190,16 +193,20 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
     // Not supported on ESP32 due to lack of built-in analogWrite()
-    if (_lcdBadHw) {
+    if (_lcdBadHw)
+    {
         // On 'bad' hardware you can only turn off or on
-        if (_brightness > 0) {
+        if (_brightness > 0)
+        {
             pinMode(LCD_BRIGHTNESS_PIN, INPUT);
         }
-        else {
+        else
+        {
             pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
         }
     }
-    else {
+    else
+    {
         analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
     }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
@@ -208,7 +215,8 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
     _lcd.setContrast(_brightness);
     #endif
 
-    if (persist) {
+    if (persist)
+    {
         LOGV2(DEBUG_INFO, F("LCD: Saving %d as brightness"), _brightness);
         EEPROMStore::storeBrightness(_brightness);
     }
@@ -223,7 +231,8 @@ int LcdMenu::getBacklightBrightness() const
 void LcdMenu::getBacklightBrightnessRange(int *minPtr, int *maxPtr) const
 {
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-    if (_lcdBadHw) {
+    if (_lcdBadHw)
+    {
         // Bad LCD displays are either on or off
         *minPtr = 0;
         *maxPtr = 1;
@@ -247,7 +256,8 @@ void LcdMenu::setNextActive()
 
     // Clear submenu line, in case new menu doesn't print anything.
     _lcd.setCursor(0, 1 * _charHeightRows);
-    for (byte i = 0; i < _columns; i++) {
+    for (byte i = 0; i < _columns; i++)
+    {
         _lcd.print(" ");
     }
 }
@@ -266,7 +276,8 @@ void LcdMenu::updateDisplay()
 
     char scratchBuffer[12];
     // Build the entire menu string
-    for (byte i = 0; i < _numMenuItems; i++) {
+    for (byte i = 0; i < _numMenuItems; i++)
+    {
         MenuItem *item = _menuItems[i];
         bool isActive  = i == _activeMenuIndex;
         sprintf(scratchBuffer, "%c%s%c", isActive ? '>' : ' ', item->display(), isActive ? '<' : ' ');
@@ -287,18 +298,21 @@ void LcdMenu::updateDisplay()
     int offsetIntoString = offsetToActive - margin;
 
     // Pad the front if we don't have enough to offset the string to the arrow locations (happens on first item(s))
-    while (offsetIntoString < 0) {
+    while (offsetIntoString < 0)
+    {
         *(pBufMenu++) = ' ';
         offsetIntoString++;
     }
 
     // Display the actual menu string
-    while ((pBufMenu < bufMenu + usableColumns) && (offsetIntoString < (int) menuString.length())) {
+    while ((pBufMenu < bufMenu + usableColumns) && (offsetIntoString < (int) menuString.length()))
+    {
         *(pBufMenu++) = menuString[offsetIntoString++];
     }
 
     // Pad the end with spaces so the display is cleared when getting to the last item(s).
-    while (pBufMenu < bufMenu + _columns) {
+    while (pBufMenu < bufMenu + _columns)
+    {
         *(pBufMenu++) = ' ';
     }
     *(pBufMenu++) = 0;
@@ -329,11 +343,13 @@ void LcdMenu::printChar(char ch)
     auto buttonLookup      = MappedDict<char, charData_t>(lookupTable, ARRAY_SIZE(lookupTable));
     charData_t specialChar = {};
     const bool charInTable = buttonLookup.tryGet(ch, &specialChar);
-    if (charInTable) {
+    if (charInTable)
+    {
         _lcd.setFont(specialChar.font);
         _lcd.drawGlyph(_lcd.tx, _lcd.ty, specialChar.encoding);
     }
-    else {
+    else
+    {
         _lcd.setFont(u8x8_font_7x14_1x2_f);
         _lcd.drawGlyph(_lcd.tx, _lcd.ty, ch);
     }
@@ -353,10 +369,12 @@ void LcdMenu::printChar(char ch)
     auto buttonLookup = MappedDict<char, specialChar_t>(lookupTable, ARRAY_SIZE(lookupTable));
     specialChar_t specialChar;
     const bool charInTable = buttonLookup.tryGet(ch, &specialChar);
-    if (charInTable) {
+    if (charInTable)
+    {
         _lcd.write(specialChar);
     }
-    else {
+    else
+    {
         _lcd.print(ch);
     }
     #endif
@@ -379,17 +397,20 @@ uint8_t LcdMenu::readButtons()
 // Print a string to the LCD at the current cursor position, substituting the special arrows and padding with spaces to the end
 void LcdMenu::printMenu(String line)
 {
-    if ((_lastDisplay[_activeRow] != line) || (_activeCol != 0)) {
+    if ((_lastDisplay[_activeRow] != line) || (_activeCol != 0))
+    {
         _lastDisplay[_activeRow] = line;
 
         _lcd.setCursor(_activeCol, _charHeightRows * _activeRow);
         int spaces = _columns - line.length();
-        for (char i : line) {
+        for (char i : line)
+        {
             printChar(i);
         }
 
         // Clear the rest of the display
-        while (spaces > 0) {
+        while (spaces > 0)
+        {
             _lcd.print(" ");
             spaces--;
         }

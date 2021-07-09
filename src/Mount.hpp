@@ -10,22 +10,22 @@ class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
 
-#define NORTH B00000001
-#define EAST B00000010
-#define SOUTH B00000100
-#define WEST B00001000
+#define NORTH          B00000001
+#define EAST           B00000010
+#define SOUTH          B00000100
+#define WEST           B00001000
 #define ALL_DIRECTIONS B00001111
-#define TRACKING B00010000
-#define FOCUSING B00100000
+#define TRACKING       B00010000
+#define FOCUSING       B00100000
 
-#define LCDMENU_STRING B0001
-#define MEADE_STRING B0010
-#define PRINT_STRING B0011
-#define LCD_STRING B0100
-#define COMPACT_STRING B0101
+#define LCDMENU_STRING     B0001
+#define MEADE_STRING       B0010
+#define PRINT_STRING       B0011
+#define LCD_STRING         B0100
+#define COMPACT_STRING     B0101
 #define FORMAT_STRING_MASK B0111
 
-#define TARGET_STRING B01000
+#define TARGET_STRING  B01000
 #define CURRENT_STRING B10000
 
 enum StepperAxis
@@ -91,7 +91,7 @@ class Mount
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE              \
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
         || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
     #endif
@@ -101,7 +101,7 @@ class Mount
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE            \
+    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                \
         || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
     #endif
@@ -111,13 +111,13 @@ class Mount
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     void configureFocusStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE        \
+    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
     #endif
 #endif
 
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                          \
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     bool connectToDriver(TMC2209Stepper *driver, const char *driverKind);
 #endif
@@ -126,8 +126,7 @@ class Mount
     #if SW_SERIAL_UART == 0
     void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #elif SW_SERIAL_UART == 1
-    void configureRAdriver(
-        uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    void configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -135,8 +134,7 @@ class Mount
     #if SW_SERIAL_UART == 0
     void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #elif SW_SERIAL_UART == 1
-    void configureDECdriver(
-        uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    void configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #endif
 #endif
 
@@ -146,8 +144,7 @@ class Mount
         #if SW_SERIAL_UART == 0
     void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #elif SW_SERIAL_UART == 1
-    void configureAZdriver(
-        uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #endif
     #endif
 #endif
@@ -158,8 +155,7 @@ class Mount
         #if SW_SERIAL_UART == 0
     void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #elif SW_SERIAL_UART == 1
-    void configureALTdriver(
-        uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #endif
     #endif
 #endif
@@ -170,8 +166,7 @@ class Mount
         #if SW_SERIAL_UART == 0
     void configureFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #elif SW_SERIAL_UART == 1
-    void configureFocusDriver(
-        uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+    void configureFocusDriver(uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #endif
     #endif
 #endif

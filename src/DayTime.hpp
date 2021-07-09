@@ -60,8 +60,7 @@ class DayTime
     static DayTime ParseFromMeade(String const &s);
 
   protected:
-    const char *formatStringImpl(
-        char *targetBuffer, const char *format, char sgn, long degs, long mins, long secs) const;
+    const char *formatStringImpl(char *targetBuffer, const char *format, char sgn, long degs, long mins, long secs) const;
     void printTwoDigits(char *achDegs, int num) const;
 
   private:

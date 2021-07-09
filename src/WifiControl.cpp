@@ -18,7 +18,8 @@ void WifiControl::setup()
 
     _cmdProcessor = MeadeCommandProcessor::instance();
 
-    switch (WIFI_MODE) {
+    switch (WIFI_MODE)
+    {
     case WIFI_MODE_INFRASTRUCTURE:  // startup Infrastructure Mode
         startInfrastructureMode();
         break;
@@ -85,19 +86,23 @@ String wifiStatus(int status)
 
 String WifiControl::getStatus()
 {
-    if (WIFI_MODE == WIFI_MODE_DISABLED) {
+    if (WIFI_MODE == WIFI_MODE_DISABLED)
+    {
         return "0,";
     }
 
     String result = "1,";
 
-    if (WIFI_MODE == WIFI_MODE_INFRASTRUCTURE) {
+    if (WIFI_MODE == WIFI_MODE_INFRASTRUCTURE)
+    {
         result += "Infrastructure,";
     }
-    else if (WIFI_MODE == WIFI_MODE_AP_ONLY) {
+    else if (WIFI_MODE == WIFI_MODE_AP_ONLY)
+    {
         result += "Access Point,";
     }
-    else if (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP) {
+    else if (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
+    {
         result += "Infra-Fail-To-AP,";
     }
 
@@ -114,13 +119,16 @@ String WifiControl::getStatus()
 
 void WifiControl::loop()
 {
-    if (WIFI_MODE == WIFI_MODE_DISABLED) {
+    if (WIFI_MODE == WIFI_MODE_DISABLED)
+    {
         return;
     }
-    if (_status != WiFi.status()) {
+    if (_status != WiFi.status())
+    {
         _status = WiFi.status();
         LOGV2(DEBUG_WIFI, F("Wifi: Connected status changed to %s"), wifiStatus(_status).c_str());
-        if (_status == WL_CONNECTED) {
+        if (_status == WL_CONNECTED)
+        {
             _tcpServer = new WiFiServer(WIFI_PORT);
             _tcpServer->begin();
             _tcpServer->setNoDelay(true);
@@ -138,7 +146,8 @@ void WifiControl::loop()
 
     _mount->loop();
 
-    if (_status != WL_CONNECTED) {
+    if (_status != WL_CONNECTED)
+    {
         infraToAPFailover();
         return;
     }
@@ -149,7 +158,8 @@ void WifiControl::loop()
 
 void WifiControl::infraToAPFailover()
 {
-    if (_infraStart != 0 && !WiFi.isConnected() && _infraStart + _infraWait < millis()) {
+    if (_infraStart != 0 && !WiFi.isConnected() && _infraStart + _infraWait < millis())
+    {
         WiFi.disconnect();
         startAccessPointMode();
         _infraStart = 0;
@@ -160,28 +170,34 @@ void WifiControl::infraToAPFailover()
 
 void WifiControl::tcpLoop()
 {
-    if (client && client.connected()) {
-        while (client.available()) {
+    if (client && client.connected())
+    {
+        while (client.available())
+        {
             LOGV2(DEBUG_WIFI, F("WifiTCP: Available bytes %d. Peeking."), client.available());
 
             // Peek first byte and check for ACK (0x06) handshake
             LOGV2(DEBUG_WIFI, F("WifiTCP: First byte is %x"), client.peek());
-            if (client.peek() == 0x06) {
+            if (client.peek() == 0x06)
+            {
                 client.read();
                 LOGV1(DEBUG_WIFI, F("WifiTCP: Query <-- Handshake request"));
                 client.write("1");
                 LOGV1(DEBUG_WIFI, F("WifiTCP: Reply --> 1"));
             }
-            else {
+            else
+            {
                 String cmd = client.readStringUntil('#');
                 LOGV2(DEBUG_WIFI, F("WifiTCP: Query <-- %s#"), cmd.c_str());
                 String retVal = _cmdProcessor->processCommand(cmd);
 
-                if (retVal != "") {
+                if (retVal != "")
+                {
                     client.write(retVal.c_str());
                     LOGV2(DEBUG_WIFI, F("WifiTCP: Reply --> %s"), retVal.c_str());
                 }
-                else {
+                else
+                {
                     LOGV1(DEBUG_WIFI, F("WifiTCP: No Reply"));
                 }
             }
@@ -189,7 +205,8 @@ void WifiControl::tcpLoop()
             _mount->loop();
         }
     }
-    else {
+    else
+    {
         client = _tcpServer->available();
     }
 }
@@ -197,7 +214,8 @@ void WifiControl::tcpLoop()
 void WifiControl::udpLoop()
 {
     int packetSize = _udp->parsePacket();
-    if (packetSize) {
+    if (packetSize)
+    {
         String lookingFor = "skyfi:";
         String reply      = "skyfi:";
         reply += WIFI_HOSTNAME;
@@ -214,7 +232,8 @@ void WifiControl::udpLoop()
         LOGV2(DEBUG_WIFI, F("WifiUDP: Received: %s"), incomingPacket);
 
         incomingPacket[lookingFor.length()] = 0;
-        if (lookingFor.equalsIgnoreCase(incomingPacket)) {
+        if (lookingFor.equalsIgnoreCase(incomingPacket))
+        {
             _udp->beginPacket(_udp->remoteIP(), 4031);
             /*unsigned char bytes[255];
             reply.getBytes(bytes, 255);

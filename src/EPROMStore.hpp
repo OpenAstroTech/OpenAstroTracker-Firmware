@@ -92,9 +92,8 @@ class EEPROMStore
     enum ItemFlag
     {
         MAGIC_MARKER_VALUE
-            = 0xCE00,  // Changed to 0xCxxx in V1.8.60 since we changed RA and DEC Steps to be 10x (previous settings ignored)
-        MAGIC_MARKER_MASK
-            = 0xFE00,  // If these bits are set to MAGIC_MARKER_VALUE, something has been written to the EEPROM
+            = 0xCE00,                // Changed to 0xCxxx in V1.8.60 since we changed RA and DEC Steps to be 10x (previous settings ignored)
+        MAGIC_MARKER_MASK = 0xFE00,  // If these bits are set to MAGIC_MARKER_VALUE, something has been written to the EEPROM
 
         // The marker bits for the first 8 values stored in EEPROM.
         RA_STEPS_FLAG       = 0x0001,

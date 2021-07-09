@@ -10,7 +10,8 @@ bool processHAKeys()
 {
     lcdButton_t key;
     bool waitForRelease = false;
-    if (lcdButtons.currentState() == btnUP) {
+    if (lcdButtons.currentState() == btnUP)
+    {
         DayTime ha(mount.HA());
         if (HAselect == 0)
             ha.addHours(1);
@@ -21,7 +22,8 @@ bool processHAKeys()
         // slow down key repetitions
         mount.delay(200);
     }
-    else if (lcdButtons.currentState() == btnDOWN) {
+    else if (lcdButtons.currentState() == btnDOWN)
+    {
         DayTime ha(mount.HA());
         if (HAselect == 0)
             ha.addHours(-1);
@@ -32,12 +34,15 @@ bool processHAKeys()
         // slow down key repetitions
         mount.delay(200);
     }
-    else if (lcdButtons.keyChanged(&key)) {
+    else if (lcdButtons.keyChanged(&key))
+    {
         waitForRelease = true;
-        switch (key) {
+        switch (key)
+        {
         case btnLEFT: {
             HAselect = adjustWrap(HAselect, 1, 0, 1);
-        } break;
+        }
+        break;
 
         case btnSELECT: {
             EEPROMStore::storeHATime(mount.HA());
@@ -45,13 +50,15 @@ bool processHAKeys()
             mount.delay(500);
 
         #if SUPPORT_GUIDED_STARTUP == 1
-            if (startupState == StartupWaitForHACompletion) {
+            if (startupState == StartupWaitForHACompletion)
+            {
                 startupState = StartupHAConfirmed;
                 inStartup    = true;
             }
         #endif
             mount.startSlewing(TRACKING);
-        } break;
+        }
+        break;
 
         case btnRIGHT: {
         #if SUPPORT_GUIDED_STARTUP == 1
@@ -60,7 +67,8 @@ bool processHAKeys()
             {
                 lcdMenu.setNextActive();
             }
-        } break;
+        }
+        break;
 
         default:
             break;

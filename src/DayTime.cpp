@@ -19,7 +19,8 @@ DayTime DayTime::ParseFromMeade(String const &s)
     long sgn = 1;
     LOGV2(DEBUG_MEADE, F("DayTime: Parse Coord from [%s]"), s.c_str());
     // Check whether we have a sign. This should be able to parse RA and DEC strings (RA never has a sign, and DEC should always have one).
-    if ((s[i] == '-') || (s[i] == '+')) {
+    if ((s[i] == '-') || (s[i] == '+'))
+    {
         sgn = s[i] == '-' ? -1 : +1;
         i++;
     }
@@ -31,7 +32,8 @@ DayTime DayTime::ParseFromMeade(String const &s)
     LOGV3(DEBUG_MEADE, F("DayTime: 2nd digit [%c] -> degs=%l"), s[i - 1], degs);
 
     // Third digit?
-    if ((s[i] >= '0') && (s[i] <= '9')) {
+    if ((s[i] >= '0') && (s[i] <= '9'))
+    {
         degs = degs * 10 + s[i++] - '0';
         LOGV3(DEBUG_MEADE, F("DayTime: 3rd digit [%c] -> degs=%d"), s[i - 1], degs);
     }
@@ -40,11 +42,13 @@ DayTime DayTime::ParseFromMeade(String const &s)
     int mins = s.substring(i, i + 2).toInt();
     LOGV3(DEBUG_MEADE, F("DayTime: Minutes are [%s] -> mins=%d"), s.substring(i, i + 2).c_str(), mins);
     int secs = 0;
-    if (int(s.length()) > i + 4) {
+    if (int(s.length()) > i + 4)
+    {
         secs = s.substring(i + 3, i + 5).toInt();
         LOGV3(DEBUG_MEADE, F("DayTime: Seconds are [%s] -> secs=%d"), s.substring(i + 3, i + 5).c_str(), secs);
     }
-    else {
+    else
+    {
         LOGV3(DEBUG_MEADE, F("DayTime: No Seconds. slen %d is not > %d"), s.length(), i + 4);
     }
     // Get the signed total seconds specified....
@@ -149,11 +153,13 @@ void DayTime::addHours(int deltaHours)
 
 void DayTime::checkHours()
 {
-    while (totalSeconds >= secondsPerDay) {
+    while (totalSeconds >= secondsPerDay)
+    {
         totalSeconds -= secondsPerDay;
     }
 
-    while (totalSeconds < 0) {
+    while (totalSeconds < 0)
+    {
         totalSeconds += secondsPerDay;
     }
 }
@@ -196,32 +202,39 @@ const char *DayTime::ToString() const
     getTime(hours, mins, secs);
 
     int absHours = abs(hours);
-    if (totalSeconds < 0) {
+    if (totalSeconds < 0)
+    {
         *p++ = '-';
     }
-    if (absHours < 10) {
+    if (absHours < 10)
+    {
         *p++ = '0';
     }
-    else {
+    else
+    {
         *p++ = '0' + (absHours / 10);
     }
 
     *p++ = '0' + (absHours % 10);
 
     *p++ = ':';
-    if (mins < 10) {
+    if (mins < 10)
+    {
         *p++ = '0';
     }
-    else {
+    else
+    {
         *p++ = '0' + (mins / 10);
     }
 
     *p++ = '0' + (mins % 10);
     *p++ = ':';
-    if (secs < 10) {
+    if (secs < 10)
+    {
         *p++ = '0';
     }
-    else {
+    else
+    {
         *p++ = '0' + (secs / 10);
     }
 
@@ -239,8 +252,7 @@ void DayTime::printTwoDigits(char *achDegs, int num) const
     achDegs[2] = 0;
 }
 
-const char *DayTime::formatStringImpl(
-    char *targetBuffer, const char *format, char sgn, long degs, long mins, long secs) const
+const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, char sgn, long degs, long mins, long secs) const
 {
     char achDegs[5];
     char achMins[3];
@@ -249,12 +261,14 @@ const char *DayTime::formatStringImpl(
     char *p       = targetBuffer;
 
     int i = 0;
-    if (sgn != '\0') {
+    if (sgn != '\0')
+    {
         achDegs[0] = sgn;
         i++;
     }
 
-    if (degs >= 100) {
+    if (degs >= 100)
+    {
         achDegs[i++] = '0' + min(9L, (degs / 100));
         degs         = degs % 100;
     }
@@ -265,35 +279,46 @@ const char *DayTime::formatStringImpl(
 
     char macro   = '\0';
     bool inMacro = false;
-    while (*f) {
-        switch (*f) {
+    while (*f)
+    {
+        switch (*f)
+        {
         case '{': {
             inMacro = true;
-        } break;
+        }
+        break;
         case '}': {
-            if (inMacro) {
-                switch (macro) {
+            if (inMacro)
+            {
+                switch (macro)
+                {
                 case 'd': {
                     strcpy(p, achDegs);
                     p += strlen(achDegs);
-                } break;
+                }
+                break;
                 case 'm': {
                     strcpy(p, achMins);
                     p += 2;
-                } break;
+                }
+                break;
                 case 's': {
                     strcpy(p, achSecs);
                     p += 2;
-                } break;
+                }
+                break;
                 }
                 inMacro = false;
             }
-        } break;
+        }
+        break;
         default: {
-            if (inMacro) {
+            if (inMacro)
+            {
                 macro = *f;
             }
-            else {
+            else
+            {
                 *p++ = *f;
             }
         }

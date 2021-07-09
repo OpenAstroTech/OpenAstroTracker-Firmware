@@ -1007,7 +1007,8 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
     char cmdTwo = (inCmd.length() > 1) ? inCmd[1] : '\0';
     char achBuffer[20];
 
-    switch (cmdOne) {
+    switch (cmdOne)
+    {
     case 'V':
         if (cmdTwo == 'N')  // :GVN
         {
@@ -1073,7 +1074,8 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
     case 'a':  // :Ga
     {
         DayTime time = _mount->getLocalTime();
-        if (time.getHours() > 12) {
+        if (time.getHours() > 12)
+        {
             time.addHours(-12);
         }
         time.formatString(achBuffer, "{d}:{m}:{s}#");
@@ -1122,16 +1124,20 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
 String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
 {
 #if USE_GPS == 1
-    if (inCmd[0] == 'T') {
+    if (inCmd[0] == 'T')
+    {
         unsigned long timeoutLen = 2UL * 60UL * 1000UL;
-        if (inCmd.length() > 1) {
+        if (inCmd.length() > 1)
+        {
             timeoutLen = inCmd.substring(1).toInt();
         }
         // Wait at most 2 minutes
         unsigned long timeoutTime = millis() + timeoutLen;
         int indicator             = 0;
-        while (millis() < timeoutTime) {
-            if (gpsAqcuisitionComplete(indicator)) {
+        while (millis() < timeoutTime)
+        {
+            if (gpsAqcuisitionComplete(indicator))
+            {
                 LOGV1(DEBUG_MEADE, F("MEADE: GPS startup, GPS acquired"));
                 return "1";
             }
@@ -1147,7 +1153,8 @@ String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd)
 {
-    if (inCmd[0] == 'M') {
+    if (inCmd[0] == 'M')
+    {
         _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
         return "NONE#";
     }
@@ -1160,44 +1167,52 @@ String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
 {
-    if ((inCmd[0] == 'd') && (inCmd.length() == 10)) {
+    if ((inCmd[0] == 'd') && (inCmd.length() == 10))
+    {
         // Set DEC
         //   0123456789
         // :Sd+84*03:02
-        if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':')) {
+        if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':'))
+        {
             Declination dec     = Declination::ParseFromMeade(inCmd.substring(1));
             _mount->targetDEC() = dec;
             LOGV2(DEBUG_MEADE, F("MEADE: SetInfo: Received Target DEC: %s"), _mount->targetDEC().ToString());
             return "1";
         }
-        else {
+        else
+        {
             // Did not understand the coordinate
             return "0";
         }
     }
-    else if (inCmd[0] == 'r' && (inCmd.length() == 9)) {
+    else if (inCmd[0] == 'r' && (inCmd.length() == 9))
+    {
         // :Sr11:04:57#
         // Set RA
         //   012345678
         // :Sr04:03:02
-        if ((inCmd[3] == ':') && (inCmd[6] == ':')) {
-            _mount->targetRA().set(
-                inCmd.substring(1, 3).toInt(), inCmd.substring(4, 6).toInt(), inCmd.substring(7, 9).toInt());
+        if ((inCmd[3] == ':') && (inCmd[6] == ':'))
+        {
+            _mount->targetRA().set(inCmd.substring(1, 3).toInt(), inCmd.substring(4, 6).toInt(), inCmd.substring(7, 9).toInt());
             LOGV2(DEBUG_MEADE, F("MEADE: SetInfo: Received Target RA: %s"), _mount->targetRA().ToString());
             return "1";
         }
-        else {
+        else
+        {
             // Did not understand the coordinate
             return "0";
         }
     }
-    else if (inCmd[0] == 'H') {
-        if (inCmd[1] == 'L') {
+    else if (inCmd[0] == 'H')
+    {
+        if (inCmd[1] == 'L')
+        {
             // Set LST
             int hLST   = inCmd.substring(2, 4).toInt();
             int minLST = inCmd.substring(4, 6).toInt();
             int secLST = 0;
-            if (inCmd.length() > 7) {
+            if (inCmd.length() > 7)
+            {
                 secLST = inCmd.substring(6, 8).toInt();
             }
 
@@ -1205,12 +1220,14 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
             LOGV4(DEBUG_MEADE, F("MEADE: SetInfo: Received LST: %d:%d:%d"), hLST, minLST, secLST);
             _mount->setLST(lst);
         }
-        else if (inCmd[1] == 'P') {
+        else if (inCmd[1] == 'P')
+        {
             // Set home point
             _mount->setHome(false);
             _mount->startSlewing(TRACKING);
         }
-        else {
+        else
+        {
             // Set HA
             int hHA   = inCmd.substring(1, 3).toInt();
             int minHA = inCmd.substring(4, 6).toInt();
@@ -1220,12 +1237,13 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
 
         return "1";
     }
-    else if ((inCmd[0] == 'Y') && inCmd.length() == 19) {
+    else if ((inCmd[0] == 'Y') && inCmd.length() == 19)
+    {
         // Sync RA, DEC - current position is the given coordinate
         //   0123456789012345678
         // :SY+84*03:02.18:34:12
-        if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':') && (inCmd[10] == '.') && (inCmd[13] == ':')
-            && (inCmd[16] == ':')) {
+        if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':') && (inCmd[10] == '.') && (inCmd[13] == ':') && (inCmd[16] == ':'))
+        {
             Declination dec = Declination::ParseFromMeade(inCmd.substring(1, 9));
             DayTime ra      = DayTime::ParseFromMeade(inCmd.substring(11));
 
@@ -1258,7 +1276,8 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         _mount->setLocalStartTime(DayTime::ParseFromMeade(inCmd.substring(1)));
         return "1";
     }
-    else if (inCmd[0] == 'C') {  // Set Date (MM/DD/YY) :SC04/30/20#
+    else if (inCmd[0] == 'C')
+    {  // Set Date (MM/DD/YY) :SC04/30/20#
         int month = inCmd.substring(1, 3).toInt();
         int day   = inCmd.substring(4, 6).toInt();
         int year  = 2000 + inCmd.substring(7, 9).toInt();
@@ -1271,7 +1290,8 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
     */
         return "1Updating Planetary Data#                              #";  //
     }
-    else {
+    else
+    {
         return "0";
     }
 }
@@ -1288,17 +1308,21 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     }
     else if (inCmd[0] == 'T')  // :MT1
     {
-        if (inCmd.length() > 1) {
-            if (inCmd[1] == '1') {
+        if (inCmd.length() > 1)
+        {
+            if (inCmd[1] == '1')
+            {
                 _mount->startSlewing(TRACKING);
                 return "1";
             }
-            else if (inCmd[1] == '0') {
+            else if (inCmd[1] == '0')
+            {
                 _mount->stopSlewing(TRACKING);
                 return "1";
             }
         }
-        else {
+        else
+        {
             return "0";
         }
     }
@@ -1308,7 +1332,8 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         // Guide pulse
         //   012345678901
         // :MGd0403
-        if (inCmd.length() == 6) {
+        if (inCmd.length() == 6)
+        {
             byte direction = EAST;
             inCmd.toLowerCase();
             if (inCmd[1] == 'n')
@@ -1324,7 +1349,8 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
             return "";
         }
     }
-    else if (inCmd[0] == 'A') {
+    else if (inCmd[0] == 'A')
+    {
 // Move Azimuth or Altitude by given arcminutes
 // :MAZ+32.1# or :MAL-32.1#
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -1343,19 +1369,23 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 #endif
         return "";
     }
-    else if (inCmd[0] == 'e') {
+    else if (inCmd[0] == 'e')
+    {
         _mount->startSlewing(EAST);
         return "";
     }
-    else if (inCmd[0] == 'w') {
+    else if (inCmd[0] == 'w')
+    {
         _mount->startSlewing(WEST);
         return "";
     }
-    else if (inCmd[0] == 'n') {
+    else if (inCmd[0] == 'n')
+    {
         _mount->startSlewing(NORTH);
         return "";
     }
-    else if (inCmd[0] == 's') {
+    else if (inCmd[0] == 's')
+    {
         _mount->startSlewing(SOUTH);
         return "";
     }
@@ -1385,13 +1415,16 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeHome(String inCmd)
 {
-    if (inCmd[0] == 'P') {  // Park
+    if (inCmd[0] == 'P')
+    {  // Park
         _mount->park();
     }
-    else if (inCmd[0] == 'F') {  // Home
+    else if (inCmd[0] == 'F')
+    {  // Home
         _mount->goHome();
     }
-    else if (inCmd[0] == 'U') {  // Unpark
+    else if (inCmd[0] == 'U')
+    {  // Unpark
         _mount->startSlewing(TRACKING);
         return "1";
     }
@@ -1400,7 +1433,8 @@ String MeadeCommandProcessor::handleMeadeHome(String inCmd)
 
 String MeadeCommandProcessor::handleMeadeDistance(String inCmd)
 {
-    if (_mount->isSlewingRAorDEC()) {
+    if (_mount->isSlewingRAorDEC())
+    {
         return "|#";
     }
     return " #";
@@ -1439,13 +1473,16 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         _lcdMenu->setCursor(0, 1);
         _mount->startSlewing(TRACKING);
     }
-    else if (inCmd[0] == 'G') {  // Get RA/DEC steps/deg, speedfactor
-        if (inCmd[1] == 'R')     // :XGR#
+    else if (inCmd[0] == 'G')
+    {                         // Get RA/DEC steps/deg, speedfactor
+        if (inCmd[1] == 'R')  // :XGR#
         {
             return String(_mount->getStepsPerDegree(RA_STEPS), 1) + "#";
         }
-        else if (inCmd[1] == 'D') {
-            if (inCmd.length() > 2) {
+        else if (inCmd[1] == 'D')
+        {
+            if (inCmd.length() > 2)
+            {
                 if (inCmd[2] == 'L')  // :XGDL#
                 {
                     long loLimit, hiLimit;
@@ -1476,7 +1513,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             String coords = inCmd.substring(2);
             int star      = coords.indexOf('*');
-            if (star > 0) {
+            if (star > 0)
+            {
                 long raPos, decPos;
                 float raCoord  = coords.substring(0, star).toFloat();
                 float decCoord = coords.substring(star + 1).toFloat();
@@ -1486,7 +1524,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 return String(scratchBuffer);
             }
         }
-        else if (inCmd[1] == 'M') {
+        else if (inCmd[1] == 'M')
+        {
             if ((inCmd.length() > 2) && (inCmd[2] == 'S'))  // :XGMS#
             {
                 return _mount->getStepperInfo() + "#";
@@ -1520,8 +1559,9 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             return "0,#";
         }
     }
-    else if (inCmd[0] == 'S') {  // Set RA/DEC steps/deg, speedfactor
-        if (inCmd[1] == 'R')     // :XSR#
+    else if (inCmd[0] == 'S')
+    {                         // Set RA/DEC steps/deg, speedfactor
+        if (inCmd[1] == 'R')  // :XSR#
         {
             _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
         }
@@ -1546,7 +1586,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                     _mount->clearDecLimitPosition(true);
                 }
             }
-            else {
+            else
+            {
                 _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
             }
         }
@@ -1571,13 +1612,14 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             _mount->setBacklashCorrection(inCmd.substring(2).toInt());
         }
     }
-    else if (inCmd[0] == 'L') {  // Digital Level
+    else if (inCmd[0] == 'L')
+    {  // Digital Level
 #if USE_GYRO_LEVEL == 1
-        if (inCmd[1] == 'G') {    // get values
+        if (inCmd[1] == 'G')
+        {                         // get values
             if (inCmd[2] == 'R')  // :XLGR
             {                     // get Calibration/Reference values
-                return String(_mount->getPitchCalibrationAngle(), 4) + ","
-                       + String(_mount->getRollCalibrationAngle(), 4) + "#";
+                return String(_mount->getPitchCalibrationAngle(), 4) + "," + String(_mount->getRollCalibrationAngle(), 4) + "#";
             }
             else if (inCmd[2] == 'C')  // :XLGC
             {                          // Get current values
@@ -1590,9 +1632,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 return String(temp, 1) + "#";
             }
         }
-        else if (inCmd[1] == 'S') {  // set values
-            if (inCmd[2] == 'P')     // :XLSP
-            {                        // get Calibration/Reference values
+        else if (inCmd[1] == 'S')
+        {                         // set values
+            if (inCmd[2] == 'P')  // :XLSP
+            {                     // get Calibration/Reference values
                 _mount->setPitchCalibrationAngle(inCmd.substring(3).toFloat());
                 return String("1#");
             }
@@ -1612,13 +1655,15 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             Gyro::shutdown();
             return String("1#");
         }
-        else {
+        else
+        {
             return "Unknown Level command: X" + inCmd;
         }
 #endif
         return String("0#");
     }
-    else if ((inCmd[0] == 'F') && (inCmd[1] == 'R')) {
+    else if ((inCmd[0] == 'F') && (inCmd[1] == 'R'))
+    {
         _mount->clearConfiguration();  // :XFR
         return String("1#");
     }
@@ -1633,13 +1678,15 @@ String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
 {
     // :Q# stops a motors - remains in Control mode
     // :Qq# command does not stop motors, but quits Control mode
-    if (inCmd.length() == 0) {
+    if (inCmd.length() == 0)
+    {
         _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
         _mount->waitUntilStopped(ALL_DIRECTIONS);
         return "";
     }
 
-    switch (inCmd[0]) {
+    switch (inCmd[0])
+    {
     case 'a':
         _mount->stopSlewing(ALL_DIRECTIONS);
         break;
@@ -1670,7 +1717,8 @@ String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
 {
-    switch (inCmd[0]) {
+    switch (inCmd[0])
+    {
     case 'S':
         _mount->setSlewRate(4);
         break;  // Slew   - Fastest
@@ -1766,19 +1814,22 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
 
 String MeadeCommandProcessor::processCommand(String inCmd)
 {
-    if (inCmd[0] == ':') {
+    if (inCmd[0] == ':')
+    {
         LOGV2(DEBUG_MEADE, F("MEADE: Received command '%s'"), inCmd.c_str());
 
         // Apparently some LX200 implementations put spaces in their commands..... remove them with impunity.
         int spacePos;
-        while ((spacePos = inCmd.indexOf(' ')) != -1) {
+        while ((spacePos = inCmd.indexOf(' ')) != -1)
+        {
             inCmd.remove(spacePos, 1);
         }
 
         LOGV2(DEBUG_MEADE, F("MEADE: Processing command '%s'"), inCmd.c_str());
         char command = inCmd[1];
         inCmd        = inCmd.substring(2);
-        switch (command) {
+        switch (command)
+        {
         case 'S':
             return handleMeadeSetInfo(inCmd);
         case 'M':

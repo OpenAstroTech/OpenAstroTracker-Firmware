@@ -46,7 +46,8 @@ void loop()
     char buf[128];
     sprintf(buf, "A:%4d %d ", adc_key_in, key);
     String state = String(buf);
-    switch (lcd_key) {
+    switch (lcd_key)
+    {
     case btnNONE:
         state += "None";
         break;
@@ -71,7 +72,8 @@ void loop()
     }
 
     lcdMenu.printMenu(state);
-    if (changed) {
+    if (changed)
+    {
         Serial.println(lastKey);
     }
 
@@ -84,13 +86,15 @@ void loop()
 
     // Update the LCD display
     unsigned long now = millis();
-    if (!inSerialControl && okToUpdateMenu && !inStartup && !mount.isSlewingRAorDEC()) {
+    if (!inSerialControl && okToUpdateMenu && !inStartup && !mount.isSlewingRAorDEC())
+    {
         // Main menu display
         lcdMenu.updateDisplay();
     }
 
     // Tracking marker
-    if ((mount.isBootComplete()) && (now - lastTrackingStatusPrint > 200)) {
+    if ((mount.isBootComplete()) && (now - lastTrackingStatusPrint > 200))
+    {
         lcdMenu.printAt(15, 0, mount.isSlewingTRK() ? '&' : '`');
         lastTrackingStatusPrint = now;
     }
@@ -98,12 +102,16 @@ void loop()
     lcdMenu.setCursor(0, 1);
 
     #if SUPPORT_SERIAL_CONTROL == 1
-    if (inSerialControl) {
-        if (lcdButtons.keyChanged(&lcd_key)) {
-            if (lcd_key == btnSELECT) {
+    if (inSerialControl)
+    {
+        if (lcdButtons.keyChanged(&lcd_key))
+        {
+            if (lcd_key == btnSELECT)
+            {
                 quitSerialOnNextButtonRelease = true;
             }
-            else if ((lcd_key == btnNONE) && quitSerialOnNextButtonRelease) {
+            else if ((lcd_key == btnNONE) && quitSerialOnNextButtonRelease)
+            {
                 MeadeCommandProcessor::instance()->processCommand(":Qq#");
                 quitSerialOnNextButtonRelease = false;
             }
@@ -113,18 +121,19 @@ void loop()
     else
     #endif
     {
-
         bool waitForButtonRelease = false;
 
     // Handle the keys
     #if SUPPORT_GUIDED_STARTUP == 1
-        if (inStartup) {
+        if (inStartup)
+        {
             waitForButtonRelease = processStartupKeys();
         }
         else
     #endif
         {
-            switch (lcdMenu.getActive()) {
+            switch (lcdMenu.getActive())
+            {
             case RA_Menu:
                 waitForButtonRelease = processRAKeys();
                 break;
@@ -171,12 +180,17 @@ void loop()
             }
         }
 
-        if (waitForButtonRelease) {
-            if (lcdButtons.currentState() != btnNONE) {
-                do {
+        if (waitForButtonRelease)
+        {
+            if (lcdButtons.currentState() != btnNONE)
+            {
+                do
+                {
                     lcdButton_t waitKey;
-                    if (lcdButtons.keyChanged(&waitKey)) {
-                        if (waitKey == btnNONE) {
+                    if (lcdButtons.keyChanged(&waitKey))
+                    {
+                        if (waitKey == btnNONE)
+                        {
                             break;
                         }
                     }
@@ -191,52 +205,63 @@ void loop()
         lcdMenu.setCursor(0, 1);
 
     #if SUPPORT_GUIDED_STARTUP == 1
-        if (inStartup) {
+        if (inStartup)
+        {
             printStartupMenu();
         }
         else
     #endif
         {
-            if (!inSerialControl) {
+            if (!inSerialControl)
+            {
                 // For some strange reason, a switch statement here causes a crash and reboot....
                 int activeMenu = lcdMenu.getActive();
-                if (activeMenu == RA_Menu) {
+                if (activeMenu == RA_Menu)
+                {
                     printRASubmenu();
                 }
-                else if (activeMenu == DEC_Menu) {
+                else if (activeMenu == DEC_Menu)
+                {
                     printDECSubmenu();
                 }
     #if SUPPORT_POINTS_OF_INTEREST == 1
-                else if (activeMenu == POI_Menu) {
+                else if (activeMenu == POI_Menu)
+                {
                     printPOISubmenu();
                 }
     #else
-                else if (activeMenu == Home_Menu) {
+                else if (activeMenu == Home_Menu)
+                {
                     printHomeSubmenu();
                 }
     #endif
-                else if (activeMenu == HA_Menu) {
+                else if (activeMenu == HA_Menu)
+                {
                     printHASubmenu();
                 }
     #if SUPPORT_MANUAL_CONTROL == 1
-                else if (activeMenu == Control_Menu) {
+                else if (activeMenu == Control_Menu)
+                {
                     printControlSubmenu();
                 }
     #endif
     #if SUPPORT_CALIBRATION == 1
-                else if (activeMenu == Calibration_Menu) {
+                else if (activeMenu == Calibration_Menu)
+                {
                     printCalibrationSubmenu();
                 }
     #endif
 
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-                else if (activeMenu == Focuser_Menu) {
+                else if (activeMenu == Focuser_Menu)
+                {
                     printFocusSubmenu();
                 }
     #endif
 
     #if SUPPORT_INFO_DISPLAY == 1
-                else if (activeMenu == Status_Menu) {
+                else if (activeMenu == Status_Menu)
+                {
                     printStatusSubmenu();
                 }
     #endif

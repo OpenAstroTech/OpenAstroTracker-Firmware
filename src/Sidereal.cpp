@@ -46,12 +46,14 @@ int Sidereal::calculateDeltaJd(int year, int month, int day)
 
     // Calculating days without leapdays
     long int deltaJd = (year - J2000) * 365 + day;
-    for (int i = 0; i < month - 1; i++) {
+    for (int i = 0; i < month - 1; i++)
+    {
         deltaJd += daysInMonth[i];
     }
 
     // Add leapdays
-    if (month <= 2) {
+    if (month <= 2)
+    {
         // Not counting current year if we have not passed february yet
         year--;
     }
@@ -68,7 +70,8 @@ DayTime Sidereal::calculateHa(float lstTotalHours)
     lstDeg -= ((POLARIS_RA_SECOND / 3600.0f + POLARIS_RA_MINUTE / 60.0f + POLARIS_RA_HOUR) * 15.0f);
 
     //ensure positive deg
-    while (lstDeg < 0.0f) {
+    while (lstDeg < 0.0f)
+    {
         lstDeg += 360.0f;
     }
 

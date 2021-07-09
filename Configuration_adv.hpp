@@ -30,8 +30,7 @@
         #define RA_STEPPER_SPR 4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef RA_STEPPER_SPEED
-        #define RA_STEPPER_SPEED                                                                                       \
-            400  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+        #define RA_STEPPER_SPEED 400  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
     #endif
     #ifndef RA_STEPPER_ACCELERATION
         #define RA_STEPPER_ACCELERATION 600  // High speeds tend to make these cheap steppers unprecice
@@ -41,8 +40,7 @@
         #define RA_STEPPER_SPR 400  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef RA_STEPPER_SPEED
-        #define RA_STEPPER_SPEED                                                                                       \
-            1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define RA_STEPPER_SPEED 1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
     #endif
     #ifndef RA_STEPPER_ACCELERATION
         #define RA_STEPPER_ACCELERATION 6000
@@ -56,8 +54,7 @@
         #define DEC_STEPPER_SPR 4096  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef DEC_STEPPER_SPEED
-        #define DEC_STEPPER_SPEED                                                                                      \
-            600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+        #define DEC_STEPPER_SPEED 600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
     #endif
     #ifndef DEC_STEPPER_ACCELERATION
         #define DEC_STEPPER_ACCELERATION 400  // High speeds tend to make these cheap steppers unprecice
@@ -67,8 +64,7 @@
         #define DEC_STEPPER_SPR 400  // 28BYJ-48 = 4096  |  NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef DEC_STEPPER_SPEED
-        #define DEC_STEPPER_SPEED                                                                                      \
-            1300  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define DEC_STEPPER_SPEED 1300  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
     #endif
     #ifndef DEC_STEPPER_ACCELERATION
         #define DEC_STEPPER_ACCELERATION 6000
@@ -105,11 +101,10 @@
         #define RA_UART_STEALTH_MODE 0
     #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    #define RA_SLEW_MICROSTEPPING                                                                                      \
-        8  // Microstep mode set by MS pin strapping. Use the same microstep mode for both slewing & tracking
+    #define RA_SLEW_MICROSTEPPING     8  // Microstep mode set by MS pin strapping. Use the same microstep mode for both slewing & tracking
     #define RA_TRACKING_MICROSTEPPING RA_SLEW_MICROSTEPPING
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    #define RA_SLEW_MICROSTEPPING 2      // The (default) half-step mode used for slewing RA axis
+    #define RA_SLEW_MICROSTEPPING     2  // The (default) half-step mode used for slewing RA axis
     #define RA_TRACKING_MICROSTEPPING 2  // The fine half-step mode for tracking RA axis
 #else
     #error Unknown RA driver type
@@ -126,11 +121,11 @@
         #define DEC_UART_STEALTH_MODE 0
     #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    #define DEC_SLEW_MICROSTEPPING                                                                                     \
+    #define DEC_SLEW_MICROSTEPPING                                                                                                         \
         16  // Only UART drivers support dynamic switching. Use the same microstep mode for both slewing & guiding
     #define DEC_GUIDE_MICROSTEPPING DEC_SLEW_MICROSTEPPING
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    #define DEC_SLEW_MICROSTEPPING 2  // Runs in half-step mode always
+    #define DEC_SLEW_MICROSTEPPING  2  // Runs in half-step mode always
     #define DEC_GUIDE_MICROSTEPPING DEC_SLEW_MICROSTEPPING
 #else
     #error Unknown DEC driver type
@@ -143,17 +138,15 @@
         #error Please delete any definitions of RA_RMSCURRENT or DEC_RMSCURRENT in your local configuration file. Define XXX_MOTOR_CURRENT_RATING and XXX_OPERATING_CURRENT_SETTING instead.
     #endif
     //UART Current settings
-    #define RA_RMSCURRENT RA_MOTOR_CURRENT_RATING *(RA_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
+    #define RA_RMSCURRENT  RA_MOTOR_CURRENT_RATING *(RA_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
     #define DEC_RMSCURRENT DEC_MOTOR_CURRENT_RATING *(DEC_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
 
-    #define RA_STALL_VALUE                                                                                             \
-        100  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
-    #define DEC_STALL_VALUE                                                                                            \
-        10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
-    #define USE_AUTOHOME 0  // Autohome with TMC2209 stall detection:  ON = 1  |  OFF = 0
+    #define RA_STALL_VALUE  100  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+    #define DEC_STALL_VALUE 10   // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+    #define USE_AUTOHOME    0    // Autohome with TMC2209 stall detection:  ON = 1  |  OFF = 0
     //                  ^^^ leave at 0 for now, doesnt work properly yet
     #ifndef RA_AUDIO_FEEDBACK
-        #define RA_AUDIO_FEEDBACK                                                                                      \
+        #define RA_AUDIO_FEEDBACK                                                                                                          \
             0  // If one of these are set to 1, the respective driver will shut off the stealthchop mode, resulting in a audible whine
     #endif
     #ifndef DEC_AUDIO_FEEDBACK
@@ -161,8 +154,7 @@
     #endif
 
     #ifndef USE_VREF
-        #define USE_VREF                                                                                               \
-            0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+        #define USE_VREF 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
     #endif
 
     #ifndef UART_CONNECTION_TEST_TXRX
@@ -205,7 +197,7 @@
 // Theoretically correct RA tracking speed is 1.246586 (300 x 14.95903 / 3600) (V2 : 1.333800 (322 x 14.95903 / 3600) steps/sec (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef RA_STEPS_PER_DEGREE
-    #define RA_STEPS_PER_DEGREE                                                                                        \
+    #define RA_STEPS_PER_DEGREE                                                                                                            \
         (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
@@ -225,9 +217,8 @@
 // So there are 160.85 steps/degree (57907/360) (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef DEC_STEPS_PER_DEGREE
-    #define DEC_STEPS_PER_DEGREE                                                                                       \
-        (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING      \
-         / 360.0f)
+    #define DEC_STEPS_PER_DEGREE                                                                                                           \
+        (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 ////////////////////////////
@@ -294,7 +285,7 @@
             #error Please remove AZIMUTH_ALTITUDE_MOTORS definition and use only ALT_STEPPER_TYPE and AZ_STEPPER_TYPE
         #endif
         #define AZ_STEPPER_TYPE STEPPER_TYPE_28BYJ48
-        #define AZ_DRIVER_TYPE DRIVER_TYPE_ULN2003
+        #define AZ_DRIVER_TYPE  DRIVER_TYPE_ULN2003
     #endif
     #undef AZIMUTH_ALTITUDE_MOTORS
 #endif
@@ -304,21 +295,19 @@
 
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
         #define AZ_MICROSTEPPING 2  // Halfstep mode using ULN2003 driver
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE              \
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
         || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #define AZ_MICROSTEPPING 32
     #else
         #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
     #endif
     #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-        #define AZ_STEPPER_SPR 2048  // 28BYJ-48 in full step mode
-        #define AZ_STEPPER_SPEED                                                                                       \
-            600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
-        #define AZ_STEPPER_ACCELERATION 400  // High speeds tend to make these cheap steppers unprecice
+        #define AZ_STEPPER_SPR          2048  // 28BYJ-48 in full step mode
+        #define AZ_STEPPER_SPEED        600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+        #define AZ_STEPPER_ACCELERATION 400   // High speeds tend to make these cheap steppers unprecice
     #elif AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-        #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-        #define AZ_STEPPER_SPEED                                                                                       \
-            600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define AZ_STEPPER_SPR          400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+        #define AZ_STEPPER_SPEED        600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #define AZ_STEPPER_ACCELERATION 1000
     #else
         #error Unknown AZ stepper type
@@ -326,11 +315,10 @@
 
     // the Circumference of the AZ rotation. 808mm dia.
     #define AZ_CIRCUMFERENCE 2538.4f
-    #define AZIMUTH_STEPS_PER_REV                                                                                      \
-        (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR               \
-         * AZ_MICROSTEPPING)  // Actually u-steps/rev
-    #define AZIMUTH_STEPS_PER_ARC_MINUTE                                                                               \
-        (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    #define AZIMUTH_STEPS_PER_REV                                                                                                          \
+        (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                                   \
+         * AZ_MICROSTEPPING)                                                      // Actually u-steps/rev
+    #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
 
     // AZ TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
@@ -339,11 +327,10 @@
 
         #define AZ_AUDIO_FEEDBACK 0
 
-        #define AZ_STALL_VALUE                                                                                         \
-            10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+        #define AZ_STALL_VALUE 10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
         #ifndef USE_VREF
-            #define USE_VREF                                                                                           \
+            #define USE_VREF                                                                                                               \
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
         #endif
     #endif
@@ -354,21 +341,19 @@
 
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
         #define ALT_MICROSTEPPING 1  // Fullstep mode using ULN2003 driver
-    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE            \
+    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                \
         || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #define ALT_MICROSTEPPING 32
     #else
         #error Unknown ALT driver type. Did you define ALT_DRIVER_TYPE?
     #endif
     #if ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-        #define ALT_STEPPER_SPR 2048  // 28BYJ-48 in full step mode
-        #define ALT_STEPPER_SPEED                                                                                      \
-            600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
-        #define ALT_STEPPER_ACCELERATION 400  // High speeds tend to make these cheap steppers unprecice
+        #define ALT_STEPPER_SPR          2048  // 28BYJ-48 in full step mode
+        #define ALT_STEPPER_SPEED        600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+        #define ALT_STEPPER_ACCELERATION 400   // High speeds tend to make these cheap steppers unprecice
     #elif ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-        #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-        #define ALT_STEPPER_SPEED                                                                                      \
-            600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define ALT_STEPPER_SPR          400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+        #define ALT_STEPPER_SPEED        600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #define ALT_STEPPER_ACCELERATION 1000
     #else
         #error Unknown ALT stepper type
@@ -379,11 +364,10 @@
     // the ratio of the ALT gearbox (40:3)
     #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
 
-    #define ALTITUDE_STEPS_PER_REV                                                                                     \
-        (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR           \
-         * ALT_MICROSTEPPING * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
-    #define ALTITUDE_STEPS_PER_ARC_MINUTE                                                                              \
-        (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    #define ALTITUDE_STEPS_PER_REV                                                                                                         \
+        (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING           \
+         * ALT_WORMGEAR_RATIO)                                                      // Actually u-steps/rev
+    #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
 
     // ALT TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
@@ -392,11 +376,10 @@
 
         #define ALT_AUDIO_FEEDBACK 0
 
-        #define ALT_STALL_VALUE                                                                                        \
-            10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
+        #define ALT_STALL_VALUE 10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
         #ifndef USE_VREF
-            #define USE_VREF                                                                                           \
+            #define USE_VREF                                                                                                               \
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
         #endif
     #endif
@@ -406,7 +389,7 @@
 
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
         #define FOCUS_MICROSTEPPING 1  // Fullstep mode using ULN2003 driver
-    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE        \
+    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #ifndef FOCUS_MICROSTEPPING
             #define FOCUS_MICROSTEPPING 8
@@ -417,8 +400,7 @@
     #if FOCUS_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
         #define FOCUS_STEPPER_SPR 2048  // 28BYJ-48 in full step mode
         #ifndef FOCUS_STEPPER_SPEED
-            #define FOCUS_STEPPER_SPEED                                                                                \
-                600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+            #define FOCUS_STEPPER_SPEED 600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
         #endif
         #ifndef FOCUS_STEPPER_ACCELERATION
             #define FOCUS_STEPPER_ACCELERATION 400  // High speeds tend to make these cheap steppers unprecice
@@ -428,8 +410,7 @@
             #define FOCUS_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
         #endif
         #ifndef FOCUS_STEPPER_SPEED
-            #define FOCUS_STEPPER_SPEED                                                                                \
-                1000  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+            #define FOCUS_STEPPER_SPEED 1000  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #endif
         #ifndef FOCUS_STEPPER_ACCELERATION
             #define FOCUS_STEPPER_ACCELERATION 1000
@@ -443,11 +424,10 @@
     #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #define FOCUS_RMSCURRENT FOCUS_MOTOR_CURRENT_RATING *(FOCUS_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
 
-        #define FOCUS_STALL_VALUE                                                                                      \
-            1  // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
+        #define FOCUS_STALL_VALUE 1  // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
 
         #ifndef USE_VREF
-            #define USE_VREF                                                                                           \
+            #define USE_VREF                                                                                                               \
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
         #endif
     #endif
@@ -494,8 +474,8 @@
     #endif
     #define SUPPORT_GUIDED_STARTUP 0
     #define SUPPORT_MANUAL_CONTROL 0
-    #define SUPPORT_CALIBRATION 0
-    #define SUPPORT_INFO_DISPLAY 0
+    #define SUPPORT_CALIBRATION    0
+    #define SUPPORT_INFO_DISPLAY   0
 
 #endif  // DISPLAY_TYPE
 
@@ -546,10 +526,10 @@
 #if USE_GPS == 1
     #if defined(ESP32)
         #define GPS_SERIAL_PORT Serial2  // TODO: Resolve potential conflict with RA_SERIAL_PORT & DEC_SERIAL_PORT
-        #define GPS_BAUD_RATE 9600
+        #define GPS_BAUD_RATE   9600
     #elif defined(__AVR_ATmega2560__)
         #define GPS_SERIAL_PORT Serial1
-        #define GPS_BAUD_RATE 9600
+        #define GPS_BAUD_RATE   9600
     #endif
 #endif
 

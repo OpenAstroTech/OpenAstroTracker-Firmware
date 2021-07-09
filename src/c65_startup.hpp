@@ -29,8 +29,8 @@ enum startupState_t
     StartupCompleted,
 };
 
-        #define YES 1
-        #define NO 2
+        #define YES    1
+        #define NO     2
         #define CANCEL 3
 
 startupState_t startupState = StartupIsInHomePosition;
@@ -55,15 +55,20 @@ bool processStartupKeys()
 {
     lcdButton_t key;
     bool waitForRelease = false;
-    switch (startupState) {
+    switch (startupState)
+    {
     case StartupIsInHomePosition: {
-        if (lcdButtons.keyChanged(&key)) {
+        if (lcdButtons.keyChanged(&key))
+        {
             waitForRelease = true;
-            if (key == btnLEFT) {
+            if (key == btnLEFT)
+            {
                 isInHomePosition = adjustWrap(isInHomePosition, 1, YES, CANCEL);
             }
-            else if (key == btnSELECT) {
-                if (isInHomePosition == YES) {
+            else if (key == btnSELECT)
+            {
+                if (isInHomePosition == YES)
+                {
         #if USE_GYRO_LEVEL == 1
                     startupState = StartupSetRoll;
                     LOGV1(DEBUG_INFO, F("STARTUP: State is set roll!"));
@@ -71,10 +76,12 @@ bool processStartupKeys()
                     startupState   = StartupSetHATime;
         #endif
                 }
-                else if (isInHomePosition == NO) {
+                else if (isInHomePosition == NO)
+                {
         #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && USE_AUTOHOME == 1
                     mount.startFindingHomeDEC();
-                    if (mount.isFindingHome()) {
+                    if (mount.isFindingHome())
+                    {
                         startupState = StartupWaitForPoleCompletion;
                         lcdMenu.clear();
                         lcdMenu.setCursor(0, 0);
@@ -83,7 +90,8 @@ bool processStartupKeys()
                         lcdMenu.printMenu("Please Wait");
                         //break;
                     }
-                    else {
+                    else
+                    {
                         startupState = StartupSetHATime;
                     }
 
@@ -99,12 +107,14 @@ bool processStartupKeys()
                     setControlMode(true);
         #endif
                 }
-                else if (isInHomePosition == CANCEL) {
+                else if (isInHomePosition == CANCEL)
+                {
                     startupIsCompleted();
                 }
             }
         }
-    } break;
+    }
+    break;
 
         #if USE_GYRO_LEVEL == 1
     case StartupSetRoll: {
@@ -116,12 +126,14 @@ bool processStartupKeys()
         lcdMenu.setActive(Calibration_Menu);
 
         startupState = StartupWaitForRollCompletion;
-    } break;
+    }
+    break;
 
     case StartupRollConfirmed: {
         LOGV1(DEBUG_INFO, F("STARTUP: Roll confirmed!"));
         startupState = StartupSetHATime;
-    } break;
+    }
+    break;
         #endif
 
     case StartupSetHATime: {
@@ -140,7 +152,8 @@ bool processStartupKeys()
         lcdMenu.setActive(HA_Menu);
         startupState = StartupWaitForHACompletion;
         #endif
-    } break;
+    }
+    break;
 
     case StartupHAConfirmed: {
         mount.setHome(true);
@@ -148,14 +161,16 @@ bool processStartupKeys()
         mount.setHA(ha);
         mount.targetRA() = mount.currentRA();
         startupIsCompleted();
-    } break;
+    }
+    break;
 
     case StartupPoleConfirmed: {
         isInHomePosition = YES;
 
         // Ask again to confirm
         startupState = StartupIsInHomePosition;
-    } break;
+    }
+    break;
 
     default:
         break;
@@ -166,21 +181,25 @@ bool processStartupKeys()
 
 void printStartupMenu()
 {
-    switch (startupState) {
+    switch (startupState)
+    {
     case StartupIsInHomePosition: {
         //              0123456789012345
         String choices(" Yes  No  Cancl ");
-        if (isInHomePosition == YES) {
+        if (isInHomePosition == YES)
+        {
             choices.setCharAt(0, '>');
             choices.setCharAt(4, '<');
         }
 
-        if (isInHomePosition == NO) {
+        if (isInHomePosition == NO)
+        {
             choices.setCharAt(5, '>');
             choices.setCharAt(8, '<');
         }
 
-        if (isInHomePosition == CANCEL) {
+        if (isInHomePosition == CANCEL)
+        {
             choices.setCharAt(9, '>');
             choices.setCharAt(15, '<');
         }
@@ -189,7 +208,8 @@ void printStartupMenu()
         lcdMenu.printMenu("Home position?");
         lcdMenu.setCursor(0, 1);
         lcdMenu.printMenu(choices);
-    } break;
+    }
+    break;
 
     default:
         break;

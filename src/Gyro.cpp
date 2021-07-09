@@ -36,7 +36,8 @@ void Gyro::startup()
     Wire.requestFrom(MPU6050_I2C_ADDR, 1, 1);
     byte id   = (Wire.read() >> 1) & 0x3F;
     isPresent = (id == 0x34);
-    if (!isPresent) {
+    if (!isPresent)
+    {
         LOGV1(DEBUG_INFO, F("GYRO:: Not found!"));
         return;
     }
@@ -78,22 +79,21 @@ angle_t Gyro::getCurrentAngles()
     if (!isPresent)
         return result;  // Gyro is not available
 
-    for (int i = 0; i < windowSize; i++) {
+    for (int i = 0; i < windowSize; i++)
+    {
         // Execute 6 byte read from MPU6050_REG_WHO_AM_I
         Wire.beginTransmission(MPU6050_I2C_ADDR);
         Wire.write(MPU6050_REG_ACCEL_XOUT_H);
         Wire.endTransmission(false);
-        Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);  // Read 6 registers total, each axis value is stored in 2 registers
+        Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);      // Read 6 registers total, each axis value is stored in 2 registers
         int16_t AcX = Wire.read() << 8 | Wire.read();  // X-axis value
         int16_t AcY = Wire.read() << 8 | Wire.read();  // Y-axis value
         int16_t AcZ = Wire.read() << 8 | Wire.read();  // Z-axis value
 
         // Calculating the Pitch angle (rotation around Y-axis)
-        result.pitchAngle
-            += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        result.pitchAngle += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
         // Calculating the Roll angle (rotation around X-axis)
-        result.rollAngle
-            += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        result.rollAngle += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
 
         delay(10);  // Decorrelate measurements
     }
@@ -120,7 +120,7 @@ float Gyro::getCurrentTemperature()
     Wire.beginTransmission(MPU6050_I2C_ADDR);
     Wire.write(MPU6050_REG_TEMP_OUT_H);
     Wire.endTransmission(false);
-    Wire.requestFrom(MPU6050_I2C_ADDR, 2, 1);  // Read 2 registers total, the temperature value is stored in 2 registers
+    Wire.requestFrom(MPU6050_I2C_ADDR, 2, 1);            // Read 2 registers total, the temperature value is stored in 2 registers
     int16_t tempValue = Wire.read() << 8 | Wire.read();  // Raw Temperature value
 
     // Calculating the actual temperature value

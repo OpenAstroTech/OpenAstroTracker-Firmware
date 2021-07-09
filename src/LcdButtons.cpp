@@ -40,7 +40,8 @@ LcdButtons::LcdButtons(LcdMenu *lcdMenu)
 bool LcdButtons::keyChanged(lcdButton_t *pNewKey)
 {
     checkKey();
-    if (_newKey != _lastNewKey) {
+    if (_newKey != _lastNewKey)
+    {
         *pNewKey    = _newKey;
         _lastNewKey = _newKey;
         return true;
@@ -65,7 +66,8 @@ void LcdButtons::checkKey()
         #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     uint8_t buttons = _lcdMenu->readButtons();
     _currentKey     = btnNONE;
-    if (buttons) {
+    if (buttons)
+    {
         if (buttons & BUTTON_UP)
             _currentKey = btnUP;
         if (buttons & BUTTON_DOWN)
@@ -113,13 +115,16 @@ void LcdButtons::checkKey()
         _currentKey = btnSELECT;
         #endif
 
-    if (_currentKey != _lastKey) {
+    if (_currentKey != _lastKey)
+    {
         _lastKey       = _currentKey;
         _lastKeyChange = millis();
     }
-    else {
+    else
+    {
         // If the keys haven't changed in 5ms, commit the change to the new keys.
-        if (millis() - _lastKeyChange > 5) {
+        if (millis() - _lastKeyChange > 5)
+        {
             _newKey = _currentKey;
         }
     }
@@ -130,14 +135,12 @@ void LcdButtons::checkKey()
 
 // Null implementation
 LcdButtons::LcdButtons(byte pin, LcdMenu *lcdMenu)
-    : _lastKeyChange(0), _analogPin(pin), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE),
-      _currentKey(btnNONE), _lcdMenu(lcdMenu)
+    : _lastKeyChange(0), _analogPin(pin), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
 {
 }
 
 LcdButtons::LcdButtons(LcdMenu *lcdMenu)
-    : _lastKeyChange(0), _analogPin(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE),
-      _lcdMenu(lcdMenu)
+    : _lastKeyChange(0), _analogPin(0), _lastKey(btnNONE), _newKey(btnNONE), _lastNewKey(btnNONE), _currentKey(btnNONE), _lcdMenu(lcdMenu)
 {
 }
 

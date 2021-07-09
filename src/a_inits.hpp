@@ -12,8 +12,8 @@ POP_NO_WARNINGS
 #include "MeadeCommandProcessor.hpp"
 
 // TODO: we have to change driver type to DRIVER_TYPE_TMC2209 and add a new definition for the actual mode (e.g. DRIVER_MODE_UART)
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                 \
-    || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)            \
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                     \
+    || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                \
     || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
 PUSH_NO_WARNINGS
     #include <TMCStepper.h>
@@ -76,7 +76,7 @@ TinyGPSPlus gps;
         #define AZmotorPin3 AZ_IN2_PIN
         #define AZmotorPin2 AZ_IN3_PIN
         #define AZmotorPin4 AZ_IN4_PIN
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE              \
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
         || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #define AZmotorPin1 AZ_STEP_PIN
         #define AZmotorPin2 AZ_DIR_PIN
@@ -90,7 +90,7 @@ TinyGPSPlus gps;
         #define ALTmotorPin3 ALT_IN2_PIN
         #define ALTmotorPin2 ALT_IN3_PIN
         #define ALTmotorPin4 ALT_IN4_PIN
-    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE            \
+    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                \
         || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #define ALTmotorPin1 ALT_STEP_PIN
         #define ALTmotorPin2 ALT_DIR_PIN
@@ -104,7 +104,7 @@ TinyGPSPlus gps;
         #define FOCUSmotorPin3 FOCUS_IN2_PIN
         #define FOCUSmotorPin2 FOCUS_IN3_PIN
         #define FOCUSmotorPin4 FOCUS_IN4_PIN
-    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE        \
+    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #define FOCUSmotorPin1 FOCUS_STEP_PIN
         #define FOCUSmotorPin2 FOCUS_DIR_PIN
@@ -116,7 +116,7 @@ TinyGPSPlus gps;
 
 /////////////////////////////////////////
 // Driver definitions ///////////////////
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                      \
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
     || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #define R_SENSE 0.11f  // 0.11 for StepStick
 #endif
@@ -124,16 +124,16 @@ TinyGPSPlus gps;
 /////////////////////////////////////////
 
 // Menu IDs
-#define RA_Menu 1
-#define DEC_Menu 2
-#define HA_Menu 3
-#define Heat_Menu 4
+#define RA_Menu          1
+#define DEC_Menu         2
+#define HA_Menu          3
+#define Heat_Menu        4
 #define Calibration_Menu 5
-#define Focuser_Menu 6
-#define Control_Menu 7
-#define Home_Menu 8
-#define POI_Menu 9
-#define Status_Menu 10
+#define Focuser_Menu     6
+#define Control_Menu     7
+#define Home_Menu        8
+#define POI_Menu         9
+#define Status_Menu      10
 
 // How many menu items at most?
 #define MAXMENUITEMS 11

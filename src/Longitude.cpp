@@ -20,11 +20,13 @@ Longitude::Longitude(float inDegrees) : DayTime(inDegrees)
 
 void Longitude::checkHours()
 {
-    while (totalSeconds > 180L * 3600L) {
+    while (totalSeconds > 180L * 3600L)
+    {
         LOGV1(DEBUG_GENERAL, F("LongitudeCheckHours: Degrees is more than 180, wrapping"));
         totalSeconds -= 360L * 3600L;
     }
-    while (totalSeconds < (-180L * 3600L)) {
+    while (totalSeconds < (-180L * 3600L))
+    {
         LOGV1(DEBUG_GENERAL, F("LongitudeCheckHours: Degrees is less than -180, wrapping"));
         totalSeconds += 360L * 3600L;
     }
@@ -51,7 +53,8 @@ char achBufLong[32];
 const char *Longitude::ToString() const
 {
     long secs = totalSeconds;
-    if (secs < 0) {
+    if (secs < 0)
+    {
         secs += 360L * 3600L;
     }
 

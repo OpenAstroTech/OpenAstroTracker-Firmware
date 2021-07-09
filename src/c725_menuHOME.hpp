@@ -10,30 +10,38 @@ bool processHomeKeys()
     lcdButton_t key;
     bool waitForRelease = false;
 
-    if (lcdButtons.keyChanged(&key)) {
+    if (lcdButtons.keyChanged(&key))
+    {
         waitForRelease = true;
-        switch (key) {
+        switch (key)
+        {
         case btnSELECT: {
-            if (subGoIndex == 0) {
+            if (subGoIndex == 0)
+            {
                 mount.goHome();
             }
-            else if (mount.isSlewingTRK()) {
+            else if (mount.isSlewingTRK())
+            {
                 mount.park();
             }
-            else {
+            else
+            {
                 mount.startSlewing(TRACKING);
             }
-        } break;
+        }
+        break;
 
         case btnUP:
         case btnDOWN:
         case btnLEFT: {
             subGoIndex = 1 - subGoIndex;
-        } break;
+        }
+        break;
 
         case btnRIGHT: {
             lcdMenu.setNextActive();
-        } break;
+        }
+        break;
 
         default:
             break;
@@ -46,10 +54,12 @@ bool processHomeKeys()
 void printHomeSubmenu()
 {
     char scratchBuffer[16];
-    if (mount.isSlewingTRK()) {
+    if (mount.isSlewingTRK())
+    {
         strcpy(scratchBuffer, " Home  Park");
     }
-    else {
+    else
+    {
         strcpy(scratchBuffer, " Home  Unpark");
     }
     scratchBuffer[subGoIndex * 6] = '>';

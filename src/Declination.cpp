@@ -48,11 +48,13 @@ float Declination::getTotalDegrees() const
 
 void Declination::checkHours()
 {
-    if (totalSeconds > 0) {
+    if (totalSeconds > 0)
+    {
         LOGV1(DEBUG_GENERAL, F("CheckHours: Degrees is more than 0, clamping"));
         totalSeconds = 0;
     }
-    if (totalSeconds < -arcSecondsPerHemisphere) {
+    if (totalSeconds < -arcSecondsPerHemisphere)
+    {
         LOGV1(DEBUG_GENERAL, F("CheckHours: Degrees is less than -180, clamping"));
         totalSeconds = -arcSecondsPerHemisphere;
     }
@@ -91,8 +93,7 @@ Declination Declination::ParseFromMeade(String const &s)
     DayTime dt = DayTime::ParseFromMeade(s);
 
     // ...and then correct for hemisphere
-    result.totalSeconds
-        = dt.getTotalSeconds() + (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere / 2) : (arcSecondsPerHemisphere / 2));
+    result.totalSeconds = dt.getTotalSeconds() + (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere / 2) : (arcSecondsPerHemisphere / 2));
     LOGV3(DEBUG_GENERAL, F("Declination.Parse(%s) -> %s"), s.c_str(), result.ToString());
     return result;
 }

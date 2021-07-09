@@ -24,34 +24,45 @@ bool processFocuserKeys()
 
     lcdButton_t currentButtonState = lcdButtons.currentState();
 
-    if (focState == FOCUS_ADJUSTMENT) {
-        if (currentButtonState == btnUP) {
-            if (!mount.isRunningFocus()) {
+    if (focState == FOCUS_ADJUSTMENT)
+    {
+        if (currentButtonState == btnUP)
+        {
+            if (!mount.isRunningFocus())
+            {
                 mount.focusContinuousMove(FOCUS_BACKWARD);
             }
         }
-        else if (currentButtonState == btnDOWN) {
-            if (!mount.isRunningFocus()) {
+        else if (currentButtonState == btnDOWN)
+        {
+            if (!mount.isRunningFocus())
+            {
                 mount.focusContinuousMove(FOCUS_FORWARD);
             }
         }
     }
 
-    if (currentButtonState == btnNONE) {
-        if (mount.isRunningFocus()) {
+    if (currentButtonState == btnNONE)
+    {
+        if (mount.isRunningFocus())
+        {
             mount.focusStop();
         }
     }
 
-    if (checkForKeyChange && lcdButtons.keyChanged(&key)) {
+    if (checkForKeyChange && lcdButtons.keyChanged(&key))
+    {
         waitForRelease = true;
 
-        switch (focState) {
+        switch (focState)
+        {
         case HIGHLIGHT_FOCUS_ADJUSTMENT:
-            if (key == btnSELECT) {
+            if (key == btnSELECT)
+            {
                 focState = FOCUS_ADJUSTMENT;
             }
-            if (key == btnRIGHT) {
+            if (key == btnRIGHT)
+            {
                 lcdMenu.setNextActive();
             }
 
@@ -59,18 +70,22 @@ bool processFocuserKeys()
 
         case FOCUS_ADJUSTMENT: {
             // UP and DOWN are handled above
-            if (key == btnSELECT) {
+            if (key == btnSELECT)
+            {
                 focState = HIGHLIGHT_FOCUS_ADJUSTMENT;
             }
-            else if (key == btnRIGHT) {
+            else if (key == btnRIGHT)
+            {
                 rateIndex = adjustClamp(rateIndex, 1, 0, 3);
                 mount.focusSetSpeedByRate(rateIndex + 1);
             }
-            else if (key == btnLEFT) {
+            else if (key == btnLEFT)
+            {
                 rateIndex = adjustClamp(rateIndex, -1, 0, 3);
                 mount.focusSetSpeedByRate(rateIndex + 1);
             }
-        } break;
+        }
+        break;
         }
     }
     return waitForRelease;
@@ -79,17 +94,21 @@ bool processFocuserKeys()
 void printFocusSubmenu()
 {
     char scratchBuffer[20];
-    if (focState == HIGHLIGHT_FOCUS_ADJUSTMENT) {
+    if (focState == HIGHLIGHT_FOCUS_ADJUSTMENT)
+    {
         lcdMenu.printMenu(">Focus Adjust");
     }
-    else if (focState == FOCUS_ADJUSTMENT) {
+    else if (focState == FOCUS_ADJUSTMENT)
+    {
         strcpy(scratchBuffer, "Rate:  1 2 3 4 *");
         scratchBuffer[6 + rateIndex * 2] = '>';
         scratchBuffer[8 + rateIndex * 2] = '<';
-        if (!mount.isRunningFocus()) {
+        if (!mount.isRunningFocus())
+        {
             scratchBuffer[15] = '-';
         }
-        else {
+        else
+        {
             scratchBuffer[15] = mount.getFocusSpeed() < 0 ? '~' : '^';
         }
 
