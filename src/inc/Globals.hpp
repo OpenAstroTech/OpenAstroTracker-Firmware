@@ -5,10 +5,10 @@
  * defined in `pre_script_custom_defines.py` which is run by platformio.
  */
 #if !defined(PUSH_NO_WARNINGS)
-#define PUSH_NO_WARNINGS ;
+    #define PUSH_NO_WARNINGS ;
 #endif
 #if !defined(POP_NO_WARNINGS)
-#define POP_NO_WARNINGS ;
+    #define POP_NO_WARNINGS ;
 #endif
 
 PUSH_NO_WARNINGS
@@ -16,4 +16,4 @@ PUSH_NO_WARNINGS
 #include <WString.h>
 POP_NO_WARNINGS
 
-extern bool inSerialControl; // True when the serial port is in control
+extern bool inSerialControl;  // True when the serial port is in control

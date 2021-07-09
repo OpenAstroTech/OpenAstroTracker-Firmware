@@ -5,10 +5,10 @@
 
 #if USE_GPS == 1
 
-#if DEBUG_LEVEL & DEBUG_GPS
+    #if DEBUG_LEVEL & DEBUG_GPS
 char gpsBuf[256];
 int gpsBufPos = 0;
-#endif
+    #endif
 
 long lastGPSUpdate = 0;
 bool gpsAqcuisitionComplete(int &indicator)
@@ -17,30 +17,34 @@ bool gpsAqcuisitionComplete(int &indicator)
     {
         int gpsChar = GPS_SERIAL_PORT.read();
 
-        #if DEBUG_LEVEL & DEBUG_GPS
+    #if DEBUG_LEVEL & DEBUG_GPS
         if ((gpsBufPos < 254) && (gpsChar > 31))
         {
             gpsBuf[gpsBufPos++] = gpsChar;
         }
-        #endif
+    #endif
         if (gpsChar == 36)
         {
             // $ (ASCII 36) marks start of message, so we switch indicator every message
             if (millis() - lastGPSUpdate > 500)
             {
-                indicator = adjustWrap(indicator, 1, 0, 3);
+                indicator     = adjustWrap(indicator, 1, 0, 3);
                 lastGPSUpdate = millis();
             }
         }
         if (gps.encode(gpsChar))
         {
-            #if DEBUG_LEVEL & DEBUG_GPS
+    #if DEBUG_LEVEL & DEBUG_GPS
             gpsBuf[gpsBufPos++] = 0;
             LOGV2(DEBUG_GPS, F("GPS: Sentence: [%s]"), gpsBuf);
             gpsBufPos = 0;
-            #endif
+    #endif
 
-            LOGV4(DEBUG_GPS, F("GPS: Encoded. %l sats, Location is%svalid, age is %lms"), gps.satellites.value(), (gps.location.isValid() ? " " : " NOT "), gps.location.age());
+            LOGV4(DEBUG_GPS,
+                  F("GPS: Encoded. %l sats, Location is%svalid, age is %lms"),
+                  gps.satellites.value(),
+                  (gps.location.isValid() ? " " : " NOT "),
+                  gps.location.age());
             // Make sure we got a fix in the last 30 seconds
             if ((gps.location.lng() != 0) && (gps.location.age() < 30000UL))
             {
@@ -65,17 +69,18 @@ bool gpsAqcuisitionComplete(int &indicator)
     return false;
 }
 
-#if DISPLAY_TYPE > 0
+    #if DISPLAY_TYPE > 0
 
 // States that HA menu displays goes through
-enum haMenuState_t {
+enum haMenuState_t
+{
     SHOWING_HA_SYNC = 1,
     SHOWING_HA_SET,
     ENTER_HA_MANUALLY,
     STARTING_GPS,
 };
 
-int indicator = 0;
+int indicator         = 0;
 haMenuState_t haState = STARTING_GPS;
 
 bool processHAKeys()
@@ -90,14 +95,14 @@ bool processHAKeys()
             LOGV1(DEBUG_INFO, F("HA: GPS acquired"));
             GPS_SERIAL_PORT.end();
             haState = SHOWING_HA_SYNC;
-            #if SUPPORT_GUIDED_STARTUP == 1
+        #if SUPPORT_GUIDED_STARTUP == 1
             if (startupState == StartupWaitForHACompletion)
             {
                 LOGV1(DEBUG_INFO, F("HA: We were in startup, so confirm HA"));
                 startupState = StartupHAConfirmed;
-                inStartup = true;
+                inStartup    = true;
             }
-            #endif
+        #endif
         }
     }
 
@@ -137,13 +142,13 @@ bool processHAKeys()
                 lcdMenu.printMenu("Stored.");
                 mount.delay(500);
                 haState = SHOWING_HA_SET;
-                #if SUPPORT_GUIDED_STARTUP == 1
+        #if SUPPORT_GUIDED_STARTUP == 1
                 if (startupState == StartupWaitForHACompletion)
                 {
                     startupState = StartupHAConfirmed;
-                    inStartup = true;
+                    inStartup    = true;
                 }
-                #endif
+        #endif
             }
             else if (key == btnUP)
             {
@@ -178,14 +183,14 @@ bool processHAKeys()
                 GPS_SERIAL_PORT.end();
                 haState = SHOWING_HA_SYNC;
             }
-            #if SUPPORT_GUIDED_STARTUP == 1
+        #if SUPPORT_GUIDED_STARTUP == 1
             else if (startupState == StartupWaitForHACompletion)
             {
                 LOGV1(DEBUG_INFO, F("HA: In Startup, not in GPS Start mode, leaving"));
                 startupState = StartupHAConfirmed;
-                inStartup = true;
+                inStartup    = true;
             }
-            #endif
+        #endif
             else
             {
                 LOGV1(DEBUG_INFO, F("HA: leaving HA"));
@@ -222,5 +227,5 @@ void printHASubmenu()
     lcdMenu.printMenu(satBuffer);
 }
 
-#endif
+    #endif
 #endif

@@ -3,7 +3,7 @@
 #include "b_setup.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
-#include "MeadeCommandProcessor.hpp"
+    #include "MeadeCommandProcessor.hpp"
 
 void processSerialData();
 
@@ -14,23 +14,23 @@ void serialLoop()
     mount.loop();
     mount.displayStepperPositionThrottled();
 
-#ifdef ESP32
+    #ifdef ESP32
     processSerialData();
-#endif
+    #endif
 
-#if (WIFI_ENABLED == 1)
+    #if (WIFI_ENABLED == 1)
     wifiControl.loop();
-#endif
+    #endif
 }
 
-//////////////////////////////////////////////////
-// Event that is triggered when the serial port receives data.
-#ifndef ESP32
+    //////////////////////////////////////////////////
+    // Event that is triggered when the serial port receives data.
+    #ifndef ESP32
 void serialEvent()
 {
     processSerialData();
 }
-#endif
+    #endif
 
 // ESP needs to call this in a loop :_(
 void processSerialData()
