@@ -496,6 +496,25 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "1" if successfully scheduled
 //      
+// :MHR#
+//      Description:
+//        Home RA stepper via Hall sensor
+//      Information:
+//        This attempts to find the hall sensor and to home the RA ring accordingly. 
+//      Parameters:
+//        If the last letter 'R' is uppercase the mount will search east first, if it is lowercase it will search west first.
+//      Remarks:
+//        The ring is first moved 30 degrees in the initial direction. If no hall sensor is encountered, it will move 60 degrees in 
+//        the opposite direction. If a hall sensor is not encountered during that slew, the homing exits with a failure code (0).
+//        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset 
+//        specified in the Home offset position (set with the ":XSHRnnnn#" command).
+//        If the RA ring is positioned such that the Hall sensor is triggered when the command is recevied, teh mount will will move 
+//        the RA ring off the trigger in the opposite direction specified for 7.5 degrees before searching 30 degrees in the 
+//        specified direction.
+//      Returns:
+//        "1" if successfully homed RA
+//        "0" if the hall sensor could not be found or homing has not been enabled in the local config
+//      
 // :MAZn.nn#
 //      Description:
 //        Move Azimuth
@@ -730,6 +749,14 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "HHMMSS#"
 //
+// :XGHR#
+//      Description:
+//        Get RA Homing offset
+//      Information:
+//        Get the RA ring homing offset for Hall sensor auto homing
+//      Returns:
+//        "n#" - the number of steps from the center of the hall sensor trigger range to the home position.
+//
 // :XGM#
 //      Description:
 //        Get Mount configuration settings
@@ -779,6 +806,17 @@ bool gpsAqcuisitionComplete(int &indicator); // defined in c72_menuHA_GPS.hpp
 //        Set Backlash correction steps
 //      Information:
 //        Sets the number of steps the RA stepper motor needs to overshoot and backtrack when slewing east.
+//      Returns:
+//        nothing
+//
+// :XSHRnnn#
+//      Description:
+//        Set homing offset for RA ring from Hall sensor center
+//      Information:
+//        This offset is added to the position of the RA ring when it is centered on the hall sensor triggered range after running.
+//        the RA homing command (:MHR#)
+//      Parameters:
+//        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
 //      Returns:
 //        nothing
 //
@@ -1401,6 +1439,15 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else return "0";
     return "1";
   }
+  else if (inCmd[0] == 'H') 
+  {
+    if (inCmd[1] == 'R') { // :MHR
+      return _mount->findRAHomeByHallSensor(-1) ? "1" : "0";
+    }
+    else if (inCmd[1] == 'r') { // :MHr
+      return _mount->findRAHomeByHallSensor(1) ? "1" : "0";
+    }
+  }
 
   return "0";
 }
@@ -1533,10 +1580,17 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     }
     else if (inCmd[1] == 'H') // :XGH#
     {
-      char scratchBuffer[10];
-      DayTime ha = _mount->calculateHa();
-      sprintf(scratchBuffer, "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
-      return String(scratchBuffer);
+      if (inCmd.length() > 2 && inCmd[2] == 'R') // :XGHR#
+      {
+        return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+      }
+      else 
+      {
+        char scratchBuffer[10];
+        DayTime ha = _mount->calculateHa();
+        sprintf(scratchBuffer, "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
+        return String(scratchBuffer);
+      }
     }
     else if (inCmd[1] == 'L') // :XGL#
     {
@@ -1605,6 +1659,13 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     else if (inCmd[1] == 'B') // :XSB
     {
       _mount->setBacklashCorrection(inCmd.substring(2).toInt());
+    }
+    else if (inCmd[1] == 'H') // :XSH
+    {
+      if (inCmd.length() > 2 && inCmd[2] == 'R') // :XSHR
+      {
+        _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+      }
     }
   }
   else if (inCmd[0] == 'L')

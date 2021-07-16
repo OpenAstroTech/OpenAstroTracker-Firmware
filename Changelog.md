@@ -1,3 +1,6 @@
+**V1.9.21 - Updates**
+- Support for a Hall sensor based auto homing routine for the RA ring.
+
 **V1.9.20 - Updates**
 - Made github version check more robust
 
