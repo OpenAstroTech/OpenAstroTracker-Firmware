@@ -138,6 +138,11 @@
   #define FOCUS_DRIVER_ADDRESS 0b00
 #endif
 
+// RA Homing pin for Hall sensor
+#ifndef RA_HOMING_SENSOR_PIN
+  #define RA_HOMING_SENSOR_PIN    40
+#endif
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
   #define GPS_SERIAL_PORT Serial1
