@@ -491,7 +491,7 @@
 //////////////////////////////////////////
 // Enable homing in your local configuration. Do not edit here!
 #ifndef USE_HALL_SENSOR_RA_AUTOHOME
-  #define USE_HALL_SENSOR_RA_AUTOHOME 0
+    #define USE_HALL_SENSOR_RA_AUTOHOME 0
 #endif
 
 

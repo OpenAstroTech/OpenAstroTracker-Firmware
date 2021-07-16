@@ -368,12 +368,12 @@ class Mount
     void focusStop();
 #endif
 
-  bool findRAHomeByHallSensor(int initialDirection);
-  void setHomingOffset(StepperAxis axis, long offset);
-  long getHomingOffset(StepperAxis axis);
+    bool findRAHomeByHallSensor(int initialDirection);
+    void setHomingOffset(StepperAxis axis, long offset);
+    long getHomingOffset(StepperAxis axis);
 
-  // Move the given stepper motor by the given amount of steps.
-  void moveStepperBy(StepperAxis which, long steps);
+    // Move the given stepper motor by the given amount of steps.
+    void moveStepperBy(StepperAxis which, long steps);
 
     // Set the number of steps to use for backlash correction
     void setBacklashCorrection(int steps);
@@ -535,13 +535,12 @@ class Mount
   #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-  HomingState _homingState;
-  int _homingPinState;
-  int _lastHomingPinState;
-  long _homingPosition[2];
-  long _homingOffsetRA;
+    HomingState _homingState;
+    int _homingPinState;
+    int _lastHomingPinState;
+    long _homingPosition[2];
+    long _homingOffsetRA;
 #endif
-
 
     unsigned long _guideRaEndTime;
     unsigned long _guideDecEndTime;

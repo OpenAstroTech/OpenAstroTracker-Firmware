@@ -245,11 +245,11 @@ void setup()
 #endif
     // end microstepping -------------------
 
-  #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-  pinMode(RA_HOMING_SENSOR_PIN, INPUT);
-  #endif
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    pinMode(RA_HOMING_SENSOR_PIN, INPUT);
+#endif
 
-  #if !defined(OAT_DEBUG_BUILD)
+#if !defined(OAT_DEBUG_BUILD)
     Serial.begin(SERIAL_BAUDRATE);
 #endif
 

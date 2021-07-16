@@ -1543,60 +1543,67 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
             }
         }
-        else if (inCmd[1] == 'S')  // :XGS#
+        else if (inCmd[1] == 'S') // :XGS#
         {
-            return String(_mount->getSpeedCalibration(), 5) + "#";
+          return String(_mount->getSpeedCalibration(), 5) + "#";
         }
-        else if (inCmd[1] == 'T')  // :XGT#
+        else if (inCmd[1] == 'T') // :XGT#
         {
-            return String(_mount->getSpeed(TRACKING), 7) + "#";
+          return String(_mount->getSpeed(TRACKING), 7) + "#";
         }
-        else if (inCmd[1] == 'B')  // :XGB#
+        else if (inCmd[1] == 'B') // :XGB#
         {
-            return String(_mount->getBacklashCorrection()) + "#";
+          return String(_mount->getBacklashCorrection()) + "#";
         }
-        else if (inCmd[1] == 'C')  // :XGCn.nn*m.mm#
+        else if (inCmd[1] == 'C') // :XGCn.nn*m.mm#
         {
-            String coords = inCmd.substring(2);
-            int star      = coords.indexOf('*');
-            if (star > 0)
-            {
-                long raPos, decPos;
-                float raCoord  = coords.substring(0, star).toFloat();
-                float decCoord = coords.substring(star + 1).toFloat();
-                _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
-                char scratchBuffer[20];
-                sprintf(scratchBuffer, "%ld|%ld#", raPos, decPos);
-                return String(scratchBuffer);
-            }
+          String coords = inCmd.substring(2);
+          int star = coords.indexOf('*');
+          if (star > 0)
+          {
+            long raPos, decPos;
+            float raCoord = coords.substring(0, star).toFloat();
+            float decCoord = coords.substring(star + 1).toFloat();
+            _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
+            char scratchBuffer[20];
+            sprintf(scratchBuffer, "%ld|%ld#", raPos, decPos);
+            return String(scratchBuffer);
+          }
         }
         else if (inCmd[1] == 'M')
         {
-            if ((inCmd.length() > 2) && (inCmd[2] == 'S'))  // :XGMS#
-            {
-                return _mount->getStepperInfo() + "#";
-            }
-            return _mount->getMountHardwareInfo() + "#";  // :XGM#
+          if ((inCmd.length() > 2) && (inCmd[2] == 'S')) // :XGMS#
+          {
+            return _mount->getStepperInfo() + "#";
+          }
+          return _mount->getMountHardwareInfo() + "#"; // :XGM#
         }
-        else if (inCmd[1] == 'O')  // :XGO#
+        else if (inCmd[1] == 'O') // :XGO#
         {
-            return getLogBuffer();
+          return getLogBuffer();
         }
-        else if (inCmd[1] == 'H')  // :XGH#
+        else if (inCmd[1] == 'H') // :XGH#
         {
+          if (inCmd.length() > 2 && inCmd[2] == 'R') // :XGHR#
+          {
+            return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+          }
+          else 
+          {
             char scratchBuffer[10];
             DayTime ha = _mount->calculateHa();
             sprintf(scratchBuffer, "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
             return String(scratchBuffer);
+          }
         }
-        else if (inCmd[1] == 'L')  // :XGL#
+        else if (inCmd[1] == 'L') // :XGL#
         {
-            char scratchBuffer[10];
-            DayTime lst = _mount->calculateLst();
-            sprintf(scratchBuffer, "%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
-            return String(scratchBuffer);
+          char scratchBuffer[10];
+          DayTime lst = _mount->calculateLst();
+          sprintf(scratchBuffer, "%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
+          return String(scratchBuffer);
         }
-        else if (inCmd[1] == 'N')  // :XGN#
+        else if (inCmd[1] == 'N') // :XGN#
         {
 #if (WIFI_ENABLED == 1)
             return wifiControl.getStatus() + "#";
@@ -1657,17 +1664,18 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setBacklashCorrection(inCmd.substring(2).toInt());
         }
-      }
-      else if (inCmd[1] == 'H') // :XSH
-      {
-          if (inCmd.length() > 2 && inCmd[2] == 'R') // :XSHR
-          {
-              _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
-          }
-      }
+      
+        else if (inCmd[1] == 'H') // :XSH
+        {
+            if (inCmd.length() > 2 && inCmd[2] == 'R') // :XSHR
+            {
+                _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+            }
+        }
     }
-    else if (inCmd[0] == 'L')
-    { // Digital Level
+  }
+  else if (inCmd[0] == 'L')
+  { // Digital Level
 #if USE_GYRO_LEVEL == 1
         if (inCmd[1] == 'G')
         {                         // get values
