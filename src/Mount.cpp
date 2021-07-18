@@ -2199,7 +2199,7 @@ void Mount::startSlewing(int direction) {
       #endif
 
       if (direction & NORTH) {
-        long targetLocation = sign * 300000;
+        long targetLocation = 300000;
         if (_decUpperLimit != 0) {
           targetLocation = _decUpperLimit;
           LOGV3(DEBUG_STEPPERS, F("STEP-startSlewing(N): DEC has upper limit of %l. targetMoveTo is now %l"), _decUpperLimit, targetLocation);
@@ -2213,7 +2213,7 @@ void Mount::startSlewing(int direction) {
       }
 
       if (direction & SOUTH) {
-        long targetLocation = -sign * 300000;
+        long targetLocation = -300000;
         if (_decLowerLimit != 0) {
           targetLocation = _decLowerLimit;
           LOGV3(DEBUG_STEPPERS, F("STEP-startSlewing(S): DEC has lower limit of %l. targetMoveTo is now %l"), _decLowerLimit, targetLocation);
