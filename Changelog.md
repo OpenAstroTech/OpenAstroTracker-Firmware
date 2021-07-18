@@ -1,3 +1,6 @@
+**V1.9.21 - Updates**
+- Fix southern hemisphere reversed DEC free slew directions
+
 **V1.9.20 - Updates**
 - Made github version check more robust
 
