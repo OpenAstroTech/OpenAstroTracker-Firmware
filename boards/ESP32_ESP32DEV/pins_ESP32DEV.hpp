@@ -1,5 +1,25 @@
 /**
  * @brief a pins configuration file for an ESP32-based OAT.
+ * 
+ *    3.3V  -|                  |-  GND
+ *    EN    -|                  |-  23
+ *    VP    -|                  |-  22
+ *    VN    -|                  |-  TX
+ *    34    -|                  |-  RX
+ *    35    -|                  |-  21
+ *    32    -|                  |-  GND
+ *    33    -|                  |-  19
+ *    25    -|                  |-  18
+ *    26    -|      ESP32       |-  5
+ *    27    -|      DevKit C    |-  17
+ *    14    -|      V4          |-  16
+ *    12    -|                  |-  4
+ *    GND   -|                  |-  0
+ *    13    -|                  |-  2
+ *    D2    -|                  |-  15
+ *    D3    -|                  |-  D1
+ *    CMD   -|                  |-  D0
+ *    5V    -|                  |-  CLK
  */
 
 #pragma once
@@ -29,19 +49,21 @@
 #ifndef DEC_IN4_PIN
   #define DEC_IN4_PIN  32  
 #endif
+
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
-  #define RA_STEP_PIN 19  // STEP
+  #define RA_STEP_PIN 18  // STEP
 #endif
 #ifndef RA_DIR_PIN
-  #define RA_DIR_PIN  21  // DIR
+  #define RA_DIR_PIN  5  // DIR
 #endif
 #ifndef RA_EN_PIN
-  #define RA_EN_PIN   22  // Enable
+  #define RA_EN_PIN   19  // Enable
 #endif
 #ifndef RA_DIAG_PIN
-  #define RA_DIAG_PIN 23  // only needed for autohome function
+  #define RA_DIAG_PIN 3  // only needed for autohome function
 #endif
+/*
 #ifndef RA_MS0_PIN
   #define RA_MS0_PIN  4
 #endif
@@ -50,27 +72,35 @@
 #endif
 #ifndef RA_MS2_PIN
   #define RA_MS2_PIN  2
-#endif    
+#endif 
+*/   
 // DRIVER_TYPE_TMC2209_UART HardwareSerial port, can be shared across all drivers
 #ifndef RA_SERIAL_PORT
   #define RA_SERIAL_PORT Serial2
+#endif
+#ifndef RA_SERIAL_PORT_RX
+  #define RA_SERIAL_PORT_RX 16
+#endif
+#ifndef RA_SERIAL_PORT_TX
+  #define RA_SERIAL_PORT_TX 17
 #endif
 #ifndef RA_DRIVER_ADDRESS
   #define RA_DRIVER_ADDRESS 0b00  // Set by MS1/MS2. LOW/LOW in this case
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef DEC_STEP_PIN
-  #define DEC_STEP_PIN 16  // STEP
+  #define DEC_STEP_PIN 2  // STEP
 #endif
 #ifndef DEC_DIR_PIN
-  #define DEC_DIR_PIN  17  // DIR
+  #define DEC_DIR_PIN  15  // DIR
 #endif
 #ifndef DEC_EN_PIN
-  #define DEC_EN_PIN   5  // Enable
+  #define DEC_EN_PIN   25  // Enable
 #endif
 #ifndef DEC_DIAG_PIN
-  #define DEC_DIAG_PIN 18  // only needed for autohome function
+  #define DEC_DIAG_PIN 4  // only needed for autohome function
 #endif
+/*
 #ifndef DEC_MS0_PIN
   #define DEC_MS0_PIN  15
 #endif
@@ -80,9 +110,16 @@
 #ifndef DEC_MS2_PIN
   #define DEC_MS2_PIN  7
 #endif
+*/
 // DRIVER_TYPE_TMC2209_UART HardwareSerial port, can be shared across all drivers
 #ifndef DEC_SERIAL_PORT
   #define DEC_SERIAL_PORT Serial2 // SoftwareSerial TX port
+#endif
+#ifndef DEC_SERIAL_PORT_RX
+  #define DEC_SERIAL_PORT_RX 16
+#endif
+#ifndef DEC_SERIAL_PORT_TX
+  #define DEC_SERIAL_PORT_TX 17
 #endif
 #ifndef DEC_DRIVER_ADDRESS
   #define DEC_DRIVER_ADDRESS 0b01  // Set by MS1/MS2 (MS1 HIGH, MS2 LOW)
@@ -90,13 +127,23 @@
 
 #define SW_SERIAL_UART 0
 
+#ifndef GPS_SERIAL_PORT
+  #define GPS_SERIAL_PORT Serial1 // REMAP GPIO 27/26 to Serial1
+#endif
+#ifndef GPS_SERIAL_TX_PIN
+  #define GPS_SERIAL_TX_PIN 27
+#endif
+#ifndef GPS_SERIAL_RX_PIN
+  #define GPS_SERIAL_RX_PIN 26
+#endif
+
 // DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 requires 3 analog inputs in Arduino pin numbering
 #ifndef LCD_KEY_SENSE_X_PIN
-  #define LCD_KEY_SENSE_X_PIN 34
+  #define LCD_KEY_SENSE_X_PIN 32
 #endif
 #ifndef LCD_KEY_SENSE_Y_PIN
-  #define LCD_KEY_SENSE_Y_PIN 39
+  #define LCD_KEY_SENSE_Y_PIN 35
 #endif
 #ifndef LCD_KEY_SENSE_PUSH_PIN
-  #define LCD_KEY_SENSE_PUSH_PIN 36
+  #define LCD_KEY_SENSE_PUSH_PIN 34
 #endif
