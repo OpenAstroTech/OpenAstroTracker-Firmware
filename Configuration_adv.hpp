@@ -231,7 +231,7 @@
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
   #define RA_PULSE_MULTIPLIER 1.0f
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-  #define RA_PULSE_MULTIPLIER 1.7f
+  #define RA_PULSE_MULTIPLIER 1.5f
 #else
   #error New RA Stepper type? Add it here...
 #endif
