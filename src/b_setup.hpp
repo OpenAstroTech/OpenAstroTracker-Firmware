@@ -231,7 +231,6 @@ void setup() {
     #endif
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
       // include TMC2209 UART pins
-      pinMode(FOCUS_DIAG_PIN, INPUT);
       #ifdef FOCUS_SERIAL_PORT
         FOCUS_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
       #endif

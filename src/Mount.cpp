@@ -245,8 +245,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
   // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
   _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
-  _stepperTRK->setMaxSpeed(10000);
-  _stepperTRK->setAcceleration(5000);
+  _stepperTRK->setMaxSpeed(2000);
+  _stepperTRK->setAcceleration(15000);
 
   _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
   _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
@@ -289,8 +289,8 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
   // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
   _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
-  _stepperGUIDE->setMaxSpeed(10000);
-  _stepperGUIDE->setAcceleration(5000);
+  _stepperGUIDE->setMaxSpeed(2000);
+  _stepperGUIDE->setAcceleration(15000);
 
   #if DEC_INVERT_DIR == 1
   _stepperDEC->setPinsInverted(true, false, false);
@@ -1192,9 +1192,7 @@ const DayTime Mount::currentRA() const {
   // LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentRA: ZeroPos    : %s"), _zeroPosRA.ToString());
   // LOGV2(DEBUG_MOUNT_VERBOSE,F("CurrentRA: POS (+zp)  : %s"), DayTime(hourPos).ToString());
 
-  bool flipRA = NORTHERN_HEMISPHERE ?
-    _stepperDEC->currentPosition() < 0
-    : _stepperDEC->currentPosition() > 0;
+  bool flipRA = _stepperDEC->currentPosition() < 0;
   if (flipRA)
   {
     hourPos += 12;
@@ -1406,16 +1404,16 @@ void Mount::guidePulse(byte direction, int duration) {
 
     case WEST:
     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);
-    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER + 1) * raGuidingSpeed);   // Faster than siderael
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER * raGuidingSpeed));
+    _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);   // Faster than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
     _guideRaEndTime = millis() + duration;
     break;
 
     case EAST:
     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);
-    _stepperTRK->setSpeed((RA_PULSE_MULTIPLIER - 1) * raGuidingSpeed);   // Slower than siderael
+    LOGV2(DEBUG_STEPPERS, F("STEP-guidePulse:  TRK.setSpeed(%f)"), (raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER)));
+    _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));   // Slower than siderael
     _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
     _guideRaEndTime = millis() + duration;
     break;
@@ -1864,6 +1862,16 @@ long Mount::focusGetStepperPosition()
 
 /////////////////////////////////
 //
+// focusSetPosition
+//
+/////////////////////////////////
+void Mount::focusSetStepperPosition(long steps)
+{
+   _stepperFocus->setCurrentPosition(steps);
+}
+
+/////////////////////////////////
+//
 // disableFocusMotor
 //
 /////////////////////////////////
@@ -2191,7 +2199,7 @@ void Mount::startSlewing(int direction) {
       #endif
 
       if (direction & NORTH) {
-        long targetLocation = sign * 300000;
+        long targetLocation = 300000;
         if (_decUpperLimit != 0) {
           targetLocation = _decUpperLimit;
           LOGV3(DEBUG_STEPPERS, F("STEP-startSlewing(N): DEC has upper limit of %l. targetMoveTo is now %l"), _decUpperLimit, targetLocation);
@@ -2205,7 +2213,7 @@ void Mount::startSlewing(int direction) {
       }
 
       if (direction & SOUTH) {
-        long targetLocation = -sign * 300000;
+        long targetLocation = -300000;
         if (_decLowerLimit != 0) {
           targetLocation = _decLowerLimit;
           LOGV3(DEBUG_STEPPERS, F("STEP-startSlewing(S): DEC has lower limit of %l. targetMoveTo is now %l"), _decLowerLimit, targetLocation);

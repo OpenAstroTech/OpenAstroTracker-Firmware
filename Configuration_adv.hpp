@@ -431,10 +431,6 @@
 // FEATURE SUPPORT SECTION ///
 //                         ///
 //////////////////////////////
-// Since the Arduino Uno has very little memory (32KB code, 2KB data) all features
-// stretch the Uno a little too far. So in order to save memory we allow you to enable 
-// and disable features to help manage memory usage.
-// If you run the tracker with an Arduino Mega, you can set all the features to 1.
 //
 // If you feel comfortable with configuring the OAT at startup manually, you should set
 // SUPPORT_GUIDED_STARTUP to 0 (maybe after you've used it for a while you know what to do).
@@ -447,8 +443,10 @@
 // If this is set to 0 you still have a GO menu that has Home and Park.
   #define SUPPORT_POINTS_OF_INTEREST   1
 
-// Set this to 1 to support Guided Startup 
-  #define SUPPORT_GUIDED_STARTUP       1
+  // Set this to 1 to support Guided Startup 
+  #ifndef SUPPORT_GUIDED_STARTUP       
+    #define SUPPORT_GUIDED_STARTUP       1
+  #endif
 
 // Set this to 1 to support CTRL menu, allowing you to manually slew the mount with the buttons. 
   #define SUPPORT_MANUAL_CONTROL       1
@@ -458,12 +456,18 @@
 
 // Set this to 1 to support INFO menu that displays various pieces of information about the mount. 
   #define SUPPORT_INFO_DISPLAY         1
-#else
+
+#else   // No Display section
+ 
   #define SUPPORT_POINTS_OF_INTEREST 0
+  #if SUPPORT_GUIDED_STARTUP == 1
+    #error "Guided startup is only available with a display."
+  #endif
   #define SUPPORT_GUIDED_STARTUP     0
   #define SUPPORT_MANUAL_CONTROL     0
   #define SUPPORT_CALIBRATION        0
   #define SUPPORT_INFO_DISPLAY       0
+  
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial
@@ -495,6 +499,15 @@
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
   #if defined(ESP32)
     #define DEC_SERIAL_PORT Serial2   // Can be shared with RA_SERIAL_PORT
+  #elif defined(__AVR_ATmega2560__)
+    // Uses SoftwareSerial
+  #endif
+#endif
+
+// Focuser
+#if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+  #if defined(ESP32)
+    #define FOCUS_SERIAL_PORT Serial2   // Can be shared with RA_SERIAL_PORT
   #elif defined(__AVR_ATmega2560__)
     // Uses SoftwareSerial
   #endif

@@ -1,5 +1,19 @@
-**V1.9.17 - Updates**
+**V1.9.21 - Updates**
+- Fix southern hemisphere reversed DEC free slew directions
 - Add focuser pins for MKS Gen L v2.0.
+
+**V1.9.20 - Updates**
+- Made github version check more robust
+
+**V1.9.19 - Updates**
+- Added support to reset the focus stepper position
+- Fixed some focus validation tests
+
+**V1.9.18 - Updates**
+- Fix RA guiding multiplier not being applied correct
+
+**V1.9.17 - Updates**
+- Fix southern hemisphere returning RA offset by -12hr
 
 **V1.9.16 - Updates**
 - Add Meade extension command to move steppers by steps.
