@@ -1,6 +1,8 @@
+**V1.9.22 - Updates**
+- Add focuser pins for MKS Gen L v2.0.
+
 **V1.9.21 - Updates**
 - Fix southern hemisphere reversed DEC free slew directions
-- Add focuser pins for MKS Gen L v2.0.
 
 **V1.9.20 - Updates**
 - Made github version check more robust
