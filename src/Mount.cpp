@@ -2438,7 +2438,9 @@ void Mount::loop() {
       // either been stopped, or reached the target.
       _focuserMode = FOCUS_IDLE;
       _focuserWasRunning = false;
+    #if FOCUSER_ALWAYS_ON == 0
       disableFocusMotor();
+    #endif
     }
 
   #endif
