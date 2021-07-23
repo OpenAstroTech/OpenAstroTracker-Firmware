@@ -1,3 +1,6 @@
+**V1.9.23 - Updates**
+- Add option to keep focuser motor enabled after moving.
+
 **V1.9.22 - Updates**
 - Add focuser pins for MKS Gen L v2.0.
 
