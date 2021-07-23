@@ -452,6 +452,9 @@
       #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
     #endif
   #endif
+  #ifndef FOCUSER_ALWAYS_ON
+    #define FOCUSER_ALWAYS_ON 0
+  #endif
 #endif
 
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
