@@ -306,21 +306,36 @@
 // Enable Azimuth motor functionality in your local Configuration. Do not edit here!
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 
-  #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
-  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #define AZ_MICROSTEPPING        32
-  #else
-    #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
+  #ifndef AZ_MICROSTEPPING
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+      #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #define AZ_MICROSTEPPING        32
+    #else
+      #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
+    #endif
   #endif
+
   #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    #define AZ_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
-    #define AZ_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
-    #define AZ_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+    #ifndef AZ_STEPPER_SPR
+      #define AZ_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
+    #endif
+    #ifndef AZ_STEPPER_SPEED
+      #define AZ_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
+    #endif
+    #ifndef AZ_STEPPER_ACCELERATION
+      #define AZ_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+    #endif
   #elif AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    #define AZ_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-    #define AZ_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
-    #define AZ_STEPPER_ACCELERATION   1000
+    #ifndef AZ_STEPPER_SPR
+      #define AZ_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+    #endif
+    #ifndef AZ_STEPPER_SPEED
+      #define AZ_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+    #endif
+    #ifndef AZ_STEPPER_ACCELERATION
+      #define AZ_STEPPER_ACCELERATION   1000
+    #endif
   #else
     #error Unknown AZ stepper type
   #endif
@@ -352,21 +367,36 @@
 // Enable Altitude motor functionality in your local configuration. Do not edit here!
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 
-  #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    #define ALT_MICROSTEPPING        1     // Fullstep mode using ULN2003 driver
-  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #define ALT_MICROSTEPPING        32
-  #else
-    #error Unknown ALT driver type. Did you define ALT_DRIVER_TYPE?
+  #ifndef ALT_MICROSTEPPING
+    #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+      #define ALT_MICROSTEPPING        1     // Fullstep mode using ULN2003 driver
+    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      #define ALT_MICROSTEPPING        32    
+    #else
+      #error Unknown ALT driver type. Did you define ALT_DRIVER_TYPE?
+    #endif
   #endif
+
   #if ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    #define ALT_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
-    #define ALT_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
-    #define ALT_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+    #ifndef ALT_STEPPER_SPR
+      #define ALT_STEPPER_SPR            2048  // 28BYJ-48 in full step mode
+    #endif
+    #ifndef ALT_STEPPER_SPEED
+      #define ALT_STEPPER_SPEED          600   // You can change the speed and acceleration of the steppers here. Max. Speed = 600. 
+    #endif
+    #ifndef ALT_STEPPER_ACCELERATION
+      #define ALT_STEPPER_ACCELERATION   400   // High speeds tend to make these cheap steppers unprecice
+    #endif
   #elif ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    #define ALT_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-    #define ALT_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
-    #define ALT_STEPPER_ACCELERATION   1000
+    #ifndef ALT_STEPPER_SPR
+      #define ALT_STEPPER_SPR            400   // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+    #endif
+    #ifndef ALT_STEPPER_SPEED
+      #define ALT_STEPPER_SPEED          600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000. 
+    #endif
+    #ifndef ALT_STEPPER_ACCELERATION
+      #define ALT_STEPPER_ACCELERATION   1000
+    #endif
   #else
     #error Unknown ALT stepper type
   #endif
@@ -441,6 +471,9 @@
     #ifndef USE_VREF
       #define USE_VREF 0      //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
     #endif
+  #endif
+  #ifndef FOCUSER_ALWAYS_ON
+    #define FOCUSER_ALWAYS_ON 0
   #endif
 #endif
 

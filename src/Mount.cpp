@@ -578,7 +578,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverAZ->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
-    _driverAZ->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
@@ -613,7 +613,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverAZ->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
-    _driverAZ->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
@@ -653,7 +653,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverALT->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
-    _driverALT->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
@@ -688,7 +688,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverALT->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
-    _driverALT->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverALT->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
@@ -730,7 +730,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverFocus->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
-    _driverFocus->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverFocus->toff(1);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
@@ -767,7 +767,7 @@ bool Mount::connectToDriver( TMC2209Stepper* driver, const char *driverKind ) {
         _driverFocus->I_scale_analog(false);
     #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
-    _driverFocus->rms_current(rmscurrent, 0.1f); //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->rms_current(rmscurrent, 1.0f); //holdMultiplier = 1 to set ihold = irun
     _driverFocus->toff(1);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
@@ -2574,7 +2574,9 @@ void Mount::loop() {
       // either been stopped, or reached the target.
       _focuserMode = FOCUS_IDLE;
       _focuserWasRunning = false;
+    #if FOCUSER_ALWAYS_ON == 0
       disableFocusMotor();
+    #endif
     }
 
   #endif
