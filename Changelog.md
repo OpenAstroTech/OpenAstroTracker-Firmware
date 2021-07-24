@@ -1,3 +1,6 @@
+**V1.9.24 - Updates**
+- Fix hold currents of AZ/ALT/Focuser drivers.
+
 **V1.9.23 - Updates**
 - Add option to keep focuser motor enabled after moving.
 
