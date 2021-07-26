@@ -1,16 +1,15 @@
 #pragma once
 
 #if DISPLAY_TYPE > 0
-#if SUPPORT_POINTS_OF_INTEREST == 1
-struct PointOfInterest
-{
-  const char *pDisplay;
-  byte hourRA;
-  byte minRA;
-  byte secRA;
-  int degreeDEC;
-  byte minDEC;
-  byte secDEC;
+    #if SUPPORT_POINTS_OF_INTEREST == 1
+struct PointOfInterest {
+    const char *pDisplay;
+    byte hourRA;
+    byte minRA;
+    byte secRA;
+    int degreeDEC;
+    byte minDEC;
+    byte secDEC;
 };
 
 // Points of interest are sorted by DEC
@@ -48,83 +47,86 @@ PointOfInterest pointOfInterest[] = {
 };
 
 int currentPOI = 0;
-int parkPOI = sizeof(pointOfInterest) / sizeof(pointOfInterest[0]) - 1;
-int unparkPOI = sizeof(pointOfInterest) / sizeof(pointOfInterest[0]) - 2;
-byte homePOI = sizeof(pointOfInterest) / sizeof(pointOfInterest[0]) - 3;
+int parkPOI    = sizeof(pointOfInterest) / sizeof(pointOfInterest[0]) - 1;
+int unparkPOI  = sizeof(pointOfInterest) / sizeof(pointOfInterest[0]) - 2;
+byte homePOI   = sizeof(pointOfInterest) / sizeof(pointOfInterest[0]) - 3;
 
 bool processPOIKeys()
 {
-  lcdButton_t key;
-  bool waitForRelease = false;
-  if (lcdButtons.keyChanged(&key))
-  {
-    waitForRelease = true;
-    switch (key)
+    lcdButton_t key;
+    bool waitForRelease = false;
+    if (lcdButtons.keyChanged(&key))
     {
-    case btnSELECT:
-    {
-      mount.stopSlewing(ALL_DIRECTIONS);
-      if (currentPOI == homePOI)
-      {
-        mount.goHome();
-      }
-      else if (currentPOI == parkPOI)
-      {
-        mount.park();
-      }
-      else if (currentPOI == unparkPOI)
-      {
-        mount.startSlewing(TRACKING);
-      }
-      else
-      {
-        PointOfInterest *poi = &pointOfInterest[currentPOI];
-        LOGV5(DEBUG_INFO, F("POI: Selected %s.  RA: %d %d %d"), poi->pDisplay, poi->hourRA, poi->minRA, poi->secRA);
-        LOGV5(DEBUG_INFO, F("POI: Selected %s. DEC: %d %d %d"), poi->pDisplay, poi->degreeDEC, poi->minDEC, poi->secDEC);
-        long targetSeconds = (60L * abs(poi->degreeDEC) + poi->minDEC) * 60L + poi->secDEC;
-        targetSeconds *= (poi->degreeDEC < 0 ? -1 : 1);
-        mount.targetRA().set(poi->hourRA, poi->minRA, poi->secRA);
-        mount.targetDEC() = Declination::FromSeconds(targetSeconds);
-        LOGV3(DEBUG_INFO, F("POI: mount target RA  is %s. %ls"), mount.targetRA().ToString(), targetSeconds);
-        LOGV3(DEBUG_INFO, F("POI: mount target DEC is %s. %ls"), mount.targetDEC().ToString(), mount.targetDEC().getTotalSeconds());
-        mount.startSlewingToTarget();
-      }
-    }
-    break;
+        waitForRelease = true;
+        switch (key)
+        {
+            case btnSELECT:
+                {
+                    mount.stopSlewing(ALL_DIRECTIONS);
+                    if (currentPOI == homePOI)
+                    {
+                        mount.goHome();
+                    }
+                    else if (currentPOI == parkPOI)
+                    {
+                        mount.park();
+                    }
+                    else if (currentPOI == unparkPOI)
+                    {
+                        mount.startSlewing(TRACKING);
+                    }
+                    else
+                    {
+                        PointOfInterest *poi = &pointOfInterest[currentPOI];
+                        LOGV5(DEBUG_INFO, F("POI: Selected %s.  RA: %d %d %d"), poi->pDisplay, poi->hourRA, poi->minRA, poi->secRA);
+                        LOGV5(DEBUG_INFO, F("POI: Selected %s. DEC: %d %d %d"), poi->pDisplay, poi->degreeDEC, poi->minDEC, poi->secDEC);
+                        long targetSeconds = (60L * abs(poi->degreeDEC) + poi->minDEC) * 60L + poi->secDEC;
+                        targetSeconds *= (poi->degreeDEC < 0 ? -1 : 1);
+                        mount.targetRA().set(poi->hourRA, poi->minRA, poi->secRA);
+                        mount.targetDEC() = Declination::FromSeconds(targetSeconds);
+                        LOGV3(DEBUG_INFO, F("POI: mount target RA  is %s. %ls"), mount.targetRA().ToString(), targetSeconds);
+                        LOGV3(DEBUG_INFO,
+                              F("POI: mount target DEC is %s. %ls"),
+                              mount.targetDEC().ToString(),
+                              mount.targetDEC().getTotalSeconds());
+                        mount.startSlewingToTarget();
+                    }
+                }
+                break;
 
-    case btnLEFT:
-    case btnDOWN:
-    {
-      currentPOI = adjustWrap(currentPOI, 1, 0, parkPOI);
-    }
-    break;
+            case btnLEFT:
+            case btnDOWN:
+                {
+                    currentPOI = adjustWrap(currentPOI, 1, 0, parkPOI);
+                }
+                break;
 
-    case btnUP:
-    {
-      currentPOI = adjustWrap(currentPOI, -1, 0, parkPOI);
-    }
-    break;
+            case btnUP:
+                {
+                    currentPOI = adjustWrap(currentPOI, -1, 0, parkPOI);
+                }
+                break;
 
-    case btnRIGHT:
-    {
-      lcdMenu.setNextActive();
-    }
-    break;
+            case btnRIGHT:
+                {
+                    lcdMenu.setNextActive();
+                }
+                break;
 
-    default:
-    break;
+            default:
+                break;
+        }
     }
-  }
 
-  return waitForRelease;
+    return waitForRelease;
 }
 
 void printPOISubmenu()
 {
-  if (mount.isSlewingIdle())
-  {
-    lcdMenu.printMenu(pointOfInterest[currentPOI].pDisplay);
-  }
+    if (mount.isSlewingIdle())
+    {
+        lcdMenu.printMenu(pointOfInterest[currentPOI].pDisplay);
+    }
 }
-#endif
+    #endif
 #endif

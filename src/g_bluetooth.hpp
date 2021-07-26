@@ -1,64 +1,77 @@
 #pragma once
 
 #if (BLUETOOTH_ENABLED == 1)
-#if SUPPORT_SERIAL_CONTROL == 1
-#include "MeadeCommandProcessor.hpp"
-#include "BluetoothSerial.h"
+    #if SUPPORT_SERIAL_CONTROL == 1
+        #include "MeadeCommandProcessor.hpp"
+        #include "BluetoothSerial.h"
 BluetoothSerial SerialBT;
-#define BLUETOOTH_SERIAL SerialBT
+        #define BLUETOOTH_SERIAL SerialBT
 
 bool bt_connected = false;
 void processSerialBTData();
 void bt_callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
 bool setupCallback = false;
 
-
-void bluetoothLoop() 
+void bluetoothLoop()
 {
-    if (!setupCallback) {
+    if (!setupCallback)
+    {
         BLUETOOTH_SERIAL.register_callback(bt_callback);
         setupCallback = true;
     }
-    if (bt_connected) {
+    if (bt_connected)
+    {
         processSerialBTData();
     }
 }
 
-void processSerialBTData() {
+void processSerialBTData()
+{
     char buffer[2];
-    while (BLUETOOTH_SERIAL.available() > 0) {
-        if (BLUETOOTH_SERIAL.readBytes(buffer, 1) == 1) {
-            if (buffer[0] == '#') { 
+    while (BLUETOOTH_SERIAL.available() > 0)
+    {
+        if (BLUETOOTH_SERIAL.readBytes(buffer, 1) == 1)
+        {
+            if (buffer[0] == '#')
+            {
                 // Empty command sent?
-            } else if (buffer[0] == 0x06) {
-                // ACK from client, requesting Alignment Query, 
-                // allows Stellaris (And others?) to tell if this 
+            }
+            else if (buffer[0] == 0x06)
+            {
+                // ACK from client, requesting Alignment Query,
+                // allows Stellaris (And others?) to tell if this
                 // is a LX200/Meade comaptible mount
                 LOGV1(DEBUG_SERIAL, F("SerialBT: Received: ACK request, replying"));
                 // Assuming Polar alignment mounting mode
-                BLUETOOTH_SERIAL.print('P'); 
-            } else {
+                BLUETOOTH_SERIAL.print('P');
+            }
+            else
+            {
                 String inCmd = String(buffer[0]) + BLUETOOTH_SERIAL.readStringUntil('#');
                 LOGV2(DEBUG_SERIAL, F("SerialBT: Received: %s"), inCmd.c_str());
                 // Handle NexStar attempt to prevent communication issue
-                if (inCmd == "Ka" || inCmd == "K*") {
+                if (inCmd == "Ka" || inCmd == "K*")
+                {
                     continue;
                 }
-            
+
                 String retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
-                if (retVal != "") {
+                if (retVal != "")
+                {
                     LOGV2(DEBUG_SERIAL, F("SerialBT: Replied:  %s"), retVal);
                     SerialBT.print(retVal);
                 }
             }
         }
-           
+
         mount.loop();
     }
 }
 
-void bt_callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
-    switch (event) {
+void bt_callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
+{
+    switch (event)
+    {
         case ESP_SPP_SRV_OPEN_EVT:
             bt_connected = true;
             break;
@@ -71,16 +84,15 @@ void bt_callback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param) {
     }
 }
 
-#endif
-#endif
-
-
-
-void BTin() {
-    #if (BLUETOOTH_ENABLED == 1)
-    bluetoothLoop();
     #endif
-  /*
+#endif
+
+void BTin()
+{
+#if (BLUETOOTH_ENABLED == 1)
+    bluetoothLoop();
+#endif
+    /*
     while (BT.available()) {
 
 
@@ -119,4 +131,3 @@ void BTin() {
     }
   */
 }
-
