@@ -175,4 +175,3 @@ private:
   static void update(uint8_t location, uint8_t value);
   static void commit();
 };
-
