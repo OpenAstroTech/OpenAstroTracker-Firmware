@@ -1,3 +1,6 @@
+**V1.9.26 - Updates**
+- Delete unintentionally added workflow file
+
 **V1.9.25 - Updates**
 - clang-format codebase
 
