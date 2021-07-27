@@ -35,6 +35,7 @@ jobs:
           name: clang-format-diff.patch
           path: ./clang-format-diff.patch
       - uses: mshick/add-pr-comment@v1
+        if: steps.needs_work.outputs.status != 'success'
         with:
           message: |
             Looks like your PR has code that needs to be changed in order to meet our coding standards!
