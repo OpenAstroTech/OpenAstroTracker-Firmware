@@ -1,3 +1,6 @@
+**V1.9.26 - Updates**
+- Delete unintentionally added workflow file
+
 **V1.9.25 - Updates**
 - clang-format codebase
 - Support for a Hall sensor based auto homing routine for the RA ring.
