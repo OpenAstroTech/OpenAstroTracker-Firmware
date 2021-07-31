@@ -13,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: ${{github.event.pull_request.head.ref}}
-          repository: ${{github.event.pull_request.head.repo.full_name}}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
       - uses: DoozyX/clang-format-lint-action@v0.12
         with:
           source: '. ./src'
@@ -27,15 +27,15 @@ jobs:
         run: if git diff --quiet --exit-code; then exit 0; else exit 1; fi
         continue-on-error: true
       - name: Create patch
-        if: steps.needs_work.outputs.status != 'success'
+        if: ${{ steps.needs_work.outcome != 'success' }}
         run: git diff > ./clang-format-diff.patch
       - uses: actions/upload-artifact@v2
-        if: steps.needs_work.outputs.status != 'success'
+        if: ${{ steps.needs_work.outcome != 'success' }}
         with:
           name: clang-format-diff.patch
           path: ./clang-format-diff.patch
       - uses: mshick/add-pr-comment@v1
-        if: steps.needs_work.outputs.status != 'success'
+        if: ${{ steps.needs_work.outcome != 'success' }}
         with:
           message: |
             Looks like your PR has code that needs to be changed in order to meet our coding standards!
@@ -53,5 +53,5 @@ jobs:
           repo-token-user-login: 'openastrotech-bot'
           allow-repeats: false
       - name: Fail if needs formatting
-        if: steps.needs_work.outputs.status != 'success'
-        run: git diff --quiet --exit-code || exit 1
+        if: ${{ steps.needs_work.outcome != 'success' }}
+        run: if git diff --quiet --exit-code; then exit 0; else exit 1; fi
