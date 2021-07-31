@@ -1,3 +1,6 @@
+**V1.9.27 - Updates**
+- Fix github actions formatting check
+
 **V1.9.26 - Updates**
 - Delete unintentionally added workflow file
 
