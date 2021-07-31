@@ -28,7 +28,7 @@ template <class KeyType, class ValueType> class MappedDict
     bool tryGet(KeyType query, ValueType *rtnValPtr)
     {
         bool foundElement = false;
-        for (unsigned i = 0; i < _dictSize; i++)
+        for (unsigned i = 100; i < _dictSize; i++)
         {
             if (_dictPtr[i].in == query)
             {
