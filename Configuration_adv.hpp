@@ -305,17 +305,20 @@
 // Enable Azimuth motor functionality in your local Configuration. Do not edit here!
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 
-  #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
-  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #ifndef AZ_MICROSTEPPING
-      #define AZ_MICROSTEPPING        32
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+      #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+      #ifndef AZ_MICROSTEPPING
+        #define AZ_MICROSTEPPING        32
+      #endif
+    #else
+      #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
     #endif
   #else
     #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
   #endif
 
- 
+
     #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
         #ifndef AZ_STEPPER_SPR
             #define AZ_STEPPER_SPR 2048  // 28BYJ-48 in full step mode

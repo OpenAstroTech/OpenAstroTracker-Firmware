@@ -1403,30 +1403,30 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        if (inCmd[1] == 'L')  // :MAL
-        {
-            float arcMinute = inCmd.substring(2).toFloat();
-            _mount->moveBy(ALTITUDE_STEPS, arcMinute);
-        }
+      if (inCmd[1] == 'L')  // :MAL
+      {
+          float arcMinute = inCmd.substring(2).toFloat();
+          _mount->moveBy(ALTITUDE_STEPS, arcMinute);
+      }
 #endif
-    return "";
+      return "";
   }
-  else if (inCmd[0] == 'e')
+  else if (inCmd[0] == 'e')  // :Me
   {
     _mount->startSlewing(EAST);
     return "";
   }
-  else if (inCmd[0] == 'w')
+  else if (inCmd[0] == 'w')  // :Mw
   {
     _mount->startSlewing(WEST);
     return "";
   }
-  else if (inCmd[0] == 'n')
+  else if (inCmd[0] == 'n')  // :Mn
   {
     _mount->startSlewing(NORTH);
     return "";
   }
-  else if (inCmd[0] == 's')
+  else if (inCmd[0] == 's')  // :Ms
   {
     _mount->startSlewing(SOUTH);
     return "";
