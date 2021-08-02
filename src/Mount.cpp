@@ -1707,17 +1707,20 @@ void Mount::moveBy(int direction, float arcMinutes)
 {
   #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == AZIMUTH_STEPS) {
+      LOGV2(DEBUG_STEPPERS, F("Mount: moveBy AZ %f mins"), arcMinutes);
       enableAzAltMotors();
       #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
         int stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE * AZ_MICROSTEPPING;
       #else
         int stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
       #endif
+      LOGV4(DEBUG_STEPPERS,F("Mount: moveBy AZ %d steps (%f, %f)"), stepsToMove, AZIMUTH_STEPS_PER_REV, AZIMUTH_STEPS_PER_ARC_MINUTE);
       _stepperAZ->move(stepsToMove);
     }
   #endif
   #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == ALTITUDE_STEPS) {
+      LOGV2(DEBUG_STEPPERS, F("Mount: moveBy ALT %f mins"), arcMinutes);
       enableAzAltMotors();
       #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
         int stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE * ALT_MICROSTEPPING;
@@ -1725,6 +1728,7 @@ void Mount::moveBy(int direction, float arcMinutes)
         int stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
       #endif
 
+      LOGV2(DEBUG_STEPPERS,F("Mount: moveBy ALT %d steps"), stepsToMove);
       _stepperALT->move(stepsToMove);
     }
   #endif
