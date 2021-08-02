@@ -1390,12 +1390,15 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
   }
   else if (inCmd[0] == 'A')
   {
+    LOGV1(DEBUG_MEADE, F("MEADE: Move Az/Alt"));
+    
 // Move Azimuth or Altitude by given arcminutes
 // :MAZ+32.1# or :MAL-32.1#
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (inCmd[1] == 'Z')  // :MAZ
     {
       float arcMinute = inCmd.substring(2).toFloat();
+      LOGV2(DEBUG_MEADE, F("MEADE: Move AZ by %f arcmins"), arcMinute);
       _mount->moveBy(AZIMUTH_STEPS, arcMinute);
     }
 #endif
@@ -1431,6 +1434,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
   else if (inCmd[0]== 'X') // :MX
   {
     long steps = inCmd.substring(2).toInt();
+    LOGV3(DEBUG_MEADE, F("MEADE: Move: %l in %d"), steps, inCmd[1]);
     if (inCmd[1]=='r') _mount->moveStepperBy(RA_STEPS, steps);
     else if (inCmd[1]=='d') _mount->moveStepperBy(DEC_STEPS, steps);
     else if (inCmd[1]=='z') _mount->moveStepperBy(AZIMUTH_STEPS, steps);

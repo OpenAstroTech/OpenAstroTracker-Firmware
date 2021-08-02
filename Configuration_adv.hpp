@@ -306,14 +306,14 @@
 // Enable Azimuth motor functionality in your local Configuration. Do not edit here!
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 
-  #ifndef AZ_MICROSTEPPING
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-      #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        #define AZ_MICROSTEPPING        32
-    #else
-      #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
+  #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+    #define AZ_MICROSTEPPING        2     // Halfstep mode using ULN2003 driver
+  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #ifndef AZ_MICROSTEPPING
+      #define AZ_MICROSTEPPING        32
     #endif
+  #else
+    #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
   #endif
 
   #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
@@ -342,7 +342,9 @@
 
   // the Circumference of the AZ rotation. 808mm dia.
   #define AZ_CIRCUMFERENCE 2538.4f
-  #define AZIMUTH_STEPS_PER_REV           (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)   // Actually u-steps/rev
+  #ifndef AZIMUTH_STEPS_PER_REV
+    #define AZIMUTH_STEPS_PER_REV         (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)   // Actually u-steps/rev
+  #endif
   #define AZIMUTH_STEPS_PER_ARC_MINUTE    (AZIMUTH_STEPS_PER_REV / (360 * 60.0f)) // Used to determine move distance in steps
 
   // AZ TMC2209 UART settings

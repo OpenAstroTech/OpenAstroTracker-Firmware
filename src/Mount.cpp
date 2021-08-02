@@ -2353,6 +2353,9 @@ long Mount::getHomingOffset(StepperAxis axis) {
 bool Mount::findRAHomeByHallSensor(int initialDirection) {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
 
+  int rate = _moveRate;
+  setSlewRate(4);
+
   if (digitalRead(RA_HOMING_SENSOR_PIN) == LOW) {
     LOGV2(DEBUG_STEPPERS, "HOMING: Currently over Hall, so moving off of it by %l steps", (long)(-initialDirection *_stepsPerRADegree * siderealDegreesInHour * 0.5f));
     moveStepperBy(StepperAxis::RA_STEPS, -initialDirection * _stepsPerRADegree * siderealDegreesInHour * 0.5f);
@@ -2401,6 +2404,7 @@ bool Mount::findRAHomeByHallSensor(int initialDirection) {
 
     if (_homingState != HomingState::HOMING_PIN_FOUND) {
       LOGV3(DEBUG_STEPPERS, "HOMING: Failed to find Hall sensor on east pass. Range: [%l to %l]", _homingPosition[0], _homingPosition[1]);
+      setSlewRate(rate);
       return false;
     }
   }
@@ -2414,6 +2418,7 @@ bool Mount::findRAHomeByHallSensor(int initialDirection) {
   waitUntilStopped(EAST|WEST);
   LOGV1(DEBUG_STEPPERS, "HOMING: RA homing completed.");
   
+  setSlewRate(rate);
   return true;
 #else
   return false;
@@ -3054,6 +3059,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps) {   // Uni
 /////////////////////////////////
 void Mount::moveStepperBy(StepperAxis direction, long steps)
 {
+  LOGV2(DEBUG_STEPPERS, "STEP-moveStepperBy: %l", steps);
   switch (direction)
   {
     case RA_STEPS :
@@ -3098,11 +3104,14 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
       break;
     case AZIMUTH_STEPS:
       #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+        enableAzAltMotors();
+        LOGV3(DEBUG_STEPPERS, "STEP-moveStepperBy: AZ from %l to %l", _stepperAZ->currentPosition(), _stepperAZ->currentPosition() + steps);
         _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
       #endif
       break;
     case ALTITUDE_STEPS:
       #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+        enableAzAltMotors();
         _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
       #endif
       break;
