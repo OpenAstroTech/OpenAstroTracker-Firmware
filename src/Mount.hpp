@@ -28,13 +28,22 @@ class TMC2209Stepper;
 #define TARGET_STRING  B01000
 #define CURRENT_STRING B10000
 
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
 enum HomingState
 {
-    HOMING_PIN_IDLE          = -1,
-    HOMING_PIN_FINDING_START = 0,
-    HOMING_PIN_FINDING_END   = 1,
+    HOMING_PIN_FINDING_START,
+    HOMING_PIN_FINDING_END,
     HOMING_PIN_FOUND
 };
+
+struct HomingData {
+    HomingState state;
+    int pinState;
+    int lastPinState;
+    long position[HomingState::HOMING_PIN_FINDING_END + 1];
+    long offsetRA;
+};
+#endif
 
 enum StepperAxis
 {
@@ -537,11 +546,7 @@ class Mount
 #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    HomingState _homingState;
-    int _homingPinState;
-    int _lastHomingPinState;
-    long _homingPosition[2];
-    long _homingOffsetRA;
+    HomingData _homing;
 #endif
 
     unsigned long _guideRaEndTime;
