@@ -265,7 +265,11 @@ void setup()
     LOGV1(DEBUG_ANY, F("Finishing boot..."));
     // Show a splash screen
     lcdMenu.setCursor(0, 0);
+    #ifdef OAM
+    lcdMenu.printMenu(" OpenAstroMount");
+    #else
     lcdMenu.printMenu("OpenAstroTracker");
+    #endif
     lcdMenu.setCursor(5, 1);
     lcdMenu.printMenu(VERSION);
     delay(1000);  // Pause on splash screen

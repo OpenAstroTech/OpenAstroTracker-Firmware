@@ -1172,6 +1172,9 @@ void Mount::setLST(const DayTime &lst)
 {
     _LST       = lst;
     _zeroPosRA = lst;
+#ifdef OAM
+    _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
+#endif
     LOGV2(DEBUG_MOUNT, F("Mount: Set LST and ZeroPosRA to: %s"), _LST.ToString());
 }
 

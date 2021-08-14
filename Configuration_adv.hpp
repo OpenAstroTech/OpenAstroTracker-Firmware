@@ -185,7 +185,9 @@
 #endif
 
 // the Circumference of the DEC wheel.
-#define DEC_WHEEL_CIRCUMFERENCE 565.5f
+#ifndef DEC_WHEEL_CIRCUMFERENCE
+    #define DEC_WHEEL_CIRCUMFERENCE 565.5f
+#endif
 
 // RA movement:
 // The radius of the surface that the belt runs on (in V1 of the ring) was 168.24mm.
