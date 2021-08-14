@@ -169,7 +169,6 @@ class EEPROMStore
         _RA_HOMING_OFFSET_ADDR_1,
         _RA_HOMING_OFFSET_ADDR_2,
         _RA_HOMING_OFFSET_ADDR_3, // Int32
-        
         STORE_SIZE      = 64
     };
 

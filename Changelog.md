@@ -9,7 +9,6 @@
 
 **V1.9.25 - Updates**
 - clang-format codebase
-- Support for a Hall sensor based auto homing routine for the RA ring.
 
 **V1.9.24 - Updates**
 - Fix hold currents of AZ/ALT/Focuser drivers.

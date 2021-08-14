@@ -1413,44 +1413,44 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
   }
   else if (inCmd[0] == 'e')  // :Me
   {
-    _mount->startSlewing(EAST);
-    return "";
+      _mount->startSlewing(EAST);
+      return "";
   }
   else if (inCmd[0] == 'w')  // :Mw
   {
-    _mount->startSlewing(WEST);
-    return "";
+      _mount->startSlewing(WEST);
+      return "";
   }
   else if (inCmd[0] == 'n')  // :Mn
   {
-    _mount->startSlewing(NORTH);
-    return "";
+      _mount->startSlewing(NORTH);
+      return "";
   }
   else if (inCmd[0] == 's')  // :Ms
   {
-    _mount->startSlewing(SOUTH);
-    return "";
+      _mount->startSlewing(SOUTH);
+      return "";
   }
   else if (inCmd[0]== 'X') // :MX
   {
-    long steps = inCmd.substring(2).toInt();
-    LOGV3(DEBUG_MEADE, F("MEADE: Move: %l in %d"), steps, inCmd[1]);
-    if (inCmd[1]=='r') _mount->moveStepperBy(RA_STEPS, steps);
-    else if (inCmd[1]=='d') _mount->moveStepperBy(DEC_STEPS, steps);
-    else if (inCmd[1]=='z') _mount->moveStepperBy(AZIMUTH_STEPS, steps);
-    else if (inCmd[1]=='l') _mount->moveStepperBy(ALTITUDE_STEPS, steps);
-    else if (inCmd[1]=='f') _mount->moveStepperBy(FOCUS_STEPS, steps);
-    else return "0";
-    return "1";
+      long steps = inCmd.substring(2).toInt();
+      LOGV3(DEBUG_MEADE, F("MEADE: Move: %l in %d"), steps, inCmd[1]);
+      if (inCmd[1]=='r') _mount->moveStepperBy(RA_STEPS, steps);
+      else if (inCmd[1]=='d') _mount->moveStepperBy(DEC_STEPS, steps);
+      else if (inCmd[1]=='z') _mount->moveStepperBy(AZIMUTH_STEPS, steps);
+      else if (inCmd[1]=='l') _mount->moveStepperBy(ALTITUDE_STEPS, steps);
+      else if (inCmd[1]=='f') _mount->moveStepperBy(FOCUS_STEPS, steps);
+      else return "0";
+      return "1";
   }
   else if (inCmd[0] == 'H') 
   {
-    if (inCmd[1] == 'R') { // :MHR
-      return _mount->findRAHomeByHallSensor(-1) ? "1" : "0";
-    }
-    else if (inCmd[1] == 'r') { // :MHr
-      return _mount->findRAHomeByHallSensor(1) ? "1" : "0";
-    }
+      if (inCmd[1] == 'R') { // :MHR
+          return _mount->findRAHomeByHallSensor(-1) ? "1" : "0";
+      }
+      else if (inCmd[1] == 'r') { // :MHr
+          return _mount->findRAHomeByHallSensor(1) ? "1" : "0";
+      }
   }
 
     return "0";

@@ -2981,7 +2981,8 @@ void Mount::loop()
 // bootComplete
 //
 /////////////////////////////////
-void Mount::bootComplete() {
+void Mount::bootComplete()
+{
     _bootComplete = true;
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     _homingPinState = _lastHomingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
@@ -3380,6 +3381,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
       #endif
       break;
   }
+
 }
 
 /////////////////////////////////
