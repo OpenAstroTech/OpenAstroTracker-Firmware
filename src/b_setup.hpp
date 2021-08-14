@@ -266,9 +266,9 @@ void setup()
     // Show a splash screen
     lcdMenu.setCursor(0, 0);
     #ifdef OAM
-        lcdMenu.printMenu(" OpenAstroMount");
+    lcdMenu.printMenu(" OpenAstroMount");
     #else
-        lcdMenu.printMenu("OpenAstroTracker");
+    lcdMenu.printMenu("OpenAstroTracker");
     #endif
     lcdMenu.setCursor(5, 1);
     lcdMenu.printMenu(VERSION);
