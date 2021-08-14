@@ -140,7 +140,7 @@
 
 // RA Homing pin for Hall sensor
 #ifndef RA_HOMING_SENSOR_PIN
-  #define RA_HOMING_SENSOR_PIN    40
+    #define RA_HOMING_SENSOR_PIN 40
 #endif
 
 //GPS pin configuration

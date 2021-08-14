@@ -202,11 +202,11 @@ void Mount::readPersistentData()
 
     _decLowerLimit = EEPROMStore::getDECLowerLimit();
     _decUpperLimit = EEPROMStore::getDECUpperLimit();
-    LOGV3(DEBUG_INFO,F("Mount: EEPROM: DEC limits read as %l -> %l"), _decLowerLimit, _decUpperLimit);
+    LOGV3(DEBUG_INFO, F("Mount: EEPROM: DEC limits read as %l -> %l"), _decLowerLimit, _decUpperLimit);
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     _homingOffsetRA = EEPROMStore::getRAHomingOffset();
-    LOGV2(DEBUG_INFO,F("Mount: EEPROM: RA Homing offset read as %l"), _homingOffsetRA);
+    LOGV2(DEBUG_INFO, F("Mount: EEPROM: RA Homing offset read as %l"), _homingOffsetRA);
 #endif
 }
 
@@ -2320,10 +2320,11 @@ bool Mount::isParking() const
 // isFindingHome
 //
 /////////////////////////////////
-bool Mount::isFindingHome() const {
+bool Mount::isFindingHome() const
+{
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    return (_homingState == HomingState::HOMING_PIN_FINDING_START) || (_homingState== HomingState::HOMING_PIN_FINDING_END);
-#endif 
+    return (_homingState == HomingState::HOMING_PIN_FINDING_START) || (_homingState == HomingState::HOMING_PIN_FINDING_END);
+#endif
     return _mountStatus & STATUS_FINDING_HOME;
 }
 
@@ -2515,14 +2516,16 @@ long Mount::getCurrentStepperPosition(int direction)
 // setHomingOffset
 //
 /////////////////////////////////
-void Mount::setHomingOffset(StepperAxis axis, long offset) {
-  if (axis== StepperAxis::RA_STEPS) {
+void Mount::setHomingOffset(StepperAxis axis, long offset)
+{
+    if (axis == StepperAxis::RA_STEPS)
+    {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    _homingOffsetRA = offset;
+        _homingOffsetRA = offset;
 #endif
-    EEPROMStore::storeRAHomingOffset(offset);
-    LOGV2(DEBUG_MOUNT,F("Mount::setHomingOffset(RA): Offset: %l"), offset);
-  }
+        EEPROMStore::storeRAHomingOffset(offset);
+        LOGV2(DEBUG_MOUNT, F("Mount::setHomingOffset(RA): Offset: %l"), offset);
+    }
 }
 
 /////////////////////////////////
@@ -2530,13 +2533,15 @@ void Mount::setHomingOffset(StepperAxis axis, long offset) {
 // getHomingOffset
 //
 /////////////////////////////////
-long Mount::getHomingOffset(StepperAxis axis) {
-  if (axis== StepperAxis::RA_STEPS) {
+long Mount::getHomingOffset(StepperAxis axis)
+{
+    if (axis == StepperAxis::RA_STEPS)
+    {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    return _homingOffsetRA;
+        return _homingOffsetRA;
 #endif
-  }
-  return 0;
+    }
+    return 0;
 }
 
 /////////////////////////////////
@@ -2544,81 +2549,93 @@ long Mount::getHomingOffset(StepperAxis axis) {
 // findRAHomeByHallSensor
 //
 /////////////////////////////////
-bool Mount::findRAHomeByHallSensor(int initialDirection) {
+bool Mount::findRAHomeByHallSensor(int initialDirection)
+{
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
 
-  int rate = _moveRate;
-  setSlewRate(4);
+    int rate = _moveRate;
+    setSlewRate(4);
 
-  if (digitalRead(RA_HOMING_SENSOR_PIN) == LOW) {
-    LOGV2(DEBUG_STEPPERS, "HOMING: Currently over Hall, so moving off of it by %l steps", (long)(-initialDirection *_stepsPerRADegree * siderealDegreesInHour * 0.5f));
-    moveStepperBy(StepperAxis::RA_STEPS, -initialDirection * _stepsPerRADegree * siderealDegreesInHour * 0.5f);
-    while (_stepperRA->isRunning()) {
-      loop();
-      yield();
-    }
-  }
-
-  LOGV2(DEBUG_STEPPERS, "HOMING: Moving RA by %l steps", (long)(initialDirection * _stepsPerRADegree * siderealDegreesInHour * 2));
-
-  _homingState = HomingState::HOMING_PIN_FINDING_START;
-  _homingPinState = _lastHomingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
-  _homingPosition[0] = 0;
-  _homingPosition[1] = 0;
-
-  // Move by two hours clockwise
-  moveStepperBy(StepperAxis::RA_STEPS, initialDirection * _stepsPerRADegree * siderealDegreesInHour * 2);
-
-  while (_stepperRA->isRunning() && _homingState != HomingState::HOMING_PIN_FOUND) {
-    loop();
-    yield();
-  }
-
-  LOGV1(DEBUG_STEPPERS, "HOMING: Stop slewing on west pass");
-  stopSlewing(EAST|WEST);
-  waitUntilStopped(EAST|WEST);
-
-  LOGV1(DEBUG_STEPPERS, "HOMING: RA arrived at end of west pass.");
-
-  if (_homingState != HomingState::HOMING_PIN_FOUND) {
-    
-    LOGV2(DEBUG_STEPPERS, "HOMING: Hall not found on west pass. Moving RA east by %l steps",(long)(-initialDirection * _stepsPerRADegree * siderealDegreesInHour * 4));
-    moveStepperBy(StepperAxis::RA_STEPS, (long)(-initialDirection * _stepsPerRADegree * siderealDegreesInHour * 4));
-
-    while (_stepperRA->isRunning() && _homingState != HomingState::HOMING_PIN_FOUND) {
-      loop();
-      yield();
+    if (digitalRead(RA_HOMING_SENSOR_PIN) == LOW)
+    {
+        LOGV2(DEBUG_STEPPERS,
+              "HOMING: Currently over Hall, so moving off of it by %l steps",
+              (long) (-initialDirection * _stepsPerRADegree * siderealDegreesInHour * 0.5f));
+        moveStepperBy(StepperAxis::RA_STEPS, -initialDirection * _stepsPerRADegree * siderealDegreesInHour * 0.5f);
+        while (_stepperRA->isRunning())
+        {
+            loop();
+            yield();
+        }
     }
 
-    LOGV1(DEBUG_STEPPERS, "HOMING: Stop slewing on east pass");
-    stopSlewing(EAST|WEST);
-    waitUntilStopped(EAST|WEST);
+    LOGV2(DEBUG_STEPPERS, "HOMING: Moving RA by %l steps", (long) (initialDirection * _stepsPerRADegree * siderealDegreesInHour * 2));
 
-    LOGV1(DEBUG_STEPPERS, "HOMING: RA arrived at end of east pass.");
+    _homingState    = HomingState::HOMING_PIN_FINDING_START;
+    _homingPinState = _lastHomingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
+    _homingPosition[0]                    = 0;
+    _homingPosition[1]                    = 0;
 
-    if (_homingState != HomingState::HOMING_PIN_FOUND) {
-      LOGV3(DEBUG_STEPPERS, "HOMING: Failed to find Hall sensor on east pass. Range: [%l to %l]", _homingPosition[0], _homingPosition[1]);
-      setSlewRate(rate);
-      return false;
+    // Move by two hours clockwise
+    moveStepperBy(StepperAxis::RA_STEPS, initialDirection * _stepsPerRADegree * siderealDegreesInHour * 2);
+
+    while (_stepperRA->isRunning() && _homingState != HomingState::HOMING_PIN_FOUND)
+    {
+        loop();
+        yield();
     }
-  }
 
-  LOGV3(DEBUG_STEPPERS, "HOMING: Hall sensor found! Range: [%l to %l]", _homingPosition[0], _homingPosition[1]);
+    LOGV1(DEBUG_STEPPERS, "HOMING: Stop slewing on west pass");
+    stopSlewing(EAST | WEST);
+    waitUntilStopped(EAST | WEST);
 
-  long midPos = (_homingPosition[0] + _homingPosition[1]) / 2;
+    LOGV1(DEBUG_STEPPERS, "HOMING: RA arrived at end of west pass.");
 
-  LOGV4(DEBUG_STEPPERS, "HOMING: Moving RA by %l - %l - %l steps", midPos, _stepperRA->currentPosition(), _homingOffsetRA);
-  moveStepperBy(StepperAxis::RA_STEPS, midPos - _stepperRA->currentPosition() - _homingOffsetRA);
-  waitUntilStopped(EAST|WEST);
-  LOGV1(DEBUG_STEPPERS, "HOMING: RA homing completed.");
-  
-  setSlewRate(rate);
-  return true;
+    if (_homingState != HomingState::HOMING_PIN_FOUND)
+    {
+        LOGV2(DEBUG_STEPPERS,
+              "HOMING: Hall not found on west pass. Moving RA east by %l steps",
+              (long) (-initialDirection * _stepsPerRADegree * siderealDegreesInHour * 4));
+        moveStepperBy(StepperAxis::RA_STEPS, (long) (-initialDirection * _stepsPerRADegree * siderealDegreesInHour * 4));
+
+        while (_stepperRA->isRunning() && _homingState != HomingState::HOMING_PIN_FOUND)
+        {
+            loop();
+            yield();
+        }
+
+        LOGV1(DEBUG_STEPPERS, "HOMING: Stop slewing on east pass");
+        stopSlewing(EAST | WEST);
+        waitUntilStopped(EAST | WEST);
+
+        LOGV1(DEBUG_STEPPERS, "HOMING: RA arrived at end of east pass.");
+
+        if (_homingState != HomingState::HOMING_PIN_FOUND)
+        {
+            LOGV3(DEBUG_STEPPERS,
+                  "HOMING: Failed to find Hall sensor on east pass. Range: [%l to %l]",
+                  _homingPosition[0],
+                  _homingPosition[1]);
+            setSlewRate(rate);
+            return false;
+        }
+    }
+
+    LOGV3(DEBUG_STEPPERS, "HOMING: Hall sensor found! Range: [%l to %l]", _homingPosition[0], _homingPosition[1]);
+
+    long midPos = (_homingPosition[0] + _homingPosition[1]) / 2;
+
+    LOGV4(DEBUG_STEPPERS, "HOMING: Moving RA by %l - %l - %l steps", midPos, _stepperRA->currentPosition(), _homingOffsetRA);
+    moveStepperBy(StepperAxis::RA_STEPS, midPos - _stepperRA->currentPosition() - _homingOffsetRA);
+    waitUntilStopped(EAST | WEST);
+    LOGV1(DEBUG_STEPPERS, "HOMING: RA homing completed.");
+
+    setSlewRate(rate);
+    return true;
 #else
-  return false;
+    return false;
 #endif
 }
-
 
 /////////////////////////////////
 //
@@ -2673,16 +2690,19 @@ void Mount::interruptLoop()
     }
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    if ((_homingState == HomingState::HOMING_PIN_FINDING_START) || (_homingState == HomingState::HOMING_PIN_FINDING_END)) {
+    if ((_homingState == HomingState::HOMING_PIN_FINDING_START) || (_homingState == HomingState::HOMING_PIN_FINDING_END))
+    {
         int homingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
         if (_lastHomingPinState != homingPinState)
         {
             _homingPosition[_homingState] = _stepperRA->currentPosition();
-            _lastHomingPinState = homingPinState;
-            if (_homingState == HomingState::HOMING_PIN_FINDING_END) {
+            _lastHomingPinState           = homingPinState;
+            if (_homingState == HomingState::HOMING_PIN_FINDING_END)
+            {
                 _homingState = HomingState::HOMING_PIN_FOUND;
             }
-            else {
+            else
+            {
                 _homingState = HomingState::HOMING_PIN_FINDING_END;
             }
         }
@@ -2994,7 +3014,8 @@ void Mount::bootComplete()
 // isBootComplete
 //
 /////////////////////////////////
-bool Mount::isBootComplete(){
+bool Mount::isBootComplete()
+{
     return _bootComplete;
 }
 
@@ -3324,64 +3345,67 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
 /////////////////////////////////
 void Mount::moveStepperBy(StepperAxis direction, long steps)
 {
-  LOGV2(DEBUG_STEPPERS, "STEP-moveStepperBy: %l", steps);
-  switch (direction)
-  {
-    case RA_STEPS :
-      moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
-      _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-      _totalRAMove = 1.0f * _stepperRA->distanceToGo();
-      #if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // tracking while slewing causes problems (can only run one AccelStepper at a time)
-        if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0)) {
-          // Only stop tracking if we're actually going to slew somewhere else, otherwise the 
-          // mount::loop() code won't detect the end of the slewing operation...
-          LOGV1(DEBUG_STEPPERS, "STEP-moveStepperBy: Stop tracking (NEMA steppers)");
-          stopSlewing(TRACKING);
-          _trackerStoppedAt = millis();
-          _compensateForTrackerOff = true;
+    LOGV2(DEBUG_STEPPERS, "STEP-moveStepperBy: %l", steps);
+    switch (direction)
+    {
+        case RA_STEPS:
+            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
+            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            _totalRAMove = 1.0f * _stepperRA->distanceToGo();
+#if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // tracking while slewing causes problems (can only run one AccelStepper at a time)
+            if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
+            {
+                // Only stop tracking if we're actually going to slew somewhere else, otherwise the
+                // mount::loop() code won't detect the end of the slewing operation...
+                LOGV1(DEBUG_STEPPERS, "STEP-moveStepperBy: Stop tracking (NEMA steppers)");
+                stopSlewing(TRACKING);
+                _trackerStoppedAt        = millis();
+                _compensateForTrackerOff = true;
 
-          // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-          #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
-            _driverRA->microsteps(RA_SLEW_MICROSTEPPING== 1 ? 0 : RA_SLEW_MICROSTEPPING);
-          #endif
+    // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+                LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
+                _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
+    #endif
 
-          LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: TRK stopped at %lms"), _trackerStoppedAt);
-        }
-      #endif																					  
-      break;
-    case DEC_STEPS :
-      moveSteppersTo(_stepperRA->targetPosition(), _stepperDEC->targetPosition() + steps);
-      _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-      _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
+                LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: TRK stopped at %lms"), _trackerStoppedAt);
+            }
+#endif
+            break;
+        case DEC_STEPS:
+            moveSteppersTo(_stepperRA->targetPosition(), _stepperDEC->targetPosition() + steps);
+            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
 
-      #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-        LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
-        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-      #endif
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
+            LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: Switching DEC driver to microsteps(%d)"), DEC_SLEW_MICROSTEPPING);
+            _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+#endif
 
-      break;
-    case FOCUS_STEPS:
-      #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-        focusMoveBy(steps);
-      #endif
-      break;
-    case AZIMUTH_STEPS:
-      #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-        enableAzAltMotors();
-        LOGV3(DEBUG_STEPPERS, "STEP-moveStepperBy: AZ from %l to %l", _stepperAZ->currentPosition(), _stepperAZ->currentPosition() + steps);
-        _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
-      #endif
-      break;
-    case ALTITUDE_STEPS:
-      #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-        enableAzAltMotors();
-        _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
-      #endif
-      break;
-  }
-
+            break;
+        case FOCUS_STEPS:
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+            focusMoveBy(steps);
+#endif
+            break;
+        case AZIMUTH_STEPS:
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+            enableAzAltMotors();
+            LOGV3(DEBUG_STEPPERS,
+                  "STEP-moveStepperBy: AZ from %l to %l",
+                  _stepperAZ->currentPosition(),
+                  _stepperAZ->currentPosition() + steps);
+            _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
+#endif
+            break;
+        case ALTITUDE_STEPS:
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+            enableAzAltMotors();
+            _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
+#endif
+            break;
+    }
 }
 
 /////////////////////////////////

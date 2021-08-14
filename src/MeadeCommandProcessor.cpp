@@ -495,26 +495,26 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "nnnn" is the number of steps
 //      Returns:
 //        "1" if successfully scheduled
-//      
+//
 // :MHR#
 //      Description:
 //        Home RA stepper via Hall sensor
 //      Information:
-//        This attempts to find the hall sensor and to home the RA ring accordingly. 
+//        This attempts to find the hall sensor and to home the RA ring accordingly.
 //      Parameters:
 //        If the last letter 'R' is uppercase the mount will search east first, if it is lowercase it will search west first.
 //      Remarks:
-//        The ring is first moved 30 degrees in the initial direction. If no hall sensor is encountered, it will move 60 degrees in 
+//        The ring is first moved 30 degrees in the initial direction. If no hall sensor is encountered, it will move 60 degrees in
 //        the opposite direction. If a hall sensor is not encountered during that slew, the homing exits with a failure code (0).
-//        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset 
+//        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset
 //        specified in the Home offset position (set with the ":XSHRnnnn#" command).
-//        If the RA ring is positioned such that the Hall sensor is triggered when the command is recevied, teh mount will will move 
-//        the RA ring off the trigger in the opposite direction specified for 7.5 degrees before searching 30 degrees in the 
+//        If the RA ring is positioned such that the Hall sensor is triggered when the command is recevied, teh mount will will move
+//        the RA ring off the trigger in the opposite direction specified for 7.5 degrees before searching 30 degrees in the
 //        specified direction.
 //      Returns:
 //        "1" if successfully homed RA
 //        "0" if the hall sensor could not be found or homing has not been enabled in the local config
-//      
+//
 // :MAZn.nn#
 //      Description:
 //        Move Azimuth
@@ -1391,7 +1391,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if (inCmd[0] == 'A')
     {
         LOGV1(DEBUG_MEADE, F("MEADE: Move Az/Alt"));
-    
+
         // Move Azimuth or Altitude by given arcminutes
         // :MAZ+32.1# or :MAL-32.1#
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -1403,55 +1403,63 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      if (inCmd[1] == 'L')  // :MAL
-      {
-          float arcMinute = inCmd.substring(2).toFloat();
-          _mount->moveBy(ALTITUDE_STEPS, arcMinute);
-      }
+        if (inCmd[1] == 'L')  // :MAL
+        {
+            float arcMinute = inCmd.substring(2).toFloat();
+            _mount->moveBy(ALTITUDE_STEPS, arcMinute);
+        }
 #endif
-      return "";
-  }
-  else if (inCmd[0] == 'e')  // :Me
-  {
-      _mount->startSlewing(EAST);
-      return "";
-  }
-  else if (inCmd[0] == 'w')  // :Mw
-  {
-      _mount->startSlewing(WEST);
-      return "";
-  }
-  else if (inCmd[0] == 'n')  // :Mn
-  {
-      _mount->startSlewing(NORTH);
-      return "";
-  }
-  else if (inCmd[0] == 's')  // :Ms
-  {
-      _mount->startSlewing(SOUTH);
-      return "";
-  }
-  else if (inCmd[0]== 'X') // :MX
-  {
-      long steps = inCmd.substring(2).toInt();
-      LOGV3(DEBUG_MEADE, F("MEADE: Move: %l in %d"), steps, inCmd[1]);
-      if (inCmd[1]=='r') _mount->moveStepperBy(RA_STEPS, steps);
-      else if (inCmd[1]=='d') _mount->moveStepperBy(DEC_STEPS, steps);
-      else if (inCmd[1]=='z') _mount->moveStepperBy(AZIMUTH_STEPS, steps);
-      else if (inCmd[1]=='l') _mount->moveStepperBy(ALTITUDE_STEPS, steps);
-      else if (inCmd[1]=='f') _mount->moveStepperBy(FOCUS_STEPS, steps);
-      else return "0";
-      return "1";
-  }
-  else if (inCmd[0] == 'H') 
-  {
-      if (inCmd[1] == 'R') { // :MHR
-          return _mount->findRAHomeByHallSensor(-1) ? "1" : "0";
-      }
-      else if (inCmd[1] == 'r') { // :MHr
-          return _mount->findRAHomeByHallSensor(1) ? "1" : "0";
-      }
-  }
+        return "";
+    }
+    else if (inCmd[0] == 'e')  // :Me
+    {
+        _mount->startSlewing(EAST);
+        return "";
+    }
+    else if (inCmd[0] == 'w')  // :Mw
+    {
+        _mount->startSlewing(WEST);
+        return "";
+    }
+    else if (inCmd[0] == 'n')  // :Mn
+    {
+        _mount->startSlewing(NORTH);
+        return "";
+    }
+    else if (inCmd[0] == 's')  // :Ms
+    {
+        _mount->startSlewing(SOUTH);
+        return "";
+    }
+    else if (inCmd[0] == 'X')  // :MX
+    {
+        long steps = inCmd.substring(2).toInt();
+        LOGV3(DEBUG_MEADE, F("MEADE: Move: %l in %d"), steps, inCmd[1]);
+        if (inCmd[1] == 'r')
+            _mount->moveStepperBy(RA_STEPS, steps);
+        else if (inCmd[1] == 'd')
+            _mount->moveStepperBy(DEC_STEPS, steps);
+        else if (inCmd[1] == 'z')
+            _mount->moveStepperBy(AZIMUTH_STEPS, steps);
+        else if (inCmd[1] == 'l')
+            _mount->moveStepperBy(ALTITUDE_STEPS, steps);
+        else if (inCmd[1] == 'f')
+            _mount->moveStepperBy(FOCUS_STEPS, steps);
+        else
+            return "0";
+        return "1";
+    }
+    else if (inCmd[0] == 'H')
+    {
+        if (inCmd[1] == 'R')  // :MHR
+        {
+            return _mount->findRAHomeByHallSensor(-1) ? "1" : "0";
+        }
+        else if (inCmd[1] == 'r')  // :MHr
+        {
+            return _mount->findRAHomeByHallSensor(1) ? "1" : "0";
+        }
+    }
 
     return "0";
 }
@@ -1543,67 +1551,67 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
             }
         }
-        else if (inCmd[1] == 'S') // :XGS#
+        else if (inCmd[1] == 'S')  // :XGS#
         {
-          return String(_mount->getSpeedCalibration(), 5) + "#";
+            return String(_mount->getSpeedCalibration(), 5) + "#";
         }
-        else if (inCmd[1] == 'T') // :XGT#
+        else if (inCmd[1] == 'T')  // :XGT#
         {
-          return String(_mount->getSpeed(TRACKING), 7) + "#";
+            return String(_mount->getSpeed(TRACKING), 7) + "#";
         }
-        else if (inCmd[1] == 'B') // :XGB#
+        else if (inCmd[1] == 'B')  // :XGB#
         {
-          return String(_mount->getBacklashCorrection()) + "#";
+            return String(_mount->getBacklashCorrection()) + "#";
         }
-        else if (inCmd[1] == 'C') // :XGCn.nn*m.mm#
+        else if (inCmd[1] == 'C')  // :XGCn.nn*m.mm#
         {
-          String coords = inCmd.substring(2);
-          int star = coords.indexOf('*');
-          if (star > 0)
-          {
-            long raPos, decPos;
-            float raCoord = coords.substring(0, star).toFloat();
-            float decCoord = coords.substring(star + 1).toFloat();
-            _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
-            char scratchBuffer[20];
-            sprintf(scratchBuffer, "%ld|%ld#", raPos, decPos);
-            return String(scratchBuffer);
-          }
+            String coords = inCmd.substring(2);
+            int star      = coords.indexOf('*');
+            if (star > 0)
+            {
+                long raPos, decPos;
+                float raCoord  = coords.substring(0, star).toFloat();
+                float decCoord = coords.substring(star + 1).toFloat();
+                _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
+                char scratchBuffer[20];
+                sprintf(scratchBuffer, "%ld|%ld#", raPos, decPos);
+                return String(scratchBuffer);
+            }
         }
         else if (inCmd[1] == 'M')
         {
-          if ((inCmd.length() > 2) && (inCmd[2] == 'S')) // :XGMS#
-          {
-            return _mount->getStepperInfo() + "#";
-          }
-          return _mount->getMountHardwareInfo() + "#"; // :XGM#
+            if ((inCmd.length() > 2) && (inCmd[2] == 'S'))  // :XGMS#
+            {
+                return _mount->getStepperInfo() + "#";
+            }
+            return _mount->getMountHardwareInfo() + "#";  // :XGM#
         }
-        else if (inCmd[1] == 'O') // :XGO#
+        else if (inCmd[1] == 'O')  // :XGO#
         {
-          return getLogBuffer();
+            return getLogBuffer();
         }
-        else if (inCmd[1] == 'H') // :XGH#
+        else if (inCmd[1] == 'H')  // :XGH#
         {
-          if (inCmd.length() > 2 && inCmd[2] == 'R') // :XGHR#
-          {
-            return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
-          }
-          else 
-          {
+            if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XGHR#
+            {
+                return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+            }
+            else
+            {
+                char scratchBuffer[10];
+                DayTime ha = _mount->calculateHa();
+                sprintf(scratchBuffer, "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
+                return String(scratchBuffer);
+            }
+        }
+        else if (inCmd[1] == 'L')  // :XGL#
+        {
             char scratchBuffer[10];
-            DayTime ha = _mount->calculateHa();
-            sprintf(scratchBuffer, "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
+            DayTime lst = _mount->calculateLst();
+            sprintf(scratchBuffer, "%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
             return String(scratchBuffer);
-          }
         }
-        else if (inCmd[1] == 'L') // :XGL#
-        {
-          char scratchBuffer[10];
-          DayTime lst = _mount->calculateLst();
-          sprintf(scratchBuffer, "%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
-          return String(scratchBuffer);
-        }
-        else if (inCmd[1] == 'N') // :XGN#
+        else if (inCmd[1] == 'N')  // :XGN#
         {
 #if (WIFI_ENABLED == 1)
             return wifiControl.getStatus() + "#";
@@ -1664,17 +1672,17 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setBacklashCorrection(inCmd.substring(2).toInt());
         }
-      
-        else if (inCmd[1] == 'H') // :XSH
+
+        else if (inCmd[1] == 'H')  // :XSH
         {
-            if (inCmd.length() > 2 && inCmd[2] == 'R') // :XSHR
+            if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XSHR
             {
                 _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
             }
         }
     }
     else if (inCmd[0] == 'L')
-    { // Digital Level
+    {  // Digital Level
 #if USE_GYRO_LEVEL == 1
         if (inCmd[1] == 'G')
         {                         // get values

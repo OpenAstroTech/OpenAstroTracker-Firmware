@@ -10,37 +10,39 @@ class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
 
-#define NORTH                      B00000001
-#define EAST                       B00000010
-#define SOUTH                      B00000100
-#define WEST                       B00001000
-#define ALL_DIRECTIONS             B00001111
-#define TRACKING                   B00010000
-#define FOCUSING                   B00100000
+#define NORTH          B00000001
+#define EAST           B00000010
+#define SOUTH          B00000100
+#define WEST           B00001000
+#define ALL_DIRECTIONS B00001111
+#define TRACKING       B00010000
+#define FOCUSING       B00100000
 
-#define LCDMENU_STRING      B0001
-#define MEADE_STRING        B0010
-#define PRINT_STRING        B0011
-#define LCD_STRING          B0100
-#define COMPACT_STRING      B0101
-#define FORMAT_STRING_MASK  B0111
+#define LCDMENU_STRING     B0001
+#define MEADE_STRING       B0010
+#define PRINT_STRING       B0011
+#define LCD_STRING         B0100
+#define COMPACT_STRING     B0101
+#define FORMAT_STRING_MASK B0111
 
-#define TARGET_STRING      B01000
-#define CURRENT_STRING     B10000
+#define TARGET_STRING  B01000
+#define CURRENT_STRING B10000
 
-enum HomingState {
-  HOMING_PIN_IDLE = -1,
-  HOMING_PIN_FINDING_START = 0,
-  HOMING_PIN_FINDING_END = 1,
-  HOMING_PIN_FOUND 
+enum HomingState
+{
+    HOMING_PIN_IDLE          = -1,
+    HOMING_PIN_FINDING_START = 0,
+    HOMING_PIN_FINDING_END   = 1,
+    HOMING_PIN_FOUND
 };
-  
-enum StepperAxis {
-  RA_STEPS,
-  DEC_STEPS,
-  AZIMUTH_STEPS,
-  ALTITUDE_STEPS,
-  FOCUS_STEPS
+
+enum StepperAxis
+{
+    RA_STEPS,
+    DEC_STEPS,
+    AZIMUTH_STEPS,
+    ALTITUDE_STEPS,
+    FOCUS_STEPS
 };
 
 struct LocalDate {
@@ -532,7 +534,7 @@ class Mount
     TMC2209Stepper *_driverFocus;
         #endif
     #endif
-  #endif
+#endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     HomingState _homingState;

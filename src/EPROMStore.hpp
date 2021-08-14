@@ -82,13 +82,13 @@ class EEPROMStore
     //
     // Locations for HATime (1/2), Brightness (16)
     //
-    // If Location 5 is 0xCF, then an extended 16-bit flag is stored in 21/22 and 
+    // If Location 5 is 0xCF, then an extended 16-bit flag is stored in 21/22 and
     // indicates the additional fields that have been stored: 0000 0000 0000 0000
     //                                                        ^^^^ ^^^^ ^^^^ ^^^^
     //                                                                       ||||
     //                        RA Homing Offet (40-43) -----------------------+|||
     //                                UTC Offset (39) ------------------------+||
-    //     DEC lower (31-34) and upper (35-38) limits -------------------------+|                    
+    //     DEC lower (31-34) and upper (35-38) limits -------------------------+|
     //     RA (23-26) and DEC (27-30) Parking offsets --------------------------+
     //
     /////////////////////////////////
@@ -118,8 +118,8 @@ class EEPROMStore
         PARKING_POS_MARKER_FLAG = 0x0001,
         DEC_LIMIT_MARKER_FLAG   = 0x0002,
         UTC_OFFSET_MARKER_FLAG  = 0x0004,
-        RA_HOMING_MARKER_FLAG = 0x0008,
-     };
+        RA_HOMING_MARKER_FLAG   = 0x0008,
+    };
 
     // These are the offsets to each item stored in the EEPROM
     enum ItemAddress
@@ -163,13 +163,13 @@ class EEPROMStore
         DEC_UPPER_LIMIT_ADDR = 35,
         _DEC_UPPER_LIMIT_ADDR_1,
         _DEC_UPPER_LIMIT_ADDR_2,
-        _DEC_UPPER_LIMIT_ADDR_3,  // Int32
-        UTC_OFFSET_ADDR = 39,     // Int8
+        _DEC_UPPER_LIMIT_ADDR_3,     // Int32
+        UTC_OFFSET_ADDR       = 39,  // Int8
         RA_HOMING_OFFSET_ADDR = 40,
         _RA_HOMING_OFFSET_ADDR_1,
         _RA_HOMING_OFFSET_ADDR_2,
-        _RA_HOMING_OFFSET_ADDR_3, // Int32
-        STORE_SIZE      = 64
+        _RA_HOMING_OFFSET_ADDR_3,  // Int32
+        STORE_SIZE = 64
     };
 
     // Helper functions
