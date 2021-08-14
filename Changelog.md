@@ -1,5 +1,7 @@
-**V1.9.28 - Updates**
+**V1.9.29 - Updates**
 - Support for a Hall sensor based auto homing routine for the RA ring.
+
+**V1.9.28 - Updates**
 - Add configurations for OAM
 
 **V1.9.27 - Updates**
