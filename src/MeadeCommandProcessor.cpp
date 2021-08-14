@@ -1673,9 +1673,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
         }
     }
-  }
-  else if (inCmd[0] == 'L')
-  { // Digital Level
+    else if (inCmd[0] == 'L')
+    { // Digital Level
 #if USE_GYRO_LEVEL == 1
         if (inCmd[1] == 'G')
         {                         // get values
