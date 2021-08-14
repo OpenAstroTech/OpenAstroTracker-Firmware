@@ -2575,9 +2575,9 @@ bool Mount::findRAHomeByHallSensor(int initialDirection)
     LOGV2(DEBUG_STEPPERS, "HOMING: Moving RA by %l steps", (long) (initialDirection * _stepsPerRADegree * siderealDegreesInHour * 2));
 
     _homing.state    = HomingState::HOMING_PIN_FINDING_START;
-    _homing.pinState = _homing.lastPinState = digitalRead(RA_HOMING_SENSOR_PIN);
+    _homing.pinState = _homing.lastPinState                 = digitalRead(RA_HOMING_SENSOR_PIN);
     _homing.position[HomingState::HOMING_PIN_FINDING_START] = 0;
-    _homing.position[HomingState::HOMING_PIN_FINDING_END] = 0;
+    _homing.position[HomingState::HOMING_PIN_FINDING_END]   = 0;
 
     // Move by two hours clockwise
     moveStepperBy(StepperAxis::RA_STEPS, initialDirection * _stepsPerRADegree * siderealDegreesInHour * 2);
@@ -2624,9 +2624,10 @@ bool Mount::findRAHomeByHallSensor(int initialDirection)
         }
     }
 
-    LOGV3(DEBUG_STEPPERS, "HOMING: Hall sensor found! Range: [%l to %l]", 
-      _homing.position[HomingState::HOMING_PIN_FINDING_START], 
-      _homing.position[HomingState::HOMING_PIN_FINDING_END]);
+    LOGV3(DEBUG_STEPPERS,
+          "HOMING: Hall sensor found! Range: [%l to %l]",
+          _homing.position[HomingState::HOMING_PIN_FINDING_START],
+          _homing.position[HomingState::HOMING_PIN_FINDING_END]);
 
     long midPos = (_homing.position[HomingState::HOMING_PIN_FINDING_START] + _homing.position[HomingState::HOMING_PIN_FINDING_END]) / 2;
 
