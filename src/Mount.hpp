@@ -28,6 +28,23 @@ class TMC2209Stepper;
 #define TARGET_STRING  B01000
 #define CURRENT_STRING B10000
 
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+enum HomingState
+{
+    HOMING_PIN_FINDING_START,
+    HOMING_PIN_FINDING_END,
+    HOMING_PIN_FOUND
+};
+
+struct HomingData {
+    HomingState state;
+    int pinState;
+    int lastPinState;
+    long position[HomingState::HOMING_PIN_FINDING_END + 1];
+    long offsetRA;
+};
+#endif
+
 enum StepperAxis
 {
     RA_STEPS,
@@ -362,7 +379,11 @@ class Mount
     void focusStop();
 #endif
 
-    // Move the giuven stepper motor by the given amount of steps.
+    bool findRAHomeByHallSensor(int initialDirection);
+    void setHomingOffset(StepperAxis axis, long offset);
+    long getHomingOffset(StepperAxis axis);
+
+    // Move the given stepper motor by the given amount of steps.
     void moveStepperBy(StepperAxis which, long steps);
 
     // Set the number of steps to use for backlash correction
@@ -522,6 +543,10 @@ class Mount
     TMC2209Stepper *_driverFocus;
         #endif
     #endif
+#endif
+
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    HomingData _homing;
 #endif
 
     unsigned long _guideRaEndTime;

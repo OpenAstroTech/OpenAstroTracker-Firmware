@@ -4,6 +4,10 @@
  * This file contains advanced configurations. Edit values here only if you know what you are doing. Invalid values
  * can lead to OAT misbehaving very bad and in worst case could even lead to hardware damage. The default values here
  * were chosen after many tests and can are currently concidered to work the best.
+ * 
+ * 
+ *         YOU SHOULD NOT NEED TO EDIT THIS FILE!
+ *         --------------------------------------
  **/
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -281,6 +285,11 @@
 //////////////////////////////////////////
 //
 // Backwards compatability. V1.9.07 changed from combined Azimuth/Altitude addon to seperate controls for each
+//
+
+//////////////////////////////////////////
+// AutoPA AZIMUTH support
+//////////////////////////////////////////
 #ifdef AZIMUTH_ALTITUDE_MOTORS
     #if AZIMUTH_ALTITUDE_MOTORS == 1
         #ifdef ALT_STEPPER_TYPE || AZ_STEPPER_TYPE
@@ -292,18 +301,21 @@
     #undef AZIMUTH_ALTITUDE_MOTORS
 #endif
 
-// Enable Azimuth and Altitude motor functionality in Configuration.hpp
+//////////////////////////////////////////
+// AutoPA AZIMUTH support
+//////////////////////////////////////////
+// Enable Azimuth motor functionality in your local Configuration. Do not edit here!
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 
-    #ifndef AZ_MICROSTEPPING
-        #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-            #define AZ_MICROSTEPPING 2  // Halfstep mode using ULN2003 driver
-        #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                              \
-            || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+        #define AZ_MICROSTEPPING 2  // Halfstep mode using ULN2003 driver
+    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
+        || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #ifndef AZ_MICROSTEPPING
             #define AZ_MICROSTEPPING 32
-        #else
-            #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
         #endif
+    #else
+        #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
     #endif
 
     #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
@@ -332,9 +344,11 @@
 
     // the Circumference of the AZ rotation. 808mm dia.
     #define AZ_CIRCUMFERENCE 2538.4f
-    #define AZIMUTH_STEPS_PER_REV                                                                                                          \
-        (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                                   \
-         * AZ_MICROSTEPPING)                                                      // Actually u-steps/rev
+    #ifndef AZIMUTH_STEPS_PER_REV
+        #define AZIMUTH_STEPS_PER_REV                                                                                                      \
+            (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
+             * AZ_MICROSTEPPING)  // Actually u-steps/rev
+    #endif
     #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
 
     // AZ TMC2209 UART settings
@@ -354,6 +368,10 @@
 
 #endif
 
+//////////////////////////////////////////
+// AutoPA ALTITUDE support
+//////////////////////////////////////////
+// Enable Altitude motor functionality in your local configuration. Do not edit here!
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 
     #ifndef ALT_MICROSTEPPING
@@ -417,6 +435,10 @@
     #endif
 #endif
 
+//////////////////////////////////////////
+// Focuser support
+//////////////////////////////////////////
+// Enable focuser functionality in your local configuration. Do not edit here!
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
@@ -468,6 +490,18 @@
     #endif
 #endif
 
+//////////////////////////////////////////
+// RA Homing support
+//////////////////////////////////////////
+// Enable homing in your local configuration. Do not edit here!
+#ifndef USE_HALL_SENSOR_RA_AUTOHOME
+    #define USE_HALL_SENSOR_RA_AUTOHOME 0
+#endif
+
+//////////////////////////////////////////
+// LCD Display support
+//////////////////////////////////////////
+// Enable LCD functionality in your local configuration. Do not edit here!
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -572,9 +606,6 @@
 //
 // DEBUG OUTPUT
 //
-#ifndef DEBUG_LEVEL
-    #define DEBUG_LEVEL (DEBUG_NONE)
-#endif
 // #define DEBUG_LEVEL (DEBUG_STEPPERS|DEBUG_MOUNT)
 // #define DEBUG_LEVEL (DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
 // #define DEBUG_LEVEL (DEBUG_SERIAL|DEBUG_WIFI|DEBUG_INFO|DEBUG_MOUNT|DEBUG_GENERAL)
@@ -592,7 +623,11 @@
 // Set this to specify the amount of debug output OAT should send to the serial port.
 // Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
 // Debug output is useful if you are using Wifi to control the OAT or if you are issuing
-// manual commands via a terminal.
+// manual commands via a terminal only.
+//
+#ifndef DEBUG_LEVEL
+    #define DEBUG_LEVEL (DEBUG_NONE)
+#endif
 
 #if defined(OAT_DEBUG_BUILD)
     // AVR based boards have numbers < 1000

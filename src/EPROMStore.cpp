@@ -767,3 +767,31 @@ void EEPROMStore::storeDECUpperLimit(int32_t decUpperLimit)
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }
+
+// Get the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
+int32_t EEPROMStore::getRAHomingOffset()
+{
+    int32_t raHomingOffset(0);  // microsteps (slew)
+
+    if (isPresentExtended(RA_HOMING_MARKER_FLAG))
+    {
+        raHomingOffset = readInt32(RA_HOMING_OFFSET_ADDR);
+        LOGV2(DEBUG_EEPROM, F("EEPROM: RA Homing offset read as %l"), raHomingOffset);
+    }
+    else
+    {
+        LOGV1(DEBUG_EEPROM, F("EEPROM: No stored values for RA Homing offset"));
+    }
+
+    return raHomingOffset;  // microsteps (slew)
+}
+
+// Store the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
+void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
+{
+    LOGV2(DEBUG_EEPROM, F("EEPROM Write: Updating RA Homing offset to %l"), raHomingOffset);
+
+    updateInt32(RA_HOMING_OFFSET_ADDR, raHomingOffset);
+    updateFlagsExtended(RA_HOMING_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
