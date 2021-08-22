@@ -1449,7 +1449,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
             return "0";
         return "1";
     }
-    else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')  
+    else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')
     {
         if (inCmd[2] == 'R')  // :MHRR
         {
