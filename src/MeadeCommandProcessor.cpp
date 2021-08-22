@@ -496,20 +496,20 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "1" if successfully scheduled
 //
-// :MHR#
+// :MHRx#
 //      Description:
 //        Home RA stepper via Hall sensor
 //      Information:
 //        This attempts to find the hall sensor and to home the RA ring accordingly.
 //      Parameters:
-//        If the last letter 'R' is uppercase the mount will search east first, if it is lowercase it will search west first.
+//        "x" is either 'R' or 'L' and determines the direction in which the search starts (L is CW, R is CCW).
 //      Remarks:
 //        The ring is first moved 30 degrees in the initial direction. If no hall sensor is encountered, it will move 60 degrees in
 //        the opposite direction. If a hall sensor is not encountered during that slew, the homing exits with a failure code (0).
 //        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset
 //        specified in the Home offset position (set with the ":XSHRnnnn#" command).
-//        If the RA ring is positioned such that the Hall sensor is triggered when the command is recevied, teh mount will will move
-//        the RA ring off the trigger in the opposite direction specified for 7.5 degrees before searching 30 degrees in the
+//        If the RA ring is positioned such that the Hall sensor is already triggered when the command is received, the mount will move
+//        the RA ring off the trigger in the opposite direction specified for a max of 7.5 degrees before searching 30 degrees in the
 //        specified direction.
 //      Returns:
 //        "1" if successfully homed RA
@@ -814,7 +814,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set homing offset for RA ring from Hall sensor center
 //      Information:
 //        This offset is added to the position of the RA ring when it is centered on the hall sensor triggered range after running.
-//        the RA homing command (:MHR#)
+//        the RA homing command (:MHRx#)
 //      Parameters:
 //        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
 //      Returns:
@@ -1449,13 +1449,13 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
             return "0";
         return "1";
     }
-    else if (inCmd[0] == 'H')
+    else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')  
     {
-        if (inCmd[1] == 'R')  // :MHR
+        if (inCmd[2] == 'R')  // :MHRR
         {
             return _mount->findRAHomeByHallSensor(-1) ? "1" : "0";
         }
-        else if (inCmd[1] == 'r')  // :MHr
+        else if (inCmd[2] == 'L')  // :MHRL
         {
             return _mount->findRAHomeByHallSensor(1) ? "1" : "0";
         }

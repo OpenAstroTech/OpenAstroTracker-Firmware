@@ -2327,8 +2327,9 @@ bool Mount::isFindingHome() const
 {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     return (_homing.state == HomingState::HOMING_PIN_FINDING_START) || (_homing.state == HomingState::HOMING_PIN_FINDING_END);
-#endif
+#else
     return _mountStatus & STATUS_FINDING_HOME;
+#endif
 }
 
 /////////////////////////////////
