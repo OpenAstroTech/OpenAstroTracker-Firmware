@@ -327,7 +327,8 @@
             #define AZ_STEPPER_SPR 2048  // 28BYJ-48 in full step mode
         #endif
         #ifndef AZ_STEPPER_SPEED
-            #define AZ_STEPPER_SPEED 200 * AZ_MICROSTEPPING // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+            #define AZ_STEPPER_SPEED                                                                                                       \
+                200 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
         #endif
         #ifndef AZ_STEPPER_ACCELERATION
             #define AZ_STEPPER_ACCELERATION 200 * AZ_MICROSTEPPING  // High speeds tend to make these cheap steppers unprecice
@@ -337,7 +338,8 @@
             #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
         #endif
         #ifndef AZ_STEPPER_SPEED
-            #define AZ_STEPPER_SPEED 100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+            #define AZ_STEPPER_SPEED                                                                                                       \
+                100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #endif
         #ifndef AZ_STEPPER_ACCELERATION
             #define AZ_STEPPER_ACCELERATION 100 * AZ_MICROSTEPPING
@@ -367,7 +369,7 @@
         #ifndef AZ_ALWAYS_ON
             #define AZ_ALWAYS_ON 0
         #endif
-   #endif
+    #endif
 
 #endif
 
@@ -397,7 +399,8 @@
             #define ALT_STEPPER_SPR 2048  // 28BYJ-48 in full step mode
         #endif
         #ifndef ALT_STEPPER_SPEED
-            #define ALT_STEPPER_SPEED 200 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+            #define ALT_STEPPER_SPEED                                                                                                      \
+                200 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
         #endif
         #ifndef ALT_STEPPER_ACCELERATION
             #define ALT_STEPPER_ACCELERATION 200 * ALT_MICROSTEPPING  // High speeds tend to make these cheap steppers unprecice
@@ -407,7 +410,8 @@
             #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
         #endif
         #ifndef ALT_STEPPER_SPEED
-            #define ALT_STEPPER_SPEED 100 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+            #define ALT_STEPPER_SPEED                                                                                                      \
+                100 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #endif
         #ifndef ALT_STEPPER_ACCELERATION
             #define ALT_STEPPER_ACCELERATION 100 * ALT_MICROSTEPPING
@@ -418,7 +422,7 @@
 
     // the Circumference of the AZ rotation. 770mm dia.
     #define ALT_CIRCUMFERENCE 2419.0f
-    
+
     #ifndef AUTOPA_VERSION
         #define AUTOPA_VERSION 1
     #endif
