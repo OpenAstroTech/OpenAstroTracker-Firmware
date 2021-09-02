@@ -1871,6 +1871,7 @@ void Mount::disableAzAltMotors()
     }
     #endif
 
+    #if AZ_ALWAYS_ON == 0
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     _stepperAZ->disableOutputs();
