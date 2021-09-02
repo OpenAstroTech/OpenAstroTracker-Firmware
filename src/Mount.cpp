@@ -1878,13 +1878,16 @@ void Mount::disableAzAltMotors()
     digitalWrite(AZ_EN_PIN, HIGH);     // Logic HIGH to disable driver
         #endif
     #endif
+    #endif
 
+    #if ALT_ALWAYS_ON == 0
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     _stepperALT->disableOutputs();
         #else
     digitalWrite(ALT_EN_PIN, HIGH);    // Logic HIGH to disable driver
         #endif
+    #endif
     #endif
 }
 
