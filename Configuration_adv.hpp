@@ -307,15 +307,19 @@
 // Enable Azimuth motor functionality in your local Configuration. Do not edit here!
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-        #define AZ_MICROSTEPPING 2  // Halfstep mode using ULN2003 driver
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
-        || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        #ifndef AZ_MICROSTEPPING
-            #define AZ_MICROSTEPPING 32
+    #ifndef AZ_MICROSTEPPING
+        #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
+            #define AZ_MICROSTEPPING 2  // Halfstep mode using ULN2003 driver
+        #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                              \
+            || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
+                #define AZ_MICROSTEPPING 4.0f
+            #else
+                #define AZ_MICROSTEPPING 64.0f
+            #endif
+        #else
+            #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
         #endif
-    #else
-        #error Unknown AZ driver type. Did you define AZ_DRIVER_TYPE?
     #endif
 
     #if AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
@@ -323,20 +327,22 @@
             #define AZ_STEPPER_SPR 2048  // 28BYJ-48 in full step mode
         #endif
         #ifndef AZ_STEPPER_SPEED
-            #define AZ_STEPPER_SPEED 600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+            #define AZ_STEPPER_SPEED                                                                                                       \
+                200 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
         #endif
         #ifndef AZ_STEPPER_ACCELERATION
-            #define AZ_STEPPER_ACCELERATION 400  // High speeds tend to make these cheap steppers unprecice
+            #define AZ_STEPPER_ACCELERATION 200 * AZ_MICROSTEPPING  // High speeds tend to make these cheap steppers unprecice
         #endif
     #elif AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17
         #ifndef AZ_STEPPER_SPR
             #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
         #endif
         #ifndef AZ_STEPPER_SPEED
-            #define AZ_STEPPER_SPEED 600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+            #define AZ_STEPPER_SPEED                                                                                                       \
+                100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #endif
         #ifndef AZ_STEPPER_ACCELERATION
-            #define AZ_STEPPER_ACCELERATION 1000
+            #define AZ_STEPPER_ACCELERATION 100 * AZ_MICROSTEPPING
         #endif
     #else
         #error Unknown AZ stepper type
@@ -344,11 +350,9 @@
 
     // the Circumference of the AZ rotation. 808mm dia.
     #define AZ_CIRCUMFERENCE 2538.4f
-    #ifndef AZIMUTH_STEPS_PER_REV
-        #define AZIMUTH_STEPS_PER_REV                                                                                                      \
-            (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
-             * AZ_MICROSTEPPING)  // Actually u-steps/rev
-    #endif
+    #define AZIMUTH_STEPS_PER_REV                                                                                                          \
+        (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                                   \
+         * AZ_MICROSTEPPING)                                                      // Actually u-steps/rev
     #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
 
     // AZ TMC2209 UART settings
@@ -356,13 +360,14 @@
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #define AZ_RMSCURRENT AZ_MOTOR_CURRENT_RATING *(AZ_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
 
-        #define AZ_AUDIO_FEEDBACK 0
-
         #define AZ_STALL_VALUE 10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
         #ifndef USE_VREF
             #define USE_VREF                                                                                                               \
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+        #endif
+        #ifndef AZ_ALWAYS_ON
+            #define AZ_ALWAYS_ON 0
         #endif
     #endif
 
@@ -379,7 +384,11 @@
             #define ALT_MICROSTEPPING 1  // Fullstep mode using ULN2003 driver
         #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \
             || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            #define ALT_MICROSTEPPING 32
+            #if ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
+                #define ALT_MICROSTEPPING 4.0f
+            #else
+                #define ALT_MICROSTEPPING 64.0f
+            #endif
         #else
             #error Unknown ALT driver type. Did you define ALT_DRIVER_TYPE?
         #endif
@@ -390,29 +399,41 @@
             #define ALT_STEPPER_SPR 2048  // 28BYJ-48 in full step mode
         #endif
         #ifndef ALT_STEPPER_SPEED
-            #define ALT_STEPPER_SPEED 600  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
+            #define ALT_STEPPER_SPEED                                                                                                      \
+                200 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 600.
         #endif
         #ifndef ALT_STEPPER_ACCELERATION
-            #define ALT_STEPPER_ACCELERATION 400  // High speeds tend to make these cheap steppers unprecice
+            #define ALT_STEPPER_ACCELERATION 200 * ALT_MICROSTEPPING  // High speeds tend to make these cheap steppers unprecice
         #endif
     #elif ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17
         #ifndef ALT_STEPPER_SPR
             #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
         #endif
         #ifndef ALT_STEPPER_SPEED
-            #define ALT_STEPPER_SPEED 600  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+            #define ALT_STEPPER_SPEED                                                                                                      \
+                100 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #endif
         #ifndef ALT_STEPPER_ACCELERATION
-            #define ALT_STEPPER_ACCELERATION 1000
+            #define ALT_STEPPER_ACCELERATION 100 * ALT_MICROSTEPPING
         #endif
     #else
         #error Unknown ALT stepper type
     #endif
 
     // the Circumference of the AZ rotation. 770mm dia.
-    #define ALT_CIRCUMFERENCE 2419
-    // the ratio of the ALT gearbox (40:3)
-    #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
+    #define ALT_CIRCUMFERENCE 2419.0f
+
+    #ifndef AUTOPA_VERSION
+        #define AUTOPA_VERSION 1
+    #endif
+
+    #if AUTOPA_VERSION == 1
+        // the ratio of the ALT gearbox for AutoPA V1 (40:3)
+        #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
+    #else
+        // the ratio of the ALT gearbox for AutoPA V2 (40:1)
+        #define ALT_WORMGEAR_RATIO (40.0f)
+    #endif
 
     #define ALTITUDE_STEPS_PER_REV                                                                                                         \
         (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING           \
@@ -424,13 +445,14 @@
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #define ALT_RMSCURRENT ALT_MOTOR_CURRENT_RATING *(ALT_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
 
-        #define ALT_AUDIO_FEEDBACK 0
-
         #define ALT_STALL_VALUE 10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
         #ifndef USE_VREF
             #define USE_VREF                                                                                                               \
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
+        #endif
+        #ifndef ALT_ALWAYS_ON
+            #define ALT_ALWAYS_ON 0
         #endif
     #endif
 #endif

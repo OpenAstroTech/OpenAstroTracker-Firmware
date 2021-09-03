@@ -78,6 +78,7 @@
 #define ALT_DRIVER_TYPE       DRIVER_TYPE_NONE
 #define AZ_CORRECTION_FACTOR  1.000f
 #define ALT_CORRECTION_FACTOR 1.000f
+#define AUTOPA_VERSION        1
 
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
