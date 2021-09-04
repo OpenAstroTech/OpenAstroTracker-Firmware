@@ -508,7 +508,7 @@
         #ifndef FOCUSER_MOTOR_HOLD_SETTING
             #define FOCUSER_MOTOR_HOLD_SETTING 100
         #endif
-        #define FOCUS_STALL_VALUE     1  // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
+        #define FOCUS_STALL_VALUE 1  // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
         #ifndef USE_VREF
             #define USE_VREF                                                                                                               \
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
