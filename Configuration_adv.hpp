@@ -499,21 +499,20 @@
 
     // FOCUS TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
+    #ifndef FOCUSER_ALWAYS_ON
+        #define FOCUSER_ALWAYS_ON 0
+    #endif
+
     #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #define FOCUS_RMSCURRENT FOCUS_MOTOR_CURRENT_RATING *(FOCUS_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
         #ifndef FOCUSER_MOTOR_HOLD_SETTING
-            #define FOCUSER_MOTOR_HOLD_SETTING 50
+            #define FOCUSER_MOTOR_HOLD_SETTING 100
         #endif
-        #define FOCUS_HOLD_RMSCURRENT (FOCUSER_MOTOR_HOLD_SETTING * FOCUS_RMSCURRENT / 100.0f)
         #define FOCUS_STALL_VALUE     1  // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
-
         #ifndef USE_VREF
             #define USE_VREF                                                                                                               \
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
         #endif
-    #endif
-    #ifndef FOCUSER_ALWAYS_ON
-        #define FOCUSER_ALWAYS_ON 0
     #endif
 #endif
 

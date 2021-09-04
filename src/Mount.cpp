@@ -773,7 +773,7 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
     _driverFocus->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
-    _driverFocus->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100f);  //holdMultiplier = 1 to set ihold = irun
     _driverFocus->toff(1);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
@@ -789,12 +789,11 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
         LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount: Actual Focus vsense: %d"), _driverFocus->vsense());
     }
         #endif
-    if (FOCUS_HOLD_RMSCURRENT != 0)
-    {
-        LOGV1(DEBUG_FOCUS, F("Mount::configureFocusDriver: TMC2209U enabling driver pin."));
-        digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
-        _driverFocus->rms_current(FOCUS_HOLD_RMSCURRENT, 1.0f);
-    }
+
+        #if FOCUSER_ALWAYS_ON == 1
+    LOGV1(DEBUG_FOCUS, F("Mount::configureFocusDriver: Always on -> TMC2209U enabling driver pin."));
+    digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
+        #endif
 }
 
     #elif SW_SERIAL_UART == 1
@@ -820,7 +819,7 @@ void Mount::configureFocusDriver(
     _driverFocus->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
-    _driverFocus->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100f);  //holdMultiplier = 1 to set ihold = irun
     _driverFocus->toff(1);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
@@ -836,13 +835,10 @@ void Mount::configureFocusDriver(
         LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount: Actual Focus vsense: %d"), _driverFocus->vsense());
     }
         #endif
-    if (FOCUS_HOLD_RMSCURRENT != 0)
-    {
-        LOGV1(DEBUG_FOCUS, F("Mount::configureFocusDriver: TMC2209U enabling driver pin."));
-        digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
-        _driverFocus->rms_current(FOCUS_HOLD_RMSCURRENT, 1.0f);
-    }
-}
+        #if FOCUSER_ALWAYS_ON == 1
+    LOGV1(DEBUG_FOCUS, F("Mount::configureFocusDriver: Always on -> TMC2209U enabling driver pin."));
+    digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
+        #endif
     #endif
 #endif
 
@@ -2038,20 +2034,15 @@ void Mount::disableFocusMotor()
     LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: ULN2003 disabling outputs"));
     _stepperFocus->disableOutputs();
         #else
-            #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    if (FOCUS_HOLD_RMSCURRENT == 0)
-    {
+            #if FOCUSER_ALWAYS_ON == 0
+                #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+
         LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: TMC2209U disabling enable pin"));
         digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable driver
-    }
-    else
-    {
-        LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: TMC2209U set RMS current to %fmA", FOCUS_HOLD_RMSCURRENT));
-        _driverFocus->rms_current(FOCUS_HOLD_RMSCURRENT, 1.0f);
-    }
-            #else
-    LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: non-TMC2209U disabling enable pin"));
-    digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable driver
+                #else
+        LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: non-TMC2209U disabling enable pin"));
+        digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable driver
+                #endif
             #endif
         #endif
     #endif
@@ -2068,21 +2059,8 @@ void Mount::enableFocusMotor()
     LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: ULN2003 enabling outputs."));
     _stepperFocus->enableOutputs();
     #else
-        #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    if (FOCUS_HOLD_RMSCURRENT == 0)
-    {
-        LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: TMC2209U enabling driver pin."));
-        digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
-    }
-    else
-    {
-        LOGV2(DEBUG_FOCUS, F("Mount::enableFocusMotor: TMC2209U setting RMS current %fmA"), FOCUS_RMSCURRENT);
-        _driverFocus->rms_current(FOCUS_RMSCURRENT, 1.0f);
-    }
-        #else
-    LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: non-TMC2209U enabling driver pin."));
+    LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: enabling driver pin."));
     digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
-        #endif
     #endif
 }
 
