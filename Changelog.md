@@ -1,3 +1,8 @@
+**V1.9.31 - Updates**
+- Focuser can be set to be always on with non-100% holding current.
+- Focuser got its own debug channel.
+- Added some more logging.
+
 **V1.9.30 - Updates**
 - Updated alt/az code to correct SPR errors and add support for AutoPA v2.
 

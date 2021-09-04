@@ -504,8 +504,8 @@
         #ifndef FOCUSER_MOTOR_HOLD_SETTING
             #define FOCUSER_MOTOR_HOLD_SETTING 50
         #endif
-        #define FOCUS_HOLD_RMSCURRENT  (FOCUSER_MOTOR_HOLD_SETTING * FOCUS_RMSCURRENT / 100.0f)
-        #define FOCUS_STALL_VALUE 1  // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
+        #define FOCUS_HOLD_RMSCURRENT (FOCUSER_MOTOR_HOLD_SETTING * FOCUS_RMSCURRENT / 100.0f)
+        #define FOCUS_STALL_VALUE     1  // adjust this value if the Focus autohoming sequence often false triggers, or triggers too late
 
         #ifndef USE_VREF
             #define USE_VREF                                                                                                               \

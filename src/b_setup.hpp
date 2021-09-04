@@ -424,7 +424,7 @@ void setup()
     #endif
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("setup(): Configure Focus driver..."));
-        LOGV3(DEBUG_FOCUS, F("setup(): RSense %f, RMS Current %fmA"), R_SENSE, FOCUS_RMSCURRENT);
+    LOGV3(DEBUG_FOCUS, F("setup(): RSense %f, RMS Current %fmA"), R_SENSE, FOCUS_RMSCURRENT);
         #if SW_SERIAL_UART == 0
     mount.configureFocusDriver(&FOCUS_SERIAL_PORT, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
         #elif SW_SERIAL_UART == 1
