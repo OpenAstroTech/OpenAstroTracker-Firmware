@@ -1,3 +1,6 @@
+**V1.9.30 - Updates**
+- Updated alt/az code to correct SPR errors and add support for AutoPA v2.
+
 **V1.9.29 - Updates**
 - Support for a Hall sensor based auto homing routine for the RA ring.
 
