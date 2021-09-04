@@ -233,12 +233,14 @@ void setup()
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                              \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    LOGV1(DEBUG_FOCUS, F("setup(): focus disabling enable pin"));
     pinMode(FOCUS_EN_PIN, OUTPUT);
     digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #endif
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // include TMC2209 UART pins
         #ifdef FOCUS_SERIAL_PORT
+    LOGV1(DEBUG_FOCUS, F("setup(): focus TMC2209U starting comms"));
     FOCUS_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
     #endif
@@ -412,7 +414,7 @@ void setup()
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOGV1(DEBUG_ANY, F("Configure Focus stepper..."));
+    LOGV1(DEBUG_ANY, F("setup(): Configure Focus stepper..."));
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
     mount.configureFocusStepper(
         FOCUSmotorPin1, FOCUSmotorPin2, FOCUSmotorPin3, FOCUSmotorPin4, FOCUS_STEPPER_SPEED, FOCUS_STEPPER_ACCELERATION);
@@ -421,7 +423,8 @@ void setup()
     mount.configureFocusStepper(FOCUSmotorPin1, FOCUSmotorPin2, FOCUS_STEPPER_SPEED, FOCUS_STEPPER_ACCELERATION);
     #endif
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOGV1(DEBUG_ANY, F("Configure Focus driver..."));
+    LOGV1(DEBUG_ANY, F("setup(): Configure Focus driver..."));
+        LOGV3(DEBUG_FOCUS, F("setup(): RSense %f, RMS Current %fmA"), R_SENSE, FOCUS_RMSCURRENT);
         #if SW_SERIAL_UART == 0
     mount.configureFocusDriver(&FOCUS_SERIAL_PORT, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
         #elif SW_SERIAL_UART == 1
