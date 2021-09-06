@@ -773,7 +773,7 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
     _driverFocus->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
-    _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100f);  //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
     _driverFocus->toff(1);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
@@ -819,7 +819,7 @@ void Mount::configureFocusDriver(
     _driverFocus->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount: Requested Focus motor rms_current: %d mA"), rmscurrent);
-    _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100f);  //holdMultiplier = 1 to set ihold = irun
+    _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
     _driverFocus->toff(1);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
@@ -840,6 +840,7 @@ void Mount::configureFocusDriver(
     digitalWrite(FOCUS_EN_PIN, LOW);                                  // Logic LOW to enable driver
         #endif
     #endif
+}
 #endif
 
 /////////////////////////////////
@@ -1671,9 +1672,9 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
         }
     #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
         || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;  // deg/sec * u-steps/deg = u-steps/sec
-            LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set AZ speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
-            _stepperAZ->setSpeed(stepsPerSec);
+        float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;  // deg/sec * u-steps/deg = u-steps/sec
+        LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set AZ speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
+        _stepperAZ->setSpeed(stepsPerSec);
     #endif
     }
 #endif
