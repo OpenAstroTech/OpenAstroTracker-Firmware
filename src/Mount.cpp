@@ -837,7 +837,7 @@ void Mount::configureFocusDriver(
         #endif
         #if FOCUSER_ALWAYS_ON == 1
     LOGV1(DEBUG_FOCUS, F("Mount::configureFocusDriver: Always on -> TMC2209U enabling driver pin."));
-    digitalWrite(FOCUS_EN_PIN, LOW);                                  // Logic LOW to enable driver
+    digitalWrite(FOCUS_EN_PIN, LOW);                              // Logic LOW to enable driver
         #endif
     #endif
 }
@@ -1707,9 +1707,9 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
         }
     #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                \
         || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;  // deg/sec * u-steps/deg = u-steps/sec
-            LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set ALT speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
-            _stepperALT->setSpeed(stepsPerSec);
+        float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;  // deg/sec * u-steps/deg = u-steps/sec
+        LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set ALT speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
+        _stepperALT->setSpeed(stepsPerSec);
     #endif
     }
 #endif
@@ -1743,21 +1743,19 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
         }
     #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            if (speedDegsPerSec != 0)
-            {
-                LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS,
-                      F("Mount:setSpeed(): Enabling motor and setting speed tp %f. Continuous"),
-                      speedDegsPerSec);
-                enableFocusMotor();
-                _stepperFocus->setMaxSpeed(speedDegsPerSec);
-                _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
-                _focuserMode = FOCUS_TO_TARGET;
-            }
-            else
-            {
-                LOGV1(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount:setSpeed(): Stopping motor."));
-                _stepperFocus->stop();
-            }
+        if (speedDegsPerSec != 0)
+        {
+            LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous"), speedDegsPerSec);
+            enableFocusMotor();
+            _stepperFocus->setMaxSpeed(speedDegsPerSec);
+            _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
+            _focuserMode = FOCUS_TO_TARGET;
+        }
+        else
+        {
+            LOGV1(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount:setSpeed(): Stopping motor."));
+            _stepperFocus->stop();
+        }
 
     #endif
     }
@@ -2062,8 +2060,8 @@ void Mount::enableFocusMotor()
     LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: ULN2003 enabling outputs."));
     _stepperFocus->enableOutputs();
     #else
-        LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: enabling driver pin."));
-        digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
+    LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: enabling driver pin."));
+    digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
     #endif
 }
 
@@ -3511,12 +3509,12 @@ void Mount::displayStepperPosition()
             _lcdMenu->printMenu(scratchBuffer);
         }
     #else
-            sprintf(scratchBuffer,
-                    "R%s D%s",
-                    RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
-                    DECString(COMPACT_STRING | CURRENT_STRING).c_str());
-            _lcdMenu->setCursor(0, 1);
-            _lcdMenu->printMenu(scratchBuffer);
+        sprintf(scratchBuffer,
+                "R%s D%s",
+                RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
+                DECString(COMPACT_STRING | CURRENT_STRING).c_str());
+        _lcdMenu->setCursor(0, 1);
+        _lcdMenu->printMenu(scratchBuffer);
     #endif
     }
 #endif
