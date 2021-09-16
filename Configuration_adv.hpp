@@ -389,7 +389,7 @@
             #if ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
                 #define ALT_MICROSTEPPING 4.0f
             #else
-                #define ALT_MICROSTEPPING 64.0f
+                #define ALT_MICROSTEPPING 4.0f
             #endif
         #else
             #error Unknown ALT driver type. Did you define ALT_DRIVER_TYPE?
@@ -413,7 +413,7 @@
         #endif
         #ifndef ALT_STEPPER_SPEED
             #define ALT_STEPPER_SPEED                                                                                                      \
-                100 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+                3000 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
         #endif
         #ifndef ALT_STEPPER_ACCELERATION
             #define ALT_STEPPER_ACCELERATION 100 * ALT_MICROSTEPPING
