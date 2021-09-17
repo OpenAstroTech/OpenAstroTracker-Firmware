@@ -135,7 +135,8 @@ class Mount
 #endif
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
-    || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
+    || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     bool connectToDriver(TMC2209Stepper *driver, const char *driverKind);
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
