@@ -986,7 +986,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Stop focuser
 //      Information:
-//        Stops the stepper motor of teh focuser.
+//        Stops the stepper motor of the focuser.
 //      Returns:
 //        nothing
 //

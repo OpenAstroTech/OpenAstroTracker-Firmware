@@ -117,6 +117,19 @@
 #endif
 
 // Focuser pin configuration
+// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
+#ifndef FOCUS_IN1_PIN
+    #define FOCUS_IN1_PIN 39
+#endif
+#ifndef FOCUS_IN2_PIN
+    #define FOCUS_IN2_PIN 41
+#endif
+#ifndef FOCUS_IN3_PIN
+    #define FOCUS_IN3_PIN 43
+#endif
+#ifndef FOCUS_IN4_PIN
+    #define FOCUS_IN4_PIN 45
+#endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef FOCUS_STEP_PIN
     #define FOCUS_STEP_PIN 32
@@ -127,15 +140,12 @@
 #ifndef FOCUS_EN_PIN
     #define FOCUS_EN_PIN 34
 #endif
-#ifndef FOCUS_SERIAL_PORT_TX
-    #define FOCUS_SERIAL_PORT_TX 36  // SoftwareSerial TX port
-#endif
-#ifndef FOCUS_SERIAL_PORT_RX
-    #define FOCUS_SERIAL_PORT_RX 37  // SoftwareSerial RX port
+#ifndef FOCUS_SERIAL_PORT
+    #define FOCUS_SERIAL_PORT Serial3  // SoftwareSerial TX port
 #endif
 
 #ifndef FOCUS_DRIVER_ADDRESS
-    #define FOCUS_DRIVER_ADDRESS 0b00
+    #define FOCUS_DRIVER_ADDRESS 0b10  // Set by MS1/MS2 (MS1 HIGH, MS2 LOW)
 #endif
 
 // RA Homing pin for Hall sensor

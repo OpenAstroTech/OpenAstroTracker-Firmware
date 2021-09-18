@@ -306,8 +306,7 @@
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN) || !defined(AZ_SERIAL_PORT_TX)   \
-            || !defined(AZ_SERIAL_PORT_RX)
+        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
         #endif
@@ -330,8 +329,7 @@
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)                              \
-            || !defined(ALT_SERIAL_PORT_TX) || !defined(ALT_SERIAL_PORT_RX)
+        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
         #endif
@@ -354,8 +352,7 @@
             #error Missing pin assignments for configured Focuser DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN) || !defined(FOCUS_SERIAL_PORT_TX)                \
-            || !defined(FOCUS_SERIAL_PORT_RX)
+        #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured Focuser DRIVER_TYPE_TMC2209_UART driver
         #endif
