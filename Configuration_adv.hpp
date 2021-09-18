@@ -467,7 +467,7 @@
     #ifndef FOCUS_UART_STEALTH_MODE
         #define FOCUS_UART_STEALTH_MODE 1
     #endif
-    
+
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
         #define FOCUS_MICROSTEPPING 1  // Fullstep mode using ULN2003 driver
     #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \

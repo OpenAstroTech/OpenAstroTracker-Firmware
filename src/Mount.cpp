@@ -839,7 +839,7 @@ void Mount::configureFocusDriver(
         #endif
         #if FOCUSER_ALWAYS_ON == 1
     LOGV1(DEBUG_FOCUS, F("Mount::configureFocusDriver: Always on -> TMC2209U enabling driver pin."));
-    digitalWrite(FOCUS_EN_PIN, LOW);                              // Logic LOW to enable driver
+    digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
         #endif
 }
     #endif
