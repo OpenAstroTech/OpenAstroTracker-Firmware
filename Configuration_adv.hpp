@@ -259,6 +259,12 @@
 #ifndef DEC_INVERT_DIR
     #define DEC_INVERT_DIR 0
 #endif
+#ifndef AZ_INVERT_DIR
+    #define AZ_INVERT_DIR 0
+#endif
+#ifndef ALT_INVERT_DIR
+    #define ALT_INVERT_DIR 0
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                  ////////
