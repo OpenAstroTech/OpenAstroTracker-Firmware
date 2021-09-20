@@ -320,7 +320,11 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
 void Mount::configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
 {
+    #if AZ_INVERT_DIR == 1
+    _stepperAZ = new AccelStepper((AZ_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
+    #else
     _stepperAZ = new AccelStepper((AZ_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
+    #endif
     _stepperAZ->setSpeed(0);
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -335,6 +339,9 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     _stepperAZ->setAcceleration(maxAcceleration);
     _maxAZSpeed        = maxSpeed;
     _maxAZAcceleration = maxAcceleration;
+    #if AZ_INVERT_DIR == 1
+    _stepperAZ->setPinsInverted(true, false, false);
+    #endif
 }
     #endif
 #endif
@@ -342,7 +349,11 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
 void Mount::configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
 {
+    #if ALT_INVERT_DIR == 1
+    _stepperALT = new AccelStepper((ALT_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
+    #else
     _stepperALT = new AccelStepper((ALT_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
+    #endif
     _stepperALT->setSpeed(0);
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -357,6 +368,9 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     _stepperALT->setAcceleration(maxAcceleration);
     _maxALTSpeed        = maxSpeed;
     _maxALTAcceleration = maxAcceleration;
+    #if ALT_INVERT_DIR == 1
+    _stepperALT->setPinsInverted(true, false, false);
+    #endif
 }
     #endif
 #endif
