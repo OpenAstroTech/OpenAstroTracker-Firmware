@@ -1,3 +1,6 @@
+**V1.9.32 - Updates**
+- Fixed a bug that did not reset RA coordinate after setting home position.
+
 **V1.9.31 - Updates**
 - Focuser can be set to be always on with non-100% holding current.
 - Focuser got its own debug channel.
