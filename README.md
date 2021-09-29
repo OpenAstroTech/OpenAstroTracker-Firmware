@@ -8,6 +8,14 @@ See the [Changelog](Changelog.md) for details about what versions made what chan
 
 See `.clang-format` file. A GitHub action is run on every PR to make sure that the code complies with the formatting guidelines. The action will automatically commit any changes, so you may have to `git pull` after opening a PR.
 
+### Run clang-format locally
+* Install `clang-format` version 12. _Note: not all distributions default to version 12_
+  * Windows: Installers available from [LLVM Website](https://llvm.org/builds/)
+  * Ubuntu: `sudo apt install clang-format-12`
+  * ArchLinux: `sudo pacman -S clang`
+* Run the formatter: 
+  * VSCode Extension: [https://marketplace.visualstudio.com/items?itemName=xaver.clang-format](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format)
+  * Shell: `bash -c 'shopt -s nullglob; for i in ./{.,src,src/inc,boards/*}/*.{c,cpp,h,hpp}; do clang-format -i $i; done'`
 ## Contribution
 
 This is an open source project and everyone is welcome to contribute. We will be following these rules while reviewing your pull request:
