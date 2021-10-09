@@ -191,17 +191,6 @@
 #endif
 
 /**
- * @brief Bluetooth configuration.
- * Bluetooth is only supported on esp32.
- * Set BLUETOOTH_ENABLED to 1 to enable, 0 or #undef to exclude Bluetooth from configuration.
- * If Bluetooth is enabled then the BLUETOOTH_DEVICE_NAME must be set.
- * Note that enabling Bluetooth increases flash usage by about 627 kB.
- */
-#ifndef BLUETOOTH_ENABLED
-    #define BLUETOOTH_ENABLED 0
-#endif
-
-/**
  * @brief Gyro-based tilt/roll levelling configuration.
  * Set USE_GYRO_LEVEL to 1 to enable, 0 or #undef to exclude gyro from configuration.
  * On ATmega & ESP32 gyro uses hardware I2C. No additional pins required. 

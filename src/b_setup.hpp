@@ -36,8 +36,6 @@ DRAM_ATTR Mount mount(&lcdMenu);
 Mount mount(&lcdMenu);
 #endif
 
-#include "g_bluetooth.hpp"
-
 #if (WIFI_ENABLED == 1)
     #include "WifiControl.hpp"
 WifiControl wifiControl(&mount, &lcdMenu);
@@ -46,24 +44,17 @@ WifiControl wifiControl(&mount, &lcdMenu);
 /////////////////////////////////
 //   Interrupt handling
 /////////////////////////////////
-/* There are three possible configurations for periodically servicing the steper drives:
- * 1) If RUN_STEPPERS_IN_MAIN_LOOP != 0 then the stepper drivers are called from Mount::loop().
- *    Performance depends on how fast Mount::loop() can execute. With serial or UI activity it 
- *    is likely that steps will be missed and tracking may not be smooth. No interrupts or threads
- *    are used, so this is simple to get running.
- * 2) If ESP32 is #defined then a periodic task is assigned to Core 0 to service the steppers.
+/* There are Two possible configurations for periodically servicing the stepper drives:
+ * 1) If ESP32 is #defined then a periodic task is assigned to Core 0 to service the steppers.
  *    stepperControlTask() is scheduled to run every 1 ms (1 kHz rate). On ESP32 the default Arduino 
  *    loop() function runs on Core 1, therefore serial and UI activity also runs on Core 1. 
- *    Note that Wifi and Bluetooth drivers will be sharing Core 0 with stepperControlTask().
+ *    Note that Wifi drivers will be sharing Core 0 with stepperControlTask().
  *    This configuration decouples stepper servicing from other OAT activities by using both cores.
- * 3) By default (e.g. for ATmega2560) a periodic timer is configured for a 500 us (2 kHz rate interval).
+ * 2) By default (e.g. for ATmega2560) a periodic timer is configured for a 500 us (2 kHz rate interval).
  *    This timr generates interrupts which are handled by stepperControlCallback(). The stepper 
  *    servicing therefore suspends loop() to generate motion, ensuring smooth tracking.
  */
-#if (RUN_STEPPERS_IN_MAIN_LOOP != 0)
-// Nothing to do - Mount::loop() will manage steppers in-line
-
-#elif defined(ESP32)
+#if defined(ESP32)
 
 TaskHandle_t StepperTask;
 
@@ -253,10 +244,6 @@ void setup()
 
 #if !defined(OAT_DEBUG_BUILD)
     Serial.begin(SERIAL_BAUDRATE);
-#endif
-
-#if (BLUETOOTH_ENABLED == 1)
-    BLUETOOTH_SERIAL.begin(BLUETOOTH_DEVICE_NAME);
 #endif
 
     LOGV1(DEBUG_ANY, F("."));
@@ -450,10 +437,7 @@ void setup()
     mount.targetRA() = mount.currentRA();
 
 // Setup service to periodically service the steppers.
-#if (RUN_STEPPERS_IN_MAIN_LOOP != 0)
-    // Nothing to do - Mount::loop() will manage steppers in-line
-
-#elif defined(ESP32)
+#if defined(ESP32)
 
     disableCore0WDT();
     xTaskCreatePinnedToCore(stepperControlTask,  // Function to run on this core

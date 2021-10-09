@@ -1,3 +1,7 @@
+**V1.9.34 - Updates**
+- Removing support for bluetooth
+- Removing support for running steppers in main loop
+
 **V1.9.33 - Updates**
 - Fixed a bug that did not reset RA coordinate after setting home position.
 

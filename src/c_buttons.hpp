@@ -269,9 +269,6 @@ void loop()
         }
     }
 
-    #if (BLUETOOTH_ENABLED == 1)
-    BTin();
-    #endif
 }
 
 #else  // DISPLAY not NONE
@@ -280,9 +277,6 @@ void loop()
 {
     #ifdef ESP32
     serialLoop();
-        #if (BLUETOOTH_ENABLED == 1)
-    BTin();
-        #endif
     #endif
 }
 
