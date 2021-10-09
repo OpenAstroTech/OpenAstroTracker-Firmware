@@ -268,7 +268,6 @@ void loop()
             }
         }
     }
-
 }
 
 #else  // DISPLAY not NONE
