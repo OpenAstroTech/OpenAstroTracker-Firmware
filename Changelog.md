@@ -1,6 +1,8 @@
 **V1.9.34 - Updates**
 - Added two Meade commands: :XGDP# and :XSDPnnn# to retrieve and set the DEC parking offset.
 - Fixed a bug that incorrectly returned a Homing status when the Hall sensor was enabled.
+- Removing support for bluetooth
+- Removing support for running steppers in main loop
 
 **V1.9.33 - Updates**
 - Fixed a bug that did not reset RA coordinate after setting home position.
