@@ -111,7 +111,9 @@ void Mount::initializeVariables()
     _totalRAMove   = 0;
     _homeOffsetRA  = 0;
     _homeOffsetDEC = 0;
-
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    _homing.state    = HomingState::HOMING_NOT_ACTIVE;
+#endif
     _moveRate                = 4;
     _backlashCorrectionSteps = 0;
     _correctForBacklash      = false;
@@ -3088,6 +3090,26 @@ void Mount::setParkingPosition()
 
     EEPROMStore::storeRAParkingPos(_raParkingPos);
     EEPROMStore::storeDECParkingPos(_decParkingPos);
+}
+
+/////////////////////////////////
+//
+// getDecParkingOffset
+//
+/////////////////////////////////
+long Mount::getDecParkingOffset()
+{
+    return EEPROMStore::getDECParkingPos();
+}
+
+/////////////////////////////////
+//
+// setDecParkingOffset
+//
+/////////////////////////////////
+void Mount::setDecParkingOffset(long offset)
+{
+    EEPROMStore::storeDECParkingPos(offset);
 }
 
 /////////////////////////////////
