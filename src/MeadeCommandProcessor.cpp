@@ -1667,7 +1667,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 }
             }
             else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
-            {   
+            {
                 _mount->setDecParkingOffset(inCmd.substring(3).toInt());
             }
             else

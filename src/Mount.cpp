@@ -112,7 +112,7 @@ void Mount::initializeVariables()
     _homeOffsetRA  = 0;
     _homeOffsetDEC = 0;
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    _homing.state    = HomingState::HOMING_NOT_ACTIVE;
+    _homing.state = HomingState::HOMING_NOT_ACTIVE;
 #endif
     _moveRate                = 4;
     _backlashCorrectionSteps = 0;
