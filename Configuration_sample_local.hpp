@@ -5,7 +5,7 @@
  * GPS, gyro levelling. Display is Arduino LCD shield with keypad. 
  * Azimith/Altitude motors are also configured as 28BYJ48 with ULN2003 drivers.
  * USB serial port is set for direct connection to Stellarium.
- * Wifi and Bluetooth is not available on ATmega, so is disabled.
+ * Wifi is not available on ATmega, so is disabled.
  */
 
 #pragma once
@@ -141,12 +141,3 @@
 #define WIFI_MODE           WIFI_MODE_AP_ONLY
 #define WIFI_HOSTNAME       "OAT"
 #define WIFI_AP_MODE_WPAKEY "secret-key-for-oat"
-
-/**
- * @brief Bluetooth configuration.
- * Set BLUETOOTH_ENABLED to 1 to enable, 0 or #undef to exclude Bluetooth from configuration.
- * If Bluetooth is enabled then the BLUETOOTH_DEVICE_NAME must be set.
- * Note that enabling Bluetooth increases flash usage by about 627 kB.
- */
-#define BLUETOOTH_ENABLED     0
-#define BLUETOOTH_DEVICE_NAME "OpenAstroTracker"

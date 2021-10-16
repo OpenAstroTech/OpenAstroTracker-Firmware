@@ -588,9 +588,6 @@
     #define SUPPORT_SERIAL_CONTROL 1
 #endif
 
-// This is set to 1 for boards that do not support interrupt timers
-#define RUN_STEPPERS_IN_MAIN_LOOP 0
-
 // The port number to access OAT control over WiFi (ESP32 only)
 #define WIFI_PORT 4030
 

@@ -2791,12 +2791,6 @@ void Mount::loop()
     bool raStillRunning  = false;
     bool decStillRunning = false;
 
-// Since some of the boards cannot process timer interrupts at the required
-// speed (or at all), we'll just stick to deterministic calls here.
-#if RUN_STEPPERS_IN_MAIN_LOOP == 1
-    interruptLoop();
-#endif
-
     unsigned long now = millis();
 
 #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
