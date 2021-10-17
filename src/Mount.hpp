@@ -33,7 +33,8 @@ enum HomingState
 {
     HOMING_PIN_FINDING_START,
     HOMING_PIN_FINDING_END,
-    HOMING_PIN_FOUND
+    HOMING_PIN_FOUND,
+    HOMING_NOT_ACTIVE
 };
 
 struct HomingData {
@@ -307,6 +308,10 @@ class Mount
 
     // Set the current stepper positions to be parking position.
     void setParkingPosition();
+
+    // Get and set the offset from home to the parking position for DEC.
+    long getDecParkingOffset();
+    void setDecParkingOffset(long offset);
 
     // Set the DEC limit position to the current stepper position. If upper is true, sets the upper limit, else the lower limit.
     void setDecLimitPosition(bool upper);
