@@ -1,3 +1,6 @@
+**V1.9.35 - Updates**
+- fix a bug with "Set Home" on OAM
+
 **V1.9.34 - Updates**
 - Added two Meade commands: :XGDP# and :XSDPnnn# to retrieve and set the DEC parking offset.
 - Fixed a bug that incorrectly returned a Homing status when the Hall sensor was enabled.
