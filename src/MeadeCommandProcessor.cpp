@@ -809,6 +809,22 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "HHMMSS"
 //
+// :XGY#
+//      Description:
+//        Get sync solutions.
+//      Information:
+//        This queries the scope to return the three possible solutions to move to the current target
+//        coordinates. No operation takes place.
+//      Remarks:
+//        Set with ":Sd#" and ":Sr#"
+//      Returns:
+//        "<ra>,<dec>|<ra1>,<dec1>|<ra2>,<dec2>|<ra3>,<dec3>#" 
+//      Parameters:
+//        "<ra>,<dec>" is the stepper location for the RA and DEC stepper that the mount would choose for the Sync (":CM#") function. This will be one of the tree listed below.
+//        "<ra1>,<dec1>" is the stepper location for the RA and DEC stepper, respectively, for the first solution.
+//        "<ra2>,<dec2>" is the stepper location for the RA and DEC stepper, respectively, for the second solution.
+//        "<ra3>,<dec3>" is the stepper location for the RA and DEC stepper, respectively, for the third solution.
+//
 // :XSBn#
 //      Description:
 //        Set Backlash correction steps
@@ -1207,7 +1223,7 @@ String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd)
 {
-    if (inCmd[0] == 'M')
+    if (inCmd[0] == 'M') // :CM
     {
         _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
         return "NONE#";
@@ -1637,6 +1653,17 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 #endif
 
             return "0,#";
+        }
+        else if (inCmd[1] == 'Y') // :XGY#
+        {
+            long stepperPositions[6];
+            long targetRASteps, targetDECSteps;
+            _mount->getSyncPositions(targetRASteps, targetDECSteps, stepperPositions);
+            String retValue = String(targetRASteps) + ',' + String(targetDECSteps) + '|'
+              + String(stepperPositions[0]) + ',' + String(stepperPositions[1]) + '|'
+              + String(stepperPositions[2]) + ',' + String(stepperPositions[3]) + '|'
+              + String(stepperPositions[4]) + ',' + String(stepperPositions[5]) + '#';
+            return retValue;
         }
     }
     else if (inCmd[0] == 'S')

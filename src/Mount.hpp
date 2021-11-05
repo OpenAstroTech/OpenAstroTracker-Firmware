@@ -248,6 +248,9 @@ class Mount
     // Set the current RA and DEC position to be the given coordinates
     void syncPosition(DayTime ra, Declination dec);
 
+    // Get the possible stepper positions for syncing to the current target RA/DEC. solutions must have space for 6 longs
+    void getSyncPositions(long &usedTargetRA, long &usedTargetDEC, long* solutions);
+
     void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
 
     // Calculates movement parameters and program steppers to move

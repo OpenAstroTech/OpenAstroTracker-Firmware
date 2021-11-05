@@ -233,6 +233,7 @@
 // This is the multiplier of the normal tracking speed that a guiding pulse will have.
 // Note that the North & South (DEC) tracking speed is calculated as the +multiplier & -multiplier
 // Note that the West & East (RA) tracking speed is calculated as the (multiplier+1.0) & (multiplier-1.0)
+#ifndef RA_PULSE_MULTIPLIER
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define RA_PULSE_MULTIPLIER 1.0f
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
@@ -240,13 +241,16 @@
 #else
     #error New RA Stepper type? Add it here...
 #endif
+#endif
 
+#ifndef DEC_PULSE_MULTIPLIER
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define DEC_PULSE_MULTIPLIER 1.0f
 #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     #define DEC_PULSE_MULTIPLIER 1.0f
 #else
     #error New DEC Stepper type? Add it here...
+#endif
 #endif
 
 ////////////////////////////

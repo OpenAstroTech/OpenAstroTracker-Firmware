@@ -1379,6 +1379,17 @@ void Mount::syncPosition(DayTime ra, Declination dec)
 
 /////////////////////////////////
 //
+// getSyncPositions
+//
+/////////////////////////////////
+// Get the 3 possible sync solutions for the given RA and DEC coordinate. 
+void Mount::getSyncPositions(long &usedTargetRA, long &usedTargetDEC, long* solutions)
+{
+    calculateRAandDECSteppers(usedTargetRA, usedTargetDEC, solutions);
+}
+
+/////////////////////////////////
+//
 // startSlewingToTarget
 //
 /////////////////////////////////
