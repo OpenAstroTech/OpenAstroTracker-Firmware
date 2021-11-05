@@ -1360,17 +1360,29 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     _targetDEC = dec;
 
     long targetRAPosition, targetDECPosition;
-    LOGV3(DEBUG_MOUNT, "Mount: Sync Position to RA: %s and DEC: %s", _targetRA.ToString(), _targetDEC.ToString());
+    LOGV3(DEBUG_STEPPERS|DEBUG_MOUNT, F("Mount: Sync Position to RA: %s and DEC: %s. Finding best solution...."), _targetRA.ToString(), _targetDEC.ToString());
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
 
-    LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Solution 1: RA %l and DEC: %l"), solutions[0], solutions[1]);
-    LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Solution 2: RA %l and DEC: %l"), solutions[2], solutions[3]);
-    LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Solution 3: RA %l and DEC: %l"), solutions[4], solutions[5]);
-    LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Chose solution RA: %l and DEC: %l"), targetRAPosition, targetDECPosition);
+    float leastDistance = __FLT_MAX__;
+    int solution=-1;
+    for (int i = 0;i < 3; i++) {
+        float dRa = fabs(solutions[i * 2] - _stepperRA->currentPosition());
+        float dDec = fabs(solutions[i * 2 + 1] - _stepperDEC->currentPosition());
+        float distSquared = dRa * dRa + dDec * dDec;
+        LOGV5(DEBUG_STEPPERS|DEBUG_MOUNT, F("STEP-syncPosition: Solution %d: RA %l and DEC: %l. Dist^2 : %f"), i, solutions[i * 2], solutions[i * 2 + 1], distSquared);
+        if (distSquared < leastDistance) {
+            leastDistance = distSquared;
+            solution = i;
+            targetRAPosition = solutions[i * 2];
+            targetDECPosition = solutions[i * 2 + 1];
+        }
+    }
+
+    LOGV4(DEBUG_STEPPERS|DEBUG_MOUNT, F("STEP-syncPosition: Chose solution %d -> RA: %l and DEC: %l"), solution, targetRAPosition, targetDECPosition);
 
     long raMove  = targetRAPosition - _stepperRA->currentPosition();
     long decMove = targetDECPosition - _stepperDEC->currentPosition();
-    LOGV3(DEBUG_STEPPERS, F("STEP-syncPosition: Moving steppers by RA: %l and DEC: %l"), raMove, decMove);
+    LOGV3(DEBUG_STEPPERS|DEBUG_MOUNT, F("STEP-syncPosition: Moving steppers by RA: %l and DEC: %l"), raMove, decMove);
     _homeOffsetRA -= raMove;
     _homeOffsetDEC -= decMove;
     _stepperRA->setCurrentPosition(targetRAPosition);    // u-steps (in slew mode)
