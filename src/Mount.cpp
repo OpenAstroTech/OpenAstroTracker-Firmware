@@ -627,7 +627,7 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverAZ->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
-    _driverAZ->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
@@ -665,7 +665,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
     _driverAZ->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested AZ motor rms_current: %d mA"), rmscurrent);
-    _driverAZ->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
     _driverAZ->toff(1);
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
@@ -708,7 +708,7 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
     _driverALT->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
-    _driverALT->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
@@ -746,7 +746,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->I_scale_analog(false);
         #endif
     LOGV2(DEBUG_STEPPERS, F("Mount: Requested ALT motor rms_current: %d mA"), rmscurrent);
-    _driverALT->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
     _driverALT->toff(1);
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);

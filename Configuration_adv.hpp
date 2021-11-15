@@ -368,6 +368,10 @@
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #define AZ_RMSCURRENT AZ_MOTOR_CURRENT_RATING *(AZ_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
 
+        #ifndef AZ_MOTOR_HOLD_SETTING
+            #define AZ_MOTOR_HOLD_SETTING 100
+        #endif
+
         #define AZ_STALL_VALUE 10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
         #ifndef USE_VREF
@@ -452,6 +456,10 @@
     // These settings work only with TMC2209 in UART connection (single wire to TX)
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #define ALT_RMSCURRENT ALT_MOTOR_CURRENT_RATING *(ALT_OPERATING_CURRENT_SETTING / 100.0f) / 1.414f
+
+        #ifndef ALT_MOTOR_HOLD_SETTING
+            #define ALT_MOTOR_HOLD_SETTING 100
+        #endif
 
         #define ALT_STALL_VALUE 10  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
 
