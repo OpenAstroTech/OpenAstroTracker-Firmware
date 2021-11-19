@@ -31,18 +31,36 @@ class TMC2209Stepper;
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
 enum HomingState
 {
-    HOMING_PIN_FINDING_START,
-    HOMING_PIN_FINDING_END,
-    HOMING_PIN_FOUND,
+    HOMING_MOVE_OFF,
+    HOMING_MOVING_OFF,
+    HOMING_STOP_AT_TIME,
+    HOMING_WAIT_FOR_STOP,
+    HOMING_START_FIND_START,
+    HOMING_FINDING_START,
+    HOMING_FINDING_START_REVERSE,
+    HOMING_FINDING_END,
+    HOMING_RANGE_FOUND,
+    HOMING_FAILED,
+    HOMING_SUCCESSFUL,
+
     HOMING_NOT_ACTIVE
 };
 
+#define HOMING_START_PIN_POSITION 0
+#define HOMING_END_PIN_POSITION 1
+
 struct HomingData {
     HomingState state;
+    HomingState nextState;
     int pinState;
     int lastPinState;
-    long position[HomingState::HOMING_PIN_FINDING_END + 1];
+    int savedRate;
+    int initialDir;
+    int searchDistance;
+    long position[2];
     long offsetRA;
+    long startPos;
+    unsigned long stopAt;
 };
 #endif
 
@@ -385,7 +403,10 @@ class Mount
     void focusStop();
 #endif
 
-    bool findRAHomeByHallSensor(int initialDirection);
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    bool findRAHomeByHallSensor(int initialDirection, int searchDistance);
+    void processRAHomingProgress();
+#endif
     void setHomingOffset(StepperAxis axis, long offset);
     long getHomingOffset(StepperAxis axis);
 

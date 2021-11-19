@@ -496,24 +496,26 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "1" if successfully scheduled
 //
-// :MHRx#
+// :MHRxn#
 //      Description:
 //        Home RA stepper via Hall sensor
 //      Information:
 //        This attempts to find the hall sensor and to home the RA ring accordingly.
 //      Parameters:
 //        "x" is either 'R' or 'L' and determines the direction in which the search starts (L is CW, R is CCW).
+//        "n" (Optional) is the maximum number of hours to move while searching for the sensor location. Defaults to 2h. Limited to the range 1h-5h.
 //      Remarks:
-//        The ring is first moved 30 degrees in the initial direction. If no hall sensor is encountered, it will move 60 degrees in
-//        the opposite direction. If a hall sensor is not encountered during that slew, the homing exits with a failure code (0).
+//        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered, 
+//        it will move twice the amount (60 degrees by default) in the opposite direction.
+//        If a hall sensor is not encountered during that slew, the homing exits with a failure.
 //        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset
 //        specified in the Home offset position (set with the ":XSHRnnnn#" command).
 //        If the RA ring is positioned such that the Hall sensor is already triggered when the command is received, the mount will move
-//        the RA ring off the trigger in the opposite direction specified for a max of 7.5 degrees before searching 30 degrees in the
+//        the RA ring off the trigger in the opposite direction specified for a max of 15 degrees before searching 30 degrees in the
 //        specified direction.
 //      Returns:
-//        "1" if successfully homed RA
-//        "0" if the hall sensor could not be found or homing has not been enabled in the local config
+//        "1" returns if search is started
+//        "0" if homing has not been enabled in the local config
 //
 // :MAZn.nn#
 //      Description:
@@ -1466,13 +1468,32 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     }
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')
     {
+        int distance = 2;
+        if (inCmd.length() > 3) 
+        {
+            distance = inCmd.substring(3).toInt();
+            if (distance < 1) distance = 1;
+            if (distance > 5) distance = 5;
+            LOGV2(DEBUG_MEADE, F("MEADE: Home by %d"), distance);
+        }
+
         if (inCmd[2] == 'R')  // :MHRR
         {
-            return _mount->findRAHomeByHallSensor(-1) ? "1" : "0";
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+            _mount->findRAHomeByHallSensor(-1, distance);
+            return "1";
+#else
+            return "0";
+#endif
         }
         else if (inCmd[2] == 'L')  // :MHRL
         {
-            return _mount->findRAHomeByHallSensor(1) ? "1" : "0";
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+            _mount->findRAHomeByHallSensor(1, distance);
+            return "1";
+#else
+            return "0";
+#endif
         }
     }
 
