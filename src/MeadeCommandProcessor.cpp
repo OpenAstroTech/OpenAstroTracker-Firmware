@@ -1471,7 +1471,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         int distance = 2;
         if (inCmd.length() > 3)
         {
-            distance = clamp((int)inCmd.substring(3).toInt(), 1, 5);
+            distance = clamp((int) inCmd.substring(3).toInt(), 1, 5);
             LOGV2(DEBUG_MEADE, F("MEADE: Home by %d"), distance);
         }
 
