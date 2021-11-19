@@ -2509,10 +2509,15 @@ void Mount::stopSlewing(int direction)
         LOGV1(DEBUG_STEPPERS, F("STEP-stopSlewing: DEC stepper stop()"));
         _stepperDEC->stop();
     }
+
     if ((direction & (WEST | EAST)) != 0)
     {
         LOGV1(DEBUG_STEPPERS, F("STEP-stopSlewing: RA stepper stop()"));
         _stepperRA->stop();
+        if (isFindingHome())
+        {
+            _mountStatus &= ~STATUS_FINDING_HOME;
+        }
     }
 }
 

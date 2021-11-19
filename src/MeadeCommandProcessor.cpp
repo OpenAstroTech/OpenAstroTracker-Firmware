@@ -1468,31 +1468,27 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     }
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')
     {
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
         int distance = 2;
         if (inCmd.length() > 3)
         {
             distance = clamp((int) inCmd.substring(3).toInt(), 1, 5);
-            LOGV2(DEBUG_MEADE, F("MEADE: Home by %d"), distance);
+            LOGV2(DEBUG_MEADE, F("MEADE: RA AutoHome by %dh"), distance);
         }
 
         if (inCmd[2] == 'R')  // :MHRR
         {
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
             _mount->findRAHomeByHallSensor(-1, distance);
             return "1";
-#else
-            return "0";
-#endif
         }
         else if (inCmd[2] == 'L')  // :MHRL
         {
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
             _mount->findRAHomeByHallSensor(1, distance);
             return "1";
-#else
-            return "0";
-#endif
         }
+#else
+        return "0";
+#endif
     }
 
     return "0";
