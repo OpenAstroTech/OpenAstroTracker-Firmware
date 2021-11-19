@@ -505,7 +505,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "x" is either 'R' or 'L' and determines the direction in which the search starts (L is CW, R is CCW).
 //        "n" (Optional) is the maximum number of hours to move while searching for the sensor location. Defaults to 2h. Limited to the range 1h-5h.
 //      Remarks:
-//        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered, 
+//        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
 //        it will move twice the amount (60 degrees by default) in the opposite direction.
 //        If a hall sensor is not encountered during that slew, the homing exits with a failure.
 //        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset
@@ -1469,11 +1469,9 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')
     {
         int distance = 2;
-        if (inCmd.length() > 3) 
+        if (inCmd.length() > 3)
         {
-            distance = inCmd.substring(3).toInt();
-            if (distance < 1) distance = 1;
-            if (distance > 5) distance = 5;
+            distance = clamp((int)inCmd.substring(3).toInt(), 1, 5);
             LOGV2(DEBUG_MEADE, F("MEADE: Home by %d"), distance);
         }
 

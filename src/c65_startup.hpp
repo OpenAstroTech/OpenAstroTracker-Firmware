@@ -74,7 +74,7 @@ bool processStartupKeys()
                             startupState = StartupSetRoll;
                             LOGV1(DEBUG_INFO, F("STARTUP: State is set roll!"));
         #else
-                            startupState   = StartupSetHATime;
+                            startupState = StartupSetHATime;
         #endif
                         }
                         else if (isInHomePosition == NO)

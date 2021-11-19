@@ -46,8 +46,8 @@ enum HomingState
     HOMING_NOT_ACTIVE
 };
 
-#define HOMING_START_PIN_POSITION 0
-#define HOMING_END_PIN_POSITION 1
+    #define HOMING_START_PIN_POSITION 0
+    #define HOMING_END_PIN_POSITION   1
 
 struct HomingData {
     HomingState state;
