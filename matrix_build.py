@@ -18,6 +18,7 @@ BOARDS = [
     "mksgenlv2",
     "mksgenlv1",
     "esp32",
+    "ramps",
 ]
 
 STEPPER_TYPES = [
@@ -160,6 +161,29 @@ BOARD_SUPPORT = {
         ],
         "FOCUS_STEPPER_TYPE": [
             "STEPPER_TYPE_NONE"
+        ],
+    }),
+    "ramps": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE",
+            "DISPLAY_TYPE_LCD_KEYPAD"
+        ],
+        "RA_STEPPER_TYPE": [
+            "STEPPER_TYPE_NEMA17"
+        ],
+        "DEC_STEPPER_TYPE": [
+            "STEPPER_TYPE_NEMA17"
+        ],
+        "AZ_STEPPER_TYPE": [
+            "STEPPER_TYPE_NEMA17"
+        ],
+        "ALT_STEPPER_TYPE": [
+            "STEPPER_TYPE_NEMA17"
+        ],
+        "FOCUS_STEPPER_TYPE": [
+            "STEPPER_TYPE_NEMA17"
         ],
     }),
 }
