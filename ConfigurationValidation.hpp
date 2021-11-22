@@ -185,18 +185,6 @@
     #warning Configuration does not support Focus. Use at own risk.
 #endif
 
-// Interfaces
-#if (BLUETOOTH_ENABLED == 0)
-// Baseline configuration without Bluetooth is valid
-#elif defined(ESP32)
-    // Bluetooth is only supported on ESP32
-    #if !defined(BLUETOOTH_DEVICE_NAME)
-        #error Bluetooth device name must be provided
-    #endif
-#else
-    #error Unsupported Bluetooth configuration. Use at own risk.
-#endif
-
 #if (WIFI_ENABLED == 0)
 // Baseline configuration without WiFi is valid
 #elif defined(ESP32)

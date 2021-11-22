@@ -725,6 +725,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "integer|integer#"
 //
+// :XGDP#
+//      Description:
+//        Get DEC parking position
+//      Information:
+//        Gets the number of steps from the home position to the parking position for DEC
+//      Returns:
+//        "long#"
+//
 // :XGS#
 //      Description:
 //        Get Tracking speed adjustment
@@ -869,6 +877,13 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Clear DEC lower limit
 //      Information:
 //        Clear the lower limit for the DEC stepper motor
+//      Returns: nothing
+//
+// :XSDPnnnn#
+//      Description:
+//        Set DEC parking position offset
+//      Information:
+//        This stores the number of steps needed to move from home to the parking position.
 //      Returns: nothing
 //
 // :XSSn.nnn#
@@ -1545,6 +1560,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                     sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
                     return String(scratchBuffer);
                 }
+                if (inCmd[2] == 'P')  // :XGDP#
+                {
+                    return String(_mount->getDecParkingOffset()) + "#";
+                }
             }
             else  // :XGD#
             {
@@ -1646,6 +1665,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     _mount->clearDecLimitPosition(true);
                 }
+            }
+            else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
+            {
+                _mount->setDecParkingOffset(inCmd.substring(3).toInt());
             }
             else
             {
