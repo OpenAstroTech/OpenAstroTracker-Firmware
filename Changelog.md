@@ -1,6 +1,9 @@
+**V1.9.36 - Updates**
+- Add HE1 to dew heater output for MKS boards
+
 **V1.9.35 - Updates**
 - Enable configuration of hold current setting for AZ and ALT steppers when always energized
-.
+
 **V1.9.34 - Updates**
 - Added two Meade commands: :XGDP# and :XSDPnnn# to retrieve and set the DEC parking offset.
 - Fixed a bug that incorrectly returned a Homing status when the Hall sensor was enabled.
