@@ -182,8 +182,8 @@
 
 //Pin to turn on dew heater MOSFET
 #ifndef DEW_HEATER_PIN1
-    #define DEW_HEATER_PIN1 10
+    #define DEW_HEATER_1_PIN 10
 #endif
 #ifndef DEW_HEATER_PIN2
-    #define DEW_HEATER_PIN2 7
+    #define DEW_HEATER_2_PIN 7
 #endif
