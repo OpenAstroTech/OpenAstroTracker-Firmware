@@ -1,3 +1,9 @@
+**V1.9.36 - Updates**
+- Removed auto-homing code that was based on stall guard
+- Converted Hall sensor based auto homing to be asynchronous (via state machine) instead of blocking
+- Allowed user to specify the distance (number of hours) to search for Hall sensor in Meade command
+- Allowed overriding the guide pulse multiplier in local config
+
 **V1.9.35 - Updates**
 - Enable configuration of hold current setting for AZ and ALT steppers when always energized
 .

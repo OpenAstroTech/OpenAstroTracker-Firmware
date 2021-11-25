@@ -74,29 +74,11 @@ bool processStartupKeys()
                             startupState = StartupSetRoll;
                             LOGV1(DEBUG_INFO, F("STARTUP: State is set roll!"));
         #else
-                            startupState   = StartupSetHATime;
+                            startupState = StartupSetHATime;
         #endif
                         }
                         else if (isInHomePosition == NO)
                         {
-        #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART && USE_AUTOHOME == 1
-                            mount.startFindingHomeDEC();
-                            if (mount.isFindingHome())
-                            {
-                                startupState = StartupWaitForPoleCompletion;
-                                lcdMenu.clear();
-                                lcdMenu.setCursor(0, 0);
-                                lcdMenu.printMenu("Finding Home....");
-                                lcdMenu.setCursor(0, 1);
-                                lcdMenu.printMenu("Please Wait");
-                                //break;
-                            }
-                            else
-                            {
-                                startupState = StartupSetHATime;
-                            }
-
-        #else
                             startupState   = StartupWaitForPoleCompletion;
                             inStartup      = false;
                             okToUpdateMenu = false;
@@ -106,7 +88,6 @@ bool processStartupKeys()
 
                             // Skip the 'Manual control' prompt
                             setControlMode(true);
-        #endif
                         }
                         else if (isInHomePosition == CANCEL)
                         {
