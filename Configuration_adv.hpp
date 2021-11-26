@@ -150,8 +150,7 @@
 
     #define RA_STALL_VALUE  100  // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
     #define DEC_STALL_VALUE 10   // adjust this value if the RA autohoming sequence often false triggers, or triggers too late
-    #define USE_AUTOHOME    0    // Autohome with TMC2209 stall detection:  ON = 1  |  OFF = 0
-    //                  ^^^ leave at 0 for now, doesnt work properly yet
+
     #ifndef RA_AUDIO_FEEDBACK
         #define RA_AUDIO_FEEDBACK                                                                                                          \
             0  // If one of these are set to 1, the respective driver will shut off the stealthchop mode, resulting in a audible whine
@@ -239,7 +238,9 @@
 #if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define RA_PULSE_MULTIPLIER 1.0f
 #elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    #define RA_PULSE_MULTIPLIER 1.5f
+    #ifndef RA_PULSE_MULTIPLIER
+        #define RA_PULSE_MULTIPLIER 1.5f
+    #endif
 #else
     #error New RA Stepper type? Add it here...
 #endif
@@ -247,7 +248,9 @@
 #if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
     #define DEC_PULSE_MULTIPLIER 1.0f
 #elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
-    #define DEC_PULSE_MULTIPLIER 1.0f
+    #ifndef DEC_PULSE_MULTIPLIER
+        #define DEC_PULSE_MULTIPLIER 1.0f
+    #endif
 #else
     #error New DEC Stepper type? Add it here...
 #endif
