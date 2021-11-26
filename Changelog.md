@@ -1,3 +1,6 @@
+**V1.9.38 - Updates**
+- Add support for RAMPS 1.4 Arduino Mega shields
+
 **V1.9.37 - Updates**
 - Add HE1 to dew heater output for MKS boards
 
