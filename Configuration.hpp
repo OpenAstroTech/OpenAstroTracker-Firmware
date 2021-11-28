@@ -235,6 +235,8 @@
 // Append board specific pins data.
 #if (BOARD == BOARD_AVR_MEGA2560)
     #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
+#elif (BOARD == BOARD_RAMPS)
+    #include "boards/RAMPS/pins_RAMPS.hpp"
 #elif (BOARD == BOARD_ESP32_ESP32DEV)
     #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V1)
