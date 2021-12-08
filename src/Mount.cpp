@@ -255,10 +255,10 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     _stepperGUIDE->setMaxSpeed(2000);
     _stepperGUIDE->setAcceleration(15000);
 
-    #if DEC_INVERT_DIR == 1
+#if DEC_INVERT_DIR == 1
     _stepperDEC->setPinsInverted(true, false, false);
     _stepperGUIDE->setPinsInverted(true, false, false);
-    #endif
+#endif
 }
 
 /////////////////////////////////
@@ -274,9 +274,9 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     _stepperAZ->setAcceleration(maxAcceleration);
     _maxAZSpeed        = maxSpeed;
     _maxAZAcceleration = maxAcceleration;
-        #if AZ_INVERT_DIR == 1
+    #if AZ_INVERT_DIR == 1
     _stepperAZ->setPinsInverted(true, false, false);
-        #endif
+    #endif
 }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -287,9 +287,9 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     _stepperALT->setAcceleration(maxAcceleration);
     _maxALTSpeed        = maxSpeed;
     _maxALTAcceleration = maxAcceleration;
-        #if ALT_INVERT_DIR == 1
+    #if ALT_INVERT_DIR == 1
     _stepperALT->setPinsInverted(true, false, false);
-        #endif
+    #endif
 }
 #endif
 
@@ -389,7 +389,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverRA, "RA");
+    UART_Rx_connected      = connectToDriver(_driverRA, "RA");
     if (!UART_Rx_connected)
     {
         digitalWrite(RA_EN_PIN,
@@ -472,7 +472,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverDEC, "DEC");
+    UART_Rx_connected      = connectToDriver(_driverDEC, "DEC");
     if (!UART_Rx_connected)
     {
         digitalWrite(DEC_EN_PIN,
@@ -554,7 +554,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
     _driverAZ->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverAZ, "AZ");
+    UART_Rx_connected      = connectToDriver(_driverAZ, "AZ");
     if (!UART_Rx_connected)
     {
         digitalWrite(AZ_EN_PIN,
@@ -635,7 +635,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected      = connectToDriver(_driverALT, "ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -726,7 +726,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -1310,11 +1310,11 @@ void Mount::startSlewingToTarget()
         _trackerStoppedAt        = millis();
         _compensateForTrackerOff = true;
 
-    // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
         _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-    #endif
+#endif
 
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: TRK stopped at %lms"), _trackerStoppedAt);
     }
@@ -1694,7 +1694,7 @@ void Mount::disableAzAltMotors()
 
     #if AZ_ALWAYS_ON == 0
         #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    digitalWrite(AZ_EN_PIN, HIGH);   // Logic HIGH to disable driver
+    digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable driver
         #endif
     #endif
 
@@ -1713,7 +1713,7 @@ void Mount::disableAzAltMotors()
 void Mount::enableAzAltMotors()
 {
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    digitalWrite(AZ_EN_PIN, LOW);   // Logic LOW to enable driver
+    digitalWrite(AZ_EN_PIN, LOW);  // Logic LOW to enable driver
     #endif
 
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -1827,16 +1827,16 @@ void Mount::disableFocusMotor()
     waitUntilStopped(FOCUSING);
 
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-            #if FOCUSER_ALWAYS_ON == 0
-                #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+        #if FOCUSER_ALWAYS_ON == 0
+            #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
 
     LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: TMC2209U disabling enable pin"));
     digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable driver
-                #else
+            #else
     LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: non-TMC2209U disabling enable pin"));
     digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable driver
-                #endif
             #endif
+        #endif
     #endif
 }
 
@@ -2818,10 +2818,10 @@ void Mount::loop()
 
                 _currentDECStepperPosition = _stepperDEC->currentPosition();
                 _currentRAStepperPosition  = _stepperRA->currentPosition();
-    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                 LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
                 _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
-    #endif
+#endif
                 if (!isParking())
                 {
                     if (_compensateForTrackerOff)
@@ -3305,11 +3305,11 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 _trackerStoppedAt        = millis();
                 _compensateForTrackerOff = true;
 
-    // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                 LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: Switching RA driver to microsteps(%d)"), RA_SLEW_MICROSTEPPING);
                 _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-    #endif
+#endif
 
                 LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: TRK stopped at %lms"), _trackerStoppedAt);
             }

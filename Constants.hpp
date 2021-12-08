@@ -40,7 +40,7 @@
 
 // Supported stepper models
 #define STEPPER_TYPE_NONE    -1
-#define STEPPER_TYPE_ENABLED  1
+#define STEPPER_TYPE_ENABLED 1
 
 // Supported stepper driver models
 #define DRIVER_TYPE_NONE               -1

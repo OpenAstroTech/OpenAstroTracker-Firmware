@@ -129,7 +129,8 @@
 
 // Backlash Settings
 #ifndef BACKLASH_STEPS
-    #define BACKLASH_STEPS 0 * RA_SLEW_MICROSTEPPING    // set the number of backlash steps the motor has (0 for NEMA motors, 16 for 28BYJ motors)
+    #define BACKLASH_STEPS                                                                                                                 \
+        0 * RA_SLEW_MICROSTEPPING  // set the number of backlash steps the motor has (0 for NEMA motors, 16 for 28BYJ motors)
 #endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -269,7 +270,8 @@
         #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef AZ_STEPPER_SPEED
-        #define AZ_STEPPER_SPEED 100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define AZ_STEPPER_SPEED                                                                                                           \
+            100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
     #endif
     #ifndef AZ_STEPPER_ACCELERATION
         #define AZ_STEPPER_ACCELERATION 100 * AZ_MICROSTEPPING
@@ -317,7 +319,7 @@
         #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef ALT_STEPPER_SPEED
-        #define ALT_STEPPER_SPEED                                                                                                      \
+        #define ALT_STEPPER_SPEED                                                                                                          \
             3000 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
     #endif
     #ifndef ALT_STEPPER_ACCELERATION

@@ -1,3 +1,6 @@
+**V1.10.0 - Updates**
+- Delete support of ULN2003 drivers
+
 **V1.9.38 - Updates**
 - Add support for RAMPS 1.4 Arduino Mega shields
 

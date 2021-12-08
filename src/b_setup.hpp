@@ -114,77 +114,77 @@ void setup()
 //   Microstepping/driver pins
 /////////////////////////////////
 #if RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
-// include A4988 microstep pins
-//#error "Define Microstep pins and delete this error."
-digitalWrite(RA_EN_PIN, HIGH);
+    // include A4988 microstep pins
+    //#error "Define Microstep pins and delete this error."
+    digitalWrite(RA_EN_PIN, HIGH);
     #if defined(RA_MS0_PIN)
-digitalWrite(RA_MS0_PIN, HIGH);  // MS0
+    digitalWrite(RA_MS0_PIN, HIGH);  // MS0
     #endif
     #if defined(RA_MS1_PIN)
-digitalWrite(RA_MS1_PIN, HIGH);  // MS1
+    digitalWrite(RA_MS1_PIN, HIGH);  // MS1
     #endif
     #if defined(RA_MS2_PIN)
-digitalWrite(RA_MS2_PIN, HIGH);  // MS2
+    digitalWrite(RA_MS2_PIN, HIGH);  // MS2
     #endif
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
-// include TMC2209 Standalone pins
-pinMode(RA_EN_PIN, OUTPUT);
-digitalWrite(RA_EN_PIN, LOW);  // ENABLE, LOW to enable
+    // include TMC2209 Standalone pins
+    pinMode(RA_EN_PIN, OUTPUT);
+    digitalWrite(RA_EN_PIN, LOW);  // ENABLE, LOW to enable
     #if defined(RA_MS0_PIN)
-digitalWrite(RA_MS0_PIN, HIGH);  // MS0
+    digitalWrite(RA_MS0_PIN, HIGH);  // MS0
     #endif
     #if defined(RA_MS1_PIN)
-digitalWrite(RA_MS1_PIN, HIGH);  // MS1
+    digitalWrite(RA_MS1_PIN, HIGH);  // MS1
     #endif
     #if defined(RA_MS2_PIN)
-digitalWrite(RA_MS2_PIN, HIGH);  // MS2
+    digitalWrite(RA_MS2_PIN, HIGH);  // MS2
     #endif
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-// include TMC2209 UART pins
-pinMode(RA_DIAG_PIN, INPUT);
-pinMode(RA_EN_PIN, OUTPUT);
-digitalWrite(RA_EN_PIN, LOW);
+    // include TMC2209 UART pins
+    pinMode(RA_DIAG_PIN, INPUT);
+    pinMode(RA_EN_PIN, OUTPUT);
+    digitalWrite(RA_EN_PIN, LOW);
     #ifdef RA_SERIAL_PORT
-RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC  // DEC driver startup (for A4988)
-digitalWrite(DEC_EN_PIN, HIGH);
+    digitalWrite(DEC_EN_PIN, HIGH);
     #if defined(RA_MS0_PIN)
-digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
+    digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
     #endif
     #if defined(RA_MS0_PIN)
-digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
+    digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
     #endif
     #if defined(RA_MS0_PIN)
-digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
+    digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
     #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
-// include TMC2209 Standalone pins
-pinMode(DEC_EN_PIN, OUTPUT);
-digitalWrite(DEC_EN_PIN, LOW);  // ENABLE, LOW to enable
+    // include TMC2209 Standalone pins
+    pinMode(DEC_EN_PIN, OUTPUT);
+    digitalWrite(DEC_EN_PIN, LOW);  // ENABLE, LOW to enable
     #if defined(RA_MS0_PIN)
-digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
+    digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
     #endif
     #if defined(RA_MS0_PIN)
-digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
+    digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
     #endif
     #if defined(RA_MS0_PIN)
-digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
+    digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
     #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-// include TMC2209 UART pins
-pinMode(DEC_DIAG_PIN, INPUT);
-pinMode(DEC_EN_PIN, OUTPUT);
-digitalWrite(DEC_EN_PIN, LOW);
+    // include TMC2209 UART pins
+    pinMode(DEC_DIAG_PIN, INPUT);
+    pinMode(DEC_EN_PIN, OUTPUT);
+    digitalWrite(DEC_EN_PIN, LOW);
     //pinMode(DEC_MS1_PIN, OUTPUT);
     //digitalWrite(DEC_MS1_PIN, HIGH); // Logic HIGH to MS1 to get 0b01 address
     #ifdef DEC_SERIAL_PORT
-DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
 #endif
 

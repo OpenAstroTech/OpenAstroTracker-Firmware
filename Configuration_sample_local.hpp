@@ -40,7 +40,7 @@
 #define RA_STEPPER_ACCELERATION  600  // Defaults: 600 for 28BYJ-48, 6000 for NEMA17
 #define DEC_STEPPER_SPEED        600  // Max. Speed = 600 for 28BYJ-48 and 3000 for NEMA17. Defaults = 600 for 28BYJ-48 and 1300 for NEMA17
 #define DEC_STEPPER_ACCELERATION 600  // Defaults: 600 for 28BYJ-48, 6000 for NEMA17
-#define BACKLASH_STEPS 0 //Number of steps of backlash for RA motor. Defaults: 16 for 28BYJ, 0 for NEMA
+#define BACKLASH_STEPS           0    //Number of steps of backlash for RA motor. Defaults: 16 for 28BYJ, 0 for NEMA
 
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
