@@ -4,31 +4,6 @@
 
 #pragma once
 
-// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
-#ifndef RA_IN1_PIN
-    #define RA_IN1_PIN 13
-#endif
-#ifndef RA_IN2_PIN
-    #define RA_IN2_PIN 12
-#endif
-#ifndef RA_IN3_PIN
-    #define RA_IN3_PIN 14
-#endif
-#ifndef RA_IN4_PIN
-    #define RA_IN4_PIN 27
-#endif
-#ifndef DEC_IN1_PIN
-    #define DEC_IN1_PIN 26
-#endif
-#ifndef DEC_IN2_PIN
-    #define DEC_IN2_PIN 25
-#endif
-#ifndef DEC_IN3_PIN
-    #define DEC_IN3_PIN 33
-#endif
-#ifndef DEC_IN4_PIN
-    #define DEC_IN4_PIN 32
-#endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
     #define RA_STEP_PIN 19  // STEP
