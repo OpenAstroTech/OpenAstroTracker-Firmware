@@ -19,7 +19,8 @@ jobs:
                  mksgenlv21,
                  mksgenlv2,
                  mksgenlv1,
-                 esp32 ]
+                 esp32,
+                 ramps ]
 
     steps:
       - uses: actions/checkout@v1
