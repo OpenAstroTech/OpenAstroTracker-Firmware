@@ -27,19 +27,20 @@
  * @brief Stepper motor type in use on RA and DEC axes.
  * See Constants.hpp for supported options.
  */
-#define RA_STEPPER_TYPE  STEPPER_TYPE_28BYJ48
-#define DEC_STEPPER_TYPE STEPPER_TYPE_28BYJ48
+#define RA_STEPPER_TYPE  STEPPER_TYPE_NEMA17
+#define DEC_STEPPER_TYPE STEPPER_TYPE_NEMA17
 
 /**
  * @brief Stepper driver type in use on RA and DEC axes, with associated pin assignments
  * See Constants.hpp for supported DRIVER_TYPE options.
  */
-#define RA_DRIVER_TYPE           DRIVER_TYPE_ULN2003
-#define DEC_DRIVER_TYPE          DRIVER_TYPE_ULN2003
+#define RA_DRIVER_TYPE           DRIVER_TYPE_TMC2209_STANDALONE
+#define DEC_DRIVER_TYPE          DRIVER_TYPE_TMC2209_STANDALONE
 #define RA_STEPPER_SPEED         400  // Max. Speed = 600 for 28BYJ-48 and 3000 for NEMA17. Defaults = 400 for 28BYJ-48 and 1200 for NEMA17
 #define RA_STEPPER_ACCELERATION  600  // Defaults: 600 for 28BYJ-48, 6000 for NEMA17
 #define DEC_STEPPER_SPEED        600  // Max. Speed = 600 for 28BYJ-48 and 3000 for NEMA17. Defaults = 600 for 28BYJ-48 and 1300 for NEMA17
 #define DEC_STEPPER_ACCELERATION 600  // Defaults: 600 for 28BYJ-48, 6000 for NEMA17
+#define BACKLASH_STEPS 0 //Number of steps of backlash for RA motor. Defaults: 16 for 28BYJ, 0 for NEMA
 
 // TMC2209 UART settings
 // These settings work only with TMC2209 in UART connection (single wire to TX)
@@ -74,6 +75,8 @@
  */
 #define AZ_STEPPER_TYPE       STEPPER_TYPE_NONE
 #define ALT_STEPPER_TYPE      STEPPER_TYPE_NONE
+#define AZ_MICROSTEPPING      64.0f
+#define ALT_MICROSTEPPING     4.0f
 #define AZ_DRIVER_TYPE        DRIVER_TYPE_NONE
 #define ALT_DRIVER_TYPE       DRIVER_TYPE_NONE
 #define AZ_CORRECTION_FACTOR  1.000f

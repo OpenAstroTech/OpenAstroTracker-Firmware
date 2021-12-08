@@ -485,15 +485,11 @@ void EEPROMStore::storeSpeedFactor(float speedFactor)
 }
 
 // Return the Backlash Correction step count (microsteps).
-// If it is not present then the default value of 16 (28BYJ48) or 0 (NEMA17) is returned.
+// If it is not present then the default value from the configuration is returned.
 int16_t EEPROMStore::getBacklashCorrectionSteps()
 {
     // Use nominal default values
-#if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    int16_t backlashCorrectionSteps(16);
-#else
-    int16_t backlashCorrectionSteps(0);
-#endif
+    int16_t backlashCorrectionSteps(BACKLASH_STEPS);
 
     if (isPresent(BACKLASH_STEPS_FLAG))
     {

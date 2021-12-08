@@ -218,33 +218,6 @@ void Mount::readPersistentData()
 // configureRAStepper
 //
 /////////////////////////////////
-#if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-void Mount::configureRAStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
-{
-    #if NORTHERN_HEMISPHERE
-    _stepperRA = new AccelStepper((RA_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
-    #else
-    _stepperRA = new AccelStepper((RA_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
-    #endif
-    _stepperRA->setMaxSpeed(maxSpeed);
-    _stepperRA->setAcceleration(maxAcceleration);
-    _maxRASpeed        = maxSpeed;
-    _maxRAAcceleration = maxAcceleration;
-
-    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    #if NORTHERN_HEMISPHERE
-    _stepperTRK
-        = new AccelStepper((RA_TRACKING_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
-    #else
-    _stepperTRK
-        = new AccelStepper((RA_TRACKING_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
-    #endif
-    _stepperTRK->setMaxSpeed(10000);
-    _stepperTRK->setAcceleration(2500);
-}
-#endif
-
-#if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
 void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     _stepperRA = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
@@ -262,36 +235,12 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
     _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
 }
-#endif
 
 /////////////////////////////////
 //
 // configureDECStepper
 //
 /////////////////////////////////
-#if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-void Mount::configureDECStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
-{
-    #if NORTHERN_HEMISPHERE
-    _stepperDEC
-        = new AccelStepper((DEC_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
-    #else
-    _stepperDEC
-        = new AccelStepper((DEC_SLEW_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
-    #endif
-    _stepperDEC->setMaxSpeed(maxSpeed);
-    _stepperDEC->setAcceleration(maxAcceleration);
-    _maxDECSpeed        = maxSpeed;
-    _maxDECAcceleration = maxAcceleration;
-
-    _stepperGUIDE
-        = new AccelStepper((DEC_GUIDE_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
-    _stepperGUIDE->setMaxSpeed(10000);
-    _stepperGUIDE->setAcceleration(6000);
-}
-#endif
-
-#if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
 void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
@@ -311,7 +260,6 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     _stepperGUIDE->setPinsInverted(true, false, false);
     #endif
 }
-#endif
 
 /////////////////////////////////
 //
@@ -319,21 +267,6 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 //
 /////////////////////////////////
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-void Mount::configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
-{
-        #if AZ_INVERT_DIR == 1
-    _stepperAZ = new AccelStepper((AZ_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
-        #else
-    _stepperAZ  = new AccelStepper((AZ_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
-        #endif
-    _stepperAZ->setSpeed(0);
-    _stepperAZ->setMaxSpeed(maxSpeed);
-    _stepperAZ->setAcceleration(maxAcceleration);
-}
-    #endif
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                    \
-        || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
@@ -345,24 +278,8 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     _stepperAZ->setPinsInverted(true, false, false);
         #endif
 }
-    #endif
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-void Mount::configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
-{
-        #if ALT_INVERT_DIR == 1
-    _stepperALT = new AccelStepper((ALT_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin4, pin3, pin2, pin1);
-        #else
-    _stepperALT = new AccelStepper((ALT_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
-        #endif
-    _stepperALT->setSpeed(0);
-    _stepperALT->setMaxSpeed(maxSpeed);
-    _stepperALT->setAcceleration(maxAcceleration);
-}
-    #endif
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
-        || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
@@ -374,7 +291,6 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     _stepperALT->setPinsInverted(true, false, false);
         #endif
 }
-    #endif
 #endif
 
 /////////////////////////////////
@@ -383,20 +299,6 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 //
 /////////////////////////////////
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-void Mount::configureFocusStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration)
-{
-    _stepperFocus
-        = new AccelStepper((FOCUS_MICROSTEPPING == 1) ? AccelStepper::FULL4WIRE : AccelStepper::HALF4WIRE, pin1, pin2, pin3, pin4);
-    _stepperFocus->setSpeed(0);
-    _stepperFocus->setMaxSpeed(maxSpeed);
-    _stepperFocus->setAcceleration(maxAcceleration);
-    _stepperFocus->setCurrentPosition(50000);
-    _maxFocusRateSpeed = maxSpeed;
-}
-    #endif
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                              \
-        || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
@@ -408,7 +310,6 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
     _maxFocusAcceleration = maxAcceleration;
     _maxFocusRateSpeed    = maxSpeed;
 }
-    #endif
 #endif
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
@@ -1009,9 +910,7 @@ String Mount::getStepperInfo()
 {
     String ret = "";
 
-#if RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    ret += "U";
-#elif RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ret += "TU";
 #elif RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
     ret += "TS";
@@ -1028,9 +927,7 @@ String Mount::getStepperInfo()
 
     ret += "|";
 
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    ret += "U";
-#elif DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ret += "TU";
 #elif DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
     ret += "TS";
@@ -1064,23 +961,12 @@ String Mount::getMountHardwareInfo()
     ret = F("Mega,");
 #endif
 
-#if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    ret += F("28BYJ|");
-#elif RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     ret += F("NEMA|");
-#else
-    ret += "?|";
-#endif
+
     ret += String(RA_PULLEY_TEETH) + "|";
     ret += String(RA_STEPPER_SPR) + ",";
 
-#if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    ret += F("28BYJ|");
-#elif DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     ret += F("NEMA|");
-#else
-    ret += "?|";
-#endif
 
     ret += String(DEC_PULLEY_TEETH) + "|";
     ret += String(DEC_STEPPER_SPR) + ",";
@@ -1415,7 +1301,6 @@ void Mount::startSlewingToTarget()
     _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
     _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
     LOGV3(DEBUG_MOUNT, "Mount: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-#if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // tracking while slewing causes problems (can only run one AccelStepper at a time)
     if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
     {
         // Only stop tracking if we're actually going to slew somewhere else, otherwise the
@@ -1433,7 +1318,6 @@ void Mount::startSlewingToTarget()
 
         LOGV2(DEBUG_STEPPERS, F("STEP-startSlewingToTarget: TRK stopped at %lms"), _trackerStoppedAt);
     }
-#endif
 
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
@@ -1664,71 +1548,17 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (which == AZIMUTH_STEPS)
     {
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-        float curAzSpeed = _stepperAZ->speed();
-
-        // If we are changing directions or asking for a stop, do a stop
-        if ((signbit(speedDegsPerSec) != signbit(curAzSpeed)) || (speedDegsPerSec == 0))
-        {
-            _stepperAZ->stop();
-            while (_stepperAZ->isRunning())
-            {
-                loop();
-            }
-        }
-
-        // Are we starting a move or changing speeds?
-        if (speedDegsPerSec != 0)
-        {
-            _stepperAZ->enableOutputs();
-            _stepperAZ->setSpeed(speedDegsPerSec);
-            _stepperAZ->move(speedDegsPerSec * 100000);
-        }  // Are we stopping a move?
-        else if (speedDegsPerSec == 0)
-        {
-            _stepperAZ->disableOutputs();
-        }
-    #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                  \
-        || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;  // deg/sec * u-steps/deg = u-steps/sec
         LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set AZ speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
         _stepperAZ->setSpeed(stepsPerSec);
-    #endif
     }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (which == ALTITUDE_STEPS)
     {
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-        float curAltSpeed = _stepperALT->speed();
-
-        // If we are changing directions or asking for a stop, do a stop
-        if ((signbit(speedDegsPerSec) != signbit(curAltSpeed)) || (speedDegsPerSec == 0))
-        {
-            _stepperALT->stop();
-            while (_stepperALT->isRunning())
-            {
-                loop();
-            }
-        }
-
-        // Are we starting a move or changing speeds?
-        if (speedDegsPerSec != 0)
-        {
-            _stepperALT->enableOutputs();
-            _stepperALT->setSpeed(speedDegsPerSec);
-            _stepperALT->move(speedDegsPerSec * 100000);
-        }  // Are we stopping a move?
-        else if (speedDegsPerSec == 0)
-        {
-            _stepperALT->disableOutputs();
-        }
-    #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                                \
-        || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;  // deg/sec * u-steps/deg = u-steps/sec
         LOGV3(DEBUG_STEPPERS, F("STEP-setSpeed: Set ALT speed %f degs/s, which is %f steps/s"), speedDegsPerSec, stepsPerSec);
         _stepperALT->setSpeed(stepsPerSec);
-    #endif
     }
 #endif
 
@@ -1736,31 +1566,6 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
     else if (which == FOCUS_STEPS)
     {
         LOGV2(DEBUG_MOUNT | DEBUG_FOCUS, F("Mount:setSpeed() Focuser setSpeed %f"), speedDegsPerSec);
-
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-        float curFocusSpeed = _stepperFocus->speed();
-
-        // If we are changing directions or asking for a stop, do a stop
-        if ((signbit(speedDegsPerSec) != signbit(curFocusSpeed)) || (speedDegsPerSec == 0))
-        {
-            _stepperFocus->stop();
-            waitUntilStopped(FOCUSING);
-        }
-
-        // Are we starting a move or changing speeds?
-        if (speedDegsPerSec != 0)
-        {
-            enableFocusMotor();
-            _stepperFocus->setMaxSpeed(speedDegsPerSec);
-            _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
-            _focuserMode = FOCUS_TO_TARGET;
-        }  // Are we stopping a move?
-        else if (speedDegsPerSec == 0)
-        {
-            _stepperFocus->stop();
-        }
-    #elif FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE                            \
-        || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         if (speedDegsPerSec != 0)
         {
             LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous"), speedDegsPerSec);
@@ -1774,8 +1579,6 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
             LOGV1(DEBUG_STEPPERS | DEBUG_FOCUS, F("Mount:setSpeed(): Stopping motor."));
             _stepperFocus->stop();
         }
-
-    #endif
     }
 #endif
 }
@@ -1847,11 +1650,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     if (direction == AZIMUTH_STEPS)
     {
         enableAzAltMotors();
-        #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-        int stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE * AZ_MICROSTEPPING;
-        #else
         int stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
-        #endif
         _stepperAZ->move(stepsToMove);
     }
     #endif
@@ -1859,12 +1658,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     if (direction == ALTITUDE_STEPS)
     {
         enableAzAltMotors();
-        #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-        int stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE * ALT_MICROSTEPPING;
-        #else
         int stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
-        #endif
-
         _stepperALT->move(stepsToMove);
     }
     #endif
@@ -1900,21 +1694,13 @@ void Mount::disableAzAltMotors()
 
     #if AZ_ALWAYS_ON == 0
         #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-            #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    _stepperAZ->disableOutputs();
-            #else
     digitalWrite(AZ_EN_PIN, HIGH);   // Logic HIGH to disable driver
-            #endif
         #endif
     #endif
 
     #if ALT_ALWAYS_ON == 0
         #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-            #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    _stepperALT->disableOutputs();
-            #else
     digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable driver
-            #endif
         #endif
     #endif
 }
@@ -1927,19 +1713,11 @@ void Mount::disableAzAltMotors()
 void Mount::enableAzAltMotors()
 {
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    _stepperAZ->enableOutputs();
-        #else
     digitalWrite(AZ_EN_PIN, LOW);   // Logic LOW to enable driver
-        #endif
     #endif
 
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    _stepperALT->enableOutputs();
-        #else
     digitalWrite(ALT_EN_PIN, LOW);  // Logic LOW to enable driver
-        #endif
     #endif
 }
 
@@ -2049,10 +1827,6 @@ void Mount::disableFocusMotor()
     waitUntilStopped(FOCUSING);
 
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    LOGV1(DEBUG_FOCUS, F("Mount::disableFocusMotor: ULN2003 disabling outputs"));
-    _stepperFocus->disableOutputs();
-        #else
             #if FOCUSER_ALWAYS_ON == 0
                 #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
 
@@ -2063,7 +1837,6 @@ void Mount::disableFocusMotor()
     digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable driver
                 #endif
             #endif
-        #endif
     #endif
 }
 
@@ -2074,13 +1847,8 @@ void Mount::disableFocusMotor()
 /////////////////////////////////
 void Mount::enableFocusMotor()
 {
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: ULN2003 enabling outputs."));
-    _stepperFocus->enableOutputs();
-    #else
     LOGV1(DEBUG_FOCUS, F("Mount::enableFocusMotor: enabling driver pin."));
     digitalWrite(FOCUS_EN_PIN, LOW);  // Logic LOW to enable driver
-    #endif
 }
 
 /////////////////////////////////
@@ -2410,7 +2178,6 @@ void Mount::startSlewing(int direction)
 
             // Set move rate to last commanded slew rate
             setSlewRate(_moveRate);
-#if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
             if (isSlewingTRK())
             {
                 stopSlewing(TRACKING);
@@ -2418,7 +2185,6 @@ void Mount::startSlewing(int direction)
                 _compensateForTrackerOff = true;
                 LOGV2(DEBUG_STEPPERS, F("STEP-startSlewing: stopped TRK at %l"), _trackerStoppedAt);
             }
-#endif
 
 // Change microstep mode for slewing
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -3052,7 +2818,6 @@ void Mount::loop()
 
                 _currentDECStepperPosition = _stepperDEC->currentPosition();
                 _currentRAStepperPosition  = _stepperRA->currentPosition();
-#if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                 LOGV2(DEBUG_STEPPERS, F("STEP-loop: Arrived. RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
                 _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
@@ -3074,7 +2839,6 @@ void Mount::loop()
                     }
                     startSlewing(TRACKING);
                 }
-#endif
 
 // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -3532,7 +3296,6 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
-#if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17  // tracking while slewing causes problems (can only run one AccelStepper at a time)
             if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
             {
                 // Only stop tracking if we're actually going to slew somewhere else, otherwise the
@@ -3550,7 +3313,6 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
 
                 LOGV2(DEBUG_STEPPERS, F("STEP-moveStepperBy: TRK stopped at %lms"), _trackerStoppedAt);
             }
-#endif
             break;
         case DEC_STEPS:
             moveSteppersTo(_stepperRA->targetPosition(), _stepperDEC->targetPosition() + steps);
