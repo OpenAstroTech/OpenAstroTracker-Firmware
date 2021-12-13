@@ -24,27 +24,6 @@
     #error Unsupported display configuration. Use at own risk.
 #endif
 
-// Validate motor & driver configurations
-#if (RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-// Valid RA stepper and driver combination
-#elif (RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17)                                                                                             \
-    && ((RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)                                \
-        || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
-// Valid RA stepper and driver combination
-#else
-    #error Unsupported RA stepper & driver combination. Use at own risk.
-#endif
-
-#if (DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-// Valid DEC stepper and driver combination
-#elif (DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17)                                                                                            \
-    && ((DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)                              \
-        || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART))
-// Valid DEC stepper and driver combination
-#else
-    #error Unsupported DEC stepper & driver combination. Use at own risk.
-#endif
-
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #ifndef RA_DRIVER_ADDRESS
         // Serial bus address must be specified for TMC2209 in UART mode
@@ -80,24 +59,6 @@
     #endif
 #elif defined(__AVR_ATmega2560__)
     // Azimuth configuration
-    #if (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    // Valid AZ stepper and driver combination
-    #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
-    // Valid AZ stepper and driver combination
-    #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    // Valid AZ stepper and driver combination
-    #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid AZ stepper and driver combination
-    #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
-    // Valid AZ stepper and driver combination
-    #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    // Valid AZ stepper and driver combination
-    #elif (AZ_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid AZ stepper and driver combination
-    #else
-        #error Unsupported AZ stepper & driver combination. Use at own risk.
-    #endif
-
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef AZ_DRIVER_ADDRESS
             // Serial bus address must be specified for TMC2209 in UART mode
@@ -118,24 +79,6 @@
     #endif
 #elif defined(__AVR_ATmega2560__)
     // Altitude configuration
-    #if (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    // Valid ALT stepper and driver combination
-    #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
-    // Valid ALT stepper and driver combination
-    #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    // Valid ALT stepper and driver combination
-    #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid ALT stepper and driver combination
-    #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
-    // Valid ALT stepper and driver combination
-    #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    // Valid ALT stepper and driver combination
-    #elif (ALT_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid ALT stepper and driver combination
-    #else
-        #error Unsupported ALT stepper & driver combination. Use at own risk.
-    #endif
-
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef ALT_DRIVER_ADDRESS
             // Serial bus address must be specified for TMC2209 in UART mode
@@ -156,24 +99,6 @@
     #endif
 #elif defined(__AVR_ATmega2560__)
     // Focus configuration
-    #if (FOCUS_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    // Valid ALT stepper and driver combination
-    #elif (FOCUS_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
-    // Valid ALT stepper and driver combination
-    #elif (FOCUS_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    // Valid ALT stepper and driver combination
-    #elif (FOCUS_STEPPER_TYPE == STEPPER_TYPE_28BYJ48) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid ALT stepper and driver combination
-    #elif (FOCUS_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
-    // Valid ALT stepper and driver combination
-    #elif (FOCUS_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-    // Valid ALT stepper and driver combination
-    #elif (FOCUS_STEPPER_TYPE == STEPPER_TYPE_NEMA17) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    // Valid Focus stepper and driver combination
-    #else
-        #error Unsupported Focus stepper & driver combination. Use at own risk.
-    #endif
-
     #if (FOCUS_STEPPER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef FOCUS_DRIVER_ADDRESS
             // Serial bus address must be specified for TMC2209 in UART mode
@@ -234,17 +159,13 @@
 //////////////////////////////////////
 
 // Motor & driver configurations
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    #if !defined(DEC_IN1_PIN) || !defined(DEC_IN2_PIN) || !defined(DEC_IN3_PIN) || !defined(DEC_IN4_PIN)
-        // Required pin assignments missing
-        #error Missing pin assignments for configured DEC DRIVER_TYPE_ULN2003 driver
-    #endif
-#elif (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+#if (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
     #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured DEC DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
     #endif
-    #if (!defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN)) && (BOARD != BOARD_AVR_MKS_GEN_L_V1)
+    #if (!defined(DEC_MS0_PIN) || !defined(DEC_MS1_PIN) || !defined(DEC_MS2_PIN))                                                          \
+        && (BOARD != BOARD_AVR_MKS_GEN_L_V1 && BOARD != BOARD_AVR_RAMPS)
         #warning Missing pin assignments for MS pins
     #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -258,17 +179,13 @@
     #endif
 #endif
 
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-    #if !defined(RA_IN1_PIN) || !defined(RA_IN2_PIN) || !defined(RA_IN3_PIN) || !defined(RA_IN4_PIN)
-        // Required pin assignments missing
-        #error Missing pin assignments for configured RA DRIVER_TYPE_ULN2003 driver
-    #endif
-#elif (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
     #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured RA DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
     #endif
-    #if (!defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN)) && (BOARD != BOARD_AVR_MKS_GEN_L_V1)
+    #if (!defined(RA_MS0_PIN) || !defined(RA_MS1_PIN) || !defined(RA_MS2_PIN))                                                             \
+        && (BOARD != BOARD_AVR_MKS_GEN_L_V1 && BOARD != BOARD_AVR_RAMPS)
         #warning Missing pin assignments for MS pins
     #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -283,12 +200,7 @@
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if (AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-        #if !defined(AZ_IN1_PIN) || !defined(AZ_IN2_PIN) || !defined(AZ_IN3_PIN) || !defined(AZ_IN4_PIN)
-            // Required pin assignments missing
-            #error Missing pin assignments for configured AZ DRIVER_TYPE_ULN2003 driver
-        #endif
-    #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    #if (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
         #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)
             // Required pin assignments missing
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
@@ -306,12 +218,7 @@
 #endif
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if (ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-        #if !defined(ALT_IN1_PIN) || !defined(ALT_IN2_PIN) || !defined(ALT_IN3_PIN) || !defined(ALT_IN4_PIN)
-            // Required pin assignments missing
-            #error Missing pin assignments for configured ALT DRIVER_TYPE_ULN2003 driver
-        #endif
-    #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    #if (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
         #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
             // Required pin assignments missing
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
@@ -329,12 +236,7 @@
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_ULN2003)
-        #if !defined(FOCUS_IN1_PIN) || !defined(FOCUS_IN2_PIN) || !defined(FOCUS_IN3_PIN) || !defined(FOCUS_IN4_PIN)
-            // Required pin assignments missing
-            #error Missing pin assignments for configured Focuser DRIVER_TYPE_ULN2003 driver
-        #endif
-    #elif (FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
+    #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
         #if !defined(FOCUS_STEP_PIN) || !defined(FOCUS_DIR_PIN) || !defined(FOCUS_EN_PIN)
             // Required pin assignments missing
             #error Missing pin assignments for configured Focuser DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
@@ -433,6 +335,9 @@
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if !defined(AZ_MICROSTEPPING)
+        #error "Azimuth microstepping must be defined. Default is 4.0f for 28BYJ steppers, 64.0f for NEMA."
+    #endif
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if defined(AZ_MOTOR_CURRENT_RATING)
             #if (AZ_MOTOR_CURRENT_RATING > 1700)
@@ -458,6 +363,9 @@
 #endif
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if !defined(ALT_MICROSTEPPING)
+        #error "Altitude microstepping must be defined. Default is 4.0f for 28BYJ steppers, 4.0f for NEMA."
+    #endif
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if defined(ALT_MOTOR_CURRENT_RATING)
             #if (ALT_MOTOR_CURRENT_RATING > 1700)

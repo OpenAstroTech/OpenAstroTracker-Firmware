@@ -4,31 +4,6 @@
 
 #pragma once
 
-// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
-#ifndef RA_IN1_PIN
-    #define RA_IN1_PIN 37
-#endif
-#ifndef RA_IN2_PIN
-    #define RA_IN2_PIN 17
-#endif
-#ifndef RA_IN3_PIN
-    #define RA_IN3_PIN 23
-#endif
-#ifndef RA_IN4_PIN
-    #define RA_IN4_PIN 27
-#endif
-#ifndef DEC_IN1_PIN
-    #define DEC_IN1_PIN 35
-#endif
-#ifndef DEC_IN2_PIN
-    #define DEC_IN2_PIN 16
-#endif
-#ifndef DEC_IN3_PIN
-    #define DEC_IN3_PIN 25
-#endif
-#ifndef DEC_IN4_PIN
-    #define DEC_IN4_PIN 29
-#endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
     #define RA_STEP_PIN 54  // STEP
@@ -78,31 +53,6 @@
 
 #define SW_SERIAL_UART 1
 
-// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
-#ifndef AZ_IN1_PIN
-    #define AZ_IN1_PIN 50
-#endif
-#ifndef AZ_IN2_PIN
-    #define AZ_IN2_PIN 31
-#endif
-#ifndef AZ_IN3_PIN
-    #define AZ_IN3_PIN 33
-#endif
-#ifndef AZ_IN4_PIN
-    #define AZ_IN4_PIN 49
-#endif
-#ifndef ALT_IN1_PIN
-    #define ALT_IN1_PIN 52
-#endif
-#ifndef ALT_IN2_PIN
-    #define ALT_IN2_PIN 53
-#endif
-#ifndef ALT_IN3_PIN
-    #define ALT_IN3_PIN 51
-#endif
-#ifndef ALT_IN4_PIN
-    #define ALT_IN4_PIN 41
-#endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef AZ_STEP_PIN
     #define AZ_STEP_PIN 46  // STEP
@@ -181,6 +131,9 @@
 #endif
 
 //Pin to turn on dew heater MOSFET
-#ifndef DEW_HEATER_PIN
-    #define DEW_HEATER_PIN 10
+#ifndef DEW_HEATER_PIN1
+    #define DEW_HEATER_1_PIN 10
+#endif
+#ifndef DEW_HEATER_PIN2
+    #define DEW_HEATER_2_PIN 7
 #endif
