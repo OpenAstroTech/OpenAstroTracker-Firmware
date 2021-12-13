@@ -1,3 +1,6 @@
+**V1.10.1 - Updates**
+- fix a bug with "Set Home" on OAM
+
 **V1.10.0 - Updates**
 - Delete support of ULN2003 drivers
 
