@@ -4,31 +4,6 @@
 
 #pragma once
 
-// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
-#ifndef RA_IN1_PIN
-    #define RA_IN1_PIN 63
-#endif
-#ifndef RA_IN2_PIN
-    #define RA_IN2_PIN 38
-#endif
-#ifndef RA_IN3_PIN
-    #define RA_IN3_PIN 54
-#endif
-#ifndef RA_IN4_PIN
-    #define RA_IN4_PIN 55
-#endif
-#ifndef DEC_IN1_PIN
-    #define DEC_IN1_PIN 64
-#endif
-#ifndef DEC_IN2_PIN
-    #define DEC_IN2_PIN 56
-#endif
-#ifndef DEC_IN3_PIN
-    #define DEC_IN3_PIN 60
-#endif
-#ifndef DEC_IN4_PIN
-    #define DEC_IN4_PIN 61
-#endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
     #define RA_STEP_PIN 54  // STEP
@@ -96,31 +71,6 @@
 
 #define SW_SERIAL_UART 1
 
-// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
-#ifndef AZ_IN1_PIN
-    #define AZ_IN1_PIN 65
-#endif
-#ifndef AZ_IN2_PIN
-    #define AZ_IN2_PIN 62
-#endif
-#ifndef AZ_IN3_PIN
-    #define AZ_IN3_PIN 46
-#endif
-#ifndef AZ_IN4_PIN
-    #define AZ_IN4_PIN 48
-#endif
-#ifndef ALT_IN1_PIN
-    #define ALT_IN1_PIN 66
-#endif
-#ifndef ALT_IN2_PIN
-    #define ALT_IN2_PIN 24
-#endif
-#ifndef ALT_IN3_PIN
-    #define ALT_IN3_PIN 26
-#endif
-#ifndef ALT_IN4_PIN
-    #define ALT_IN4_PIN 28
-#endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef AZ_STEP_PIN
     #define AZ_STEP_PIN 46  // STEP
@@ -168,19 +118,6 @@
     #define ALT_DRIVER_ADDRESS 0b00
 #endif
 
-// DRIVER_TYPE_ULN2003 requires 4 digital outputs in Arduino pin numbering
-#ifndef FOCUS_IN1_PIN
-    #define FOCUS_IN1_PIN 66
-#endif
-#ifndef FOCUS_IN2_PIN
-    #define FOCUS_IN2_PIN 30
-#endif
-#ifndef FOCUS_IN3_PIN
-    #define FOCUS_IN3_PIN 36
-#endif
-#ifndef FOCUS_IN4_PIN
-    #define FOCUS_IN4_PIN 34
-#endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering. This is the E1 port.
 #ifndef FOCUS_STEP_PIN
     #define FOCUS_STEP_PIN 36  // STEP
