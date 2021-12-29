@@ -1,3 +1,7 @@
+**V1.10.8 - Updates**
+- Add initial unit test structure
+- Unit tests for MappedDict.hpp
+
 **V1.10.7 - Updates**
 - Fix Arduino IDE issues
 
