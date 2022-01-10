@@ -107,22 +107,22 @@
 
 // DISPLAY_TYPE_LCD_KEYPAD requires 6 digital & 1 analog output in Arduino pin numbering
 #ifndef LCD_PIN4
-    #define LCD_PIN4 63
+    #define LCD_PIN4 17
 #endif
 #ifndef LCD_PIN5
-    #define LCD_PIN5 40
+    #define LCD_PIN5 16
 #endif
 #ifndef LCD_PIN6
-    #define LCD_PIN6 42
+    #define LCD_PIN6 23
 #endif
 #ifndef LCD_PIN7
-    #define LCD_PIN7 59
+    #define LCD_PIN7 25
 #endif
 #ifndef LCD_PIN8
-    #define LCD_PIN8 64
+    #define LCD_PIN8 27
 #endif
 #ifndef LCD_PIN9
-    #define LCD_PIN9 44
+    #define LCD_PIN9 29
 #endif
 
 // DISPLAY_TYPE_LCD_KEYPAD requires 1 analog input in Arduino pin numbering
