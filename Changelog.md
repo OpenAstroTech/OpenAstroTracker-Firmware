@@ -1,3 +1,6 @@
+**V1.10.2 - Updates**
+- Revise default MKS LCD pins to match ribbon cable LCD assembly.
+
 **V1.10.1 - Updates**
 - fix a bug with "Set Home" on OAM
 
