@@ -14,6 +14,7 @@
 #define BOARD_AVR_MKS_GEN_L_V21 0002
 #define BOARD_AVR_MKS_GEN_L_V2  0003
 #define BOARD_AVR_MKS_GEN_L_V1  0004
+#define BOARD_AVR_RAMPS         0005
 
 // ESP32 based boards
 #define BOARD_ESP32_ESP32DEV 1001
