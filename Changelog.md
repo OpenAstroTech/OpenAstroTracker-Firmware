@@ -1,3 +1,6 @@
+**V1.10.3 - Updates**
+- Added disclaimer of auto generation of Meade wiki page
+
 **V1.10.2 - Updates**
 - Revise default MKS LCD pins to match ribbon cable LCD assembly.
 
