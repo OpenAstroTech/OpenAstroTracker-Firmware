@@ -3014,7 +3014,6 @@ void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
     }
 }
 
-
 /////////////////////////////////
 //
 // clearDecLimitPosition

@@ -854,7 +854,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC upper limit
 //      Information:
-//        Set the upper limit for the DEC stepper motor to the current position if no parameter is given, 
+//        Set the upper limit for the DEC stepper motor to the current position if no parameter is given,
 //        otherwise to the given parameter.
 //      Parameters:
 //        "nnnnn" is the number of steps from home that the DEC ring can travel upwards
@@ -873,7 +873,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC lower limit
 //      Information:
-//        Set the lowerlimit for the DEC stepper motor to the current position if no parameter is given, 
+//        Set the lowerlimit for the DEC stepper motor to the current position if no parameter is given,
 //        otherwise to the given parameter.
 //      Parameters:
 //        "nnnnn" is the number of steps from home that the DEC ring can travel downwards
