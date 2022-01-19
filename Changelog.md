@@ -1,3 +1,6 @@
+**V1.10.3 - Updates**
+- Add optional parameter to Meade Extension commands :XSDLL# and :XSDLU# to allow direct setting of DEC limits
+
 **V1.10.2 - Updates**
 - Revise default MKS LCD pins to match ribbon cable LCD assembly.
 

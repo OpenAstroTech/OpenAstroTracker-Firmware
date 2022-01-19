@@ -2990,15 +2990,25 @@ void Mount::setDecParkingOffset(long offset)
 /////////////////////////////////
 void Mount::setDecLimitPosition(bool upper)
 {
+    setDecLimitPositionAbs(upper, _stepperDEC->currentPosition());
+}
+
+/////////////////////////////////
+//
+// setDecLimitPositionAbs
+//
+/////////////////////////////////
+void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
+{
     if (upper)
     {
-        _decUpperLimit = _stepperDEC->currentPosition();
+        _decUpperLimit = stepperPos;
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOGV3(DEBUG_MOUNT, F("Mount::setDecLimitPosition(Upper): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = _stepperDEC->currentPosition();
+        _decLowerLimit = stepperPos;
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOGV3(DEBUG_MOUNT, F("Mount::setDecLimitPosition(Lower): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
     }
