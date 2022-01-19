@@ -234,9 +234,6 @@ def output_wiki():
     f = open("./scripts/MeadeToWikiOutput.txt", "w")
     
     for fam in all_commands:
-        f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
-        f.write("{.is-danger}\n\n")
-        
         f.write(f"## {fam.name}\n")
         f.write("<br>\n\n")
 
