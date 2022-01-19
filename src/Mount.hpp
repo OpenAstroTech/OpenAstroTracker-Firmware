@@ -309,6 +309,9 @@ class Mount
     // Set the DEC limit position to the current stepper position. If upper is true, sets the upper limit, else the lower limit.
     void setDecLimitPosition(bool upper);
 
+    // Set the DEC limit position to the given position. If upper is true, sets the upper limit, else the lower limit.
+    void setDecLimitPositionAbs(bool upper, long stepperPos);
+
     // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
     void clearDecLimitPosition(bool upper);
 

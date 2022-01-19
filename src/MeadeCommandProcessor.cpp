@@ -384,9 +384,9 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //
 // :SHHH:MM#
 //      Description:
-//        Set Hour Time (HA)
+//        Set HA (Hour Angle of Polaris)
 //      Information:
-//        This sets the scopes HA.
+//        This sets the scopes HA, which should be that of Polaris.
 //      Returns:
 //        "1" if successfully set
 //        "0" otherwise
@@ -753,9 +753,9 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //
 // :XGH#
 //      Description:
-//        Get HA
+//        Get HA (Hour Angle of Polaris)
 //      Information:
-//        Get the current HA of the mount.
+//        Get the current HA of Polaris that the mount thinks it is.
 //      Returns:
 //        "HHMMSS#"
 //
@@ -850,11 +850,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :XSDLU#
+// :XSDLUnnnnn#
 //      Description:
 //        Set DEC upper limit
 //      Information:
-//        Set the upper limit for the DEC stepper motor to the current position
+//        Set the upper limit for the DEC stepper motor to the current position if no parameter is given, 
+//        otherwise to the given parameter.
+//      Parameters:
+//        "nnnnn" is the number of steps from home that the DEC ring can travel upwards
 //      Returns:
 //        nothing
 //
@@ -866,11 +869,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :XSDLL#
+// :XSDLLnnnnn#
 //      Description:
 //        Set DEC lower limit
 //      Information:
-//        Set the lowerlimit for the DEC stepper motor to the current position
+//        Set the lowerlimit for the DEC stepper motor to the current position if no parameter is given, 
+//        otherwise to the given parameter.
+//      Parameters:
+//        "nnnnn" is the number of steps from home that the DEC ring can travel downwards
 //      Returns:
 //        nothing
 //
@@ -1666,11 +1672,25 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             {
                 if (inCmd[3] == 'L')  // :XSDLL
                 {
-                    _mount->setDecLimitPosition(false);
+                    if (inCmd.length() > 4)
+                    {
+                        _mount->setDecLimitPositionAbs(false, inCmd.substring(4).toInt());
+                    }
+                    else
+                    {
+                        _mount->setDecLimitPosition(false);
+                    }
                 }
                 else if (inCmd[3] == 'U')  // :XSDLU
                 {
-                    _mount->setDecLimitPosition(true);
+                    if (inCmd.length() > 4)
+                    {
+                        _mount->setDecLimitPositionAbs(true, inCmd.substring(4).toInt());
+                    }
+                    else
+                    {
+                        _mount->setDecLimitPosition(true);
+                    }
                 }
                 else if (inCmd[3] == 'l')  // :XSDLl
                 {

@@ -1,4 +1,7 @@
-**V1.10.1 - Updates**
+**V1.10.02 - Updates**
+- Add optional parameter to Meade Extension commands :XSDLL# and :XSDLU# to allow direct setting of DEC limits
+
+**V1.10.01 - Updates**
 - fix a bug with "Set Home" on OAM
 
 **V1.10.0 - Updates**
