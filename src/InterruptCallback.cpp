@@ -24,7 +24,6 @@ POP_NO_WARNINGS
 
 #if defined(ESP32)
 
-
 #elif defined __AVR_ATmega2560__
 
 bool InterruptCallback::setInterval(float intervalMs, interrupt_callback_p callback, void *payload)

@@ -1568,7 +1568,9 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
         LOGV2(DEBUG_MOUNT | DEBUG_FOCUS, F("FOCUS: setSpeed() Focuser setSpeed %f"), speedDegsPerSec);
         if (speedDegsPerSec != 0)
         {
-            LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS, F("FOCUS: Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous"), speedDegsPerSec);
+            LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS,
+                  F("FOCUS: Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous"),
+                  speedDegsPerSec);
             enableFocusMotor();
             _stepperFocus->setMaxSpeed(speedDegsPerSec);
             _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
