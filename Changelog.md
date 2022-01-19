@@ -1,5 +1,8 @@
-**V1.10.02 - Updates**
+**V1.10.03 - Updates**
 - Add optional parameter to Meade Extension commands :XSDLL# and :XSDLU# to allow direct setting of DEC limits
+
+**V1.10.02 - Updates**
+- Revise default MKS LCD pins to match ribbon cable LCD assembly.
 
 **V1.10.01 - Updates**
 - fix a bug with "Set Home" on OAM
