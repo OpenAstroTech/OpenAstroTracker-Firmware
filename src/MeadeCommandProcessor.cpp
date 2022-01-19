@@ -1872,57 +1872,57 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (inCmd[0] == '+')  // :F+
     {
-        LOGV1(DEBUG_MEADE, F("Meade: Focus focusContinuousMove IN"));
+        LOGV1(DEBUG_MEADE, F("MEADE: Focus focusContinuousMove IN"));
         _mount->focusContinuousMove(FOCUS_BACKWARD);
     }
     else if (inCmd[0] == '-')  // :F-
     {
-        LOGV1(DEBUG_MEADE, F("Meade: Focus focusContinuousMove OUT"));
+        LOGV1(DEBUG_MEADE, F("MEADE: Focus focusContinuousMove OUT"));
         _mount->focusContinuousMove(FOCUS_FORWARD);
     }
     else if (inCmd[0] == 'M')  // :FMnnnn
     {
         long steps = inCmd.substring(1).toInt();
-        LOGV2(DEBUG_MEADE, F("Meade: Focus move by %l steps"), steps);
+        LOGV2(DEBUG_MEADE, F("MEADE: Focus move by %l steps"), steps);
         _mount->focusMoveBy(steps);
     }
     else if ((inCmd[0] >= '1') && (inCmd[0] <= '4'))  // :F1 - Slowest, F4 fastest
     {
         int speed = inCmd[0] - '0';
-        LOGV2(DEBUG_MEADE, F("Meade: Focus setSpeed %d"), speed);
+        LOGV2(DEBUG_MEADE, F("MEADE: Focus setSpeed %d"), speed);
         _mount->focusSetSpeedByRate(speed);
     }
     else if (inCmd[0] == 'F')  // :FF
     {
-        LOGV1(DEBUG_MEADE, F("Meade: Focus setSpeed fastest"));
+        LOGV1(DEBUG_MEADE, F("MEADE: Focus setSpeed fastest"));
         _mount->focusSetSpeedByRate(4);
     }
     else if (inCmd[0] == 'S')  // :FS
     {
-        LOGV1(DEBUG_MEADE, F("Meade: Focus setSpeed slowest"));
+        LOGV1(DEBUG_MEADE, F("MEADE: Focus setSpeed slowest"));
         _mount->focusSetSpeedByRate(1);
     }
     else if (inCmd[0] == 'p')  // :Fp
     {
-        LOGV1(DEBUG_MEADE, F("Meade: Focus get stepperPosition"));
+        LOGV1(DEBUG_MEADE, F("MEADE: Focus get stepperPosition"));
         long focusPos = _mount->focusGetStepperPosition();
         return String(focusPos) + "#";
     }
     else if (inCmd[0] == 'P')  // :FPnnn
     {
         long steps = inCmd.substring(1).toInt();
-        LOGV2(DEBUG_MEADE, F("Meade: Focus set stepperPosition %d"), steps);
+        LOGV2(DEBUG_MEADE, F("MEADE: Focus set stepperPosition %d"), steps);
         _mount->focusSetStepperPosition(steps);
         return "1";
     }
     else if (inCmd[0] == 'B')  // :FB
     {
-        LOGV1(DEBUG_MEADE, F("Meade: Focus isRunningFocus"));
+        LOGV1(DEBUG_MEADE, F("MEADE: Focus isRunningFocus"));
         return _mount->isRunningFocus() ? "1" : "0";
     }
     else if (inCmd[0] == 'Q')  // :FQ
     {
-        LOGV1(DEBUG_MEADE, F("Meade: Focus stop"));
+        LOGV1(DEBUG_MEADE, F("MEADE: Focus stop"));
         _mount->focusStop();
     }
 #else

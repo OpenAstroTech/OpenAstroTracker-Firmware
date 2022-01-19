@@ -84,7 +84,7 @@ bool processPOIKeys()
                         targetSeconds *= (poi->degreeDEC < 0 ? -1 : 1);
                         mount.targetRA().set(poi->hourRA, poi->minRA, poi->secRA);
                         mount.targetDEC() = Declination::FromSeconds(targetSeconds);
-                        LOGV3(DEBUG_INFO, F("POI: mount target RA  is %s. %ls"), mount.targetRA().ToString(), targetSeconds);
+                        LOGV3(DEBUG_INFO, F("POI: Target RA  is %s. %ls"), mount.targetRA().ToString(), targetSeconds);
                         LOGV3(DEBUG_INFO,
                               F("POI: mount target DEC is %s. %ls"),
                               mount.targetDEC().ToString(),

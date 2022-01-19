@@ -35,7 +35,7 @@ LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
 
 void LcdMenu::startup()
 {
-    LOGV1(DEBUG_INFO, F("LcdMenu:: startup"));
+    LOGV1(DEBUG_INFO, F("LCD: LcdMenu startup"));
 
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
     _lcd.begin(_cols, _rows);

@@ -19,7 +19,7 @@ static uint8_t dummyEepromStorage[EEPROMStore::STORE_SIZE];
 // Initialize the EEPROM object for ESP boards, setting aside storage
 void EEPROMStore::initialize()
 {
-    LOGV2(DEBUG_EEPROM, F("EEPROM[DUMMY]: Startup with %d bytes"), EEPROMStore::STORE_SIZE);
+    LOGV2(DEBUG_EEPROM, F("EEPROM: Dummy: Startup with %d bytes"), EEPROMStore::STORE_SIZE);
     memset(dummyEepromStorage, 0, sizeof(dummyEepromStorage));
 
     displayContents();  // Will always be empty at restart
@@ -28,7 +28,7 @@ void EEPROMStore::initialize()
 // Update the given location with the given value
 void EEPROMStore::update(uint8_t location, uint8_t value)
 {
-    LOGV3(DEBUG_EEPROM, F("EEPROM[DUMMY]: Writing %x to %d"), value, location);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Dummy: Writing %x to %d"), value, location);
     dummyEepromStorage[location] = value;
 }
 
@@ -43,7 +43,7 @@ uint8_t EEPROMStore::read(uint8_t location)
 {
     uint8_t value;
     value = dummyEepromStorage[location];
-    LOGV3(DEBUG_EEPROM, F("EEPROM[DUMMY]: Read %x from %d"), value, location);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Dummy: Read %x from %d"), value, location);
     return value;
 }
 
@@ -52,7 +52,7 @@ uint8_t EEPROMStore::read(uint8_t location)
 // Initialize the EEPROM object for ESP boards, setting aside space for storage
 void EEPROMStore::initialize()
 {
-    LOGV2(DEBUG_EEPROM, F("EEPROM[ESP]: Startup with %d bytes"), STORE_SIZE);
+    LOGV2(DEBUG_EEPROM, F("EEPROM: ESP32: Startup with %d bytes"), STORE_SIZE);
     EEPROM.begin(STORE_SIZE);
 
     displayContents();
@@ -61,14 +61,14 @@ void EEPROMStore::initialize()
 // Update the given location with the given value
 void EEPROMStore::update(uint8_t location, uint8_t value)
 {
-    LOGV3(DEBUG_EEPROM, F("EEPROM[ESP]: Writing %x to %d"), value, location);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: ESP32: Writing %x to %d"), value, location);
     EEPROM.write(location, value);
 }
 
 // Complete the transaction
 void EEPROMStore::commit()
 {
-    LOGV1(DEBUG_EEPROM, F("EEPROM[ESP]: Committing"));
+    LOGV1(DEBUG_EEPROM, F("EEPROM: ESP32: Committing"));
     EEPROM.commit();
 }
 
@@ -77,7 +77,7 @@ uint8_t EEPROMStore::read(uint8_t location)
 {
     uint8_t value;
     value = EEPROM.read(location);
-    LOGV3(DEBUG_EEPROM, F("EEPROM[ESP]: Read %x from %d"), value, location);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: ESP32: Read %x from %d"), value, location);
     return value;
 }
 
@@ -86,7 +86,7 @@ uint8_t EEPROMStore::read(uint8_t location)
 // Initialize the EEPROM storage in a platform-independent abstraction
 void EEPROMStore::initialize()
 {
-    LOGV1(DEBUG_EEPROM, F("EEPROM[Mega]: Startup"));
+    LOGV1(DEBUG_EEPROM, F("EEPROM: ATMega: Startup"));
 
     displayContents();
 }
@@ -94,7 +94,7 @@ void EEPROMStore::initialize()
 // Update the given location with the given value
 void EEPROMStore::update(uint8_t location, uint8_t value)
 {
-    LOGV3(DEBUG_EEPROM, F("EEPROM[Mega]: Writing8 %x to %d"), value, location);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: ATMega: Writing8 %x to %d"), value, location);
     EEPROM.write(location, value);
 }
 
@@ -108,7 +108,7 @@ void EEPROMStore::commit()
 uint8_t EEPROMStore::read(uint8_t location)
 {
     uint8_t value = EEPROM.read(location);
-    LOGV3(DEBUG_EEPROM, F("EEPROM[Mega]: Read8 %x from %d"), value, location);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: ATMega: Read8 %x from %d"), value, location);
     return value;
 }
 
@@ -121,33 +121,32 @@ void EEPROMStore::displayContents()
     uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
     LOGV2(DEBUG_EEPROM, F("EEPROM: Magic Marker: %x"), marker);
 
-    LOGV1(DEBUG_INFO, F("EEPROM: Contents:"));
-    LOGV1(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("  EEPROM has values") : F("  EEPROM does NOT have values"));
+    LOGV1(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("EEPROM: Has values") : F("EEPROM: Does NOT have values"));
     LOGV1(DEBUG_INFO,
-          ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("  EEPROM has extended values") : F("  EEPROM does NOT have extended values"));
+          ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("EEPROM: Has extended values") : F("EEPROM: Does NOT have extended values"));
     if (EEPROMStore::isPresent(EXTENDED_FLAG))
     {
-        LOGV1(DEBUG_INFO, F("  IsPresent(EXTENDED): Yes"));
+        LOGV1(DEBUG_INFO, F("EEPROM: IsPresent(EXTENDED): Yes"));
     }
     else
     {
-        LOGV1(DEBUG_INFO, F("  IsPresent(EXTENDED): No"));
+        LOGV1(DEBUG_INFO, F("EEPROM: IsPresent(EXTENDED): No"));
     }
-    LOGV2(DEBUG_INFO, F("  Stored HATime: %s"), getHATime().ToString());
-    LOGV2(DEBUG_INFO, F("  Stored UTC Offset: %d"), getUtcOffset());
-    LOGV2(DEBUG_INFO, F("  Stored Brightness: %d"), getBrightness());
-    LOGV2(DEBUG_INFO, F("  Stored RA Steps per Degree: %f"), getRAStepsPerDegree());
-    LOGV2(DEBUG_INFO, F("  Stored DEC Steps per Degree: %f"), getDECStepsPerDegree());
-    LOGV2(DEBUG_INFO, F("  Stored Speed Factor: %f"), getSpeedFactor());
-    LOGV2(DEBUG_INFO, F("  Stored Backlash Correction Steps: %d"), getBacklashCorrectionSteps());
-    LOGV2(DEBUG_INFO, F("  Stored Latitude: %s"), getLatitude().ToString());
-    LOGV2(DEBUG_INFO, F("  Stored Longitude: %s"), getLongitude().ToString());
-    LOGV2(DEBUG_INFO, F("  Stored Pitch Calibration Angle: %f"), getPitchCalibrationAngle());
-    LOGV2(DEBUG_INFO, F("  Stored Roll Calibration Angle: %f"), getRollCalibrationAngle());
-    LOGV2(DEBUG_INFO, F("  Stored RA Parking Position: %l"), getRAParkingPos());
-    LOGV2(DEBUG_INFO, F("  Stored DEC Parking Position: %l"), getDECParkingPos());
-    LOGV2(DEBUG_INFO, F("  Stored DEC Lower Limit: %l"), getDECLowerLimit());
-    LOGV2(DEBUG_INFO, F("  Stored DEC Upper Limit: %l"), getDECUpperLimit());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored HATime: %s"), getHATime().ToString());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored UTC Offset: %d"), getUtcOffset());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored Brightness: %d"), getBrightness());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored RA Steps per Degree: %f"), getRAStepsPerDegree());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored DEC Steps per Degree: %f"), getDECStepsPerDegree());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored Speed Factor: %f"), getSpeedFactor());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored Backlash Correction Steps: %d"), getBacklashCorrectionSteps());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored Latitude: %s"), getLatitude().ToString());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored Longitude: %s"), getLongitude().ToString());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored Pitch Calibration Angle: %f"), getPitchCalibrationAngle());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored Roll Calibration Angle: %f"), getRollCalibrationAngle());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored RA Parking Position: %l"), getRAParkingPos());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored DEC Parking Position: %l"), getDECParkingPos());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored DEC Lower Limit: %l"), getDECLowerLimit());
+    LOGV2(DEBUG_INFO, F("EEPROM: Stored DEC Upper Limit: %l"), getDECUpperLimit());
 #endif
 }
 
@@ -410,7 +409,7 @@ void EEPROMStore::storeRAStepsPerDegree(float raStepsPerDegree)
 {
     int32_t val = raStepsPerDegree * 10;  // Store as tenths of degree
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOGV3(DEBUG_EEPROM, "EEPROM: Storing RA steps to %d (%f)", val, raStepsPerDegree);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Storing RA steps to %d (%f)"), val, raStepsPerDegree);
 
     updateInt16(RA_STEPS_DEGREE_ADDR, val);
     updateFlags(RA_STEPS_FLAG);
@@ -441,7 +440,7 @@ void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
 {
     int32_t val = decStepsPerDegree * 10;  // Store as tenths of degree
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOGV3(DEBUG_EEPROM, "EEPROM: Storing DEC steps to %d (%f)", val, decStepsPerDegree);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Storing DEC steps to %d (%f)"), val, decStepsPerDegree);
 
     updateInt16(DEC_STEPS_DEGREE_ADDR, val);
     updateFlags(DEC_STEPS_FLAG);
@@ -475,7 +474,7 @@ void EEPROMStore::storeSpeedFactor(float speedFactor)
     // Store the fractional speed factor since it is a number very close to 1
     int32_t val = (speedFactor - 1.0f) * 10000.0f;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOGV3(DEBUG_EEPROM, "EEPROM: Storing Speed Factor to %d (%f)", val, speedFactor);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Storing Speed Factor to %d (%f)"), val, speedFactor);
 
     // Speed factor bytes are in split locations :-(
     updateUint8(SPEED_FACTOR_LOW_ADDR, val & 0xFF);
@@ -538,7 +537,7 @@ void EEPROMStore::storeLatitude(Latitude const &latitude)
 {
     int32_t val = static_cast<int32_t>(roundf(latitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOGV3(DEBUG_EEPROM, "EEPROM: Storing Latitude as %d (%f)", val, latitude.getTotalHours());
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Storing Latitude as %d (%f)"), val, latitude.getTotalHours());
 
     updateInt16(LATITUDE_ADDR, val);
     updateFlags(LATITUDE_FLAG);
@@ -569,7 +568,7 @@ void EEPROMStore::storeLongitude(Longitude const &longitude)
 {
     int32_t val = static_cast<int32_t>(roundf(longitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOGV3(DEBUG_EEPROM, "EEPROM: Storing Longitude as %d (%f)", val, longitude.getTotalHours());
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Storing Longitude as %d (%f)"), val, longitude.getTotalHours());
 
     updateInt16(LONGITUDE_ADDR, val);
     updateFlags(LONGITUDE_FLAG);
@@ -601,7 +600,7 @@ void EEPROMStore::storePitchCalibrationAngle(float pitchCalibrationAngle)
 {
     int32_t val = (pitchCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOGV3(DEBUG_EEPROM, "EEPROM: Storing Pitch calibration %d (%f)", val, pitchCalibrationAngle);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Storing Pitch calibration %d (%f)"), val, pitchCalibrationAngle);
 
     updateInt16(PITCH_OFFSET_ADDR, val);
     updateFlags(PITCH_OFFSET_FLAG);
@@ -633,7 +632,7 @@ void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
 {
     int32_t val = (rollCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOGV3(DEBUG_EEPROM, "EEPROM: Storing Roll calibration %d (%f)", val, rollCalibrationAngle);
+    LOGV3(DEBUG_EEPROM, F("EEPROM: Storing Roll calibration %d (%f)"), val, rollCalibrationAngle);
 
     updateInt16(ROLL_OFFSET_ADDR, val);
     updateFlags(ROLL_OFFSET_FLAG);
