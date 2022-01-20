@@ -2165,7 +2165,8 @@ void Mount::startSlewing(int direction)
         {
 // Start tracking
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing: Tracking: Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
+            LOGV2(
+                DEBUG_STEPPERS, F("[STEPPERS]: startSlewing: Tracking: Switching RA driver to microsteps(%d)"), RA_TRACKING_MICROSTEPPING);
             _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
 #endif
             _stepperTRK->setSpeed(_trackingSpeed);
