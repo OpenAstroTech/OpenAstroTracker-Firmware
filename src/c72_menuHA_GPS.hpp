@@ -36,7 +36,7 @@ bool gpsAqcuisitionComplete(int &indicator)
         {
     #if DEBUG_LEVEL & DEBUG_GPS
             gpsBuf[gpsBufPos++] = 0;
-            LOGV2(DEBUG_GPS, F("GPS: Sentence: [%s]"), gpsBuf);
+            LOGV2(DEBUG_GPS, F("[GPS]: Sentence: [%s]"), gpsBuf);
             gpsBufPos = 0;
     #endif
 
@@ -48,9 +48,9 @@ bool gpsAqcuisitionComplete(int &indicator)
             // Make sure we got a fix in the last 30 seconds
             if ((gps.location.lng() != 0) && (gps.location.age() < 30000UL))
             {
-                LOGV2(DEBUG_INFO, F("GPS: Sync'd GPS location. Age is %d secs"), gps.location.age() / 1000);
-                LOGV3(DEBUG_INFO, F("GPS: Location: %f  %f"), gps.location.lat(), gps.location.lng());
-                LOGV4(DEBUG_INFO, F("GPS: UTC time is %dh%dm%ds"), gps.time.hour(), gps.time.minute(), gps.time.second());
+                LOGV2(DEBUG_INFO, F("[GPS]: Sync'd GPS location. Age is %d secs"), gps.location.age() / 1000);
+                LOGV3(DEBUG_INFO, F("[GPS]: Location: %f  %f"), gps.location.lat(), gps.location.lng());
+                LOGV4(DEBUG_INFO, F("[GPS]: UTC time is %dh%dm%ds"), gps.time.hour(), gps.time.minute(), gps.time.second());
                 lcdMenu.printMenu("GPS sync'd....");
 
                 DayTime utcNow = DayTime(gps.time.hour(), gps.time.minute(), gps.time.second());
@@ -92,13 +92,13 @@ bool processHAKeys()
     {
         if (gpsAqcuisitionComplete(indicator))
         {
-            LOGV1(DEBUG_INFO, F("HA: GPS acquired"));
+            LOGV1(DEBUG_INFO, F("[HA]: GPS acquired"));
             GPS_SERIAL_PORT.end();
             haState = SHOWING_HA_SYNC;
         #if SUPPORT_GUIDED_STARTUP == 1
             if (startupState == StartupWaitForHACompletion)
             {
-                LOGV1(DEBUG_INFO, F("HA: We were in startup, so confirm HA"));
+                LOGV1(DEBUG_INFO, F("[HA]: We were in startup, so confirm HA"));
                 startupState = StartupHAConfirmed;
                 inStartup    = true;
             }
@@ -109,7 +109,7 @@ bool processHAKeys()
     if (lcdButtons.keyChanged(&key))
     {
         waitForRelease = true;
-        LOGV3(DEBUG_INFO, F("HA: Key %d was pressed in state %d"), key, haState);
+        LOGV3(DEBUG_INFO, F("[HA]: Key %d was pressed in state %d"), key, haState);
         if (haState == SHOWING_HA_SYNC)
         {
             if (key == btnSELECT)
@@ -176,24 +176,24 @@ bool processHAKeys()
 
         if (key == btnRIGHT)
         {
-            LOGV1(DEBUG_INFO, F("HA: Right Key was pressed"));
+            LOGV1(DEBUG_INFO, F("[HA]: Right Key was pressed"));
             if (haState == STARTING_GPS)
             {
-                LOGV1(DEBUG_INFO, F("HA: In GPS Start mode, switching to manual"));
+                LOGV1(DEBUG_INFO, F("[HA]: In GPS Start mode, switching to manual"));
                 GPS_SERIAL_PORT.end();
                 haState = SHOWING_HA_SYNC;
             }
         #if SUPPORT_GUIDED_STARTUP == 1
             else if (startupState == StartupWaitForHACompletion)
             {
-                LOGV1(DEBUG_INFO, F("HA: In Startup, not in GPS Start mode, leaving"));
+                LOGV1(DEBUG_INFO, F("[HA]: In Startup, not in GPS Start mode, leaving"));
                 startupState = StartupHAConfirmed;
                 inStartup    = true;
             }
         #endif
             else
             {
-                LOGV1(DEBUG_INFO, F("HA: leaving HA"));
+                LOGV1(DEBUG_INFO, F("[HA]: leaving HA"));
                 lcdMenu.setNextActive();
             }
         }

@@ -1,3 +1,8 @@
+**V1.10.4 - Updates**
+- Cleaned up logging somewhat
+- Ensured all log messages have a category start word.
+- Ensured all log messages are stored in Flash memory.
+
 **V1.10.3 - Updates**
 - Add optional parameter to Meade Extension commands :XSDLL# and :XSDLU# to allow direct setting of DEC limits
 

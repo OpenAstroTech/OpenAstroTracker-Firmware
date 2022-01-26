@@ -38,7 +38,7 @@ int isInHomePosition        = NO;
 
 void startupIsCompleted()
 {
-    LOGV1(DEBUG_INFO, F("STARTUP: Completed!"));
+    LOGV1(DEBUG_INFO, F("[STARTUP]: Completed!"));
 
     startupState   = StartupCompleted;
     inStartup      = false;
@@ -72,7 +72,7 @@ bool processStartupKeys()
                         {
         #if USE_GYRO_LEVEL == 1
                             startupState = StartupSetRoll;
-                            LOGV1(DEBUG_INFO, F("STARTUP: State is set roll!"));
+                            LOGV1(DEBUG_INFO, F("[STARTUP]: State is set roll!"));
         #else
                             startupState = StartupSetHATime;
         #endif
@@ -102,7 +102,7 @@ bool processStartupKeys()
         case StartupSetRoll:
             {
                 inStartup = false;
-                LOGV1(DEBUG_INFO, F("STARTUP: Switching to CAL menu!"));
+                LOGV1(DEBUG_INFO, F("[STARTUP]: Switching to CAL menu!"));
 
                 lcdMenu.setCursor(0, 0);
                 lcdMenu.printMenu("Level front");
@@ -114,7 +114,7 @@ bool processStartupKeys()
 
         case StartupRollConfirmed:
             {
-                LOGV1(DEBUG_INFO, F("STARTUP: Roll confirmed!"));
+                LOGV1(DEBUG_INFO, F("[STARTUP]: Roll confirmed!"));
                 startupState = StartupSetHATime;
             }
             break;
@@ -123,7 +123,7 @@ bool processStartupKeys()
         case StartupSetHATime:
             {
                 inStartup = false;
-                LOGV1(DEBUG_INFO, F("STARTUP: Switching to HA menu!"));
+                LOGV1(DEBUG_INFO, F("[STARTUP]: Switching to HA menu!"));
 
         #if USE_GPS == 0
                 // Jump to the HA menu

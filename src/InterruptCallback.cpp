@@ -24,53 +24,6 @@ POP_NO_WARNINGS
 
 #if defined(ESP32)
 
-/*
-volatile bool _lock = false;
-
-void IRAM_ATTR callbackProxy() {
-    if (_lock) {
-        return;
-    }
-
-    timerAlarmDisable(_timer);
-    _lock = true;
-    if (func != NULL) {
-        func(data);
-    }
-    _lock = false;
-    timerAlarmEnable(_timer);
-}
-
-bool InterruptCallback::setInterval(float intervalMs, interrupt_callback_p callback, void* payload){
-    func = callback;
-    data = payload;
-
-    // 80 divisor = 1uS resolution.
-    _timer = timerBegin(0, 80, true);
-    timerAttachInterrupt(_timer, callbackProxy, true);
-    timerAlarmWrite(_timer, (uint64_t)(intervalMs * 1000.0f), true);
-    timerAlarmEnable(_timer);
-
-    LOGV1(DEBUG_INFO, F("Setup ESP32 Timer"));
-
-  return true;
-}
-
-void InterruptCallback::stop(){
-    LOGV1(DEBUG_INFO, F("Stop ESP32 Timer"));
-    if (timerAlarmEnabled(_timer)) {
-        timerAlarmDisable(_timer);
-    }
-}
-
-void InterruptCallback::start(){
-    LOGV1(DEBUG_INFO, F("Start ESP32 Timer"));
-    if (!timerAlarmEnabled(_timer)){
-        timerAlarmEnable(_timer);
-    }
-}
-*/
-
 #elif defined __AVR_ATmega2560__
 
 bool InterruptCallback::setInterval(float intervalMs, interrupt_callback_p callback, void *payload)

@@ -87,7 +87,7 @@ void processManualSlew(lcdButton_t key)
     const bool directionInTable = directionLookup.tryGet(key, &slewDirection);
     if (!directionInTable)
     {
-        LOGV2(DEBUG_MOUNT, F("Unknown LCD button value: %i"), key);
+        LOGV2(DEBUG_MOUNT, F("[SYSTEM]: Unknown LCD button value: %i"), key);
         return;
     }
 
@@ -152,10 +152,10 @@ bool processControlKeys()
                     if (setZeroPoint)
                     {
                         // Leaving Control Menu, so set stepper motor positions to zero.
-                        LOGV1(DEBUG_GENERAL, F("CTRL menu: Calling setHome(true)!"));
+                        LOGV1(DEBUG_GENERAL, F("[CTRL]: Calling setHome(true)!"));
                         mount.setHome(true);
                         LOGV3(DEBUG_GENERAL,
-                              F("CTRL menu: setHome(true) returned: RA Current %s, Target: %f"),
+                              F("CTRL: setHome(true) returned: RA Current %s, Target: %f"),
                               mount.RAString(CURRENT_STRING | COMPACT_STRING).c_str(),
                               mount.RAString(TARGET_STRING | COMPACT_STRING).c_str());
                         mount.startSlewing(TRACKING);

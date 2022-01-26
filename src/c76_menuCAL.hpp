@@ -223,14 +223,14 @@ bool processCalibrationKeys()
         #if USE_GYRO_LEVEL == 1
     if (!gyroStarted)
     {
-        LOGV1(DEBUG_INFO, F("CAL: Starting Gyro!"));
+        LOGV1(DEBUG_INFO, F("[CAL]: Starting Gyro!"));
         Gyro::startup();
         gyroStarted = true;
     }
 
     if ((startupState == StartupWaitForRollCompletion) && (calState != ROLL_OFFSET_CALIBRATION))
     {
-        LOGV1(DEBUG_INFO, F("CAL: In Startup, so going to Roll confirm!"));
+        LOGV1(DEBUG_INFO, F("[CAL]: In Startup, so going to Roll confirm!"));
         calState = ROLL_OFFSET_CALIBRATION;
     }
         #endif
@@ -310,7 +310,7 @@ bool processCalibrationKeys()
             lcdMenu.getBacklightBrightnessRange(&minBrightness, &maxBrightness);
             Brightness = clamp(Brightness, minBrightness, maxBrightness);
             lcdMenu.setBacklightBrightness(Brightness, false);
-            LOGV2(DEBUG_INFO, F("CAL: Brightness set %i"), lcdMenu.getBacklightBrightness());
+            LOGV2(DEBUG_INFO, F("[CAL]: Brightness set %i"), lcdMenu.getBacklightBrightness());
         }
     }
     else if (calState == POLAR_CALIBRATION_WAIT_HOME)
@@ -540,7 +540,7 @@ bool processCalibrationKeys()
                     {
                         if (startupState == StartupWaitForRollCompletion)
                         {
-                            LOGV1(DEBUG_INFO, F("CAL: Confirmed roll. Going back to Startup, Roll confirmed!"));
+                            LOGV1(DEBUG_INFO, F("[CAL]: Confirmed roll. Going back to Startup, Roll confirmed!"));
                             gotoNextMenu();  // Turns of Gyro
                             inStartup    = true;
                             startupState = StartupRollConfirmed;
@@ -579,13 +579,13 @@ bool processCalibrationKeys()
                         auto angles = Gyro::getCurrentAngles();
                         if (setRollZeroPoint)
                         {
-                            LOGV2(DEBUG_GYRO, "CAL: Confirmed Roll offset is %f", angles.rollAngle);
+                            LOGV2(DEBUG_GYRO, F("[CAL]: Confirmed Roll offset is %f"), angles.rollAngle);
                             mount.setRollCalibrationAngle(angles.rollAngle);
-                            LOGV2(DEBUG_GYRO, "CAL: New Roll offset is %f", mount.getRollCalibrationAngle());
+                            LOGV2(DEBUG_GYRO, F("[CAL]: New Roll offset is %f"), mount.getRollCalibrationAngle());
                         }
                         else
                         {
-                            LOGV2(DEBUG_GYRO, "CAL: Did not confirm, Roll offset was %f", angles.rollAngle);
+                            LOGV2(DEBUG_GYRO, F("[CAL]: Did not confirm, Roll offset was %f"), angles.rollAngle);
                         }
                         calState       = HIGHLIGHT_ROLL_LEVEL;
                         okToUpdateMenu = true;
@@ -625,12 +625,12 @@ bool processCalibrationKeys()
                         auto angles = Gyro::getCurrentAngles();
                         if (setPitchZeroPoint)
                         {
-                            LOGV2(DEBUG_GYRO, "CAL: Confirmed Pitch offset is %f", angles.pitchAngle);
+                            LOGV2(DEBUG_GYRO, F("[CAL]: Confirmed Pitch offset is %f"), angles.pitchAngle);
                             mount.setPitchCalibrationAngle(angles.pitchAngle);
                         }
                         else
                         {
-                            LOGV2(DEBUG_GYRO, "CAL: Did not confirm, Pitch offset was %f", angles.pitchAngle);
+                            LOGV2(DEBUG_GYRO, F("[CAL]: Did not confirm, Pitch offset was %f"), angles.pitchAngle);
                         }
                         calState       = HIGHLIGHT_PITCH_LEVEL;
                         okToUpdateMenu = true;
@@ -649,7 +649,7 @@ bool processCalibrationKeys()
                     // UP and DOWN are handled above
                     if (key == btnSELECT)
                     {
-                        LOGV2(DEBUG_GENERAL, F("CAL Menu: Set brightness to %d"), Brightness);
+                        LOGV2(DEBUG_GENERAL, F("[CAL]: Set brightness to %d"), Brightness);
                         lcdMenu.setBacklightBrightness(Brightness);
                         lcdMenu.printMenu("Level stored.");
                         mount.delay(500);
