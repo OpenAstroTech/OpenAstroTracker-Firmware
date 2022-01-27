@@ -3691,8 +3691,10 @@ DayTime Mount::calculateHa()
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::testRA_UART_TX()
 {
-    int _speed = (RA_STEPPER_SPEED / 2) / 0.715255737f;  //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
-    int _duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerRADegree / (RA_STEPPER_SPEED / 2)) * 1000;    //Duration in ms to move X degrees at half of the max speed
+    int _speed = (RA_STEPPER_SPEED / 2)
+                 / 0.715255737f;  //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
+    int _duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerRADegree / (RA_STEPPER_SPEED / 2))
+                    * 1000;  //Duration in ms to move X degrees at half of the max speed
     testUART_vactual(_driverRA, _speed, _duration);
 }
     #endif
@@ -3700,15 +3702,17 @@ void Mount::testRA_UART_TX()
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::testDEC_UART_TX()
 {
-    int _speed = (DEC_STEPPER_SPEED / 2) / 0.715255737f;  //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
-    int _duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerDECDegree / (DEC_STEPPER_SPEED / 2)) * 1000;    //Duration in ms to move X degrees at half of the max speed
+    int _speed = (DEC_STEPPER_SPEED / 2)
+                 / 0.715255737f;  //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
+    int _duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerDECDegree / (DEC_STEPPER_SPEED / 2))
+                    * 1000;  //Duration in ms to move X degrees at half of the max speed
     testUART_vactual(_driverDEC, _speed, _duration);
 }
     #endif
 
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration) 
-{ //Runs motor at specified speed for specified duration in each dirction, allowing 0.5s to stop motion after each move
+void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
+{  //Runs motor at specified speed for specified duration in each dirction, allowing 0.5s to stop motion after each move
     driver->VACTUAL(_speed);
     delay(_duration);
     driver->VACTUAL(0);
