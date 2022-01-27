@@ -10,32 +10,87 @@ class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
 
-#define NORTH                      B00000001
-#define EAST                       B00000010
-#define SOUTH                      B00000100
-#define WEST                       B00001000
-#define ALL_DIRECTIONS             B00001111
-#define TRACKING                   B00010000
+#define NORTH          B00000001
+#define EAST           B00000010
+#define SOUTH          B00000100
+#define WEST           B00001000
+#define ALL_DIRECTIONS B00001111
+#define TRACKING       B00010000
+#define FOCUSING       B00100000
 
-#define LCDMENU_STRING      B0001
-#define MEADE_STRING        B0010
-#define PRINT_STRING        B0011
-#define LCD_STRING          B0100
-#define COMPACT_STRING      B0101
-#define FORMAT_STRING_MASK  B0111
+#define LCDMENU_STRING     B0001
+#define MEADE_STRING       B0010
+#define PRINT_STRING       B0011
+#define LCD_STRING         B0100
+#define COMPACT_STRING     B0101
+#define FORMAT_STRING_MASK B0111
 
-#define TARGET_STRING      B01000
-#define CURRENT_STRING     B10000
+#define TARGET_STRING  B01000
+#define CURRENT_STRING B10000
 
-#define RA_STEPS  1
-#define DEC_STEPS 2
-#define AZIMUTH_STEPS 5
-#define ALTITUDE_STEPS 6
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+enum HomingState
+{
+    HOMING_MOVE_OFF,
+    HOMING_MOVING_OFF,
+    HOMING_STOP_AT_TIME,
+    HOMING_WAIT_FOR_STOP,
+    HOMING_START_FIND_START,
+    HOMING_FINDING_START,
+    HOMING_FINDING_START_REVERSE,
+    HOMING_FINDING_END,
+    HOMING_RANGE_FOUND,
+    HOMING_FAILED,
+    HOMING_SUCCESSFUL,
+
+    HOMING_NOT_ACTIVE
+};
+
+    #define HOMING_START_PIN_POSITION 0
+    #define HOMING_END_PIN_POSITION   1
+
+struct HomingData {
+    HomingState state;
+    HomingState nextState;
+    int pinState;
+    int lastPinState;
+    int savedRate;
+    int initialDir;
+    int searchDistance;
+    long position[2];
+    long offsetRA;
+    long startPos;
+    unsigned long stopAt;
+};
+#endif
+
+enum StepperAxis
+{
+    RA_STEPS,
+    DEC_STEPS,
+    AZIMUTH_STEPS,
+    ALTITUDE_STEPS,
+    FOCUS_STEPS
+};
 
 struct LocalDate {
-  int year;
-  int month;
-  int day;
+    int year;
+    int month;
+    int day;
+};
+
+// Focuser support
+enum FocuserMode
+{
+    FOCUS_IDLE,
+    FOCUS_TO_TARGET,
+    FOCUS_CONTINUOUS,
+};
+
+enum FocuserDirection
+{
+    FOCUS_BACKWARD = -1,
+    FOCUS_FORWARD  = 1
 };
 
 //////////////////////////////////////////////////////////////////
@@ -43,411 +98,486 @@ struct LocalDate {
 // Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
 //
 //////////////////////////////////////////////////////////////////
-class Mount {
-public:
-  Mount(LcdMenu* lcdMenu);
+class Mount
+{
+  public:
+    Mount(LcdMenu *lcdMenu);
 
-  void initializeVariables();
+    void initializeVariables();
 
-  static Mount instance();
+    static Mount instance();
 
-  // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
-#if RA_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    void configureRAStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-#endif
-#if RA_STEPPER_TYPE == STEPPER_TYPE_NEMA17
+    // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
     void configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-#endif
 
-  // Configure the DEC stepper motor.
-#if DEC_STEPPER_TYPE == STEPPER_TYPE_28BYJ48
-    void configureDECStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-#endif
-#if DEC_STEPPER_TYPE == STEPPER_TYPE_NEMA17
+    // Configure the DEC stepper motor.
     void configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-#endif
 
-// Configure the AZ/ALT stepper motors.
-#if AZIMUTH_ALTITUDE_MOTORS == 1
-  #if AZ_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    void configureAZStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-  #elif AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+// Configure the AZ stepper motors.
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     void configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-  #endif
-  #if ALT_DRIVER_TYPE == DRIVER_TYPE_ULN2003
-    void configureALTStepper(byte pin1, byte pin2, byte pin3, byte pin4, int maxSpeed, int maxAcceleration);
-  #elif ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-  #endif
 #endif
 
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-  bool connectToDriver( TMC2209Stepper* driver, const char *driverKind );
+// Configure the ALT stepper motors.
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    void configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+#endif
+
+// Configure the Focus stepper motors.
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+#endif
+
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
+    || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
+    || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    bool connectToDriver(TMC2209Stepper *driver, const char *driverKind);
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-// Configure the RA Driver (TMC2209 UART only)
-  #if SW_SERIAL_UART == 0
+        // Configure the RA Driver (TMC2209 UART only)
+    #if SW_SERIAL_UART == 0
     void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
-  #elif SW_SERIAL_UART == 1
+    #elif SW_SERIAL_UART == 1
     void configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
-  #endif
+    #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-  // Configure the DEC Driver (TMC2209 UART only)
-  #if SW_SERIAL_UART == 0
+    // Configure the DEC Driver (TMC2209 UART only)
+    #if SW_SERIAL_UART == 0
     void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
-  #elif SW_SERIAL_UART == 1
+    #elif SW_SERIAL_UART == 1
     void configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
-  #endif
+    #endif
 #endif
 
-
-// Configure the AZ/ALT drivers.
-#if AZIMUTH_ALTITUDE_MOTORS == 1
-  #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #if SW_SERIAL_UART == 0
-      void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
-    #elif SW_SERIAL_UART == 1
-      void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+// Configure the AZ driver.
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #if SW_SERIAL_UART == 0
+    void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+        #elif SW_SERIAL_UART == 1
+    void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+        #endif
     #endif
-  #endif
-  #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #if SW_SERIAL_UART == 0
-      void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
-    #elif SW_SERIAL_UART == 1
-      void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
-    #endif
-  #endif
 #endif
-  
-  // Get the current RA tracking speed factor
-  float getSpeedCalibration();
 
-  // Set the current RA tracking speed factor
-  void setSpeedCalibration(float val, bool saveToStorage);
+// Configure the ALT driver.
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #if SW_SERIAL_UART == 0
+    void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+        #elif SW_SERIAL_UART == 1
+    void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+        #endif
+    #endif
+#endif
+
+// Configure the Focus driver.
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #if SW_SERIAL_UART == 0
+    void configureFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+        #elif SW_SERIAL_UART == 1
+    void configureFocusDriver(uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
+        #endif
+    #endif
+#endif
+
+    // Get the current RA tracking speed factor
+    float getSpeedCalibration();
+
+    // Set the current RA tracking speed factor
+    void setSpeedCalibration(float val, bool saveToStorage);
 
 #if USE_GYRO_LEVEL == 1
-  // Get the current pitch angle calibraton
-  float getPitchCalibrationAngle();
+    // Get the current pitch angle calibraton
+    float getPitchCalibrationAngle();
 
-  // Set the current pitch angle calibration
-  void setPitchCalibrationAngle(float angle);
+    // Set the current pitch angle calibration
+    void setPitchCalibrationAngle(float angle);
 
-  // Get the current roll angle calibration
-  float getRollCalibrationAngle();
+    // Get the current roll angle calibration
+    float getRollCalibrationAngle();
 
-  // Set the current pitch angle calibration
-  void setRollCalibrationAngle(float angle);
+    // Set the current pitch angle calibration
+    void setRollCalibrationAngle(float angle);
 #endif
 
-  // Returns the number of slew microsteps the given motor turns to move one degree
-  float getStepsPerDegree(int which);
+    // Returns the number of slew microsteps the given motor turns to move one degree
+    float getStepsPerDegree(StepperAxis which);
 
-  // Function to set the number of slew microsteps the given motor turns to move one 
-  // degree for each axis. This function stores the value in persistent storage
-  void setStepsPerDegree(int which, float steps);
+    // Function to set the number of slew microsteps the given motor turns to move one
+    // degree for each axis. This function stores the value in persistent storage
+    void setStepsPerDegree(StepperAxis which, float steps);
 
-  // Sets the slew rate of the mount. rate is between 1 (slowest) and 4 (fastest)
-  void setSlewRate(int rate);
+    // Sets the slew rate of the mount. rate is between 1 (slowest) and 4 (fastest)
+    void setSlewRate(int rate);
 
-  // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
-  void setHA(const DayTime& haTime);
-  const DayTime HA() const;
+    // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
+    void setHA(const DayTime &haTime);
+    const DayTime HA() const;
 
-  // Set the LST time (HA is derived from LST)
-  void setLST(const DayTime& haTime);
-  const DayTime& LST() const;
+    // Set the LST time (HA is derived from LST)
+    void setLST(const DayTime &haTime);
+    const DayTime &LST() const;
 
-  void setLatitude(Latitude lat);
-  void setLongitude(Longitude lon);
-  const Latitude latitude() const;
-  const Longitude longitude() const;
+    void setLatitude(Latitude lat);
+    void setLongitude(Longitude lon);
+    const Latitude latitude() const;
+    const Longitude longitude() const;
 
-  // Get a reference to the target RA value.
-  DayTime& targetRA();
+    // Get a reference to the target RA value.
+    DayTime &targetRA();
 
-  // Get a reference to the target DEC value.
-  Declination& targetDEC();
+    // Get a reference to the target DEC value.
+    Declination &targetDEC();
 
-  // Get current RA value.
-  const DayTime currentRA() const;
+    // Get current RA value.
+    const DayTime currentRA() const;
 
-  // Get current DEC value.
-  const Declination currentDEC() const;
+    // Get current DEC value.
+    const Declination currentDEC() const;
 
-  // Set the current RA and DEC position to be the given coordinates
-  void syncPosition(DayTime ra, Declination dec);
+    // Set the current RA and DEC position to be the given coordinates
+    void syncPosition(DayTime ra, Declination dec);
 
-  // Calculates movement parameters and program steppers to move
-  // there. Must call loop() frequently to actually move.
-  void startSlewingToTarget();
+    void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
 
-  // Various status query functions
-  bool isSlewingDEC() const;
-  bool isSlewingRA() const;
-  bool isSlewingRAorDEC() const;
-  bool isSlewingIdle() const;
-  bool isSlewingTRK() const;
-  bool isParked() const;
-  bool isParking() const;
-  bool isGuiding() const;
-  bool isFindingHome() const;
-  #if AZIMUTH_ALTITUDE_MOTORS == 1
-  bool isRunningAZ() const;
-  bool isRunningALT() const;
-  void getAltAzPositions(long * altSteps, long* azSteps, float* altDelta, float*  azDelta);
-  #endif
+    // Calculates movement parameters and program steppers to move
+    // there. Must call loop() frequently to actually move.
+    void startSlewingToTarget();
 
-  // Starts manual slewing in one of eight directions or tracking
-  void startSlewing(int direction);
+    // Various status query functions
+    bool isSlewingDEC() const;
+    bool isSlewingRA() const;
+    bool isSlewingRAorDEC() const;
+    bool isSlewingIdle() const;
+    bool isSlewingTRK() const;
+    bool isParked() const;
+    bool isParking() const;
+    bool isGuiding() const;
+    bool isFindingHome() const;
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    bool isRunningAZ() const;
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    bool isRunningALT() const;
+#endif
 
-  // Stop manual slewing in one of two directions or tracking. NS is the same. EW is the same
-  void stopSlewing(int direction);
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    bool isRunningFocus() const;
+    float getFocusSpeed() const;
+#endif
 
-  // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
-  void waitUntilStopped(byte direction);
+    // Starts manual slewing in one of eight directions or tracking
+    void startSlewing(int direction);
 
-  // Same as Arduino delay() but keeps the tracker going.
-  void delay(int ms);
+    // Stop manual slewing in one of two directions or tracking. NS is the same. EW is the same
+    void stopSlewing(int direction);
 
-  // Gets the position in one of eight directions or tracking
-  long getCurrentStepperPosition(int direction);
+    // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
+    void waitUntilStopped(byte direction);
 
-  // Process any stepper movement. 
-  void loop();
+    // Same as Arduino delay() but keeps the tracker going.
+    void delay(int ms);
 
-  // Low-leve process any stepper movement on interrupt callback.
-  void interruptLoop();
+    // Gets the position in one of eight directions or tracking
+    long getCurrentStepperPosition(int direction);
 
-  // Set RA and DEC to the home position
-  void setTargetToHome();
+    // Process any stepper movement.
+    void loop();
 
-  // Asynchronously slews the mount to the home position 
-  void goHome();
+    // Low-leve process any stepper movement on interrupt callback.
+    void interruptLoop();
 
-  // Set the current stepper positions to be home.
-  void setHome(bool clearZeroPos);
-  
-  // Set the current stepper positions to be parking position.
-  void setParkingPosition();
+    // Set RA and DEC to the home position
+    void setTargetToHome();
 
-  // Set the DEC limit position to the current stepper position. If upper is true, sets the upper limit, else the lower limit.
-  void setDecLimitPosition(bool upper); 
-  
-  // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
-  void clearDecLimitPosition(bool upper);
+    // Asynchronously slews the mount to the home position
+    void goHome();
 
-  // Get the DEC limit positions
-  void getDecLimitPositions(long & lowerLimit, long & upperLimit);
+    // Set the current stepper positions to be home.
+    void setHome(bool clearZeroPos);
 
-  // Auto Home with TMC2209 UART
-  #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    // Set the current stepper positions to be parking position.
+    void setParkingPosition();
+
+    // Get and set the offset from home to the parking position for DEC.
+    long getDecParkingOffset();
+    void setDecParkingOffset(long offset);
+
+    // Set the DEC limit position to the current stepper position. If upper is true, sets the upper limit, else the lower limit.
+    void setDecLimitPosition(bool upper);
+
+    // Set the DEC limit position to the given position. If upper is true, sets the upper limit, else the lower limit.
+    void setDecLimitPositionAbs(bool upper, long stepperPos);
+
+    // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
+    void clearDecLimitPosition(bool upper);
+
+    // Get the DEC limit positions
+    void getDecLimitPositions(long &lowerLimit, long &upperLimit);
+
+// Auto Home with TMC2209 UART
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     void startFindingHomeRA();
     void startFindingHomeDEC();
     void finishFindingHomeRA();
     void finishFindingHomeDEC();
-  #endif
-
-  // Asynchronously parks the mount. Moves to the home position and stops all motors. 
-  void park();
-
-  // Runs the RA motor at twice the speed (or stops it), or the DEC motor at tracking speed for the given duration in ms.
-  void guidePulse(byte direction, int duration);
-
-  // Stops any guide operation in progress.
-  void stopGuiding();
-
-  // Stops given guide operations in progress.
-  void stopGuiding(bool ra, bool dec);
-
-  // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
-  String DECString(byte type, byte active = 0);
-
-  // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
-  String RAString(byte type, byte active = 0);
-
-  // Returns a comma-delimited string with all the mounts' information
-  String getStatusString();
-
-  // Get the current speed of the stepper. NORTH, WEST, TRACKING
-  float getSpeed(int direction);
-
-  // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
-  void displayStepperPositionThrottled();
-
-  // Runs a phase of the drift alignment procedure
-  void runDriftAlignmentPhase(int direction, int durationSecs);
-
-  // Toggle the state where we run the motors at a constant speed
-  void setManualSlewMode(bool state);
-
-  // Set the speed of the given motor
-  void setSpeed(int which, float speedDegsPerSec);
-
-#if AZIMUTH_ALTITUDE_MOTORS == 1
-  // Support for moving the mount in azimuth and altitude (requires extra hardware)
-  void moveBy(int direction, float arcMinutes);
-  void disableAzAltMotors();
-  void enableAzAltMotors();
 #endif
 
-  // Set the number of steps to use for backlash correction
-  void setBacklashCorrection(int steps);
+    // Asynchronously parks the mount. Moves to the home position and stops all motors.
+    void park();
 
-  // Get the number of steps to use for backlash correction
-  int getBacklashCorrection();
-  
-  // Read the saved configuration from persistent storage
-  void readConfiguration();
+    // Runs the RA motor at twice the speed (or stops it), or the DEC motor at tracking speed for the given duration in ms.
+    void guidePulse(byte direction, int duration);
 
-  // Clear all saved configuration data from persistent storage
-  void clearConfiguration();
+    // Stops any guide operation in progress.
+    void stopGuiding();
 
-  // Get Mount configuration data
-  String getMountHardwareInfo();
+    // Stops given guide operations in progress.
+    void stopGuiding(bool ra, bool dec);
 
-  // Get info about the configured steppers and drivers
-  String getStepperInfo();
+    // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
+    String DECString(byte type, byte active = 0);
 
-  // Returns a flag indicating whether the mount is fully booted.
-  bool isBootComplete();
+    // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
+    String RAString(byte type, byte active = 0);
 
-  // Let the mount know that the system has finished booting
-  void bootComplete();
+    // Returns a comma-delimited string with all the mounts' information
+    String getStatusString();
 
-  DayTime getUtcTime();
-  DayTime getLocalTime();
-  LocalDate getLocalDate();
+    // Get the current speed of the stepper. NORTH, WEST, TRACKING
+    float getSpeed(int direction);
 
-  int getLocalUtcOffset() const;
+    // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
+    void displayStepperPositionThrottled();
 
-  void setLocalStartDate( int year, int month, int day );
-  void setLocalStartTime( DayTime localTime );
-  void setLocalUtcOffset( int offset );
+    // Runs a phase of the drift alignment procedure
+    void runDriftAlignmentPhase(int direction, int durationSecs);
 
-  DayTime calculateLst();
-  DayTime calculateHa();
-  
-  #if UART_CONNECTION_TEST_TX == 1
-  void testRA_UART_TX();
-  void testDEC_UART_TX();
-  #endif
-private:
+    // Toggle the state where we run the motors at a constant speed
+    void setManualSlewMode(bool state);
 
-  #if UART_CONNECTION_TEST_TX == 1
-  void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
-  #endif
+    // Set the speed of the given motor
+    void setSpeed(StepperAxis which, float speedDegsPerSec);
 
-  // Reads values from EEPROM that configure the mount (if previously stored)
-  void readPersistentData();
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    // Support for moving the mount in azimuth and altitude (requires extra hardware)
+    void moveBy(int direction, float arcMinutes);
+    void disableAzAltMotors();
+    void enableAzAltMotors();
+#endif
 
-  // Writes a 16-bit value to persistent (EEPROM) storage
-  void writePersistentData(int which, long val);
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    // Support for focus motor (requires extra hardware)
+    void focusSetSpeedByRate(int rate);
+    void focusContinuousMove(FocuserDirection direction);
+    void focusMoveBy(long steps);
+    long focusGetStepperPosition();
+    void focusSetStepperPosition(long steps);
+    void disableFocusMotor();
+    void enableFocusMotor();
+    void focusStop();
+#endif
 
-  void calculateRAandDECSteppers(long& targetRASteps, long& targetDECSteps) const;
-  void displayStepperPosition();
-  void moveSteppersTo(float targetRA, float targetDEC);
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    bool findRAHomeByHallSensor(int initialDirection, int searchDistance);
+    void processRAHomingProgress();
+#endif
+    void setHomingOffset(StepperAxis axis, long offset);
+    long getHomingOffset(StepperAxis axis);
 
-  // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
-  byte slewStatus() const;
+    // Move the given stepper motor by the given amount of steps.
+    void moveStepperBy(StepperAxis which, long steps);
 
-  // What is the state of the mount. 
-  // Returns some combination of these flags: STATUS_PARKED, STATUS_SLEWING, STATUS_SLEWING_TO_TARGET, STATUS_SLEWING_FREE, STATUS_TRACKING, STATUS_PARKING
-  byte mountStatus();
+    // Set the number of steps to use for backlash correction
+    void setBacklashCorrection(int steps);
 
-  #if DEBUG_LEVEL&(DEBUG_MOUNT|DEBUG_MOUNT_VERBOSE)
+    // Get the number of steps to use for backlash correction
+    int getBacklashCorrection();
+
+    // Read the saved configuration from persistent storage
+    void readConfiguration();
+
+    // Clear all saved configuration data from persistent storage
+    void clearConfiguration();
+
+    // Get Mount configuration data
+    String getMountHardwareInfo();
+
+    // Get info about the configured steppers and drivers
+    String getStepperInfo();
+
+    // Returns a flag indicating whether the mount is fully booted.
+    bool isBootComplete();
+
+    // Let the mount know that the system has finished booting
+    void bootComplete();
+
+    DayTime getUtcTime();
+    DayTime getLocalTime();
+    LocalDate getLocalDate();
+
+    int getLocalUtcOffset() const;
+
+    void setLocalStartDate(int year, int month, int day);
+    void setLocalStartTime(DayTime localTime);
+    void setLocalUtcOffset(int offset);
+
+    DayTime calculateLst();
+    DayTime calculateHa();
+
+#if UART_CONNECTION_TEST_TX == 1
+    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void testRA_UART_TX();
+    #endif
+    #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void testDEC_UART_TX();
+    #endif
+#endif
+  private:
+#if UART_CONNECTION_TEST_TX == 1
+    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
+    #endif
+#endif
+
+    // Reads values from EEPROM that configure the mount (if previously stored)
+    void readPersistentData();
+
+    // Writes a 16-bit value to persistent (EEPROM) storage
+    void writePersistentData(int which, long val);
+
+    void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
+    void displayStepperPosition();
+    void moveSteppersTo(float targetRA, float targetDEC);
+
+    // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
+    byte slewStatus() const;
+
+    // What is the state of the mount.
+    // Returns some combination of these flags: STATUS_PARKED, STATUS_SLEWING, STATUS_SLEWING_TO_TARGET, STATUS_SLEWING_FREE, STATUS_TRACKING, STATUS_PARKING
+    byte mountStatus();
+
+#if DEBUG_LEVEL & (DEBUG_MOUNT | DEBUG_MOUNT_VERBOSE)
     String mountStatusString();
-  #endif
+#endif
 
-  void autoCalcHa();
+    void autoCalcHa();
 
-private:
-  LcdMenu* _lcdMenu;
-  float _stepsPerRADegree;    // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
-  float _stepsPerDECDegree;   // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
-  int _maxRASpeed;
-  int _maxDECSpeed;
-  int _maxAZSpeed;
-  int _maxALTSpeed;
-  int _maxRAAcceleration;
-  int _maxDECAcceleration;
-  int _maxAZAcceleration;
-  int _maxALTAcceleration;
-  int _backlashCorrectionSteps;
-  int _moveRate;
-  long _raParkingPos;     // Parking position in slewing steps
-  long _decParkingPos;    // Parking position in slewing steps
-  long _decLowerLimit;    // Movement limit in slewing steps
-  long _decUpperLimit;    // Movement limit in slewing steps
+  private:
+    LcdMenu *_lcdMenu;
+    float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
+    float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
+    int _maxRASpeed;
+    int _maxDECSpeed;
+    int _maxAZSpeed;
+    int _maxALTSpeed;
+    int _maxFocusSpeed;
+    int _maxRAAcceleration;
+    int _maxDECAcceleration;
+    int _maxAZAcceleration;
+    int _maxALTAcceleration;
+    int _maxFocusAcceleration;
+    int _backlashCorrectionSteps;
+    int _moveRate;
+    long _raParkingPos;   // Parking position in slewing steps
+    long _decParkingPos;  // Parking position in slewing steps
+    long _decLowerLimit;  // Movement limit in slewing steps
+    long _decUpperLimit;  // Movement limit in slewing steps
 
 #if USE_GYRO_LEVEL == 1
-  float _pitchCalibrationAngle;
-  float _rollCalibrationAngle;
+    float _pitchCalibrationAngle;
+    float _rollCalibrationAngle;
 #endif
 
-  long _lastHASet;
-  DayTime _LST;
-  DayTime _zeroPosRA;
+    long _lastHASet;
+    DayTime _LST;
+    DayTime _zeroPosRA;
 
-  DayTime _targetRA;
-  long _currentRAStepperPosition;
+    DayTime _targetRA;
+    long _currentRAStepperPosition;
 
-  Declination _targetDEC;
-  long _currentDECStepperPosition;
+    Declination _targetDEC;
+    long _currentDECStepperPosition;
 
-  float _totalDECMove;
-  float _totalRAMove;
-  Latitude _latitude;
-  Longitude _longitude;
+    float _totalDECMove;
+    float _totalRAMove;
+    Latitude _latitude;
+    Longitude _longitude;
 
-  // Stepper control for RA, DEC and TRK.
-  AccelStepper* _stepperRA;
-  AccelStepper* _stepperDEC;
-  AccelStepper* _stepperTRK;
-  AccelStepper* _stepperGUIDE;
-  #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    TMC2209Stepper* _driverRA;
-  #endif  
-  #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    TMC2209Stepper* _driverDEC;
-  #endif  
+    // Stepper control for RA, DEC and TRK.
+    AccelStepper *_stepperRA;
+    AccelStepper *_stepperDEC;
+    AccelStepper *_stepperTRK;
+    AccelStepper *_stepperGUIDE;
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    TMC2209Stepper *_driverRA;
+#endif
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    TMC2209Stepper *_driverDEC;
+#endif
 
-  #if AZIMUTH_ALTITUDE_MOTORS == 1
-    AccelStepper* _stepperAZ;
-    AccelStepper* _stepperALT;
-    const long _stepsPerAZDegree;    // u-steps/degree (from CTOR)
-    const long _stepsPerALTDegree;   // u-steps/degree (from CTOR)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _azAltWasRunning;
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      TMC2209Stepper* _driverAZ;
-    #endif 
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-      TMC2209Stepper* _driverALT;
-    #endif 
-  #endif
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    AccelStepper *_stepperAZ;
+    const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
+        #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    TMC2209Stepper *_driverAZ;
+        #endif
+    #endif
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    AccelStepper *_stepperALT;
+    const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
+        #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    TMC2209Stepper *_driverALT;
+        #endif
+    #endif
+#endif
 
-  unsigned long _guideRaEndTime;
-  unsigned long _guideDecEndTime;
-  unsigned long _lastMountPrint = 0;
-  unsigned long _lastTrackingPrint = 0;
-  float _trackingSpeed;                 // RA u-steps/sec when in tracking mode
-  float _trackingSpeedCalibration;      // Dimensionless, very close to 1.0
-  unsigned long _lastDisplayUpdate;
-  unsigned long _trackerStoppedAt;
-  bool _compensateForTrackerOff;
-  volatile int _mountStatus;
-  char scratchBuffer[24];
-  bool _stepperWasRunning;
-  bool _correctForBacklash;
-  bool _slewingToHome;
-  bool _slewingToPark;
-  bool _bootComplete;
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    bool _focuserWasRunning  = false;
+    FocuserMode _focuserMode = FOCUS_IDLE;
+    float _maxFocusRateSpeed;
+    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    AccelStepper *_stepperFocus;
+    int _focusRate;
+        #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    TMC2209Stepper *_driverFocus;
+        #endif
+    #endif
+#endif
 
-  int _localUtcOffset;
-  LocalDate _localStartDate;
-  DayTime _localStartTime;
-  long _localStartTimeSetMillis;
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    HomingData _homing;
+#endif
 
+    unsigned long _guideRaEndTime;
+    unsigned long _guideDecEndTime;
+    unsigned long _lastMountPrint    = 0;
+    unsigned long _lastTrackingPrint = 0;
+    float _trackingSpeed;             // RA u-steps/sec when in tracking mode
+    float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
+    unsigned long _lastDisplayUpdate;
+    unsigned long _trackerStoppedAt;
+    bool _compensateForTrackerOff;
+    volatile int _mountStatus;
+    long _homeOffsetRA;
+    long _homeOffsetDEC;
+
+    char scratchBuffer[24];
+    bool _stepperWasRunning;
+    bool _correctForBacklash;
+    bool _slewingToHome;
+    bool _slewingToPark;
+    bool _bootComplete;
+
+    int _localUtcOffset;
+    LocalDate _localStartDate;
+    DayTime _localStartTime;
+    long _localStartTimeSetMillis;
 };
 
 #endif

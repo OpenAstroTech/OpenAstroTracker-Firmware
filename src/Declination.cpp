@@ -1,10 +1,10 @@
-#include "../Configuration.hpp"   // For NORTHERN_HEMISPHERE only
+#include "../Configuration.hpp"  // For NORTHERN_HEMISPHERE only
 #include "Utility.hpp"
 #include "Declination.hpp"
 
 //////////////////////////////////////////////////////////////////////////////////////
 //
-// Declination 
+// Declination
 //
 // A class to handle degrees, minutes, seconds of a declination
 
@@ -31,33 +31,33 @@ Declination::Declination(float inDegrees) : DayTime(inDegrees)
 
 void Declination::set(int h, int m, int s)
 {
-  Declination dt(h, m, s);
-  totalSeconds = dt.totalSeconds;
-  checkHours();
+    Declination dt(h, m, s);
+    totalSeconds = dt.totalSeconds;
+    checkHours();
 }
 
 void Declination::addDegrees(int deltaDegrees)
 {
-  addHours(deltaDegrees);
+    addHours(deltaDegrees);
 }
 
 float Declination::getTotalDegrees() const
 {
-  return getTotalHours();
+    return getTotalHours();
 }
 
 void Declination::checkHours()
 {
-  if (totalSeconds > 0)
-  {
-    LOGV1(DEBUG_GENERAL, F("CheckHours: Degrees is more than 0, clamping"));
-    totalSeconds = 0;
-  }
-  if (totalSeconds < -arcSecondsPerHemisphere)
-  {
-    LOGV1(DEBUG_GENERAL, F("CheckHours: Degrees is less than -180, clamping"));
-    totalSeconds = -arcSecondsPerHemisphere;
-  }
+    if (totalSeconds > 0)
+    {
+        LOGV1(DEBUG_GENERAL, F("[DECLINATION]: CheckHours: Degrees is more than 0, clamping"));
+        totalSeconds = 0;
+    }
+    if (totalSeconds < -arcSecondsPerHemisphere)
+    {
+        LOGV1(DEBUG_GENERAL, F("[DECLINATION]: CheckHours: Degrees is less than -180, clamping"));
+        totalSeconds = -arcSecondsPerHemisphere;
+    }
 }
 
 char achBufDeg[32];
@@ -65,48 +65,48 @@ char achBufDeg[32];
 // Convert to a standard string (like 14:45:06), specifying separators if needed
 const char *Declination::ToDisplayString(char sep1, char sep2) const
 {
-  char achFormat[16];
-  sprintf(achFormat, "{d}%c{m}%c{s}", sep1, sep2);
-  return formatString(achBufDeg, achFormat);
+    char achFormat[16];
+    sprintf(achFormat, "{d}%c{m}%c{s}", sep1, sep2);
+    return formatString(achBufDeg, achFormat);
 }
 
 const char *Declination::ToString() const
 {
-  ToDisplayString('*', ':');
+    ToDisplayString('*', ':');
 
-  char *p = achBufDeg + strlen(achBufDeg);
+    char *p = achBufDeg + strlen(achBufDeg);
 
-  *p++ = ' ';
-  *p++ = '(';
-  strcpy(p, String(NORTHERN_HEMISPHERE ? getTotalHours() + 90 : -90 - getTotalHours(), 4).c_str());
-  strcat(p, ")");
+    *p++ = ' ';
+    *p++ = '(';
+    strcpy(p, String(NORTHERN_HEMISPHERE ? getTotalHours() + 90 : -90 - getTotalHours(), 4).c_str());
+    strcat(p, ")");
 
-  return achBufDeg;
+    return achBufDeg;
 }
 
-Declination Declination::ParseFromMeade(String const& s)
+Declination Declination::ParseFromMeade(String const &s)
 {
-  Declination result;
-  LOGV2(DEBUG_GENERAL, F("Declination.Parse(%s)"), s.c_str());
+    Declination result;
+    LOGV2(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s)"), s.c_str());
 
-  // Use the DayTime code to parse it...
-  DayTime dt = DayTime::ParseFromMeade(s);
+    // Use the DayTime code to parse it...
+    DayTime dt = DayTime::ParseFromMeade(s);
 
-  // ...and then correct for hemisphere
-  result.totalSeconds = dt.getTotalSeconds() + (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere/2) : (arcSecondsPerHemisphere/2));
-  LOGV3(DEBUG_GENERAL, F("Declination.Parse(%s) -> %s"), s.c_str(), result.ToString());
-  return result;
+    // ...and then correct for hemisphere
+    result.totalSeconds = dt.getTotalSeconds() + (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere / 2) : (arcSecondsPerHemisphere / 2));
+    LOGV3(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s) -> %s"), s.c_str(), result.ToString());
+    return result;
 }
 
 Declination Declination::FromSeconds(long seconds)
 {
-  seconds += (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere/2) : (arcSecondsPerHemisphere/2));
-  return Declination(1.0 * seconds / 3600.0);
+    seconds += (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere / 2) : (arcSecondsPerHemisphere / 2));
+    return Declination(1.0 * seconds / 3600.0);
 }
 
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const
 {
-  long secs = totalSeconds;
-  secs = NORTHERN_HEMISPHERE ? (secs + arcSecondsPerHemisphere/2) : (-arcSecondsPerHemisphere/2 - secs);
-  return DayTime::formatString(targetBuffer, format, &secs);
+    long secs = totalSeconds;
+    secs      = NORTHERN_HEMISPHERE ? (secs + arcSecondsPerHemisphere / 2) : (secs - arcSecondsPerHemisphere / 2);
+    return DayTime::formatString(targetBuffer, format, &secs);
 }

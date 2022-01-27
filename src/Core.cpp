@@ -17,4 +17,3 @@
 #include "c78_menuINFO.hpp"
 #include "c_buttons.hpp"
 #include "f_serial.hpp"
-#include "g_bluetooth.hpp"

@@ -1,3 +1,143 @@
+**V1.10.5 - Updates**
+- Add ability to disable tracking at boot by default
+
+**V1.10.4 - Updates**
+- Cleaned up logging somewhat
+- Ensured all log messages have a category start word.
+- Ensured all log messages are stored in Flash memory.
+
+**V1.10.3 - Updates**
+- Add optional parameter to Meade Extension commands :XSDLL# and :XSDLU# to allow direct setting of DEC limits
+
+**V1.10.2 - Updates**
+- Revise default MKS LCD pins to match ribbon cable LCD assembly.
+
+**V1.10.1 - Updates**
+- fix a bug with "Set Home" on OAM
+
+**V1.10.0 - Updates**
+- Delete support of ULN2003 drivers
+
+**V1.9.38 - Updates**
+- Add support for RAMPS 1.4 Arduino Mega shields
+
+**V1.9.37 - Updates**
+- Add HE1 to dew heater output for MKS boards
+
+**V1.9.36 - Updates**
+- Removed auto-homing code that was based on stall guard
+- Converted Hall sensor based auto homing to be asynchronous (via state machine) instead of blocking
+- Allowed user to specify the distance (number of hours) to search for Hall sensor in Meade command
+- Allowed overriding the guide pulse multiplier in local config
+
+**V1.9.35 - Updates**
+- Enable configuration of hold current setting for AZ and ALT steppers when always energized
+
+**V1.9.34 - Updates**
+- Added two Meade commands: :XGDP# and :XSDPnnn# to retrieve and set the DEC parking offset.
+- Fixed a bug that incorrectly returned a Homing status when the Hall sensor was enabled.
+- Removing support for bluetooth
+- Removing support for running steppers in main loop
+
+**V1.9.33 - Updates**
+- Fixed a bug that did not reset RA coordinate after setting home position.
+
+**V1.9.32 - Updates**
+- Add inverted axis support for alt/az
+
+**V1.9.31 - Updates**
+- Focuser can be set to be always on with non-100% holding current.
+- Focuser got its own debug channel.
+- Added some more logging.
+
+**V1.9.30 - Updates**
+- Updated alt/az code to correct SPR errors and add support for AutoPA v2.
+
+**V1.9.29 - Updates**
+- Support for a Hall sensor based auto homing routine for the RA ring.
+
+**V1.9.28 - Updates**
+- Add configurations for OAM
+
+**V1.9.27 - Updates**
+- Fix github actions formatting check
+
+**V1.9.26 - Updates**
+- Delete unintentionally added workflow file
+
+**V1.9.25 - Updates**
+- clang-format codebase
+
+**V1.9.24 - Updates**
+- Fix hold currents of AZ/ALT/Focuser drivers.
+
+**V1.9.23 - Updates**
+- Add option to keep focuser motor enabled after moving.
+
+**V1.9.22 - Updates**
+- Add focuser pins for MKS Gen L v2.0.
+
+**V1.9.21 - Updates**
+- Fix southern hemisphere reversed DEC free slew directions
+
+**V1.9.20 - Updates**
+- Made github version check more robust
+
+**V1.9.19 - Updates**
+- Added support to reset the focus stepper position
+- Fixed some focus validation tests
+
+**V1.9.18 - Updates**
+- Fix RA guiding multiplier not being applied correct
+
+**V1.9.17 - Updates**
+- Fix southern hemisphere returning RA offset by -12hr
+
+**V1.9.16 - Updates**
+- Add Meade extension command to move steppers by steps.
+
+**V1.9.15 - Updates**
+- Fixed incorrect speed for DEC when using 28BYJ-48 steppers
+
+**V1.9.14 - Updates**
+- Fix hardware reporting for "Unknown" boards
+
+**V1.9.13 - Updates**
+- Fix southern hemisphere returning incorrect DEC values (edge case)
+
+**V1.9.12 - Updates**
+- Fix southern hemisphere returning incorrect DEC values
+
+**V1.9.11 - Updates**
+- Add support for focuser on E1 motor for MKS board. 
+- Add focuser command support to LX200 protocol.
+
+**V1.9.10 - Updates**
+- Fixed a bug that caused a compilation fail when enabling LCD_BUTTON_TEST
+- Allowed connection test to be set in local config
+
+**V1.9.09 - Updates**
+- Sample Local Config - disabled as default
+
+**V1.9.08 - Updates**
+- Continuous integration improvements. Checking for version and changelog changes automatically
+
+**V1.9.07 - Updates**
+- ALT and AZ steppers can now be enabled and configured seperately.
+- Reduced hold current for AZ and ALT to 10% if using TMCs and NEMAs.
+- Fixed incorrect response in Meade LX200 guide pulse command.
+
+**V1.9.05 - Updates**
+- Lowered connection baudrate to 19200.
+- Fixed incorrect response in Meade LX200 quit command.
+
+**V1.9.03 - Updates**
+- Removed connection test check and made it standard.
+- Switched motors to normal mode (better perf), but allowed silent mode through XX_UART_STEALTH_MODE defines.
+- Made DEC driver be in Guide microstep mode unless slewing.
+- Added command to Meade protocol to calculate stepper positions for stellar coordinates.
+- Fixed an overflow bug in the CAL LCD menu for RA/DEC steps (esoteric mounts).
+
 **V1.9.00 - Updates**
 - Fixes RMS current setting for TMC2209 UART to be more accurate and consistent
 - Disables i_scale_analog (aka "USE_VREF") by default so that results are more consistent between users. rms_current will no longer depend on Vref, unless specifically configured by the user.
