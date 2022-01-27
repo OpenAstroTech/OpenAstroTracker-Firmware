@@ -439,9 +439,11 @@ void setup()
     #endif
 #endif
 
+#if TRACK_ON_BOOT == 1
     // Start the tracker.
     LOGV1(DEBUG_ANY, F("[SYSTEM]: Start Tracking..."));
     mount.startSlewing(TRACKING);
+#endif
 
     mount.bootComplete();
     LOGV1(DEBUG_ANY, F("[SYSTEM]: Boot complete!"));

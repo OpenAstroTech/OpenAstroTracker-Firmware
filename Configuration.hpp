@@ -224,6 +224,11 @@
     #define POLARIS_RA_SECOND 34
 #endif
 
+// Turn on tracking by default at boot
+#ifndef TRACK_ON_BOOT
+    #define TRACK_ON_BOOT 1
+#endif
+
 // Set this to specify the amount of debug output OAT should send to the serial port.
 // Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
 // Debug output is useful if you are using Wifi to control the OAT or if you are issuing
