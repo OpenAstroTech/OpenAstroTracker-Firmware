@@ -1,3 +1,6 @@
+**V1.10.5 - Updates**
+- Add ability to disable tracking at boot by default
+
 **V1.10.4 - Updates**
 - Cleaned up logging somewhat
 - Ensured all log messages have a category start word.
