@@ -13,7 +13,6 @@ from constraint import *
 CONTINUE_ON_ERROR = False
 
 BOARDS = [
-    "mega2560",
     "mksgenlv21",
     "mksgenlv2",
     "mksgenlv1",
@@ -88,20 +87,6 @@ def update_dict(orig, patch):
 
 
 BOARD_SUPPORT = {
-    "mega2560": update_dict(BUILD_FLAGS, {
-        "AZ_DRIVER_TYPE": [
-            "DRIVER_TYPE_NONE"
-        ],
-        "AZ_STEPPER_TYPE": [
-            "STEPPER_TYPE_NONE"
-        ],
-        "ALT_DRIVER_TYPE": [
-            "DRIVER_TYPE_NONE"
-        ],
-        "ALT_STEPPER_TYPE": [
-            "STEPPER_TYPE_NONE"
-        ],
-    }),
     "esp32": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
