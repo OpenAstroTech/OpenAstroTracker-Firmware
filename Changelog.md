@@ -1,3 +1,6 @@
+**V1.10.6 - Updates**
+- Change UART TX test to be configurable movement distance
+
 **V1.10.5 - Updates**
 - Add ability to disable tracking at boot by default
 
