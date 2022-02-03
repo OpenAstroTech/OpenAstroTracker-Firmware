@@ -1,3 +1,7 @@
+**V1.10.6 - Updates**
+- Use consistent enable pin logic for all drivers.
+- Increase maximum current for TMC2209 to 2A in accordance with BigTreeTech's published maximum continuous drive current.
+
 **V1.10.5 - Updates**
 - Add ability to disable tracking at boot by default
 
