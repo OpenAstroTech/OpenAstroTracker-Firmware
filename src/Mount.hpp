@@ -247,6 +247,9 @@ class Mount
     // there. Must call loop() frequently to actually move.
     void startSlewingToTarget();
 
+    // Sends the mount to the home position
+    void startSlewingToHome();
+
     // Various status query functions
     bool isSlewingDEC() const;
     bool isSlewingRA() const;
@@ -384,6 +387,7 @@ class Mount
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     bool findRAHomeByHallSensor(int initialDirection, int searchDistance);
     void processRAHomingProgress();
+    String getHomingState(HomingState state) const;
 #endif
     void setHomingOffset(StepperAxis axis, long offset);
     long getHomingOffset(StepperAxis axis);
