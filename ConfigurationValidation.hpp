@@ -290,8 +290,8 @@
 
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if defined(DEC_MOTOR_CURRENT_RATING)
-        #if (DEC_MOTOR_CURRENT_RATING > 1700)
-            #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
+        #if (DEC_MOTOR_CURRENT_RATING > 2000)
+            #error "The TMC2209 driver is only rated up to 2A output. Delete this error if you know what youre doing"
         #endif
         #if (DEC_MOTOR_CURRENT_RATING == 0)
             #error                                                                                                                         \
@@ -313,8 +313,8 @@
 
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if defined(RA_MOTOR_CURRENT_RATING)
-        #if (RA_MOTOR_CURRENT_RATING > 1700)
-            #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
+        #if (RA_MOTOR_CURRENT_RATING > 2000)
+            #error "The TMC2209 driver is only rated up to 2A output. Delete this error if you know what youre doing"
         #endif
         #if (RA_MOTOR_CURRENT_RATING == 0)
             #error                                                                                                                         \
@@ -340,8 +340,8 @@
     #endif
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if defined(AZ_MOTOR_CURRENT_RATING)
-            #if (AZ_MOTOR_CURRENT_RATING > 1700)
-                #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
+            #if (AZ_MOTOR_CURRENT_RATING > 2000)
+                #error "The TMC2209 driver is only rated up to 2A output. Delete this error if you know what youre doing"
             #endif
             #if (AZ_MOTOR_CURRENT_RATING == 0)
                 #error                                                                                                                     \
@@ -368,8 +368,8 @@
     #endif
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if defined(ALT_MOTOR_CURRENT_RATING)
-            #if (ALT_MOTOR_CURRENT_RATING > 1700)
-                #error "The TMC2209 driver is only rated up to 1.7A output. Delete this error if you know what youre doing"
+            #if (ALT_MOTOR_CURRENT_RATING > 2000)
+                #error "The TMC2209 driver is only rated up to 2A output. Delete this error if you know what youre doing"
             #endif
             #if (ALT_MOTOR_CURRENT_RATING == 0)
                 #error                                                                                                                     \
