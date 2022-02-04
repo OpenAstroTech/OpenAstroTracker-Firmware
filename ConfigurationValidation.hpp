@@ -389,3 +389,31 @@
         #endif
     #endif
 #endif
+
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if !defined(FOCUS_MICROSTEPPING)
+        #error "Altitude microstepping must be defined. Default is 4.0f for 28BYJ steppers, 4.0f for NEMA."
+    #endif
+    #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+        #if defined(FOCUS_MOTOR_CURRENT_RATING)
+            #if (FOCUS_MOTOR_CURRENT_RATING > 2000)
+                #error "The TMC2209 driver is only rated up to 2A output. Delete this error if you know what youre doing"
+            #endif
+            #if (FOCUS_MOTOR_CURRENT_RATING == 0)
+                #error                                                                                                                     \
+                    "Focuser current rating/setting cannot be zero. Please configure the current rating of your motor in you local configuration file using the FOCUS_MOTOR_CURRENT_RATING keyword."
+            #endif
+        #else
+            #error                                                                                                                         \
+                "FOCUS_MOTOR_CURRENT_RATING is not defined. Please define the current rating of your motor in you local configuration file using the FOCUS_MOTOR_CURRENT_RATING keyword."
+        #endif
+        #if defined(FOCUS_OPERATING_CURRENT_SETTING)
+            #if (FOCUS_OPERATING_CURRENT_SETTING <= 0) || (FOCUS_OPERATING_CURRENT_SETTING > 100)
+                #error "FOCUS_OPERATING_CURRENT_SETTING is not within acceptable range (0-100)"
+            #endif
+        #else
+            #error                                                                                                                         \
+                "FOCUS_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the FOCUS_OPERATING_CURRENT_SETTING keyword."
+        #endif
+    #endif
+#endif
