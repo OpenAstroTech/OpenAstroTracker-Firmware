@@ -329,11 +329,8 @@ class Mount
     // Runs the RA motor at twice the speed (or stops it), or the DEC motor at tracking speed for the given duration in ms.
     void guidePulse(byte direction, int duration);
 
-    // Stops any guide operation in progress.
-    void stopGuiding();
-
     // Stops given guide operations in progress.
-    void stopGuiding(bool ra, bool dec);
+    void stopGuiding(bool ra = true, bool dec = true);
 
     // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
     String DECString(byte type, byte active = 0);

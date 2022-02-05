@@ -1395,46 +1395,41 @@ void Mount::startSlewingToHome()
 // stopGuiding
 //
 /////////////////////////////////
-void Mount::stopGuiding()
+void Mount::stopGuiding(bool ra, bool dec)
 {
     if (isGuiding())
     {
-        stopGuiding(true, true);
-    }
-}
-
-void Mount::stopGuiding(bool ra, bool dec)
-{
-    // Stop RA guide first, since it's just a speed change back to tracking speed
-    if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
-    {
-        LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(RA): TRK.setSpeed(%f)"), _trackingSpeed);
-        _stepperTRK->setSpeed(_trackingSpeed);
-        _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
-    }
-
-    if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
-    {
-        LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): Stop motor"));
-
-        // Stop DEC guiding and wait for it to stop.
-        _stepperGUIDE->stop();
-
-        while (_stepperGUIDE->isRunning())
+        // Stop RA guide first, since it's just a speed change back to tracking speed
+        if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
         {
-            _stepperGUIDE->run();
-            _stepperTRK->runSpeed();
+            LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(RA): TRK.setSpeed(%f)"), _trackingSpeed);
+            _stepperTRK->setSpeed(_trackingSpeed);
+            _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
         }
 
-        LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): GuideStepper stopped at %l"), _stepperGUIDE->currentPosition());
+        if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
+        {
+            LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): Stop motor"));
 
-        _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
-    }
+            // Stop DEC guiding and wait for it to stop.
+            _stepperGUIDE->stop();
 
-    //disable pulse state if no direction is active
-    if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
-    {
-        _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+            while (_stepperGUIDE->isRunning())
+            {
+                _stepperGUIDE->run();
+                _stepperTRK->runSpeed();
+            }
+
+            LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): GuideStepper stopped at %l"), _stepperGUIDE->currentPosition());
+
+            _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
+        }
+
+        //disable pulse state if no direction is active
+        if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
+        {
+            _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+        }
     }
 }
 
