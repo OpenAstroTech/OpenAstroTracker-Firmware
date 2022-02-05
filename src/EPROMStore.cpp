@@ -121,7 +121,8 @@ void EEPROMStore::displayContents()
     uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
     LOGV2(DEBUG_EEPROM, F("[EEPROM]: Magic Marker: %x"), marker);
 
-    LOGV1(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("[EEPROM]: Has values") : F("[EEPROM]: Does NOT have values"));
+    LOGV1(DEBUG_INFO,
+          ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("[EEPROM]: Has values") : F("[EEPROM]: Does NOT have values"));
     LOGV1(DEBUG_INFO,
           ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("[EEPROM]: Has extended values") : F("[EEPROM]: Does NOT have extended values"));
     if (EEPROMStore::isPresent(EXTENDED_FLAG))
