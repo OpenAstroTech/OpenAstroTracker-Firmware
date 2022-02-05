@@ -4,6 +4,7 @@
 #include "LcdMenu.hpp"
 #include "Mount.hpp"
 #include "Sidereal.hpp"
+#include "MappedDict.hpp"
 
 PUSH_NO_WARNINGS
 #include <AccelStepper.h>
@@ -1272,10 +1273,7 @@ void Mount::syncPosition(DayTime ra, Declination dec)
 // there. Must call loop() frequently to actually move.
 void Mount::startSlewingToTarget()
 {
-    if (isGuiding())
-    {
-        stopGuiding();
-    }
+    stopGuiding();
 
     // Make sure we're slewing at full speed on a GoTo
     LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewingToTarget: Set DEC to MaxSpeed(%d)"), _maxDECSpeed);
@@ -1335,10 +1333,7 @@ void Mount::startSlewingToTarget()
 // Takes any sync operations that have happened and tracking into account.
 void Mount::startSlewingToHome()
 {
-    if (isGuiding())
-    {
-        stopGuiding();
-    }
+    stopGuiding();
 
     // Make sure we're slewing at full speed on a GoTo
     LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewingToHome: Set DEC to MaxSpeed(%d)"), _maxDECSpeed);
@@ -1402,7 +1397,10 @@ void Mount::startSlewingToHome()
 /////////////////////////////////
 void Mount::stopGuiding()
 {
-    stopGuiding(true, true);
+    if (isGuiding())
+    {
+        stopGuiding(true, true);
+    }
 }
 
 void Mount::stopGuiding(bool ra, bool dec)
@@ -1668,17 +1666,6 @@ void Mount::park()
     waitUntilStopped(ALL_DIRECTIONS);
     startSlewingToHome();
     _mountStatus |= STATUS_PARKING;
-}
-
-/////////////////////////////////
-//
-// goHome
-//
-// Synchronously moves mount to home position
-/////////////////////////////////
-void Mount::goHome()
-{
-    startSlewingToHome();
 }
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -2222,10 +2209,7 @@ void Mount::startSlewing(int direction)
 {
     if (!isParking())
     {
-        if (isGuiding())
-        {
-            stopGuiding();
-        }
+        stopGuiding();
 
         if (direction & TRACKING)
         {
@@ -2432,37 +2416,31 @@ long Mount::getHomingOffset(StepperAxis axis)
 }
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+
 String Mount::getHomingState(HomingState state) const
 {
-    switch (state)
+    MappedDict<HomingState, String>::DictEntry_t lookupTable[] = {
+        {HOMING_MOVE_OFF, F("MOVE_OFF")},
+        {HOMING_MOVING_OFF, F("MOVING_OFF")},
+        {HOMING_STOP_AT_TIME, F("STOP_AT_TIME")},
+        {HOMING_WAIT_FOR_STOP, F("WAIT_FOR_STOP")},
+        {HOMING_START_FIND_START, F("START_FIND_START")},
+        {HOMING_FINDING_START, F("FINDING_START")},
+        {HOMING_FINDING_START_REVERSE, F("FINDING_START_REVERSE")},
+        {HOMING_FINDING_END, F("FINDING_END")},
+        {HOMING_RANGE_FOUND, F("RANGE_FOUND")},
+        {HOMING_FAILED, F("FAILED")},
+        {HOMING_SUCCESSFUL, F("SUCCESSFUL")},
+        {HOMING_NOT_ACTIVE, F("NOT_ACTIVE")},
+    };
+
+    auto strLookup = MappedDict<HomingState, String>(lookupTable, ARRAY_SIZE(lookupTable));
+    String rtnStr;
+    if (strLookup.tryGet(state, &rtnStr))
     {
-        case HOMING_MOVE_OFF:
-            return F("MOVE_OFF");
-        case HOMING_MOVING_OFF:
-            return F("MOVING_OFF");
-        case HOMING_STOP_AT_TIME:
-            return F("STOP_AT_TIME");
-        case HOMING_WAIT_FOR_STOP:
-            return F("WAIT_FOR_STOP");
-        case HOMING_START_FIND_START:
-            return F("START_FIND_START");
-        case HOMING_FINDING_START:
-            return F("FINDING_START");
-        case HOMING_FINDING_START_REVERSE:
-            return F("FINDING_START_REVERSE");
-        case HOMING_FINDING_END:
-            return F("FINDING_END");
-        case HOMING_RANGE_FOUND:
-            return F("RANGE_FOUND");
-        case HOMING_FAILED:
-            return F("FAILED");
-        case HOMING_SUCCESSFUL:
-            return F("SUCCESSFUL");
-        case HOMING_NOT_ACTIVE:
-            return F("NOT_ACTIVE");
-        default:
-            return F("WTF_STATE");
+        return rtnStr;
     }
+    return F("WTF_STATE");
 }
 
 /////////////////////////////////
@@ -2947,7 +2925,7 @@ void Mount::loop()
                 _currentDECStepperPosition = _stepperDEC->currentPosition();
                 _currentRAStepperPosition  = _stepperRA->currentPosition();
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                if (!isFindingHome()) // When finding home, we never want to switch back to tracking until homing is finished.
+                if (!isFindingHome())  // When finding home, we never want to switch back to tracking until homing is finished.
                 {
                     LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: Loop: Arrived. RA driver setMicrosteps(%d)"), RA_TRACKING_MICROSTEPPING);
                     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
@@ -2969,7 +2947,7 @@ void Mount::loop()
                         _compensateForTrackerOff = false;
                     }
 
-                    if (!isFindingHome()) // If we're homing, RA must stay in Slew configuration
+                    if (!isFindingHome())  // If we're homing, RA must stay in Slew configuration
                     {
                         startSlewing(TRACKING);
                     }
@@ -3207,44 +3185,6 @@ void Mount::setHome(bool clearZeroPos)
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setHomePost: currentRA is %s"), currentRA().ToString());
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setHomePost: zeroPos is %s"), _zeroPosRA.ToString());
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setHomePost: targetRA is %s"), targetRA().ToString());
-}
-
-/////////////////////////////////
-//
-// setTargetToHome
-//
-// Set RA and DEC to the home position
-/////////////////////////////////
-void Mount::setTargetToHome()
-{
-    float trackedSeconds = _stepperTRK->currentPosition() / _trackingSpeed;  // steps / steps/s = seconds
-
-    LOGV2(DEBUG_MOUNT, F("[MOUNT]: setTargetToHome() called with %fs elapsed tracking"), trackedSeconds);
-
-    // In order for RA coordinates to work correctly, we need to
-    // offset HATime by elapsed time since last HA set and also
-    // adjust RA by the elapsed time and set it to zero.
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePre:  currentRA is %s"), currentRA().ToString());
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePre:  ZeroPosRA is %s"), _zeroPosRA.ToString());
-    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePre:  TrackedSeconds is %f, TRK Stepper: %l"), trackedSeconds, _stepperTRK->currentPosition());
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePre:  LST is %s"), _LST.ToString());
-    DayTime lst(_LST);
-    lst.addSeconds(trackedSeconds);
-    setLST(lst);
-    _targetRA = _zeroPosRA;
-    _targetRA.addSeconds(trackedSeconds);
-
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePost:  currentRA is %s"), currentRA().ToString());
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePost: ZeroPosRA is %s"), _zeroPosRA.ToString());
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePost: LST is %s"), _LST.ToString());
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setTargetToHomePost: TargetRA is %s"), _targetRA.ToString());
-
-    // Set DEC to pole
-    _targetDEC.set(0, 0, 0);
-    _slewingToHome = true;
-    // Stop the tracking stepper
-    LOGV1(DEBUG_MOUNT, F("[MOUNT]: setTargetToHome() stop tracking"));
-    stopSlewing(TRACKING);
 }
 
 /////////////////////////////////

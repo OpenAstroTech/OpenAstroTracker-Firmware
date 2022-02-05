@@ -65,7 +65,7 @@ bool processPOIKeys()
                     mount.stopSlewing(ALL_DIRECTIONS);
                     if (currentPOI == homePOI)
                     {
-                        mount.goHome();
+                        mount.startSlewingToHome();
                     }
                     else if (currentPOI == parkPOI)
                     {

@@ -293,12 +293,6 @@ class Mount
     // Low-leve process any stepper movement on interrupt callback.
     void interruptLoop();
 
-    // Set RA and DEC to the home position
-    void setTargetToHome();
-
-    // Asynchronously slews the mount to the home position
-    void goHome();
-
     // Set the current stepper positions to be home.
     void setHome(bool clearZeroPos);
 

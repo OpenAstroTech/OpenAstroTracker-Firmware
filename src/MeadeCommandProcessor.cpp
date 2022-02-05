@@ -1511,7 +1511,7 @@ String MeadeCommandProcessor::handleMeadeHome(String inCmd)
     }
     else if (inCmd[0] == 'F')
     {  // Home
-        _mount->goHome();
+        _mount->startSlewingToHome();
     }
     else if (inCmd[0] == 'U')
     {  // Unpark

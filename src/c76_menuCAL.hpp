@@ -720,7 +720,7 @@ bool processCalibrationKeys()
                         mount.syncPosition(mount.currentRA(), Declination(89 - (NORTHERN_HEMISPHERE ? 90 : -90), 21, 6));
 
                         // Go home from here
-                        mount.goHome();
+                        mount.startSlewingToHome();
                     }
                 }
                 break;
