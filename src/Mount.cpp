@@ -3184,6 +3184,22 @@ void Mount::setHome(bool clearZeroPos)
 
 /////////////////////////////////
 //
+// getCurrentHomeRA
+//
+// Get the current RA value of the home position
+/////////////////////////////////
+float Mount::getCurrentHomeRA() const
+{
+    float trackedSeconds = _stepperTRK->currentPosition() / _trackingSpeed;  // steps / steps/s = seconds
+
+    DayTime raHome = _zeroPosRA;
+    raHome.addSeconds(trackedSeconds);
+
+    return raHome.getTotalHours();
+}
+
+/////////////////////////////////
+//
 // getSpeed
 //
 // Get the current speed of the stepper. NORTH, WEST, TRACKING
@@ -3261,10 +3277,10 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
     float moveDEC = -_targetDEC.getTotalDegrees() * _stepsPerDECDegree;  // deg * u-steps/deg = u-steps
 
-//LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: RA Steps/deg: %d   Steps/srhour: %f"), _stepsPerRADegree, stepsPerSiderealHour);
-//LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
+    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: RA Steps/deg: %d   Steps/srhour: %f"), _stepsPerRADegree, stepsPerSiderealHour);
+    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
-/*
+    /*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
   * Since tracking does not trigger the meridian flip, we try to extend the possible tracking time 
   * without reaching the RA ring end by executing the meridian flip before slewing to the target.
@@ -3273,9 +3289,10 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
+    float homeRA = getCurrentHomeRA();
 #if NORTHERN_HEMISPHERE == 1
-    float const RALimitL = (RA_LIMIT_LEFT * stepsPerSiderealHour);
-    float const RALimitR = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
+    float const RALimitL = homeRA + (RA_LIMIT_LEFT * stepsPerSiderealHour);
+    float const RALimitR = homeRA + (RA_LIMIT_RIGHT * stepsPerSiderealHour);
 #else
     float const RALimitL = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
     float const RALimitR = (RA_LIMIT_LEFT * stepsPerSiderealHour);
