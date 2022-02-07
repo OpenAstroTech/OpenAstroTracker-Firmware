@@ -1,4 +1,4 @@
-**V1.10.6 - Updates**
+**V1.10.7 - Updates**
 - Fix Arduino IDE issues
 
 **V1.10.6 - Updates**
