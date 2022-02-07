@@ -3291,10 +3291,10 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
   */
     float homeRA = getCurrentHomeRA();
 #if NORTHERN_HEMISPHERE == 1
-    float const RALimitL = homeRA + (RA_LIMIT_LEFT * stepsPerSiderealHour);
+    float const RALimitL = homeRA - (RA_LIMIT_LEFT * stepsPerSiderealHour);
     float const RALimitR = homeRA + (RA_LIMIT_RIGHT * stepsPerSiderealHour);
 #else
-    float const RALimitL = homeRA + (RA_LIMIT_RIGHT * stepsPerSiderealHour);
+    float const RALimitL = homeRA - (RA_LIMIT_RIGHT * stepsPerSiderealHour);
     float const RALimitR = homeRA + (RA_LIMIT_LEFT * stepsPerSiderealHour);
 #endif
 
@@ -3320,7 +3320,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: Adjusted Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
     }
     // If we reach the limit in the negative direction...
-    else if (moveRA < -RALimitL)
+    else if (moveRA < RALimitL)
     {
         //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: RA is past -limit: %f, DEC: %f"), -RALimit);
         // ... turn both RA and DEC axis around
