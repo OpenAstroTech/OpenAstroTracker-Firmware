@@ -3294,8 +3294,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     float const RALimitL = homeRA + (RA_LIMIT_LEFT * stepsPerSiderealHour);
     float const RALimitR = homeRA + (RA_LIMIT_RIGHT * stepsPerSiderealHour);
 #else
-    float const RALimitL = (RA_LIMIT_RIGHT * stepsPerSiderealHour);
-    float const RALimitR = (RA_LIMIT_LEFT * stepsPerSiderealHour);
+    float const RALimitL = homeRA + (RA_LIMIT_RIGHT * stepsPerSiderealHour);
+    float const RALimitR = homeRA + (RA_LIMIT_LEFT * stepsPerSiderealHour);
 #endif
 
     if (pSolutions != nullptr)
