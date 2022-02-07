@@ -249,7 +249,7 @@ class Mount
 
     // Sends the mount to the home position
     void startSlewingToHome();
- 
+
     // Get the current RA value of the home position
     float getCurrentHomeRA() const;
 
