@@ -1,4 +1,7 @@
 **V1.10.6 - Updates**
+- Fix Arduino IDE issues
+
+**V1.10.6 - Updates**
 - Use consistent enable pin logic for all drivers.
 - Increase maximum current for TMC2209 to 2A in accordance with BigTreeTech's published maximum continuous drive current.
 
