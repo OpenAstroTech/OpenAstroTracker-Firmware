@@ -249,7 +249,7 @@ class Mount
 
     // Sends the mount to the home position
     void startSlewingToHome();
- 
+
     // Various status query functions
     bool isSlewingDEC() const;
     bool isSlewingRA() const;
@@ -403,7 +403,7 @@ class Mount
 
     // Get info about the configured steppers and drivers
     String getStepperInfo();
-    
+
     // Debug helper
     void setTrackingStepperPos(long stepPos);
 
