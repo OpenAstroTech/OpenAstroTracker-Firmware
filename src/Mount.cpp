@@ -3258,26 +3258,24 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
           raTarget.ToString(),
           _targetDEC.ToString());
 
-    float hourPos = raTarget.getTotalHours();
+    // Where do we want to move RA to?
+    float moveRA = raTarget.getTotalHours();
     if (!NORTHERN_HEMISPHERE)
     {
-        hourPos += 12;
+        moveRA += 12;
     }
     // Map [0 to 24] range to [-12 to +12] range
-    while (hourPos > 12)
+    while (moveRA > 12)
     {
-        hourPos = hourPos - 24;
+        moveRA = moveRA - 24;
         LOGV3(DEBUG_MOUNT_VERBOSE,
               F("[MOUNT]: CalcSteppersIn: RA>12 so -24. New Target RA: %s, DEC: %s"),
-              DayTime(hourPos).ToString(),
+              DayTime(moveRA).ToString(),
               _targetDEC.ToString());
     }
 
     // How many u-steps moves the RA ring one sidereal hour along when slewing. One sidereal hour moves just shy of 15 degrees
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
-
-    // Where do we want to move RA to?
-    float moveRA = hourPos;  // hr
 
     // Where do we want to move DEC to?
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
@@ -3308,12 +3306,12 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     if (pSolutions != nullptr)
     {
-        pSolutions[0] = long(-moveRA);
-        pSolutions[1] = long(moveDEC);
-        pSolutions[2] = long(-(moveRA - 12.0f));
-        pSolutions[3] = long(-moveDEC);
-        pSolutions[4] = long(-(moveRA + 12.0f));
-        pSolutions[5] = long(-moveDEC);
+        pSolutions[0] = long(-moveRA) * stepsPerSiderealHour;
+        pSolutions[1] = long(moveDEC) * _stepsPerDECDegree;
+        pSolutions[2] = long(-(moveRA - 12.0f)) * stepsPerSiderealHour;
+        pSolutions[3] = long(-moveDEC) * _stepsPerDECDegree;
+        pSolutions[4] = long(-(moveRA + 12.0f)) * stepsPerSiderealHour;
+        pSolutions[5] = long(-moveDEC) * _stepsPerDECDegree;
     }
 
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 1: %f, %f"), moveRA, moveDEC);
