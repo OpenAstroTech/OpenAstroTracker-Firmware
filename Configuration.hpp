@@ -212,16 +212,16 @@
 // These values are needed to calculate the current position during initial alignment.
 // Use something like Stellarium to look up the RA of Polaris in JNow (on date) variant.
 // This changes slightly over weeks, so adjust every couple of months.
-// This value is from 13.Aug.2020, next adjustment suggested at end 2020
+// This value is from 7.Feb.2022, next adjustment suggested at end 2022
 // The same could be done for the DEC coordinates but they dont change significantly for the next 5 years
 #ifndef POLARIS_RA_HOUR
-    #define POLARIS_RA_HOUR 2
+    #define POLARIS_RA_HOUR 3
 #endif
 #ifndef POLARIS_RA_MINUTE
-    #define POLARIS_RA_MINUTE 58
+    #define POLARIS_RA_MINUTE 0
 #endif
 #ifndef POLARIS_RA_SECOND
-    #define POLARIS_RA_SECOND 34
+    #define POLARIS_RA_SECOND 8
 #endif
 
 // Turn on tracking by default at boot

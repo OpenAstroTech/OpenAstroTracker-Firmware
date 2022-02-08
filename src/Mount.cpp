@@ -71,6 +71,7 @@ const char *formatStringsRA[] = {
 };
 
 const float siderealDegreesInHour = 14.95904348958;
+
 /////////////////////////////////
 //
 // CTOR
@@ -1180,13 +1181,13 @@ const DayTime Mount::currentRA() const
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
     float hourPos              = -_stepperRA->currentPosition() / stepsPerSiderealHour;  // u-steps / u-steps/hr = hr
 
-    LOGV4(DEBUG_MOUNT_VERBOSE,
-          F("[MOUNT]: CurrentRA: Steps/h    : %s (%f x %s)"),
-          String(stepsPerSiderealHour, 2).c_str(),
-          _stepsPerRADegree,
-          String(siderealDegreesInHour, 5).c_str());
-    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CurrentRA: RA Steps   : %d"), _stepperRA->currentPosition());
-    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CurrentRA: POS        : %s"), String(hourPos).c_str());
+    // LOGV4(DEBUG_MOUNT_VERBOSE,
+    //       F("[MOUNT]: CurrentRA: Steps/h    : %s (%f x %s)"),
+    //       String(stepsPerSiderealHour, 2).c_str(),
+    //       _stepsPerRADegree,
+    //       String(siderealDegreesInHour, 5).c_str());
+    // LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CurrentRA: RA Steps   : %d"), _stepperRA->currentPosition());
+    // LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CurrentRA: POS        : %s"), String(hourPos).c_str());
     hourPos += _zeroPosRA.getTotalHours();
     // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: ZeroPos    : %s"), _zeroPosRA.ToString());
     // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: POS (+zp)  : %s"), DayTime(hourPos).ToString());
@@ -1922,6 +1923,16 @@ void Mount::focusStop()
 byte Mount::mountStatus()
 {
     return _mountStatus;
+}
+
+/////////////////////////////////
+//
+// setTrackingStepperPos
+//
+/////////////////////////////////
+void Mount::setTrackingStepperPos(long stepPos)
+{
+    _stepperTRK->setCurrentPosition(stepPos);
 }
 
 #if DEBUG_LEVEL & (DEBUG_MOUNT | DEBUG_MOUNT_VERBOSE)
@@ -2976,6 +2987,7 @@ void Mount::loop()
                 {
                     LOGV1(DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop:   Was Slewing home, so setting stepper RA and TRK to zero."));
                     _stepperRA->setCurrentPosition(0);
+                    _stepperDEC->setCurrentPosition(0);
                     LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: Loop:  TRK.setCurrentPos(0)"));
                     _stepperTRK->setCurrentPosition(0);
                     _stepperGUIDE->setCurrentPosition(0);
@@ -3184,22 +3196,6 @@ void Mount::setHome(bool clearZeroPos)
 
 /////////////////////////////////
 //
-// getCurrentHomeRA
-//
-// Get the current RA value of the home position
-/////////////////////////////////
-float Mount::getCurrentHomeRA() const
-{
-    float trackedSeconds = _stepperTRK->currentPosition() / _trackingSpeed;  // steps / steps/s = seconds
-
-    DayTime raHome = _zeroPosRA;
-    raHome.addSeconds(trackedSeconds);
-
-    return raHome.getTotalHours();
-}
-
-/////////////////////////////////
-//
 // getSpeed
 //
 // Get the current speed of the stepper. NORTH, WEST, TRACKING
@@ -3246,14 +3242,21 @@ void Mount::calculateStepperPositions(float raCoord, float decCoord, long &raPos
 /////////////////////////////////
 void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6]) const
 {
-    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
-    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
-    //LOGV4(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersPre: Stepper: RA: %l, DEC: %l, TRK: %l"), _stepperRA->currentPosition(), _stepperDEC->currentPosition(), _stepperTRK->currentPosition());
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
+    LOGV4(DEBUG_MOUNT_VERBOSE,
+          F("[MOUNT]: CalcSteppersPre: Stepper: RA: %l, DEC: %l, TRK: %l"),
+          _stepperRA->currentPosition(),
+          _stepperDEC->currentPosition(),
+          _stepperTRK->currentPosition());
     DayTime raTarget = _targetRA;
 
     raTarget.subtractTime(_zeroPosRA);
-    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: Adjust RA by Zeropos. New Target RA: %s, DEC: %s"), raTarget.ToString(), _targetDEC.ToString());
+    LOGV3(DEBUG_MOUNT_VERBOSE,
+          F("[MOUNT]: CalcSteppersIn: Adjust RA by Zeropos. New Target RA: %s, DEC: %s"),
+          raTarget.ToString(),
+          _targetDEC.ToString());
 
     float hourPos = raTarget.getTotalHours();
     if (!NORTHERN_HEMISPHERE)
@@ -3264,7 +3267,10 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     while (hourPos > 12)
     {
         hourPos = hourPos - 24;
-        //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: RA>12 so -24. New Target RA: %s, DEC: %s"), DayTime(hourPos).ToString(), _targetDEC.ToString());
+        LOGV3(DEBUG_MOUNT_VERBOSE,
+              F("[MOUNT]: CalcSteppersIn: RA>12 so -24. New Target RA: %s, DEC: %s"),
+              DayTime(hourPos).ToString(),
+              _targetDEC.ToString());
     }
 
     // How many u-steps moves the RA ring one sidereal hour along when slewing. One sidereal hour moves just shy of 15 degrees
@@ -3277,8 +3283,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
     float moveDEC = -_targetDEC.getTotalDegrees() * _stepsPerDECDegree;  // deg * u-steps/deg = u-steps
 
-    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: RA Steps/deg: %d   Steps/srhour: %f"), _stepsPerRADegree, stepsPerSiderealHour);
-    //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA Steps/deg: %d   Steps/srhour: %f"), _stepsPerRADegree, stepsPerSiderealHour);
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
     /*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
@@ -3289,14 +3295,17 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
-    float homeRA = getCurrentHomeRA();
+    float trackedSeconds = _stepperTRK->currentPosition() / _trackingSpeed;  // steps / steps/s = seconds
+    float trackedHours   = trackedSeconds / 3600.0F;
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: TrackedHours: %f"), trackedHours);
 #if NORTHERN_HEMISPHERE == 1
-    float const RALimitL = homeRA - (RA_LIMIT_LEFT * stepsPerSiderealHour);
-    float const RALimitR = homeRA + (RA_LIMIT_RIGHT * stepsPerSiderealHour);
+    float const RALimitL = (-RA_LIMIT_LEFT + trackedHours) * stepsPerSiderealHour;
+    float const RALimitR = (RA_LIMIT_RIGHT + trackedHours) * stepsPerSiderealHour;
 #else
-    float const RALimitL = homeRA - (RA_LIMIT_RIGHT * stepsPerSiderealHour);
-    float const RALimitR = homeRA + (RA_LIMIT_LEFT * stepsPerSiderealHour);
+    float const RALimitL = (-RA_LIMIT_RIGHT + trackedHours) * stepsPerSiderealHour;
+    float const RALimitR = (RA_LIMIT_LEFT + trackedHours) * stepsPerSiderealHour;
 #endif
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Limits are : %f to %f"), RALimitL, RALimitR);
 
     if (pSolutions != nullptr)
     {
@@ -3308,26 +3317,33 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         pSolutions[5] = long(-moveDEC);
     }
 
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 1: %f, %f"), moveRA, moveDEC);
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 2: %f, %f"), (moveRA - long(12.0f * stepsPerSiderealHour)), -moveDEC);
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 3: %f, %f"), (moveRA + long(12.0f * stepsPerSiderealHour)), -moveDEC);
+
     // If we reach the limit in the positive direction ...
     if (moveRA > RALimitR)
     {
-        //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: RA is past +limit: %f, DEC: %f"), RALimit);
+        LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA %f is past max limit %f  (solution 2)"), moveRA, RALimitR);
 
         // ... turn both RA and DEC axis around
-
         moveRA -= long(12.0f * stepsPerSiderealHour);
         moveDEC = -moveDEC;
-        //LOGV3(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: Adjusted Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
+        LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
     }
     // If we reach the limit in the negative direction...
     else if (moveRA < RALimitL)
     {
-        //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersIn: RA is past -limit: %f, DEC: %f"), -RALimit);
+        LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA %f is past min limit: %f, (solution 3)"), moveRA, RALimitL);
         // ... turn both RA and DEC axis around
 
         moveRA += long(12.0f * stepsPerSiderealHour);
         moveDEC = -moveDEC;
-        //LOGV1(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CalcSteppersPost: Adjusted Target. Moved RA, inverted DEC"));
+        LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
+    }
+    else
+    {
+        LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA is in range: %f, DEC: %f  (solution 1)"), moveRA, moveDEC);
     }
 
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPost: Target Steps RA: %f, DEC: %f"), -moveRA, moveDEC);
