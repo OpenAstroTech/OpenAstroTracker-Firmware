@@ -3277,13 +3277,12 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
 
     // Where do we want to move RA to?
-    float moveRA = hourPos * stepsPerSiderealHour;  // hr * u-steps/hr = u-steps
+    float moveRA = hourPos;  // hr * u-steps/hr = u-steps
 
     // Where do we want to move DEC to?
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
-    float moveDEC = -_targetDEC.getTotalDegrees() * _stepsPerDECDegree;  // deg * u-steps/deg = u-steps
+    float moveDEC = -_targetDEC.getTotalDegrees();  // deg * u-steps/deg = u-steps
 
-    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA Steps/deg: %d   Steps/srhour: %f"), _stepsPerRADegree, stepsPerSiderealHour);
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
     /*
@@ -3299,11 +3298,11 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     float trackedHours   = trackedSeconds / 3600.0F;
     LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: TrackedHours: %f"), trackedHours);
 #if NORTHERN_HEMISPHERE == 1
-    float const RALimitL = (-RA_LIMIT_LEFT + trackedHours) * stepsPerSiderealHour;
-    float const RALimitR = (RA_LIMIT_RIGHT + trackedHours) * stepsPerSiderealHour;
+    float const RALimitL = (-RA_LIMIT_LEFT + trackedHours);
+    float const RALimitR = (RA_LIMIT_RIGHT + trackedHours);
 #else
-    float const RALimitL = (-RA_LIMIT_RIGHT + trackedHours) * stepsPerSiderealHour;
-    float const RALimitR = (RA_LIMIT_LEFT + trackedHours) * stepsPerSiderealHour;
+    float const RALimitL = (-RA_LIMIT_RIGHT + trackedHours);
+    float const RALimitR = (RA_LIMIT_LEFT + trackedHours);
 #endif
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Limits are : %f to %f"), RALimitL, RALimitR);
 
@@ -3311,15 +3310,15 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     {
         pSolutions[0] = long(-moveRA);
         pSolutions[1] = long(moveDEC);
-        pSolutions[2] = long(-(moveRA - long(12.0f * stepsPerSiderealHour)));
+        pSolutions[2] = long(-(moveRA - 12.0f));
         pSolutions[3] = long(-moveDEC);
-        pSolutions[4] = long(-(moveRA + long(12.0f * stepsPerSiderealHour)));
+        pSolutions[4] = long(-(moveRA + 12.0f));
         pSolutions[5] = long(-moveDEC);
     }
 
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 1: %f, %f"), moveRA, moveDEC);
-    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 2: %f, %f"), (moveRA - long(12.0f * stepsPerSiderealHour)), -moveDEC);
-    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 3: %f, %f"), (moveRA + long(12.0f * stepsPerSiderealHour)), -moveDEC);
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 2: %f, %f"), (moveRA - 12.0f), -moveDEC);
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 3: %f, %f"), (moveRA + 12.0f), -moveDEC);
 
     // If we reach the limit in the positive direction ...
     if (moveRA > RALimitR)
@@ -3327,7 +3326,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA %f is past max limit %f  (solution 2)"), moveRA, RALimitR);
 
         // ... turn both RA and DEC axis around
-        moveRA -= long(12.0f * stepsPerSiderealHour);
+        moveRA -= 12.0f;
         moveDEC = -moveDEC;
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
     }
@@ -3337,7 +3336,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA %f is past min limit: %f, (solution 3)"), moveRA, RALimitL);
         // ... turn both RA and DEC axis around
 
-        moveRA += long(12.0f * stepsPerSiderealHour);
+        moveRA += 12.0f;
         moveDEC = -moveDEC;
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
     }
@@ -3349,8 +3348,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPost: Target Steps RA: %f, DEC: %f"), -moveRA, moveDEC);
     //    float targetRA = clamp(-moveRA, -RAStepperLimit, RAStepperLimit);
     //    float targetDEC = clamp(moveDEC, DECStepperUpLimit, DECStepperDownLimit);
-    targetRASteps  = -moveRA;
-    targetDECSteps = moveDEC;
+    targetRASteps  = -moveRA * stepsPerSiderealHour;
+    targetDECSteps = moveDEC * _stepsPerDECDegree;
 
     // Can we get there without physical issues? (not doing anything with this yet)
     //  isUnreachable = ((targetRA != -moveRA) || (targetDEC != moveDEC));
