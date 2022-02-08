@@ -3277,13 +3277,13 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
 
     // Where do we want to move RA to?
-    float moveRA = hourPos;  // hr * u-steps/hr = u-steps
+    float moveRA = hourPos;  // hr
 
     // Where do we want to move DEC to?
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
-    float moveDEC = -_targetDEC.getTotalDegrees();  // deg * u-steps/deg = u-steps
+    float moveDEC = -_targetDEC.getTotalDegrees();  // deg
 
-    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target Step pos RA: %f, DEC: %f"), moveRA, moveDEC);
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
     /*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
