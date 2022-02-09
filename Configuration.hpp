@@ -32,6 +32,9 @@
 // Include the current software version.
 #include "Version.h"
 
+// Include the user-specific local configuration
+#include "LocalConfiguration.hpp"
+
 /**
  * Use default values for any parameters the user didn't provide.
  */
@@ -45,9 +48,6 @@
 #ifndef BOARD
     #error You have to specify the board
 #endif
-
-// Include the user-specific local configuration
-#include "LocalConfiguration.hpp"
 
 // Set to 1 for the northern hemisphere, 0 otherwise
 #ifndef NORTHERN_HEMISPHERE

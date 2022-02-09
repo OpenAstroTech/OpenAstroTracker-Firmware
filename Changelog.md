@@ -1,6 +1,9 @@
-**V1.10.7 - Updates**
+**V1.10.8 - Updates**
 - Fixed a bug in RA Autohoming
 - Cleaned up logging some more
+
+**V1.10.7 - Updates**
+- Fix Arduino IDE issues
 
 **V1.10.6 - Updates**
 - Use consistent enable pin logic for all drivers.
