@@ -86,9 +86,9 @@ bool processPOIKeys()
                         mount.targetDEC() = Declination::FromSeconds(targetSeconds);
                         INFO(DEBUG_INFO, "[POI]: Target RA  is %s. %ls", mount.targetRA().ToString(), targetSeconds);
                         INFO(DEBUG_INFO,
-                              "[POI]: mount target DEC is %s. %ls",
-                              mount.targetDEC().ToString(),
-                              mount.targetDEC().getTotalSeconds());
+                             "[POI]: mount target DEC is %s. %ls",
+                             mount.targetDEC().ToString(),
+                             mount.targetDEC().getTotalSeconds());
                         mount.startSlewingToTarget();
                     }
                 }

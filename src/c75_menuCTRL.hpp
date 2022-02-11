@@ -155,9 +155,9 @@ bool processControlKeys()
                         INFO(DEBUG_GENERAL, "[CTRL]: Calling setHome(true)!");
                         mount.setHome(true);
                         INFO(DEBUG_GENERAL,
-                              "[CTRL]: setHome(true) returned: RA Current %s, Target: %f",
-                              mount.RAString(CURRENT_STRING | COMPACT_STRING).c_str(),
-                              mount.RAString(TARGET_STRING | COMPACT_STRING).c_str());
+                             "[CTRL]: setHome(true) returned: RA Current %s, Target: %f",
+                             mount.RAString(CURRENT_STRING | COMPACT_STRING).c_str(),
+                             mount.RAString(TARGET_STRING | COMPACT_STRING).c_str());
                         mount.startSlewing(TRACKING);
                     }
 

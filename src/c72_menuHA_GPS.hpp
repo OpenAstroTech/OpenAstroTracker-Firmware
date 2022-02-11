@@ -41,10 +41,10 @@ bool gpsAqcuisitionComplete(int &indicator)
     #endif
 
             INFO(DEBUG_GPS,
-                  "GPS: Encoded. %l sats, Location is%svalid, age is %lms",
-                  gps.satellites.value(),
-                  (gps.location.isValid() ? " " : " NOT "),
-                  gps.location.age());
+                 "GPS: Encoded. %l sats, Location is%svalid, age is %lms",
+                 gps.satellites.value(),
+                 (gps.location.isValid() ? " " : " NOT "),
+                 gps.location.age());
             // Make sure we got a fix in the last 30 seconds
             if ((gps.location.lng() != 0) && (gps.location.age() < 30000UL))
             {

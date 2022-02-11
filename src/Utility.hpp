@@ -12,7 +12,7 @@ int freeMemory();
 
 #if DEBUG_LEVEL > 0
     // note that the GCC version of pio doesn't support __VA_ARGS__ directly, hence this fix.
-    #define INFO(level, format, ...) logv((level), F(format), ##__VA_ARGS__)
+    #define INFO(level, format, ...)  logv((level), F(format), ##__VA_ARGS__)
     #define DEBUG(level, format, ...) logv((level), (F(format)), ##__VA_ARGS__)
 // Realtime timer class using microseconds to time stuff
 class RealTime
