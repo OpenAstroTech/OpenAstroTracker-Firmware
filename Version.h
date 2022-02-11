@@ -4,4 +4,3 @@
 // So 1.8 is actually 1.08, meaning that 1.12 is a later version than 1.8.  \_(..)_/
 
 #define VERSION "V1.10.8"
-
