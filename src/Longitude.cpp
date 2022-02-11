@@ -22,12 +22,12 @@ void Longitude::checkHours()
 {
     while (totalSeconds > 180L * 3600L)
     {
-        LOGV1(DEBUG_GENERAL, F("[LONGITUDE]: CheckHours: Degrees is more than 180, wrapping"));
+        INFO(DEBUG_GENERAL, "[LONGITUDE]: CheckHours: Degrees is more than 180, wrapping");
         totalSeconds -= 360L * 3600L;
     }
     while (totalSeconds < (-180L * 3600L))
     {
-        LOGV1(DEBUG_GENERAL, F("[LONGITUDE]: CheckHours: Degrees is less than -180, wrapping"));
+        INFO(DEBUG_GENERAL, "[LONGITUDE]: CheckHours: Degrees is less than -180, wrapping");
         totalSeconds += 360L * 3600L;
     }
 }
@@ -35,7 +35,7 @@ void Longitude::checkHours()
 Longitude Longitude::ParseFromMeade(String const &s)
 {
     Longitude result(0.0);
-    LOGV2(DEBUG_GENERAL, F("[LONGITUDE]: Parse(%s)"), s.c_str());
+    INFO(DEBUG_GENERAL, "[LONGITUDE]: Parse(%s)", s.c_str());
 
     // Use the DayTime code to parse it.
     DayTime dt = DayTime::ParseFromMeade(s);
@@ -44,7 +44,7 @@ Longitude Longitude::ParseFromMeade(String const &s)
     result.totalSeconds = 180L * 3600L - dt.getTotalSeconds();
     result.checkHours();
 
-    LOGV4(DEBUG_GENERAL, F("[LONGITUDE]: Parse(%s) -> %s = %ls"), s.c_str(), result.ToString(), result.getTotalSeconds());
+    INFO(DEBUG_GENERAL, "[LONGITUDE]: Parse(%s) -> %s = %ls", s.c_str(), result.ToString(), result.getTotalSeconds());
     return result;
 }
 

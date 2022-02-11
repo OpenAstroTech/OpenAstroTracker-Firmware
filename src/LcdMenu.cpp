@@ -35,7 +35,7 @@ LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
 
 void LcdMenu::startup()
 {
-    LOGV1(DEBUG_INFO, F("[LCD]: LcdMenu startup"));
+    INFO(DEBUG_INFO, "[LCD]: LcdMenu startup");
 
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
     _lcd.begin(_cols, _rows);
@@ -55,7 +55,7 @@ void LcdMenu::startup()
     #endif
 
     _brightness = EEPROMStore::getBrightness();
-    LOGV2(DEBUG_INFO, F("[LCD]: Brightness from EEPROM is %d"), _brightness);
+    INFO(DEBUG_INFO, "[LCD]: Brightness from EEPROM is %d", _brightness);
     setBacklightBrightness(_brightness, false);
 
     _numMenuItems    = 0;
@@ -129,7 +129,7 @@ bool LcdMenu::testIfLcdIsBad()
      * pin is being driven HIGH by the AVR.
      */
     const bool lcdIsBad = (pinValue != HIGH);
-    LOGV2(DEBUG_INFO, F("[LCD]: HW is bad? %s"), lcdIsBad ? "YES" : "NO");
+    INFO(DEBUG_INFO, "[LCD]: HW is bad? %s", lcdIsBad ? "YES" : "NO");
     return lcdIsBad;
 }
     #endif
@@ -217,7 +217,7 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
 
     if (persist)
     {
-        LOGV2(DEBUG_INFO, F("[LCD]: Saving %d as brightness"), _brightness);
+        INFO(DEBUG_INFO, "[LCD]: Saving %d as brightness", _brightness);
         EEPROMStore::storeBrightness(_brightness);
     }
 }

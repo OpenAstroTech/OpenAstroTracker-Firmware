@@ -42,7 +42,7 @@ void processSerialData()
         {
             if (buffer[0] == 0x06)
             {
-                LOGV1(DEBUG_SERIAL, F("[SERIAL]: Received: ACK request, replying 1"));
+                INFO(DEBUG_SERIAL, "[SERIAL]: Received: ACK request, replying 1");
     #if DEBUG_LEVEL == DEBUG_NONE
                 Serial.print('1');
     #endif
@@ -50,19 +50,19 @@ void processSerialData()
             else
             {
                 String inCmd = String(buffer[0]) + Serial.readStringUntil('#');
-                LOGV3(DEBUG_SERIAL, F("[SERIAL]: ReceivedCommand(%d chars): [%s]"), inCmd.length(), inCmd.c_str());
+                INFO(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
 
                 String retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
                 if (retVal != "")
                 {
-                    LOGV2(DEBUG_SERIAL, F("[SERIAL]: RepliedWith:  [%s]"), retVal.c_str());
+                    INFO(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal.c_str());
     #if DEBUG_LEVEL == DEBUG_NONE
                     Serial.print(retVal);
     #endif
                 }
                 else
                 {
-                    LOGV1(DEBUG_SERIAL, F("[SERIAL]: NoReply"));
+                    INFO(DEBUG_SERIAL, "[SERIAL]: NoReply");
                 }
             }
         }
