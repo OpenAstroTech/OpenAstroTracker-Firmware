@@ -60,7 +60,7 @@
         #define RA_SLEW_MICROSTEPPING 8  // The (default) microstep mode used for slewing RA axis
     #endif
     #ifndef RA_TRACKING_MICROSTEPPING
-        #define RA_TRACKING_MICROSTEPPING 8  // The fine microstep mode for tracking RA axis
+        #define RA_TRACKING_MICROSTEPPING 256  // The fine microstep mode for tracking RA axis
     #endif
     #ifndef RA_UART_STEALTH_MODE
         #define RA_UART_STEALTH_MODE 0
@@ -79,7 +79,7 @@
         #define DEC_SLEW_MICROSTEPPING 16  // The (default) microstep mode used for slewing DEC
     #endif
     #ifndef DEC_GUIDE_MICROSTEPPING
-        #define DEC_GUIDE_MICROSTEPPING 16  // The fine microstep mode used for guiding DEC only
+        #define DEC_GUIDE_MICROSTEPPING 256  // The fine microstep mode used for guiding DEC only
     #endif
     #ifndef DEC_UART_STEALTH_MODE
         #define DEC_UART_STEALTH_MODE 0
@@ -201,7 +201,7 @@
     #define RA_PULSE_MULTIPLIER 1.5f
 #endif
 #ifndef DEC_PULSE_MULTIPLIER
-    #define DEC_PULSE_MULTIPLIER 1.0f
+    #define DEC_PULSE_MULTIPLIER 0.5f
 #endif
 
 ////////////////////////////
