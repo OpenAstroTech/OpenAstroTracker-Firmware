@@ -11,15 +11,7 @@ String getLogBuffer();
 int freeMemory();
 
 #if DEBUG_LEVEL > 0
-
-    #define LOGV1(level, a)                      logv((level), (a))
-    #define LOGV2(level, a, b)                   logv((level), (a), (b))
-    #define LOGV3(level, a, b, c)                logv((level), (a), (b), (c))
-    #define LOGV4(level, a, b, c, d)             logv((level), (a), (b), (c), (d))
-    #define LOGV5(level, a, b, c, d, e)          logv((level), (a), (b), (c), (d), (e))
-    #define LOGV6(level, a, b, c, d, e, f)       logv((level), (a), (b), (c), (d), (e), (f))
-    #define LOGV7(level, a, b, c, d, e, f, g)    logv((level), (a), (b), (c), (d), (e), (f), (g))
-    #define LOGV8(level, a, b, c, d, e, f, g, h) logv((level), (a), (b), (c), (d), (e), (f), (g), (h))
+    #define LOG(level, format, ...)  logv((level), (F(format)), ##__VA_ARGS__)
 
 // Realtime timer class using microseconds to time stuff
 class RealTime
@@ -138,15 +130,7 @@ String format(const char *input, ...);
 void logv(int levelFlags, String input, ...);
 
 #else  // DEBUG_LEVEL>0
-
-    #define LOGV1(level, a)
-    #define LOGV2(level, a, b)
-    #define LOGV3(level, a, b, c)
-    #define LOGV4(level, a, b, c, d)
-    #define LOGV5(level, a, b, c, d, e)
-    #define LOGV6(level, a, b, c, d, e, f)
-    #define LOGV7(level, a, b, c, d, e, f, g)
-
+    #define LOG(level, format, ...)
 #endif  // DEBUG_LEVEL>0
 
 // For some reason arduino just defines all float functions to be as double
