@@ -2,6 +2,12 @@
 #include "Utility.hpp"
 #include "Longitude.hpp"
 
+#if INDI_SUPPORT == 1
+    #define LONGITUDE_OFFSET 0L
+#else
+    #define LONGITUDE_OFFSET 180L
+#endif
+
 //////////////////////////////////////////////////////////////////////////////////////
 //
 // -180..180 range, 0 is at the prime meridian (through Greenwich), negative going west, positive going east
@@ -41,7 +47,7 @@ Longitude Longitude::ParseFromMeade(String const &s)
     DayTime dt = DayTime::ParseFromMeade(s);
 
     //from indilib driver:  Meade defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
-    result.totalSeconds = 180L * 3600L - dt.getTotalSeconds();
+    result.totalSeconds = LONGITUDE_OFFSET * 3600L - dt.getTotalSeconds();
     result.checkHours();
 
     LOGV4(DEBUG_GENERAL, F("[LONGITUDE]: Parse(%s) -> %s = %ls"), s.c_str(), result.ToString(), result.getTotalSeconds());
@@ -72,7 +78,7 @@ const char *Longitude::formatString(char *targetBuffer, const char *format, long
     long secs = totalSeconds;
 
     // Map to 0..360 westwards
-    secs = 180L * 3600L - secs;
+    secs = LONGITUDE_OFFSET * 3600L - secs;
 
     long degs = secs / 3600;
     secs      = secs - degs * 3600;

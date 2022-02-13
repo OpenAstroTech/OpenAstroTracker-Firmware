@@ -569,3 +569,9 @@
         #error "Debugging not supported on this platform"
     #endif
 #endif
+
+// define INDI_SUPPORT in the local configuration if you want it to work
+// currently this will fix Meade longitude parsing
+#ifndef INDI_SUPPORT
+    #define INDI_SUPPORT 0
+#endif
