@@ -438,9 +438,11 @@
 // SUPPORT_POINTS_OF_INTEREST to 0
 //
 //
-// Set this to 1 to support full GO menu.
-// If this is set to 0 you still have a GO menu that has Home and Park.
-    #define SUPPORT_POINTS_OF_INTEREST 1
+    #ifndef SUPPORT_POINTS_OF_INTEREST
+        // Set this to 1 to support full GO menu.
+        // If this is set to 0 you still have a GO menu that has Home and Park.
+        #define SUPPORT_POINTS_OF_INTEREST 1
+    #endif
 
     // Set this to 1 to support Guided Startup
     #ifndef SUPPORT_GUIDED_STARTUP

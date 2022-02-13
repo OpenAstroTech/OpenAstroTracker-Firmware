@@ -1,3 +1,6 @@
+**V1.10.8 - Updates**
+- Actually allow for override of SUPPORT_POINTS_OF_INTEREST.
+
 **V1.10.2 - Updates**
 - Revise default MKS LCD pins to match ribbon cable LCD assembly.
 
