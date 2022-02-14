@@ -125,6 +125,9 @@
     #ifndef UART_CONNECTION_TEST_TX
         #define UART_CONNECTION_TEST_TX 0
     #endif
+    #ifndef UART_CONNECTION_TEST_TX_DEG
+        #define UART_CONNECTION_TEST_TX_DEG 5.0f  //Default degrees to rotate during testing
+    #endif
 #endif
 
 // Backlash Settings
