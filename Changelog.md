@@ -1,5 +1,9 @@
-**V1.10.8 - Updates**
+**V1.10.9 - Updates**
 - Change UART TX test to be configurable movement distance
+
+**V1.10.8 - Updates**
+- Add initial unit test structure
+- Unit tests for MappedDict.hpp
 
 **V1.10.7 - Updates**
 - Fix Arduino IDE issues
