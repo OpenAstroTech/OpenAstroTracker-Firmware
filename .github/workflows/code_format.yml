@@ -17,8 +17,8 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
       - uses: DoozyX/clang-format-lint-action@v0.12
         with:
-          source: '. ./src'
-          exclude: './src/libs ./test ./scripts'
+          source: '. ./src ./src/libs'
+          exclude: './src/libs/TimerInterrupt ./scripts'
           extensions: 'c,cpp,h,hpp'
           clangFormatVersion: 12
           inplace: True
@@ -47,7 +47,7 @@ jobs:
                1. Run `git apply clang-format-diff.patch` to make the changes
                1. Commit and push up the formatted code
             1. Run `clang-format` locally
-               1. Run the command `bash -c 'shopt -s nullglob; for i in ./{.,src,src/inc,boards/*}/*.{c,cpp,h,hpp}; do clang-format -i $i; done'`
+               1. Run the command `bash -c 'shopt -s nullglob globstar;GLOBIGNORE=./src/libs/TimerInterrupt/*; for i in ./{.,src/**,unit_tests,boards/**}/*.{c,cpp,h,hpp}; do clang-format -i $i; done'`
                1. Commit and push up the formatted code
           repo-token: ${{secrets.BOT_ACCESS_TOKEN}}
           repo-token-user-login: 'openastrotech-bot'
