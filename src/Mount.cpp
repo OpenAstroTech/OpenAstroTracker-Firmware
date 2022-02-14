@@ -3722,8 +3722,8 @@ void Mount::testDEC_UART_TX()
 /**
  * Runs motor at specified speed for specified duration in each direction, allowing 0.5s to stop motion after each move
  * @param[in,out] driver The stepper driver instance
- * @param[in] speed The speed to run the stepper motor at (in deg/s? idk)
- * @param[in] duration The amount of time to turn the stepper, in seconds
+ * @param[in] speed The speed to run the stepper motor at (in microsteps per driver clock tick)
+ * @param[in] duration The amount of time to turn the stepper (in milliseconds)
  */
 void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 {
