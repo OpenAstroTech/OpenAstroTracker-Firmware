@@ -3264,6 +3264,23 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     {
         moveRA += 12;
     }
+
+    // Total hours of tracking-to-date
+    float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+    // The current RA of the home position, taking tracking-to-date into account
+    float homeRA = _zeroPosRA.getTotalHours() + trackedHours;
+
+    // Delta between target RA and home position with a normalized range of -12 hr to 12 hr
+    float homeTargetDeltaRA = _targetRA.getTotalHours() - homeRA;
+    while (homeTargetDeltaRA > 12)
+    {
+        homeTargetDeltaRA = homeTargetDeltaRA - 24;
+    }
+    while (homeTargetDeltaRA < -12)
+    {
+        homeTargetDeltaRA = homeTargetDeltaRA + 24;
+    }
+
     // Map [0 to 24] range to [-12 to +12] range
     while (moveRA > 12)
     {
@@ -3292,15 +3309,13 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
-    float trackedSeconds = _stepperTRK->currentPosition() / _trackingSpeed;  // steps / steps/s = seconds
-    float trackedHours   = trackedSeconds / 3600.0F;
     LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: TrackedHours: %f"), trackedHours);
 #if NORTHERN_HEMISPHERE == 1
-    float const RALimitL = (-RA_LIMIT_LEFT + trackedHours);
-    float const RALimitR = (RA_LIMIT_RIGHT + trackedHours);
+    float const RALimitL = -RA_LIMIT_LEFT;
+    float const RALimitR = RA_LIMIT_RIGHT;
 #else
-    float const RALimitL = (-RA_LIMIT_RIGHT + trackedHours);
-    float const RALimitR = (RA_LIMIT_LEFT + trackedHours);
+    float const RALimitL = -RA_LIMIT_RIGHT;
+    float const RALimitR = RA_LIMIT_LEFT;
 #endif
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Limits are : %f to %f"), RALimitL, RALimitR);
 
@@ -3319,7 +3334,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Solution 3: %f, %f"), (moveRA + 12.0f), -moveDEC);
 
     // If we reach the limit in the positive direction ...
-    if (moveRA > RALimitR)
+    if (homeTargetDeltaRA > RALimitR)
     {
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA %f is past max limit %f  (solution 2)"), moveRA, RALimitR);
 
@@ -3329,7 +3344,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
     }
     // If we reach the limit in the negative direction...
-    else if (moveRA < RALimitL)
+    else if (homeTargetDeltaRA < RALimitL)
     {
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA %f is past min limit: %f, (solution 3)"), moveRA, RALimitL);
         // ... turn both RA and DEC axis around
