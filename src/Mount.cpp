@@ -3691,13 +3691,13 @@ DayTime Mount::calculateHa()
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::testRA_UART_TX()
 {
-    int _speed = (RA_STEPPER_SPEED / 2)
-                 / 0.715255737f;  //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
-    int _duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerRADegree / (RA_STEPPER_SPEED / 2))
-                    * 1000;  //Duration in ms to move X degrees at half of the max speed
+    //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
+    const int speed = (RA_STEPPER_SPEED / 2) / 0.715255737f;
+    //Duration in ms to move X degrees at half of the max speed
+    const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerRADegree / (RA_STEPPER_SPEED / 2)) * 1000;
     LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) for UART test"), RA_SLEW_MICROSTEPPING);
     _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-    testUART_vactual(_driverRA, _speed, _duration);
+    testUART_vactual(_driverRA, speed, duration);
     LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) after UART test"), RA_TRACKING_MICROSTEPPING);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
 }
@@ -3706,13 +3706,13 @@ void Mount::testRA_UART_TX()
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::testDEC_UART_TX()
 {
-    int _speed = (DEC_STEPPER_SPEED / 2)
-                 / 0.715255737f;  //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
-    int _duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerDECDegree / (DEC_STEPPER_SPEED / 2))
-                    * 1000;  //Duration in ms to move X degrees at half of the max speed
+    //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
+    const int speed = (DEC_STEPPER_SPEED / 2) / 0.715255737f;
+    //Duration in ms to move X degrees at half of the max speed
+    const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerDECDegree / (DEC_STEPPER_SPEED / 2)) * 1000;
     LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test"), DEC_SLEW_MICROSTEPPING);
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-    testUART_vactual(_driverDEC, _speed, _duration);
+    testUART_vactual(_driverDEC, speed, duration);
     LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) after UART test"), DEC_GUIDE_MICROSTEPPING);
     _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
 }
