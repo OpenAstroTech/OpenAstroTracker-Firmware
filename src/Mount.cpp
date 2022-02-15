@@ -1244,11 +1244,15 @@ const Declination Mount::currentDEC() const
 void Mount::syncPosition(DayTime ra, Declination dec)
 {
     long solutions[6];
-    _targetRA  = ra;
     _targetDEC = dec;
 
+    // Adjust the home RA position by the delta sync position.
+    DayTime raAdjust = DayTime(currentRA().getTotalHours() - ra.getTotalHours());
+    _targetRA = currentRA();
+    _zeroPosRA.addHours(raAdjust.getTotalHours());
+
     long targetRAPosition, targetDECPosition;
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
+    LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), ra.ToString(), _targetDEC.ToString());
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
 
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 1: RA %l and DEC: %l"), solutions[0], solutions[1]);
@@ -1256,12 +1260,13 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 3: RA %l and DEC: %l"), solutions[4], solutions[5]);
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Chose solution RA: %l and DEC: %l"), targetRAPosition, targetDECPosition);
 
-    long raMove  = targetRAPosition - _stepperRA->currentPosition();
+    // long raMove  = targetRAPosition - _stepperRA->currentPosition();
     long decMove = targetDECPosition - _stepperDEC->currentPosition();
-    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Moving steppers by RA: %l and DEC: %l"), raMove, decMove);
-    _homeOffsetRA -= raMove;
+    LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Moving steppers by DEC: %l"), decMove);
+    //LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Moving steppers by RA: %l and DEC: %l"), raMove, decMove);
+    // _homeOffsetRA -= raMove;
     _homeOffsetDEC -= decMove;
-    _stepperRA->setCurrentPosition(targetRAPosition);    // u-steps (in slew mode)
+    // _stepperRA->setCurrentPosition(targetRAPosition);    // u-steps (in slew mode)
     _stepperDEC->setCurrentPosition(targetDECPosition);  // u-steps (in slew mode)
 }
 
@@ -3267,6 +3272,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Total hours of tracking-to-date
     float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Tracked time is %l steps (%f h)."), _stepperTRK->currentPosition(), trackedHours);
+
     // The current RA of the home position, taking tracking-to-date into account
     float homeRA = _zeroPosRA.getTotalHours() + trackedHours;
 
