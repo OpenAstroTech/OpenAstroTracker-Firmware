@@ -16,9 +16,6 @@ class Declination : public DayTime
 
     virtual void set(int h, int m, int s);
 
-    // Add degrees, clamp to -180...0
-    void addDegrees(float deltaDegrees);
-
     // Get total degrees (-180..0)
     float getTotalDegrees() const;
 

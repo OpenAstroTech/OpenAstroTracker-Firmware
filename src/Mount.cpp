@@ -3267,7 +3267,6 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     Declination decTarget = _targetDEC;
 
     raTarget.subtractTime(_zeroPosRA);
-    decTarget.addDegrees(-_zeroPosDEC);
     LOGV3(DEBUG_MOUNT_VERBOSE,
           F("[MOUNT]: CalcSteppersIn: Adjust RA by Zeropos. New Target RA: %s, DEC: %s"),
           raTarget.ToString(),
@@ -3314,7 +3313,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move DEC to?
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
-    float moveDEC = -decTarget.getTotalDegrees();  // deg
+    float moveDEC = (decTarget.getTotalDegrees() - _zeroPosDEC);  // deg
 
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
