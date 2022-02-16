@@ -1193,7 +1193,6 @@ const DayTime Mount::currentRA() const
     // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: ZeroPos    : %s"), _zeroPosRA.ToString());
     // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: POS (+zp)  : %s"), DayTime(hourPos).ToString());
 
-    bool flipRA = _stepperDEC->currentPosition() < 0;
     float degreePos = _stepperDEC->currentPosition() / _stepsPerDECDegree;
     degreePos += _zeroPosDEC;
     if (NORTHERN_HEMISPHERE ? degreePos > 0 : degreePos < 0)
