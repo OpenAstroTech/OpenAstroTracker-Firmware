@@ -207,7 +207,15 @@ void Mount::readPersistentData()
     LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: Parking position read as R:%l, D:%l"), _raParkingPos, _decParkingPos);
 
     _decLowerLimit = EEPROMStore::getDECLowerLimit();
+    if (_decLowerLimit == 0 && DEC_LIMIT_DOWN != 0)
+    {
+        _decLowerLimit = long(-(DEC_LIMIT_DOWN * _stepsPerDECDegree));
+    }
     _decUpperLimit = EEPROMStore::getDECUpperLimit();
+    if (_decUpperLimit == 0 && DEC_LIMIT_UP != 0)
+    {
+        _decUpperLimit = long(DEC_LIMIT_UP * _stepsPerDECDegree);
+    }
     LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: DEC limits read as %l -> %l"), _decLowerLimit, _decUpperLimit);
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
@@ -3135,13 +3143,13 @@ void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
 {
     if (upper)
     {
-        _decUpperLimit = stepperPos;
+        _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOGV3(DEBUG_MOUNT, F("[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = stepperPos;
+        _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOGV3(DEBUG_MOUNT, F("[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
     }
@@ -3156,13 +3164,13 @@ void Mount::clearDecLimitPosition(bool upper)
 {
     if (upper)
     {
-        _decUpperLimit = 0;
+        _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOGV3(DEBUG_MOUNT, F("[MOUNT]: clearDecLimitPosition(Upper): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = 0;
+        _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOGV3(DEBUG_MOUNT, F("[MOUNT]: clearDecLimitPosition(Lower): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
     }

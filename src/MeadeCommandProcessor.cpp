@@ -1225,7 +1225,7 @@ String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd)
 {
-    if (inCmd[0] == 'M') // :CM
+    if (inCmd[0] == 'M')  // :CM
     {
         _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
         return "NONE#";

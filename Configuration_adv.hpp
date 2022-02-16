@@ -196,6 +196,13 @@
         (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
+#ifndef DEC_LIMIT_UP
+    #define DEC_LIMIT_UP 0.0f
+#endif
+#ifndef DEC_LIMIT_DOWN
+    #define DEC_LIMIT_DOWN 0.0f
+#endif
+
 ////////////////////////////
 //
 // GUIDE SETTINGS
