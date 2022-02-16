@@ -1,4 +1,9 @@
 **V1.10.10 - Updates**
+- Tracking now stops automaticaly when the end of the RA ring is reached (using a configurable limit)
+- Fixed RA limits to allow proper meridian flips when slewing
+- Fixed parking/return-to-home functionality
+- Fixed potential issue of DEC/RA flipping incorrectly when in the southern hemisphere
+- Added configuration option for DEC limits
 - Fixed a bug in RA Autohoming
 - Cleaned up logging some more
 
