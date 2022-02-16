@@ -181,7 +181,9 @@
 #ifndef RA_LIMIT_RIGHT
     #define RA_LIMIT_RIGHT 7.0f
 #endif
-
+#ifndef RA_TRACKING_LIMIT
+    #define RA_TRACKING_LIMIT 7.0f
+#endif
 // DEC movement:
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
 // DEC wheel is 2 x PI x 90mm circumference which is 565.5mm

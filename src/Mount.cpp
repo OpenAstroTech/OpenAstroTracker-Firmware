@@ -2903,6 +2903,7 @@ void Mount::loop()
     }
     else
     {
+        checkRALimit();
         if (_mountStatus & STATUS_SLEWING_MANUAL)
         {
             if (_stepperWasRunning)
@@ -3869,3 +3870,28 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 }
     #endif
 #endif
+
+/////////////////////////////////
+//
+// checkRALimit
+//
+/////////////////////////////////
+void Mount::checkRALimit()
+{
+    float trackedHours       = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+    float homeRA             = _zeroPosRA.getTotalHours() + trackedHours;
+    float const RALimit      = RA_TRACKING_LIMIT;
+    float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
+
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
+    while (homeCurrentDeltaRA > 12)
+        homeCurrentDeltaRA = homeCurrentDeltaRA - 24;
+    while (homeCurrentDeltaRA < -12)
+        homeCurrentDeltaRA = homeCurrentDeltaRA + 24;
+
+    if (homeCurrentDeltaRA > RALimit)
+    {
+        LOGV1(DEBUG_MOUNT, F("[MOUNT]: checkRALimit: Tracking limit reached"));
+        stopSlewing(TRACKING);
+    }
+}

@@ -441,6 +441,8 @@ class Mount
     #endif
 #endif
 
+    void checkRALimit();
+
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
 
