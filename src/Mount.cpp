@@ -2911,7 +2911,9 @@ void Mount::loop()
     }
     else
     {
+        // Check whether we should stop tracking now
         checkRALimit();
+
         if (_mountStatus & STATUS_SLEWING_MANUAL)
         {
             if (_stepperWasRunning)

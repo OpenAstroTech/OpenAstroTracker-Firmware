@@ -10,7 +10,7 @@ bool processDECKeys()
     {
         if (DECselect == 0)
         {
-            mount.targetDEC().addDegrees(1);
+            mount.targetDEC().addHours(1);
             showTargetDEC = true;
         }
         if (DECselect == 1)
@@ -35,7 +35,7 @@ bool processDECKeys()
     {
         if (DECselect == 0)
         {
-            mount.targetDEC().addDegrees(-1);
+            mount.targetDEC().addHours(-1);
             showTargetDEC = true;
         }
         if (DECselect == 1)
