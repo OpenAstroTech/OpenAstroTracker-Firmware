@@ -33,7 +33,7 @@ class DayTime
     void set(const DayTime &other);
 
     // Add hours, wrapping days (which are not tracked). Negative or positive.
-    virtual void addHours(int deltaHours);
+    virtual void addHours(float deltaHours);
 
     // Add minutes, wrapping hours if needed
     void addMinutes(int deltaMins);

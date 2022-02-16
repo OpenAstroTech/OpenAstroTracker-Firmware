@@ -36,7 +36,7 @@ void Declination::set(int h, int m, int s)
     checkHours();
 }
 
-void Declination::addDegrees(int deltaDegrees)
+void Declination::addDegrees(float deltaDegrees)
 {
     addHours(deltaDegrees);
 }

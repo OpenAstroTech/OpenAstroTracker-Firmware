@@ -105,6 +105,7 @@ void Mount::initializeVariables()
     _stepperWasRunning = false;
     _latitude          = Latitude(45.0);
     _longitude         = Longitude(100.0);
+    _zeroPosDEC        = 0.0f;
 
     _compensateForTrackerOff = false;
     _trackerStoppedAt        = 0;
@@ -1193,7 +1194,9 @@ const DayTime Mount::currentRA() const
     // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: POS (+zp)  : %s"), DayTime(hourPos).ToString());
 
     bool flipRA = _stepperDEC->currentPosition() < 0;
-    if (flipRA)
+    float degreePos = _stepperDEC->currentPosition() / _stepsPerDECDegree;
+    degreePos += _zeroPosDEC;
+    if (NORTHERN_HEMISPHERE ? degreePos > 0 : degreePos < 0)
     {
         hourPos += 12;
         if (hourPos > 24)
@@ -1224,6 +1227,8 @@ const Declination Mount::currentDEC() const
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentDEC: DEC Steps  : %d"), _stepperDEC->currentPosition());
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentDEC: POS        : %s"), String(degreePos).c_str());
 
+    degreePos += _zeroPosDEC;
+
     if (NORTHERN_HEMISPHERE ? degreePos > 0 : degreePos < 0)
     {
         degreePos = -degreePos;
@@ -1244,8 +1249,8 @@ const Declination Mount::currentDEC() const
 void Mount::syncPosition(DayTime ra, Declination dec)
 {
     long solutions[6];
-    _targetDEC     = dec;
-    _targetRA      = ra;
+    _targetDEC = dec;
+    _targetRA  = ra;
 
     // Adjust the home RA position by the delta sync position.
     float raAdjust = ra.getTotalHours() - currentRA().getTotalHours();
@@ -1259,6 +1264,10 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     }
     _zeroPosRA.addHours(raAdjust);
 
+    // Adjust the home DEC position by the delta between the sync'd target and current position.
+    float decAdjust = dec.getTotalDegrees() - currentDEC().getTotalDegrees();
+    _zeroPosDEC += decAdjust;
+
     long targetRAPosition, targetDECPosition;
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), ra.ToString(), _targetDEC.ToString());
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
@@ -1267,15 +1276,6 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 2: RA %l and DEC: %l"), solutions[2], solutions[3]);
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 3: RA %l and DEC: %l"), solutions[4], solutions[5]);
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Chose solution RA: %l and DEC: %l"), targetRAPosition, targetDECPosition);
-
-    //long raMove  = targetRAPosition - _stepperRA->currentPosition();
-    long decMove = targetDECPosition - _stepperDEC->currentPosition();
-    LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Moving steppers by DEC: %l"), decMove);
-    //LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Moving steppers by RA: %l and DEC: %l"), raMove, decMove);
-    //_homeOffsetRA -= raMove;
-    _homeOffsetDEC -= decMove;
-    //_stepperRA->setCurrentPosition(targetRAPosition);    // u-steps (in slew mode)
-    _stepperDEC->setCurrentPosition(targetDECPosition);  // u-steps (in slew mode)
 }
 
 /////////////////////////////////
@@ -3194,6 +3194,7 @@ void Mount::setHome(bool clearZeroPos)
 #ifdef OAM
     _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
 #endif
+    _zeroPosDEC = 0.0f;
 
     _stepperRA->setCurrentPosition(0);
     _stepperDEC->setCurrentPosition(0);
@@ -3263,9 +3264,11 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
           _stepperRA->currentPosition(),
           _stepperDEC->currentPosition(),
           _stepperTRK->currentPosition());
-    DayTime raTarget = _targetRA;
+    DayTime raTarget      = _targetRA;
+    Declination decTarget = _targetDEC;
 
     raTarget.subtractTime(_zeroPosRA);
+    decTarget.addDegrees(-_zeroPosDEC);
     LOGV3(DEBUG_MOUNT_VERBOSE,
           F("[MOUNT]: CalcSteppersIn: Adjust RA by Zeropos. New Target RA: %s, DEC: %s"),
           raTarget.ToString(),
@@ -3312,7 +3315,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move DEC to?
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
-    float moveDEC = -_targetDEC.getTotalDegrees();  // deg
+    float moveDEC = -decTarget.getTotalDegrees();  // deg
 
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f, DEC: %f"), moveRA, moveDEC);
 

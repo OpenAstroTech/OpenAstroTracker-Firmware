@@ -498,6 +498,8 @@ class Mount
     long _currentRAStepperPosition;
 
     Declination _targetDEC;
+    // The DEC offset from home position
+    float _zeroPosDEC;
     long _currentDECStepperPosition;
 
     float _totalDECMove;
