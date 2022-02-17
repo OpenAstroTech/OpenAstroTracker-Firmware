@@ -1203,7 +1203,7 @@ const DayTime Mount::currentRA() const
 
     float degreePos = _stepperDEC->currentPosition() / _stepsPerDECDegree;
     degreePos += _zeroPosDEC;
-    if (NORTHERN_HEMISPHERE ? degreePos > 0 : degreePos < 0)
+    if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
     {
         hourPos += 12;
         if (hourPos > 24)
