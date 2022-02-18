@@ -137,6 +137,7 @@ void Mount::initializeVariables()
     _localStartDate.month    = 1;
     _localStartDate.day      = 1;
     _localStartTimeSetMillis = -1;
+    _lastTRKCheck            = 0;
 }
 
 /////////////////////////////////
@@ -1652,7 +1653,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
         if (speedDegsPerSec != 0)
         {
             LOGV2(DEBUG_STEPPERS | DEBUG_FOCUS,
-                  F("FOCUS: Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous"),
+                  F("[FOCUS]: Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous"),
                   speedDegsPerSec);
             enableFocusMotor();
             _stepperFocus->setMaxSpeed(speedDegsPerSec);
@@ -2662,7 +2663,9 @@ void Mount::processRAHomingProgress()
                       _stepperRA->currentPosition(),
                       _homing.offsetRA,
                       getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
+
                 moveStepperBy(StepperAxis::RA_STEPS, midPos - _stepperRA->currentPosition() - _homing.offsetRA);
+
                 _homing.state     = HomingState::HOMING_WAIT_FOR_STOP;
                 _homing.nextState = HomingState::HOMING_SUCCESSFUL;
             }
@@ -2788,6 +2791,7 @@ void Mount::interruptLoop()
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     if (_mountStatus & STATUS_FINDING_HOME)
     {
+        _stepperRA->run();
         processRAHomingProgress();
     }
 #endif
@@ -2931,7 +2935,7 @@ void Mount::loop()
             if (_stepperWasRunning)
             {
                 LOGV3(DEBUG_MOUNT | DEBUG_STEPPERS,
-                      F("MOUNT: Loop: Reached target. RA:%l, DEC:%l"),
+                      F("[MOUNT]: Loop: Reached target. RA:%l, DEC:%l"),
                       _stepperRA->currentPosition(),
                       _stepperDEC->currentPosition());
                 // Mount is at Target!
@@ -2991,7 +2995,7 @@ void Mount::loop()
                 if (_correctForBacklash)
                 {
                     LOGV3(DEBUG_MOUNT | DEBUG_STEPPERS,
-                          F("MOUNT: Loop:   Reached target at %d. Compensating by %d"),
+                          F("[MOUNT]: Loop:   Reached target at %d. Compensating by %d"),
                           (int) _currentRAStepperPosition,
                           _backlashCorrectionSteps);
                     _currentRAStepperPosition += _backlashCorrectionSteps;
@@ -3002,7 +3006,7 @@ void Mount::loop()
                 else
                 {
                     LOGV2(DEBUG_MOUNT | DEBUG_STEPPERS,
-                          F("MOUNT: Loop:   Reached target at %d, no backlash compensation needed"),
+                          F("[MOUNT]: Loop:   Reached target at %d, no backlash compensation needed"),
                           _currentRAStepperPosition);
                 }
 
@@ -3021,7 +3025,7 @@ void Mount::loop()
                     if (isParking())
                     {
                         LOGV1(DEBUG_MOUNT | DEBUG_STEPPERS,
-                              F("MOUNT: Loop:   Was parking, so no tracking. Proceeding to park position..."));
+                              F("[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position..."));
                         _mountStatus &= ~STATUS_PARKING;
                         _slewingToPark = true;
                         _stepperRA->moveTo(_raParkingPos);
@@ -3029,7 +3033,7 @@ void Mount::loop()
                         _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
                         _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
                         LOGV5(DEBUG_MOUNT | DEBUG_STEPPERS,
-                              F("MOUNT: Loop:   Park Position is R:%l  D:%l, TotalMove is R:%f, D:%f"),
+                              F("[MOUNT]: Loop:   Park Position is R:%l  D:%l, TotalMove is R:%f, D:%f"),
                               _raParkingPos,
                               _decParkingPos,
                               _totalRAMove,
@@ -3888,20 +3892,25 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 /////////////////////////////////
 void Mount::checkRALimit()
 {
-    float trackedHours       = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
-    float homeRA             = _zeroPosRA.getTotalHours() + trackedHours;
-    float const RALimit      = RA_TRACKING_LIMIT;
-    float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
-
-    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
-    while (homeCurrentDeltaRA > 12)
-        homeCurrentDeltaRA = homeCurrentDeltaRA - 24;
-    while (homeCurrentDeltaRA < -12)
-        homeCurrentDeltaRA = homeCurrentDeltaRA + 24;
-
-    if (homeCurrentDeltaRA > RALimit)
+    // Check tracking limits every 5 seconds
+    if (millis() - _lastTRKCheck > 5000)
     {
-        LOGV1(DEBUG_MOUNT, F("[MOUNT]: checkRALimit: Tracking limit reached"));
-        stopSlewing(TRACKING);
+        float trackedHours       = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+        float homeRA             = _zeroPosRA.getTotalHours() + trackedHours;
+        float const RALimit      = RA_TRACKING_LIMIT;
+        float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
+
+        LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
+        while (homeCurrentDeltaRA > 12)
+            homeCurrentDeltaRA = homeCurrentDeltaRA - 24;
+        while (homeCurrentDeltaRA < -12)
+            homeCurrentDeltaRA = homeCurrentDeltaRA + 24;
+
+        if (homeCurrentDeltaRA > RALimit)
+        {
+            LOGV1(DEBUG_MOUNT, F("[MOUNT]: checkRALimit: Tracking limit reached"));
+            stopSlewing(TRACKING);
+        }
+        _lastTRKCheck = millis();
     }
 }

@@ -503,6 +503,7 @@ class Mount
     // The DEC offset from home position
     float _zeroPosDEC;
     long _currentDECStepperPosition;
+    long _lastTRKCheck;
 
     float _totalDECMove;
     float _totalRAMove;
