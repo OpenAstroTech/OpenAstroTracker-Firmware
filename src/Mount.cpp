@@ -7,7 +7,10 @@
 #include "MappedDict.hpp"
 
 
-#include "New stepper lib"
+#include "IntervalInterrupt.h"
+
+ISR(TIMER5_OVF_vect) { IntervalInterrupt_AVR<Timer::TIMER_5>::handle_overflow(); }
+ISR(TIMER5_COMPA_vect) { IntervalInterrupt_AVR<Timer::TIMER_5>::handle_compare_match(); }
 
 
 PUSH_NO_WARNINGS
