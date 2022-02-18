@@ -6,6 +6,10 @@
 #include "Sidereal.hpp"
 #include "MappedDict.hpp"
 
+
+#include "New stepper lib"
+
+
 PUSH_NO_WARNINGS
 #include <AccelStepper.h>
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
