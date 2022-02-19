@@ -69,6 +69,7 @@ private:
         INTERRUPT::stop();
         INTERRUPT::setCallback(nullptr);
 
+        dir = 0;
         ramp_stair = 0;
         ramp_stair_step = 0;
         run_interval = 0;
@@ -90,17 +91,6 @@ private:
         accel_steps_left = accel_steps;
         run_steps_left = run_steps;
         run_interval = new_run_interval;
-
-        if (direction > 0)
-        {
-            Pin<47>::init();
-            Pin<47>::pulse();
-        }
-        else
-        {
-            Pin<45>::init();
-            Pin<45>::pulse();
-        }
 
         // we need to pre-decelerate first (for direction change or lower speed)
         if (pre_decel_stairs > 0)
@@ -252,19 +242,26 @@ private:
     }
 
 public:
-    static int32_t position()
+    static Angle position()
     {
-        return pos;
+        noInterrupts();
+        return Angle::deg(360.0f / DRIVER::SPR) * pos;
+        interrupts();
     }
 
     static void position(Angle value)
     {
-        // noInterrupts();
+        noInterrupts();
         pos = static_cast<int32_t>((DRIVER::SPR / (2.0f * 3.14159265358979323846f)) * value.rad() + 0.5f);
-        // interrupts();
+        interrupts();
     }
 
-    bool isRunning()
+    static int8_t movementDir()
+    {
+        return dir;
+    }
+
+    static bool isRunning()
     {
         return run_interval > 0;
     }

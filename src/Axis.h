@@ -39,7 +39,7 @@ template <typename Config> class Axis
     {
         if (enable)
         {
-            Config::stepper::moveTo(STEPPER_SPEED_TRACKING, stepper_limit_max);
+            Config::stepper::moveTo(STEPPER_SPEED_TRACKING, transmit(limit_max));
         }
         else
         {
@@ -63,37 +63,39 @@ template <typename Config> class Axis
 
     static void slewTo(Angle target)
     {
-        auto trans_target = transmit(target);
-        if (trans_target > stepper_limit_max)
-        {
-            trans_target = stepper_limit_max;
-        }
-        else if (trans_target < stepper_limit_min)
-        {
-            trans_target = stepper_limit_min;
-        }
+        slewing_from = Config::stepper::position();
+        slewing_to = constrain(target, limit_min, limit_max);
 
         if (is_tracking)
         {
-            Config::stepper::moveTo(
-                STEPPER_SPEED_TRACKING + STEPPER_SPEED_SLEWING * slew_rate_factor, trans_target, StepperCallback::create<returnTracking>());
+            auto speed = STEPPER_SPEED_TRACKING + (STEPPER_SPEED_SLEWING * slew_rate_factor);
+            Config::stepper::moveTo(speed, transmit(slewing_to), StepperCallback::create<returnTracking>());
         }
         else
         {
-            Config::stepper::moveTo(STEPPER_SPEED_SLEWING * slew_rate_factor, trans_target);
+            auto speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
+            Config::stepper::moveTo(speed, transmit(slewing_to));
         }
+        
+        is_slewing = true;
     }
 
     static void slew(bool direction)
     {
-        auto speed = (direction) ? STEPPER_SPEED_SLEWING * slew_rate_factor : -STEPPER_SPEED_SLEWING * slew_rate_factor;
+        auto target = (direction) ? limit_max : limit_min;
+        slewTo(target);
+    }
 
-        if (is_tracking)
+    static float slewingProgress()
+    {
+        if (is_slewing)
         {
-            speed = speed + STEPPER_SPEED_TRACKING;
+            return (Config::stepper::position() - slewing_from) / (slewing_to - slewing_from);
         }
-
-        Config::stepper::moveTo(speed, (direction) ? stepper_limit_max : stepper_limit_min);
+        else
+        {
+            return 1.0f;
+        }
     }
 
     static void stopSlewing()
@@ -103,17 +105,17 @@ template <typename Config> class Axis
 
     static void limitMax(Angle value)
     {
-        stepper_limit_max = transmit(value);
+        limit_max = value;
     }
 
     static void limitMin(Angle value)
     {
-        stepper_limit_min = transmit(value);
+        limit_min = value;
     }
 
     static Angle position()
     {
-        return STEP_ANGLE * Config::stepper::position();
+        return Config::stepper::position() / Config::TRANSMISSION;
     }
 
     static void setPosition(Angle value)
@@ -121,14 +123,9 @@ template <typename Config> class Axis
         Config::stepper::position(transmit(value));
     }
 
-    static Angle distanceToGo()
-    {
-        return STEP_ANGLE * Config::stepper::distanceToGo();
-    }
-
     static Angle trackingPosition()
     {
-        return Angle(0.0f);
+        return Angle::deg(0.0f);
     }
 
     static bool isRunning()
@@ -155,14 +152,24 @@ template <typename Config> class Axis
     static bool is_tracking;
     static float slew_rate_factor;
 
-    static Angle stepper_limit_max;
-    static Angle stepper_limit_min;
+    static boolean is_slewing;
+    static Angle slewing_from;
+    static Angle slewing_to;
+
+    static Angle limit_max;
+    static Angle limit_min;
 };
 
 template <typename Config> bool Axis<Config>::is_tracking = false;
 
+template <typename Config> bool Axis<Config>::is_slewing = false;
+
 template <typename Config> float Axis<Config>::slew_rate_factor = 1.0;
 
-template <typename Config> Angle Axis<Config>::stepper_limit_max = transmit(Angle::deg(101.0f));
+template <typename Config> Angle Axis<Config>::slewing_from = Angle::deg(0.0f);
 
-template <typename Config> Angle Axis<Config>::stepper_limit_min = transmit(Angle::deg(-101.0f));
+template <typename Config> Angle Axis<Config>::slewing_to = Angle::deg(0.0f);
+
+template <typename Config> Angle Axis<Config>::limit_max = Angle::deg(101.0f);
+
+template <typename Config> Angle Axis<Config>::limit_min = Angle::deg(-101.0f);

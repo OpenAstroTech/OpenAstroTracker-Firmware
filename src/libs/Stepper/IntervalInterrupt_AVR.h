@@ -157,8 +157,6 @@ inline __attribute__((always_inline)) void IntervalInterrupt<T>::stop()
 
     // set counter to 0
     *IntervalInterrupt_AVR<T>::_tcnt = 0;
-
-    Pin<37>::pulse();
 }
 
 template <Timer timer>

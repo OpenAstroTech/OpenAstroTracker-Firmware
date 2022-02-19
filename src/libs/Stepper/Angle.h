@@ -29,17 +29,17 @@ public:
         return Angle(_rad + x);
     }
 
-    constexpr bool operator>(const Angle x) const
+    constexpr bool operator>(const Angle &x) const
     {
         return _rad > x._rad;
     }
 
-    constexpr bool operator<(const Angle x) const
+    constexpr bool operator<(const Angle &x) const
     {
         return _rad < x._rad;
     }
 
-    constexpr bool operator==(const Angle x) const
+    constexpr bool operator==(const Angle &x) const
     {
         return _rad == x._rad;
     }
