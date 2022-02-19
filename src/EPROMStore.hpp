@@ -44,20 +44,20 @@ class EEPROMStore
     static float getRollCalibrationAngle();
     static void storeRollCalibrationAngle(float rollCalibrationAngle);
 
-    static int32_t getRAParkingPos();
-    static void storeRAParkingPos(int32_t raParkingPos);
+    static float  getRAParkingPos();
+    static void storeRAParkingPos(float raParkingPos);
 
-    static int32_t getDECParkingPos();
-    static void storeDECParkingPos(int32_t decParkingPos);
+    static float getDECParkingPos();
+    static void storeDECParkingPos(float  decParkingPos);
 
-    static int32_t getDECLowerLimit();
-    static void storeDECLowerLimit(int32_t decLowerLimit);
+    static float getDECLowerLimit();
+    static void storeDECLowerLimit(float decLowerLimit);
 
-    static int32_t getDECUpperLimit();
-    static void storeDECUpperLimit(int32_t decUpperLimit);
+    static float getDECUpperLimit();
+    static void storeDECUpperLimit(float decUpperLimit);
 
-    static int32_t getRAHomingOffset();
-    static void storeRAHomingOffset(int32_t raHomingOffset);
+    static float getRAHomingOffset();
+    static void storeRAHomingOffset(float raHomingOffset);
 
   private:
     /////////////////////////////////
@@ -192,6 +192,9 @@ class EEPROMStore
 
     static void updateInt32(ItemAddress location, int32_t value);
     static int32_t readInt32(ItemAddress location);
+
+    static void updateFloat(ItemAddress location, float value);
+    static float readFloat(ItemAddress location);
 
     // A new store must implement these functions
     static uint8_t read(uint8_t location);

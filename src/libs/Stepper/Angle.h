@@ -14,6 +14,11 @@ private:
 
 public:
 
+    constexpr Angle() : _rad(0.0f)
+    {
+        // Nothing to do here
+    }
+
     constexpr Angle(const Angle& copyAngle) : _rad(copyAngle._rad)
     {
         // Nothing to do here

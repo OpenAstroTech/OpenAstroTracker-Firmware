@@ -12,6 +12,9 @@ POP_NO_WARNINGS
 ///////////////////////////////////////
 // PLATFORM-SPECIFIC IMPLEMENTATIONS
 
+// When storing floats as int32, how much to scale the float by?
+#define EEPROM_FLOAT_SCALE 10000.0f
+
 #if USE_DUMMY_EEPROM == true
 
 static uint8_t dummyEepromStorage[EEPROMStore::STORE_SIZE];
@@ -243,6 +246,31 @@ int32_t EEPROMStore::readInt32(EEPROMStore::ItemAddress location)
     int32_t value   = static_cast<int32_t>(uValue);
     LOGV4(DEBUG_EEPROM, F("[EEPROM]: Read32 %x (%l) from %d"), value, value, location);
     return value;
+}
+
+// Helper to update the given location with the given float value
+void EEPROMStore::updateFloat(EEPROMStore::ItemAddress location, float fvalue)
+{
+    int32_t value = fvalue * EEPROM_FLOAT_SCALE;
+    LOGV4(DEBUG_EEPROM, F("[EEPROM]: WritingFloat %f (%l) to %d"), fvalue, value, location);
+    update(location, value & 0x00FF);
+    update(location + 1, (value >> 8) & 0x00FF);
+    update(location + 2, (value >> 16) & 0x00FF);
+    update(location + 3, (value >> 24) & 0x00FF);
+}
+
+// Helper to read a float value from the given location
+float EEPROMStore::readFloat(EEPROMStore::ItemAddress location)
+{
+    uint8_t val1    = read(location);
+    uint8_t val2    = read(location + 1);
+    uint8_t val3    = read(location + 2);
+    uint8_t val4    = read(location + 3);
+    uint32_t uValue = (uint32_t) val1 + (uint32_t) val2 * 256 + (uint32_t) val3 * 256 * 256 + (uint32_t) val4 * 256 * 256 * 256;
+    int32_t value   = static_cast<int32_t>(uValue);
+    float fvalue    = static_cast<float>(value) / EEPROM_FLOAT_SCALE;
+    LOGV4(DEBUG_EEPROM, F("[EEPROM]: ReadFloat %f (%l) from %d"), fvalue, value, location);
+    return fvalue;
 }
 
 // Check if the specified item is present in the core set.
@@ -612,14 +640,14 @@ void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
 
 // Return the stored RA Parking Pos (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps.
-int32_t EEPROMStore::getRAParkingPos()
+float EEPROMStore::getRAParkingPos()
 {
-    int32_t raParkingPos(0);  // microsteps (slew)
+    float raParkingPos = 0;  // microsteps (slew)
 
     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
     if (isPresentExtended(PARKING_POS_MARKER_FLAG))
     {
-        raParkingPos = readInt32(RA_PARKING_POS_ADDR);
+        raParkingPos = readFloat(RA_PARKING_POS_ADDR);
         LOGV2(DEBUG_EEPROM, F("[EEPROM]: RA Parking position read as %l"), raParkingPos);
     }
     else
@@ -631,58 +659,58 @@ int32_t EEPROMStore::getRAParkingPos()
 }
 
 // Store the configured RA Parking Pos (slew microsteps relative to home).
-void EEPROMStore::storeRAParkingPos(int32_t raParkingPos)
+void EEPROMStore::storeRAParkingPos(float raParkingPos)
 {
-    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Updating RA Parking Pos to %l"), raParkingPos);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Updating RA Parking Pos to %f"), raParkingPos);
 
     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-    updateInt32(RA_PARKING_POS_ADDR, raParkingPos);
+    updateFloat(RA_PARKING_POS_ADDR, raParkingPos);
     updateFlagsExtended(PARKING_POS_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
 // Return the stored DEC Parking Pos (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps.
-int32_t EEPROMStore::getDECParkingPos()
+float EEPROMStore::getDECParkingPos()
 {
-    int32_t decParkingPos(0);  // microsteps (slew)
+    float decParkingPos = 0; 
 
     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
     if (isPresentExtended(PARKING_POS_MARKER_FLAG))
     {
-        decParkingPos = readInt32(DEC_PARKING_POS_ADDR);
-        LOGV2(DEBUG_EEPROM, F("[EEPROM]: DEC Parking position read as %l"), decParkingPos);
+        decParkingPos = readFloat(DEC_PARKING_POS_ADDR);
+        LOGV2(DEBUG_EEPROM, F("[EEPROM]: DEC Parking position read as %f"), decParkingPos);
     }
     else
     {
         LOGV1(DEBUG_EEPROM, F("[EEPROM]: No stored value for Parking position"));
     }
 
-    return decParkingPos;  // microsteps (slew)
+    return decParkingPos; 
 }
 
 // Store the configured DEC Parking Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECParkingPos(int32_t decParkingPos)
+void EEPROMStore::storeDECParkingPos(float decParkingPos)
 {
     LOGV2(DEBUG_EEPROM, F("[EEPROM]: Updating DEC Parking Pos to %l"), decParkingPos);
 
     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-    updateInt32(DEC_PARKING_POS_ADDR, decParkingPos);
+    updateFloat(DEC_PARKING_POS_ADDR, decParkingPos);
     updateFlagsExtended(PARKING_POS_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
 // Return the stored DEC Lower Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-int32_t EEPROMStore::getDECLowerLimit()
+float EEPROMStore::getDECLowerLimit()
 {
-    int32_t decLowerLimit(0);  // microsteps (slew)
+    float decLowerLimit = 0;  // microsteps (slew)
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
-        decLowerLimit = readInt32(DEC_LOWER_LIMIT_ADDR);
-        LOGV2(DEBUG_EEPROM, F("[EEPROM]: DEC lower limit read as %l"), decLowerLimit);
+        decLowerLimit = readFloat(DEC_LOWER_LIMIT_ADDR);
+        LOGV2(DEBUG_EEPROM, F("[EEPROM]: DEC lower limit read as %f"), decLowerLimit);
     }
     else
     {
@@ -693,71 +721,71 @@ int32_t EEPROMStore::getDECLowerLimit()
 }
 
 // Store the configured DEC Lower Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECLowerLimit(int32_t decLowerLimit)
+void EEPROMStore::storeDECLowerLimit(float decLowerLimit)
 {
-    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Lower Limit to %l"), decLowerLimit);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Lower Limit to %f"), decLowerLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
-    updateInt32(DEC_LOWER_LIMIT_ADDR, decLowerLimit);
+    updateFloat(DEC_LOWER_LIMIT_ADDR, decLowerLimit);
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
 // Return the stored DEC Upper Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-int32_t EEPROMStore::getDECUpperLimit()
+float EEPROMStore::getDECUpperLimit()
 {
-    int32_t decUpperLimit(0);  // microsteps (slew)
+    float decUpperLimit = 0;
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
-        decUpperLimit = readInt32(DEC_UPPER_LIMIT_ADDR);
-        LOGV2(DEBUG_EEPROM, F("[EEPROM]: DEC upper limit read as %l"), decUpperLimit);
+        decUpperLimit = readFloat(DEC_UPPER_LIMIT_ADDR);
+        LOGV2(DEBUG_EEPROM, F("[EEPROM]: DEC upper limit read as %f"), decUpperLimit);
     }
     else
     {
         LOGV1(DEBUG_EEPROM, F("[EEPROM]: No stored values for DEC limits"));
     }
 
-    return decUpperLimit;  // microsteps (slew)
+    return decUpperLimit;  
 }
 
 // Store the configured DEC Upper Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECUpperLimit(int32_t decUpperLimit)
+void EEPROMStore::storeDECUpperLimit(float decUpperLimit)
 {
-    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Upper Limit to %l"), decUpperLimit);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Upper Limit to %f"), decUpperLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
-    updateInt32(DEC_UPPER_LIMIT_ADDR, decUpperLimit);
+    updateFloat(DEC_UPPER_LIMIT_ADDR, decUpperLimit);
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
 // Get the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
-int32_t EEPROMStore::getRAHomingOffset()
+float EEPROMStore::getRAHomingOffset()
 {
-    int32_t raHomingOffset(0);  // microsteps (slew)
+    float raHomingOffset = 0;
 
     if (isPresentExtended(RA_HOMING_MARKER_FLAG))
     {
-        raHomingOffset = readInt32(RA_HOMING_OFFSET_ADDR);
-        LOGV2(DEBUG_EEPROM, F("[EEPROM]: RA Homing offset read as %l"), raHomingOffset);
+        raHomingOffset = readFloat(RA_HOMING_OFFSET_ADDR);
+        LOGV2(DEBUG_EEPROM, F("[EEPROM]: RA Homing offset read as %f"), raHomingOffset);
     }
     else
     {
         LOGV1(DEBUG_EEPROM, F("[EEPROM]: No stored values for RA Homing offset"));
     }
 
-    return raHomingOffset;  // microsteps (slew)
+    return raHomingOffset;
 }
 
 // Store the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
-void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
+void EEPROMStore::storeRAHomingOffset(float raHomingOffset)
 {
-    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating RA Homing offset to %l"), raHomingOffset);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating RA Homing offset to %f"), raHomingOffset);
 
-    updateInt32(RA_HOMING_OFFSET_ADDR, raHomingOffset);
+    updateFloat(RA_HOMING_OFFSET_ADDR, raHomingOffset);
     updateFlagsExtended(RA_HOMING_MARKER_FLAG);
     commit();  // Complete the transaction
 }

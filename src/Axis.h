@@ -76,7 +76,7 @@ template <typename Config> class Axis
             auto speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
             Config::stepper::moveTo(speed, transmit(slewing_to));
         }
-        
+
         is_slewing = true;
     }
 

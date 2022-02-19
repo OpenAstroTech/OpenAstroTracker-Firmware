@@ -850,14 +850,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :XSDLUnnnnn#
+// :XSDLUn.nnn#
 //      Description:
 //        Set DEC upper limit
 //      Information:
 //        Set the upper limit for the DEC stepper motor to the current position if no parameter is given,
 //        otherwise to the given parameter.
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel upwards
+//        "n.nnn" is the angle from home that the DEC ring can travel upwards
 //      Returns:
 //        nothing
 //
@@ -869,14 +869,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :XSDLLnnnnn#
+// :XSDLLn.nnn#
 //      Description:
 //        Set DEC lower limit
 //      Information:
-//        Set the lowerlimit for the DEC stepper motor to the current position if no parameter is given,
+//        Set the lower limit for the DEC stepper motor to the current position if no parameter is given,
 //        otherwise to the given parameter.
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel downwards
+//        "n.nnn" is the angle from home that the DEC ring can travel downwards
 //      Returns:
 //        nothing
 //
@@ -887,7 +887,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Clear the lower limit for the DEC stepper motor
 //      Returns: nothing
 //
-// :XSDPnnnn#
+// :XSDPn.nn#
 //      Description:
 //        Set DEC parking position offset
 //      Information:
@@ -1547,10 +1547,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             {
                 if (inCmd[2] == 'L')  // :XGDL#
                 {
-                    long loLimit, hiLimit;
+                    Angle loLimit, hiLimit;
                     _mount->getDecLimitPositions(loLimit, hiLimit);
                     char scratchBuffer[20];
-                    sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
+                    sprintf(scratchBuffer, "%f|%f#", (double)loLimit.deg(), (double)hiLimit.deg());
                     return String(scratchBuffer);
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
@@ -1581,8 +1581,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             int star      = coords.indexOf('*');
             if (star > 0)
             {
-                Angle raPos = Angle::deg(0);
-                Angle decPos = Angle::deg(0);
+                Angle raPos;
+                Angle decPos;
                 float raCoord  = coords.substring(0, star).toFloat();
                 float decCoord = coords.substring(star + 1).toFloat();
                 _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
@@ -1647,7 +1647,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     if (inCmd.length() > 4)
                     {
-                        _mount->setDecLimitPositionAbs(false, inCmd.substring(4).toInt());
+                        _mount->setDecLimitPositionAbs(false, inCmd.substring(4).toFloat());
                     }
                     else
                     {
@@ -1658,7 +1658,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     if (inCmd.length() > 4)
                     {
-                        _mount->setDecLimitPositionAbs(true, inCmd.substring(4).toInt());
+                        _mount->setDecLimitPositionAbs(true, inCmd.substring(4).toFloat());
                     }
                     else
                     {
@@ -1676,7 +1676,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
             {
-                _mount->setDecParkingOffset(inCmd.substring(3).toInt());
+                _mount->setDecParkingOffset(inCmd.substring(3).toFloat());
             }
             else
             {

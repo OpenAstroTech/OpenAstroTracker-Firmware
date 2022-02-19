@@ -190,6 +190,7 @@
         1 // (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
+// Limit is in degrees. Both values need to be positive
 #ifndef DEC_LIMIT_UP
     #define DEC_LIMIT_UP 0.0f
 #endif
