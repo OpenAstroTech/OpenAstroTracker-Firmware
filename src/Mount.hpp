@@ -1,9 +1,15 @@
 #ifndef _MOUNT_HPP_
 #define _MOUNT_HPP_
 
+#undef DEC
+
 #include "Declination.hpp"
 #include "Latitude.hpp"
 #include "Longitude.hpp"
+
+#include "StepperConfiguration.h"
+#include "Axis.h"
+#undef DEC
 
 // Forward declarations
 class AccelStepper;
@@ -101,6 +107,33 @@ enum FocuserDirection
 class Mount
 {
   public:
+    using RA = Axis<config::RA>;
+    using DEC = Axis<config::DEC>;
+    using AZ = Axis<config::AZ>;
+    using ALT = Axis<config::ALT>;
+    //using FOC = Axis<config::FOC>;
+
+    template <typename AXIS>
+    void slewTo(Angle target);
+
+    template <typename AXIS>
+    Angle trackingPosition();
+
+    template <typename AXIS>
+    void startSlewing(bool direction);
+
+    template <typename AXIS>
+    void stopSlewing();
+
+    template <typename AXIS>
+    void guide(bool direction, unsigned long time_ms);
+
+    template <typename AXIS>
+    Angle position();
+
+    template <typename AXIS>
+    void position(Angle value);
+
     Mount(LcdMenu *lcdMenu);
 
     void initializeVariables();
@@ -238,10 +271,13 @@ class Mount
     // Get current DEC value.
     const Declination currentDEC() const;
 
+    // Gets the total time spent tracking since last home
+    float getTrackedTime();
+
     // Set the current RA and DEC position to be the given coordinates
     void syncPosition(DayTime ra, Declination dec);
 
-    void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
+    void calculateStepperPositions(float raCoord, float decCoord, Angle &raPos, Angle &decPos);
 
     // Calculates movement parameters and program steppers to move
     // there. Must call loop() frequently to actually move.
@@ -285,7 +321,7 @@ class Mount
     void delay(int ms);
 
     // Gets the position in one of eight directions or tracking
-    long getCurrentStepperPosition(int direction);
+    Angle getCurrentStepperPosition(int direction);
 
     // Process any stepper movement.
     void loop();
@@ -347,9 +383,6 @@ class Mount
     // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
     void displayStepperPositionThrottled();
 
-    // Runs a phase of the drift alignment procedure
-    void runDriftAlignmentPhase(int direction, int durationSecs);
-
     // Toggle the state where we run the motors at a constant speed
     void setManualSlewMode(bool state);
 
@@ -384,13 +417,7 @@ class Mount
     long getHomingOffset(StepperAxis axis);
 
     // Move the given stepper motor by the given amount of steps.
-    void moveStepperBy(StepperAxis which, long steps);
-
-    // Set the number of steps to use for backlash correction
-    void setBacklashCorrection(int steps);
-
-    // Get the number of steps to use for backlash correction
-    int getBacklashCorrection();
+    void moveStepperBy(StepperAxis which, Angle steps);
 
     // Read the saved configuration from persistent storage
     void readConfiguration();
@@ -449,9 +476,9 @@ class Mount
     // Writes a 16-bit value to persistent (EEPROM) storage
     void writePersistentData(int which, long val);
 
-    void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
+    void calculateRAandDECSteppers(Angle &targetRASteps, Angle &targetDECSteps, float pSolutions[6] = nullptr) const;
     void displayStepperPosition();
-    void moveSteppersTo(float targetRA, float targetDEC);
+    void moveSteppersTo(Angle targetRA, Angle targetDEC);
 
     // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
     byte slewStatus() const;
@@ -468,8 +495,8 @@ class Mount
 
   private:
     LcdMenu *_lcdMenu;
-    float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
-    float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
+    // float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
+    // float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
     int _maxRASpeed;
     int _maxDECSpeed;
     int _maxAZSpeed;
@@ -480,12 +507,13 @@ class Mount
     int _maxAZAcceleration;
     int _maxALTAcceleration;
     int _maxFocusAcceleration;
-    int _backlashCorrectionSteps;
     int _moveRate;
     long _raParkingPos;   // Parking position in slewing steps
     long _decParkingPos;  // Parking position in slewing steps
     long _decLowerLimit;  // Movement limit in slewing steps
     long _decUpperLimit;  // Movement limit in slewing steps
+    unsigned long _totalTrackingTime = 0;
+    unsigned long _recentTrackingStartTime = 0;
 
 #if USE_GYRO_LEVEL == 1
     float _pitchCalibrationAngle;
@@ -497,12 +525,12 @@ class Mount
     DayTime _zeroPosRA;
 
     DayTime _targetRA;
-    long _currentRAStepperPosition;
+    Angle _currentRAStepperPosition;
 
     Declination _targetDEC;
     // The DEC offset from home position
     float _zeroPosDEC;
-    long _currentDECStepperPosition;
+    Angle _currentDECStepperPosition;
     long _lastTRKCheck;
 
     float _totalDECMove;
@@ -511,10 +539,6 @@ class Mount
     Longitude _longitude;
 
     // Stepper control for RA, DEC and TRK.
-    AccelStepper *_stepperRA;
-    AccelStepper *_stepperDEC;
-    AccelStepper *_stepperTRK;
-    AccelStepper *_stepperGUIDE;
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverRA;
 #endif
@@ -525,14 +549,11 @@ class Mount
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _azAltWasRunning;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    AccelStepper *_stepperAZ;
-    const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
     #endif
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    AccelStepper *_stepperALT;
     const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;
@@ -557,8 +578,6 @@ class Mount
     HomingData _homing;
 #endif
 
-    unsigned long _guideRaEndTime;
-    unsigned long _guideDecEndTime;
     unsigned long _lastMountPrint    = 0;
     unsigned long _lastTrackingPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
@@ -567,12 +586,9 @@ class Mount
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
     volatile int _mountStatus;
-    long _homeOffsetRA;
-    long _homeOffsetDEC;
 
     char scratchBuffer[24];
     bool _stepperWasRunning;
-    bool _correctForBacklash;
     bool _slewingToHome;
     bool _slewingToPark;
     bool _bootComplete;
@@ -582,5 +598,47 @@ class Mount
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
 };
+
+template <typename AXIS>
+void Mount::slewTo(Angle target)
+{
+    AXIS::slewTo(target);
+}
+
+template <typename AXIS>
+void Mount::guide(bool direction, unsigned long time_ms)
+{
+    AXIS::guide(direction, time_ms);
+}
+
+template <typename AXIS>
+void Mount::startSlewing(bool direction)
+{
+    AXIS::slew(direction);
+}
+
+template <typename AXIS>
+void Mount::stopSlewing()
+{
+    AXIS::stopSlewing();
+}
+
+template <typename AXIS>
+Angle Mount::position()
+{
+    return AXIS::position();
+}
+
+template <typename AXIS>
+void Mount::position(Angle value)
+{
+    AXIS::position(value);
+}
+
+template <typename AXIS>
+Angle Mount::trackingPosition()
+{
+    return AXIS::trackingPosition();
+}
 
 #endif

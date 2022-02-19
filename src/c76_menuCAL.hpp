@@ -198,7 +198,7 @@ void gotoNextHighlightState(int dir)
     }
     else if (calState == HIGHLIGHT_BACKLASH_STEPS)
     {
-        BacklashSteps = mount.getBacklashCorrection();
+        BacklashSteps = 0;
     }
     else if (calState == HIGHLIGHT_SPEED)
     {
@@ -375,28 +375,6 @@ bool processCalibrationKeys()
     }
     else if (calState == DRIFT_CALIBRATION_RUNNING)
     {
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Pause 1.5s ...");
-        mount.stopSlewing(TRACKING);
-        mount.delay(1500);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Eastward pass...");
-        mount.runDriftAlignmentPhase(EAST, driftDuration);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Pause 1.5s ...");
-        mount.delay(1500);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Westward pass...");
-        mount.runDriftAlignmentPhase(WEST, driftDuration);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Done. Pause 1.5s");
-        mount.delay(1500);
-        mount.runDriftAlignmentPhase(0, 0);
-
         mount.startSlewing(TRACKING);
         calState = HIGHLIGHT_DRIFT;
     }
@@ -480,7 +458,6 @@ bool processCalibrationKeys()
                     // UP and DOWN are handled above
                     if (key == btnSELECT)
                     {
-                        mount.setBacklashCorrection(BacklashSteps);
                         lcdMenu.printMenu("Backlash stored.");
                         mount.delay(500);
                         calState = HIGHLIGHT_BACKLASH_STEPS;

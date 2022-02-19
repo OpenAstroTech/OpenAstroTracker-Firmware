@@ -32,9 +32,6 @@ class EEPROMStore
     static float getSpeedFactor();
     static void storeSpeedFactor(float speed);
 
-    static int16_t getBacklashCorrectionSteps();
-    static void storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps);
-
     static Latitude getLatitude();
     static void storeLatitude(Latitude const &latitude);
 

@@ -277,14 +277,14 @@ public:
         const uint8_t full_accel_stairs;
 
         constexpr MovementSpec(
-            const int8_t dir,
-            const uint32_t steps,
-            const uint32_t run_interval,
-            const uint8_t full_accel_stairs)
-            : dir(dir),
-              steps(steps),
-              run_interval(run_interval),
-              full_accel_stairs(full_accel_stairs) {}
+            const int8_t _dir,
+            const uint32_t _steps,
+            const uint32_t _run_interval,
+            const uint8_t _full_accel_stairs)
+            : dir(_dir),
+              steps(_steps),
+              run_interval(_run_interval),
+              full_accel_stairs(_full_accel_stairs) {}
 
         constexpr MovementSpec(const Angle speed, const Angle distance)
             : MovementSpec(
@@ -294,9 +294,9 @@ public:
             // nothing to do here, all values have been initialized
         }
 
-        constexpr MovementSpec(const Angle speed, const uint32_t steps)
+        constexpr MovementSpec(const Angle speed, const uint32_t _steps)
             : dir((speed.rad() > 0.0f) ? 1 : -1),
-              steps(steps),
+              steps(_steps),
               run_interval(Ramp::getIntervalForSpeed(speed.rad())),
               full_accel_stairs(Ramp::maxAccelStairs(speed.rad()))
         {
