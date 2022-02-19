@@ -3,10 +3,9 @@
 #include "Angle.h"
 #include "Stepper.h"
 
-template <typename Config>
-class Axis
+template <typename Config> class Axis
 {
-private:
+  private:
     Axis() = delete;
 
     static void returnTracking()
@@ -19,13 +18,13 @@ private:
         return Config::TRANSMISSION * from;
     }
 
-public:
+  public:
     constexpr static Angle STEP_ANGLE = Angle::deg(360.0f) / Config::driver::SPR / Config::TRANSMISSION;
 
     constexpr static Angle TRACKING_SPEED = Config::SPEED_TRACKING;
 
     constexpr static Angle STEPPER_SPEED_TRACKING = transmit(Config::SPEED_TRACKING);
-    constexpr static Angle STEPPER_SPEED_SLEWING = transmit(Config::SPEED_SLEWING);
+    constexpr static Angle STEPPER_SPEED_SLEWING  = transmit(Config::SPEED_SLEWING);
 
     constexpr static Angle STEPPER_SPEED_GUIDING_POS = transmit(Config::SPEED_GUIDE_POS);
     constexpr static Angle STEPPER_SPEED_GUIDING_NEG = transmit(Config::SPEED_GUIDE_NEG);
@@ -76,24 +75,25 @@ public:
 
         if (is_tracking)
         {
-            Config::stepper::moveTo(STEPPER_SPEED_TRACKING + STEPPER_SPEED_SLEWING, trans_target, StepperCallback::create<returnTracking>());
+            Config::stepper::moveTo(
+                STEPPER_SPEED_TRACKING + STEPPER_SPEED_SLEWING * slew_rate_factor, trans_target, StepperCallback::create<returnTracking>());
         }
         else
         {
-            Config::stepper::moveTo(STEPPER_SPEED_SLEWING, trans_target);
+            Config::stepper::moveTo(STEPPER_SPEED_SLEWING * slew_rate_factor, trans_target);
         }
     }
 
-    static void slew(bool direcion)
+    static void slew(bool direction)
     {
-        auto speed = (direcion) ? STEPPER_SPEED_SLEWING : -STEPPER_SPEED_SLEWING;
+        auto speed = (direction) ? STEPPER_SPEED_SLEWING * slew_rate_factor : -STEPPER_SPEED_SLEWING * slew_rate_factor;
 
         if (is_tracking)
         {
             speed = speed + STEPPER_SPEED_TRACKING;
         }
 
-        Config::stepper::moveTo(speed, (direcion) ? stepper_limit_max : stepper_limit_min);
+        Config::stepper::moveTo(speed, (direction) ? stepper_limit_max : stepper_limit_min);
     }
 
     static void stopSlewing()
@@ -116,11 +116,15 @@ public:
         return STEP_ANGLE * Config::stepper::position();
     }
 
-    static void position(Angle value)
+    static void setPosition(Angle value)
     {
         Config::stepper::position(transmit(value));
     }
 
+    static Angle distanceToGo()
+    {
+        return STEP_ANGLE * Config::stepper::distanceToGo();
+    }
 
     static Angle trackingPosition()
     {
@@ -147,7 +151,7 @@ public:
         return slew_rate_factor;
     }
 
-private:
+  private:
     static bool is_tracking;
     static float slew_rate_factor;
 
@@ -155,14 +159,10 @@ private:
     static Angle stepper_limit_min;
 };
 
-template <typename Config>
-bool Axis<Config>::is_tracking = false;
+template <typename Config> bool Axis<Config>::is_tracking = false;
 
-template <typename Config>
-float Axis<Config>::slew_rate_factor = 1.0;
+template <typename Config> float Axis<Config>::slew_rate_factor = 1.0;
 
-template <typename Config>
-Angle Axis<Config>::stepper_limit_max = transmit(Angle::deg(101.0f));
+template <typename Config> Angle Axis<Config>::stepper_limit_max = transmit(Angle::deg(101.0f));
 
-template <typename Config>
-Angle Axis<Config>::stepper_limit_min = transmit(Angle::deg(-101.0f));
+template <typename Config> Angle Axis<Config>::stepper_limit_min = transmit(Angle::deg(-101.0f));

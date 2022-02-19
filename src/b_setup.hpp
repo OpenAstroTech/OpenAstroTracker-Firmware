@@ -282,21 +282,6 @@ void setup()
 
     LOGV1(DEBUG_ANY, F("[SYSTEM]: Configure steppers..."));
 
-// Set the stepper motor parameters
-#if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure RA stepper NEMA..."));
-    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
-#else
-    #error New stepper type? Configure it here.
-#endif
-
-#if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure DEC stepper NEMA..."));
-    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
-#else
-    #error New stepper type? Configure it here.
-#endif
-
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure RA driver TMC2209 UART..."));
     #if SW_SERIAL_UART == 0
@@ -315,8 +300,6 @@ void setup()
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure AZ stepper..."));
-    mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure AZ driver..."));
         #if SW_SERIAL_UART == 0
@@ -327,8 +310,6 @@ void setup()
     #endif
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure Alt stepper..."));
-    mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure ALT driver..."));
         #if SW_SERIAL_UART == 0

@@ -904,16 +904,6 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :XSTnnnn#
-//      Description:
-//        Set Tracking motor position (no movement)
-//      Information:
-//        This is purely a debugging aid. It is not recommended to call this unless you know what you are doing. It simply sets the internal tracking steps to the given value.
-//      Parameters:
-//        "nnn" is the stepper steps to set
-//      Returns:
-//        nothing
-//
 // :XSMn#
 //      Description:
 //        Set Manual Slewing Mode
@@ -1696,10 +1686,6 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         else if (inCmd[1] == 'S')  // :XSS
         {
             _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), true);
-        }
-        else if (inCmd[1] == 'T')  // :XST
-        {
-            _mount->setTrackingStepperPos(inCmd.substring(2).toInt());
         }
         else if (inCmd[1] == 'M')  // :XSM
         {

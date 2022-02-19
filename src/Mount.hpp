@@ -140,22 +140,6 @@ class Mount
 
     static Mount instance();
 
-    // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
-    void configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-
-    // Configure the DEC stepper motor.
-    void configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-
-// Configure the AZ stepper motors.
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    void configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-#endif
-
-// Configure the ALT stepper motors.
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    void configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-#endif
-
 // Configure the Focus stepper motors.
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
@@ -431,9 +415,6 @@ class Mount
     // Get info about the configured steppers and drivers
     String getStepperInfo();
 
-    // Debug helper
-    void setTrackingStepperPos(long stepPos);
-
     // Returns a flag indicating whether the mount is fully booted.
     bool isBootComplete();
 
@@ -497,19 +478,11 @@ class Mount
     LcdMenu *_lcdMenu;
     // float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
     // float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
-    int _maxRASpeed;
-    int _maxDECSpeed;
-    int _maxAZSpeed;
-    int _maxALTSpeed;
     int _maxFocusSpeed;
-    int _maxRAAcceleration;
-    int _maxDECAcceleration;
-    int _maxAZAcceleration;
-    int _maxALTAcceleration;
     int _maxFocusAcceleration;
     int _moveRate;
-    long _raParkingPos;   // Parking position in slewing steps
-    long _decParkingPos;  // Parking position in slewing steps
+    Angle _raParkingPos;   // Parking position in slewing steps
+    Angle _decParkingPos;  // Parking position in slewing steps
     long _decLowerLimit;  // Movement limit in slewing steps
     long _decUpperLimit;  // Movement limit in slewing steps
     unsigned long _totalTrackingTime = 0;
@@ -533,8 +506,8 @@ class Mount
     Angle _currentDECStepperPosition;
     long _lastTRKCheck;
 
-    float _totalDECMove;
-    float _totalRAMove;
+    Angle _totalDECMove;
+    Angle _totalRAMove;
     Latitude _latitude;
     Longitude _longitude;
 
@@ -584,7 +557,6 @@ class Mount
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;
-    bool _compensateForTrackerOff;
     volatile int _mountStatus;
 
     char scratchBuffer[24];

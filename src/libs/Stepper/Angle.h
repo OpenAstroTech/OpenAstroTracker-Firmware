@@ -14,6 +14,11 @@ private:
 
 public:
 
+    constexpr Angle(const Angle& copyAngle) : _rad(copyAngle._rad)
+    {
+        // Nothing to do here
+    }
+
     constexpr Angle operator-(const float x) const
     {
         return Angle(_rad * x);
