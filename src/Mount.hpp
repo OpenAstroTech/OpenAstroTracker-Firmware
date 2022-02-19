@@ -481,10 +481,10 @@ class Mount
     int _maxFocusSpeed;
     int _maxFocusAcceleration;
     int _moveRate;
-    Angle _raParkingPos;   // Parking position in slewing steps
-    Angle _decParkingPos;  // Parking position in slewing steps
-    long _decLowerLimit;  // Movement limit in slewing steps
-    long _decUpperLimit;  // Movement limit in slewing steps
+    Angle _raParkingPos;   // Parking position in degrees
+    Angle _decParkingPos;  // Parking position in degrees
+    Angle _decLowerLimit;  // Movement limit in degrees
+    Angle _decUpperLimit;  // Movement limit in degrees
     unsigned long _totalTrackingTime = 0;
     unsigned long _recentTrackingStartTime = 0;
 

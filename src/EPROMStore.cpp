@@ -12,6 +12,9 @@ POP_NO_WARNINGS
 ///////////////////////////////////////
 // PLATFORM-SPECIFIC IMPLEMENTATIONS
 
+// When storing floats as int32, how much to scale the float by?
+#define EEPROM_FLOAT_SCALE 10000.0f
+
 #if USE_DUMMY_EEPROM == true
 
 static uint8_t dummyEepromStorage[EEPROMStore::STORE_SIZE];
@@ -242,6 +245,31 @@ int32_t EEPROMStore::readInt32(EEPROMStore::ItemAddress location)
     uint32_t uValue = (uint32_t) val1 + (uint32_t) val2 * 256 + (uint32_t) val3 * 256 * 256 + (uint32_t) val4 * 256 * 256 * 256;
     int32_t value   = static_cast<int32_t>(uValue);
     LOGV4(DEBUG_EEPROM, F("[EEPROM]: Read32 %x (%l) from %d"), value, value, location);
+    return value;
+}
+
+// Helper to update the given location with the given float value
+void EEPROMStore::updateFloat(EEPROMStore::ItemAddress location, float fvalue)
+{
+    int32_t value = fvalue * EEPROM_FLOAT_SCALE;
+    LOGV4(DEBUG_EEPROM, F("[EEPROM]: WritingFloat %f (%l) to %d"), fvalue, value, location);
+    update(location, value & 0x00FF);
+    update(location + 1, (value >> 8) & 0x00FF);
+    update(location + 2, (value >> 16) & 0x00FF);
+    update(location + 3, (value >> 24) & 0x00FF);
+}
+
+// Helper to read a float value from the given location
+float EEPROMStore::readFloat(EEPROMStore::ItemAddress location)
+{
+    uint8_t val1    = read(location);
+    uint8_t val2    = read(location + 1);
+    uint8_t val3    = read(location + 2);
+    uint8_t val4    = read(location + 3);
+    uint32_t uValue = (uint32_t) val1 + (uint32_t) val2 * 256 + (uint32_t) val3 * 256 * 256 + (uint32_t) val4 * 256 * 256 * 256;
+    int32_t value   = static_cast<int32_t>(uValue);
+    float fvalue=value/EEPROM_FLOAT_SCALE;
+    LOGV4(DEBUG_EEPROM, F("[EEPROM]: ReadFloat %f (%l) from %d"), fvalue, value, location);
     return value;
 }
 
@@ -674,7 +702,7 @@ void EEPROMStore::storeDECParkingPos(int32_t decParkingPos)
 
 // Return the stored DEC Lower Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-int32_t EEPROMStore::getDECLowerLimit()
+float EEPROMStore::getDECLowerLimit()
 {
     int32_t decLowerLimit(0);  // microsteps (slew)
 
@@ -693,12 +721,12 @@ int32_t EEPROMStore::getDECLowerLimit()
 }
 
 // Store the configured DEC Lower Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECLowerLimit(int32_t decLowerLimit)
+void EEPROMStore::storeDECLowerLimit(Angle decLowerLimit)
 {
-    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Lower Limit to %l"), decLowerLimit);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Lower Limit to %f"), decLowerLimit.deg());
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
-    updateInt32(DEC_LOWER_LIMIT_ADDR, decLowerLimit);
+    updateInt32(DEC_LOWER_LIMIT_ADDR, decLowerLimit.deg());
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }

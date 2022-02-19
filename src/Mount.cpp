@@ -103,11 +103,10 @@ const float siderealDegreesInHour = 14.95904348958;
 //
 /////////////////////////////////
 Mount::Mount(LcdMenu *lcdMenu)
-    : _currentRAStepperPosition(Angle::rad(0)), _currentDECStepperPosition(Angle::rad(0)), _totalDECMove(Angle::rad(0)),
-      _totalRAMove(Angle::rad(0))
+    // : _currentRAStepperPosition(0.0f), _currentDECStepperPosition(0.0f), _totalDECMove(0.0f), _totalRAMove(0.0f), _raParkingPos(0.0f),
+    //   _decParkingPos(0.0f)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      ,
-      _azAltWasRunning(false)
+      : _azAltWasRunning(false)
 #endif
 {
     _lcdMenu = lcdMenu;
@@ -123,18 +122,18 @@ void Mount::initializeVariables()
     _longitude         = Longitude(100.0);
     _zeroPosDEC        = 0.0f;
 
-    _totalDECMove = 0;
-    _totalRAMove  = 0;
+    _totalDECMove = Angle(0.0f);
+    _totalRAMove  = Angle(0.0f);
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     _homing.state = HomingState::HOMING_NOT_ACTIVE;
 #endif
     _moveRate      = 4;
     _slewingToHome = false;
     _slewingToPark = false;
-    _raParkingPos  = 0;
-    _decParkingPos = 0;
-    _decLowerLimit = 0;
-    _decUpperLimit = 0;
+    _raParkingPos  = 0.0f;
+    _decParkingPos = 0.0f;
+    _decLowerLimit = Angle(0.0f);
+    _decUpperLimit = Angle(0.0f);
 
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = 0;
@@ -209,21 +208,23 @@ void Mount::readPersistentData()
     LOGV2(DEBUG_INFO, F("[MOUNT]: EEPROM: Roll Offset is %f"), _rollCalibrationAngle);
 #endif
 
-    _raParkingPos  = EEPROMStore::getRAParkingPos();
-    _decParkingPos = EEPROMStore::getDECParkingPos();
+    _raParkingPos  = Angle(EEPROMStore::getRAParkingPos());
+    _decParkingPos = Angle(EEPROMStore::getDECParkingPos());
     LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: Parking position read as R:%l, D:%l"), _raParkingPos, _decParkingPos);
 
-    _decLowerLimit = EEPROMStore::getDECLowerLimit();
-    if (_decLowerLimit == 0 && DEC_LIMIT_DOWN != 0)
+    _decLowerLimit = Angle(EEPROMStore::getDECLowerLimit());
+    if (_decLowerLimit.deg() == 0 && DEC_LIMIT_DOWN != 0)
     {
-        _decLowerLimit = long(-(DEC_LIMIT_DOWN));
+        _decLowerLimit = Angle(-DEC_LIMIT_DOWN);
     }
-    _decUpperLimit = EEPROMStore::getDECUpperLimit();
-    if (_decUpperLimit == 0 && DEC_LIMIT_UP != 0)
+
+    _decUpperLimit = Angle(EEPROMStore::getDECUpperLimit());
+    if (_decUpperLimit.deg() == 0 && DEC_LIMIT_UP != 0)
     {
-        _decUpperLimit = long(DEC_LIMIT_UP);
+        _decUpperLimit = Angle(DEC_LIMIT_UP);
     }
-    LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: DEC limits read as %l -> %l"), _decLowerLimit, _decUpperLimit);
+
+    LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: DEC limits read as %f -> %f"), _decLowerLimit.deg(), _decUpperLimit.deg());
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     _homing.offsetRA = EEPROMStore::getRAHomingOffset();
@@ -1156,7 +1157,7 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     float decAdjust = dec.getTotalDegrees() - currentDEC().getTotalDegrees();
     _zeroPosDEC += decAdjust;
 
-    Angle targetRAPosition(Angle::deg(0)), targetDECPosition(Angle::deg(0));
+    Angle targetRAPosition, targetDECPosition;
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), ra.ToString(), _targetDEC.ToString());
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
 
@@ -1185,7 +1186,7 @@ void Mount::startSlewingToTarget()
     // Calculate new RA stepper target (and DEC). We are never in guding mode here.
     _currentDECStepperPosition = DEC::position();
     _currentRAStepperPosition  = RA::position();
-    Angle targetRAPosition(Angle::deg(0)), targetDECPosition(Angle::deg(0));
+    Angle targetRAPosition, targetDECPosition;
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
 
     moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
@@ -1216,13 +1217,13 @@ void Mount::startSlewingToHome()
     _currentRAStepperPosition  = RA::position();
 
     // Take any syncs that have happened into account
-    Angle targetRAPosition  = Angle::dec(0);
-    Angle targetDECPosition = Angle::dec(0);
+    Angle targetRAPosition;
+    Angle targetDECPosition;
 
     _slewingToHome = true;
     // Take tracking into account
     Angle trackingOffset = RA::trackingPosition();
-    targetRAPosition -= trackingOffset;
+    targetRAPosition = targetRAPosition - trackingOffset;
     LOGV3(DEBUG_STEPPERS,
           F("[STEPPERS]: startSlewingToHome: Adjusted with tracking distance: %f, result: %f"),
           trackingOffset.deg(),
@@ -1630,7 +1631,6 @@ byte Mount::mountStatus()
 {
     return _mountStatus;
 }
-
 
 #if DEBUG_LEVEL & (DEBUG_MOUNT | DEBUG_MOUNT_VERBOSE)
 /////////////////////////////////
@@ -2690,7 +2690,7 @@ long Mount::getDecParkingOffset()
 // setDecParkingOffset
 //
 /////////////////////////////////
-void Mount::setDecParkingOffset(long offset)
+void Mount::setDecParkingOffset(float offset)
 {
     EEPROMStore::storeDECParkingPos(offset);
 }
@@ -2702,7 +2702,7 @@ void Mount::setDecParkingOffset(long offset)
 /////////////////////////////////
 void Mount::setDecLimitPosition(bool upper)
 {
-    setDecLimitPositionAbs(upper, DEC::position());
+    setDecLimitPositionAbs(upper, DEC::position().deg());
 }
 
 /////////////////////////////////
@@ -2710,7 +2710,7 @@ void Mount::setDecLimitPosition(bool upper)
 // setDecLimitPositionAbs
 //
 /////////////////////////////////
-void Mount::setDecLimitPositionAbs(bool upper, Angle pos)
+void Mount::setDecLimitPositionAbs(bool upper, float pos)
 {
     if (upper)
     {
