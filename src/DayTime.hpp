@@ -64,5 +64,5 @@ class DayTime
     void printTwoDigits(char *achDegs, int num) const;
 
   private:
-    static long const secondsPerDay = 24L * 3600L;  /// Real seconds (not sidereal)
+    static long const realSecondsPerDay = 24L * 3600L;  /// Real seconds (not sidereal)
 };

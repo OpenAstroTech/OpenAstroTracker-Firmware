@@ -139,7 +139,6 @@ void EEPROMStore::displayContents()
     LOGV2(DEBUG_INFO, F("[EEPROM]: Stored RA Steps per Degree: %f"), getRAStepsPerDegree());
     LOGV2(DEBUG_INFO, F("[EEPROM]: Stored DEC Steps per Degree: %f"), getDECStepsPerDegree());
     LOGV2(DEBUG_INFO, F("[EEPROM]: Stored Speed Factor: %f"), getSpeedFactor());
-    LOGV2(DEBUG_INFO, F("[EEPROM]: Stored Backlash Correction Steps: %d"), getBacklashCorrectionSteps());
     LOGV2(DEBUG_INFO, F("[EEPROM]: Stored Latitude: %s"), getLatitude().ToString());
     LOGV2(DEBUG_INFO, F("[EEPROM]: Stored Longitude: %s"), getLongitude().ToString());
     LOGV2(DEBUG_INFO, F("[EEPROM]: Stored Pitch Calibration Angle: %f"), getPitchCalibrationAngle());
@@ -390,19 +389,20 @@ void EEPROMStore::storeBrightness(byte brightness)
 // If it is not present then the default uncalibrated RA_STEPS_PER_DEGREE value is returned.
 float EEPROMStore::getRAStepsPerDegree()
 {
-    float raStepsPerDegree(RA_STEPS_PER_DEGREE);  // Default value
+    // float raStepsPerDegree(RA_STEPS_PER_DEGREE);  // Default value
 
-    if (isPresent(RA_STEPS_FLAG))
-    {
-        raStepsPerDegree = 0.1 * readInt16(RA_STEPS_DEGREE_ADDR);
-        LOGV2(DEBUG_EEPROM, F("[EEPROM]: RA Marker OK! RA steps/deg is %f"), raStepsPerDegree);
-    }
-    else
-    {
-        LOGV1(DEBUG_EEPROM, F("[EEPROM]: No stored value for RA steps"));
-    }
+    // if (isPresent(RA_STEPS_FLAG))
+    // {
+    //     raStepsPerDegree = 0.1 * readInt16(RA_STEPS_DEGREE_ADDR);
+    //     LOGV2(DEBUG_EEPROM, F("[EEPROM]: RA Marker OK! RA steps/deg is %f"), raStepsPerDegree);
+    // }
+    // else
+    // {
+    //     LOGV1(DEBUG_EEPROM, F("[EEPROM]: No stored value for RA steps"));
+    // }
 
-    return raStepsPerDegree;  // microsteps per degree
+    // return raStepsPerDegree;  // microsteps per degree
+    return 1;
 }
 
 // Store the RA steps per degree (actually microsteps per degree).
@@ -481,36 +481,6 @@ void EEPROMStore::storeSpeedFactor(float speedFactor)
     updateUint8(SPEED_FACTOR_LOW_ADDR, val & 0xFF);
     updateUint8(SPEED_FACTOR_HIGH_ADDR, (val >> 8) & 0xFF);
     updateFlags(SPEED_FACTOR_FLAG);
-    commit();  // Complete the transaction
-}
-
-// Return the Backlash Correction step count (microsteps).
-// If it is not present then the default value from the configuration is returned.
-int16_t EEPROMStore::getBacklashCorrectionSteps()
-{
-    // Use nominal default values
-    int16_t backlashCorrectionSteps(BACKLASH_STEPS);
-
-    if (isPresent(BACKLASH_STEPS_FLAG))
-    {
-        backlashCorrectionSteps = readInt16(BACKLASH_STEPS_ADDR);
-        LOGV2(DEBUG_EEPROM, F("[EEPROM]: Backlash Steps Marker OK! Backlash correction is %d"), backlashCorrectionSteps);
-    }
-    else
-    {
-        LOGV1(DEBUG_EEPROM, F("[EEPROM]: No stored value for backlash correction"));
-    }
-
-    return backlashCorrectionSteps;  // Microsteps (slew)
-}
-
-// Store the Backlash Correction step count (microsteps).
-void EEPROMStore::storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps)
-{
-    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating Backlash to %d"), backlashCorrectionSteps);
-
-    updateInt16(BACKLASH_STEPS_ADDR, backlashCorrectionSteps);
-    updateFlags(BACKLASH_STEPS_FLAG);
     commit();  // Complete the transaction
 }
 

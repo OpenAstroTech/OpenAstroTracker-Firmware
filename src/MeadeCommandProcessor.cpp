@@ -485,14 +485,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :MXxnnnnn#
+// :MXxn.nnn#
 //      Description:
 //        Move stepper
 //      Information:
 //        This starts moving one of the steppers by the given amount of steps and returns immediately.
 //      Parameters:
 //        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, t for ALT)
-//        "nnnn" is the number of steps
+//        "n.nnn" is the number of degrees
 //      Returns:
 //        "1" if successfully scheduled
 //
@@ -610,7 +610,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "1#"
 //
-// :XDnnn#
+// :XDnnn# (deprecated)
 //      Description:
 //        Run drift alignment
 //      Information:
@@ -682,7 +682,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1#" if succsessful
 //        "0#" if there is no Digital Level
 //
-// :XGB#
+// :XGB# (deprecated)
 //      Description:
 //        Get Backlash correction steps
 //      Information:
@@ -811,7 +811,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "HHMMSS"
 //
-// :XSBn#
+// :XSBn# (deprecated)
 //      Description:
 //        Set Backlash correction steps
 //      Information:
@@ -901,16 +901,6 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set the adjustment factor used to speed up "(>1.0)" or slow down "(<1.0)" the tracking speed of the mount
 //      Parameters:
 //        "n.nnn" is the factor to multiply the theoretical speed by
-//      Returns:
-//        nothing
-//
-// :XSTnnnn#
-//      Description:
-//        Set Tracking motor position (no movement)
-//      Information:
-//        This is purely a debugging aid. It is not recommended to call this unless you know what you are doing. It simply sets the internal tracking steps to the given value.
-//      Parameters:
-//        "nnn" is the stepper steps to set
 //      Returns:
 //        nothing
 //
@@ -1466,18 +1456,18 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     }
     else if (inCmd[0] == 'X')  // :MX
     {
-        long steps = inCmd.substring(2).toInt();
+        long degs = inCmd.substring(2).toFloat();
         LOGV3(DEBUG_MEADE, F("[MEADE]: Move: %l in %d"), steps, inCmd[1]);
         if (inCmd[1] == 'r')
-            _mount->moveStepperBy(RA_STEPS, steps);
+            _mount->moveStepperBy(RA_STEPS, Angle::deg(degs));
         else if (inCmd[1] == 'd')
-            _mount->moveStepperBy(DEC_STEPS, steps);
+            _mount->moveStepperBy(DEC_STEPS, Angle::deg(degs));
         else if (inCmd[1] == 'z')
-            _mount->moveStepperBy(AZIMUTH_STEPS, steps);
+            _mount->moveStepperBy(AZIMUTH_STEPS, Angle::deg(degs));
         else if (inCmd[1] == 'l')
-            _mount->moveStepperBy(ALTITUDE_STEPS, steps);
+            _mount->moveStepperBy(ALTITUDE_STEPS, Angle::deg(degs));
         else if (inCmd[1] == 'f')
-            _mount->moveStepperBy(FOCUS_STEPS, steps);
+            _mount->moveStepperBy(FOCUS_STEPS, Angle::deg(degs));
         else
             return "0";
         return "1";
@@ -1545,35 +1535,7 @@ String MeadeCommandProcessor::handleMeadeDistance(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 {
-    //   0123
-    // :XDmmm
-    if (inCmd[0] == 'D')  // :XD
-    {                     // Drift Alignemnt
-        int duration = inCmd.substring(1, 4).toInt() - 3;
-        _lcdMenu->setCursor(0, 0);
-        _lcdMenu->printMenu(">Drift Alignment");
-        _lcdMenu->setCursor(0, 1);
-        _lcdMenu->printMenu("Pause 1.5s....");
-        _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
-        _mount->waitUntilStopped(ALL_DIRECTIONS);
-        _mount->delay(1500);
-        _lcdMenu->setCursor(0, 1);
-        _lcdMenu->printMenu("Eastward pass...");
-        _mount->runDriftAlignmentPhase(EAST, duration);
-        _lcdMenu->setCursor(0, 1);
-        _lcdMenu->printMenu("Pause 1.5s....");
-        _mount->delay(1500);
-        _lcdMenu->printMenu("Westward pass...");
-        _mount->runDriftAlignmentPhase(WEST, duration);
-        _lcdMenu->setCursor(0, 1);
-        _lcdMenu->printMenu("Pause 1.5s....");
-        _mount->delay(1500);
-        _lcdMenu->printMenu("Reset _mount->..");
-        _mount->runDriftAlignmentPhase(0, duration);
-        _lcdMenu->setCursor(0, 1);
-        _mount->startSlewing(TRACKING);
-    }
-    else if (inCmd[0] == 'G')
+    if (inCmd[0] == 'G')
     {                         // Get RA/DEC steps/deg, speedfactor
         if (inCmd[1] == 'R')  // :XGR#
         {
@@ -1611,7 +1573,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'B')  // :XGB#
         {
-            return String(_mount->getBacklashCorrection()) + "#";
+            return "0#";
         }
         else if (inCmd[1] == 'C')  // :XGCn.nn*m.mm#
         {
@@ -1619,12 +1581,13 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             int star      = coords.indexOf('*');
             if (star > 0)
             {
-                long raPos, decPos;
+                Angle raPos = Angle::deg(0);
+                Angle decPos = Angle::deg(0);
                 float raCoord  = coords.substring(0, star).toFloat();
                 float decCoord = coords.substring(star + 1).toFloat();
                 _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
                 char scratchBuffer[20];
-                sprintf(scratchBuffer, "%ld|%ld#", raPos, decPos);
+                sprintf(scratchBuffer, "%ld|%ld#", raPos.mrad_u32(), decPos.mrad_u32());
                 return String(scratchBuffer);
             }
         }
@@ -1724,10 +1687,6 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), true);
         }
-        else if (inCmd[1] == 'T')  // :XST
-        {
-            _mount->setTrackingStepperPos(inCmd.substring(2).toInt());
-        }
         else if (inCmd[1] == 'M')  // :XSM
         {
             _mount->setManualSlewMode(inCmd[2] == '1');
@@ -1742,7 +1701,6 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'B')  // :XSB
         {
-            _mount->setBacklashCorrection(inCmd.substring(2).toInt());
         }
 
         else if (inCmd[1] == 'H')  // :XSH

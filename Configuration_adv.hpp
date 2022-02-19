@@ -29,9 +29,9 @@
 //////////////////////////////////////
 //
 // This is how many steps your stepper needs for a full rotation.
-#ifndef RA_STEPPER_SPR
-    #define RA_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-#endif
+// #ifndef RA_STEPPER_SPR
+//     #define RA_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+// #endif
 #ifndef RA_STEPPER_SPEED
     #define RA_STEPPER_SPEED 1200  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
 #endif
@@ -39,9 +39,9 @@
     #define RA_STEPPER_ACCELERATION 6000
 #endif
 
-#ifndef DEC_STEPPER_SPR
-    #define DEC_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-#endif
+// #ifndef DEC_STEPPER_SPR
+//     #define DEC_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+// #endif
 #ifndef DEC_STEPPER_SPEED
     #define DEC_STEPPER_SPEED 1300  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
 #endif
@@ -130,12 +130,6 @@
     #endif
 #endif
 
-// Backlash Settings
-#ifndef BACKLASH_STEPS
-    #define BACKLASH_STEPS                                                                                                                 \
-        0 * RA_SLEW_MICROSTEPPING  // set the number of backlash steps the motor has (0 for NEMA motors, 16 for 28BYJ motors)
-#endif
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                        ////////
 // MECHANICS SETTINGS     ////////
@@ -171,7 +165,7 @@
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef RA_STEPS_PER_DEGREE
     #define RA_STEPS_PER_DEGREE                                                                                                            \
-        (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
+        1 // (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 // RA limits
@@ -193,7 +187,7 @@
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef DEC_STEPS_PER_DEGREE
     #define DEC_STEPS_PER_DEGREE                                                                                                           \
-        (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
+        1 // (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 #ifndef DEC_LIMIT_UP
@@ -278,9 +272,9 @@
     #ifndef AZ_MICROSTEPPING
         #define AZ_MICROSTEPPING 64.0f
     #endif
-    #ifndef AZ_STEPPER_SPR
-        #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-    #endif
+    // #ifndef AZ_STEPPER_SPR
+    //     #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+    // #endif
     #ifndef AZ_STEPPER_SPEED
         #define AZ_STEPPER_SPEED                                                                                                           \
             100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
@@ -327,9 +321,9 @@
     #ifndef ALT_MICROSTEPPING
         #define ALT_MICROSTEPPING 4.0f
     #endif
-    #ifndef ALT_STEPPER_SPR
-        #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
-    #endif
+    // #ifndef ALT_STEPPER_SPR
+    //     #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+    // #endif
     #ifndef ALT_STEPPER_SPEED
         #define ALT_STEPPER_SPEED                                                                                                          \
             3000 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.

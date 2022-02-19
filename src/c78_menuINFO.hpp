@@ -64,7 +64,7 @@ void printStatusSubmenu()
                 {
                     if (subIndex == 0)
                     {
-                        lcdMenu.printMenu("RA Stpr: " + String(mount.getCurrentStepperPosition(WEST)));
+                        lcdMenu.printMenu("RA Stpr: " + String(mount.getCurrentStepperPosition(WEST).deg()));
                     }
                     else if (subIndex == 1)
                     {
@@ -81,7 +81,7 @@ void printStatusSubmenu()
                 {
                     if (subIndex == 0)
                     {
-                        lcdMenu.printMenu("DEC Stpr:" + String(mount.getCurrentStepperPosition(NORTH)));
+                        lcdMenu.printMenu("DEC Stpr:" + String(mount.getCurrentStepperPosition(NORTH).deg()));
                     }
                     else if (subIndex == 1)
                     {
@@ -98,7 +98,7 @@ void printStatusSubmenu()
                 {
                     if (subIndex == 0)
                     {
-                        lcdMenu.printMenu("TRK Stpr:" + String(mount.getCurrentStepperPosition(TRACKING)));
+                        lcdMenu.printMenu("TRK Stpr:" + String(mount.getCurrentStepperPosition(TRACKING).deg()));
                     }
                     else
                     {
