@@ -1547,10 +1547,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             {
                 if (inCmd[2] == 'L')  // :XGDL#
                 {
-                    long loLimit, hiLimit;
+                    Angle loLimit, hiLimit;
                     _mount->getDecLimitPositions(loLimit, hiLimit);
                     char scratchBuffer[20];
-                    sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
+                    sprintf(scratchBuffer, "%f|%f#", (double)loLimit.deg(), (double)hiLimit.deg());
                     return String(scratchBuffer);
                 }
                 if (inCmd[2] == 'P')  // :XGDP#

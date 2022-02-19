@@ -320,20 +320,20 @@ class Mount
     void setParkingPosition();
 
     // Get and set the offset from home to the parking position for DEC.
-    long getDecParkingOffset();
-    void setDecParkingOffset(long offset);
+    float getDecParkingOffset();
+    void setDecParkingOffset(float offset);
 
     // Set the DEC limit position to the current stepper position. If upper is true, sets the upper limit, else the lower limit.
     void setDecLimitPosition(bool upper);
 
     // Set the DEC limit position to the given position. If upper is true, sets the upper limit, else the lower limit.
-    void setDecLimitPositionAbs(bool upper, long stepperPos);
+    void setDecLimitPositionAbs(bool upper, float pos);
 
     // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
     void clearDecLimitPosition(bool upper);
 
     // Get the DEC limit positions
-    void getDecLimitPositions(long &lowerLimit, long &upperLimit);
+    void getDecLimitPositions(Angle &lowerLimit, Angle &upperLimit);
 
 // Auto Home with TMC2209 UART
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)

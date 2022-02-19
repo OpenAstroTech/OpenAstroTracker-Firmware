@@ -123,12 +123,15 @@ template <typename Config> class Axis
 
     static Angle distanceToGo()
     {
-        return STEP_ANGLE * Config::stepper::distanceToGo();
+        // TODO: Implement
+        return Angle::deg(0.0f);
+        //return STEP_ANGLE * Config::stepper::distanceToGo();
     }
 
     static Angle trackingPosition()
     {
-        return Angle(0.0f);
+        // TODO: Implement
+        return Angle::deg(0.0f);
     }
 
     static bool isRunning()

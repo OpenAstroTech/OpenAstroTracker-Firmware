@@ -103,10 +103,10 @@ const float siderealDegreesInHour = 14.95904348958;
 //
 /////////////////////////////////
 Mount::Mount(LcdMenu *lcdMenu)
-    // : _currentRAStepperPosition(0.0f), _currentDECStepperPosition(0.0f), _totalDECMove(0.0f), _totalRAMove(0.0f), _raParkingPos(0.0f),
-    //   _decParkingPos(0.0f)
+// : _currentRAStepperPosition(0.0f), _currentDECStepperPosition(0.0f), _totalDECMove(0.0f), _totalRAMove(0.0f), _raParkingPos(0.0f),
+//   _decParkingPos(0.0f)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      : _azAltWasRunning(false)
+    : _azAltWasRunning(false)
 #endif
 {
     _lcdMenu = lcdMenu;
@@ -122,18 +122,18 @@ void Mount::initializeVariables()
     _longitude         = Longitude(100.0);
     _zeroPosDEC        = 0.0f;
 
-    _totalDECMove = Angle(0.0f);
-    _totalRAMove  = Angle(0.0f);
+    _totalDECMove = Angle::deg(0.0f);
+    _totalRAMove  = Angle::deg(0.0f);
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     _homing.state = HomingState::HOMING_NOT_ACTIVE;
 #endif
     _moveRate      = 4;
     _slewingToHome = false;
     _slewingToPark = false;
-    _raParkingPos  = 0.0f;
-    _decParkingPos = 0.0f;
-    _decLowerLimit = Angle(0.0f);
-    _decUpperLimit = Angle(0.0f);
+    _raParkingPos  = Angle::deg(0.0f);
+    _decParkingPos = Angle::deg(0.0f);
+    _decLowerLimit = Angle::deg(0.0f);
+    _decUpperLimit = Angle::deg(0.0f);
 
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = 0;
@@ -208,20 +208,20 @@ void Mount::readPersistentData()
     LOGV2(DEBUG_INFO, F("[MOUNT]: EEPROM: Roll Offset is %f"), _rollCalibrationAngle);
 #endif
 
-    _raParkingPos  = Angle(EEPROMStore::getRAParkingPos());
-    _decParkingPos = Angle(EEPROMStore::getDECParkingPos());
-    LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: Parking position read as R:%l, D:%l"), _raParkingPos, _decParkingPos);
+    _raParkingPos  = Angle::deg(EEPROMStore::getRAParkingPos());
+    _decParkingPos = Angle::deg(EEPROMStore::getDECParkingPos());
+    LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: Parking position read as R:%f, D:%f"), _raParkingPos.deg(), _decParkingPos.deg());
 
-    _decLowerLimit = Angle(EEPROMStore::getDECLowerLimit());
+    _decLowerLimit = Angle::deg(EEPROMStore::getDECLowerLimit());
     if (_decLowerLimit.deg() == 0 && DEC_LIMIT_DOWN != 0)
     {
-        _decLowerLimit = Angle(-DEC_LIMIT_DOWN);
+        _decLowerLimit = Angle::deg(-DEC_LIMIT_DOWN);
     }
 
-    _decUpperLimit = Angle(EEPROMStore::getDECUpperLimit());
+    _decUpperLimit = Angle::deg(EEPROMStore::getDECUpperLimit());
     if (_decUpperLimit.deg() == 0 && DEC_LIMIT_UP != 0)
     {
-        _decUpperLimit = Angle(DEC_LIMIT_UP);
+        _decUpperLimit = Angle::deg(DEC_LIMIT_UP);
     }
 
     LOGV3(DEBUG_INFO, F("[MOUNT]: EEPROM: DEC limits read as %f -> %f"), _decLowerLimit.deg(), _decUpperLimit.deg());
@@ -1192,8 +1192,8 @@ void Mount::startSlewingToTarget()
     moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = 1.0f * DEC::distanceToGo();
-    _totalRAMove  = 1.0f * RA::distanceToGo();
+    _totalDECMove = DEC::distanceToGo();
+    _totalRAMove  = RA::distanceToGo();
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: RA Dist: %l,   DEC Dist: %l"), RA::distanceToGo(), DEC::distanceToGo());
 }
 
@@ -1223,7 +1223,7 @@ void Mount::startSlewingToHome()
     _slewingToHome = true;
     // Take tracking into account
     Angle trackingOffset = RA::trackingPosition();
-    targetRAPosition = targetRAPosition - trackingOffset;
+    targetRAPosition     = targetRAPosition - trackingOffset;
     LOGV3(DEBUG_STEPPERS,
           F("[STEPPERS]: startSlewingToHome: Adjusted with tracking distance: %f, result: %f"),
           trackingOffset.deg(),
@@ -1933,18 +1933,18 @@ void Mount::startSlewing(int direction)
 
             if (direction & NORTH)
             {
-                long targetLocation = 300000;
-                if (_decUpperLimit != 0)
+                Angle targetLocation = Angle::deg(180);
+                if (_decUpperLimit.deg() != 0)
                 {
                     targetLocation = _decUpperLimit;
                     LOGV3(DEBUG_STEPPERS,
-                          F("[STEPPERS]: startSlewing(N): DEC has upper limit of %l. targetMoveTo is now %l"),
-                          _decUpperLimit,
-                          targetLocation);
+                          F("[STEPPERS]: startSlewing(N): DEC has upper limit of %f. targetMoveTo is now %f"),
+                          _decUpperLimit.deg(),
+                          targetLocation.deg());
                 }
                 else
                 {
-                    LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(N): initial targetMoveTo is %l"), targetLocation);
+                    LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(N): initial targetMoveTo is %f"), targetLocation.deg());
                 }
 
                 DEC::slewTo(targetLocation);
@@ -1953,18 +1953,18 @@ void Mount::startSlewing(int direction)
 
             if (direction & SOUTH)
             {
-                long targetLocation = -300000;
-                if (_decLowerLimit != 0)
+                Angle targetLocation = Angle::deg(-180);
+                if (_decLowerLimit.deg() != 0)
                 {
                     targetLocation = _decLowerLimit;
                     LOGV3(DEBUG_STEPPERS,
-                          F("[STEPPERS]: startSlewing(S): DEC has lower limit of %l. targetMoveTo is now %l"),
-                          _decLowerLimit,
-                          targetLocation);
+                          F("[STEPPERS]: startSlewing(S): DEC has lower limit of %f. targetMoveTo is now %f"),
+                          _decLowerLimit.deg(),
+                          targetLocation.deg());
                 }
                 else
                 {
-                    LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(S): initial targetMoveTo is %l"), targetLocation);
+                    LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(S): initial targetMoveTo is %f"), targetLocation.deg());
                 }
 
                 DEC::slewTo(targetLocation);
@@ -1973,14 +1973,14 @@ void Mount::startSlewing(int direction)
 
             if (direction & EAST)
             {
-                LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(E): initial targetMoveTo is %l"), -sign * 300000);
-                RA::slewTo(-sign * 300000);
+                LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(E): initial targetMoveTo is %f"), -sign * 180.0f);
+                RA::slewTo(Angle::deg(-sign * 180.0f));
                 _mountStatus |= STATUS_SLEWING;
             }
             if (direction & WEST)
             {
-                LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(W): initial targetMoveTo is %l"), sign * 300000);
-                RA::slewTo(sign * 300000);
+                LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(W): initial targetMoveTo is %f"), sign * 180.0f);
+                RA::slewTo(Angle::deg(sign * 180.0f));
                 _mountStatus |= STATUS_SLEWING;
             }
         }
@@ -2580,13 +2580,14 @@ void Mount::loop()
                 }
 
                 LOGV2(DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop:   Reached target at %d"), _currentRAStepperPosition);
-                _totalDECMove = _totalRAMove = 0;
+                _totalDECMove = Angle::deg(0.0f);
+                _totalRAMove  = Angle::deg(0.0f);
 
                 if (_slewingToHome)
                 {
                     LOGV1(DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop:   Was Slewing home, so setting stepper RA and TRK to zero."));
-                    RA::setPosition(Angle::deg(0));
-                    DEC::setPosition(Angle::deg(0));
+                    RA::setPosition(Angle::deg(0.0F));
+                    DEC::setPosition(Angle::deg(0.0F));
 
                     _targetRA = currentRA();
                     if (isParking())
@@ -2605,7 +2606,7 @@ void Mount::loop()
                               _decParkingPos.deg(),
                               _totalRAMove.deg(),
                               _totalDECMove.deg());
-                        if ((DEC::distanceToGo() != 0) || (RA::distanceToGo() != 0))
+                        if ((DEC::distanceToGo().deg() != 0) || (RA::distanceToGo().deg() != 0))
                         {
                             _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
                         }
@@ -2671,8 +2672,8 @@ void Mount::setParkingPosition()
 
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: setParkingPos: parking RA: %f  DEC:%f"), _raParkingPos.deg(), _decParkingPos.deg());
 
-    EEPROMStore::storeRAParkingPos(_raParkingPos);
-    EEPROMStore::storeDECParkingPos(_decParkingPos);
+    EEPROMStore::storeRAParkingPos(_raParkingPos.deg());
+    EEPROMStore::storeDECParkingPos(_decParkingPos.deg());
 }
 
 /////////////////////////////////
@@ -2680,7 +2681,7 @@ void Mount::setParkingPosition()
 // getDecParkingOffset
 //
 /////////////////////////////////
-long Mount::getDecParkingOffset()
+float Mount::getDecParkingOffset()
 {
     return EEPROMStore::getDECParkingPos();
 }
@@ -2715,15 +2716,15 @@ void Mount::setDecLimitPositionAbs(bool upper, float pos)
     if (upper)
     {
         // TODO: use angle
-        _decUpperLimit = DEC_LIMIT_UP;
-        EEPROMStore::storeDECUpperLimit(_decUpperLimit);
-        LOGV3(DEBUG_MOUNT, F("[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
+        _decUpperLimit = Angle::deg(DEC_LIMIT_UP);
+        EEPROMStore::storeDECUpperLimit(_decUpperLimit.deg());
+        LOGV3(DEBUG_MOUNT, F("[MOUNT]: setDecLimitPosition(Upper): limit DEC: %f -> %f"), _decLowerLimit.deg(), _decUpperLimit.deg());
     }
     else
     {
-        _decLowerLimit = -(DEC_LIMIT_DOWN);
-        EEPROMStore::storeDECLowerLimit(_decLowerLimit);
-        LOGV3(DEBUG_MOUNT, F("[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
+        _decLowerLimit = Angle::deg(-(DEC_LIMIT_DOWN));
+        EEPROMStore::storeDECLowerLimit(_decLowerLimit.deg());
+        LOGV3(DEBUG_MOUNT, F("[MOUNT]: setDecLimitPosition(Lower): limit DEC: %f -> %f"), _decLowerLimit.deg(), _decUpperLimit.deg());
     }
 }
 
@@ -2736,15 +2737,15 @@ void Mount::clearDecLimitPosition(bool upper)
 {
     if (upper)
     {
-        _decUpperLimit = DEC_LIMIT_UP;
-        EEPROMStore::storeDECUpperLimit(_decUpperLimit);
-        LOGV3(DEBUG_MOUNT, F("[MOUNT]: clearDecLimitPosition(Upper): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
+        _decUpperLimit = Angle::deg(DEC_LIMIT_UP);
+        EEPROMStore::storeDECUpperLimit(_decUpperLimit.deg());
+        LOGV3(DEBUG_MOUNT, F("[MOUNT]: clearDecLimitPosition(Upper): limit DEC: %f -> %f"), _decLowerLimit.deg(), _decUpperLimit.deg());
     }
     else
     {
-        _decLowerLimit = -(DEC_LIMIT_DOWN);
-        EEPROMStore::storeDECLowerLimit(_decLowerLimit);
-        LOGV3(DEBUG_MOUNT, F("[MOUNT]: clearDecLimitPosition(Lower): limit DEC: %l -> %l"), _decLowerLimit, _decUpperLimit);
+        _decLowerLimit = Angle::deg(-(DEC_LIMIT_DOWN));
+        EEPROMStore::storeDECLowerLimit(_decLowerLimit.deg());
+        LOGV3(DEBUG_MOUNT, F("[MOUNT]: clearDecLimitPosition(Lower): limit DEC: %f -> %f"), _decLowerLimit.deg(), _decUpperLimit.deg());
     }
 }
 
@@ -2753,7 +2754,7 @@ void Mount::clearDecLimitPosition(bool upper)
 // getDecLimitPositions
 //
 /////////////////////////////////
-void Mount::getDecLimitPositions(long &lowerLimit, long &upperLimit)
+void Mount::getDecLimitPositions(Angle &lowerLimit, Angle &upperLimit)
 {
     lowerLimit = _decLowerLimit;
     upperLimit = _decUpperLimit;
@@ -2974,15 +2975,21 @@ void Mount::moveSteppersTo(Angle targetRASteps, Angle targetDECSteps)
 
     RA::slewTo(targetRASteps);
 
-    if (_decUpperLimit != 0)
+    if (_decUpperLimit.deg() != 0)
     {
-        targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
-        LOGV2(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC Upper Limit enforced. To: %f"), targetDECSteps);
+        if (_decUpperLimit.deg() < targetDECSteps.deg())
+        {
+            targetDECSteps = _decUpperLimit;
+        }
+        LOGV2(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC Upper Limit enforced. To: %f"), targetDECSteps.deg());
     }
-    if (_decLowerLimit != 0)
+    if (_decLowerLimit.deg() != 0)
     {
-        targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
-        LOGV2(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC Lower Limit enforced. To: %f"), targetDECSteps);
+        if (_decLowerLimit.deg() > targetDECSteps.deg())
+        {
+            targetDECSteps = _decLowerLimit;
+        }
+        LOGV2(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC Lower Limit enforced. To: %f"), targetDECSteps.deg());
     }
 
     DEC::slewTo(targetDECSteps);
