@@ -316,9 +316,8 @@ public:
         constexpr static Angle STEP_ANGLE = Angle::deg(360.0f) / DRIVER::SPR;
     };
 
-    static void stop(StepperCallback onComplete = StepperCallback())
+    static void stop()
     {
-        cb_complete = onComplete;
         if (ramp_stair > 0)
         {
             start_movement(dir, 0, 0, 0, UINT32_MAX);
@@ -327,6 +326,12 @@ public:
         {
             terminate();
         }
+    }
+
+    static void stop(StepperCallback onComplete)
+    {
+        cb_complete = onComplete;
+        stop();
     }
 
     static void moveTime(const Angle speed, const uint32_t time_ms, StepperCallback onComplete = StepperCallback())
