@@ -1,3 +1,6 @@
+**V1.10.10 - Updates**
+- Fix Arduino IDE build
+
 **V1.10.9 - Updates**
 - Change UART TX test to be configurable movement distance
 
