@@ -2,8 +2,7 @@
 
 #if DISPLAY_TYPE > 0
     #if SUPPORT_MANUAL_CONTROL == 1
-
-        #include "MappedDict.hpp"
+        #include "libs/MappedDict/MappedDict.hpp"
 
 bool setZeroPoint = true;
 

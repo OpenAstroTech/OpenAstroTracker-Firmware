@@ -1,4 +1,4 @@
-**V1.10.10 - Updates**
+**V1.10.11 - Updates**
 - Tracking now stops automaticaly when the end of the RA ring is reached (using a configurable limit)
 - Fixed RA limits to allow proper meridian flips when slewing
 - Fixed parking/return-to-home functionality
@@ -6,6 +6,9 @@
 - Added configuration option for DEC limits
 - Fixed a bug in RA Autohoming
 - Cleaned up logging some more
+
+**V1.10.10 - Updates**
+- Fix Arduino IDE build
 
 **V1.10.9 - Updates**
 - Change UART TX test to be configurable movement distance
