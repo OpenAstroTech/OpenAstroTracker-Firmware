@@ -1,3 +1,5 @@
+#ifdef ARDUINO_ARCH_AVR
+
 #include "IntervalInterrupt_AVR.h"
 
 constexpr volatile uint8_t *TCCRA(Timer timer)
@@ -101,3 +103,5 @@ constexpr volatile uint16_t *TCNT(Timer timer)
             return 0;
     }
 }
+
+#endif

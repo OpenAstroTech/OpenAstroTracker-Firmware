@@ -19,7 +19,7 @@ PUSH_NO_WARNINGS
     #include "libs/TimerInterrupt/TimerInterrupt.h"
 POP_NO_WARNINGS
 #else
-    #error Unrecognized board selected. Either implement interrupt code or define the board here.
+    // #error Unrecognized board selected. Either implement interrupt code or define the board here.
 #endif
 
 #if defined(ESP32)

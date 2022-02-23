@@ -60,7 +60,7 @@ namespace config
         using pin_step = Pin<RA_STEP_PIN>;
         using pin_dir = Pin<RA_DIR_PIN>;
 
-        using interrupt = IntervalInterrupt<Timer::TIMER_1>;
+        using interrupt = IntervalInterrupt<Timer::TIMER_13>;
         using driver = Driver<SPR, pin_step, pin_dir, RA_DRIVER_INVERT_STEP>;
         using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
     };
@@ -83,7 +83,7 @@ namespace config
         using pin_step = Pin<DEC_STEP_PIN>;
         using pin_dir = Pin<DEC_DIR_PIN>;
 
-        using interrupt = IntervalInterrupt<Timer::TIMER_3>;
+        using interrupt = IntervalInterrupt<Timer::TIMER_14>;
         using driver = Driver<SPR, Pin<DEC_STEP_PIN>, Pin<DEC_DIR_PIN>, DEC_DRIVER_INVERT_STEP>;
         using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
     };
@@ -106,7 +106,7 @@ namespace config
         using pin_step = Pin<AZ_STEP_PIN>;
         using pin_dir = Pin<AZ_DIR_PIN>;
 
-        using interrupt = IntervalInterrupt<Timer::TIMER_4>;
+        using interrupt = IntervalInterrupt<Timer::TIMER_13>;
         using driver = Driver<SPR, Pin<AZ_STEP_PIN>, Pin<AZ_DIR_PIN>, AZ_DRIVER_INVERT_STEP>;
         using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
     };
@@ -129,7 +129,7 @@ namespace config
         using pin_step = Pin<ALT_STEP_PIN>;
         using pin_dir = Pin<ALT_DIR_PIN>;
 
-        using interrupt = IntervalInterrupt<Timer::TIMER_5>;
+        using interrupt = IntervalInterrupt<Timer::TIMER_14>;
         using driver = Driver<SPR, Pin<ALT_STEP_PIN>, Pin<ALT_DIR_PIN>, ALT_DRIVER_INVERT_STEP>;
         using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
     };

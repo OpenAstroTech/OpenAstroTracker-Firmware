@@ -5,9 +5,11 @@
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 #include "MappedDict.hpp"
+#include "AccelStepper.h"
 
 #include "IntervalInterrupt.h"
 
+#if defined(ARDUINO_ARCH_AVR)
 ISR(TIMER3_OVF_vect)
 {
     IntervalInterrupt_AVR<Timer::TIMER_3>::handle_overflow();
@@ -32,6 +34,7 @@ ISR(TIMER5_COMPA_vect)
 {
     IntervalInterrupt_AVR<Timer::TIMER_5>::handle_compare_match();
 }
+#endif
 
 #include "StepperConfiguration.h"
 

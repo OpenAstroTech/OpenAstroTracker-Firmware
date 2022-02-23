@@ -2,17 +2,17 @@
 
 #pragma once
 
-#if defined(OAT_DEBUG_BUILD)
-PUSH_NO_WARNINGS
-    #if BOARD < 1000
-        #include "avr8-stub.h"
-    #else
-        #error "Debugging not supported on this platform"
-    #endif
-POP_NO_WARNINGS
-#endif
+// #if defined(OAT_DEBUG_BUILD)
+// PUSH_NO_WARNINGS
+//     #if BOARD < 1000
+//         #include "avr8-stub.h"
+//     #else
+//         #error "Debugging not supported on this platform"
+//     #endif
+// POP_NO_WARNINGS
+// #endif
 
-#include "InterruptCallback.hpp"
+// #include "InterruptCallback.hpp"
 
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
@@ -91,16 +91,16 @@ void stepperControlTimerCallback(void *payload)
 /////////////////////////////////
 void setup()
 {
-#if defined(OAT_DEBUG_BUILD)
-    #if BOARD < 1000
-    debug_init();  // Setup avr-stub
-    breakpoint();  // Set a breakpoint as soon as possible
-    #else
-        #error "Debugging not supported on this platform"
-    #endif
-#else
+// #if defined(OAT_DEBUG_BUILD)
+//     #if BOARD < 1000
+//     debug_init();  // Setup avr-stub
+//     breakpoint();  // Set a breakpoint as soon as possible
+//     #else
+//         #error "Debugging not supported on this platform"
+//     #endif
+// #else
     Serial.begin(SERIAL_BAUDRATE);
-#endif
+// #endif
 
     LOGV2(DEBUG_ANY, F("[SYSTEM]: Hello, universe, this is OAT %s!"), VERSION);
 
@@ -365,10 +365,10 @@ void setup()
 
 #else
     // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
-    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
-    {
-        LOGV1(DEBUG_MOUNT, F("[SYSTEM]: CANNOT setup interrupt timer!"));
-    }
+    // if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
+    // {
+    //     LOGV1(DEBUG_MOUNT, F("[SYSTEM]: CANNOT setup interrupt timer!"));
+    // }
 #endif
 
 #if UART_CONNECTION_TEST_TX == 1

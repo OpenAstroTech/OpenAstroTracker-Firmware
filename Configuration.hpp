@@ -250,6 +250,8 @@
     #include "boards/AVR_MKS_GEN_L_V2/pins_MKS_GEN_L_V2.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
     #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
+#elif (BOARD == BOARD_STM32_F446RE)
+    #include "boards/STM32_F446RE/pins_STM32_F446RE.h"
 #endif
 
 #include "Configuration_adv.hpp"

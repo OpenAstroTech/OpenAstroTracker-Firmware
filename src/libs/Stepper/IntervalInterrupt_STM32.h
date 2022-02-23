@@ -29,18 +29,18 @@
  */
 enum class Timer : int
 {
-    TIMER_16 = 16,
-    TIMER_17 = 17
+    TIMER_13 = 13,
+    TIMER_14 = 14
 };
 
 constexpr TIM_TypeDef *timer_def_from_enum(const Timer timer)
 {
     switch (timer)
     {
-    case Timer::TIMER_16:
-        return TIM16;
-    case Timer::TIMER_17:
-        return TIM17;
+    case Timer::TIMER_13:
+        return TIM13;
+    case Timer::TIMER_14:
+        return TIM14;
     default:
         return nullptr;
     }
@@ -166,4 +166,4 @@ inline __attribute__((always_inline)) void IntervalInterrupt<T>::stop()
 }
 
 template <Timer T>
-const unsigned long int IntervalInterrupt<T>::FREQ = F_CPU;
+const unsigned long int IntervalInterrupt<T>::FREQ = 180000000UL;
