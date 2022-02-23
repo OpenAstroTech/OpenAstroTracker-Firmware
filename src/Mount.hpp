@@ -132,7 +132,7 @@ class Mount
     Angle position();
 
     template <typename AXIS>
-    void position(Angle value);
+    void setPosition(Angle value);
 
     Mount(LcdMenu *lcdMenu);
 
@@ -597,7 +597,7 @@ Angle Mount::position()
 }
 
 template <typename AXIS>
-void Mount::position(Angle value)
+void Mount::setPosition(Angle value)
 {
     AXIS::position(value);
 }

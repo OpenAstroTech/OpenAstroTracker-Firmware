@@ -1670,8 +1670,8 @@ String Mount::mountStatusString()
         }
     }
 
-    disp += " RA:" + String(RA::position());
-    disp += " DEC:" + String(DEC::position());
+    disp += " RA:" + String(RA::position().deg());
+    disp += " DEC:" + String(DEC::position().deg());
 
     return disp;
 }

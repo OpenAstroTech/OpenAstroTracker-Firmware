@@ -1456,8 +1456,8 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     }
     else if (inCmd[0] == 'X')  // :MX
     {
-        long degs = inCmd.substring(2).toFloat();
-        LOGV3(DEBUG_MEADE, F("[MEADE]: Move: %l in %d"), steps, inCmd[1]);
+        float degs = inCmd.substring(2).toFloat();
+        LOGV3(DEBUG_MEADE, F("[MEADE]: Move: %f in %d"), degs, inCmd[1]);
         if (inCmd[1] == 'r')
             _mount->moveStepperBy(RA_STEPS, Angle::deg(degs));
         else if (inCmd[1] == 'd')
