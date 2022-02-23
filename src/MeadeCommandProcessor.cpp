@@ -743,7 +743,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#"
 //
-// :XGT#
+// :XGT#  (deprecated)
 //      Description:
 //        Get Tracking speed
 //      Information:
@@ -1569,7 +1569,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'T')  // :XGT#
         {
-            return String(_mount->getSpeed(TRACKING), 7) + "#";
+            return "1#";
         }
         else if (inCmd[1] == 'B')  // :XGB#
         {

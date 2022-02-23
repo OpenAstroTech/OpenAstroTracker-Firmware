@@ -345,7 +345,6 @@ void setup()
     DayTime haTime = EEPROMStore::getHATime();
 
     LOGV2(DEBUG_INFO, F("[SYSTEM]: SpeedCal: %s"), String(mount.getSpeedCalibration(), 5).c_str());
-    LOGV2(DEBUG_INFO, F("[SYSTEM]: TRKSpeed: %s"), String(mount.getSpeed(TRACKING), 5).c_str());
 
     mount.setHA(haTime);
 

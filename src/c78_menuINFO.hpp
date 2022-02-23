@@ -103,7 +103,7 @@ void printStatusSubmenu()
                     else
                     {
                         sprintf(scratchBuffer, "TRK Spd:");
-                        dtostrf(mount.getSpeed(TRACKING), 8, 6, &scratchBuffer[8]);
+                        //dtostrf(mount.getSpeed(TRACKING), 8, 6, &scratchBuffer[8]);
                         lcdMenu.printMenu(scratchBuffer);
                     }
                 }

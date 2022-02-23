@@ -103,7 +103,7 @@ const float siderealDegreesInHour = 14.95904348958;
 //
 /////////////////////////////////
 Mount::Mount(LcdMenu *lcdMenu)
-// : _currentRAStepperPosition(0.0f), _currentDECStepperPosition(0.0f), _totalDECMove(0.0f), _totalRAMove(0.0f), _raParkingPos(0.0f),
+// : _currentRAStepperPosition(0.0f), _currentDECStepperPosition(0.0f), _raParkingPos(0.0f),
 //   _decParkingPos(0.0f)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     : _azAltWasRunning(false)
@@ -122,8 +122,6 @@ void Mount::initializeVariables()
     _longitude         = Longitude(100.0);
     _zeroPosDEC        = 0.0f;
 
-    _totalDECMove = Angle::deg(0.0f);
-    _totalRAMove  = Angle::deg(0.0f);
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     _homing.state = HomingState::HOMING_NOT_ACTIVE;
 #endif
@@ -1192,9 +1190,6 @@ void Mount::startSlewingToTarget()
     moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = DEC::distanceToGo();
-    _totalRAMove  = RA::distanceToGo();
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: RA Dist: %l,   DEC Dist: %l"), RA::distanceToGo(), DEC::distanceToGo());
 }
 
 /////////////////////////////////
@@ -1232,9 +1227,6 @@ void Mount::startSlewingToHome()
     moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = DEC::distanceToGo();
-    _totalRAMove  = RA::distanceToGo();
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: RA Dist: %f,   DEC Dist: %f"), RA::distanceToGo().deg(), DEC::distanceToGo().deg());
 }
 
 /////////////////////////////////
@@ -1738,9 +1730,9 @@ String Mount::getStatusString()
     {
         byte slew = slewStatus();
         if (slew & SLEWING_RA)
-            disp[0] = RA::speed() < 0 ? 'R' : 'r';
+            disp[0] = RA::direction() < 0 ? 'R' : 'r';
         if (slew & SLEWING_DEC)
-            disp[1] = DEC::speed() < 0 ? 'D' : 'd';
+            disp[1] = DEC::direction() < 0 ? 'D' : 'd';
         if (slew & SLEWING_TRACKING)
             disp[2] = 'T';
     }
@@ -1750,16 +1742,16 @@ String Mount::getStatusString()
     }
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (AZ::isRunning())
-        disp[3] = AZ::speed() < 0 ? 'Z' : 'z';
+        disp[3] = AZ::direction() < 0 ? 'Z' : 'z';
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (ALT::isRunning())
-        disp[4] = ALT::speed() < 0 ? 'A' : 'a';
+        disp[4] = ALT::direction() < 0 ? 'A' : 'a';
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperFocus->isRunning())
-        disp[5] = _stepperFocus->speed() < 0 ? 'F' : 'f';
+        disp[5] = _stepperFocus->direction() < 0 ? 'F' : 'f';
 #endif
 
     status += disp;
@@ -2451,9 +2443,8 @@ void Mount::loop()
     bool raStillRunning  = false;
     bool decStillRunning = false;
 
-    unsigned long now = millis();
-
 #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
+    unsigned long now = millis();
     if (now - _lastMountPrint > 2000)
     {
         LOGV2(DEBUG_MOUNT, F("[MOUNT]: Status -> %s"), getStatusString().c_str());
@@ -2580,8 +2571,6 @@ void Mount::loop()
                 }
 
                 LOGV2(DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop:   Reached target at %d"), _currentRAStepperPosition);
-                _totalDECMove = Angle::deg(0.0f);
-                _totalRAMove  = Angle::deg(0.0f);
 
                 if (_slewingToHome)
                 {
@@ -2598,15 +2587,11 @@ void Mount::loop()
                         _slewingToPark = true;
                         RA::slewTo(_raParkingPos);
                         DEC::slewTo(_decParkingPos);
-                        _totalDECMove = DEC::distanceToGo();
-                        _totalRAMove  = RA::distanceToGo();
-                        LOGV5(DEBUG_MOUNT | DEBUG_STEPPERS,
-                              F("[MOUNT]: Loop:   Park Position is R:%f  D:%f, TotalMove is R:%f, D:%f"),
+                        LOGV3(DEBUG_MOUNT | DEBUG_STEPPERS,
+                              F("[MOUNT]: Loop:   Park Position is R:%f  D:%f"),
                               _raParkingPos.deg(),
-                              _decParkingPos.deg(),
-                              _totalRAMove.deg(),
-                              _totalDECMove.deg());
-                        if ((DEC::distanceToGo().deg() != 0) || (RA::distanceToGo().deg() != 0))
+                              _decParkingPos.deg());
+                        if ((DEC::slewingProgress() != 1.0f) || (RA::slewingProgress() != 1.0f))
                         {
                             _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
                         }
@@ -2777,38 +2762,14 @@ void Mount::setHome(bool clearZeroPos)
 #endif
     _zeroPosDEC = 0.0f;
 
-    RA::setCurrentPosition(0);
-    DEC::setCurrentPosition(0);
-    //_stepperTRK->setCurrentPosition(0);
+    RA::setPosition(Angle::deg(0.0f));
+    DEC::setPosition(Angle::deg(0.0f));
 
     _targetRA = currentRA();
 
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setHomePost: currentRA is %s"), currentRA().ToString());
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setHomePost: zeroPos is %s"), _zeroPosRA.ToString());
     //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: setHomePost: targetRA is %s"), targetRA().ToString());
-}
-
-/////////////////////////////////
-//
-// getSpeed
-//
-// Get the current speed of the stepper. NORTH, WEST, TRACKING
-/////////////////////////////////
-float Mount::getSpeed(int direction)
-{
-    if (direction & TRACKING)
-    {
-        return _trackingSpeed;
-    }
-    if (direction & (NORTH | SOUTH))
-    {
-        return DEC::speed();
-    }
-    if (direction & (EAST | WEST))
-    {
-        return RA::speed();
-    }
-    return 0;
 }
 
 /////////////////////////////////
@@ -2828,7 +2789,7 @@ void Mount::calculateStepperPositions(float raCoord, float decCoord, Angle &raPo
     _targetDEC = savedDec;
 }
 
-float Mount::getTrackedTime()
+float Mount::getTrackedTime() const
 {
     return _totalTrackingTime / 3600000.0f;
 }
@@ -3006,14 +2967,12 @@ void Mount::moveStepperBy(StepperAxis direction, Angle steps)
     switch (direction)
     {
         case RA_STEPS:
-            moveSteppersTo(RA::targetPosition() + steps, DEC::targetPosition());
+            RA::slewBy(steps);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-            _totalRAMove = RA::distanceToGo();
             break;
         case DEC_STEPS:
-            moveSteppersTo(RA::targetPosition(), DEC::targetPosition() + steps);
+            DEC::slewBy(steps);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-            _totalDECMove = DEC::distanceToGo();
             break;
         case FOCUS_STEPS:
 #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -3024,13 +2983,13 @@ void Mount::moveStepperBy(StepperAxis direction, Angle steps)
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
             enableAzAltMotors();
             LOGV3(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: AZ from %l to %l", AZ::position(), AZ::position() + steps);
-            AZ::slewTo(AZ::position() + steps);
+            AZ::slewBy(steps);
 #endif
             break;
         case ALTITUDE_STEPS:
 #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
             enableAzAltMotors();
-            ALT::slewTo(ALT::position() + steps);
+            ALT::slewBy(steps);
 #endif
             break;
     }
@@ -3047,11 +3006,11 @@ void Mount::displayStepperPosition()
 
     String disp;
 
-    if ((fabsf(_totalDECMove) > 0.001f) && (fabsf(_totalRAMove) > 0.001f))
+    if ((DEC::slewingProgress() < 1.0f) && (RA::slewingProgress() < 1.0f))
     {
         // Both axes moving to target
-        float decDist = 100.0f - 100.0f * DEC::distanceToGo() / _totalDECMove;
-        float raDist  = 100.0f - 100.0f * RA::distanceToGo() / _totalRAMove;
+        float decDist = 100.0f * DEC::slewingProgress();
+        float raDist  = 100.0f * RA::slewingProgress();
 
         sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
         _lcdMenu->setCursor(0, 0);
@@ -3062,18 +3021,18 @@ void Mount::displayStepperPosition()
         return;
     }
 
-    if (fabsf(_totalDECMove) > 0.001f)
+    if (DEC::slewingProgress() < 1.0f)
     {
         // Only DEC moving to target
-        float decDist = 100.0f - 100.0f * DEC::distanceToGo() / _totalDECMove;
+        float decDist = 100.0f * DEC::slewingProgress();
         sprintf(scratchBuffer, "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
         _lcdMenu->setCursor(0, 1);
         _lcdMenu->printMenu(String(scratchBuffer));
     }
-    else if (fabsf(_totalRAMove) > 0.001f)
+    else if (RA::slewingProgress() < 1.0f)
     {
         // Only RAmoving to target
-        float raDist = 100.0f - 100.0f * RA::distanceToGo() / _totalRAMove;
+        float raDist = 100.0f * RA::slewingProgress();
         sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
         disp = disp + String(scratchBuffer);
         _lcdMenu->setCursor(0, inSerialControl ? 0 : 1);
@@ -3421,7 +3380,7 @@ void Mount::checkRALimit()
     // Check tracking limits every 5 seconds
     if (millis() - _lastTRKCheck > 5000)
     {
-        float trackedHours       = RA::trackingPosition().deg() / 15.0;
+        float trackedHours       = RA::trackingPosition().deg() / 15.0f;
         float homeRA             = _zeroPosRA.getTotalHours() + trackedHours;
         float const RALimit      = RA_TRACKING_LIMIT;
         float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
@@ -3453,9 +3412,9 @@ template <> Angle Mount::trackingPosition<Mount::RA>()
     return RA::TRACKING_SPEED * trackedTime;
 }
 
-template <> void Mount::position<Mount::RA>(Angle value)
+template <> void Mount::setPosition<Mount::RA>(Angle value)
 {
-    Mount::RA::position(value);
+    Mount::RA::setPosition(value);
     _totalTrackingTime       = 0;
     _recentTrackingStartTime = millis();
 }

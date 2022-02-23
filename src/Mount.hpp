@@ -256,7 +256,7 @@ class Mount
     const Declination currentDEC() const;
 
     // Gets the total time spent tracking since last home
-    float getTrackedTime();
+    float getTrackedTime() const;
 
     // Set the current RA and DEC position to be the given coordinates
     void syncPosition(DayTime ra, Declination dec);
@@ -360,9 +360,6 @@ class Mount
 
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
-
-    // Get the current speed of the stepper. NORTH, WEST, TRACKING
-    float getSpeed(int direction);
 
     // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
     void displayStepperPositionThrottled();
@@ -506,8 +503,6 @@ class Mount
     Angle _currentDECStepperPosition;
     long _lastTRKCheck;
 
-    Angle _totalDECMove;
-    Angle _totalRAMove;
     Latitude _latitude;
     Longitude _longitude;
 

@@ -64,7 +64,7 @@ template <typename Config> class Axis
     static void slewTo(Angle target)
     {
         slewing_from = Config::stepper::position();
-        slewing_to = constrain(target, limit_min, limit_max);
+        slewing_to   = constrain(target, limit_min, limit_max);
 
         if (is_tracking)
         {
@@ -78,6 +78,12 @@ template <typename Config> class Axis
         }
 
         is_slewing = true;
+    }
+
+    static void slewBy(Angle by)
+    {
+        Angle target = Config::stepper::position() + by;
+        slewTo(target);
     }
 
     static void slew(bool direction)
@@ -136,6 +142,11 @@ template <typename Config> class Axis
     static bool isTracking()
     {
         return is_tracking;
+    }
+
+    static int8_t direction()
+    {
+        return Config::stepper::movementDir();
     }
 
     static void setSlewRate(float factor)
