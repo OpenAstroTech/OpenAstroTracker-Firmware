@@ -1191,25 +1191,14 @@ const DayTime Mount::currentRA() const
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
     float hourPos              = -_stepperRA->currentPosition() / stepsPerSiderealHour;  // u-steps / u-steps/hr = hr
 
-    // LOGV4(DEBUG_MOUNT_VERBOSE,
-    //       F("[MOUNT]: CurrentRA: Steps/h    : %s (%f x %s)"),
-    //       String(stepsPerSiderealHour, 2).c_str(),
-    //       _stepsPerRADegree,
-    //       String(siderealDegreesInHour, 5).c_str());
-    // LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CurrentRA: RA Steps   : %d"), _stepperRA->currentPosition());
-    // LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CurrentRA: POS        : %s"), String(hourPos).c_str());
     hourPos += _zeroPosRA.getTotalHours();
-    // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: ZeroPos    : %s"), _zeroPosRA.ToString());
-    // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: POS (+zp)  : %s"), DayTime(hourPos).ToString());
 
-    float degreePos = _stepperDEC->currentPosition() / _stepsPerDECDegree;
-    degreePos += _zeroPosDEC;
+    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
     if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
     {
         hourPos += 12;
         if (hourPos > 24)
             hourPos -= 24;
-        // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: RA (+12h): %s"), DayTime(hourPos).ToString());
     }
 
     // Make sure we are normalized
@@ -1218,7 +1207,6 @@ const DayTime Mount::currentRA() const
     if (hourPos > 24)
         hourPos -= 24;
 
-    // LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentRA: RA Pos  -> : %s"), DayTime(hourPos).ToString());
     return hourPos;
 }
 
@@ -1230,20 +1218,14 @@ const DayTime Mount::currentRA() const
 // Get current DEC value.
 const Declination Mount::currentDEC() const
 {
-    float degreePos = _stepperDEC->currentPosition() / _stepsPerDECDegree;  // u-steps / u-steps/deg = deg
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentDEC: Steps/deg  : %f"), _stepsPerDECDegree);
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentDEC: DEC Steps  : %d"), _stepperDEC->currentPosition());
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentDEC: POS        : %s"), String(degreePos).c_str());
-
-    degreePos += _zeroPosDEC;
+    // u-steps / u-steps/deg = deg
+    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
 
     if (NORTHERN_HEMISPHERE ? degreePos > 0 : degreePos < 0)
     {
-        degreePos = -degreePos;
-        //LOGV1(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentDEC: Greater Zero, flipping."));
+        return -degreePos;
     }
 
-    //LOGV2(DEBUG_MOUNT_VERBOSE,F("[MOUNT]: CurrentDEC: POS      : %s"), Declination(degreePos).ToString());
     return degreePos;
 }
 
@@ -1264,20 +1246,20 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     float raAdjust = ra.getTotalHours() - currentRA().getTotalHours();
     while (raAdjust > 12)
     {
-        raAdjust = raAdjust - 24;
+        raAdjust -= 24;
     }
     while (raAdjust < -12)
     {
-        raAdjust = raAdjust + 24;
+        raAdjust += 24;
     }
     _zeroPosRA.addHours(raAdjust);
 
     // Adjust the home DEC position by the delta between the sync'd target and current position.
-    float decAdjust = dec.getTotalDegrees() - currentDEC().getTotalDegrees();
+    const float decAdjust = dec.getTotalDegrees() - currentDEC().getTotalDegrees();
     _zeroPosDEC += decAdjust;
 
     long targetRAPosition, targetDECPosition;
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), ra.ToString(), _targetDEC.ToString());
+    LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
 
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 1: RA %l and DEC: %l"), solutions[0], solutions[1]);
@@ -1373,7 +1355,7 @@ void Mount::startSlewingToHome()
 
     _slewingToHome = true;
     // Take tracking into account
-    long trackingOffset = _stepperTRK->currentPosition() * RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING;
+    const long trackingOffset = _stepperTRK->currentPosition() * RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING;
     targetRAPosition -= trackingOffset;
     LOGV4(DEBUG_STEPPERS,
           F("[STEPPERS]: startSlewingToHome: Adjusted with tracking distance: %l (adjusted for MS: %l), result: %l"),
@@ -1384,8 +1366,8 @@ void Mount::startSlewingToHome()
     moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
+    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
+    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: RA Dist: %l,   DEC Dist: %l"), _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
     if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
     {
@@ -3895,16 +3877,16 @@ void Mount::checkRALimit()
     // Check tracking limits every 5 seconds
     if (millis() - _lastTRKCheck > 5000)
     {
-        float trackedHours       = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
-        float homeRA             = _zeroPosRA.getTotalHours() + trackedHours;
-        float const RALimit      = RA_TRACKING_LIMIT;
+        const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+        const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
+        const float RALimit      = RA_TRACKING_LIMIT;
         float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
 
         LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
         while (homeCurrentDeltaRA > 12)
-            homeCurrentDeltaRA = homeCurrentDeltaRA - 24;
+            homeCurrentDeltaRA -= 24;
         while (homeCurrentDeltaRA < -12)
-            homeCurrentDeltaRA = homeCurrentDeltaRA + 24;
+            homeCurrentDeltaRA += 24;
 
         if (homeCurrentDeltaRA > RALimit)
         {

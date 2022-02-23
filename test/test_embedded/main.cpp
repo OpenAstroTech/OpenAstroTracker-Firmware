@@ -2,16 +2,6 @@
 
 #include "test_sidereal.h"
 
-// void setup()
-// {
-
-// }
-
-// void loop()
-// {
-
-// }
-
 int main(int argc, char **argv)
 {
     UNITY_BEGIN();
