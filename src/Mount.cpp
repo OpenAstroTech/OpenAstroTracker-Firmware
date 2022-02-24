@@ -1401,39 +1401,39 @@ void Mount::startSlewingToHome()
 /////////////////////////////////
 void Mount::stopGuiding(bool ra, bool dec)
 {
-    if (isGuiding())
+    if (!isGuiding())
+        return;
+
+    // Stop RA guide first, since it's just a speed change back to tracking speed
+    if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
     {
-        // Stop RA guide first, since it's just a speed change back to tracking speed
-        if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
+        LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(RA): TRK.setSpeed(%f)"), _trackingSpeed);
+        _stepperTRK->setSpeed(_trackingSpeed);
+        _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
+    }
+
+    if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
+    {
+        LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): Stop motor"));
+
+        // Stop DEC guiding and wait for it to stop.
+        _stepperGUIDE->stop();
+
+        while (_stepperGUIDE->isRunning())
         {
-            LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(RA): TRK.setSpeed(%f)"), _trackingSpeed);
-            _stepperTRK->setSpeed(_trackingSpeed);
-            _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
+            _stepperGUIDE->run();
+            _stepperTRK->runSpeed();
         }
 
-        if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
-        {
-            LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): Stop motor"));
+        LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): GuideStepper stopped at %l"), _stepperGUIDE->currentPosition());
 
-            // Stop DEC guiding and wait for it to stop.
-            _stepperGUIDE->stop();
+        _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
+    }
 
-            while (_stepperGUIDE->isRunning())
-            {
-                _stepperGUIDE->run();
-                _stepperTRK->runSpeed();
-            }
-
-            LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): GuideStepper stopped at %l"), _stepperGUIDE->currentPosition());
-
-            _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
-        }
-
-        //disable pulse state if no direction is active
-        if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
-        {
-            _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
-        }
+    //disable pulse state if no direction is active
+    if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
+    {
+        _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
     }
 }
 
@@ -3875,24 +3875,23 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 void Mount::checkRALimit()
 {
     // Check tracking limits every 5 seconds
-    if (millis() - _lastTRKCheck > 5000)
+    if (millis() - _lastTRKCheck < 5000)
+        return;
+    const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+    const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
+    const float RALimit      = RA_TRACKING_LIMIT;
+    float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
+
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
+    while (homeCurrentDeltaRA > 12)
+        homeCurrentDeltaRA -= 24;
+    while (homeCurrentDeltaRA < -12)
+        homeCurrentDeltaRA += 24;
+
+    if (homeCurrentDeltaRA > RALimit)
     {
-        const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
-        const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
-        const float RALimit      = RA_TRACKING_LIMIT;
-        float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
-
-        LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
-        while (homeCurrentDeltaRA > 12)
-            homeCurrentDeltaRA -= 24;
-        while (homeCurrentDeltaRA < -12)
-            homeCurrentDeltaRA += 24;
-
-        if (homeCurrentDeltaRA > RALimit)
-        {
-            LOGV1(DEBUG_MOUNT, F("[MOUNT]: checkRALimit: Tracking limit reached"));
-            stopSlewing(TRACKING);
-        }
-        _lastTRKCheck = millis();
+        LOGV1(DEBUG_MOUNT, F("[MOUNT]: checkRALimit: Tracking limit reached"));
+        stopSlewing(TRACKING);
     }
+    _lastTRKCheck = millis();
 }
