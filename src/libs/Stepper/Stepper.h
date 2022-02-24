@@ -521,7 +521,7 @@ template <typename INTERRUPT, typename DRIVER, uint32_t MAX_SPEED_mRAD, uint32_t
 uint8_t volatile Stepper<INTERRUPT, DRIVER, MAX_SPEED_mRAD, ACCELERATION_mRAD>::ramp_stair_step = 0;
 
 template <typename INTERRUPT, typename DRIVER, uint32_t MAX_SPEED_mRAD, uint32_t ACCELERATION_mRAD>
-uint32_t volatile Stepper<INTERRUPT, DRIVER, MAX_SPEED_mRAD, ACCELERATION_mRAD>::run_interval = UINT32_MAX;
+uint32_t volatile Stepper<INTERRUPT, DRIVER, MAX_SPEED_mRAD, ACCELERATION_mRAD>::run_interval = 0;
 
 template <typename INTERRUPT, typename DRIVER, uint32_t MAX_SPEED_mRAD, uint32_t ACCELERATION_mRAD>
 StepperCallback Stepper<INTERRUPT, DRIVER, MAX_SPEED_mRAD, ACCELERATION_mRAD>::cb_complete = StepperCallback();
