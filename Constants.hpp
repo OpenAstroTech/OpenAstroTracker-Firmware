@@ -19,6 +19,10 @@
 // ESP32 based boards
 #define BOARD_ESP32_ESP32DEV 1001
 
+// STM32 based boards
+#define BOARD_STM32_F401RE     2001
+#define BOARD_STM32_F446RE     2002
+
 /**
  * Supported display types. Use one of these values for DISPLAY_TYPE configuration matching your used display.
  * 

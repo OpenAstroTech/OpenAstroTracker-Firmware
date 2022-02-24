@@ -38,9 +38,9 @@ constexpr TIM_TypeDef *timer_def_from_enum(const Timer timer)
     switch (timer)
     {
     case Timer::TIMER_13:
-        return TIM13;
+        return TIM3;
     case Timer::TIMER_14:
-        return TIM14;
+        return TIM4;
     default:
         return nullptr;
     }

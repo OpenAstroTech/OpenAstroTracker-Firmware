@@ -239,18 +239,28 @@
 
 // Append board specific pins data.
 #if (BOARD == BOARD_AVR_MEGA2560)
+    #warning "Including Meag2560 pins"
     #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
 #elif (BOARD == BOARD_AVR_RAMPS)
+    #warning "Including RAMPS pins"
     #include "boards/RAMPS/pins_RAMPS.hpp"
 #elif (BOARD == BOARD_ESP32_ESP32DEV)
+    #warning "Including WESP32 pins"
     #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V1)
+    #warning "Including MKS GenL V1.0 pins"
     #include "boards/AVR_MKS_GEN_L_V1/pins_MKS_GEN_L_V1.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V2)
+    #warning "Including MKS GenL V2.0 pins"
     #include "boards/AVR_MKS_GEN_L_V2/pins_MKS_GEN_L_V2.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
+    #warning "Including MKS GenL V2.1 pins"
     #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
+#elif (BOARD == BOARD_STM32_F401RE)
+    #warning "Including STM32 F401RE pins"
+    #include "boards/STM32_F401RE/pins_STM32_F401RE.h"
 #elif (BOARD == BOARD_STM32_F446RE)
+    #warning "Including STM32 F446RE pins"
     #include "boards/STM32_F446RE/pins_STM32_F446RE.h"
 #endif
 
