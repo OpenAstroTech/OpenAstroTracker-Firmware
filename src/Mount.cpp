@@ -4,7 +4,7 @@
 #include "LcdMenu.hpp"
 #include "Mount.hpp"
 #include "Sidereal.hpp"
-#include "MappedDict.hpp"
+#include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
 #include <AccelStepper.h>
