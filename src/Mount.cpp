@@ -1349,8 +1349,8 @@ void Mount::startSlewingToHome()
     _currentRAStepperPosition  = _stepperRA->currentPosition();
 
     // Take any syncs that have happened into account
-    long targetRAPosition  = -_homeOffsetRA;
-    long targetDECPosition = -_homeOffsetDEC;
+    long targetRAPosition        = -_homeOffsetRA;
+    const long targetDECPosition = -_homeOffsetDEC;
     LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: startSlewingToHome: Sync op offsets: RA: %l, DEC: %l"), targetRAPosition, targetDECPosition);
 
     _slewingToHome = true;
