@@ -11,8 +11,13 @@ void processSerialData();
 // The main loop when under serial control
 void serialLoop()
 {
+    mount.interruptLoop();
     mount.loop();
     mount.displayStepperPositionThrottled();
+
+    #if BOARD == BOARD_STM32_F401RE
+    processSerialData();
+    #endif
 
     #ifdef ESP32
     processSerialData();
@@ -26,6 +31,7 @@ void serialLoop()
     //////////////////////////////////////////////////
     // Event that is triggered when the serial port receives data.
     #ifndef ESP32
+
 void serialEvent()
 {
     processSerialData();

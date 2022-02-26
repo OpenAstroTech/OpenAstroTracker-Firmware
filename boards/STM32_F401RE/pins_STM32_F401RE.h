@@ -6,64 +6,64 @@
 
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
-    #define RA_STEP_PIN 54  // STEP
+    #define RA_STEP_PIN D0  // STEP
 #endif
 #ifndef RA_DIR_PIN
-    #define RA_DIR_PIN 55  // DIR
+    #define RA_DIR_PIN D1 // DIR
 #endif
 #ifndef RA_EN_PIN
-    #define RA_EN_PIN 38  // Enable
+    #define RA_EN_PIN D2 // Enable
 #endif
 #ifndef RA_DIAG_PIN
-    #define RA_DIAG_PIN 3  // only needed for autohome function
+    #define RA_DIAG_PIN D3  // only needed for autohome function
 #endif
 #ifndef RA_MS0_PIN
-    #define RA_MS0_PIN 51
+    #define RA_MS0_PIN D4
 #endif
 #ifndef RA_MS1_PIN
-    #define RA_MS1_PIN 52
+    #define RA_MS1_PIN D5
 #endif
 #ifndef RA_MS2_PIN
-    #define RA_MS2_PIN 63
+    #define RA_MS2_PIN D6
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef RA_SERIAL_PORT_TX
-    #define RA_SERIAL_PORT_TX 40  // SoftwareSerial TX port
+    #define RA_SERIAL_PORT_TX D8  // SoftwareSerial TX port
 #endif
 #ifndef RA_SERIAL_PORT_RX
-    #define RA_SERIAL_PORT_RX 63  // SoftwareSerial RX port
+    #define RA_SERIAL_PORT_RX D7  // SoftwareSerial RX port
 #endif
 #ifndef RA_DRIVER_ADDRESS
     #define RA_DRIVER_ADDRESS 0b00
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef DEC_STEP_PIN
-    #define DEC_STEP_PIN 60  // STEP
+    #define DEC_STEP_PIN D9  // STEP
 #endif
 #ifndef DEC_DIR_PIN
-    #define DEC_DIR_PIN 61  // DIR
+    #define DEC_DIR_PIN D10 // DIR
 #endif
 #ifndef DEC_EN_PIN
-    #define DEC_EN_PIN 56  // Enable
+    #define DEC_EN_PIN D11  // Enable
 #endif
 #ifndef DEC_DIAG_PIN
-    #define DEC_DIAG_PIN 14  // only needed for autohome function
+    #define DEC_DIAG_PIN D12  // only needed for autohome function
 #endif
 #ifndef DEC_MS0_PIN
-    #define DEC_MS0_PIN 51
+    #define DEC_MS0_PIN D13
 #endif
 #ifndef DEC_MS1_PIN
-    #define DEC_MS1_PIN 52
+    #define DEC_MS1_PIN D14
 #endif
 #ifndef DEC_MS2_PIN
-    #define DEC_MS2_PIN 64
+    #define DEC_MS2_PIN D15
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef DEC_SERIAL_PORT_TX
-    #define DEC_SERIAL_PORT_TX 59  // SoftwareSerial TX port
+    #define DEC_SERIAL_PORT_TX D14  // SoftwareSerial TX port
 #endif
 #ifndef DEC_SERIAL_PORT_RX
-    #define DEC_SERIAL_PORT_RX 64  // SoftwareSerial RX port
+    #define DEC_SERIAL_PORT_RX D15 // SoftwareSerial RX port
 #endif
 #ifndef DEC_DRIVER_ADDRESS
     #define DEC_DRIVER_ADDRESS 0b00

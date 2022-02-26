@@ -274,6 +274,9 @@ void loop()
 
 void loop()
 {
+    #if BOARD == BOARD_STM32_F401RE
+    serialLoop();
+    #endif
     #ifdef ESP32
     serialLoop();
     #endif

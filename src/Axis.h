@@ -136,7 +136,8 @@ template <typename Config> class Axis
 
     static bool isRunning()
     {
-        return Config::stepper::isRunning();
+        // Generally this refers to slewing, not tracking.
+        return is_slewing;
     }
 
     static bool isTracking()
