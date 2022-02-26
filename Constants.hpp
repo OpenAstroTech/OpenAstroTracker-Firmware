@@ -51,7 +51,7 @@
 
 // USB serial port speed according to external controller
 #define SERIAL_BAUDRATE_STELLARIUM_DIRECT 9600
-#define SERIAL_BAUDRATE_ASCOM             19200
+#define SERIAL_BAUDRATE_ASCOM             57600 // 19200
 
 // Wifi operating modes (ESP32 only)
 #define WIFI_MODE_INFRASTRUCTURE 0  // Infrastructure Only - OAT connects to an existing Router

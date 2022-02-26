@@ -245,8 +245,9 @@ public:
     static Angle position()
     {
         noInterrupts();
-        return Angle::deg(360.0f / DRIVER::SPR) * pos;
+        Angle ret = Angle::deg(360.0f / DRIVER::SPR) * pos;
         interrupts();
+        return ret;
     }
 
     static void position(Angle value)
@@ -358,11 +359,11 @@ public:
 
     static void move(MovementSpec spec, StepperCallback onComplete = StepperCallback())
     {
+        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : move entered"));
+
         PROFILE_MOVE_BEGIN();
 
-#ifdef noInterrupts
         noInterrupts();
-#endif
 
         INTERRUPT::stop();
 
@@ -501,9 +502,8 @@ public:
 
         start_movement(spec.dir, mv_pre_decel_stairs, mv_accel_steps, mv_run_steps, mv_run_interval);
 
-#ifdef interrupts
         interrupts();
-#endif
+
         PROFILE_MOVE_END();
     }
 };

@@ -2993,6 +2993,7 @@ void Mount::moveStepperBy(StepperAxis direction, Angle steps)
 #endif
             break;
     }
+    LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: moveStepperBy: complete"));
 }
 
 /////////////////////////////////

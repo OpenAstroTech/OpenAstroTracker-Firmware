@@ -331,7 +331,7 @@ String formatArg(const char *input, va_list args)
             case 'f':
                 {
                     float num = (float) va_arg(args, double);
-                    String s  = String(num, 4);
+                    String s  = String(num, 6);
                     strcpy(p, s.c_str());
                     p += s.length();
                 }
