@@ -95,6 +95,8 @@ private:
         // we need to pre-decelerate first (for direction change or lower speed)
         if (pre_decel_stairs > 0)
         {
+            LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM01"));
+
             ramp_stair_step = Ramp::LAST_STEP;
             INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
             INTERRUPT::setCallback(pre_decelerate_handler);
@@ -102,18 +104,25 @@ private:
         // accelerate (for faster speed)
         else if (accel_steps > 0)
         {
+            LOGV2(DEBUG_STEPPERS , F("[STEPLIB] : SM02. %d"), ramp_stair);
             if (ramp_stair == 0)
             {
                 ramp_stair = 1;
             }
             dir = direction;
+            LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM02a"));
+
             DRIVER::dir(dir > 0);
+            LOGV2(DEBUG_STEPPERS , F("[STEPLIB] : SM02b  %l"), Ramp::intervals[ramp_stair]);
             INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
+            LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM02c"));
             INTERRUPT::setCallback(accelerate_handler);
+            LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM02d"));
         }
         // run directly, requested speed is similar to current one
         else if (run_steps > 0)
         {
+            LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM03"));
             dir = direction;
             DRIVER::dir(dir > 0);
             INTERRUPT::setInterval(new_run_interval);
@@ -122,9 +131,12 @@ private:
         // decelerate until stopped
         else
         {
+            LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM04"));
             INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
             INTERRUPT::setCallback(decelerate_handler);
         }
+            LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM05"));
+
     }
 
     static void pre_decelerate_handler()
@@ -363,7 +375,7 @@ public:
 
         PROFILE_MOVE_BEGIN();
 
-        noInterrupts();
+        //noInterrupts();
 
         INTERRUPT::stop();
 
@@ -374,8 +386,12 @@ public:
         uint32_t mv_run_steps = 0;
         uint32_t mv_run_interval = 0;
 
+        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : P1"));
+
         if (spec.dir != dir && ramp_stair > 0)
         {
+                    LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : P2"));
+
             // decelerate until full stop to move in other direction
             mv_pre_decel_stairs = ramp_stair;
 
@@ -410,6 +426,8 @@ public:
         // small speed change (if at all), no need for pre-deceleration or acceleration
         else if (spec.full_accel_stairs == ramp_stair)
         {
+                    LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : P3"));
+
             // run all requested steps except deceleration steps (if needed)
             mv_run_steps = spec.steps - (static_cast<uint16_t>(ramp_stair) * Ramp::STEPS_PER_STAIR);
 
@@ -419,6 +437,8 @@ public:
         // target speed is slower than current speed, we need to decelerate first
         else if (spec.full_accel_stairs < ramp_stair)
         {
+                    LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : P4"));
+
             // steps needed for pre-deceleration and full deceleration
             const uint32_t total_decel_steps = static_cast<uint16_t>(ramp_stair) * Ramp::STEPS_PER_STAIR;
 
@@ -444,6 +464,8 @@ public:
         // requested speed higher than current one, need to accelerate
         else
         {
+                    LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : P5"));
+
             // steps needed for instant deceleration
             const uint16_t immediate_decel_steps = static_cast<uint16_t>(ramp_stair) * Ramp::STEPS_PER_STAIR;
 
@@ -499,10 +521,13 @@ public:
                 mv_run_interval = spec.run_interval;
             }
         }
+        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : P6"));
 
         start_movement(spec.dir, mv_pre_decel_stairs, mv_accel_steps, mv_run_steps, mv_run_interval);
 
-        interrupts();
+        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : P7"));
+
+        // interrupts();
 
         PROFILE_MOVE_END();
     }
