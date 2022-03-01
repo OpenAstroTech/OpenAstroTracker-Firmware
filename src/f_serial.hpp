@@ -56,7 +56,7 @@ void processSerialData()
                 if (retVal != "")
                 {
                     LOGV2(DEBUG_SERIAL, F("[SERIAL]: RepliedWith:  [%s]"), retVal.c_str());
-    #if DEBUG_LEVEL == DEBUG_NONE
+    #if DEBUG_LEVEL == DEBUG_NONE || DEBUG_SEPARATE_SERIAL == 1
                     Serial.print(retVal);
     #endif
                 }

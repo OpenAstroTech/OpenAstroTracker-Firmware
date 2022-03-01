@@ -559,6 +559,10 @@
     #define DEBUG_LEVEL (DEBUG_NONE)
 #endif
 
+#ifndef DEBUG_SEPARATE_SERIAL
+    #define DEBUG_SEPARATE_SERIAL 0
+#endif
+
 #if defined(OAT_DEBUG_BUILD)
     // AVR based boards have numbers < 1000
     #if BOARD < 1000
