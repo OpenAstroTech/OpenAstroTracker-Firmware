@@ -102,8 +102,8 @@ Declination Declination::ParseFromMeade(String const &s)
     DayTime dt = DayTime::ParseFromMeade(s);
 
     // ...and then correct for hemisphere
-    result.totalSeconds = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - abs(dt.getTotalSeconds())
-                                              : -(arcSecondsPerHemisphere / 2) + abs(dt.getTotalSeconds());
+    result.totalSeconds = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - dt.getTotalSeconds()
+                                              : -(arcSecondsPerHemisphere / 2) + dt.getTotalSeconds();
     LOGV3(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s) -> %s"), s.c_str(), result.ToString());
     return result;
 }
@@ -112,9 +112,9 @@ Declination Declination::FromSeconds(long seconds)
 {
     if (NORTHERN_HEMISPHERE)
     {
-        return Declination(static_cast<float>((arcSecondsPerHemisphere / 2) - fabs(seconds)) / 3600.0f);
+        return Declination(static_cast<float>((arcSecondsPerHemisphere / 2) - seconds) / 3600.0f);
     }
-    return Declination(static_cast<float>((-arcSecondsPerHemisphere / 2) + fabs(seconds)) / 3600.0f);
+    return Declination(static_cast<float>((-arcSecondsPerHemisphere / 2) + seconds) / 3600.0f);
 }
 
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const
