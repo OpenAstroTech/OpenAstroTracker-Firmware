@@ -3879,13 +3879,23 @@ void Mount::checkRALimit()
     const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
     const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
     const float RALimit      = RA_TRACKING_LIMIT;
-    float homeCurrentDeltaRA = homeRA - currentRA().getTotalHours();
-
-    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
+    const float degreePos    = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
+    float hourPos            = currentRA().getTotalHours();
+    if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
+    {
+        hourPos -= 12;
+        if (hourPos < 0)
+            hourPos += 24;
+    }
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRA: %f"), homeRA);
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: currentRA: %f"), currentRA().getTotalHours());
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: currentRA (adjusted): %f"), hourPos);
+    float homeCurrentDeltaRA = homeRA - hourPos;
     while (homeCurrentDeltaRA > 12)
         homeCurrentDeltaRA -= 24;
     while (homeCurrentDeltaRA < -12)
         homeCurrentDeltaRA += 24;
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: checkRALimit: homeRAdelta: %f"), homeCurrentDeltaRA);
 
     if (homeCurrentDeltaRA > RALimit)
     {
