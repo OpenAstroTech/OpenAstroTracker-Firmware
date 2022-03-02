@@ -1256,8 +1256,15 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     _zeroPosRA.addHours(raAdjust);
 
     // Adjust the home DEC position by the delta between the sync'd target and current position.
-    const float decAdjust = dec.getTotalDegrees() - currentDEC().getTotalDegrees();
+    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
+    float decAdjust       = dec.getTotalDegrees() - fabsf(currentDEC().getTotalDegrees());
+    if (degreePos < 0)
+    {
+        decAdjust = -decAdjust;
+    }
     _zeroPosDEC += decAdjust;
+    LOGV2(DEBUG_MOUNT, F("[MOUNT]: syncPosition: _zerPosDEC adjusted by: %f"), decAdjust);
+    LOGV2(DEBUG_MOUNT, F("[MOUNT]: syncPosition: _zerPosDEC: %f"), _zeroPosDEC);
 
     long targetRAPosition, targetDECPosition;
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
@@ -3310,8 +3317,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
 
     // Where do we want to move DEC to?
-    // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
-    float moveDEC = decTarget.getTotalDegrees() + _zeroPosDEC;  // deg
+    float moveDEC = decTarget.getTotalDegrees();
 
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
@@ -3373,21 +3379,13 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: RA is in range: %f, DEC: %f  (solution 1)"), moveRA, moveDEC);
     }
 
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPost: Target Steps RA: %f, DEC: %f"), -moveRA, moveDEC);
-    //    float targetRA = clamp(-moveRA, -RAStepperLimit, RAStepperLimit);
-    //    float targetDEC = clamp(moveDEC, DECStepperUpLimit, DECStepperDownLimit);
+    moveDEC -= _zeroPosDEC;  // deg
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: _zeroPosDEC: %f"), _zeroPosDEC);
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Adjusted moveDEC: %f"), moveDEC);
+
     targetRASteps  = -moveRA * stepsPerSiderealHour;
     targetDECSteps = moveDEC * _stepsPerDECDegree;
-
-    // Can we get there without physical issues? (not doing anything with this yet)
-    //  isUnreachable = ((targetRA != -moveRA) || (targetDEC != moveDEC));
-
-    //  if (stepperRA.currentPosition() != int(targetRA)) {
-    //    Serial.println("Moving RA from " + String(stepperRA.currentPosition()) + " to " + targetRA);
-    //  }
-    //  if (stepperDEC.currentPosition() != (targetDEC)) {
-    //    Serial.println("Moving DEC from " + String(stepperDEC.currentPosition()) + " to " + targetDEC);
-    //  }
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPost: Target Steps RA: %f, DEC: %f"), targetRASteps, targetDECSteps);
 }
 
 /////////////////////////////////
