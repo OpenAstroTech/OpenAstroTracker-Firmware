@@ -87,7 +87,7 @@ const char *Declination::ToString() const
 
     *p++ = ' ';
     *p++ = '(';
-    strcpy(p, String(NORTHERN_HEMISPHERE ? 90 - fabs(getTotalHours()) : -90 + fabs(getTotalHours()), 4).c_str());
+    strcpy(p, String(NORTHERN_HEMISPHERE ? 90 - fabsf(getTotalHours()) : -90 + fabsf(getTotalHours()), 4).c_str());
     strcat(p, ")");
 
     return achBufDeg;
@@ -104,7 +104,7 @@ Declination Declination::ParseFromMeade(String const &s)
     // ...and then correct for hemisphere
     result.totalSeconds = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - dt.getTotalSeconds()
                                               : -(arcSecondsPerHemisphere / 2) + dt.getTotalSeconds();
-    LOGV3(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s) -> %s"), s.c_str(), result.ToString());
+    LOGV4(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s) -> %s (%l)"), s.c_str(), result.ToString(), result.totalSeconds);
     return result;
 }
 
