@@ -121,5 +121,6 @@ const char *Declination::formatString(char *targetBuffer, const char *format, lo
 {
     long secs
         = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - abs(totalSeconds) : -(arcSecondsPerHemisphere / 2) + abs(totalSeconds);
+    long secs = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - totalSeconds : -(arcSecondsPerHemisphere / 2) + totalSeconds;
     return DayTime::formatString(targetBuffer, format, &secs);
 }
