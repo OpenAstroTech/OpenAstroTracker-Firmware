@@ -3311,7 +3311,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move DEC to?
     // the variable targetDEC 0deg for the celestial pole (90deg), and goes negative only.
-    float moveDEC = (decTarget.getTotalDegrees() - _zeroPosDEC);  // deg
+    float moveDEC = decTarget.getTotalDegrees() + _zeroPosDEC;  // deg
 
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f, DEC: %f"), moveRA, moveDEC);
 
