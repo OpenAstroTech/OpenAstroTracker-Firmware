@@ -1242,11 +1242,11 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     long solutions[6];
     _targetDEC = dec;
     _targetRA  = ra;
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: syncPosition( RA: %s and DEC: %s )"), _targetRA.ToString(), _targetDEC.ToString());
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition( RA: %s and DEC: %s )"), _targetRA.ToString(), _targetDEC.ToString());
 
     // Adjust the home RA position by the delta sync position.
     float raAdjust = ra.getTotalHours() - currentRA().getTotalHours();
-    LOGV4(DEBUG_MOUNT, F("[MOUNT]: syncPosition: AdjustRA is %f  (%f - %f)"), raAdjust, ra.getTotalHours(), currentRA().getTotalHours());
+    LOGV4(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: AdjustRA is %f  (%f - %f)"), raAdjust, ra.getTotalHours(), currentRA().getTotalHours());
     while (raAdjust > 12)
     {
         raAdjust -= 24;
@@ -1255,9 +1255,9 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     {
         raAdjust += 24;
     }
-    LOGV2(DEBUG_MOUNT, F("[MOUNT]: syncPosition: AdjustRA is %f"), raAdjust);
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: AdjustRA is %f"), raAdjust);
     _zeroPosRA.addHours(raAdjust);
-    LOGV2(DEBUG_MOUNT, F("[MOUNT]: syncPosition: ZeroPosRA is now %f"), _zeroPosRA.getTotalHours());
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: ZeroPosRA is now %f"), _zeroPosRA.getTotalHours());
 
     // Adjust the home DEC position by the delta between the sync'd target and current position.
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
@@ -1267,16 +1267,16 @@ void Mount::syncPosition(DayTime ra, Declination dec)
         decAdjust = -decAdjust;
     }
     _zeroPosDEC += decAdjust;
-    LOGV2(DEBUG_MOUNT, F("[MOUNT]: syncPosition: _zerPosDEC adjusted by: %f"), decAdjust);
-    LOGV2(DEBUG_MOUNT, F("[MOUNT]: syncPosition: _zerPosDEC: %f"), _zeroPosDEC);
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: _zerPosDEC adjusted by: %f"), decAdjust);
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: _zerPosDEC: %f"), _zeroPosDEC);
 
     long targetRAPosition, targetDECPosition;
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
 
-    LOGV3(DEBUG_STEPPERS, F("[MOUNT]: syncPosition: Solution 1: RA %l and DEC %l"), solutions[0], solutions[1]);
-    LOGV3(DEBUG_STEPPERS, F("[MOUNT]: syncPosition: Solution 2: RA %l and DEC %l"), solutions[2], solutions[3]);
-    LOGV3(DEBUG_STEPPERS, F("[MOUNT]: syncPosition: Solution 3: RA %l and DEC %l"), solutions[4], solutions[5]);
-    LOGV3(DEBUG_STEPPERS, F("[MOUNT]: syncPosition: Chosen    : RA %l and DEC %l"), targetRAPosition, targetDECPosition);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: Solution 1: RA %l and DEC %l"), solutions[0], solutions[1]);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: Solution 2: RA %l and DEC %l"), solutions[2], solutions[3]);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: Solution 3: RA %l and DEC %l"), solutions[4], solutions[5]);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: Chosen    : RA %l and DEC %l"), targetRAPosition, targetDECPosition);
 }
 
 /////////////////////////////////
@@ -3263,11 +3263,11 @@ void Mount::calculateStepperPositions(float raCoord, float decCoord, long &raPos
 /////////////////////////////////
 void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6]) const
 {
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPre: Current : RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
-    LOGV2(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPre: ZeroRA  : %s"), _zeroPosRA.ToString());
-    LOGV2(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPre: ZeroDEC : %f"), _zeroPosDEC);
-    LOGV4(DEBUG_MOUNT,
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersPre: Current : RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersPre: ZeroRA  : %s"), _zeroPosRA.ToString());
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersPre: ZeroDEC : %f"), _zeroPosDEC);
+    LOGV4(DEBUG_COORD_CALC,
           F("[MOUNT]: CalcSteppersPre: Stepper: RA: %l, DEC: %l, TRK: %l"),
           _stepperRA->currentPosition(),
           _stepperDEC->currentPosition(),
@@ -3276,7 +3276,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     Declination decTarget = _targetDEC;
 
     raTarget.subtractTime(_zeroPosRA);
-    LOGV3(DEBUG_MOUNT,
+    LOGV3(DEBUG_COORD_CALC,
           F("[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s"),
           raTarget.ToString(),
           _targetDEC.ToString());
@@ -3290,7 +3290,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Total hours of tracking-to-date
     float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Tracked time is %l steps (%f h)."), _stepperTRK->currentPosition(), trackedHours);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Tracked time is %l steps (%f h)."), _stepperTRK->currentPosition(), trackedHours);
 
     // The current RA of the home position, taking tracking-to-date into account
     float homeRA = _zeroPosRA.getTotalHours() + trackedHours;
@@ -3310,7 +3310,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     while (moveRA > 12)
     {
         moveRA = moveRA - 24;
-        LOGV3(DEBUG_MOUNT,
+        LOGV3(DEBUG_COORD_CALC,
               F("[MOUNT]: CalcSteppersIn: moveRA>12 so -24. New Target RA: %s, DEC: %s"),
               DayTime(moveRA).ToString(),
               _targetDEC.ToString());
@@ -3322,7 +3322,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     // Where do we want to move DEC to?
     float moveDEC = decTarget.getTotalDegrees();
 
-    LOGV4(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f (regRA: %f), DEC: %f"), homeTargetDeltaRA, moveRA, moveDEC);
+    LOGV4(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f (regRA: %f), DEC: %f"), homeTargetDeltaRA, moveRA, moveDEC);
 
     /*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
@@ -3340,7 +3340,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     float const RALimitL = -RA_LIMIT_RIGHT;
     float const RALimitR = RA_LIMIT_LEFT;
 #endif
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Limits are : %f to %f"), RALimitL, RALimitR);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Limits are : %f to %f"), RALimitL, RALimitR);
 
     if (pSolutions != nullptr)
     {
@@ -3352,14 +3352,14 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         pSolutions[5] = long(-moveDEC) * _stepsPerDECDegree;
     }
 
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Solution 1: %f, %f"), -moveRA, moveDEC);
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Solution 2: %f, %f"), -(moveRA - 12.0f), -moveDEC);
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Solution 3: %f, %f"), -(moveRA + 12.0f), -moveDEC);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Solution 1: %f, %f"), -moveRA, moveDEC);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Solution 2: %f, %f"), -(moveRA - 12.0f), -moveDEC);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Solution 3: %f, %f"), -(moveRA + 12.0f), -moveDEC);
 
     // If we reach the limit in the positive direction ...
     if (homeTargetDeltaRA > RALimitR)
     {
-        LOGV4(DEBUG_MOUNT,
+        LOGV4(DEBUG_COORD_CALC,
               F("[MOUNT]: CalcSteppersIn: targetRA %f (RA:%f) is past max limit %f  (solution 2)"),
               homeTargetDeltaRA,
               moveRA,
@@ -3368,12 +3368,12 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         // ... turn both RA and DEC axis around
         moveRA -= 12.0f;
         moveDEC = -moveDEC;
-        LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
+        LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
     }
     // If we reach the limit in the negative direction...
     else if (homeTargetDeltaRA < RALimitL)
     {
-        LOGV4(DEBUG_MOUNT,
+        LOGV4(DEBUG_COORD_CALC,
               F("[MOUNT]: CalcSteppersIn: targetRA %f (RA:%f) is past min limit: %f, (solution 3)"),
               homeTargetDeltaRA,
               moveRA,
@@ -3382,11 +3382,11 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
         moveRA += 12.0f;
         moveDEC = -moveDEC;
-        LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
+        LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f"), moveRA, moveDEC);
     }
     else
     {
-        LOGV4(DEBUG_MOUNT,
+        LOGV4(DEBUG_COORD_CALC,
               F("[MOUNT]: CalcSteppersIn: targetRA %f is in range. RA: %f, DEC: %f  (solution 1)"),
               homeTargetDeltaRA,
               moveRA,
@@ -3394,12 +3394,12 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     }
 
     moveDEC -= _zeroPosDEC;  // deg
-    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: _zeroPosDEC: %f"), _zeroPosDEC);
-    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersIn: Adjusted moveDEC: %f"), moveDEC);
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: _zeroPosDEC: %f"), _zeroPosDEC);
+    LOGV2(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersIn: Adjusted moveDEC: %f"), moveDEC);
 
     targetRASteps  = -moveRA * stepsPerSiderealHour;
     targetDECSteps = moveDEC * _stepsPerDECDegree;
-    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPost: Target Steps RA: %f, DEC: %f"), targetRASteps, targetDECSteps);
+    LOGV3(DEBUG_COORD_CALC, F("[MOUNT]: CalcSteppersPost: Target Steps RA: %l, DEC: %l"), targetRASteps, targetDECSteps);
 }
 
 /////////////////////////////////
@@ -3411,12 +3411,12 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
 {  // Units are u-steps (in slew mode)
     // Show time: tell the steppers where to go!
     _correctForBacklash = false;
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: RA  From: %l  To: %f"), _stepperRA->currentPosition(), targetRASteps);
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC From: %l  To: %f"), _stepperDEC->currentPosition(), targetDECSteps);
+    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: MoveSteppersTo: RA  From: %l  To: %f"), _stepperRA->currentPosition(), targetRASteps);
+    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: MoveSteppersTo: DEC From: %l  To: %f"), _stepperDEC->currentPosition(), targetDECSteps);
 
     if ((_backlashCorrectionSteps != 0) && ((_stepperRA->currentPosition() - targetRASteps) > 0))
     {
-        LOGV2(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: Needs backlash correction of %d!"), _backlashCorrectionSteps);
+        LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: MoveSteppersTo: Needs backlash correction of %d!"), _backlashCorrectionSteps);
         targetRASteps -= _backlashCorrectionSteps;
         _correctForBacklash = true;
     }
@@ -3426,12 +3426,12 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
     if (_decUpperLimit != 0)
     {
         targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
-        LOGV2(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC Upper Limit enforced. To: %f"), targetDECSteps);
+        LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %f"), targetDECSteps);
     }
     if (_decLowerLimit != 0)
     {
         targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
-        LOGV2(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC Lower Limit enforced. To: %f"), targetDECSteps);
+        LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %f"), targetDECSteps);
     }
 
     _stepperDEC->moveTo(targetDECSteps);

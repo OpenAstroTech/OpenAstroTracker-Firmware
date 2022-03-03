@@ -81,4 +81,5 @@
 #define DEBUG_GYRO          0x0400  // Gyro activity (tilt/roll) calibration
 #define DEBUG_GPS           0x0800  // GPS activity
 #define DEBUG_FOCUS         0x1000  // Focuser activity
+#define DEBUG_COORD_CALC    0x2000  // Calculations of coordinates
 #define DEBUG_ANY           0xFFFF  // All debug output
