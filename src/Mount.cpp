@@ -1246,7 +1246,8 @@ void Mount::syncPosition(DayTime ra, Declination dec)
 
     // Adjust the home RA position by the delta sync position.
     float raAdjust = ra.getTotalHours() - currentRA().getTotalHours();
-    LOGV4(DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: AdjustRA is %f  (%f - %f)"), raAdjust, ra.getTotalHours(), currentRA().getTotalHours());
+    LOGV4(
+        DEBUG_COORD_CALC, F("[MOUNT]: syncPosition: AdjustRA is %f  (%f - %f)"), raAdjust, ra.getTotalHours(), currentRA().getTotalHours());
     while (raAdjust > 12)
     {
         raAdjust -= 24;
