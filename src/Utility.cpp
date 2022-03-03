@@ -377,13 +377,13 @@ void logv(int levelFlags, String input, ...)
         Serial.println(formatArg(input.c_str(), argp));
         Serial.flush();
         #else
-        Serial2.print("[");
-        Serial2.print(String(now));
-        Serial2.print("]:");
-        Serial2.print(String(freeMemory()));
-        Serial2.print(": ");
-        Serial2.println(formatArg(input.c_str(), argp));
-        Serial2.flush();
+        DEBUG_SERIAL_PORT.print("[");
+        DEBUG_SERIAL_PORT.print(String(now));
+        DEBUG_SERIAL_PORT.print("]:");
+        DEBUG_SERIAL_PORT.print(String(freeMemory()));
+        DEBUG_SERIAL_PORT.print(": ");
+        DEBUG_SERIAL_PORT.println(formatArg(input.c_str(), argp));
+        DEBUG_SERIAL_PORT.flush();
         #endif
     #endif
         va_end(argp);
