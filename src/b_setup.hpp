@@ -416,4 +416,12 @@ void setup()
 
     mount.bootComplete();
     LOGV1(DEBUG_ANY, F("[SYSTEM]: Boot complete!"));
+
+    Declination d(75.83333);
+    String s = d.ToDisplayString('*', ':');
+    LOGV2(DEBUG_ANY, F("[SYSTEM]: Dec 75.8333: %s"), s.c_str());
+
+    Declination d2 = Declination::FromSeconds(259200);
+    String s2      = d2.ToDisplayString('*', ':');
+    LOGV2(DEBUG_ANY, F("[SYSTEM]: Dec 75.8333: %s"), s2.c_str());
 }
