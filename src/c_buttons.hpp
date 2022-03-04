@@ -17,6 +17,9 @@
     #include "f_serial.hpp"
 #endif
 
+unsigned long lastDebugLog  = 0;
+unsigned long loopEntries = 0;
+
 #if DISPLAY_TYPE > 0
 
 int loopsOfSameKey = 0;
@@ -31,6 +34,14 @@ unsigned long lastTrackingStatusPrint = 0;
 
 void loop()
 {
+    loopEntries++;
+    unsigned long now = millis();
+    if ((mount.isBootComplete()) && (now - lastDebugLog > 500))
+    {
+        LOGV3(DEBUG_GENERAL, F("[LOOP] Iteration %l, %f"), loopEntries, Mount::RA::position().deg());
+        lastDebugLog = now;
+    }
+
     #if LCD_BUTTON_TEST == 1
     int adc_key_in;
 
@@ -85,7 +96,6 @@ void loop()
     mount.loop();
 
     // Update the LCD display
-    unsigned long now = millis();
     if (!inSerialControl && okToUpdateMenu && !inStartup && !mount.isSlewingRAorDEC())
     {
         // Main menu display
@@ -274,8 +284,19 @@ void loop()
 
 void loop()
 {
+    loopEntries++;
+    unsigned long now = millis();
+    if ((mount.isBootComplete()) && (now - lastDebugLog > 500))
+    {
+        LOGV3(DEBUG_GENERAL, F("[LOOP] Iteration %l, %f"), loopEntries, Mount::RA::position().deg());
+        lastDebugLog = now;
+    }
+
+  
     #ifdef ESP32
     serialLoop();
+    #else    
+    mount.loop();
     #endif
 }
 
