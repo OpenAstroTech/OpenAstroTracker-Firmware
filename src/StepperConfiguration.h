@@ -11,14 +11,14 @@
 #undef DEC
 
 // CONFIGURATION
-#define RA_STEPPER_SPR (400UL * 256UL)
+#define RA_STEPPER_SPR (400UL * RA_TRACKING_MICROSTEPPING)
 #define RA_TRANSMISSION 35.46611505122143f
-#define RA_SLEWING_SPEED 2.0f        // deg/s
+#define RA_SLEWING_SPEED 2.5f        // deg/s
 #define RA_SLEWING_ACCELERATION 4.0f // deg/s/s
 #define RA_GUIDING_SPEED 0.5f        // fraction of sidereal speed to add/substract to/from tracking speed
 #define RA_DRIVER_INVERT_STEP false
 
-#define DEC_STEPPER_SPR (400UL * 256UL)
+#define DEC_STEPPER_SPR (400UL * DEC_SLEW_MICROSTEPPING)
 #define DEC_TRANSMISSION 17.70597411692611f
 #define DEC_SLEWING_SPEED 2.0f        // deg/s
 #define DEC_SLEWING_ACCELERATION 4.0f // deg/s/s

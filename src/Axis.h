@@ -10,6 +10,7 @@ template <typename Config> class Axis
 
     static void returnTracking()
     {
+        LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : Motors stopped slewing. Resume Tracking : %d"), is_tracking);
         is_slewing = false;
         track(is_tracking);
     }
@@ -40,15 +41,22 @@ template <typename Config> class Axis
     {
         if (STEPPER_SPEED_TRACKING.deg() != 0.0f)
         {
-            if (enable)
+            if (enable && !is_tracking)
             {
+                LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : Start tracking at speed : %f deg/s"), STEPPER_SPEED_TRACKING.deg());
                 Config::stepper::moveTo(STEPPER_SPEED_TRACKING, transmit(limit_max));
+                is_tracking = true;
             }
-            else
+            else if (!enable && is_tracking)
             {
+                LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : Stop tracking"));
                 Config::stepper::stop();
+                is_tracking = false;
             }
-            is_tracking = enable;
+        }
+        else
+        {
+            LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : Tracking not supported on this axis"));
         }
     }
 
@@ -64,7 +72,7 @@ template <typename Config> class Axis
     static void slewTo(Angle target)
     {
         LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : slewTo entered. target is %f"), target.deg());
-        slewing_from = Config::stepper::position();
+        slewing_from = position();
         slewing_to   = constrain(target, limit_min, limit_max);
 
         LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo. From %f to %f"), slewing_from.deg(), slewing_to.deg());
@@ -89,10 +97,10 @@ template <typename Config> class Axis
 
     static void slewBy(Angle by)
     {
-        Angle target = Config::stepper::position() + by;
+        Angle target = position() + by;
         LOGV4(DEBUG_STEPPERS,
               F("[STEPLIB] : slewBy entered. Position is %f, offset is %f, target is %f"),
-              Config::stepper::position().deg(),
+              position().deg(),
               by.deg(),
               target.deg());
         slewTo(target);
@@ -109,7 +117,7 @@ template <typename Config> class Axis
     {
         if (is_slewing)
         {
-            return (Config::stepper::position() - slewing_from) / (slewing_to - slewing_from);
+            return (position() - slewing_from) / (slewing_to - slewing_from);
         }
         else
         {
@@ -119,6 +127,7 @@ template <typename Config> class Axis
 
     static void stopSlewing()
     {
+        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stopSlewing()."));
         Config::stepper::stop(StepperCallback::create<returnTracking>());
     }
 

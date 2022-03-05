@@ -366,8 +366,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->toff(1);
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
-    _driverDEC->microsteps(
-        DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps.
+    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -407,8 +406,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->toff(1);
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
-    _driverDEC->microsteps(
-        DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps
+    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -819,7 +817,7 @@ String Mount::getStepperInfo()
 #endif
 
     ret += ",";
-    ret += String(RA_SLEW_MICROSTEPPING);
+    ret += String(RA_TRACKING_MICROSTEPPING);
     ret += ",";
     ret += String(RA_TRACKING_MICROSTEPPING);
 
@@ -838,7 +836,7 @@ String Mount::getStepperInfo()
     ret += ",";
     ret += String(DEC_SLEW_MICROSTEPPING);
     ret += ",";
-    ret += String(DEC_GUIDE_MICROSTEPPING);
+    ret += String(DEC_SLEW_MICROSTEPPING);
 
     ret += "|";
 
@@ -3328,8 +3326,8 @@ void Mount::testDEC_UART_TX()
     // LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test"), DEC_SLEW_MICROSTEPPING);
     // _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
     // testUART_vactual(_driverDEC, speed, duration);
-    // LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) after UART test"), DEC_GUIDE_MICROSTEPPING);
-    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
+    // LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) after UART test"), DEC_SLEW_MICROSTEPPING);
+    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING);
 }
     #endif
 
