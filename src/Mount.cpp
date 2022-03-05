@@ -1297,7 +1297,7 @@ void Mount::setManualSlewMode(bool state)
         _mountStatus &= ~STATUS_SLEWING_MANUAL;
         stopSlewing(ALL_DIRECTIONS);
         waitUntilStopped(ALL_DIRECTIONS);
-        startSlewing(TRACKING);
+        //startSlewing(TRACKING);
     }
 }
 

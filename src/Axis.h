@@ -63,7 +63,7 @@ template <typename Config> class Axis
 
     static void slewTo(Angle target)
     {
-        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : slewTo entered"));
+        LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : slewTo entered. target is %f"), target.deg());
         slewing_from = Config::stepper::position();
         slewing_to   = constrain(target, limit_min, limit_max);
 
@@ -72,14 +72,14 @@ template <typename Config> class Axis
         if (is_tracking)
         {
             auto speed = STEPPER_SPEED_TRACKING + (STEPPER_SPEED_SLEWING * slew_rate_factor);
-            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo(TRK). Calling moveTo(%f , %f)"), speed.deg(), transmit(slewing_to).deg());
+            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo(w/ Trk). Calling moveTo(%f deg/s, %f deg)"), speed.deg(), slewing_to.deg());
             is_slewing = true;
             Config::stepper::moveTo(speed, transmit(slewing_to), StepperCallback::create<returnTracking>());
         }
         else
         {
             auto speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
-            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo(P). Calling moveTo(%f , %f)"), speed.deg(), transmit(slewing_to).deg());
+            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo(w/o Trk). Calling moveTo(%f deg/s, %f deg)"), speed.deg(), slewing_to.deg());
             is_slewing = true;
             Config::stepper::moveTo(speed, transmit(slewing_to));
         }
@@ -89,8 +89,12 @@ template <typename Config> class Axis
 
     static void slewBy(Angle by)
     {
-        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : slewBy entered"));
         Angle target = Config::stepper::position() + by;
+        LOGV4(DEBUG_STEPPERS,
+              F("[STEPLIB] : slewBy entered. Position is %f, offset is %f, target is %f"),
+              Config::stepper::position().deg(),
+              by.deg(),
+              target.deg());
         slewTo(target);
         LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : slewBy complete"));
     }
@@ -141,7 +145,7 @@ template <typename Config> class Axis
     }
 
     // Overridden for RA in Mount.cpp
-    static Angle trackingPosition() 
+    static Angle trackingPosition()
     {
         return Angle::deg(0.0f);
     }
