@@ -2,6 +2,7 @@
 #define ACCELERATION_RAMP_H
 
 #include <stdint.h>
+#include <Arduino.h>
 #include "NewtonRaphson.h"
 
 template <typename T, uint8_t N>

@@ -1974,12 +1974,6 @@ void Mount::stopSlewing(int direction)
     {
         // Turn off tracking
         _mountStatus &= ~STATUS_TRACKING;
-        if (_recentTrackingStartTime > 0UL)
-        {
-            _totalTrackingTime += millis() - _recentTrackingStartTime;
-            _recentTrackingStartTime = 0UL;
-        }
-
         LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopSlewing: RA(trk) stepper stop()"));
         RA::track(false);
     }
@@ -3382,23 +3376,4 @@ void Mount::checkRALimit()
         }
         _lastTRKCheck = millis();
     }
-}
-
-template <> Angle Mount::position<Mount::RA>()
-{
-    auto trackedTime = _totalTrackingTime + ((_recentTrackingStartTime) ? millis() - _recentTrackingStartTime : 0);
-    return RA::position() - (RA::TRACKING_SPEED * trackedTime);
-}
-
-template <> Angle Mount::trackingPosition<Mount::RA>()
-{
-    auto trackedTime = _totalTrackingTime + ((_recentTrackingStartTime) ? millis() - _recentTrackingStartTime : 0);
-    return RA::TRACKING_SPEED * trackedTime;
-}
-
-template <> void Mount::setPosition<Mount::RA>(Angle value)
-{
-    Mount::RA::setPosition(value);
-    _totalTrackingTime       = 0;
-    _recentTrackingStartTime = millis();
 }

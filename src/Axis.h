@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../Configuration.hpp"
+#include "Utility.hpp"
+
 #include "Angle.h"
 #include "Stepper.h"
 
@@ -50,6 +53,12 @@ template <typename Config> class Axis
             else if (!enable && is_tracking)
             {
                 LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : Stop tracking"));
+                if (_recentTrackingStartTime > 0UL)
+                {
+                    _totalTrackingTime += millis() - _recentTrackingStartTime;
+                    _recentTrackingStartTime = 0UL;
+                }
+
                 Config::stepper::stop();
                 is_tracking = false;
             }
@@ -194,6 +203,8 @@ template <typename Config> class Axis
 
     static Angle limit_max;
     static Angle limit_min;
+    static unsigned long _recentTrackingStartTime;
+    static unsigned long _totalTrackingTime;
 };
 
 template <typename Config> bool Axis<Config>::is_tracking = false;
@@ -209,3 +220,7 @@ template <typename Config> Angle Axis<Config>::slewing_to = Angle::deg(0.0f);
 template <typename Config> Angle Axis<Config>::limit_max = Angle::deg(101.0f);
 
 template <typename Config> Angle Axis<Config>::limit_min = Angle::deg(-101.0f);
+
+template <typename Config> unsigned long Axis<Config>::_recentTrackingStartTime = 0UL;
+
+template <typename Config> unsigned long Axis<Config>::_totalTrackingTime = 0UL;
