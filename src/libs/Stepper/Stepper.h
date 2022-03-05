@@ -87,6 +87,8 @@ private:
         const uint32_t run_steps,
         const uint32_t new_run_interval)
     {
+        // LOGV6(DEBUG_STEPPERS , F("[STEPLIB] : StartMove(%d, %d, %d, %l, %l"), (int)direction, (int)pre_decel_stairs,accel_steps,run_steps,new_run_interval);
+
         pre_decel_stairs_left = pre_decel_stairs;
         accel_steps_left = accel_steps;
         run_steps_left = run_steps;
@@ -95,11 +97,11 @@ private:
         // we need to pre-decelerate first (for direction change or lower speed)
         if (pre_decel_stairs > 0)
         {
-            //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM01"));
+           // LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM01"));
 
             ramp_stair_step = Ramp::LAST_STEP;
-            INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
             INTERRUPT::setCallback(pre_decelerate_handler);
+            INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
         }
         // accelerate (for faster speed)
         else if (accel_steps > 0)
@@ -110,14 +112,15 @@ private:
                 ramp_stair = 1;
             }
             dir = direction;
-            //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM02a"));
+            //LOGV2(DEBUG_STEPPERS , F("[STEPLIB] : SM02a. %d"), ramp_stair);
 
             DRIVER::dir(dir > 0);
+            INTERRUPT::setCallback(accelerate_handler);
+            //delay(300);
             //LOGV2(DEBUG_STEPPERS , F("[STEPLIB] : SM02b  %l"), Ramp::intervals[ramp_stair]);
             INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
             //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM02c"));
-            INTERRUPT::setCallback(accelerate_handler);
-            //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM02d"));
+            //delay(300);
         }
         // run directly, requested speed is similar to current one
         else if (run_steps > 0)
@@ -125,18 +128,18 @@ private:
             //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM03"));
             dir = direction;
             DRIVER::dir(dir > 0);
-            INTERRUPT::setInterval(new_run_interval);
             INTERRUPT::setCallback(run_handler);
+            INTERRUPT::setInterval(new_run_interval);
         }
         // decelerate until stopped
         else
         {
             //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM04"));
-            INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
             INTERRUPT::setCallback(decelerate_handler);
+            INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
         }
-            //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM05"));
-
+        //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : SM05"));
+        //delay(300);
     }
 
     static void pre_decelerate_handler()
@@ -165,15 +168,15 @@ private:
             DRIVER::dir(dir > 0);
             ramp_stair = 0;
             ramp_stair_step = 0;
-            INTERRUPT::setInterval(Ramp::intervals[0]);
             INTERRUPT::setCallback(accelerate_handler);
+            INTERRUPT::setInterval(Ramp::intervals[0]);
         }
         // pre-deceleration finished, no need to accelerate
         else
         {
             DRIVER::dir(dir > 0);
-            INTERRUPT::setInterval(run_interval);
             INTERRUPT::setCallback(run_handler);
+            INTERRUPT::setInterval(run_interval);
         }
     }
 
@@ -194,8 +197,8 @@ private:
             }
             else
             {
-                INTERRUPT::setInterval(run_interval);
                 INTERRUPT::setCallback(run_handler);
+                INTERRUPT::setInterval(run_interval);
             }
         }
         // did not finish current stair yet
@@ -225,8 +228,8 @@ private:
             }
             else
             {
-                INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
                 INTERRUPT::setCallback(decelerate_handler);
+                INTERRUPT::setInterval(Ramp::intervals[ramp_stair]);
             }
         }
     }
@@ -371,7 +374,7 @@ public:
 
     static void move(MovementSpec spec, StepperCallback onComplete = StepperCallback())
     {
-        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : move entered"));
+        //LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : move entered"));
 
         PROFILE_MOVE_BEGIN();
 
@@ -527,7 +530,7 @@ public:
 
         interrupts();
 
-        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : Move exit"));
+        // LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : Move exit"));
         PROFILE_MOVE_END();
     }
 };

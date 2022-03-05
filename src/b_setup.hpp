@@ -30,6 +30,48 @@ LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
 LcdButtons lcdButtons(&lcdMenu);
 #endif
 
+
+ISR(TIMER1_OVF_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_1>::handle_overflow();
+}
+
+ISR(TIMER1_COMPA_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_1>::handle_compare_match();
+}
+
+ISR(TIMER3_OVF_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_3>::handle_overflow();
+}
+
+ISR(TIMER3_COMPA_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_3>::handle_compare_match();
+}
+
+ISR(TIMER4_OVF_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_4>::handle_overflow();
+}
+
+ISR(TIMER4_COMPA_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_4>::handle_compare_match();
+}
+
+ISR(TIMER5_OVF_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_5>::handle_overflow();
+}
+
+ISR(TIMER5_COMPA_vect)
+{
+    IntervalInterrupt_AVR<Timer::TIMER_5>::handle_compare_match();
+}
+
+
 #ifdef ESP32
 DRAM_ATTR Mount mount(&lcdMenu);
 #else
@@ -338,7 +380,9 @@ void setup()
     #endif
 #endif
 
-    LOGV1(DEBUG_ANY, F("[SYSTEM]: Read Configuration..."));
+    LOGV1(DEBUG_ANY, F("[STEPPERS]: Completed stepper setup."));
+
+    LOGV1(DEBUG_ANY, F("[SYSTEM]: Reading Configuration..."));
 
     // The mount uses EEPROM storage locations 0-10 that it reads during construction
     // The LCD uses EEPROM storage location 11

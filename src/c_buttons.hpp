@@ -288,7 +288,7 @@ void loop()
     unsigned long now = millis();
     if ((mount.isBootComplete()) && (now - lastDebugLog > 500))
     {
-        LOGV3(DEBUG_GENERAL, F("[LOOP] Iteration %l, %f"), loopEntries, Mount::RA::position().deg());
+        LOGV4(DEBUG_GENERAL, F("[LOOP] Iteration %l  RA: %f, TRK: %f"), loopEntries, Mount::RA::position().deg(), Mount::RA::trackingPosition().deg());
         lastDebugLog = now;
     }
 

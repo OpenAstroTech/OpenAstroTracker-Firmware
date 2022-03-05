@@ -10,7 +10,8 @@ template <typename Config> class Axis
 
     static void returnTracking()
     {
-        track(true);
+        is_slewing = false;
+        track(is_tracking);
     }
 
     constexpr static inline Angle transmit(const Angle from)
@@ -37,17 +38,16 @@ template <typename Config> class Axis
 
     static void track(bool enable)
     {
-        if (enable)
+        if (STEPPER_SPEED_TRACKING.deg() != 0.0f)
         {
-            Config::stepper::moveTo(STEPPER_SPEED_TRACKING, transmit(limit_max));
-        }
-        else
-        {
-            Config::stepper::stop();
-        }
-
-        if (is_tracking != enable)
-        {
+            if (enable)
+            {
+                Config::stepper::moveTo(STEPPER_SPEED_TRACKING, transmit(limit_max));
+            }
+            else
+            {
+                Config::stepper::stop();
+            }
             is_tracking = enable;
         }
     }
@@ -63,35 +63,36 @@ template <typename Config> class Axis
 
     static void slewTo(Angle target)
     {
-        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : slewTo entered"));
+        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : slewTo entered"));
         slewing_from = Config::stepper::position();
         slewing_to   = constrain(target, limit_min, limit_max);
 
-        LOGV3(DEBUG_STEPPERS , F("[STEPLIB] : slewTo. From %f to %f"), slewing_from.deg(), slewing_to.deg());
+        LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo. From %f to %f"), slewing_from.deg(), slewing_to.deg());
 
         if (is_tracking)
         {
             auto speed = STEPPER_SPEED_TRACKING + (STEPPER_SPEED_SLEWING * slew_rate_factor);
-            LOGV3(DEBUG_STEPPERS , F("[STEPLIB] : slewTo(TRK). Calling moveTo(%f , %f)"), speed.deg(), transmit(slewing_to).deg());
+            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo(TRK). Calling moveTo(%f , %f)"), speed.deg(), transmit(slewing_to).deg());
+            is_slewing = true;
             Config::stepper::moveTo(speed, transmit(slewing_to), StepperCallback::create<returnTracking>());
         }
         else
         {
             auto speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
-            LOGV3(DEBUG_STEPPERS , F("[STEPLIB] : slewTo(P). Calling moveTo(%f , %f)"), speed.deg(), transmit(slewing_to).deg());
+            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : slewTo(P). Calling moveTo(%f , %f)"), speed.deg(), transmit(slewing_to).deg());
+            is_slewing = true;
             Config::stepper::moveTo(speed, transmit(slewing_to));
         }
 
-        is_slewing = true;  
-        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : slewTo complete"));
+        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : slewTo complete"));
     }
 
     static void slewBy(Angle by)
     {
-        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : slewBy entered"));
+        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : slewBy entered"));
         Angle target = Config::stepper::position() + by;
         slewTo(target);
-        LOGV1(DEBUG_STEPPERS , F("[STEPLIB] : slewBy complete"));
+        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : slewBy complete"));
     }
 
     static void slew(bool direction)
@@ -127,17 +128,20 @@ template <typename Config> class Axis
         limit_min = value;
     }
 
+    // Overridden for RA in Mount.cpp
     static Angle position()
     {
         return Config::stepper::position() / Config::TRANSMISSION;
     }
 
+    // Overridden for RA in Mount.cpp
     static void setPosition(Angle value)
     {
         Config::stepper::position(transmit(value));
     }
 
-    static Angle trackingPosition()
+    // Overridden for RA in Mount.cpp
+    static Angle trackingPosition() 
     {
         return Angle::deg(0.0f);
     }

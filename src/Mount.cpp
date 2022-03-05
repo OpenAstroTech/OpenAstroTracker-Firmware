@@ -8,31 +8,6 @@
 
 #include "IntervalInterrupt.h"
 
-ISR(TIMER3_OVF_vect)
-{
-    IntervalInterrupt_AVR<Timer::TIMER_3>::handle_overflow();
-}
-ISR(TIMER3_COMPA_vect)
-{
-    IntervalInterrupt_AVR<Timer::TIMER_3>::handle_compare_match();
-}
-ISR(TIMER4_OVF_vect)
-{
-    IntervalInterrupt_AVR<Timer::TIMER_4>::handle_overflow();
-}
-ISR(TIMER4_COMPA_vect)
-{
-    IntervalInterrupt_AVR<Timer::TIMER_4>::handle_compare_match();
-}
-ISR(TIMER5_OVF_vect)
-{
-    IntervalInterrupt_AVR<Timer::TIMER_5>::handle_overflow();
-}
-ISR(TIMER5_COMPA_vect)
-{
-    IntervalInterrupt_AVR<Timer::TIMER_5>::handle_compare_match();
-}
-
 #include "StepperConfiguration.h"
 
 PUSH_NO_WARNINGS
@@ -314,6 +289,8 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual RA CS value: %d"), _driverRA->cs_actual());
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual RA vsense: %d"), _driverRA->vsense());
     }
+    LOGV1(DEBUG_STEPPERS, F("[MOUNT]: Calling RA Setup"));
+    RA::setup();
 }
 
     #elif SW_SERIAL_UART == 1
@@ -353,6 +330,9 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual RA CS value: %d"), _driverRA->cs_actual());
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual RA vsense: %d"), _driverRA->vsense());
     }
+
+    LOGV1(DEBUG_STEPPERS, F("[MOUNT]: Calling RA Setup"));
+    RA::setup();
 }
     #endif
 #endif
@@ -397,6 +377,8 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual DEC CS value: %d"), _driverDEC->cs_actual());
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual DEC vsense: %d"), _driverDEC->vsense());
     }
+    LOGV1(DEBUG_STEPPERS, F("[MOUNT]: Calling DEC Setup"));
+    DEC::setup();
 }
 
     #elif SW_SERIAL_UART == 1
@@ -436,6 +418,8 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual DEC CS value: %d"), _driverDEC->cs_actual());
         LOGV2(DEBUG_STEPPERS, F("[MOUNT]: Actual DEC vsense: %d"), _driverDEC->vsense());
     }
+    LOGV1(DEBUG_STEPPERS, F("[MOUNT]: Calling DEC Setup"));
+    DEC::setup();
 }
     #endif
 #endif
@@ -1907,6 +1891,7 @@ void Mount::startSlewing(int direction)
 
         if (direction & TRACKING)
         {
+            LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: startSlewing(trk)"));
             // Start tracking
             RA::track(true);
             _mountStatus |= STATUS_TRACKING;
