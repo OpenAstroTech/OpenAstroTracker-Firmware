@@ -48,7 +48,8 @@ template <typename Config> class Axis
             {
                 LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : Start tracking at speed : %f deg/s"), STEPPER_SPEED_TRACKING.deg());
                 Config::stepper::moveTo(STEPPER_SPEED_TRACKING, transmit(limit_max));
-                is_tracking = true;
+                _recentTrackingStartTime = millis();
+                is_tracking              = true;
             }
             else if (!enable && is_tracking)
             {
@@ -57,6 +58,7 @@ template <typename Config> class Axis
                 {
                     _totalTrackingTime += millis() - _recentTrackingStartTime;
                     _recentTrackingStartTime = 0UL;
+                    LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : tracking time is %l"), _totalTrackingTime);
                 }
 
                 Config::stepper::stop();

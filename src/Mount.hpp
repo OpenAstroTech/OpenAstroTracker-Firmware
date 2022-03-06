@@ -609,3 +609,7 @@ Angle Mount::trackingPosition()
 }
 
 #endif
+
+template <> Angle Mount::RA::position();
+template <> Angle Mount::RA::trackingPosition();
+template <> void Mount::RA::setPosition(Angle value);

@@ -2,6 +2,7 @@
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "LcdMenu.hpp"
+
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 #include "MappedDict.hpp"
@@ -2521,7 +2522,7 @@ void Mount::loop()
             if (_stepperWasRunning)
             {
                 LOGV3(
-                    DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop: Reached target. RA:%l, DEC:%l"), RA::position().deg(), DEC::position());
+                    DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop: Reached target. RA:%f, DEC:%f"), RA::position().deg(), DEC::position());
                 // Mount is at Target!
                 // If we we're parking, we just reached home. Clear the flag, reset the motors and stop tracking.
                 if (isParking())
@@ -2547,7 +2548,7 @@ void Mount::loop()
                     startSlewing(TRACKING);
                 }
 
-                LOGV2(DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop:   Reached target at %d"), _currentRAStepperPosition);
+                LOGV3(DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop:   Reached target at RA:%f   DEC: %f"), _currentRAStepperPosition.deg(), _currentDECStepperPosition.deg());
 
                 if (_slewingToHome)
                 {
