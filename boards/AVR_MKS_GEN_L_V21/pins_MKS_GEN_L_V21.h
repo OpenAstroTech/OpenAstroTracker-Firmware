@@ -189,6 +189,12 @@
 #endif
 
 //Serial port for external debugging
-#ifndef DEBUG_SERIAL_PORT
-    #define DEBUG_SERIAL_PORT Serial3  //D14 (Y-MIN) - TX3 and D15 (Y-MAX) - RX3
+#if DEBUG_SEPARATE_SERIAL == 1
+    #ifndef DEBUG_SERIAL_PORT
+        #define DEBUG_SERIAL_PORT Serial3  //D14 (Y-MIN) - TX3 and D15 (Y-MAX) - RX3
+    #endif
+#else
+    #ifndef DEBUG_SERIAL_PORT
+        #define DEBUG_SERIAL_PORT Serial
+    #endif
 #endif
