@@ -1059,7 +1059,7 @@ Declination &Mount::targetDEC()
 // Get current RA value.
 const DayTime Mount::currentRA() const
 {
-    float hourPos = -RA::position().deg();
+    float hourPos = -RA::position().hour();
 
     // LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CurrentRA: POS        : %s"), String(hourPos).c_str());
     hourPos += _zeroPosRA.getTotalHours();
@@ -1653,7 +1653,7 @@ String Mount::mountStatusString()
         }
     }
 
-    disp += " RA:" + String(RA::position().deg());
+    disp += " RA:" + String(RA::position().hour());
     disp += " DEC:" + String(DEC::position().deg());
 
     return disp;
@@ -1738,7 +1738,7 @@ String Mount::getStatusString()
 #endif
 
     status += disp;
-    status += String(RA::position().deg()) + ",";
+    status += String(RA::position().hour()) + ",";
     status += String(DEC::position().deg()) + ",";
     status += String(RA::trackingPosition().deg()) + ",";
 
@@ -2522,7 +2522,7 @@ void Mount::loop()
             if (_stepperWasRunning)
             {
                 LOGV3(
-                    DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop: Reached target. RA:%f, DEC:%f"), RA::position().deg(), DEC::position());
+                    DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop: Reached target. RA:%f, DEC:%f"), RA::position().hour(), DEC::position().deg());
                 // Mount is at Target!
                 // If we we're parking, we just reached home. Clear the flag, reset the motors and stop tracking.
                 if (isParking())
@@ -2548,7 +2548,10 @@ void Mount::loop()
                     startSlewing(TRACKING);
                 }
 
-                LOGV3(DEBUG_MOUNT | DEBUG_STEPPERS, F("[MOUNT]: Loop:   Reached target at RA:%f   DEC: %f"), _currentRAStepperPosition.deg(), _currentDECStepperPosition.deg());
+                LOGV3(DEBUG_MOUNT | DEBUG_STEPPERS,
+                      F("[MOUNT]: Loop:   Reached target at RA:%f   DEC: %f"),
+                      _currentRAStepperPosition.hour(),
+                      _currentDECStepperPosition.deg());
 
                 if (_slewingToHome)
                 {
@@ -2780,14 +2783,14 @@ float Mount::getTrackedTime() const
 /////////////////////////////////
 void Mount::calculateRAandDECSteppers(Angle &targetRA, Angle &targetDEC, float pSolutions[6]) const
 {
-    // LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
-    // LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
-    // LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
-    // LOGV4(DEBUG_MOUNT_VERBOSE,
-    //       F("[MOUNT]: CalcSteppersPre: Stepper: RA: %l, DEC: %l, TRK: %l"),
-    //       RA::currentPosition(),
-    //       DEC::position(),
-    //       _stepperTRK->currentPosition());
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
+    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
+    LOGV4(DEBUG_MOUNT_VERBOSE,
+           F("[MOUNT]: CalcSteppersPre: Stepper: RA: %f, DEC: %f, TRK: %f"),
+           RA::position().hour(),
+           DEC::position().deg(),
+           RA::trackingPosition().hour());
     DayTime raTarget      = _targetRA;
     Declination decTarget = _targetDEC;
 
@@ -2897,7 +2900,7 @@ void Mount::calculateRAandDECSteppers(Angle &targetRA, Angle &targetDEC, float p
     }
 
     LOGV3(DEBUG_MOUNT, F("[MOUNT]: CalcSteppersPost: Target Steps RA: %f, DEC: %f"), -moveRA, moveDEC);
-    targetRA  = Angle::deg(-moveRA);
+    targetRA  = Angle::deg(-moveRA * 15.0f); // moveRA unit is hours
     targetDEC = Angle::deg(moveDEC);
 }
 
@@ -2909,8 +2912,8 @@ void Mount::calculateRAandDECSteppers(Angle &targetRA, Angle &targetDEC, float p
 void Mount::moveSteppersTo(Angle targetRASteps, Angle targetDECSteps)
 {  // Units are u-steps (in slew mode)
     // Show time: tell the steppers where to go!
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: RA  From: %l  To: %f"), RA::position().deg(), targetRASteps.deg());
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC From: %l  To: %f"), DEC::position().deg(), targetDECSteps.deg());
+    LOGV3(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: RA  From: %f  To: %f"), RA::position().hour(), targetRASteps.hour());
+    LOGV3(DEBUG_MOUNT, F("[MOUNT]: MoveSteppersTo: DEC From: %f  To: %f"), DEC::position().deg(), targetDECSteps.deg());
 
     RA::slewTo(targetRASteps);
 

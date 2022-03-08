@@ -84,6 +84,12 @@ public:
         return _rad / 0.017453292519943295769236907684886f;
     }
 
+    constexpr float hour() const
+    {
+        // deg / 360 x 24
+        return _rad * 3.819718748f;
+    }
+
     constexpr float mrad() const
     {
         return _rad * 1000.0f;

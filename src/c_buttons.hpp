@@ -38,7 +38,7 @@ void loop()
     unsigned long now = millis();
     if ((mount.isBootComplete()) && (now - lastDebugLog > 500))
     {
-        LOGV3(DEBUG_GENERAL, F("[LOOP] Iteration %l, %f"), loopEntries, Mount::RA::position().deg());
+        LOGV3(DEBUG_GENERAL, F("[LOOP] Iteration %l, %f"), loopEntries, Mount::RA::position().hour());
         lastDebugLog = now;
     }
 
@@ -288,7 +288,7 @@ void loop()
     unsigned long now = millis();
     if ((mount.isBootComplete()) && (now - lastDebugLog > 500))
     {
-        LOGV4(DEBUG_GENERAL, F("[LOOP] Iteration %l  RA: %f, TRK: %f"), loopEntries, Mount::RA::position().deg(), Mount::RA::trackingPosition().deg());
+        // LOGV5(DEBUG_GENERAL, F("[LOOP] Iteration %l  RA: %f, DEC: %f, TRK: %f"), loopEntries, Mount::RA::position().hour(), Mount::DEC::position().deg(), Mount::RA::trackingPosition().deg());
         lastDebugLog = now;
     }
 
