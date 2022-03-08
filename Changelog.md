@@ -1,3 +1,7 @@
+**V1.10.11 - Updates**
+- Revise default microstep settings when using UART
+- Revise default DEC guide pulse settings to match RA
+
 **V1.10.10 - Updates**
 - Fix Arduino IDE build
 
