@@ -129,8 +129,15 @@ template <typename Config> class Axis
 
     static void stopSlewing()
     {
-        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stopSlewing()."));
-        Config::stepper::stop(StepperCallback::create<returnTracking>());
+        if (is_tracking && TRACKING_SPEED.deg() > 0)
+        {
+            LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stopSlewing()."));
+            Config::stepper::stop(StepperCallback::create<returnTracking>());
+        }
+        else
+        {
+            Config::stepper::stop(StepperCallback());
+        }
     }
 
     static void limitMax(Angle value)
