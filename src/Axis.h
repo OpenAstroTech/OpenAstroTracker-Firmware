@@ -131,11 +131,12 @@ template <typename Config> class Axis
     {
         if (is_tracking && TRACKING_SPEED.deg() > 0)
         {
-            LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stopSlewing()."));
+            LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stopSlewing() and return tracking."));
             Config::stepper::stop(StepperCallback::create<returnTracking>());
         }
         else
         {
+            LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stopSlewing() no tracking."));
             Config::stepper::stop(StepperCallback());
         }
     }
