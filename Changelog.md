@@ -1,3 +1,6 @@
+**V1.10.12 - Updates**
+- Remove enabling tracking when home is set.
+
 **V1.10.11 - Updates**
 - Revise default microstep settings when using UART
 - Revise default DEC guide pulse settings to match RA
