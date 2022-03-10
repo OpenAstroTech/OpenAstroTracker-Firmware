@@ -1,4 +1,4 @@
-**V1.10.13 - Updates**
+**V1.11.0 - Updates**
 - Tracking now stops automaticaly when the end of the RA ring is reached (using a configurable limit)
 - Syncing no longer changes where the firmware expects "home" to be for both DEC and RA
 - Fixed RA limits to allow proper meridian flips when slewing
