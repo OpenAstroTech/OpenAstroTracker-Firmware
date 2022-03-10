@@ -110,11 +110,14 @@ Declination Declination::ParseFromMeade(String const &s)
 
 Declination Declination::FromSeconds(long seconds)
 {
-    if (NORTHERN_HEMISPHERE)
-    {
-        return Declination(static_cast<float>((arcSecondsPerHemisphere / 2) - seconds) / 3600.0f);
-    }
-    return Declination(static_cast<float>((-arcSecondsPerHemisphere / 2) + seconds) / 3600.0f);
+    const auto secondsFloat                 = static_cast<float>(seconds);
+    const auto arcSecondsPerHemisphereFloat = static_cast<float>(arcSecondsPerHemisphere);
+#if NORTHERN_HEMISPHERE == 1
+    return Declination(((arcSecondsPerHemisphereFloat / 2.0f) - secondsFloat) / 3600.0f);
+#else
+    return Declination(((-arcSecondsPerHemisphereFloat / 2.0f) + secondsFloat) / 3600.0f);
+#endif
+
 }
 
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const

@@ -43,8 +43,10 @@ void processSerialData()
             if (buffer[0] == 0x06)
             {
                 LOGV1(DEBUG_SERIAL, F("[SERIAL]: Received: ACK request, replying 1"));
-    #if DEBUG_LEVEL == DEBUG_NONE
-                Serial.print('1');
+                // When not debugging, print the result to the serial port .
+                // When debugging, only print the result to Serial if we're on seperate ports.
+    #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
+                Serial.print(retVal);
     #endif
             }
             else
@@ -56,7 +58,9 @@ void processSerialData()
                 if (retVal != "")
                 {
                     LOGV2(DEBUG_SERIAL, F("[SERIAL]: RepliedWith:  [%s]"), retVal.c_str());
-    #if DEBUG_LEVEL == DEBUG_NONE || DEBUG_SEPARATE_SERIAL == 1
+                    // When not debugging, print the result to the serial port .
+                    // When debugging, only print the result to Serial if we're on seperate ports.
+    #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
                     Serial.print(retVal);
     #endif
                 }

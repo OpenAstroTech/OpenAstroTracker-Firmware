@@ -1222,11 +1222,6 @@ const Declination Mount::currentDEC() const
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
     Declination dec(degreePos);
 
-    // if (NORTHERN_HEMISPHERE ? degreePos > 0 : degreePos < 0)
-    // {
-    //     return -degreePos;
-    // }
-
     return dec;
 }
 

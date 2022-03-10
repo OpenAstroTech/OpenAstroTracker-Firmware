@@ -564,7 +564,7 @@
 #endif
 
 #ifndef DEBUG_SERIAL_BAUDRATE
-    #define DEBUG_SERIAL_BAUDRATE 57600
+    #define DEBUG_SERIAL_BAUDRATE 115200
 #endif
 
 #if defined(OAT_DEBUG_BUILD)
