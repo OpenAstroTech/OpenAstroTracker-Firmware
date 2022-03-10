@@ -1,4 +1,4 @@
-**V1.10.12 - Updates**
+**V1.10.13 - Updates**
 - Tracking now stops automaticaly when the end of the RA ring is reached (using a configurable limit)
 - Syncing no longer changes where the firmware expects "home" to be for both DEC and RA
 - Fixed RA limits to allow proper meridian flips when slewing
@@ -8,6 +8,9 @@
 - Fixed a bug in RA Autohoming
 - Added option for external debugging on separate serial port to allow debugging while using LX200 control
 - Cleaned up logging some more
+
+**V1.10.12 - Updates**
+- Remove enabling tracking when home is set.
 
 **V1.10.11 - Updates**
 - Revise default microstep settings when using UART
