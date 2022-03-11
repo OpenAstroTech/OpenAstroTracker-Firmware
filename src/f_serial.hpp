@@ -46,7 +46,7 @@ void processSerialData()
                 // When not debugging, print the result to the serial port .
                 // When debugging, only print the result to Serial if we're on seperate ports.
     #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
-                Serial.print(retVal);
+                Serial.print("1");
     #endif
             }
             else
