@@ -117,7 +117,6 @@ Declination Declination::FromSeconds(long seconds)
 #else
     return Declination(((-arcSecondsPerHemisphereFloat / 2.0f) + secondsFloat) / 3600.0f);
 #endif
-
 }
 
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const
