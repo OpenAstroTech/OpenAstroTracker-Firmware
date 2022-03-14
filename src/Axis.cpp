@@ -30,7 +30,8 @@ template <> Angle Mount::RA::trackingPosition()
 
 template <> void Mount::RA::setPosition(Angle value)
 {
-    Axis::setPosition(value);
+    LOGV2(DEBUG_MOUNT, F("[STEPLIB]: special RA setPosition(%f)"), value.deg());
+    config::RA::stepper::position(value * config::RA::TRANSMISSION);
     _totalTrackingTime       = 0;
     _recentTrackingStartTime = millis();
 }
