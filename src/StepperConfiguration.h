@@ -13,7 +13,7 @@
 // CONFIGURATION
 #define RA_STEPPER_SPR (400UL * RA_TRACKING_MICROSTEPPING)
 #define RA_TRANSMISSION 35.46611505122143f
-#define RA_SLEWING_SPEED 2.5f        // deg/s
+#define RA_SLEWING_SPEED 2.0f        // deg/s
 #define RA_SLEWING_ACCELERATION 4.0f // deg/s/s
 #define RA_GUIDING_SPEED 0.5f        // fraction of sidereal speed to add/substract to/from tracking speed
 #define RA_DRIVER_INVERT_STEP false
@@ -62,7 +62,8 @@ namespace config
 
         using interrupt = IntervalInterrupt<Timer::TIMER_1>;
         using driver = Driver<SPR, pin_step, pin_dir, RA_DRIVER_INVERT_STEP>;
-        using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using stepper = Stepper<interrupt, driver, ramp>;
     };
 
     struct DEC
@@ -85,7 +86,8 @@ namespace config
 
         using interrupt = IntervalInterrupt<Timer::TIMER_3>;
         using driver = Driver<SPR, Pin<DEC_STEP_PIN>, Pin<DEC_DIR_PIN>, DEC_DRIVER_INVERT_STEP>;
-        using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using stepper = Stepper<interrupt, driver, ramp>;
     };
 
     struct AZ
@@ -108,7 +110,8 @@ namespace config
 
         using interrupt = IntervalInterrupt<Timer::TIMER_4>;
         using driver = Driver<SPR, Pin<AZ_STEP_PIN>, Pin<AZ_DIR_PIN>, AZ_DRIVER_INVERT_STEP>;
-        using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using stepper = Stepper<interrupt, driver, ramp>;
     };
     
     struct ALT
@@ -131,7 +134,8 @@ namespace config
 
         using interrupt = IntervalInterrupt<Timer::TIMER_5>;
         using driver = Driver<SPR, Pin<ALT_STEP_PIN>, Pin<ALT_DIR_PIN>, ALT_DRIVER_INVERT_STEP>;
-        using stepper = Stepper<interrupt, driver, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using stepper = Stepper<interrupt, driver, ramp>;
     };
 
 }

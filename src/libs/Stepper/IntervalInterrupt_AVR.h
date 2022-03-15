@@ -294,8 +294,5 @@ volatile uint16_t *const IntervalInterrupt_AVR<T>::_ocra = OCRA<T>();
 template <Timer T>
 volatile timer_callback IntervalInterrupt_AVR<T>::callback = nullptr;
 
-// ISR(TIMER1_OVF_vect) { IntervalInterrupt_AVR<Timer::TIMER_1>::handle_overflow(); }
-// ISR(TIMER1_COMPA_vect) { IntervalInterrupt_AVR<Timer::TIMER_1>::handle_compare_match(); }
-
 template <Timer T>
 const unsigned long int IntervalInterrupt<T>::FREQ = F_CPU;

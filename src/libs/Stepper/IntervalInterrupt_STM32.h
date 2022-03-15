@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef ARDUINO_ARCH_STM32
+
 #include <IntervalInterrupt.h>
 #include <stdint.h>
 #include "HardwareTimer.h"
@@ -167,3 +169,5 @@ inline __attribute__((always_inline)) void IntervalInterrupt<T>::stop()
 
 template <Timer T>
 const unsigned long int IntervalInterrupt<T>::FREQ = F_CPU;
+
+#endif
