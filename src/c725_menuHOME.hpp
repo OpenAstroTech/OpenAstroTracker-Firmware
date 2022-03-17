@@ -19,7 +19,7 @@ bool processHomeKeys()
                 {
                     if (subGoIndex == 0)
                     {
-                        mount.goHome();
+                        mount.startSlewingToHome();
                     }
                     else if (mount.isSlewingTRK())
                     {

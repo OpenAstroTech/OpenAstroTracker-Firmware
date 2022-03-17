@@ -121,9 +121,10 @@ void EEPROMStore::displayContents()
     uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
     LOGV2(DEBUG_EEPROM, F("[EEPROM]: Magic Marker: %x"), marker);
 
-    LOGV1(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("EEPROM: Has values") : F("[EEPROM]: Does NOT have values"));
     LOGV1(DEBUG_INFO,
-          ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("EEPROM: Has extended values") : F("EEPROM: Does NOT have extended values"));
+          ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("[EEPROM]: Has values") : F("[EEPROM]: Does NOT have values"));
+    LOGV1(DEBUG_INFO,
+          ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("[EEPROM]: Has extended values") : F("[EEPROM]: Does NOT have extended values"));
     if (EEPROMStore::isPresent(EXTENDED_FLAG))
     {
         LOGV1(DEBUG_INFO, F("[EEPROM]: IsPresent(EXTENDED): Yes"));
@@ -506,7 +507,7 @@ int16_t EEPROMStore::getBacklashCorrectionSteps()
 // Store the Backlash Correction step count (microsteps).
 void EEPROMStore::storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps)
 {
-    LOGV2(DEBUG_EEPROM, F("EEPROM Write: Updating Backlash to %d"), backlashCorrectionSteps);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating Backlash to %d"), backlashCorrectionSteps);
 
     updateInt16(BACKLASH_STEPS_ADDR, backlashCorrectionSteps);
     updateFlags(BACKLASH_STEPS_FLAG);
@@ -724,7 +725,7 @@ int32_t EEPROMStore::getDECLowerLimit()
 // Store the configured DEC Lower Limit Pos (slew microsteps relative to home).
 void EEPROMStore::storeDECLowerLimit(int32_t decLowerLimit)
 {
-    LOGV2(DEBUG_EEPROM, F("EEPROM Write: Updating DEC Lower Limit to %l"), decLowerLimit);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Lower Limit to %l"), decLowerLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     updateInt32(DEC_LOWER_LIMIT_ADDR, decLowerLimit);
@@ -755,7 +756,7 @@ int32_t EEPROMStore::getDECUpperLimit()
 // Store the configured DEC Upper Limit Pos (slew microsteps relative to home).
 void EEPROMStore::storeDECUpperLimit(int32_t decUpperLimit)
 {
-    LOGV2(DEBUG_EEPROM, F("EEPROM Write: Updating DEC Upper Limit to %l"), decUpperLimit);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating DEC Upper Limit to %l"), decUpperLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     updateInt32(DEC_UPPER_LIMIT_ADDR, decUpperLimit);
@@ -784,7 +785,7 @@ int32_t EEPROMStore::getRAHomingOffset()
 // Store the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
 void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
 {
-    LOGV2(DEBUG_EEPROM, F("EEPROM Write: Updating RA Homing offset to %l"), raHomingOffset);
+    LOGV2(DEBUG_EEPROM, F("[EEPROM]: Write: Updating RA Homing offset to %l"), raHomingOffset);
 
     updateInt32(RA_HOMING_OFFSET_ADDR, raHomingOffset);
     updateFlagsExtended(RA_HOMING_MARKER_FLAG);

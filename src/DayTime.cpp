@@ -145,9 +145,9 @@ void DayTime::set(const DayTime &other)
 }
 
 // Add hours, wrapping days (which are not tracked)
-void DayTime::addHours(int deltaHours)
+void DayTime::addHours(float deltaHours)
 {
-    totalSeconds += (long) deltaHours * 3600L;
+    totalSeconds += long(deltaHours * 3600L);
     checkHours();
 }
 

@@ -181,7 +181,9 @@
 #ifndef RA_LIMIT_RIGHT
     #define RA_LIMIT_RIGHT 7.0f
 #endif
-
+#ifndef RA_TRACKING_LIMIT
+    #define RA_TRACKING_LIMIT 7.0f
+#endif
 // DEC movement:
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
 // DEC wheel is 2 x PI x 90mm circumference which is 565.5mm
@@ -192,6 +194,13 @@
 #ifndef DEC_STEPS_PER_DEGREE
     #define DEC_STEPS_PER_DEGREE                                                                                                           \
         (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
+#endif
+
+#ifndef DEC_LIMIT_UP
+    #define DEC_LIMIT_UP 0.0f
+#endif
+#ifndef DEC_LIMIT_DOWN
+    #define DEC_LIMIT_DOWN 0.0f
 #endif
 
 ////////////////////////////
@@ -548,6 +557,14 @@
 //
 #ifndef DEBUG_LEVEL
     #define DEBUG_LEVEL (DEBUG_NONE)
+#endif
+
+#ifndef DEBUG_SEPARATE_SERIAL
+    #define DEBUG_SEPARATE_SERIAL 0
+#endif
+
+#ifndef DEBUG_SERIAL_BAUDRATE
+    #define DEBUG_SERIAL_BAUDRATE 115200
 #endif
 
 #if defined(OAT_DEBUG_BUILD)

@@ -65,7 +65,7 @@ bool processPOIKeys()
                     mount.stopSlewing(ALL_DIRECTIONS);
                     if (currentPOI == homePOI)
                     {
-                        mount.goHome();
+                        mount.startSlewingToHome();
                     }
                     else if (currentPOI == parkPOI)
                     {
@@ -86,7 +86,7 @@ bool processPOIKeys()
                         mount.targetDEC() = Declination::FromSeconds(targetSeconds);
                         LOGV3(DEBUG_INFO, F("[POI]: Target RA  is %s. %ls"), mount.targetRA().ToString(), targetSeconds);
                         LOGV3(DEBUG_INFO,
-                              F("POI: mount target DEC is %s. %ls"),
+                              F("[POI]: mount target DEC is %s. %ls"),
                               mount.targetDEC().ToString(),
                               mount.targetDEC().getTotalSeconds());
                         mount.startSlewingToTarget();

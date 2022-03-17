@@ -368,13 +368,13 @@ void logv(int levelFlags, String input, ...)
     #if BUFFER_LOGS == true
         addToLogBuffer(formatArg(input.c_str(), argp));
     #else
-        Serial.print("[");
-        Serial.print(String(now));
-        Serial.print("]:");
-        Serial.print(String(freeMemory()));
-        Serial.print(": ");
-        Serial.println(formatArg(input.c_str(), argp));
-        Serial.flush();
+        DEBUG_SERIAL_PORT.print("[");
+        DEBUG_SERIAL_PORT.print(String(now));
+        DEBUG_SERIAL_PORT.print("]:");
+        DEBUG_SERIAL_PORT.print(String(freeMemory()));
+        DEBUG_SERIAL_PORT.print(": ");
+        DEBUG_SERIAL_PORT.println(formatArg(input.c_str(), argp));
+        DEBUG_SERIAL_PORT.flush();
     #endif
         va_end(argp);
     }

@@ -137,7 +137,7 @@ void WifiControl::loop()
             _udp->begin(4031);
 
             LOGV4(DEBUG_WIFI,
-                  F("WIFI: Connecting to SSID %s at %s:%d"),
+                  F("[WIFI]: Connecting to SSID %s at %s:%d"),
                   WIFI_INFRASTRUCTURE_MODE_SSID,
                   WiFi.localIP().toString().c_str(),
                   WIFI_PORT);
@@ -222,7 +222,7 @@ void WifiControl::udpLoop()
         reply += "@";
         reply += WiFi.localIP().toString();
         LOGV4(DEBUG_WIFI,
-              F("WIFIUDP: Received %d bytes from %s, port %d"),
+              F("[WIFIUDP]: Received %d bytes from %s, port %d"),
               packetSize,
               _udp->remoteIP().toString().c_str(),
               _udp->remotePort());

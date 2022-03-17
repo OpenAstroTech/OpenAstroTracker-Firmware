@@ -137,3 +137,14 @@
 #ifndef DEW_HEATER_PIN2
     #define DEW_HEATER_2_PIN 7
 #endif
+
+//Serial port for external debugging
+#if DEBUG_SEPARATE_SERIAL == 1
+    #ifndef DEBUG_SERIAL_PORT
+        #define DEBUG_SERIAL_PORT Serial3  //D14 (Y-MIN) - TX3 and D15 (Y-MAX) - RX3
+    #endif
+#else
+    #ifndef DEBUG_SERIAL_PORT
+        #define DEBUG_SERIAL_PORT Serial
+    #endif
+#endif

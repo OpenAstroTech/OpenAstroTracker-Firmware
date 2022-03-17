@@ -1,3 +1,14 @@
+**V1.11.0 - Updates**
+- Tracking now stops automaticaly when the end of the RA ring is reached (using a configurable limit)
+- Syncing no longer changes where the firmware expects "home" to be for both DEC and RA
+- Fixed RA limits to allow proper meridian flips when slewing
+- Fixed parking/return-to-home functionality
+- Fixed potential issue of DEC/RA flipping incorrectly when in the southern hemisphere
+- Added configuration option for DEC limits
+- Fixed a bug in RA Autohoming
+- Added option for external debugging on separate serial port to allow debugging while using LX200 control
+- Cleaned up logging some more
+
 **V1.10.12 - Updates**
 - Remove enabling tracking when home is set.
 

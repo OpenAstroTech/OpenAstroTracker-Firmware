@@ -282,6 +282,13 @@
     #endif
 #endif
 
+// Debugging
+#if DEBUG_SEPARATE_SERIAL == 1
+    #if !defined(DEBUG_SERIAL_PORT)
+        #error Missing serial port assignment for external debugging
+    #endif
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                                ////////
 // VALIDATE CRITICAL PARAMETERS   ////////

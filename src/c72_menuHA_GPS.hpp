@@ -41,7 +41,7 @@ bool gpsAqcuisitionComplete(int &indicator)
     #endif
 
             LOGV4(DEBUG_GPS,
-                  F("GPS: Encoded. %l sats, Location is%svalid, age is %lms"),
+                  F("[GPS]: Encoded. %l sats, Location is%svalid, age is %lms"),
                   gps.satellites.value(),
                   (gps.location.isValid() ? " " : " NOT "),
                   gps.location.age());

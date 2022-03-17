@@ -100,6 +100,9 @@ void setup()
     #endif
 #else
     Serial.begin(SERIAL_BAUDRATE);
+    #if DEBUG_LEVEL > 0 && DEBUG_SEPARATE_SERIAL == 1
+    DEBUG_SERIAL_PORT.begin(DEBUG_SERIAL_BAUDRATE);
+    #endif
 #endif
 
     LOGV2(DEBUG_ANY, F("[SYSTEM]: Hello, universe, this is OAT %s!"), VERSION);
