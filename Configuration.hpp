@@ -10,11 +10,9 @@
 * and not need to worry about a new version from Git overwriting your setup. 
 * There are multiple ways to define a local config file:
 *  - For all boards/hardware configs:
-*    Create a file called Configuration_local.hpp (best to copy configuration_sample_local.hpp and 
-*    change it as needed)
+*    Create a file called Configuration_local.hpp (best to visit https://config.openastrotech.com/)
 *  - Specific to a board:
-*    Create a file called Configuration_local_<board>.hpp, where <board> is either 'mega' or 
-*    'esp32' or (here, too, best to copy Configuration_sample_local.hpp and change it as needed). 
+*    Create a file called Configuration_local_<board>.hpp, see valid board types in LocalConfiguration.hpp
 *    The code automatically picks the right one at compile time. This is useful if you are 
 *    developer or just have multiple OATs. 
 *  - Custom configurations or advanced builds:
