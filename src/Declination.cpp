@@ -59,12 +59,12 @@ void Declination::checkHours()
 {
     if (totalSeconds > arcSecondsPerHemisphere)
     {
-        LOGV1(DEBUG_GENERAL, F("[DECLINATION]: CheckHours: Degrees is more than 180, clamping"));
+        LOG(DEBUG_GENERAL, "[DECLINATION]: CheckHours: Degrees is more than 180, clamping");
         totalSeconds = arcSecondsPerHemisphere;
     }
     if (totalSeconds < -arcSecondsPerHemisphere)
     {
-        LOGV1(DEBUG_GENERAL, F("[DECLINATION]: CheckHours: Degrees is less than -180, clamping"));
+        LOG(DEBUG_GENERAL, "[DECLINATION]: CheckHours: Degrees is less than -180, clamping");
         totalSeconds = -arcSecondsPerHemisphere;
     }
 }
@@ -96,7 +96,7 @@ const char *Declination::ToString() const
 Declination Declination::ParseFromMeade(String const &s)
 {
     Declination result;
-    LOGV2(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s)"), s.c_str());
+    LOG(DEBUG_GENERAL, "[DECLINATION]: Declination.Parse(%s)", s.c_str());
 
     // Use the DayTime code to parse it...
     DayTime dt = DayTime::ParseFromMeade(s);
@@ -104,7 +104,7 @@ Declination Declination::ParseFromMeade(String const &s)
     // ...and then correct for hemisphere
     result.totalSeconds = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - dt.getTotalSeconds()
                                               : -(arcSecondsPerHemisphere / 2) + dt.getTotalSeconds();
-    LOGV4(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s) -> %s (%l)"), s.c_str(), result.ToString(), result.totalSeconds);
+    LOG(DEBUG_GENERAL, "[DECLINATION]: Declination.Parse(%s) -> %s (%l)", s.c_str(), result.ToString(), result.totalSeconds);
     return result;
 }
 

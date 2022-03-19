@@ -78,17 +78,17 @@ bool processPOIKeys()
                     else
                     {
                         PointOfInterest *poi = &pointOfInterest[currentPOI];
-                        LOGV5(DEBUG_INFO, F("[POI]: Selected %s.  RA: %d %d %d"), poi->pDisplay, poi->hourRA, poi->minRA, poi->secRA);
-                        LOGV5(DEBUG_INFO, F("[POI]: Selected %s. DEC: %d %d %d"), poi->pDisplay, poi->degreeDEC, poi->minDEC, poi->secDEC);
+                        LOG(DEBUG_INFO, "[POI]: Selected %s.  RA: %d %d %d", poi->pDisplay, poi->hourRA, poi->minRA, poi->secRA);
+                        LOG(DEBUG_INFO, "[POI]: Selected %s. DEC: %d %d %d", poi->pDisplay, poi->degreeDEC, poi->minDEC, poi->secDEC);
                         long targetSeconds = (60L * abs(poi->degreeDEC) + poi->minDEC) * 60L + poi->secDEC;
                         targetSeconds *= (poi->degreeDEC < 0 ? -1 : 1);
                         mount.targetRA().set(poi->hourRA, poi->minRA, poi->secRA);
                         mount.targetDEC() = Declination::FromSeconds(targetSeconds);
-                        LOGV3(DEBUG_INFO, F("[POI]: Target RA  is %s. %ls"), mount.targetRA().ToString(), targetSeconds);
-                        LOGV3(DEBUG_INFO,
-                              F("[POI]: mount target DEC is %s. %ls"),
-                              mount.targetDEC().ToString(),
-                              mount.targetDEC().getTotalSeconds());
+                        LOG(DEBUG_INFO, "[POI]: Target RA  is %s. %ls", mount.targetRA().ToString(), targetSeconds);
+                        LOG(DEBUG_INFO,
+                            "[POI]: mount target DEC is %s. %ls",
+                            mount.targetDEC().ToString(),
+                            mount.targetDEC().getTotalSeconds());
                         mount.startSlewingToTarget();
                     }
                 }
