@@ -1,3 +1,7 @@
+**V1.11.8 - Updates**
+- Remove dead code
+- Clean up README
+
 **V1.11.7 - Updates**
 - Add .mailmap file
 

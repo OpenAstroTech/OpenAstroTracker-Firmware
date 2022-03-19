@@ -96,9 +96,6 @@ bool inStartup = false;  // Start with a guided startup
 bool okToUpdateMenu                = true;   // Can be used to supress rendering the first line of the menu.
 bool quitSerialOnNextButtonRelease = false;  // Used to detect SELECT button to quit Serial mode.
 
-// Global variables
-bool isUnreachable = false;
-
 // RA variables
 int RAselect;
 
@@ -107,6 +104,3 @@ int DECselect;
 
 // HA variables
 int HAselect;
-
-//debugging
-String inBT;
