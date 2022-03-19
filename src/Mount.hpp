@@ -219,7 +219,6 @@ class Mount
 
     // Set the LST time (HA is derived from LST)
     void setLST(const DayTime &haTime);
-    const DayTime &LST() const;
 
     void setLatitude(Latitude lat);
     void setLongitude(Longitude lon);
@@ -251,12 +250,9 @@ class Mount
     void startSlewingToHome();
 
     // Various status query functions
-    bool isSlewingDEC() const;
-    bool isSlewingRA() const;
     bool isSlewingRAorDEC() const;
     bool isSlewingIdle() const;
     bool isSlewingTRK() const;
-    bool isParked() const;
     bool isParking() const;
     bool isGuiding() const;
     bool isFindingHome() const;
@@ -314,14 +310,6 @@ class Mount
 
     // Get the DEC limit positions
     void getDecLimitPositions(long &lowerLimit, long &upperLimit);
-
-// Auto Home with TMC2209 UART
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    void startFindingHomeRA();
-    void startFindingHomeDEC();
-    void finishFindingHomeRA();
-    void finishFindingHomeDEC();
-#endif
 
     // Asynchronously parks the mount. Moves to the home position and stops all motors.
     void park();
@@ -446,23 +434,12 @@ class Mount
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
 
-    // Writes a 16-bit value to persistent (EEPROM) storage
-    void writePersistentData(int which, long val);
-
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC);
 
     // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
     byte slewStatus() const;
-
-    // What is the state of the mount.
-    // Returns some combination of these flags: STATUS_PARKED, STATUS_SLEWING, STATUS_SLEWING_TO_TARGET, STATUS_SLEWING_FREE, STATUS_TRACKING, STATUS_PARKING
-    byte mountStatus();
-
-#if DEBUG_LEVEL & (DEBUG_MOUNT | DEBUG_MOUNT_VERBOSE)
-    String mountStatusString();
-#endif
 
     void autoCalcHa();
 
@@ -492,7 +469,6 @@ class Mount
     float _rollCalibrationAngle;
 #endif
 
-    long _lastHASet;
     DayTime _LST;
     DayTime _zeroPosRA;
 
@@ -502,7 +478,6 @@ class Mount
     Declination _targetDEC;
     // The DEC offset from home position
     float _zeroPosDEC;
-    long _currentDECStepperPosition;
     long _lastTRKCheck;
 
     float _totalDECMove;
@@ -559,8 +534,7 @@ class Mount
 
     unsigned long _guideRaEndTime;
     unsigned long _guideDecEndTime;
-    unsigned long _lastMountPrint    = 0;
-    unsigned long _lastTrackingPrint = 0;
+    unsigned long _lastMountPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
     unsigned long _lastDisplayUpdate;

@@ -18,10 +18,6 @@
 #endif
 
 #if DISPLAY_TYPE > 0
-
-int loopsOfSameKey = 0;
-int lastLoopKey    = -1;
-
     #if LCD_BUTTON_TEST == 1
 lcdButton_t lastKey = btnNONE;
     #endif
