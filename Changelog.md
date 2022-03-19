@@ -1,3 +1,6 @@
+**V1.11.3 - Updates**
+- Allow disabling Points Of Interest in LCD menu
+
 **V1.11.2 - Updates**
 - Cache build files by default
 
