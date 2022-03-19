@@ -11,7 +11,7 @@ String getLogBuffer();
 int freeMemory();
 
 #if DEBUG_LEVEL > 0
-    #define LOG(level, format, ...)  logv((level), (F(format)), ##__VA_ARGS__)
+    #define LOG(level, format, ...) logv((level), (F(format)), ##__VA_ARGS__)
 
 // Realtime timer class using microseconds to time stuff
 class RealTime

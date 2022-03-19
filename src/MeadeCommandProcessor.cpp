@@ -1210,13 +1210,13 @@ String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
         {
             if (gpsAqcuisitionComplete(indicator))
             {
-                LOGV1(DEBUG_MEADE, F("[MEADE]: GPS startup, GPS acquired"));
+                LOG(DEBUG_MEADE, "[MEADE]: GPS startup, GPS acquired");
                 return "1";
             }
         }
     }
 #endif
-    LOGV1(DEBUG_MEADE, F("[MEADE]: GPS startup, no GPS signal"));
+    LOG(DEBUG_MEADE, "[MEADE]: GPS startup, no GPS signal");
     return "0";
 }
 
@@ -1248,7 +1248,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         {
             Declination dec     = Declination::ParseFromMeade(inCmd.substring(1));
             _mount->targetDEC() = dec;
-            LOGV2(DEBUG_MEADE, F("[MEADE]: SetInfo: Received Target DEC: %s"), _mount->targetDEC().ToString());
+            LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
             return "1";
         }
         else
@@ -1266,7 +1266,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         if ((inCmd[3] == ':') && (inCmd[6] == ':'))
         {
             _mount->targetRA().set(inCmd.substring(1, 3).toInt(), inCmd.substring(4, 6).toInt(), inCmd.substring(7, 9).toInt());
-            LOGV2(DEBUG_MEADE, F("[MEADE]: SetInfo: Received Target RA: %s"), _mount->targetRA().ToString());
+            LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", _mount->targetRA().ToString());
             return "1";
         }
         else
@@ -1289,7 +1289,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
             }
 
             DayTime lst(hLST, minLST, secLST);
-            LOGV4(DEBUG_MEADE, F("[MEADE]: SetInfo: Received LST: %d:%d:%d"), hLST, minLST, secLST);
+            LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received LST: %d:%d:%d", hLST, minLST, secLST);
             _mount->setLST(lst);
         }
         else if (inCmd[1] == 'P')
@@ -1302,7 +1302,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
             // Set HA
             int hHA   = inCmd.substring(1, 3).toInt();
             int minHA = inCmd.substring(4, 6).toInt();
-            LOGV4(DEBUG_MEADE, F("[MEADE]: SetInfo: Received HA: %d:%d:%d"), hHA, minHA, 0);
+            LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received HA: %d:%d:%d", hHA, minHA, 0);
             _mount->setHA(DayTime(hHA, minHA, 0));
         }
 
@@ -1422,7 +1422,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     }
     else if (inCmd[0] == 'A')
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Move Az/Alt"));
+        LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
 
         // Move Azimuth or Altitude by given arcminutes
         // :MAZ+32.1# or :MAL-32.1#
@@ -1430,7 +1430,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         if (inCmd[1] == 'Z')  // :MAZ
         {
             float arcMinute = inCmd.substring(2).toFloat();
-            LOGV2(DEBUG_MEADE, F("[MEADE]: Move AZ by %f arcmins"), arcMinute);
+            LOG(DEBUG_MEADE, "[MEADE]: Move AZ by %f arcmins", arcMinute);
             _mount->moveBy(AZIMUTH_STEPS, arcMinute);
         }
 #endif
@@ -1466,7 +1466,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if (inCmd[0] == 'X')  // :MX
     {
         long steps = inCmd.substring(2).toInt();
-        LOGV3(DEBUG_MEADE, F("[MEADE]: Move: %l in %d"), steps, inCmd[1]);
+        LOG(DEBUG_MEADE, "[MEADE]: Move: %l in %d", steps, inCmd[1]);
         if (inCmd[1] == 'r')
             _mount->moveStepperBy(RA_STEPS, steps);
         else if (inCmd[1] == 'd')
@@ -1488,7 +1488,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         if (inCmd.length() > 3)
         {
             distance = clamp((int) inCmd.substring(3).toInt(), 1, 5);
-            LOGV2(DEBUG_MEADE, F("[MEADE]: RA AutoHome by %dh"), distance);
+            LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
         }
 
         if (inCmd[2] == 'R')  // :MHRR
@@ -1885,57 +1885,57 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (inCmd[0] == '+')  // :F+
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Focus focusContinuousMove IN"));
+        LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove IN");
         _mount->focusContinuousMove(FOCUS_BACKWARD);
     }
     else if (inCmd[0] == '-')  // :F-
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Focus focusContinuousMove OUT"));
+        LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove OUT");
         _mount->focusContinuousMove(FOCUS_FORWARD);
     }
     else if (inCmd[0] == 'M')  // :FMnnnn
     {
         long steps = inCmd.substring(1).toInt();
-        LOGV2(DEBUG_MEADE, F("[MEADE]: Focus move by %l steps"), steps);
+        LOG(DEBUG_MEADE, "[MEADE]: Focus move by %l steps", steps);
         _mount->focusMoveBy(steps);
     }
     else if ((inCmd[0] >= '1') && (inCmd[0] <= '4'))  // :F1 - Slowest, F4 fastest
     {
         int speed = inCmd[0] - '0';
-        LOGV2(DEBUG_MEADE, F("[MEADE]: Focus setSpeed %d"), speed);
+        LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed %d", speed);
         _mount->focusSetSpeedByRate(speed);
     }
     else if (inCmd[0] == 'F')  // :FF
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Focus setSpeed fastest"));
+        LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed fastest");
         _mount->focusSetSpeedByRate(4);
     }
     else if (inCmd[0] == 'S')  // :FS
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Focus setSpeed slowest"));
+        LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed slowest");
         _mount->focusSetSpeedByRate(1);
     }
     else if (inCmd[0] == 'p')  // :Fp
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Focus get stepperPosition"));
+        LOG(DEBUG_MEADE, "[MEADE]: Focus get stepperPosition");
         long focusPos = _mount->focusGetStepperPosition();
         return String(focusPos) + "#";
     }
     else if (inCmd[0] == 'P')  // :FPnnn
     {
         long steps = inCmd.substring(1).toInt();
-        LOGV2(DEBUG_MEADE, F("[MEADE]: Focus set stepperPosition %d"), steps);
+        LOG(DEBUG_MEADE, "[MEADE]: Focus set stepperPosition %d", steps);
         _mount->focusSetStepperPosition(steps);
         return "1";
     }
     else if (inCmd[0] == 'B')  // :FB
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Focus isRunningFocus"));
+        LOG(DEBUG_MEADE, "[MEADE]: Focus isRunningFocus");
         return _mount->isRunningFocus() ? "1" : "0";
     }
     else if (inCmd[0] == 'Q')  // :FQ
     {
-        LOGV1(DEBUG_MEADE, F("[MEADE]: Focus stop"));
+        LOG(DEBUG_MEADE, "[MEADE]: Focus stop");
         _mount->focusStop();
     }
 #else
@@ -1956,7 +1956,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
 {
     if (inCmd[0] == ':')
     {
-        LOGV2(DEBUG_MEADE, F("[MEADE]: Received command '%s'"), inCmd.c_str());
+        LOG(DEBUG_MEADE, "[MEADE]: Received command '%s'", inCmd.c_str());
 
         // Apparently some LX200 implementations put spaces in their commands..... remove them with impunity.
         int spacePos;
@@ -1965,7 +1965,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
             inCmd.remove(spacePos, 1);
         }
 
-        LOGV2(DEBUG_MEADE, F("[MEADE]: Processing command '%s'"), inCmd.c_str());
+        LOG(DEBUG_MEADE, "[MEADE]: Processing command '%s'", inCmd.c_str());
         char command = inCmd[1];
         inCmd        = inCmd.substring(2);
         switch (command)
@@ -1995,7 +1995,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
             case 'F':
                 return handleMeadeFocusCommands(inCmd);
             default:
-                LOGV2(DEBUG_MEADE, F("[MEADE]: Received unknown command '%s'"), inCmd.c_str());
+                LOG(DEBUG_MEADE, "[MEADE]: Received unknown command '%s'", inCmd.c_str());
                 break;
         }
     }
