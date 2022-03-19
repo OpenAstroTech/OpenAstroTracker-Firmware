@@ -121,17 +121,9 @@ void EEPROMStore::displayContents()
     uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
     LOG(DEBUG_EEPROM, "[EEPROM]: Magic Marker: %x", marker);
 
-    LOG(DEBUG_INFO, ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("[EEPROM]: Has values") : F("[EEPROM]: Does NOT have values"));
-    LOG(DEBUG_INFO,
-        ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("[EEPROM]: Has extended values") : F("[EEPROM]: Does NOT have extended values"));
-    if (EEPROMStore::isPresent(EXTENDED_FLAG))
-    {
-        LOG(DEBUG_INFO, "[EEPROM]: IsPresent(EXTENDED): Yes");
-    }
-    else
-    {
-        LOG(DEBUG_INFO, "[EEPROM]: IsPresent(EXTENDED): No");
-    }
+    LOG(DEBUG_INFO, "[EEPROM]: Values? %s", ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? F("Yes") : F("No"));
+    LOG(DEBUG_INFO, "[EEPROM]: Extended values? %s", ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? F("Yes") : F("No"));
+    LOG(DEBUG_INFO, "[EEPROM]: IsPresent(EXTENDED)? %s", (EEPROMStore::isPresent(EXTENDED_FLAG) ? F("Yes") : F("No")));
     LOG(DEBUG_INFO, "[EEPROM]: Stored HATime: %s", getHATime().ToString());
     LOG(DEBUG_INFO, "[EEPROM]: Stored UTC Offset: %d", getUtcOffset());
     LOG(DEBUG_INFO, "[EEPROM]: Stored Brightness: %d", getBrightness());

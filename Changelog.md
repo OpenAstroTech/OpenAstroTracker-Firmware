@@ -1,3 +1,6 @@
+**V1.11.3 - Updates**
+- Change logging macro LOGVx to LOG
+
 **V1.11.2 - Updates**
 - Cache build files by default
 
