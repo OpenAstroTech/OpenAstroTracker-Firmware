@@ -1,3 +1,6 @@
+**V1.11.2 - Updates**
+- Cache build files by default
+
 **V1.11.1 - Updates**
 - Fix ESP32 build failure
 
