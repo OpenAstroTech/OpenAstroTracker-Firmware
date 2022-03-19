@@ -75,3 +75,14 @@
 #ifndef LCD_KEY_SENSE_PUSH_PIN
     #define LCD_KEY_SENSE_PUSH_PIN 36
 #endif
+
+//Serial port for external debugging
+#if DEBUG_SEPARATE_SERIAL == 1
+    #ifndef DEBUG_SERIAL_PORT
+        #error "There is no default separate serial port for ESP32, please define DEBUG_SERIAL_PORT"
+    #endif
+#else
+    #ifndef DEBUG_SERIAL_PORT
+        #define DEBUG_SERIAL_PORT Serial
+    #endif
+#endif
