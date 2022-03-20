@@ -1,5 +1,6 @@
 **V1.11.3 - Updates**
 - Allow disabling Points Of Interest in LCD menu
+- Change logging macro LOGVx to LOG
 
 **V1.11.2 - Updates**
 - Cache build files by default
