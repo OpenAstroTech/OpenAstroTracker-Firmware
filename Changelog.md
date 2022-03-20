@@ -1,5 +1,7 @@
-**V1.11.3 - Updates**
+**V1.11.4 - Updates**
 - Allow disabling Points Of Interest in LCD menu
+
+**V1.11.3 - Updates**
 - Change logging macro LOGVx to LOG
 
 **V1.11.2 - Updates**
