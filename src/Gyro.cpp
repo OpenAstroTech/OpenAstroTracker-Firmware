@@ -25,7 +25,7 @@ void Gyro::startup()
 */
 {
     // Initialize interface to the MPU6050
-    LOGV1(DEBUG_INFO, F("[GYRO]:: Starting"));
+    LOG(DEBUG_INFO, "[GYRO]:: Starting");
     Wire.begin();
 
     // Execute 1 byte read from MPU6050_REG_WHO_AM_I
@@ -38,7 +38,7 @@ void Gyro::startup()
     isPresent = (id == 0x34);
     if (!isPresent)
     {
-        LOGV1(DEBUG_INFO, F("[GYRO]:: Not found!"));
+        LOG(DEBUG_INFO, "[GYRO]:: Not found!");
         return;
     }
 
@@ -54,7 +54,7 @@ void Gyro::startup()
     Wire.write(6);  // 5Hz bandwidth (lowest) for smoothing
     Wire.endTransmission(true);
 
-    LOGV1(DEBUG_INFO, F("[GYRO]:: Started"));
+    LOG(DEBUG_INFO, "[GYRO]:: Started");
 }
 
 void Gyro::shutdown()
@@ -62,7 +62,7 @@ void Gyro::shutdown()
    Currently does nothing.
 */
 {
-    LOGV1(DEBUG_INFO, F("[GYRO]: Shutdown"));
+    LOG(DEBUG_INFO, "[GYRO]: Shutdown");
     // Nothing to do
 }
 
