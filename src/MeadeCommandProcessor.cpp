@@ -353,7 +353,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1"
 //      Parameters:
 //        "s" is the sign
-//        "HH" is the number of hours
+//        "HH" are the number of hours that need to be added to local time to convert to UTC time
 //
 // :SLHH:MM:SS#
 //      Description:
@@ -1140,6 +1140,16 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
         case 'G':  // :GG
             {
                 int offset = _mount->getLocalUtcOffset();
+
+#if USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL
+                // Use protocol compatible with old ASCOM driver
+#else
+    //from indilib driver:  Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which is the opposite of the standard definition of UTC offset!
+    // https://github.com/indilib/indi/blob/d6e9d74a82bbf6914709bab7063bb9bd68f45687/drivers/telescope/lx200gps.cpp#L372
+    #pragma message("Note: INDI-compatible UTC offset format used, firmware will not function correctly with old ASCOM driver!")
+                offset = -offset;
+#endif
+
                 sprintf(achBuffer, "%+03d#", offset);
                 return String(achBuffer);
             }
@@ -1339,6 +1349,16 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
     else if (inCmd[0] == 'G')  // utc offset :SG+05#
     {
         int offset = inCmd.substring(1, 4).toInt();
+
+#if USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL
+        // Use protocol compatible with old ASCOM driver
+#else
+    //from indilib driver:  Meade defines UTC Offset as the offset ADDED to local time to yield UTC, which is the opposite of the standard definition of UTC offset!
+    // https://github.com/indilib/indi/blob/d6e9d74a82bbf6914709bab7063bb9bd68f45687/drivers/telescope/lx200gps.cpp#L372
+    #pragma message("Note: INDI-compatible UTC offset format used, firmware will not function correctly with old ASCOM driver!")
+        offset = -offset;
+#endif
+
         _mount->setLocalUtcOffset(offset);
         return "1";
     }

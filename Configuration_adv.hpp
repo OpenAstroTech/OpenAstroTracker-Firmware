@@ -22,6 +22,12 @@
     #define BUFFER_LOGS false
 #endif
 
+// define USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL 1 in the local configuration if you want to use protocol compatible with old ASCOM driver.
+// Currently this will revert Meade longitude and UTC offset parsing to older functionality
+#ifndef USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL
+    #define USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL 0
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                            ////////
 // MOTOR & DRIVER SETTINGS    ////////
