@@ -40,8 +40,16 @@ Longitude Longitude::ParseFromMeade(String const &s)
     // Use the DayTime code to parse it.
     DayTime dt = DayTime::ParseFromMeade(s);
 
-    //from indilib driver:  Meade defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
+#if USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL
+    // from indilib driver:  Meade classic handset defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
     result.totalSeconds = 180L * 3600L - dt.getTotalSeconds();
+#else
+    // from indilib driver: Meade API expresses East Longitudes as negative, West Longitudes as positive. (https://github.com/indilib/indi/blob/8beeeb9c5809063929804b5066f5b8ba6696bcd0/drivers/telescope/lx200driver.cpp#L1180)
+    // Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
+    #pragma message("Note: INDI-compatible longitude format used, firmware will not function correctly with old ASCOM driver!")
+    result.totalSeconds = -dt.getTotalSeconds();
+#endif
+
     result.checkHours();
 
     LOG(DEBUG_GENERAL, "[LONGITUDE]: Parse(%s) -> %s = %ls", s.c_str(), result.ToString(), result.getTotalSeconds());
@@ -71,8 +79,15 @@ const char *Longitude::formatString(char *targetBuffer, const char *format, long
 {
     long secs = totalSeconds;
 
-    // Map to 0..360 westwards
+#if USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL
+    // from indilib driver:  Meade classic handset defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
     secs = 180L * 3600L - secs;
+#else
+    // from indilib driver: Meade API expresses East Longitudes as negative, West Longitudes as positive. (https://github.com/indilib/indi/blob/8beeeb9c5809063929804b5066f5b8ba6696bcd0/drivers/telescope/lx200driver.cpp#L1180)
+    // Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
+    #pragma message("Note: INDI-compatible longitude format used, firmware will not function correctly with old ASCOM driver!")
+    secs = -secs;
+#endif
 
     long degs = secs / 3600;
     secs      = secs - degs * 3600;

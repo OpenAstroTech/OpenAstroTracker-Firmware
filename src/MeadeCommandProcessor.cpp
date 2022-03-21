@@ -159,10 +159,10 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "DDD*MM#"
 //      Parameters:
-//        "DDD" is the longitude in degrees
-//        "MM" the minutes
+//        "DDD" is degrees
+//        "MM" is minutes
 //      Remarks:
-//        Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
+//        East Longitudes as negative, West Longitudes as positive. (Note that this is the opposite of cartography where East is positive)
 //
 // :Gc#
 //      Description:
@@ -339,10 +339,10 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1" if successfully set
 //        "0" otherwise
 //      Parameters:
-//        "DDD" the nmber of degrees (0 to 360)
+//        "DDD" is degrees
 //        "MM" is minutes
 //      Remarks:
-//        Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
+//        East Longitudes as negative, West Longitudes as positive. (Note that this is the opposite of cartography where East is positive)
 //
 // :SGsHH#
 //      Description:
