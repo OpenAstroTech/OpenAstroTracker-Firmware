@@ -27,6 +27,9 @@
 #ifndef USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL
     #define USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL 0
 #endif
+#if USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL == 0
+    #pragma message("Note: INDI-compatible protocol format used, firmware will not function correctly with old ASCOM driver!")
+#endif
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                            ////////
