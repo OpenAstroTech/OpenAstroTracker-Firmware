@@ -157,12 +157,13 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get Site Longitude
 //      Returns:
-//        "DDD*MM#"
+//        "sDDD*MM#"
 //      Parameters:
-//        "DDD" is the longitude in degrees
-//        "MM" the minutes
+//        "s" is the sign of the longitude
+//        "DDD" is the degrees
+//        "MM" is the minutes
 //      Remarks:
-//        Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
+//        Note that this is the actual longitude, but east coordinates are negative (opposite of normal cartographic coordinates)
 //
 // :Gc#
 //      Description:
@@ -172,12 +173,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //
 // :GG#
 //      Description:
-//        Get UTC offset time
+//        Get offset to UTC time
 //      Returns:
 //        "sHH#"
 //      Parameters:
 //        "s" is the sign
-//        "HH" are the number of hours that need to be added to local time to convert to UTC time
+//        "HH" is the number of hours
+//      Remarks
+//        Note that this is NOT simply the timezone offset you are in (like -8 for Pacific Standard Time), it is the negative of it. So how many hours need to be added to your local time to get to UTC.
 //
 // :Ga#
 //      Description:
@@ -330,7 +333,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "DD" is the degree (90 or less)
 //        "MM" is minutes
 //
-// :SgDDD*MM#
+// :SgsDDD*MM#
 //      Description:
 //        Set Site Longitude
 //      Information:
@@ -339,10 +342,12 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1" if successfully set
 //        "0" otherwise
 //      Parameters:
-//        "DDD" the nmber of degrees (0 to 360)
-//        "MM" is minutes
+//        "s" (optional) is the sign of the longitude (see Remarks)
+//        "DDD" is the number of degrees
+//        "MM" is the minutes
 //      Remarks:
-//        Longitudes are from 0 to 360 going WEST. so 179W is 359 and 179E is 1.
+//        When a sign is provided, longitudes are interpreted as given, with zero at Greenwich but negative coordinates going east (opposite of normal cartographic coordinates)
+//        When a sign is not provided, longitudes are from 0 to 360 going WEST with 180 at Greenwich. So 369 is 179W and 1 is 179E. 190 would be 10W and 170 would be 10E.
 //
 // :SGsHH#
 //      Description:
@@ -1130,7 +1135,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
         case 'g':  // :Gg
             {
-                _mount->longitude().formatString(achBuffer, "{d}*{m}#");
+                _mount->longitude().formatString(achBuffer, "{+}{d}*{m}#");
                 return String(achBuffer);
             }
         case 'c':  // :Gc
@@ -1140,7 +1145,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
         case 'G':  // :GG
             {
                 int offset = _mount->getLocalUtcOffset();
-                sprintf(achBuffer, "%+03d#", offset);
+                sprintf(achBuffer, "%+03d#", -offset);
                 return String(achBuffer);
             }
         case 'a':  // :Ga
@@ -1329,17 +1334,16 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         _mount->setLatitude(lat);
         return "1";
     }
-    else if (inCmd[0] == 'g')  // longitude :Sg097*34#
+    else if (inCmd[0] == 'g')  // longitude :Sg097*34# or :Sg-122*54#
     {
         Longitude lon = Longitude::ParseFromMeade(inCmd.substring(1));
-
         _mount->setLongitude(lon);
         return "1";
     }
     else if (inCmd[0] == 'G')  // utc offset :SG+05#
     {
         int offset = inCmd.substring(1, 4).toInt();
-        _mount->setLocalUtcOffset(offset);
+        _mount->setLocalUtcOffset(-offset);
         return "1";
     }
     else if (inCmd[0] == 'L')  // Local time :SL19:33:03#

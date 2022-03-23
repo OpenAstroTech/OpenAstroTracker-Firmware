@@ -40,8 +40,16 @@ Longitude Longitude::ParseFromMeade(String const &s)
     // Use the DayTime code to parse it.
     DayTime dt = DayTime::ParseFromMeade(s);
 
-    //from indilib driver:  Meade defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
-    result.totalSeconds = 180L * 3600L - dt.getTotalSeconds();
+    if ((s[0] == '-') || (s[0] == '+'))
+    {
+        // According to spec 2010.10, if a sign is present it is straight up longitude with east as negative.
+        result.totalSeconds = -dt.getTotalSeconds();
+    }
+    else
+    {
+        //from indilib driver:  Meade defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
+        result.totalSeconds = 180L * 3600L - dt.getTotalSeconds();
+    }
     result.checkHours();
 
     LOG(DEBUG_GENERAL, "[LONGITUDE]: Parse(%s) -> %s = %ls", s.c_str(), result.ToString(), result.getTotalSeconds());

@@ -294,6 +294,11 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
                     {
                         switch (macro)
                         {
+                            case '+':
+                                {
+                                    *p++ = (degs < 0 ? '-' : '+');
+                                }
+                                break;
                             case 'd':
                                 {
                                     strcpy(p, achDegs);
