@@ -267,13 +267,14 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
         i++;
     }
 
-    if (degs >= 100)
+    long absdegs = labs(degs);
+    if (absdegs >= 100)
     {
-        achDegs[i++] = '0' + min(9L, (degs / 100));
-        degs         = degs % 100;
+        achDegs[i++] = '0' + min(9L, (absdegs / 100));
+        absdegs      = absdegs % 100;
     }
 
-    printTwoDigits(achDegs + i, degs);
+    printTwoDigits(achDegs + i, absdegs);
     printTwoDigits(achMins, mins);
     printTwoDigits(achSecs, secs);
 

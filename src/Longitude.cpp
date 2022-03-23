@@ -77,12 +77,16 @@ const char *Longitude::ToString() const
 
 const char *Longitude::formatString(char *targetBuffer, const char *format, long *) const
 {
-    long secs = totalSeconds;
+    long secs = labs(totalSeconds);
 
     long degs = secs / 3600;
     secs      = secs - degs * 3600;
     long mins = secs / 60;
     secs      = secs - mins * 60;
+    if (totalSeconds < 0)
+    {
+        degs = -degs;
+    }
 
     return formatStringImpl(targetBuffer, format, '\0', degs, mins, secs);
 }
