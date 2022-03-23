@@ -79,9 +79,6 @@ const char *Longitude::formatString(char *targetBuffer, const char *format, long
 {
     long secs = totalSeconds;
 
-    // Map to 0..360 westwards
-    secs = 180L * 3600L - secs;
-
     long degs = secs / 3600;
     secs      = secs - degs * 3600;
     long mins = secs / 60;
