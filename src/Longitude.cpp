@@ -76,16 +76,11 @@ const char *Longitude::ToString() const
 
 const char *Longitude::formatString(char *targetBuffer, const char *format, long *) const
 {
+#if USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL == 1
     long secs = totalSeconds;
 
-#if USE_OLD_ASCOM_DRIVER_COMPATIBLE_PROTOCOL == 1
     // from indilib driver:  Meade classic handset defines longitude as 0 to 360 WESTWARD (https://github.com/indilib/indi/blob/1b2f462b9c9b0f75629b635d77dc626b9d4b74a3/drivers/telescope/lx200driver.cpp#L1019)
     secs = 180L * 3600L - secs;
-#else
-    // from indilib driver: Meade API expresses East Longitudes as negative, West Longitudes as positive. (https://github.com/indilib/indi/blob/8beeeb9c5809063929804b5066f5b8ba6696bcd0/drivers/telescope/lx200driver.cpp#L1180)
-    // Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
-    secs = -secs;
-#endif
 
     long degs = secs / 3600;
     secs      = secs - degs * 3600;
@@ -93,4 +88,17 @@ const char *Longitude::formatString(char *targetBuffer, const char *format, long
     secs      = secs - mins * 60;
 
     return formatStringImpl(targetBuffer, format, '\0', degs, mins, secs);
+#else
+    // from indilib driver: Meade API expresses East Longitudes as negative, West Longitudes as positive. (https://github.com/indilib/indi/blob/8beeeb9c5809063929804b5066f5b8ba6696bcd0/drivers/telescope/lx200driver.cpp#L1180)
+    // Source: https://www.meade.com/support/LX200CommandSet.pdf from 2002 at :Gg#
+    long secs = -totalSeconds;
+    char sgn  = secs < 0 ? '-' : '+';
+    secs      = labs(secs);
+    long degs = secs / 3600;
+    secs      = secs - degs * 3600;
+    long mins = secs / 60;
+    secs      = secs - mins * 60;
+
+    return formatStringImpl(targetBuffer, format, sgn, degs, mins, secs);
+#endif
 }
