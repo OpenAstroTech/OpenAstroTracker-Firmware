@@ -1135,8 +1135,8 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
         case 'g':  // :Gg
             {
-                _mount->longitude().formatString(achBuffer, "{+}{d}*{m}#");
-                return String(achBuffer);
+                _mount->longitude().formatStringForMeade(achBuffer);
+                return String(achBuffer) + "#";
             }
         case 'c':  // :Gc
             {

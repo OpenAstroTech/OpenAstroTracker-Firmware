@@ -90,3 +90,27 @@ const char *Longitude::formatString(char *targetBuffer, const char *format, long
 
     return formatStringImpl(targetBuffer, format, '\0', degs, mins, secs);
 }
+
+const char *Longitude::formatStringForMeade(char *targetBuffer) const
+{
+    LOG(DEBUG_MEADE, "[LONGITUDE] Format %l for Meade", totalSeconds);
+    long secs = labs(totalSeconds);
+
+    long degs = secs / 3600;
+    secs      = secs - degs * 3600;
+    long mins = secs / 60;
+    secs      = secs - mins * 60;
+    LOG(DEBUG_MEADE, "[LONGITUDE] Degs is %l, Mins is %l", degs, mins);
+
+    // Since internal storage is actual longitude, Meade is negated
+    if (totalSeconds > 0)
+    {
+        // Since we already inverted it when it was negative (by using ABS a few 
+        // lines above here), we only invert it if it is positive.
+        degs = -degs;
+    }
+
+    LOG(DEBUG_MEADE, "[LONGITUDE] Inverted Degs, now %l, Mins is %l", degs, mins);
+
+    return formatStringImpl(targetBuffer, "{+}{d}*{m}", '\0', degs, mins, secs);
+}
