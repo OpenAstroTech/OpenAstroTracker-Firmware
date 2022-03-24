@@ -380,7 +380,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "1Updating Planetary Data#                              #"
 //      Parameters:
-//        "HHMM" is the month
+//        "MM" is the month
 //        "DD" is the day
 //        "YY" is the year since 2000
 //
