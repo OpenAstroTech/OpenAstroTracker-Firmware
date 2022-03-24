@@ -105,7 +105,7 @@ const char *Longitude::formatStringForMeade(char *targetBuffer) const
     // Since internal storage is actual longitude, Meade is negated
     if (totalSeconds > 0)
     {
-        // Since we already inverted it when it was negative (by using ABS a few 
+        // Since we already inverted it when it was negative (by using ABS a few
         // lines above here), we only invert it if it is positive.
         degs = -degs;
     }
