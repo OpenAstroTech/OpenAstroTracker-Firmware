@@ -147,7 +147,7 @@
 
 // RA Homing pin for Hall sensor
 #ifndef RA_HOMING_SENSOR_PIN
-    #define RA_HOMING_SENSOR_PIN 53
+    #define RA_HOMING_SENSOR_PIN 11  // Just below the EXP2 Port
 #endif
 
 //GPS pin configuration

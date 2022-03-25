@@ -1,3 +1,6 @@
+**V1.11.6 - Updates**
+- Change RA Auto Home addon default pin to pin D11 for MKS Gen L v2.1
+
 **V1.11.5 - Updates**
 - Corrected Longitude parsing to account for sign
 - Corrected Longitude output to provide sign
