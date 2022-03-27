@@ -182,8 +182,8 @@ void WifiControl::tcpLoop()
             {
                 client.read();
                 LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- Handshake request");
-                client.write("1");
-                LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> 1");
+                client.write("P");
+                LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> P (polar mode)");
             }
             else
             {

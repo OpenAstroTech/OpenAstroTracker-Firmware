@@ -14,6 +14,7 @@ class Longitude : public DayTime
     Longitude(float inDegrees);
 
     virtual const char *formatString(char *targetBuffer, const char *format, long *pSeconds = nullptr) const;
+    const char *formatStringForMeade(char *targetBuffer) const;
     virtual const char *ToString() const;
 
     static Longitude ParseFromMeade(String const &s);

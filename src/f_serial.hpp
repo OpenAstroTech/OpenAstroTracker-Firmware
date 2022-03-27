@@ -42,11 +42,11 @@ void processSerialData()
         {
             if (buffer[0] == 0x06)
             {
-                LOG(DEBUG_SERIAL, "[SERIAL]: Received: ACK request, replying 1");
+                LOG(DEBUG_SERIAL, "[SERIAL]: Received: ACK request, replying P");
                 // When not debugging, print the result to the serial port .
                 // When debugging, only print the result to Serial if we're on seperate ports.
     #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
-                Serial.print('1');
+                Serial.print('P');
     #endif
             }
             else

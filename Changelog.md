@@ -1,3 +1,9 @@
+**V1.11.5 - Updates**
+- Corrected Longitude parsing to account for sign
+- Corrected Longitude output to provide sign
+- Corrected inverted UTC offset
+- Corrected handshake response to 0x06 to be P for Polar mode
+
 **V1.11.4 - Updates**
 - Allow disabling Points Of Interest in LCD menu
 
