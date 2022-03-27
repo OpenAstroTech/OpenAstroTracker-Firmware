@@ -78,7 +78,7 @@ const char *Declination::ToString() const
 
     *p++ = ' ';
     *p++ = '(';
-    strcpy(p, String(NORTHERN_HEMISPHERE ? getTotalHours() + 90 : -90 - getTotalHours(), 4).c_str());
+    strcpy(p, String(NORTHERN_HEMISPHERE ? 90 - fabsf(getTotalHours()) : -90 + fabsf(getTotalHours()), 4).c_str());
     strcat(p, ")");
 
     return achBufDeg;
@@ -93,20 +93,26 @@ Declination Declination::ParseFromMeade(String const &s)
     DayTime dt = DayTime::ParseFromMeade(s);
 
     // ...and then correct for hemisphere
-    result.totalSeconds = dt.getTotalSeconds() + (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere / 2) : (arcSecondsPerHemisphere / 2));
+    result.totalSeconds = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - dt.getTotalSeconds()
+                                              : -(arcSecondsPerHemisphere / 2) + dt.getTotalSeconds();
     LOGV3(DEBUG_GENERAL, F("[DECLINATION]: Declination.Parse(%s) -> %s"), s.c_str(), result.ToString());
     return result;
 }
 
 Declination Declination::FromSeconds(long seconds)
 {
-    seconds += (NORTHERN_HEMISPHERE ? -(arcSecondsPerHemisphere / 2) : (arcSecondsPerHemisphere / 2));
-    return Declination(1.0 * seconds / 3600.0);
+    const auto secondsFloat                 = static_cast<float>(seconds);
+    const auto arcSecondsPerHemisphereFloat = static_cast<float>(arcSecondsPerHemisphere);
+#if NORTHERN_HEMISPHERE == 1
+    return Declination(((arcSecondsPerHemisphereFloat / 2.0f) - secondsFloat) / 3600.0f);
+#else
+    return Declination(((-arcSecondsPerHemisphereFloat / 2.0f) + secondsFloat) / 3600.0f);
+#endif
 }
 
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const
 {
-    long secs = totalSeconds;
-    secs      = NORTHERN_HEMISPHERE ? (secs + arcSecondsPerHemisphere / 2) : (secs - arcSecondsPerHemisphere / 2);
+    long secs
+        = NORTHERN_HEMISPHERE ? (arcSecondsPerHemisphere / 2) - labs(totalSeconds) : -(arcSecondsPerHemisphere / 2) + labs(totalSeconds);
     return DayTime::formatString(targetBuffer, format, &secs);
 }

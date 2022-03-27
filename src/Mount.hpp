@@ -140,6 +140,16 @@ class Mount
 
     static Mount instance();
 
+// Configure the AZ stepper motors.
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    void configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+#endif
+
+// Configure the ALT stepper motors.
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    void configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+#endif
+
 // Configure the Focus stepper motors.
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
@@ -475,7 +485,11 @@ class Mount
     LcdMenu *_lcdMenu;
     // float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
     // float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
+    int _maxAZSpeed;
+    int _maxALTSpeed;
     int _maxFocusSpeed;
+    int _maxAZAcceleration;
+    int _maxALTAcceleration;
     int _maxFocusAcceleration;
     int _moveRate;
     Angle _raParkingPos;   // Parking position in degrees
@@ -517,11 +531,14 @@ class Mount
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _azAltWasRunning;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    AccelStepper *_stepperAZ;
+    const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
     #endif
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    AccelStepper *_stepperALT;
     const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;
