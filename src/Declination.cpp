@@ -48,10 +48,10 @@ float Declination::getTotalDegrees() const
 
 void Declination::checkHours()
 {
-    if (totalSeconds > 0)
+    if (totalSeconds > arcSecondsPerHemisphere)
     {
         LOGV1(DEBUG_GENERAL, F("[DECLINATION]: CheckHours: Degrees is more than 0, clamping"));
-        totalSeconds = 0;
+        totalSeconds = arcSecondsPerHemisphere;
     }
     if (totalSeconds < -arcSecondsPerHemisphere)
     {

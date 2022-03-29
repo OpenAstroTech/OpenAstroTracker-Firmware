@@ -153,14 +153,14 @@ void DayTime::addHours(float deltaHours)
 
 void DayTime::checkHours()
 {
-    while (totalSeconds >= realSecondsPerDay)
+    while (totalSeconds >= secondsPerDay)
     {
-        totalSeconds -= realSecondsPerDay;
+        totalSeconds -= secondsPerDay;
     }
 
     while (totalSeconds < 0)
     {
-        totalSeconds += realSecondsPerDay;
+        totalSeconds += secondsPerDay;
     }
 }
 
@@ -267,13 +267,14 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
         i++;
     }
 
-    if (degs >= 100)
+    long absdegs = labs(degs);
+    if (absdegs >= 100)
     {
-        achDegs[i++] = '0' + min(9L, (degs / 100));
-        degs         = degs % 100;
+        achDegs[i++] = '0' + min(9L, (absdegs / 100));
+        absdegs      = absdegs % 100;
     }
 
-    printTwoDigits(achDegs + i, degs);
+    printTwoDigits(achDegs + i, absdegs);
     printTwoDigits(achMins, mins);
     printTwoDigits(achSecs, secs);
 
@@ -294,6 +295,11 @@ const char *DayTime::formatStringImpl(char *targetBuffer, const char *format, ch
                     {
                         switch (macro)
                         {
+                            case '+':
+                                {
+                                    *p++ = (degs < 0 ? '-' : '+');
+                                }
+                                break;
                             case 'd':
                                 {
                                     strcpy(p, achDegs);

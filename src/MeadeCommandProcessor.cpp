@@ -703,21 +703,21 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "ralong,declong#"
 //
-// :XGR#
+// :XGR# (Deprecated)
 //      Description:
 //        Get RA steps
 //      Information:
 //        Get the number of steps the RA stepper motor needs to take to rotate RA by one degree
 //      Returns:
-//        "float#"
+//        "0.0#"
 //
-// :XGD#
+// :XGD# (Deprecated)
 //      Description:
 //        Get DEC steps
 //      Information:
 //        Get the number of steps the DEC stepper motor needs to take to rotate DEC by one degree
 //      Returns:
-//        "float#"
+//        "0.0#"
 //
 // :XGDL#
 //      Description:
@@ -1549,9 +1549,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     Angle loLimit, hiLimit;
                     _mount->getDecLimitPositions(loLimit, hiLimit);
-                    char scratchBuffer[20];
-                    sprintf(scratchBuffer, "%f|%f#", (double)loLimit.deg(), (double)hiLimit.deg());
-                    return String(scratchBuffer);
+                    return String(loLimit.deg(), 6) + "|" + String(hiLimit.deg(), 6) + "#";
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
                 {
@@ -1586,9 +1584,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 float raCoord  = coords.substring(0, star).toFloat();
                 float decCoord = coords.substring(star + 1).toFloat();
                 _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
-                char scratchBuffer[20];
-                sprintf(scratchBuffer, "%ld|%ld#", raPos.mrad_u32(), decPos.mrad_u32());
-                return String(scratchBuffer);
+                return String(raPos.deg(), 6) + "|" + String(decPos.deg(), 6) + "#";
+                // char scratchBuffer[20];
+                // String (scratchBuffer, "%f|%f#", (double)raPos.deg(), (double)decPos.deg());
+                // return String(scratchBuffer);
             }
         }
         else if (inCmd[1] == 'M')

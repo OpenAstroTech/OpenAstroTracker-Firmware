@@ -11,6 +11,12 @@
 
 #include "StepperConfiguration.h"
 
+#if ((ALT_STEPPER_TYPE != STEPPER_TYPE_NONE) || (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (FOC_STEPPER_TYPE != STEPPER_TPYE_NONE))
+PUSH_NO_WARNINGS
+    #include <AccelStepper.h>
+POP_NO_WARNINGS
+#endif
+
 PUSH_NO_WARNINGS
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
     || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                       \
@@ -1176,7 +1182,7 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     _zeroPosRA.addHours(raAdjust);
 
     // Adjust the home DEC position by the delta between the sync'd target and current position.
-    const float degreePos = DEC::position() + _zeroPosDEC;  // u-steps / u-steps/deg = deg
+    const float degreePos = DEC::position().deg() + _zeroPosDEC;
     float decAdjust       = dec.getTotalDegrees() - fabsf(currentDEC().getTotalDegrees());
 
     if (degreePos < 0)
@@ -1218,8 +1224,8 @@ void Mount::startSlewingToTarget()
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
     if (_slewingToHome)
     {
-        targetRAPosition -= _homeOffsetRA;
-        targetDECPosition -= _homeOffsetDEC;
+        targetRAPosition  = targetRAPosition - _homeOffsetRA;
+        targetDECPosition = targetDECPosition - _homeOffsetDEC;
     }
 
     moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
@@ -1247,8 +1253,8 @@ void Mount::startSlewingToHome()
     _currentRAStepperPosition  = RA::position();
 
     // Take any syncs that have happened into account
-    long targetRAPosition        = -_homeOffsetRA;
-    const long targetDECPosition = -_homeOffsetDEC;
+    Angle targetRAPosition        = -_homeOffsetRA;
+    const Angle targetDECPosition = -_homeOffsetDEC;
     LOGV3(DEBUG_STEPPERS,
           "[STEPPERS]: startSlewingToHome: Sync op offsets: RA: %f, DEC: %f",
           targetRAPosition.deg(),
@@ -1257,7 +1263,7 @@ void Mount::startSlewingToHome()
     _slewingToHome = true;
     // Take tracking into account
     Angle trackingOffset = RA::trackingPosition();
-    targetRAPosition -= trackingOffset;
+    targetRAPosition     = targetRAPosition - trackingOffset;
     LOGV3(DEBUG_STEPPERS,
           F("[STEPPERS]: startSlewingToHome: Adjusted with tracking distance: %f, result: %f"),
           trackingOffset.deg(),
@@ -1364,15 +1370,16 @@ void Mount::setManualSlewMode(bool state)
 void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
 {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == AZIMUTH_STEPS)
+    if (which == AZIMUTH_STEPS)
     {
         float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;  // deg/sec * u-steps/deg = u-steps/sec
         LOGV3(DEBUG_STEPPERS, "[STEPPERS]: setSpeed: Set AZ speed %f degs/s, which is %f steps/s", speedDegsPerSec, stepsPerSec);
         _stepperAZ->setSpeed(stepsPerSec);
     }
 #endif
+
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == ALTITUDE_STEPS)
+    if (which == ALTITUDE_STEPS)
     {
         float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;  // deg/sec * u-steps/deg = u-steps/sec
         LOGV3(DEBUG_STEPPERS, "[STEPPERS]: setSpeed: Set ALT speed %f degs/s, which is %f steps/s", speedDegsPerSec, stepsPerSec);
@@ -3312,6 +3319,7 @@ int Mount::getLocalUtcOffset() const
 /////////////////////////////////
 void Mount::setLocalStartDate(int year, int month, int day)
 {
+    LOGV4(DEBUG_INFO, F("[MOUNT] : Set local date to %d/%d/%d"), day, month, year);
     _localStartDate.year  = year;
     _localStartDate.month = month;
     _localStartDate.day   = day;
@@ -3326,6 +3334,7 @@ void Mount::setLocalStartDate(int year, int month, int day)
 /////////////////////////////////
 void Mount::setLocalStartTime(DayTime localTime)
 {
+    LOGV2(DEBUG_INFO, F("[MOUNT] : Set local time to %s"), localTime.ToString());
     _localStartTime          = localTime;
     _localStartTimeSetMillis = millis();
 
@@ -3339,6 +3348,7 @@ void Mount::setLocalStartTime(DayTime localTime)
 /////////////////////////////////
 void Mount::setLocalUtcOffset(int offset)
 {
+    LOGV2(DEBUG_INFO, F("[MOUNT] : Set local UTC offset to %d"), offset);
     _localUtcOffset = offset;
     EEPROMStore::storeUtcOffset(_localUtcOffset);
 
@@ -3446,13 +3456,13 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 void Mount::checkRALimit()
 {
     // Check tracking limits every 5 seconds
-    if (millis() - _lastTRKCheck > 5000)
+    if (millis() - _lastTRKCheck < 5000)
         return;
 
     const float trackedHours = RA::trackingPosition().deg() / 15.0f;
     const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
     const float RALimit      = RA_TRACKING_LIMIT;
-    const float degreePos    = DEC::position() + _zeroPosDEC;
+    const float degreePos    = DEC::position().deg() + _zeroPosDEC;
     float hourPos            = currentRA().getTotalHours();
     if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
     {
@@ -3475,5 +3485,4 @@ void Mount::checkRALimit()
         stopSlewing(TRACKING);
     }
     _lastTRKCheck = millis();
-}
 }

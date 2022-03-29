@@ -570,6 +570,8 @@ class Mount
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;
     volatile int _mountStatus;
+    Angle _homeOffsetRA;
+    Angle _homeOffsetDEC;
 
     char scratchBuffer[24];
     bool _stepperWasRunning;

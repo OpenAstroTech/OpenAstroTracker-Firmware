@@ -345,7 +345,7 @@ void setup()
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ stepper...");
+    LOGV1(DEBUG_ANY, "[STEPPERS]: Configure AZ stepper...");
     mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure AZ driver..."));
@@ -357,7 +357,7 @@ void setup()
     #endif
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure Alt stepper...");
+    LOGV1(DEBUG_ANY, "[STEPPERS]: Configure Alt stepper...");
     mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOGV1(DEBUG_ANY, F("[STEPPERS]: Configure ALT driver..."));

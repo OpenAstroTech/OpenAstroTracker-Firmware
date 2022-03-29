@@ -2,9 +2,12 @@
 
 #include "../Configuration.hpp"
 #include "inc/Globals.hpp"
+
+#if ((ALT_STEPPER_TYPE != STEPPER_TYPE_NONE) || (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) ||(FOC_STEPPER_TYPE != STEPPER_TPYE_NONE))
 PUSH_NO_WARNINGS
 #include <AccelStepper.h>
 POP_NO_WARNINGS
+#endif
 
 #include "Utility.hpp"
 #include "DayTime.hpp"
