@@ -18,6 +18,12 @@ template <typename Config> class Axis
         track(is_tracking);
     }
 
+    static void returnMarkSlewEnded()
+    {
+        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : Motors stopped slewing."));
+        is_slewing = false;
+    }
+
     constexpr static inline Angle transmit(const Angle from)
     {
         return Config::TRANSMISSION * from;
@@ -95,6 +101,7 @@ template <typename Config> class Axis
     {
         Angle slew_speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
 
+        is_slewing = true;
         if (is_tracking)
         {
             Angle move_speed = slew_speed + ((distance.rad() > 0.0f) ? STEPPER_SPEED_TRACKING : -STEPPER_SPEED_TRACKING);
@@ -105,7 +112,7 @@ template <typename Config> class Axis
         }
         else
         {
-            Config::stepper::moveBy(slew_speed, transmit(distance));
+            Config::stepper::moveBy(slew_speed, transmit(distance), StepperCallback::create<returnMarkSlewEnded>());
         }
     }
 
@@ -137,7 +144,7 @@ template <typename Config> class Axis
         else
         {
             LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stopSlewing() no tracking."));
-            Config::stepper::stop(StepperCallback());
+            Config::stepper::stop(StepperCallback::create<returnMarkSlewEnded>());
         }
     }
 
