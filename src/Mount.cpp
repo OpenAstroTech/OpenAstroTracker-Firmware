@@ -34,11 +34,6 @@ POP_NO_WARNINGS
 #define STATUS_TRACKING          0B0000000000001000
 #define STATUS_PARKING           0B0000000000010000
 #define STATUS_PARKING_POS       0B0001000000000000
-#define STATUS_GUIDE_PULSE       0B0000000010000000
-#define STATUS_GUIDE_PULSE_DIR   0B0000000001100000
-#define STATUS_GUIDE_PULSE_RA    0B0000000001000000
-#define STATUS_GUIDE_PULSE_DEC   0B0000000000100000
-#define STATUS_GUIDE_PULSE_MASK  0B0000000011100000
 #define STATUS_FINDING_HOME      0B0010000000000000
 
 // slewingStatus()
@@ -1285,26 +1280,18 @@ void Mount::stopGuiding(bool ra, bool dec)
         return;
 
     // Stop RA guide first, since it's just a speed change back to tracking speed
-    if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
+    if (ra && RA::isGuiding())
     {
-        LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(RA): switch to Tracking"));
-        RA::track(true);
-        _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
+        LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(RA)"));
+        RA::stopGuiding();
     }
 
-    if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
+    if (dec && DEC::isGuiding())
     {
         LOGV1(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): Stop motor"));
         // Stop DEC guiding and wait for it to stop.
-        DEC::stopSlewing();
+        DEC::stopGuiding();
         LOGV2(DEBUG_STEPPERS, F("[STEPPERS]: stopGuiding(DEC): Stopped at %l"), DEC::position());
-        _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
-    }
-
-    //disable pulse state if no direction is active
-    if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
-    {
-        _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
     }
 }
 
@@ -1321,19 +1308,15 @@ void Mount::guidePulse(byte direction, int durationMs)
     {
         case NORTH:
             DEC::guide(1, durationMs);
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
             break;
         case SOUTH:
             DEC::guide(-1, durationMs);
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
             break;
         case EAST:
             RA::guide(1, durationMs);
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
             break;
         case WEST:
             RA::guide(-1, durationMs);
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
             break;
     }
 
@@ -1864,7 +1847,7 @@ byte Mount::slewStatus() const
 /////////////////////////////////
 bool Mount::isGuiding() const
 {
-    return (_mountStatus & STATUS_GUIDE_PULSE);
+    return RA::isGuiding() || DEC::isGuiding();
 }
 
 /////////////////////////////////

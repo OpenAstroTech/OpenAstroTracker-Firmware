@@ -463,7 +463,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "d" is one of 'N', 'E', 'W', or 'S'
 //        "nnnn" is the duration in ms
 //      Returns:
-//        "1"
+//        nothing
 //
 // :MTs#
 //      Description:

@@ -18,6 +18,13 @@ template <typename Config> class Axis
         track(is_tracking);
     }
 
+    static void returnTrackingFromGuide()
+    {
+        LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : Motors stopped guiding. Resume Tracking : %d"), is_tracking);
+        is_guiding = false;
+        track(is_tracking);
+    }
+
     static void returnMarkSlewEnded()
     {
         LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : Motors stopped slewing."));
@@ -72,7 +79,7 @@ template <typename Config> class Axis
                     LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : tracking time is %l"), _totalTrackingTime);
                 }
 
-                Config::stepper::stop();
+                Config::stepper::stop(StepperCallback());
             }
 
             is_tracking = enable;
@@ -83,13 +90,20 @@ template <typename Config> class Axis
         }
     }
 
+    static void stopGuiding()
+    {
+        LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stop Guide called."));
+        Config::stepper::stop(StepperCallback());
+        track(is_tracking);
+        is_guiding = false;
+    }
+
     static void guide(bool direction, unsigned long time_ms)
     {
-        if (is_tracking)
-        {
-            auto speed = (direction) ? STEPPER_SPEED_GUIDING_POS : STEPPER_SPEED_GUIDING_NEG;
-            Config::stepper::moveTime(speed, time_ms, StepperCallback::create<returnTracking>());
-        }
+        auto speed = (direction) ? STEPPER_SPEED_GUIDING_POS : STEPPER_SPEED_GUIDING_NEG;
+        LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : Guide pulse %l ms at %f deg/s"), time_ms, speed.deg());
+        is_guiding = true;
+        Config::stepper::moveTime(speed, time_ms, StepperCallback::create<returnTrackingFromGuide>());
     }
 
     static void slewTo(Angle target)
@@ -186,6 +200,11 @@ template <typename Config> class Axis
         return is_tracking;
     }
 
+    static bool isGuiding()
+    {
+        return is_guiding;
+    }
+
     static int8_t direction()
     {
         return Config::stepper::movementDir();
@@ -204,6 +223,7 @@ template <typename Config> class Axis
   private:
     static bool is_tracking;
     static float slew_rate_factor;
+    static bool is_guiding;
 
     static boolean is_slewing;
     static Angle slewing_from;
@@ -216,8 +236,8 @@ template <typename Config> class Axis
 };
 
 template <typename Config> bool Axis<Config>::is_tracking = false;
-
-template <typename Config> bool Axis<Config>::is_slewing = false;
+template <typename Config> bool Axis<Config>::is_guiding  = false;
+template <typename Config> bool Axis<Config>::is_slewing  = false;
 
 template <typename Config> float Axis<Config>::slew_rate_factor = 1.0;
 
