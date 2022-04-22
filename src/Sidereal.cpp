@@ -1,5 +1,6 @@
 #include "inc/Globals.hpp"
 #include "../Configuration.hpp"
+#include "Utility.hpp"
 #include "Sidereal.hpp"
 
 // Constants for sidereal calculation
@@ -25,8 +26,10 @@ DayTime Sidereal::calculateByGPS(TinyGPSPlus *gps)
 
 DayTime Sidereal::calculateByDateAndTime(double longitude, int year, int month, int day, DayTime *timeUTC)
 {
+    LOGV2(DEBUG_INFO, F("[MOUNT] : Sidereal.calculate : Longitude %f"), longitude);
     int deltaJd   = calculateDeltaJd(year, month, day);
     double deltaJ = deltaJd + ((timeUTC->getTotalHours()) / 24.0f);
+    LOGV3(DEBUG_INFO, F("[MOUNT] : Sidereal.calculate : DeltaJD: %d, DeltaJ:%f"), deltaJd, deltaJ);
     return DayTime(static_cast<float>(calculateTheta(deltaJ, longitude, timeUTC->getTotalHours()) / 15.0));
 }
 

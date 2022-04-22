@@ -23,6 +23,22 @@ template <typename Config> class Axis
         LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : Motors stopped guiding. Resume Tracking : %d"), is_tracking);
         is_guiding = false;
         track(is_tracking);
+        if (_posGuiding)
+        {
+            _posGuidingTime += _requestedGuideDuration;
+            LOGV3(DEBUG_STEPPERS,
+                  F("[STEPLIB] : Guide completed after %l ms. Pos Guiding time is %l ms"),
+                  _requestedGuideDuration,
+                  _posGuidingTime);
+        }
+        else
+        {
+            _negGuidingTime += _requestedGuideDuration;
+            LOGV3(DEBUG_STEPPERS,
+                  F("[STEPLIB] : Guide completed after %l ms. Neg Guiding time is %l ms"),
+                  _requestedGuideDuration,
+                  _negGuidingTime);
+        }
     }
 
     static void returnMarkSlewEnded()
@@ -92,17 +108,31 @@ template <typename Config> class Axis
 
     static void stopGuiding()
     {
+        unsigned long guideDuration = millis() - _guideStartTime;
         LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stop Guide called."));
         Config::stepper::stop(StepperCallback());
         track(is_tracking);
         is_guiding = false;
+        if (_posGuiding)
+        {
+            _posGuidingTime += guideDuration;
+            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : Guide Stopped after %l ms. Pos Guiding time is %l ms"), guideDuration, _posGuidingTime);
+        }
+        else
+        {
+            _negGuidingTime += guideDuration;
+            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : Guide Stopped after %l ms. Neg Guiding time is %l ms"), guideDuration, _negGuidingTime);
+        }
     }
 
     static void guide(bool direction, unsigned long time_ms)
     {
         auto speed = (direction) ? STEPPER_SPEED_GUIDING_POS : STEPPER_SPEED_GUIDING_NEG;
         LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : Guide pulse %l ms at %f deg/s"), time_ms, speed.deg());
-        is_guiding = true;
+        is_guiding              = true;
+        _posGuiding             = direction;
+        _guideStartTime         = millis();
+        _requestedGuideDuration = time_ms;
         Config::stepper::moveTime(speed, time_ms, StepperCallback::create<returnTrackingFromGuide>());
     }
 
@@ -113,20 +143,24 @@ template <typename Config> class Axis
 
     static void slewBy(const Angle distance)
     {
-        Angle slew_speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
-
-        is_slewing = true;
-        if (is_tracking)
+        if (distance.deg() != 0)
         {
-            Angle move_speed = slew_speed + ((distance.rad() > 0.0f) ? STEPPER_SPEED_TRACKING : -STEPPER_SPEED_TRACKING);
+            Angle slew_speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
+            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : SlewBy called with %f deg at %f"), distance.deg(), slew_speed.deg());
 
-            Angle move_distance = distance * (move_speed / STEPPER_SPEED_SLEWING);
+            is_slewing = true;
+            if (is_tracking)
+            {
+                Angle move_speed = slew_speed + ((distance.rad() > 0.0f) ? STEPPER_SPEED_TRACKING : -STEPPER_SPEED_TRACKING);
 
-            Config::stepper::moveBy(move_speed, transmit(move_distance), StepperCallback::create<returnTracking>());
-        }
-        else
-        {
-            Config::stepper::moveBy(slew_speed, transmit(distance), StepperCallback::create<returnMarkSlewEnded>());
+                Angle move_distance = distance * (move_speed / STEPPER_SPEED_SLEWING);
+
+                Config::stepper::moveBy(move_speed, transmit(move_distance), StepperCallback::create<returnTracking>());
+            }
+            else
+            {
+                Config::stepper::moveBy(slew_speed, transmit(distance), StepperCallback::create<returnMarkSlewEnded>());
+            }
         }
     }
 
@@ -190,6 +224,12 @@ template <typename Config> class Axis
         return Angle::deg(0.0f);
     }
 
+    // Overridden for RA in Mount.cpp
+    static unsigned long getTotalTrackingTime()
+    {
+        return 0UL;
+    }
+
     static bool isRunning()
     {
         return is_slewing;
@@ -233,6 +273,11 @@ template <typename Config> class Axis
     static Angle limit_min;
     static unsigned long _recentTrackingStartTime;
     static unsigned long _totalTrackingTime;
+    static unsigned long _posGuidingTime;
+    static unsigned long _negGuidingTime;
+    static unsigned long _guideStartTime;
+    static unsigned long _requestedGuideDuration;
+    static bool _posGuiding;
 };
 
 template <typename Config> bool Axis<Config>::is_tracking = false;
@@ -251,4 +296,9 @@ template <typename Config> Angle Axis<Config>::limit_min = Angle::deg(-101.0f);
 
 template <typename Config> unsigned long Axis<Config>::_recentTrackingStartTime = 0UL;
 
-template <typename Config> unsigned long Axis<Config>::_totalTrackingTime = 0UL;
+template <typename Config> unsigned long Axis<Config>::_totalTrackingTime      = 0UL;
+template <typename Config> unsigned long Axis<Config>::_posGuidingTime         = 0UL;
+template <typename Config> unsigned long Axis<Config>::_negGuidingTime         = 0UL;
+template <typename Config> unsigned long Axis<Config>::_guideStartTime         = 0UL;
+template <typename Config> unsigned long Axis<Config>::_requestedGuideDuration = 0UL;
+template <typename Config> bool Axis<Config>::_posGuiding                      = false;

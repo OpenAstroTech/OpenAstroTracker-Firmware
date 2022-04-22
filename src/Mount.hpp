@@ -120,6 +120,9 @@ class Mount
     Angle trackingPosition();
 
     template <typename AXIS>
+    unsigned long getTotalTrackingTime();
+
+    template <typename AXIS>
     void startSlewing(bool direction);
 
     template <typename AXIS>
@@ -496,9 +499,7 @@ class Mount
     Angle _decParkingPos;  // Parking position in degrees
     Angle _decLowerLimit;  // Movement limit in degrees
     Angle _decUpperLimit;  // Movement limit in degrees
-    unsigned long _totalTrackingTime = 0;
-    unsigned long _recentTrackingStartTime = 0;
-
+   
 #if USE_GYRO_LEVEL == 1
     float _pitchCalibrationAngle;
     float _rollCalibrationAngle;
@@ -627,8 +628,15 @@ Angle Mount::trackingPosition()
     return AXIS::trackingPosition();
 }
 
+template <typename AXIS>
+unsigned long Mount::getTotalTrackingTime()
+{
+    return AXIS::getTotalTrackingTime();
+}
+
 #endif
 
 template <> Angle Mount::RA::position();
 template <> Angle Mount::RA::trackingPosition();
+template <> unsigned long Mount::RA::getTotalTrackingTime();
 template <> void Mount::RA::setPosition(Angle value);

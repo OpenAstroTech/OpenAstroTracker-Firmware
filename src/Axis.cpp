@@ -18,6 +18,11 @@ template <> Angle Mount::RA::position()
     return raPos - trkPos;
 }
 
+template <> unsigned long Mount::RA::getTotalTrackingTime()
+{
+    return _totalTrackingTime;
+}
+
 template <> Angle Mount::RA::trackingPosition()
 {
     auto trackedTime = (_totalTrackingTime + ((_recentTrackingStartTime) ? millis() - _recentTrackingStartTime : 0)) / 1000.0f;

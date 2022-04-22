@@ -1306,7 +1306,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         // :SY+84*03:02.18:34:12
         if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':') && (inCmd[10] == '.') && (inCmd[13] == ':') && (inCmd[16] == ':'))
         {
-            Declination dec = Declination::ParseFromMeade(inCmd.substring(1, 9));
+            Declination dec = Declination::ParseFromMeade(inCmd.substring(1, 10));
             DayTime ra      = DayTime::ParseFromMeade(inCmd.substring(11));
 
             _mount->syncPosition(ra, dec);

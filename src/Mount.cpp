@@ -1164,6 +1164,15 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     _targetDEC = dec;
     _targetRA  = ra;
 
+    LOGV3(DEBUG_STEPPERS, 
+          F("[STEPPERS]: syncPosition: Sync RA  to %f. Current RA  is %f"), 
+          ra.getTotalHours(), 
+          currentRA().getTotalHours());
+    LOGV3(DEBUG_STEPPERS,
+          F("[STEPPERS]: syncPosition: Sync DEC to %f. Current DEC is %f"),
+          dec.getTotalDegrees(),
+          currentDEC().getTotalDegrees());
+
     // Adjust the home RA position by the delta sync position.
     float raAdjust = ra.getTotalHours() - currentRA().getTotalHours();
     while (raAdjust > 12)
@@ -1174,6 +1183,11 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     {
         raAdjust = raAdjust + 24;
     }
+    LOGV4(DEBUG_STEPPERS,
+          F("[STEPPERS]: syncPosition: Adjusting zeroPosRA %f by %f => %f"),
+          _zeroPosRA.getTotalHours(),
+          raAdjust,
+          _zeroPosRA.getTotalHours() + raAdjust);
     _zeroPosRA.addHours(raAdjust);
 
     // Adjust the home DEC position by the delta between the sync'd target and current position.
@@ -1184,16 +1198,18 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     {
         decAdjust = -decAdjust;
     }
+    LOGV4(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Adjust zeroposDEC %f by %f => %f"), _zeroPosDEC, decAdjust, _zeroPosDEC + decAdjust);
     _zeroPosDEC += decAdjust;
 
     Angle targetRAPosition, targetDECPosition;
-    LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), ra.ToString(), _targetDEC.ToString());
+    LOGV3(DEBUG_MOUNT, F("[MOUNT]: Sync Position to RA: %s and DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
 
-    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 1: RA %l and DEC: %l"), solutions[0], solutions[1]);
-    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 2: RA %l and DEC: %l"), solutions[2], solutions[3]);
-    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 3: RA %l and DEC: %l"), solutions[4], solutions[5]);
-    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Chose solution RA: %l and DEC: %l"), targetRAPosition, targetDECPosition);
+    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 1: RA %f and DEC: %f"), solutions[0], solutions[1]);
+    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 2: RA %f and DEC: %f"), solutions[2], solutions[3]);
+    LOGV3(DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Solution 3: RA %f and DEC: %f"), solutions[4], solutions[5]);
+    LOGV3(
+        DEBUG_STEPPERS, F("[STEPPERS]: syncPosition: Chose solution RA: %f and DEC: %f"), targetRAPosition.deg(), targetDECPosition.deg());
 }
 
 /////////////////////////////////
@@ -1957,10 +1973,6 @@ void Mount::startSlewing(int direction)
             // Start tracking
             RA::track(true);
             _mountStatus |= STATUS_TRACKING;
-            if (_recentTrackingStartTime == 0UL)
-            {
-                _recentTrackingStartTime = millis();
-            }
         }
         else
         {
@@ -2844,7 +2856,7 @@ void Mount::calculateStepperPositions(float raCoord, float decCoord, Angle &raPo
 
 float Mount::getTrackedTime() const
 {
-    return _totalTrackingTime / 3600000.0f;
+    return RA::getTotalTrackingTime() / 3600000.0f;
 }
 
 /////////////////////////////////
@@ -2857,7 +2869,7 @@ void Mount::calculateRAandDECSteppers(Angle &targetRA, Angle &targetDEC, float p
 {
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Current: RA: %s, DEC: %s"), currentRA().ToString(), currentDEC().ToString());
     LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: Target : RA: %s, DEC: %s"), _targetRA.ToString(), _targetDEC.ToString());
-    LOGV2(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: ZeroRA : %s"), _zeroPosRA.ToString());
+    LOGV3(DEBUG_MOUNT_VERBOSE, F("[MOUNT]: CalcSteppersPre: ZeroRA : %s, ZeroDEC: %f"), _zeroPosRA.ToString(), _zeroPosDEC);
     LOGV4(DEBUG_MOUNT_VERBOSE,
           F("[MOUNT]: CalcSteppersPre: Stepper: RA: %f, DEC: %f, TRK: %f"),
           RA::position().hour(),
@@ -3215,7 +3227,7 @@ String Mount::RAString(byte type, byte active)
 DayTime Mount::getUtcTime()
 {
     DayTime timeUTC = getLocalTime();
-    timeUTC.addHours(-_localUtcOffset);
+    timeUTC.addHours(_localUtcOffset);
     return timeUTC;
 }
 
@@ -3357,7 +3369,9 @@ DayTime Mount::calculateLst()
 {
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
+    LOGV5(DEBUG_INFO, F("[MOUNT] : Calculate LST. UTC time: %s, Local date: %d.%d.%d"), timeUTC.ToString(), localDate.year, localDate.month, localDate.day);
     DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
+    LOGV2(DEBUG_INFO, F("[MOUNT] : Calculate LST. LST: %s"), lst.ToString());
     return lst;
 }
 
