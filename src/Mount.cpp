@@ -1323,16 +1323,16 @@ void Mount::guidePulse(byte direction, int durationMs)
     switch (direction)
     {
         case NORTH:
-            DEC::guide(1, durationMs);
+            DEC::guide(true, durationMs);
             break;
         case SOUTH:
-            DEC::guide(-1, durationMs);
+            DEC::guide(false, durationMs);
             break;
         case EAST:
-            RA::guide(1, durationMs);
+            RA::guide(true, durationMs);
             break;
         case WEST:
-            RA::guide(-1, durationMs);
+            RA::guide(false, durationMs);
             break;
     }
 

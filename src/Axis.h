@@ -20,22 +20,25 @@ template <typename Config> class Axis
 
     static void returnTrackingFromGuide()
     {
+        unsigned long guideDuration = millis() - _guideStartTime;
         LOGV2(DEBUG_STEPPERS, F("[STEPLIB] : Motors stopped guiding. Resume Tracking : %d"), is_tracking);
         is_guiding = false;
         track(is_tracking);
         if (_posGuiding)
         {
-            _posGuidingTime += _requestedGuideDuration;
-            LOGV3(DEBUG_STEPPERS,
-                  F("[STEPLIB] : Guide completed after %l ms. Pos Guiding time is %l ms"),
+            _posGuidingTime += guideDuration;
+            LOGV4(DEBUG_STEPPERS,
+                  F("[STEPLIB] : Guide completed after %l ms (requested %l ms). Pos Guiding time is %l ms"),
+                  guideDuration,
                   _requestedGuideDuration,
                   _posGuidingTime);
         }
         else
         {
-            _negGuidingTime += _requestedGuideDuration;
-            LOGV3(DEBUG_STEPPERS,
-                  F("[STEPLIB] : Guide completed after %l ms. Neg Guiding time is %l ms"),
+            _negGuidingTime += guideDuration;
+            LOGV4(DEBUG_STEPPERS,
+                  F("[STEPLIB] : Guide completed after %l ms (requested %l ms). Neg Guiding time is %l ms"),
+                  guideDuration,
                   _requestedGuideDuration,
                   _negGuidingTime);
         }
@@ -55,7 +58,9 @@ template <typename Config> class Axis
   public:
     constexpr static Angle STEP_ANGLE = Angle::deg(360.0f) / Config::driver::SPR / Config::TRANSMISSION;
 
-    constexpr static Angle TRACKING_SPEED = Config::SPEED_TRACKING;
+    constexpr static Angle TRACKING_SPEED    = Config::SPEED_TRACKING;
+    constexpr static Angle POS_GUIDING_SPEED = Config::SPEED_GUIDE_POS - Config::SPEED_TRACKING;
+    constexpr static Angle NEG_GUIDING_SPEED = Config::SPEED_GUIDE_NEG - Config::SPEED_TRACKING;
 
     constexpr static Angle STEPPER_SPEED_TRACKING = transmit(Config::SPEED_TRACKING);
     constexpr static Angle STEPPER_SPEED_SLEWING  = transmit(Config::SPEED_SLEWING);
@@ -108,9 +113,9 @@ template <typename Config> class Axis
 
     static void stopGuiding()
     {
-        unsigned long guideDuration = millis() - _guideStartTime;
         LOGV1(DEBUG_STEPPERS, F("[STEPLIB] : stop Guide called."));
         Config::stepper::stop(StepperCallback());
+        unsigned long guideDuration = millis() - _guideStartTime;
         track(is_tracking);
         is_guiding = false;
         if (_posGuiding)
@@ -128,7 +133,7 @@ template <typename Config> class Axis
     static void guide(bool direction, unsigned long time_ms)
     {
         auto speed = (direction) ? STEPPER_SPEED_GUIDING_POS : STEPPER_SPEED_GUIDING_NEG;
-        LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : Guide pulse %l ms at %f deg/s"), time_ms, speed.deg());
+        LOGV4(DEBUG_STEPPERS, F("[STEPLIB] : Guide pulse %l ms at %f deg/s in dir %d"), time_ms, speed.deg(), direction ? 1 : 0);
         is_guiding              = true;
         _posGuiding             = direction;
         _guideStartTime         = millis();

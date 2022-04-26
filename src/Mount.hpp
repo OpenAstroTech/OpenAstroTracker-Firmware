@@ -636,7 +636,12 @@ unsigned long Mount::getTotalTrackingTime()
 
 #endif
 
+// Specializations for RA
 template <> Angle Mount::RA::position();
 template <> Angle Mount::RA::trackingPosition();
 template <> unsigned long Mount::RA::getTotalTrackingTime();
 template <> void Mount::RA::setPosition(Angle value);
+
+// Specializations for DEC
+template <> Angle Mount::DEC::position();
+template <> void Mount::DEC::setPosition(Angle value);
