@@ -148,24 +148,21 @@ template <typename Config> class Axis
 
     static void slewBy(const Angle distance)
     {
-        if (distance.deg() != 0)
+        Angle slew_speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
+        LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : SlewBy called with %f deg at %f"), distance.deg(), slew_speed.deg());
+
+        is_slewing = true;
+        if (is_tracking)
         {
-            Angle slew_speed = STEPPER_SPEED_SLEWING * slew_rate_factor;
-            LOGV3(DEBUG_STEPPERS, F("[STEPLIB] : SlewBy called with %f deg at %f"), distance.deg(), slew_speed.deg());
+            Angle move_speed = slew_speed + ((distance.rad() > 0.0f) ? STEPPER_SPEED_TRACKING : -STEPPER_SPEED_TRACKING);
 
-            is_slewing = true;
-            if (is_tracking)
-            {
-                Angle move_speed = slew_speed + ((distance.rad() > 0.0f) ? STEPPER_SPEED_TRACKING : -STEPPER_SPEED_TRACKING);
+            Angle move_distance = distance * (move_speed / STEPPER_SPEED_SLEWING);
 
-                Angle move_distance = distance * (move_speed / STEPPER_SPEED_SLEWING);
-
-                Config::stepper::moveBy(move_speed, transmit(move_distance), StepperCallback::create<returnTracking>());
-            }
-            else
-            {
-                Config::stepper::moveBy(slew_speed, transmit(distance), StepperCallback::create<returnMarkSlewEnded>());
-            }
+            Config::stepper::moveBy(move_speed, transmit(move_distance), StepperCallback::create<returnTracking>());
+        }
+        else
+        {
+            Config::stepper::moveBy(slew_speed, transmit(distance), StepperCallback::create<returnMarkSlewEnded>());
         }
     }
 

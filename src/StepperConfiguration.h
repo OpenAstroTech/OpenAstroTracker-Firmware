@@ -78,8 +78,8 @@ namespace config
         constexpr static Angle SPEED_SLEWING = Angle::deg(DEC_SLEWING_SPEED);
         constexpr static Angle ACCELERATION = Angle::deg(DEC_SLEWING_ACCELERATION);
 
-        constexpr static Angle SPEED_GUIDE_POS = SPEED_TRACKING + (SPEED_SIDEREAL * DEC_GUIDING_SPEED);
-        constexpr static Angle SPEED_GUIDE_NEG = SPEED_TRACKING - (SPEED_SIDEREAL * DEC_GUIDING_SPEED);
+        constexpr static Angle SPEED_GUIDE_POS = SPEED_SIDEREAL * DEC_GUIDING_SPEED;
+        constexpr static Angle SPEED_GUIDE_NEG = SPEED_SIDEREAL * DEC_GUIDING_SPEED;
 
         using pin_step = Pin<DEC_STEP_PIN>;
         using pin_dir = Pin<DEC_DIR_PIN>;
