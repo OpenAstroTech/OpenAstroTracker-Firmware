@@ -74,7 +74,7 @@ public:
         return _rad / x._rad;
     }
 
-    constexpr float rad() const
+    constexpr inline float rad() const
     {
         return _rad;
     }

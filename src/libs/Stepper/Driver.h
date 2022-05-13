@@ -5,10 +5,10 @@
 template <uint32_t T_SPR, typename T_PIN_STEP, typename T_PIN_DIR, bool T_INVERT_DIR = false>
 class Driver
 {
-private:
-    Driver() = delete;
 
 public:
+    Driver() = delete;
+
     constexpr static auto SPR = T_SPR;
 
     static void init()

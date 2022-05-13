@@ -1,5 +1,7 @@
 #pragma once
 
+#if defined(ARDUINO_ARCH_AVR)
+
 #include <IntervalInterrupt.h>
 #include <stdint.h>
 #include <avr/interrupt.h>
@@ -296,3 +298,5 @@ volatile timer_callback IntervalInterrupt_AVR<T>::callback = nullptr;
 
 template <Timer T>
 const unsigned long int IntervalInterrupt<T>::FREQ = F_CPU;
+
+#endif

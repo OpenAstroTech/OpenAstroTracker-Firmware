@@ -10,8 +10,6 @@ class PinDelegate
     static etl::delegate<void(uint8_t, bool)> _delegate;
     static bool initialized;
 
-    PinDelegate() = delete;
-
     static void set(bool value)
     {
         if (_delegate.is_valid())
@@ -21,6 +19,8 @@ class PinDelegate
     }
 
 public:
+    PinDelegate() = delete;
+
     static void delegate(etl::delegate<void(uint8_t, bool)> delegate)
     {
         _delegate = delegate;
