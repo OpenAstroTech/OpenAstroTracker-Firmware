@@ -353,11 +353,15 @@
         #define ALT_WORMGEAR_RATIO (40.0f)
     #endif
 
-    #define ALTITUDE_STEPS_PER_REV                                                                                                         \
-        (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING           \
-         * ALT_WORMGEAR_RATIO)                                                      // Actually u-steps/rev
-    #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
-
+    #ifndef ALTITUDE_STEPS_PER_REV 
+        #define ALTITUDE_STEPS_PER_REV                                                                                                         \
+            (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING           \
+             * ALT_WORMGEAR_RATIO)                                                      // Actually u-steps/rev
+    #endif
+    #ifndef ALTITUDE_STEPS_PER_ARC_MINUTE
+        #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    #endif
+    
     // ALT TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
