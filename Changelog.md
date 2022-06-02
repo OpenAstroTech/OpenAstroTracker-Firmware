@@ -1,4 +1,4 @@
-**V1.11.5 - Updates**
+**V1.11.6 - Updates**
 - add #ifdef for ALTITUDE_STEPS_PER_REV and ALTITUDE_STEPS_PER_ARC_MINUTE
 
 **V1.11.5 - Updates**
