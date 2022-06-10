@@ -115,10 +115,12 @@ class EEPROMStore
     enum ExtendedItemFlag
     {
         // The marker bits for the extended values
-        PARKING_POS_MARKER_FLAG = 0x0001,
-        DEC_LIMIT_MARKER_FLAG   = 0x0002,
-        UTC_OFFSET_MARKER_FLAG  = 0x0004,
-        RA_HOMING_MARKER_FLAG   = 0x0008,
+        PARKING_POS_MARKER_FLAG    = 0x0001,
+        DEC_LIMIT_MARKER_FLAG      = 0x0002,
+        UTC_OFFSET_MARKER_FLAG     = 0x0004,
+        RA_HOMING_MARKER_FLAG      = 0x0008,
+        RA_NORM_STEPS_MARKER_FLAG  = 0x0010,
+        DEC_NORM_STEPS_MARKER_FLAG = 0x0020,
     };
 
     // These are the offsets to each item stored in the EEPROM

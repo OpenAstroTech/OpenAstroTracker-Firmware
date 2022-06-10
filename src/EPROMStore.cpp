@@ -383,9 +383,11 @@ float EEPROMStore::getRAStepsPerDegree()
 {
     float raStepsPerDegree(RA_STEPS_PER_DEGREE);  // Default value
 
-    if (isPresent(RA_STEPS_FLAG))
+    if (isPresentExtended(RA_NORM_STEPS_MARKER_FLAG)){
+        raStepsPerDegree = readInt16(RA_NORM_STEPS_DEGREE_ADDR);
+    } else if (isPresent(RA_STEPS_FLAG))
     {
-        raStepsPerDegree = 0.1 * readInt16(RA_STEPS_DEGREE_ADDR);
+        raStepsPerDegree = 25.6 * readInt16(RA_STEPS_DEGREE_ADDR) / RA_TRACKING_MICROSTEPPING;
         LOG(DEBUG_EEPROM, "[EEPROM]: RA Marker OK! RA steps/deg is %f", raStepsPerDegree);
     }
     else
