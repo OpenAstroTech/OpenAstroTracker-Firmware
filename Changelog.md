@@ -1,3 +1,14 @@
+**V1.11.8 - Updates**
+- Remove dead code
+- Clean up README
+
+**V1.11.7 - Updates**
+- Add .mailmap file
+
+**V1.11.6 - Updates**
+- Fix platformio GitHub workflow to coincide with 6.0.2 update
+- Disable Wdouble-promotion globally due to esp32 build failure and GCC bug 55578
+
 **V1.11.5 - Updates**
 - Corrected Longitude parsing to account for sign
 - Corrected Longitude output to provide sign

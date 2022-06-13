@@ -1070,7 +1070,6 @@ void Mount::setHA(const DayTime &haTime)
     DayTime lst = DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
     lst.addTime(haTime);
     setLST(lst);
-    _lastHASet = millis();
 }
 
 /////////////////////////////////
@@ -1087,16 +1086,6 @@ const DayTime Mount::HA() const
     ha.subtractTime(DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
     // LOG(DEBUG_MOUNT, "[MOUNT]: GetHA: LST-Polaris is HA %s", ha.ToString());
     return ha;
-}
-
-/////////////////////////////////
-//
-// LST
-//
-/////////////////////////////////
-const DayTime &Mount::LST() const
-{
-    return _LST;
 }
 
 /////////////////////////////////
@@ -1291,9 +1280,8 @@ void Mount::startSlewingToTarget()
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set RA  to MaxSpeed(%d)", _maxRASpeed);
     _stepperRA->setMaxSpeed(_maxRASpeed);
 
-    // Calculate new RA stepper target (and DEC). We are never in guding mode here.
-    _currentDECStepperPosition = _stepperDEC->currentPosition();
-    _currentRAStepperPosition  = _stepperRA->currentPosition();
+    // Calculate new RA stepper target (and DEC). We are never in guiding mode here.
+    _currentRAStepperPosition = _stepperRA->currentPosition();
     long targetRAPosition, targetDECPosition;
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
 
@@ -1351,8 +1339,7 @@ void Mount::startSlewingToHome()
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set RA  to MaxSpeed(%d)", _maxRASpeed);
     _stepperRA->setMaxSpeed(_maxRASpeed);
 
-    _currentDECStepperPosition = _stepperDEC->currentPosition();
-    _currentRAStepperPosition  = _stepperRA->currentPosition();
+    _currentRAStepperPosition = _stepperRA->currentPosition();
 
     // Take any syncs that have happened into account
     long targetRAPosition        = -_homeOffsetRA;
@@ -1926,16 +1913,6 @@ void Mount::focusStop()
 
 /////////////////////////////////
 //
-// mountStatus
-//
-/////////////////////////////////
-byte Mount::mountStatus()
-{
-    return _mountStatus;
-}
-
-/////////////////////////////////
-//
 // setTrackingStepperPos
 //
 /////////////////////////////////
@@ -1943,60 +1920,6 @@ void Mount::setTrackingStepperPos(long stepPos)
 {
     _stepperTRK->setCurrentPosition(stepPos);
 }
-
-#if DEBUG_LEVEL & (DEBUG_MOUNT | DEBUG_MOUNT_VERBOSE)
-/////////////////////////////////
-//
-// mountStatusString
-//
-/////////////////////////////////
-String Mount::mountStatusString()
-{
-    if (_mountStatus == STATUS_PARKED)
-    {
-        return "PARKED";
-    }
-    String disp = "";
-    if (_mountStatus & STATUS_PARKING)
-    {
-        disp = "PARKNG ";
-    }
-    else if (isGuiding())
-    {
-        disp = "GUIDING ";
-    }
-    else
-    {
-        if (_mountStatus & STATUS_TRACKING)
-            disp += "TRK ";
-        if (_mountStatus & STATUS_SLEWING)
-            disp += "SLW-";
-        if (_mountStatus & STATUS_SLEWING_TO_TARGET)
-            disp += "2TRG ";
-        if (_mountStatus & STATUS_SLEWING_FREE)
-            disp += "FR ";
-        if (_mountStatus & STATUS_SLEWING_MANUAL)
-            disp += "MAN ";
-
-        if (_mountStatus & STATUS_SLEWING)
-        {
-            byte slew = slewStatus();
-            if (slew & SLEWING_RA)
-                disp += " SRA ";
-            if (slew & SLEWING_DEC)
-                disp += " SDEC ";
-            if (slew & SLEWING_TRACKING)
-                disp += " STRK ";
-        }
-    }
-
-    disp += " RA:" + String(_stepperRA->currentPosition());
-    disp += " DEC:" + String(_stepperDEC->currentPosition());
-    disp += " TRK:" + String(_stepperTRK->currentPosition());
-
-    return disp;
-}
-#endif
 
 /////////////////////////////////
 //
@@ -2127,30 +2050,6 @@ bool Mount::isGuiding() const
 
 /////////////////////////////////
 //
-// isSlewingDEC
-//
-/////////////////////////////////
-bool Mount::isSlewingDEC() const
-{
-    if (isParking())
-        return true;
-    return (slewStatus() & SLEWING_DEC) != 0;
-}
-
-/////////////////////////////////
-//
-// isSlewingRA
-//
-/////////////////////////////////
-bool Mount::isSlewingRA() const
-{
-    if (isParking())
-        return true;
-    return (slewStatus() & SLEWING_RA) != 0;
-}
-
-/////////////////////////////////
-//
 // isSlewingDECorRA
 //
 /////////////////////////////////
@@ -2181,16 +2080,6 @@ bool Mount::isSlewingIdle() const
 bool Mount::isSlewingTRK() const
 {
     return (slewStatus() & SLEWING_TRACKING) != 0;
-}
-
-/////////////////////////////////
-//
-// isParked
-//
-/////////////////////////////////
-bool Mount::isParked() const
-{
-    return (slewStatus() == NOT_SLEWING) && (_mountStatus == STATUS_PARKED);
 }
 
 /////////////////////////////////
@@ -2942,8 +2831,7 @@ void Mount::loop()
                     }
                 }
 
-                _currentDECStepperPosition = _stepperDEC->currentPosition();
-                _currentRAStepperPosition  = _stepperRA->currentPosition();
+                _currentRAStepperPosition = _stepperRA->currentPosition();
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                 if (!isFindingHome())  // When finding home, we never want to switch back to tracking until homing is finished.
                 {

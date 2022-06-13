@@ -9,7 +9,6 @@
 
 #if DEBUG_LEVEL > 0
 unsigned long RealTime::_pausedTime   = 0;
-unsigned long RealTime::_startTime    = micros();
 unsigned long RealTime::_suspendStart = 0;
 int RealTime::_suspended              = 0;
 #endif

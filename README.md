@@ -1,12 +1,12 @@
 # OpenAstroTracker-Firmware
-Official firmware for the OpenAstroTracker.
+Official firmware for the OpenAstroTracker. Other important resources can be found [here](https://wiki.openastrotech.com/en/Links).
 
 ## Change log
 See the [Changelog](Changelog.md) for details about what versions made what changes.
 
 ## Coding guidelines
 
-See `.clang-format` file. A GitHub action is run on every PR to make sure that the code complies with the formatting guidelines. The action will automatically commit any changes, so you may have to `git pull` after opening a PR.
+See `.clang-format` file. A GitHub action is run on every PR to make sure that the code complies with the formatting guidelines.
 
 ### Run clang-format locally
 * Install `clang-format` version 12. _Note: not all distributions default to version 12_
@@ -15,7 +15,7 @@ See `.clang-format` file. A GitHub action is run on every PR to make sure that t
   * ArchLinux: `sudo pacman -S clang`
 * Run the formatter: 
   * VSCode Extension: [https://marketplace.visualstudio.com/items?itemName=xaver.clang-format](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format)
-  * Shell: `bash -c 'shopt -s nullglob; for i in ./{.,src,src/inc,boards/*}/*.{c,cpp,h,hpp}; do clang-format -i $i; done'`
+  * Shell: `bash -c 'shopt -s nullglob globstar;GLOBIGNORE=./src/libs/TimerInterrupt/*; for i in ./{.,src/**,unit_tests,boards/**}/*.{c,cpp,h,hpp}; do clang-format -i $i; done'`
 ## Contribution
 
 This is an open source project and everyone is welcome to contribute. We will be following these rules while reviewing your pull request:
@@ -30,18 +30,18 @@ Even if Arduino IDE is supported, we highly recommend using VSCode with [Platfor
 
 ### Debugging
 
-#### ATmega2560
+#### ATmega2560-based
 
 > :warning: **Debugging is only supported on mega2560 platforms at the moment!**
 
-For this example we will be using the `mega2560` environment, but you can use any derived environment as well
+For this example we will be using the `ramps` environment, but you can use any derived environment as well
 
 > You may need to set `debug_port` in your `platformio.ini`, platformio says it will auto-detect the port but it doesn't seem to be working at the moment
 
 Start a gdb shell debugging the current firmware:
 ```shell
-pio run -e mega2560 -t clean  # Clean the environment
-piodebuggdb -e mega2560  # Initialize a debug session.
+pio run -e ramps -t clean  # Clean the environment
+piodebuggdb -e ramps  # Initialize a debug session.
 # This will build the firmware in debug mode, and then initialize a remote gdb session
 # You may have visual debug capabilities in your IDE if it has platformio integration as well
 ```
