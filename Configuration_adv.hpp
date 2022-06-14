@@ -169,8 +169,6 @@
 // So there are 300.1 steps/degree (108245 / 360)  (V2: 322 (115812 / 360))
 // Theoretically correct RA tracking speed is 1.246586 (300 x 14.95903 / 3600) (V2 : 1.333800 (322 x 14.95903 / 3600) steps/sec (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
-#define RA_STEPS_PER_DEGREE_256 \
-        (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * 256 / 360.0f)
 #ifndef RA_STEPS_PER_DEGREE
     #define RA_STEPS_PER_DEGREE                                                                                                            \
         (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
