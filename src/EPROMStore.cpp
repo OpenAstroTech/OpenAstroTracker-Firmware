@@ -9,6 +9,9 @@ POP_NO_WARNINGS
 
 // The platform-independant EEPROM class
 
+// Steps/deg are normalized to this value and stored.
+const float SteppingStorageNormalized = 25600.0;
+
 ///////////////////////////////////////
 // PLATFORM-SPECIFIC IMPLEMENTATIONS
 
@@ -311,9 +314,11 @@ void EEPROMStore::updateFlagsExtended(ExtendedItemFlag item)
 // Erase all data in the store.
 void EEPROMStore::clearConfiguration()
 {
-    updateUint16(MAGIC_MARKER_AND_FLAGS_ADDR, 0);  // Clear the magic marker and flags
-    updateUint16(EXTENDED_FLAGS_ADDR, 0);          // Clear the extended flags
-    commit();                                      // Complete the transaction
+    for (int i = 0; i < STORE_SIZE; i++)
+    {
+        update(i, 0);
+    }
+    commit();  // Complete the transaction
 }
 
 // Return the saved Hour Angle (HA)
@@ -372,7 +377,6 @@ byte EEPROMStore::getBrightness()
 void EEPROMStore::storeBrightness(byte brightness)
 {
     // There is no item flag for brightness - it is assumed to always be present
-
     updateUint8(LCD_BRIGHTNESS_ADDR, brightness);
     commit();  // Complete the transaction
 }
@@ -383,8 +387,16 @@ float EEPROMStore::getRAStepsPerDegree()
 {
     float raStepsPerDegree(RA_STEPS_PER_DEGREE);  // Default value
 
-    if (isPresent(RA_STEPS_FLAG))
+    if (isPresentExtended(RA_NORM_STEPS_MARKER_FLAG))
     {
+        // Latest version stores 100x steps/deg for 256 MS
+        const float factor = SteppingStorageNormalized / RA_TRACKING_MICROSTEPPING;
+        raStepsPerDegree   = readInt32(RA_NORM_STEPS_DEGREE_ADDR) / factor;
+        LOG(DEBUG_EEPROM, "[EEPROM]: RA Normed Marker Present! RA steps/deg is %f", raStepsPerDegree);
+    }
+    else if (isPresent(RA_STEPS_FLAG))
+    {
+        // Previous versions stored 10x steps/deg for the specific MS setting
         raStepsPerDegree = 0.1 * readInt16(RA_STEPS_DEGREE_ADDR);
         LOG(DEBUG_EEPROM, "[EEPROM]: RA Marker OK! RA steps/deg is %f", raStepsPerDegree);
     }
@@ -399,23 +411,32 @@ float EEPROMStore::getRAStepsPerDegree()
 // Store the RA steps per degree (actually microsteps per degree).
 void EEPROMStore::storeRAStepsPerDegree(float raStepsPerDegree)
 {
-    int32_t val = raStepsPerDegree * 10;  // Store as tenths of degree
-    val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    // Store steps as 100x steps/deg at 256 MS.
+    const float factor = SteppingStorageNormalized / RA_TRACKING_MICROSTEPPING;
+    int32_t val        = raStepsPerDegree * factor;
     LOG(DEBUG_EEPROM, "[EEPROM]: Storing RA steps to %d (%f)", val, raStepsPerDegree);
 
-    updateInt16(RA_STEPS_DEGREE_ADDR, val);
-    updateFlags(RA_STEPS_FLAG);
+    updateInt32(RA_NORM_STEPS_DEGREE_ADDR, val);
+    updateFlagsExtended(RA_NORM_STEPS_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
-// Return the DEC steps per degree (actually microsteps per degree).
+// Return the DEC steps per degree for guiding (actually microsteps per degree).
 // If it is not present then the default uncalibrated DEC_STEPS_PER_DEGREE value is returned.
 float EEPROMStore::getDECStepsPerDegree()
 {
     float decStepsPerDegree(DEC_STEPS_PER_DEGREE);  // Default value
 
-    if (isPresent(DEC_STEPS_FLAG))
+    if (isPresentExtended(DEC_NORM_STEPS_MARKER_FLAG))
     {
+        // This version stored 100x steps/deg for 256 MS
+        const float factor = SteppingStorageNormalized / DEC_GUIDE_MICROSTEPPING;
+        decStepsPerDegree  = readInt32(DEC_NORM_STEPS_DEGREE_ADDR) / factor;
+        LOG(DEBUG_EEPROM, "[EEPROM]: DEC Normed Marker Present! DEC steps/deg is %f", decStepsPerDegree);
+    }
+    else if (isPresent(DEC_STEPS_FLAG))
+    {
+        // Previous versions stored 10x steps/deg for the specific MS setting
         decStepsPerDegree = 0.1 * readInt16(DEC_STEPS_DEGREE_ADDR);
         LOG(DEBUG_EEPROM, "[EEPROM]: DEC Marker OK! DEC steps/deg is %f", decStepsPerDegree);
     }
@@ -427,15 +448,15 @@ float EEPROMStore::getDECStepsPerDegree()
     return decStepsPerDegree;  // microsteps per degree
 }
 
-// Store the DEC steps per degree (actually microsteps per degree).
+// Store the DEC steps per degree for guiding (actually microsteps per degree).
 void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
 {
-    int32_t val = decStepsPerDegree * 10;  // Store as tenths of degree
-    val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    const float factor = SteppingStorageNormalized / DEC_GUIDE_MICROSTEPPING;
+    int32_t val        = decStepsPerDegree * factor;
     LOG(DEBUG_EEPROM, "[EEPROM]: Storing DEC steps to %d (%f)", val, decStepsPerDegree);
 
-    updateInt16(DEC_STEPS_DEGREE_ADDR, val);
-    updateFlags(DEC_STEPS_FLAG);
+    updateInt32(DEC_NORM_STEPS_DEGREE_ADDR, val);
+    updateFlagsExtended(DEC_NORM_STEPS_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
