@@ -2902,20 +2902,8 @@ void Mount::loop()
                         LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
                         _mountStatus &= ~STATUS_PARKING;
                         _slewingToPark = true;
-
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                        // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-                        LOG(DEBUG_STEPPERS,
-                            "[STEPPERS]: Loop.parking: Parking: Switching DEC driver to microsteps(%d)",
-                            DEC_SLEW_MICROSTEPPING);
-                        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-#endif
-                        // Update raParking
-                        _raParkingPos  = EEPROMStore::getRAParkingPos();
-                        _decParkingPos = EEPROMStore::getDECParkingPos();
-
-                        _stepperRA->moveTo(-_raParkingPos);
-                        _stepperDEC->moveTo(-_decParkingPos);
+                        _stepperRA->moveTo(_raParkingPos);
+                        _stepperDEC->moveTo(_decParkingPos);
                         _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
                         _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
                         LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
@@ -2927,7 +2915,6 @@ void Mount::loop()
                         if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
                         {
                             _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
-                            LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Setting Slewing active...");
                         }
                     }
                     else
@@ -2942,11 +2929,6 @@ void Mount::loop()
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
                     _mountStatus &= ~(STATUS_PARKING_POS | STATUS_SLEWING_TO_TARGET);
                     _slewingToPark = false;
-// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                    LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived at park, reset DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
-                    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
-#endif
                 }
                 _totalDECMove = _totalRAMove = 0;
 
@@ -3020,7 +3002,6 @@ long Mount::getDecParkingOffset()
 void Mount::setDecParkingOffset(long offset)
 {
     EEPROMStore::storeDECParkingPos(offset);
-    _decParkingPos = offset;
 }
 
 /////////////////////////////////
