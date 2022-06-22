@@ -17,7 +17,8 @@ void setControlMode(bool);  // In CTRL menu
 
 enum startupState_t
 {
-    StartupIsInHomePosition,
+    StartupAskIfRAHomingShouldRun,
+    StartupAskIfIsInHomePosition,
     StartupSetRoll,
     StartupWaitForRollCompletion,
     StartupRollConfirmed,
@@ -33,8 +34,12 @@ enum startupState_t
         #define NO     2
         #define CANCEL 3
 
-startupState_t startupState = StartupIsInHomePosition;
-int isInHomePosition        = NO;
+        #ifdef USE_HALL_SENSOR_RA_AUTOHOME == 1
+startupState_t startupState = StartupAskIfRAHomingShouldRun;
+        #else
+startupState_t startupState = StartupAskIfIsInHomePosition;
+        #endif
+int isInHomePosition = NO;
 
 void startupIsCompleted()
 {
@@ -57,7 +62,8 @@ bool processStartupKeys()
     bool waitForRelease = false;
     switch (startupState)
     {
-        case StartupIsInHomePosition:
+        case StartupAskIfRAHomingShouldRun: // TODO
+        case StartupAskIfIsInHomePosition:
             {
                 if (lcdButtons.keyChanged(&key))
                 {
@@ -155,7 +161,7 @@ bool processStartupKeys()
                 isInHomePosition = YES;
 
                 // Ask again to confirm
-                startupState = StartupIsInHomePosition;
+                startupState = StartupAskIfIsInHomePosition;
             }
             break;
 
@@ -170,7 +176,9 @@ void printStartupMenu()
 {
     switch (startupState)
     {
-        case StartupIsInHomePosition:
+        case StartupAskIfRAHomingShouldRun: // TODO
+
+        case StartupAskIfIsInHomePosition:
             {
                 //              0123456789012345
                 String choices(" Yes  No  Cancl ");

@@ -10,8 +10,10 @@ enum ctrlState_t
 {
     HIGHLIGHT_MANUAL,
     HIGHLIGHT_SERIAL,
+    HIGHLIGHT_RA_AUTO_HOME,
     MANUAL_CONTROL_MODE,
     MANUAL_CONTROL_CONFIRM_HOME,
+    RUNNING_RA_HOMING_MODE,
 };
 
 ctrlState_t ctrlState = HIGHLIGHT_MANUAL;
@@ -111,7 +113,15 @@ bool processControlKeys()
                     ctrlState = MANUAL_CONTROL_MODE;
                     mount.stopSlewing(ALL_DIRECTIONS);
                 }
-                else if ((key == btnDOWN) || (key == btnUP))
+                else if (key == btnDOWN)
+                {
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+        #else
+                    ctrlState = HIGHLIGHT_SERIAL;
+        #endif
+                }
+                else if (key == btnUP)
                 {
                     ctrlState = HIGHLIGHT_SERIAL;
                 }
@@ -122,6 +132,43 @@ bool processControlKeys()
             }
             break;
 
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+
+        case HIGHLIGHT_RA_AUTO_HOME:
+            if (lcdButtons.keyChanged(&key))
+            {
+                waitForRelease = true;
+                if (key == btnSELECT)
+                {
+                    ctrlState = RUNNING_RA_HOMING_MODE;
+                    lcdMenu.printMenu("RA Homing...");
+                    mount.stopSlewing(ALL_DIRECTIONS);
+                    mount.findRAHomeByHallSensor(-1, 2);  // Search 2hrs by default
+                }
+                else if (key == btnUP)
+                {
+                    ctrlState = HIGHLIGHT_MANUAL;
+                }
+                else if (key == btnDOWN)
+                {
+                    ctrlState = HIGHLIGHT_SERIAL;
+                }
+                else if (key == btnRIGHT)
+                {
+                    lcdMenu.setNextActive();
+                }
+            }
+            break;
+
+        case RUNNING_RA_HOMING_MODE:
+            {
+                if (!mount.isFindingHome())
+                {
+                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+                }
+            }
+            break;
+        #endif
         case HIGHLIGHT_SERIAL:
             if (lcdButtons.keyChanged(&key))
             {
@@ -130,9 +177,17 @@ bool processControlKeys()
                 {
                     inSerialControl = !inSerialControl;
                 }
-                else if ((key == btnDOWN) || (key == btnUP))
+                else if (key == btnDOWN)
                 {
                     ctrlState = HIGHLIGHT_MANUAL;
+                }
+                else if (key == btnUP)
+                {
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+        #else
+                    ctrlState = HIGHLIGHT_MANUAL;
+        #endif
                 }
                 else if (key == btnRIGHT)
                 {
@@ -223,6 +278,9 @@ void printControlSubmenu()
             break;
         case HIGHLIGHT_SERIAL:
             lcdMenu.printMenu(">Serial display");
+            break;
+        case HIGHLIGHT_RA_AUTO_HOME:
+            lcdMenu.printMenu(">Run RA Homing");
             break;
         case MANUAL_CONTROL_CONFIRM_HOME:
             {
