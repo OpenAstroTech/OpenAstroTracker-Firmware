@@ -4,8 +4,8 @@
     #if SUPPORT_MANUAL_CONTROL == 1
         #include "libs/MappedDict/MappedDict.hpp"
 
-bool setZeroPoint = true;
-
+bool setZeroPoint          = true;
+long raStepperPosAfterHome = 0L;
 enum ctrlState_t
 {
     HIGHLIGHT_MANUAL,
@@ -14,6 +14,8 @@ enum ctrlState_t
     MANUAL_CONTROL_MODE,
     MANUAL_CONTROL_CONFIRM_HOME,
     RUNNING_RA_HOMING_MODE,
+    CONFIRM_RA_AUTO_HOME_POS,
+    SLEW_TO_RA_HOME_POS,
 };
 
 ctrlState_t ctrlState = HIGHLIGHT_MANUAL;
@@ -72,7 +74,7 @@ bool controlManualSlew(lcdButton_t key, int dir)
  * Slew the mount in a direction depending on the input key
  * @param[in] key The current key being pressed
  */
-void processManualSlew(lcdButton_t key)
+void processManualSlew(lcdButton_t key, bool raOnly)
 {
     MappedDict<lcdButton_t, int>::DictEntry_t lookupTable[] = {
         {btnNONE, 0},
@@ -83,6 +85,7 @@ void processManualSlew(lcdButton_t key)
         {btnLEFT, WEST},
         {btnRIGHT, EAST},
     };
+
     auto directionLookup = MappedDict<lcdButton_t, int>(lookupTable, ARRAY_SIZE(lookupTable));
     int slewDirection;
     const bool directionInTable = directionLookup.tryGet(key, &slewDirection);
@@ -90,6 +93,11 @@ void processManualSlew(lcdButton_t key)
     {
         LOG(DEBUG_MOUNT, "[SYSTEM]: Unknown LCD button value: %i", key);
         return;
+    }
+
+    if (raOnly && ((slewDirection == SOUTH) || (slewDirection == NORTH)))
+    {
+        slewDirection = 0;
     }
 
     // Slew the mount in the desired direction
@@ -140,7 +148,10 @@ bool processControlKeys()
                 waitForRelease = true;
                 if (key == btnSELECT)
                 {
+                    okToUpdateMenu = false;
+                    LOG(DEBUG_MOUNT, "[CTRLMENU]: Select pressed, running homing");
                     ctrlState = RUNNING_RA_HOMING_MODE;
+                    lcdMenu.setCursor(0, 0);
                     lcdMenu.printMenu("RA Homing...");
                     mount.stopSlewing(ALL_DIRECTIONS);
                     mount.findRAHomeByHallSensor(-1, 2);  // Search 2hrs by default
@@ -164,11 +175,82 @@ bool processControlKeys()
             {
                 if (!mount.isFindingHome())
                 {
-                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+                    LOG(DEBUG_MOUNT, "[CTRLMENU]: Homing complete, asking confirmation");
+                    ctrlState = CONFIRM_RA_AUTO_HOME_POS;
+                    lcdMenu.setCursor(0, 0);
+                    lcdMenu.printMenu("Is RA home?");
                 }
             }
             break;
+
+        case CONFIRM_RA_AUTO_HOME_POS:
+            if (lcdButtons.keyChanged(&key))
+            {
+                waitForRelease = true;
+                if (key == btnSELECT)
+                {
+                    if (!setZeroPoint)  // No selected
+                    {
+                        okToUpdateMenu = false;
+                        lcdMenu.setCursor(0, 0);
+                        lcdMenu.printMenu("Use <> to home");
+                        lcdMenu.setCursor(0, 1);
+                        lcdMenu.printMenu("SEL to confirm");
+                        ctrlState             = SLEW_TO_RA_HOME_POS;
+                        raStepperPosAfterHome = mount.getCurrentStepperPosition(WEST);
+                        LOG(DEBUG_MOUNT,
+                            "[CTRLMENU]: Homing confirmation negative. Slewing activated. Start RA stepper at %l",
+                            raStepperPosAfterHome);
+                        setZeroPoint = true;
+                    }
+                    else  // Yes selected
+                    {
+                        okToUpdateMenu = true;
+                        LOG(DEBUG_MOUNT, "[CTRLMENU]: Homing confirmation positive. Set home.");
+                        mount.setHome(true);
+                        ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+                    }
+                }
+                else if (key == btnRIGHT || key == btnLEFT)
+                {
+                    setZeroPoint = !setZeroPoint;
+                }
+            }
+            break;
+
+        case SLEW_TO_RA_HOME_POS:
+            {
+                key = lcdButtons.currentState();
+                processManualSlew(key, true);  // Do the slewing
+                if (key == btnSELECT)
+                {
+                    waitForRelease = true;
+                    okToUpdateMenu = true;
+
+                    LOG(DEBUG_MOUNT,
+                        "[CTRLMENU]: Manual slewing complete. Current RA stepper at %l. ",
+                        mount.getCurrentStepperPosition(WEST));
+                    long offset = raStepperPosAfterHome - mount.getCurrentStepperPosition(WEST);
+                    LOG(DEBUG_MOUNT,
+                        "[CTRLMENU]: Manually slewed by %l. EEPROM offset is %l",
+                        offset,
+                        mount.getHomingOffset(StepperAxis::RA_STEPS));
+                    long newRAOffset = mount.getHomingOffset(StepperAxis::RA_STEPS) + offset;
+                    LOG(DEBUG_MOUNT, "[CTRLMENU]: New RA offset is %l. Set home.", newRAOffset);
+                    mount.setHomingOffset(StepperAxis::RA_STEPS, newRAOffset);
+                    mount.setHome(true);
+                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+                }
+                else if ((key == btnUP) || (key == btnDOWN))
+                {
+                    okToUpdateMenu = true;
+                    ctrlState      = CONFIRM_RA_AUTO_HOME_POS;
+                }
+            }
+            break;
+
         #endif
+
         case HIGHLIGHT_SERIAL:
             if (lcdButtons.keyChanged(&key))
             {
@@ -206,10 +288,10 @@ bool processControlKeys()
                     if (setZeroPoint)
                     {
                         // Leaving Control Menu, so set stepper motor positions to zero.
-                        LOG(DEBUG_GENERAL, "[CTRL]: Calling setHome(true)!");
+                        LOG(DEBUG_GENERAL, "[CTRLMENU]: Calling setHome(true)!");
                         mount.setHome(true);
                         LOG(DEBUG_GENERAL,
-                            "[CTRL]: setHome(true) returned: RA Current %s, Target: %f",
+                            "[CTRLMENU]: setHome(true) returned: RA Current %s, Target: %f",
                             mount.RAString(CURRENT_STRING | COMPACT_STRING).c_str(),
                             mount.RAString(TARGET_STRING | COMPACT_STRING).c_str());
                         mount.startSlewing(TRACKING);
@@ -240,7 +322,7 @@ bool processControlKeys()
 
         case MANUAL_CONTROL_MODE:
             key = lcdButtons.currentState();
-            processManualSlew(key);  // Do the slewing
+            processManualSlew(key, false);  // Do the slewing
 
             if (key == btnSELECT)
             {
@@ -283,6 +365,7 @@ void printControlSubmenu()
             lcdMenu.printMenu(">Run RA Homing");
             break;
         case MANUAL_CONTROL_CONFIRM_HOME:
+        case CONFIRM_RA_AUTO_HOME_POS:
             {
                 String disp = " Yes  No  ";
                 disp.setCharAt(setZeroPoint ? 0 : 5, '>');
