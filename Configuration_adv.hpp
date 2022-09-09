@@ -432,6 +432,14 @@
 #endif
 
 //////////////////////////////////////////
+// DEC Homing support
+//////////////////////////////////////////
+// Enable homing in your local configuration. Do not edit here!
+#ifndef USE_HALL_SENSOR_DEC_AUTOHOME
+    #define USE_HALL_SENSOR_DEC_AUTOHOME 0
+#endif
+
+//////////////////////////////////////////
 // LCD Display support
 //////////////////////////////////////////
 // Enable LCD functionality in your local configuration. Do not edit here!

@@ -794,6 +794,24 @@ int32_t EEPROMStore::getRAHomingOffset()
     return raHomingOffset;  // microsteps (slew)
 }
 
+// Get the configured DEC Homing offset for Hall sensor homing (slew microsteps relative to home).
+int32_t EEPROMStore::getDECHomingOffset()
+{
+    int32_t decHomingOffset(0);  // microsteps (slew)
+
+    if (isPresentExtended(DEC_HOMING_MARKER_FLAG))
+    {
+        decHomingOffset = readInt32(DEC_HOMING_OFFSET_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: DEC Homing offset read as %l", decHomingOffset);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC Homing offset");
+    }
+
+    return decHomingOffset;  // microsteps (slew)
+}
+
 // Store the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
 void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
 {

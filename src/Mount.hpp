@@ -59,6 +59,7 @@ struct HomingData {
     int searchDistance;
     long position[2];
     long offsetRA;
+    long offsetDEC;
     long startPos;
     unsigned long stopAt;
 };
@@ -366,10 +367,18 @@ class Mount
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     bool findRAHomeByHallSensor(int initialDirection, int searchDistance);
     void processRAHomingProgress();
-    String getHomingState(HomingState state) const;
+    String getRAHomingState(HomingState state) const;
 #endif
-    void setHomingOffset(StepperAxis axis, long offset);
-    long getHomingOffset(StepperAxis axis);
+
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    bool findDECHomeByHallSensor(int initialDirection, int searchDistance);
+    void processDECHomingProgress();
+    String getDECHomingState(HomingState state) const;
+#endif
+    void setRAHomingOffset(StepperAxis axis, long offset);
+    long getRAHomingOffset(StepperAxis axis);
+    void setDECHomingOffset(StepperAxis axis, long offset);
+    long getDECHomingOffset(StepperAxis axis);
 
     // Move the given stepper motor by the given amount of steps.
     void moveStepperBy(StepperAxis which, long steps);
@@ -529,7 +538,10 @@ class Mount
 #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    HomingData _homing;
+    HomingData _raHoming;
+#endif
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    HomingData _decHoming;
 #endif
 
     unsigned long _guideRaEndTime;

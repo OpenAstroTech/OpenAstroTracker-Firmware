@@ -1510,6 +1510,31 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 #endif
     }
 
+    else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'D')
+    {
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+        int distance = 2;
+        if (inCmd.length() > 3)
+        {
+            distance = clamp((int) inCmd.substring(3).toInt(), 1, 5);
+            LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", distance);
+        }
+
+        if (inCmd[2] == 'R')  // :MHDR
+        {
+            _mount->findDECHomeByHallSensor(-1, distance);
+            return "1";
+        }
+        else if (inCmd[2] == 'L')  // :MHDL
+        {
+            _mount->findDECHomeByHallSensor(1, distance);
+            return "1";
+        }
+#else
+        return "0";
+#endif
+    }
+
     return "0";
 }
 
@@ -1647,7 +1672,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XGHR#
             {
-                return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+                return String(_mount->getRAHomingOffset(StepperAxis::RA_STEPS)) + "#";
             }
             else
             {
@@ -1752,7 +1777,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XSHR
             {
-                _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+                _mount->setRAHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
             }
         }
     }

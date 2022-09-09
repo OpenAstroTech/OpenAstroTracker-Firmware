@@ -62,6 +62,9 @@ class EEPROMStore
     static int32_t getRAHomingOffset();
     static void storeRAHomingOffset(int32_t raHomingOffset);
 
+    static int32_t getDECHomingOffset();
+    static void storeDECHomingOffset(int32_t decHomingOffset);
+
   private:
     /////////////////////////////////
     //
@@ -119,6 +122,7 @@ class EEPROMStore
         DEC_LIMIT_MARKER_FLAG      = 0x0002,
         UTC_OFFSET_MARKER_FLAG     = 0x0004,
         RA_HOMING_MARKER_FLAG      = 0x0008,
+        DEC_HOMING_MARKER_FLAG      = 0x0009,
         RA_NORM_STEPS_MARKER_FLAG  = 0x0010,
         DEC_NORM_STEPS_MARKER_FLAG = 0x0020,
     };
@@ -179,6 +183,10 @@ class EEPROMStore
         _DEC_NORM_STEPS_DEGREE_ADDR_1,
         _DEC_NORM_STEPS_DEGREE_ADDR_2,
         _DEC_NORM_STEPS_DEGREE_ADDR_3,  // Int32
+        DEC_HOMING_OFFSET_ADDR = 49,
+        _DEC_HOMING_OFFSET_ADDR_1,
+        _DEC_HOMING_OFFSET_ADDR_2,
+        _DEC_HOMING_OFFSET_ADDR_3,  // Int32
         STORE_SIZE = 64
     };
 

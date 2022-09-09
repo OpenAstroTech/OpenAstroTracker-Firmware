@@ -150,6 +150,11 @@
     #define RA_HOMING_SENSOR_PIN 53
 #endif
 
+// DEC Homing pin for Hall sensor
+#ifndef DEC_HOMING_SENSOR_PIN
+    #define DEC_HOMING_SENSOR_PIN 52
+#endif
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
     #define GPS_SERIAL_PORT Serial1
