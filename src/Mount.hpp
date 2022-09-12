@@ -4,11 +4,14 @@
 #include "Declination.hpp"
 #include "Latitude.hpp"
 #include "Longitude.hpp"
+#include "Types.hpp"
+// #include "HallSensorHoming.hpp"
 
 // Forward declarations
 class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
+class HallSensorHoming;
 
 #define NORTH          B00000001
 #define EAST           B00000010
@@ -28,51 +31,21 @@ class TMC2209Stepper;
 #define TARGET_STRING  B01000
 #define CURRENT_STRING B10000
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-enum HomingState
-{
-    HOMING_MOVE_OFF,
-    HOMING_MOVING_OFF,
-    HOMING_STOP_AT_TIME,
-    HOMING_WAIT_FOR_STOP,
-    HOMING_START_FIND_START,
-    HOMING_FINDING_START,
-    HOMING_FINDING_START_REVERSE,
-    HOMING_FINDING_END,
-    HOMING_RANGE_FOUND,
-    HOMING_FAILED,
-    HOMING_SUCCESSFUL,
-
-    HOMING_NOT_ACTIVE
-};
-
-    #define HOMING_START_PIN_POSITION 0
-    #define HOMING_END_PIN_POSITION   1
-
-struct HomingData {
-    HomingState state;
-    HomingState nextState;
-    int pinState;
-    int lastPinState;
-    int savedRate;
-    int initialDir;
-    int searchDistance;
-    long position[2];
-    long offsetRA;
-    long offsetDEC;
-    long startPos;
-    unsigned long stopAt;
-};
-#endif
-
-enum StepperAxis
-{
-    RA_STEPS,
-    DEC_STEPS,
-    AZIMUTH_STEPS,
-    ALTITUDE_STEPS,
-    FOCUS_STEPS
-};
+//mountstatus
+#define STATUS_PARKED            0B0000000000000000
+#define STATUS_SLEWING           0B0000000000000010
+#define STATUS_SLEWING_TO_TARGET 0B0000000000000100
+#define STATUS_SLEWING_FREE      0B0000000000000010
+#define STATUS_SLEWING_MANUAL    0B0000000100000000
+#define STATUS_TRACKING          0B0000000000001000
+#define STATUS_PARKING           0B0000000000010000
+#define STATUS_PARKING_POS       0B0001000000000000
+#define STATUS_GUIDE_PULSE       0B0000000010000000
+#define STATUS_GUIDE_PULSE_DIR   0B0000000001100000
+#define STATUS_GUIDE_PULSE_RA    0B0000000001000000
+#define STATUS_GUIDE_PULSE_DEC   0B0000000000100000
+#define STATUS_GUIDE_PULSE_MASK  0B0000000011100000
+#define STATUS_FINDING_HOME      0B0010000000000000
 
 struct LocalDate {
     int year;
@@ -213,6 +186,7 @@ class Mount
 
     // Sets the slew rate of the mount. rate is between 1 (slowest) and 4 (fastest)
     void setSlewRate(int rate);
+    int getSlewRate();
 
     // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
     void setHA(const DayTime &haTime);
@@ -257,6 +231,7 @@ class Mount
     bool isParking() const;
     bool isGuiding() const;
     bool isFindingHome() const;
+    bool isAxisRunning(StepperAxis axis);
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool isRunningAZ() const;
 #endif
@@ -274,6 +249,7 @@ class Mount
 
     // Stop manual slewing in one of two directions or tracking. NS is the same. EW is the same
     void stopSlewing(int direction);
+    void stopSlewing(StepperAxis axis);
 
     // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
     void waitUntilStopped(byte direction);
@@ -283,6 +259,10 @@ class Mount
 
     // Gets the position in one of eight directions or tracking
     long getCurrentStepperPosition(int direction);
+    long getCurrentStepperPosition(StepperAxis axis);
+    
+    // Set the tracking stepper position
+    void setTrackingStepperPos(long stepPos);
 
     // Process any stepper movement.
     void loop();
@@ -329,6 +309,8 @@ class Mount
 
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
+    void setStatusFlag(int flag);
+    void clearStatusFlag(int flag);
 
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction);
@@ -364,24 +346,19 @@ class Mount
     void focusStop();
 #endif
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    bool findRAHomeByHallSensor(int initialDirection, int searchDistance);
-    void processRAHomingProgress();
-    String getRAHomingState(HomingState state) const;
+#if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
+    bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance);
+    void processHomingProgress();
 #endif
 
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    bool findDECHomeByHallSensor(int initialDirection, int searchDistance);
-    void processDECHomingProgress();
-    String getDECHomingState(HomingState state) const;
-#endif
-    void setRAHomingOffset(StepperAxis axis, long offset);
-    long getRAHomingOffset(StepperAxis axis);
-    void setDECHomingOffset(StepperAxis axis, long offset);
-    long getDECHomingOffset(StepperAxis axis);
+    void setHomingOffset(StepperAxis axis, long offset);
+    long getHomingOffset(StepperAxis axis);
 
     // Move the given stepper motor by the given amount of steps.
     void moveStepperBy(StepperAxis which, long steps);
+
+    // Move the given stepper motor to the given step position.
+    void moveStepperTo(StepperAxis which, long position);
 
     // Set the number of steps to use for backlash correction
     void setBacklashCorrection(int steps);
@@ -400,9 +377,6 @@ class Mount
 
     // Get info about the configured steppers and drivers
     String getStepperInfo();
-
-    // Debug helper
-    void setTrackingStepperPos(long stepPos);
 
     // Returns a flag indicating whether the mount is fully booted.
     bool isBootComplete();
@@ -538,10 +512,10 @@ class Mount
 #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    HomingData _raHoming;
+    HallSensorHoming* _raHoming;
 #endif
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    HomingData _decHoming;
+    HallSensorHoming* _decHoming;
 #endif
 
     unsigned long _guideRaEndTime;

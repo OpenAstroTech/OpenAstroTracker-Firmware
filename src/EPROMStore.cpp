@@ -821,3 +821,13 @@ void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
     updateFlagsExtended(RA_HOMING_MARKER_FLAG);
     commit();  // Complete the transaction
 }
+
+// Store the configured DEC Homing offset for Hall sensor homing (slew microsteps relative to home).
+void EEPROMStore::storeDECHomingOffset(int32_t decHomingOffset)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Homing offset to %l", decHomingOffset);
+
+    updateInt32(DEC_HOMING_OFFSET_ADDR, decHomingOffset);
+    updateFlagsExtended(DEC_HOMING_MARKER_FLAG);
+    commit();  // Complete the transaction
+}

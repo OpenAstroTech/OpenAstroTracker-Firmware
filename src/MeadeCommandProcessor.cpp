@@ -522,6 +522,27 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1" returns if search is started
 //        "0" if homing has not been enabled in the local config
 //
+// :MHDxn#
+//      Description:
+//        Home DEC stepper via Hall sensor
+//      Information:
+//        This attempts to find the hall sensor and to home the DEC axis accordingly.
+//      Parameters:
+//        "x" is either 'U' or 'D' and determines the direction in which the search starts (U is up, D is down).
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
+//      Remarks:
+//        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
+//        it will move twice the amount (60 degrees by default) in the opposite direction.
+//        If a hall sensor is not encountered during that slew, the homing exits with a failure.
+//        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset
+//        specified in the Home offset position (set with the ":XSHDnnnn#" command).
+//        If the DEC ring is positioned such that the Hall sensor is already triggered when the command is received, the mount will move
+//        the DEC ring off the trigger in the opposite direction specified for a max of 15 degrees before searching 30 degrees in the
+//        specified direction.
+//      Returns:
+//        "1" returns if search is started
+//        "0" if homing has not been enabled in the local config
+//
 // :MAZn.nn#
 //      Description:
 //        Move Azimuth
@@ -830,6 +851,17 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        This offset is added to the position of the RA ring when it is centered on the hall sensor triggered range after running.
 //        the RA homing command (:MHRx#)
+//      Parameters:
+//        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
+//      Returns:
+//        nothing
+//
+// :XSHDnnn#
+//      Description:
+//        Set homing offset for DEC ring from Hall sensor center
+//      Information:
+//        This offset is added to the position of the DEC ring when it is centered on the hall sensor triggered range after running.
+//        the DEC homing command (:MHDx#)
 //      Parameters:
 //        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
 //      Returns:
@@ -1497,42 +1529,39 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 
         if (inCmd[2] == 'R')  // :MHRR
         {
-            _mount->findRAHomeByHallSensor(-1, distance);
+            _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, -1, distance);
             return "1";
         }
         else if (inCmd[2] == 'L')  // :MHRL
         {
-            _mount->findRAHomeByHallSensor(1, distance);
+            _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, 1, distance);
             return "1";
         }
-#else
         return "0";
 #endif
     }
-
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'D')
     {
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-        int distance = 2;
+        int decDistance = 2;
         if (inCmd.length() > 3)
         {
-            distance = clamp((int) inCmd.substring(3).toInt(), 1, 5);
-            LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", distance);
+            decDistance  = clamp((int) inCmd.substring(3).toInt(), 15, 75);
+            LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", decDistance );
         }
 
-        if (inCmd[2] == 'R')  // :MHDR
+        if (inCmd[2] == 'U')  // :MHDU
         {
-            _mount->findDECHomeByHallSensor(-1, distance);
+            _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, 1, decDistance);
             return "1";
         }
-        else if (inCmd[2] == 'L')  // :MHDL
+        else if (inCmd[2] == 'D')  // :MHDD
         {
-            _mount->findDECHomeByHallSensor(1, distance);
+            _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, -1, decDistance);
             return "1";
         }
-#else
-        return "0";
 #endif
+        return "0";
     }
 
     return "0";
@@ -1672,9 +1701,14 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XGHR#
             {
-                return String(_mount->getRAHomingOffset(StepperAxis::RA_STEPS)) + "#";
+                return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+            }
+            else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XGHD#
+            {
+                return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
             }
             else
+
             {
                 char scratchBuffer[10];
                 DayTime ha = _mount->calculateHa();
@@ -1777,7 +1811,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XSHR
             {
-                _mount->setRAHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+                _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+            } else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XSHD
+            {
+                _mount->setHomingOffset(StepperAxis::DEC_STEPS, inCmd.substring(3).toInt());
             }
         }
     }
