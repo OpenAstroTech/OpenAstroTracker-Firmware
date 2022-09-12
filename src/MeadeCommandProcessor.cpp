@@ -1520,10 +1520,10 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')
     {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-        int distance = 2;
+        int distance = 30;
         if (inCmd.length() > 3)
         {
-            distance = clamp((int) inCmd.substring(3).toInt(), 1, 5);
+            distance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
             LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
         }
 
@@ -1543,7 +1543,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'D')
     {
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-        int decDistance = 2;
+        int decDistance = 30;
         if (inCmd.length() > 3)
         {
             decDistance  = clamp((int) inCmd.substring(3).toInt(), 15, 75);

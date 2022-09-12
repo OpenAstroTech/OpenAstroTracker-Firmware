@@ -58,6 +58,12 @@ bool HallSensorHoming::findHomeByHallSensor(int initialDirection, int searchDist
     _pMount->setSlewRate(4);
     _pMount->setStatusFlag(STATUS_FINDING_HOME);
 
+    LOG(DEBUG_STEPPERS,
+        "[HOMING]: Start homing procedure. Axis %d, StepsPerDegree: %l, SearchDist: %d",
+        (int) _axis,
+        _stepsPerDegree,
+        searchDistance);
+
     // Check where we are over the sensor already
     if (digitalRead(_sensorPin) == LOW)
     {
@@ -117,7 +123,7 @@ void HallSensorHoming::processHomingProgress()
                     "[HOMING]: Currently over Sensor, so moving off of it by reverse 15deg. (%l steps). Advance to %s",
                     (long) (-_homingData.initialDir * _stepsPerDegree * 15),
                     getHomingState(HomingState::HOMING_MOVING_OFF).c_str());
-                _pMount->moveStepperBy(StepperAxis::DEC_STEPS, -_homingData.initialDir * _stepsPerDegree * 15);
+                _pMount->moveStepperBy(_axis, -_homingData.initialDir * _stepsPerDegree * 15);
                 _homingData.state = HomingState::HOMING_MOVING_OFF;
             }
             break;
@@ -151,7 +157,7 @@ void HallSensorHoming::processHomingProgress()
             {
                 long distance = _homingData.initialDir * _stepsPerDegree * _homingData.searchDistance;
                 LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Finding start on forward pass by moving RA by %dh (%l steps). Advance to %s",
+                    "[HOMING]: Finding start on forward pass by moving by %l deg (%l steps). Advance to %s",
                     _homingData.searchDistance,
                     distance,
                     getHomingState(HomingState::HOMING_FINDING_START).c_str());
@@ -160,7 +166,7 @@ void HallSensorHoming::processHomingProgress()
                 _homingData.position[HOMING_END_PIN_POSITION]   = 0;
 
                 // Move in initial direction
-                _pMount->moveStepperBy(StepperAxis::DEC_STEPS, distance);
+                _pMount->moveStepperBy(_axis, distance);
 
                 _homingData.state = HomingState::HOMING_FINDING_START;
             }
@@ -187,11 +193,11 @@ void HallSensorHoming::processHomingProgress()
                     // Did not find start. Go reverse direction for twice the distance
                     long distance = -_homingData.initialDir * _stepsPerDegree * _homingData.searchDistance * 2L;
                     LOG(DEBUG_STEPPERS,
-                        "[HOMING]: Hall not found on forward pass. Moving DEC reverse by %dh (%l steps). Advance to %s",
+                        "[HOMING]: Hall not found on forward pass. Moving reverse by %l deg (%l steps). Advance to %s",
                         2 * _homingData.searchDistance,
                         distance,
                         getHomingState(HomingState::HOMING_FINDING_START_REVERSE).c_str());
-                    _pMount->moveStepperBy(StepperAxis::DEC_STEPS, distance);
+                    _pMount->moveStepperBy(_axis, distance);
                     _homingData.state = HomingState::HOMING_FINDING_START_REVERSE;
                 }
             }
@@ -235,9 +241,9 @@ void HallSensorHoming::processHomingProgress()
                             getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
                         _homingData.position[HOMING_END_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
                         _homingData.lastPinState                      = homingPinState;
+                        _homingData.state                             = HomingState::HOMING_WAIT_FOR_STOP;
+                        _homingData.nextState                         = HomingState::HOMING_RANGE_FOUND;
                         _pMount->stopSlewing(_axis);
-                        _homingData.state     = HomingState::HOMING_WAIT_FOR_STOP;
-                        _homingData.nextState = HomingState::HOMING_RANGE_FOUND;
                     }
                 }
                 else
@@ -261,13 +267,14 @@ void HallSensorHoming::processHomingProgress()
                 long midPos = (_homingData.position[HOMING_START_PIN_POSITION] + _homingData.position[HOMING_END_PIN_POSITION]) / 2;
 
                 LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Moving DEC to home by %l - (%l) - (%l) steps. Advance to %s",
+                    "[HOMING]: Moving home by %l - (%l) - (%l), so %l steps. Advance to %s",
                     midPos,
                     _pMount->getCurrentStepperPosition(_axis),
                     _homingData.offset,
+                    midPos - _pMount->getCurrentStepperPosition(_axis) - _homingData.offset,
                     getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
 
-                _pMount->moveStepperBy(StepperAxis::DEC_STEPS, midPos - _pMount->getCurrentStepperPosition(_axis) - _homingData.offset);
+                _pMount->moveStepperBy(_axis, midPos - _pMount->getCurrentStepperPosition(_axis) - _homingData.offset);
 
                 _homingData.state     = HomingState::HOMING_WAIT_FOR_STOP;
                 _homingData.nextState = HomingState::HOMING_SUCCESSFUL;
@@ -279,9 +286,9 @@ void HallSensorHoming::processHomingProgress()
                 LOG(DEBUG_STEPPERS,
                     "[HOMING]: Successfully homed! Setting home and restoring Rate setting. Advance to %s",
                     getHomingState(HomingState::HOMING_NOT_ACTIVE).c_str());
+                _homingData.state = HomingState::HOMING_NOT_ACTIVE;
                 _pMount->setHome(false);
                 _pMount->setSlewRate(_homingData.savedRate);
-                _homingData.state = HomingState::HOMING_NOT_ACTIVE;
                 _pMount->clearStatusFlag(STATUS_FINDING_HOME);
                 _pMount->startSlewing(TRACKING);
             }
