@@ -11,14 +11,27 @@ enum ctrlState_t
     HIGHLIGHT_MANUAL,
     HIGHLIGHT_SERIAL,
     HIGHLIGHT_RA_AUTO_HOME,
+    HIGHLIGHT_DEC_OFFSET_HOME,
     MANUAL_CONTROL_MODE,
     MANUAL_CONTROL_CONFIRM_HOME,
     RUNNING_RA_HOMING_MODE,
     CONFIRM_RA_AUTO_HOME_POS,
     SLEW_TO_RA_HOME_POS,
+    RUNNING_DEC_OFFSET_HOMING,
 };
 
-ctrlState_t ctrlState = HIGHLIGHT_MANUAL;
+ctrlState_t ctrlState         = HIGHLIGHT_MANUAL;
+int currentState              = 0;
+ctrlState_t validCtrlStates[] = {
+    HIGHLIGHT_MANUAL,
+    HIGHLIGHT_SERIAL,
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    HIGHLIGHT_RA_AUTO_HOME,
+        #endif
+    HIGHLIGHT_DEC_OFFSET_HOME,
+};
+
+const int numValidStates = sizeof(validCtrlStates) / sizeof(validCtrlStates[0]);
 
 void setControlMode(bool state)
 {
@@ -101,7 +114,10 @@ void processManualSlew(lcdButton_t key, bool raOnly)
     }
 
     // Slew the mount in the desired direction
-    (void) controlManualSlew(key, slewDirection);
+    if (controlManualSlew(key, slewDirection))
+    {
+        LOG(DEBUG_MOUNT, "[CTRLMENU]: SlewDirection changed after call with key %d and dir %d", key, slewDirection);
+    }
 }
 
 bool processControlKeys()
@@ -123,15 +139,13 @@ bool processControlKeys()
                 }
                 else if (key == btnDOWN)
                 {
-        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
-        #else
-                    ctrlState = HIGHLIGHT_SERIAL;
-        #endif
+                    currentState = adjustWrap(currentState, 1, 0, numValidStates - 1);
+                    ctrlState    = validCtrlStates[currentState];
                 }
                 else if (key == btnUP)
                 {
-                    ctrlState = HIGHLIGHT_SERIAL;
+                    currentState = adjustWrap(currentState, -1, 0, numValidStates - 1);
+                    ctrlState = validCtrlStates[currentState];
                 }
                 else if (key == btnRIGHT)
                 {
@@ -156,13 +170,15 @@ bool processControlKeys()
                     mount.stopSlewing(ALL_DIRECTIONS);
                     mount.findRAHomeByHallSensor(-1, 2);  // Search 2hrs by default
                 }
-                else if (key == btnUP)
-                {
-                    ctrlState = HIGHLIGHT_MANUAL;
-                }
                 else if (key == btnDOWN)
                 {
-                    ctrlState = HIGHLIGHT_SERIAL;
+                    currentState = adjustWrap(currentState, 1, 0, numValidStates - 1);
+                    ctrlState    = validCtrlStates[currentState];
+                }
+                else if (key == btnUP)
+                {
+                    currentState = adjustWrap(currentState, -1, 0, numValidStates - 1);
+                    ctrlState    = validCtrlStates[currentState];
                 }
                 else if (key == btnRIGHT)
                 {
@@ -186,6 +202,7 @@ bool processControlKeys()
         case CONFIRM_RA_AUTO_HOME_POS:
             if (lcdButtons.keyChanged(&key))
             {
+                LOG(DEBUG_MOUNT, "[CTRLMENU]: Waiting for confirmation, key changed to %d", key);
                 waitForRelease = true;
                 if (key == btnSELECT)
                 {
@@ -211,7 +228,7 @@ bool processControlKeys()
                         ctrlState = HIGHLIGHT_RA_AUTO_HOME;
                     }
                 }
-                else if (key == btnRIGHT || key == btnLEFT)
+                else if ((key == btnRIGHT) || (key == btnLEFT))
                 {
                     setZeroPoint = !setZeroPoint;
                 }
@@ -220,8 +237,10 @@ bool processControlKeys()
 
         case SLEW_TO_RA_HOME_POS:
             {
-                key = lcdButtons.currentState();
+                key                   = lcdButtons.currentKey();
+                lcdButton_t beforeKey = key;
                 processManualSlew(key, true);  // Do the slewing
+                lcdButton_t afterKey = key;
                 if (key == btnSELECT)
                 {
                     waitForRelease = true;
@@ -243,6 +262,8 @@ bool processControlKeys()
                 }
                 else if ((key == btnUP) || (key == btnDOWN))
                 {
+                    LOG(DEBUG_MOUNT, "[CTRLMENU]: SLewing detected Up or Down key (%d), %d, %d", key, beforeKey, afterKey);
+                    waitForRelease = true;
                     okToUpdateMenu = true;
                     ctrlState      = CONFIRM_RA_AUTO_HOME_POS;
                 }
@@ -250,6 +271,48 @@ bool processControlKeys()
             break;
 
         #endif
+
+        case HIGHLIGHT_DEC_OFFSET_HOME:
+            if (lcdButtons.keyChanged(&key))
+            {
+                waitForRelease = true;
+                if (key == btnSELECT)
+                {
+                    okToUpdateMenu = false;
+                    LOG(DEBUG_MOUNT, "[CTRLMENU]: Select pressed, running DEC offset homing. Moving by %l", mount.getDecParkingOffset());
+                    lcdMenu.setCursor(0, 0);
+                    lcdMenu.printMenu("DEC Homing...");
+                    mount.stopSlewing(ALL_DIRECTIONS);
+                    mount.moveStepperBy(DEC_STEPS, mount.getDecParkingOffset());
+                    ctrlState = RUNNING_DEC_OFFSET_HOMING;
+                }
+                else if (key == btnDOWN)
+                {
+                    currentState = adjustWrap(currentState, 1, 0, numValidStates - 1);
+                    ctrlState    = validCtrlStates[currentState];
+                }
+                else if (key == btnUP)
+                {
+                    currentState = adjustWrap(currentState, -1, 0, numValidStates - 1);
+                    ctrlState    = validCtrlStates[currentState];
+                }
+                else if (key == btnRIGHT)
+                {
+                    lcdMenu.setNextActive();
+                }
+            }
+            break;
+
+        case RUNNING_DEC_OFFSET_HOMING:
+            {
+                if (!mount.isSlewingRAorDEC())
+                {
+                    LOG(DEBUG_MOUNT, "[CTRLMENU]: DEC Offset homing complete, setting home");
+                    ctrlState = HIGHLIGHT_DEC_OFFSET_HOME;
+                    mount.setHome(false);
+                }
+            }
+            break;
 
         case HIGHLIGHT_SERIAL:
             if (lcdButtons.keyChanged(&key))
@@ -261,15 +324,11 @@ bool processControlKeys()
                 }
                 else if (key == btnDOWN)
                 {
-                    ctrlState = HIGHLIGHT_MANUAL;
+                    currentState = adjustWrap(currentState, 1, 0, numValidStates - 1);
                 }
                 else if (key == btnUP)
                 {
-        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
-        #else
-                    ctrlState = HIGHLIGHT_MANUAL;
-        #endif
+                    currentState = adjustWrap(currentState, -1, 0, numValidStates - 1);
                 }
                 else if (key == btnRIGHT)
                 {
@@ -363,6 +422,9 @@ void printControlSubmenu()
             break;
         case HIGHLIGHT_RA_AUTO_HOME:
             lcdMenu.printMenu(">Run RA Homing");
+            break;
+        case HIGHLIGHT_DEC_OFFSET_HOME:
+            lcdMenu.printMenu(">DEC Off. Home");
             break;
         case MANUAL_CONTROL_CONFIRM_HOME:
         case CONFIRM_RA_AUTO_HOME_POS:

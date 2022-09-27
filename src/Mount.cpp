@@ -1299,12 +1299,15 @@ void Mount::startSlewingToTarget()
     LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
     if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
     {
-        // Only stop tracking if we're actually going to slew somewhere else, otherwise the
+        // Only stop tracking if we're tracking and actually going to slew somewhere else, otherwise the
         // mount::loop() code won't detect the end of the slewing operation...
-        LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
-        stopSlewing(TRACKING);
-        _trackerStoppedAt        = millis();
-        _compensateForTrackerOff = true;
+        if (slewStatus() == SLEWING_TRACKING)
+        {
+            LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
+            stopSlewing(TRACKING);
+            _trackerStoppedAt        = millis();
+            _compensateForTrackerOff = true;
+        }
 
 // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -2899,6 +2902,12 @@ void Mount::loop()
                     _targetRA = currentRA();
                     if (isParking())
                     {
+// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+                        LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Parking. DEC driver setMicrosteps(%d)", DEC_SLEW_MICROSTEPPING);
+                        _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+#endif
+
                         LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
                         _mountStatus &= ~STATUS_PARKING;
                         _slewingToPark = true;
@@ -2915,6 +2924,7 @@ void Mount::loop()
                         if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
                         {
                             _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
+                            LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Moving to park position. Status: %d", _mountStatus);
                         }
                     }
                     else
@@ -2929,6 +2939,11 @@ void Mount::loop()
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
                     _mountStatus &= ~(STATUS_PARKING_POS | STATUS_SLEWING_TO_TARGET);
                     _slewingToPark = false;
+// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived at park. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
+                _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
+#endif
                 }
                 _totalDECMove = _totalRAMove = 0;
 
@@ -3002,6 +3017,7 @@ long Mount::getDecParkingOffset()
 void Mount::setDecParkingOffset(long offset)
 {
     EEPROMStore::storeDECParkingPos(offset);
+    _decParkingPos = offset;
 }
 
 /////////////////////////////////
@@ -3023,13 +3039,13 @@ void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
 {
     if (upper)
     {
-        _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
+        _decUpperLimit = (stepperPos == 0) ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
+        _decLowerLimit = (stepperPos == 0) ? -(DEC_LIMIT_DOWN * _stepsPerDECDegree) : stepperPos;
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
@@ -3334,12 +3350,15 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
             {
-                // Only stop tracking if we're actually going to slew somewhere else, otherwise the
+                // Only stop tracking if we're tracking and actually going to slew somewhere else, otherwise the
                 // mount::loop() code won't detect the end of the slewing operation...
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Stop tracking (NEMA steppers)");
-                stopSlewing(TRACKING);
-                _trackerStoppedAt        = millis();
-                _compensateForTrackerOff = true;
+                if (isSlewingTRK())
+                {
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Stop tracking (NEMA steppers)");
+                    stopSlewing(TRACKING);
+                    _trackerStoppedAt        = millis();
+                    _compensateForTrackerOff = true;
+                }
 
 // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART

@@ -17,7 +17,7 @@ enum
     HIGHLIGHT_RA_STEPS,
     HIGHLIGHT_DEC_STEPS,
     HIGHLIGHT_BACKLASH_STEPS,
-    HIGHLIGHT_PARKING_POS,
+    HIGHLIGHT_DEC_HOME_OFFSET,
     HIGHLIGHT_DEC_LOWER_LIMIT,
     HIGHLIGHT_DEC_UPPER_LIMIT,
     HIGHLIGHT_UTC_OFFSET,
@@ -63,7 +63,7 @@ enum
         #define BACKLASH_CALIBRATION 70
 
         // Confirm that the current position is the parking position
-        #define PARKING_POS_CONFIRM 80
+        #define DEC_HOME_OFFSET_CONFIRM 80
 
         // Confirm that current position is the DEC Lower limit
         #define DEC_LOWER_LIMIT_CONFIRM 90
@@ -137,6 +137,7 @@ int Brightness = 255;
 void gotoNextMenu()
 {
     lcdMenu.setNextActive();
+    okToUpdateMenu = true;
 
         #if USE_GYRO_LEVEL == 1
     Gyro::shutdown();
@@ -784,42 +785,7 @@ bool processCalibrationKeys()
                 }
                 break;
 
-            case PARKING_POS_CONFIRM:
-                {
-                    if (key == btnDOWN || key == btnLEFT || key == btnUP)
-                    {
-                        parkYesNoIndex = adjustWrap(parkYesNoIndex, 1, 0, 1);
-                    }
-                    if (key == btnSELECT)
-                    {
-                        if (parkYesNoIndex == 0)
-                        {  // Yes
-                            mount.setParkingPosition();
-                            lcdMenu.printMenu("Position stored.");
-                            mount.delay(800);
-                        }
-                        else
-                        {
-                            lcdMenu.printMenu("Use CTRL to move");
-                            mount.delay(750);
-                            lcdMenu.setCursor(0, 1);
-                            lcdMenu.printMenu("OAT to park pos,");
-                            mount.delay(750);
-                            lcdMenu.setCursor(0, 1);
-                            lcdMenu.printMenu("then come back.");
-                            mount.delay(700);
-                        }
-                        calState = HIGHLIGHT_PARKING_POS;
-                    }
-                    else if (key == btnRIGHT)
-                    {
-                        // RIGHT cancels duration selection and returns to menu
-                        calState      = HIGHLIGHT_PARKING_POS;
-                        driftSubIndex = 1;
-                    }
-                }
-                break;
-
+            case DEC_HOME_OFFSET_CONFIRM:
             case DEC_LOWER_LIMIT_CONFIRM:
             case DEC_UPPER_LIMIT_CONFIRM:
                 {
@@ -831,14 +797,30 @@ bool processCalibrationKeys()
                     {
                         if (limitSetClearCancelIndex == 0)
                         {  // Set
-                            mount.setDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
-                            lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit stored" : "LowLimit stored");
+                            if (calState == DEC_HOME_OFFSET_CONFIRM)
+                            {
+                                mount.setDecParkingOffset(mount.getCurrentStepperPosition(NORTH));
+                                lcdMenu.printMenu("DecOffset stored");
+                            }
+                            else
+                            {
+                                mount.setDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
+                                lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit stored" : "LowLimit stored");
+                            }
                             mount.delay(800);
                         }
                         if (limitSetClearCancelIndex == 1)
                         {  // Clear
-                            mount.clearDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
-                            lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit cleared" : "LowLimit cleared");
+                            if (calState == DEC_HOME_OFFSET_CONFIRM)
+                            {
+                                mount.setDecParkingOffset(0);
+                                lcdMenu.printMenu("DecOffset cleard");
+                            }
+                            else
+                            {
+                                mount.clearDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
+                                lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit cleared" : "LowLimit cleared");
+                            }
                             mount.delay(800);
                         }
                         else if (limitSetClearCancelIndex == 2)
@@ -853,13 +835,27 @@ bool processCalibrationKeys()
                             lcdMenu.printMenu("then come back.");
                             mount.delay(700);
                         }
-                        calState       = (calState == DEC_UPPER_LIMIT_CONFIRM) ? HIGHLIGHT_DEC_UPPER_LIMIT : HIGHLIGHT_DEC_LOWER_LIMIT;
+                        if (calState == DEC_HOME_OFFSET_CONFIRM)
+                        {
+                            calState = HIGHLIGHT_DEC_HOME_OFFSET;
+                        }
+                        else
+                        {
+                            calState = (calState == DEC_UPPER_LIMIT_CONFIRM) ? HIGHLIGHT_DEC_UPPER_LIMIT : HIGHLIGHT_DEC_LOWER_LIMIT;
+                        }
                         okToUpdateMenu = true;
                     }
                     else if (key == btnRIGHT)
                     {
                         // RIGHT cancels limit selection and returns to menu
-                        calState       = (calState == DEC_UPPER_LIMIT_CONFIRM) ? HIGHLIGHT_DEC_UPPER_LIMIT : HIGHLIGHT_DEC_LOWER_LIMIT;
+                        if (calState == DEC_HOME_OFFSET_CONFIRM)
+                        {
+                            calState = HIGHLIGHT_DEC_HOME_OFFSET;
+                        }
+                        else
+                        {
+                            calState = (calState == DEC_UPPER_LIMIT_CONFIRM) ? HIGHLIGHT_DEC_UPPER_LIMIT : HIGHLIGHT_DEC_LOWER_LIMIT;
+                        }
                         okToUpdateMenu = true;
                     }
                 }
@@ -913,14 +909,14 @@ bool processCalibrationKeys()
                 }
                 break;
 
-            case HIGHLIGHT_PARKING_POS:
+            case HIGHLIGHT_DEC_HOME_OFFSET:
                 {
                     if (key == btnDOWN)
                         gotoNextHighlightState(1);
                     if (key == btnUP)
                         gotoNextHighlightState(-1);
                     else if (key == btnSELECT)
-                        calState = PARKING_POS_CONFIRM;
+                        calState = DEC_HOME_OFFSET_CONFIRM;
                     else if (key == btnRIGHT)
                     {
                         gotoNextMenu();
@@ -1102,9 +1098,9 @@ void printCalibrationSubmenu()
     {
         lcdMenu.printMenu(">Backlash Adjust");
     }
-    else if (calState == HIGHLIGHT_PARKING_POS)
+    else if (calState == HIGHLIGHT_DEC_HOME_OFFSET)
     {
-        lcdMenu.printMenu(">Set Parking Pos");
+        lcdMenu.printMenu(">DEC Home Offset");
     }
     else if (calState == HIGHLIGHT_DEC_LOWER_LIMIT)
     {
@@ -1182,10 +1178,14 @@ void printCalibrationSubmenu()
         sprintf(scratchBuffer, "Backlash: %d", BacklashSteps);
         lcdMenu.printMenu(scratchBuffer);
     }
-    else if (calState == PARKING_POS_CONFIRM)
+    else if (calState == DEC_HOME_OFFSET_CONFIRM)
     {
-        sprintf(scratchBuffer, "Parked?  Yes  No");
-        scratchBuffer[8 + parkYesNoIndex * 5] = '>';
+        lcdMenu.setCursor(0, 0);
+        lcdMenu.printMenu("DEC Home Offset");
+        lcdMenu.setCursor(0, 1);
+
+        sprintf(scratchBuffer, " Set  Clr  Cancl");
+        scratchBuffer[limitSetClearCancelIndex * 5] = '>';
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == DEC_LOWER_LIMIT_CONFIRM)

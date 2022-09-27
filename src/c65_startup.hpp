@@ -18,6 +18,9 @@ void setControlMode(bool);  // In CTRL menu
 enum startupState_t
 {
     StartupAskIfRAHomingShouldRun,
+    StartupWaitForRAHomingCompletion,
+    StartupAskIfDECOffsetHomingShouldRun,
+    StartupWaitForDECOffsetHomingCompletion,
     StartupAskIfIsInHomePosition,
     StartupSetRoll,
     StartupWaitForRollCompletion,
@@ -34,26 +37,30 @@ enum startupState_t
         #define NO     2
         #define CANCEL 3
 
-        #ifdef USE_HALL_SENSOR_RA_AUTOHOME == 1
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
 startupState_t startupState = StartupAskIfRAHomingShouldRun;
         #else
-startupState_t startupState = StartupAskIfIsInHomePosition;
+startupState_t startupState = StartupAskIfDECOffsetHomingShouldRun;
         #endif
-int isInHomePosition = NO;
+
+int answerPosition = NO;
 
 void startupIsCompleted()
 {
-    LOG(DEBUG_INFO, "[STARTUP]: Completed!");
-
     startupState   = StartupCompleted;
     inStartup      = false;
     okToUpdateMenu = true;
 
+        #if TRACK_ON_BOOT == 1
+    // Start tracking.
+    LOG(DEBUG_ANY, "[STARTUP]: Start Tracking.");
     mount.startSlewing(TRACKING);
+        #endif
 
     // Start on the RA menu
     lcdMenu.setActive(RA_Menu);
     lcdMenu.updateDisplay();
+    LOG(DEBUG_INFO, "[STARTUP]: Completed!");
 }
 
 bool processStartupKeys()
@@ -62,7 +69,8 @@ bool processStartupKeys()
     bool waitForRelease = false;
     switch (startupState)
     {
-        case StartupAskIfRAHomingShouldRun: // TODO
+        case StartupAskIfRAHomingShouldRun:
+        case StartupAskIfDECOffsetHomingShouldRun:
         case StartupAskIfIsInHomePosition:
             {
                 if (lcdButtons.keyChanged(&key))
@@ -70,21 +78,51 @@ bool processStartupKeys()
                     waitForRelease = true;
                     if (key == btnLEFT)
                     {
-                        isInHomePosition = adjustWrap(isInHomePosition, 1, YES, CANCEL);
+                        answerPosition = adjustWrap(answerPosition, 1, YES, CANCEL);
                     }
                     else if (key == btnSELECT)
                     {
-                        if (isInHomePosition == YES)
+                        if (answerPosition == YES)
                         {
+                            if (startupState == StartupAskIfRAHomingShouldRun)
+                            {
+                                LOG(DEBUG_INFO, "[STARTUP]: Requested RA auto-home!");
+                                mount.stopSlewing(ALL_DIRECTIONS);
+                                mount.findRAHomeByHallSensor(-1, 2);  // Search 2hrs by default
+                                startupState = StartupWaitForRAHomingCompletion;
+                                break;
+                            }
+                            else if (startupState == StartupAskIfDECOffsetHomingShouldRun)
+                            {
+                                LOG(DEBUG_INFO, "[STARTUP]: Requested DEC Offset homing!");
+                                mount.stopSlewing(ALL_DIRECTIONS);
+                                long offset = mount.getDecParkingOffset();
+                                mount.moveStepperBy(DEC_STEPS, offset);
+                                LOG(DEBUG_INFO, "[STARTUP]: Moving DEC to %l", offset);
+                                startupState = StartupWaitForDECOffsetHomingCompletion;
+                                break;
+                            }
         #if USE_GYRO_LEVEL == 1
                             startupState = StartupSetRoll;
-                            LOG(DEBUG_INFO, "[STARTUP]: State is set roll!");
+                            LOG(DEBUG_INFO, "[STARTUP]: State set to roll!");
         #else
                             startupState = StartupSetHATime;
+                            LOG(DEBUG_INFO, "[STARTUP]: State set to HA!");
         #endif
                         }
-                        else if (isInHomePosition == NO)
+                        else if (answerPosition == NO)
                         {
+                            if (startupState == StartupAskIfRAHomingShouldRun)
+                            {
+                                startupState = StartupAskIfDECOffsetHomingShouldRun;
+                                break;
+                            }
+                            else if (startupState == StartupAskIfDECOffsetHomingShouldRun)
+                            {
+                                startupState = StartupAskIfIsInHomePosition;
+                                break;
+                            }
+
                             startupState   = StartupWaitForPoleCompletion;
                             inStartup      = false;
                             okToUpdateMenu = false;
@@ -95,11 +133,33 @@ bool processStartupKeys()
                             // Skip the 'Manual control' prompt
                             setControlMode(true);
                         }
-                        else if (isInHomePosition == CANCEL)
+                        else if (answerPosition == CANCEL)
                         {
                             startupIsCompleted();
                         }
                     }
+                }
+            }
+            break;
+
+        case StartupWaitForRAHomingCompletion:
+            {
+                if (!mount.isFindingHome())
+                {
+                    LOG(DEBUG_MOUNT, "[STARTUP]: RA Auto-Homing complete");
+                    if (mount.getDecParkingOffset() != 0)
+                    {
+                        LOG(DEBUG_INFO, "[STARTUP]: State set to ask for DEC Homing!");
+                        startupState = StartupAskIfDECOffsetHomingShouldRun;
+                        break;
+                    }
+        #if USE_GYRO_LEVEL == 1
+                    startupState = StartupSetRoll;
+                    LOG(DEBUG_INFO, "[STARTUP]: State set to roll!");
+        #else
+                    startupState = StartupSetHATime;
+                    LOG(DEBUG_INFO, "[STARTUP]: State set to HA!");
+        #endif
                 }
             }
             break;
@@ -148,6 +208,7 @@ bool processStartupKeys()
 
         case StartupHAConfirmed:
             {
+                LOG(DEBUG_INFO, "[STARTUP]: HA is confirmed!");
                 mount.setHome(true);
                 DayTime ha(mount.HA());
                 mount.setHA(ha);
@@ -158,7 +219,7 @@ bool processStartupKeys()
 
         case StartupPoleConfirmed:
             {
-                isInHomePosition = YES;
+                answerPosition = YES;
 
                 // Ask again to confirm
                 startupState = StartupAskIfIsInHomePosition;
@@ -176,32 +237,45 @@ void printStartupMenu()
 {
     switch (startupState)
     {
-        case StartupAskIfRAHomingShouldRun: // TODO
-
+        case StartupAskIfDECOffsetHomingShouldRun:
+        case StartupAskIfRAHomingShouldRun:
         case StartupAskIfIsInHomePosition:
             {
                 //              0123456789012345
                 String choices(" Yes  No  Cancl ");
-                if (isInHomePosition == YES)
+                if (answerPosition == YES)
                 {
                     choices.setCharAt(0, '>');
                     choices.setCharAt(4, '<');
                 }
 
-                if (isInHomePosition == NO)
+                if (answerPosition == NO)
                 {
                     choices.setCharAt(5, '>');
                     choices.setCharAt(8, '<');
                 }
 
-                if (isInHomePosition == CANCEL)
+                if (answerPosition == CANCEL)
                 {
                     choices.setCharAt(9, '>');
                     choices.setCharAt(15, '<');
                 }
 
                 lcdMenu.setCursor(0, 0);
-                lcdMenu.printMenu("Home position?");
+                switch (startupState)
+                {
+                    case StartupAskIfDECOffsetHomingShouldRun:
+                        lcdMenu.printMenu("DEC offs home?");
+                        break;
+                    case StartupAskIfRAHomingShouldRun:
+                        lcdMenu.printMenu("Auto-home RA?");
+                        break;
+                    case StartupAskIfIsInHomePosition:
+                        lcdMenu.printMenu("Home position?");
+                        break;
+                    default:
+                        break;
+                }
                 lcdMenu.setCursor(0, 1);
                 lcdMenu.printMenu(choices);
             }
