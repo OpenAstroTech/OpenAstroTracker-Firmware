@@ -318,6 +318,7 @@ bool processControlKeys()
             if (lcdButtons.keyChanged(&key))
             {
                 waitForRelease = true;
+                LOG(DEBUG_MOUNT, "[CTRLMENU]: Highlight Serial, Key %d", key);
                 if (key == btnSELECT)
                 {
                     inSerialControl = !inSerialControl;
@@ -325,10 +326,12 @@ bool processControlKeys()
                 else if (key == btnDOWN)
                 {
                     currentState = adjustWrap(currentState, 1, 0, numValidStates - 1);
+                    ctrlState    = validCtrlStates[currentState];
                 }
                 else if (key == btnUP)
                 {
                     currentState = adjustWrap(currentState, -1, 0, numValidStates - 1);
+                    ctrlState    = validCtrlStates[currentState];
                 }
                 else if (key == btnRIGHT)
                 {
@@ -398,6 +401,7 @@ bool processControlKeys()
         #endif
                 {
                     okToUpdateMenu = false;
+                    setZeroPoint = false;
                     lcdMenu.setCursor(0, 0);
                     lcdMenu.printMenu("Set home pos?");
                     ctrlState      = MANUAL_CONTROL_CONFIRM_HOME;
@@ -421,10 +425,10 @@ void printControlSubmenu()
             lcdMenu.printMenu(">Serial display");
             break;
         case HIGHLIGHT_RA_AUTO_HOME:
-            lcdMenu.printMenu(">Run RA Homing");
+            lcdMenu.printMenu(">Run RA A-Home");
             break;
         case HIGHLIGHT_DEC_OFFSET_HOME:
-            lcdMenu.printMenu(">DEC Off. Home");
+            lcdMenu.printMenu(">Run DEC O-Home");
             break;
         case MANUAL_CONTROL_CONFIRM_HOME:
         case CONFIRM_RA_AUTO_HOME_POS:

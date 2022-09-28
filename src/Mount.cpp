@@ -2912,13 +2912,13 @@ void Mount::loop()
                         _mountStatus &= ~STATUS_PARKING;
                         _slewingToPark = true;
                         _stepperRA->moveTo(_raParkingPos);
-                        _stepperDEC->moveTo(_decParkingPos);
+                        _stepperDEC->moveTo(-_decParkingPos);
                         _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
                         _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
                         LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
                             "[MOUNT]: Loop:   Park Position is R:%l  D:%l, TotalMove is R:%f, D:%f",
                             _raParkingPos,
-                            _decParkingPos,
+                            -_decParkingPos,
                             _totalRAMove,
                             _totalDECMove);
                         if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
@@ -2941,8 +2941,8 @@ void Mount::loop()
                     _slewingToPark = false;
 // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived at park. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
-                _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived at park. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
+                    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
 #endif
                 }
                 _totalDECMove = _totalRAMove = 0;
@@ -3006,7 +3006,7 @@ void Mount::setParkingPosition()
 /////////////////////////////////
 long Mount::getDecParkingOffset()
 {
-    return EEPROMStore::getDECParkingPos();
+    return _decParkingPos;
 }
 
 /////////////////////////////////
@@ -3322,13 +3322,20 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
 
     if (_decUpperLimit != 0)
     {
+        if (targetDECSteps > (float) _decUpperLimit)
+        {
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %l", _decUpperLimit);
+        }
         targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %f", targetDECSteps);
     }
+    
     if (_decLowerLimit != 0)
     {
+        if (targetDECSteps < (float) _decLowerLimit)
+        {
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %f", _decLowerLimit);
+        }
         targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %f", targetDECSteps);
     }
 
     _stepperDEC->moveTo(targetDECSteps);

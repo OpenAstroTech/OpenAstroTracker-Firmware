@@ -43,7 +43,7 @@ startupState_t startupState = StartupAskIfRAHomingShouldRun;
 startupState_t startupState = StartupAskIfDECOffsetHomingShouldRun;
         #endif
 
-int answerPosition = NO;
+int answerPosition = YES;
 
 void startupIsCompleted()
 {
@@ -69,8 +69,14 @@ bool processStartupKeys()
     bool waitForRelease = false;
     switch (startupState)
     {
-        case StartupAskIfRAHomingShouldRun:
         case StartupAskIfDECOffsetHomingShouldRun:
+            if (mount.getDecParkingOffset() == 0)
+            {
+                startupState   = StartupAskIfIsInHomePosition;
+                answerPosition = NO;
+            }
+        // Fallthrough
+        case StartupAskIfRAHomingShouldRun:
         case StartupAskIfIsInHomePosition:
             {
                 if (lcdButtons.keyChanged(&key))
@@ -164,6 +170,23 @@ bool processStartupKeys()
             }
             break;
 
+        case StartupWaitForDECOffsetHomingCompletion:
+            {
+                if (!mount.isSlewingRAorDEC())
+                {
+                    LOG(DEBUG_MOUNT, "[STARTUP]: DEC Offset-Homing complete");
+                    mount.setHome(false);
+                }
+        #if USE_GYRO_LEVEL == 1
+                startupState = StartupSetRoll;
+                LOG(DEBUG_INFO, "[STARTUP]: State set to roll!");
+        #else
+                startupState = StartupSetHATime;
+                LOG(DEBUG_INFO, "[STARTUP]: State set to HA!");
+        #endif
+            }
+            break;
+
         #if USE_GYRO_LEVEL == 1
         case StartupSetRoll:
             {
@@ -193,6 +216,7 @@ bool processStartupKeys()
 
         #if USE_GPS == 0
                 // Jump to the HA menu
+                okToUpdateMenu = false;
                 lcdMenu.setCursor(0, 0);
                 lcdMenu.printMenu("Set current HA");
                 lcdMenu.setActive(HA_Menu);
@@ -265,7 +289,7 @@ void printStartupMenu()
                 switch (startupState)
                 {
                     case StartupAskIfDECOffsetHomingShouldRun:
-                        lcdMenu.printMenu("DEC offs home?");
+                        lcdMenu.printMenu("Offs-home DEC?");
                         break;
                     case StartupAskIfRAHomingShouldRun:
                         lcdMenu.printMenu("Auto-home RA?");
