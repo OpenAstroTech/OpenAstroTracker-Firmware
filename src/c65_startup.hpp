@@ -92,10 +92,12 @@ bool processStartupKeys()
                         {
                             if (startupState == StartupAskIfRAHomingShouldRun)
                             {
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
                                 LOG(DEBUG_INFO, "[STARTUP]: Requested RA auto-home!");
                                 mount.stopSlewing(ALL_DIRECTIONS);
                                 mount.findRAHomeByHallSensor(-1, 2);  // Search 2hrs by default
                                 startupState = StartupWaitForRAHomingCompletion;
+        #endif
                                 break;
                             }
                             else if (startupState == StartupAskIfDECOffsetHomingShouldRun)

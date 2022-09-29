@@ -10,13 +10,15 @@ enum ctrlState_t
 {
     HIGHLIGHT_MANUAL,
     HIGHLIGHT_SERIAL,
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     HIGHLIGHT_RA_AUTO_HOME,
-    HIGHLIGHT_DEC_OFFSET_HOME,
-    MANUAL_CONTROL_MODE,
-    MANUAL_CONTROL_CONFIRM_HOME,
     RUNNING_RA_HOMING_MODE,
     CONFIRM_RA_AUTO_HOME_POS,
     SLEW_TO_RA_HOME_POS,
+        #endif
+    HIGHLIGHT_DEC_OFFSET_HOME,
+    MANUAL_CONTROL_MODE,
+    MANUAL_CONTROL_CONFIRM_HOME,
     RUNNING_DEC_OFFSET_HOMING,
 };
 
@@ -424,14 +426,23 @@ void printControlSubmenu()
         case HIGHLIGHT_SERIAL:
             lcdMenu.printMenu(">Serial display");
             break;
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
         case HIGHLIGHT_RA_AUTO_HOME:
             lcdMenu.printMenu(">Run RA A-Home");
             break;
+        case CONFIRM_RA_AUTO_HOME_POS:
+            {
+                String disp = " Yes  No  ";
+                disp.setCharAt(setZeroPoint ? 0 : 5, '>');
+                disp.setCharAt(setZeroPoint ? 4 : 8, '<');
+                lcdMenu.printMenu(disp);
+            }
+            break;
+        #endif
         case HIGHLIGHT_DEC_OFFSET_HOME:
             lcdMenu.printMenu(">Run DEC O-Home");
             break;
         case MANUAL_CONTROL_CONFIRM_HOME:
-        case CONFIRM_RA_AUTO_HOME_POS:
             {
                 String disp = " Yes  No  ";
                 disp.setCharAt(setZeroPoint ? 0 : 5, '>');
