@@ -3333,7 +3333,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
     {
         if (targetDECSteps < (float) _decLowerLimit)
         {
-            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %f", _decLowerLimit);
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %l", _decLowerLimit);
         }
         targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
     }
