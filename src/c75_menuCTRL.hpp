@@ -145,7 +145,7 @@ bool processControlKeys()
                 else if (key == btnUP)
                 {
                     currentState = adjustWrap(currentState, -1, 0, numValidStates - 1);
-                    ctrlState = validCtrlStates[currentState];
+                    ctrlState    = validCtrlStates[currentState];
                 }
                 else if (key == btnRIGHT)
                 {
@@ -401,7 +401,7 @@ bool processControlKeys()
         #endif
                 {
                     okToUpdateMenu = false;
-                    setZeroPoint = false;
+                    setZeroPoint   = false;
                     lcdMenu.setCursor(0, 0);
                     lcdMenu.printMenu("Set home pos?");
                     ctrlState      = MANUAL_CONTROL_CONFIRM_HOME;

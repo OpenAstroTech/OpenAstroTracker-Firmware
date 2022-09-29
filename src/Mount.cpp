@@ -3328,7 +3328,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
         }
         targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
     }
-    
+
     if (_decLowerLimit != 0)
     {
         if (targetDECSteps < (float) _decLowerLimit)
