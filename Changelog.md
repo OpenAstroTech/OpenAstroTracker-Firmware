@@ -1,3 +1,18 @@
+**V1.13.1 - Updates**
+- Added RA Autohoming support to Guided startup
+- Added DEC Offset homing support to Guided startup
+- Defaulted Auto-home questions to YES on LCD during Guided Startup
+- Fixed bug that did not honor TrackingOffOnBoot flag when using Guided startup
+- Added DEC Offset homing support to CTRL menu
+- Removed SetParkingPos from CAL menu
+- Added SetDecHomingOffset to CAL menu
+- Fixed Park command to actually park DEC after homing
+- Fixed a bug that made DEC parking go in the wrong direction
+- Made Unpark go to home position after enabling Tracking
+- Fixed SetLimit commands to actually use passed limits
+- Fixed bug that did not change submenu items in the CTRL menu as button up and down were pressed
+- Renamed some menu items for clarity and consistency
+
 **V1.11.9 - Updates**
 - Change storage of RA and DEC steps/degree to be independent of microstepping settings.
 
