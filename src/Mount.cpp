@@ -3135,13 +3135,15 @@ void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
 {
     if (upper)
     {
-        _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
+        stepperPos = stepperPos  == 0 ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
+        _decUpperLimit = stepperPos;
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
+        stepperPos = stepperPos  == 0 ? -DEC_LIMIT_DOWN * _stepsPerDECDegree : stepperPos;
+        _decLowerLimit = stepperPos;
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
