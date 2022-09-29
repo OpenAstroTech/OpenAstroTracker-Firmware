@@ -74,6 +74,7 @@ bool processPOIKeys()
                     else if (currentPOI == unparkPOI)
                     {
                         mount.startSlewing(TRACKING);
+                        mount.startSlewingToHome();
                     }
                     else
                     {

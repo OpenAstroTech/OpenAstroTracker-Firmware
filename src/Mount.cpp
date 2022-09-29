@@ -1309,7 +1309,7 @@ void Mount::startSlewingToTarget()
             _compensateForTrackerOff = true;
         }
 
-// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+// Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
         _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
@@ -2902,7 +2902,7 @@ void Mount::loop()
                     _targetRA = currentRA();
                     if (isParking())
                     {
-// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+// Set DEC to Slew microstepping since it is set to guiding.
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                         LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Parking. DEC driver setMicrosteps(%d)", DEC_SLEW_MICROSTEPPING);
                         _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
