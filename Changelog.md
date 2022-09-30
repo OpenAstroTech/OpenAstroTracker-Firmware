@@ -1,4 +1,4 @@
-**V1.13.1 - Updates**
+**V1.12.1 - Updates**
 - Added RA Autohoming support to Guided startup
 - Added DEC Offset homing support to Guided startup
 - Defaulted Auto-home questions to YES on LCD during Guided Startup
