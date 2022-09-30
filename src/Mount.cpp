@@ -1110,6 +1110,7 @@ void Mount::setLST(const DayTime &lst)
 /////////////////////////////////
 void Mount::setLatitude(Latitude latitude)
 {
+    LOG(DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", latitude.getTotalHours());
     _latitude = latitude;
     EEPROMStore::storeLatitude(_latitude);
 }
@@ -1121,6 +1122,7 @@ void Mount::setLatitude(Latitude latitude)
 /////////////////////////////////
 void Mount::setLongitude(Longitude longitude)
 {
+    LOG(DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", longitude.getTotalHours());
     _longitude = longitude;
     EEPROMStore::storeLongitude(_longitude);
 
