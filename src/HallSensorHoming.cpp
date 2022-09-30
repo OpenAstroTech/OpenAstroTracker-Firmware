@@ -121,7 +121,7 @@ void HallSensorHoming::processHomingProgress()
             {
                 LOG(DEBUG_STEPPERS,
                     "[HOMING]: Currently over Sensor, so moving off of it by reverse 15deg. (%l steps). Advance to %s",
-                    (long) (-_homingData.initialDir * _stepsPerDegree * 15),
+                    (-_homingData.initialDir * _stepsPerDegree * 15),
                     getHomingState(HomingState::HOMING_MOVING_OFF).c_str());
                 _pMount->moveStepperBy(_axis, -_homingData.initialDir * _stepsPerDegree * 15);
                 _homingData.state = HomingState::HOMING_MOVING_OFF;
