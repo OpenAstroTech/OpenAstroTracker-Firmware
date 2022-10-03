@@ -1673,6 +1673,12 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             return "0,#";
         }
     }
+    else if (inCmd[0] == 'R')
+    {
+        void(* resetFunc) (void) = 0;
+        resetFunc();
+    }
+
     else if (inCmd[0] == 'S')
     {                         // Set RA/DEC steps/deg, speedfactor
         if (inCmd[1] == 'R')  // :XSR#
