@@ -4,11 +4,13 @@
 #include "Declination.hpp"
 #include "Latitude.hpp"
 #include "Longitude.hpp"
+#include "Types.hpp"
 
 // Forward declarations
 class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
+class EndSwitch;
 
 #define NORTH          B00000001
 #define EAST           B00000010
@@ -63,15 +65,6 @@ struct HomingData {
     unsigned long stopAt;
 };
 #endif
-
-enum StepperAxis
-{
-    RA_STEPS,
-    DEC_STEPS,
-    AZIMUTH_STEPS,
-    ALTITUDE_STEPS,
-    FOCUS_STEPS
-};
 
 struct LocalDate {
     int year;
@@ -344,6 +337,11 @@ class Mount
     // Set the speed of the given motor
     void setSpeed(StepperAxis which, float speedDegsPerSec);
 
+#if (USE_RA_END_SWITCHS == 1) || (USE_DEC_END_SWITCHS == 1)
+    void setupEndSwitches();
+    void processEndSwitchState();
+#endif
+
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // Support for moving the mount in azimuth and altitude (requires extra hardware)
     void moveBy(int direction, float arcMinutes);
@@ -430,6 +428,7 @@ class Mount
 #endif
 
     void checkRALimit();
+    void checkEndSwitches();
 
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
@@ -530,6 +529,13 @@ class Mount
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     HomingData _homing;
+#endif
+
+#if USE_RA_END_SWITCHS == 1
+    EndSwitch* _raEndSwitch;
+#endif
+#if USE_DEC_END_SWITCHS == 1
+    EndSwitch* _decEndSwitch;
 #endif
 
     unsigned long _guideRaEndTime;

@@ -117,6 +117,11 @@ void setup()
     digitalWrite(DEW_HEATER_2_PIN, HIGH);
 #endif
 
+#if(USE_RA_END_SWITCHS == 1 || USE_DEC_END_SWITCHS == 1)
+    LOG(DEBUG_ANY, "[SYSTEM]: Init EndSwitches...");
+    mount.setupEndSwitches();
+#endif
+
     /////////////////////////////////
     //   Microstepping/driver pins
     /////////////////////////////////
