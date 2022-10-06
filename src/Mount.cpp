@@ -2613,7 +2613,7 @@ bool Mount::findRAHomeByHallSensor(int initialDirection, int searchDistance)
 
 #endif
 
-#if (USE_RA_END_SWITCHS == 1 || USE_DEC_END_SWITCHS)
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
 /////////////////////////////////
 //
 // End Switches RA/DEC
@@ -2621,12 +2621,12 @@ bool Mount::findRAHomeByHallSensor(int initialDirection, int searchDistance)
 /////////////////////////////////
 void Mount::setupEndSwitches()
 {
-    #if (USE_RA_END_SWITCHS == 1)
-    _raEndSwitch      = new EndSwitch(this, StepperAxis::RA_STEPS, _stepsPerRADegree, RA_ENDSWITCH_EAST_SENSOR_PIN, RA_ENDSWITCH_WEST_SENSOR_PIN);
+    #if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch = new EndSwitch(this, StepperAxis::RA_STEPS, RA_ENDSWITCH_EAST_SENSOR_PIN, RA_ENDSWITCH_WEST_SENSOR_PIN);
     #endif
 
-    #if (USE_DEC_END_SWITCHS == 1)
-    _decEndSwitch      = new EndSwitch(this, StepperAxis::DEC_STEPS, _stepsPerDECDegree, DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_ENDSWITCH_DOWN_SENSOR_PIN);
+    #if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch = new EndSwitch(this, StepperAxis::DEC_STEPS, DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_ENDSWITCH_UP_SENSOR_PIN);
     #endif
 }
 #endif
@@ -2654,7 +2654,8 @@ void Mount::delay(int ms)
 /////////////////////////////////
 void Mount::interruptLoop()
 {
-    if (_mountStatus & STATUS_GUIDE_PULSE)
+    // Only process guide pulses if we are tracking.
+    if ((_mountStatus & STATUS_GUIDE_PULSE) && (_mountStatus & STATUS_TRACKING))
     {
         _stepperTRK->runSpeed();
         if (_mountStatus & STATUS_GUIDE_PULSE_DEC)
@@ -2709,11 +2710,11 @@ void Mount::interruptLoop()
     }
 #endif
 
-#if(USE_RA_END_SWITCHS == 1)
-    _raEndSwitch->processEndSwitchState();     
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->processEndSwitchState();
 #endif
 
-#if(USE_DEC_END_SWITCHS == 1)
+#if (USE_DEC_END_SWITCH == 1)
     _decEndSwitch->processEndSwitchState();
 #endif
 }
@@ -2965,7 +2966,13 @@ void Mount::loop()
         }
     }
 
-    checkEndSwitches();
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->checkSwitchState();
+#endif
+
+#if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->checkSwitchState();
+#endif
 
     _stepperWasRunning = raStillRunning || decStillRunning;
 }
@@ -3827,54 +3834,4 @@ void Mount::checkRALimit()
         stopSlewing(TRACKING);
     }
     _lastTRKCheck = millis();
-}
-
-/////////////////////////////////
-//
-// checkEndSwitches
-//
-/////////////////////////////////
-void Mount::checkEndSwitches()
-{
-    #if(USE_RA_END_SWITCHS == 1)
-
-        if(_raEndSwitch->getSwitchState() == EndSwitchState::SWITCH_RA_EAST_ACTIVE || _raEndSwitch->getSwitchState() == EndSwitchState::SWITCH_RA_WEST_ACTIVE)
-        {
-            LOG(DEBUG_MOUNT, "[MOUNT]: Loop:   RA EndSwitch triggered");
-            if (_mountStatus & STATUS_SLEWING || _mountStatus & STATUS_TRACKING)
-            {
-                _stepperRA->stop();
-            }
-            
-            if(_raEndSwitch->getSwitchState() == EndSwitchState::SWITCH_RA_EAST_ACTIVE)
-            {
-                LOG(DEBUG_MOUNT, "[MOUNT]: Loop:   RA EAST");
-                //moveStepperBy(StepperAxis::RA_STEPS, (_stepsPerRADegree * 5));
-            }
-            else if(_raEndSwitch->getSwitchState() == EndSwitchState::SWITCH_RA_WEST_ACTIVE)
-            {
-                LOG(DEBUG_MOUNT, "[MOUNT]: Loop:   RA WEST");
-                //moveStepperBy(StepperAxis::RA_STEPS, (_stepsPerRADegree * -5));
-            }
-        }
-    #endif
-    
-    #if(USE_DEC_END_SWITCHS == 1)
-        if(_decEndSwitch->getSwitchState() == EndSwitchState::SWITCH_DEC_UP_ACTIVE || _decEndSwitch->getSwitchState() == EndSwitchState::SWITCH_DEC_DOWN_ACTIVE)
-        {
-            if (_mountStatus & STATUS_SLEWING || _mountStatus & STATUS_TRACKING)
-            {
-                _stepperDEC->stop();
-            }
-        
-            if(_raEndSwitch->getSwitchState() == EndSwitchState::SWITCH_DEC_UP_ACTIVE)
-            {
-                
-            }
-            else if(_raEndSwitch->getSwitchState() == EndSwitchState::SWITCH_DEC_DOWN_ACTIVE)
-            {
-
-            }
-        }
-    #endif
 }

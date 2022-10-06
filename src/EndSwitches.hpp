@@ -4,22 +4,17 @@
 #include "Types.hpp"
 #include "Mount.hpp"
 
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+
 class Mount;
 
 enum EndSwitchState
 {
-    SWITCH_RA_EAST_ACTIVE,
-    SWITCH_RA_WEST_ACTIVE,
-    SWITCH_DEC_UP_ACTIVE,
-    SWITCH_DEC_DOWN_ACTIVE,
-    
     SWITCH_NOT_ACTIVE,
-};
-
-struct EndSwitchData {
-    EndSwitchState state;
-    EndSwitchState previousState;
-    int pinState;
+    SWITCH_AT_MINIMUM,
+    SWITCH_AT_MAXIMUM,
+    SWITCH_SLEWING_OFF_MINIMUM,
+    SWITCH_SLEWING_OFF_MAXIMUM,
 };
 
 /////////////////////////////////
@@ -30,27 +25,23 @@ struct EndSwitchData {
 class EndSwitch
 {
   private:
-    EndSwitchData _endSwitchData;
+    EndSwitchState _state;
     Mount *_pMount;
     StepperAxis _axis;
-    long _stepsPerDegree;
+    long _posWhenTriggered;
+    int _dir;
     int _minPin;
     int _maxPin;
 
   public:
-    EndSwitch(Mount *mount, StepperAxis axis, long stepsPerDegree, int minPin, int maxPin)
-    {
-        _endSwitchData.state = EndSwitchState::SWITCH_NOT_ACTIVE;
-        _pMount         = mount;
-        _axis           = axis;
-        _stepsPerDegree   = stepsPerDegree;
-        _minPin         = minPin;
-        _maxPin         = maxPin;
-    }
-
+    EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin);
     void processEndSwitchState();
-    String getSwitchState(EndSwitchState state) const;
+    void checkSwitchState();
+
     EndSwitchState getSwitchState() const;
+    void setSwitchState(EndSwitchState state);
+    long getPosWhenTriggered() const;
 };
 
+#endif
 #endif

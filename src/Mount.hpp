@@ -337,7 +337,7 @@ class Mount
     // Set the speed of the given motor
     void setSpeed(StepperAxis which, float speedDegsPerSec);
 
-#if (USE_RA_END_SWITCHS == 1) || (USE_DEC_END_SWITCHS == 1)
+#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
     void setupEndSwitches();
     void processEndSwitchState();
 #endif
@@ -428,7 +428,6 @@ class Mount
 #endif
 
     void checkRALimit();
-    void checkEndSwitches();
 
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
@@ -531,10 +530,10 @@ class Mount
     HomingData _homing;
 #endif
 
-#if USE_RA_END_SWITCHS == 1
+#if USE_RA_END_SWITCH == 1
     EndSwitch* _raEndSwitch;
 #endif
-#if USE_DEC_END_SWITCHS == 1
+#if USE_DEC_END_SWITCH == 1
     EndSwitch* _decEndSwitch;
 #endif
 

@@ -437,17 +437,17 @@
 //////////////////////////////////////////
 // RA EndSwitch support
 //////////////////////////////////////////
-// Enable RA End Switches. Do not edit here!
-#ifndef USE_RA_END_SWITCHS
-    #define USE_RA_END_SWITCHS 0
+// Enable RA End Switches in your local configuration. Do not edit here!
+#ifndef USE_RA_END_SWITCH
+    #define USE_RA_END_SWITCH 0
 #endif
 
 //////////////////////////////////////////
 // DEC EndSwitch support
 //////////////////////////////////////////
-// Enable DEC End Switches. Do not edit here!
-#ifndef USE_DEC_END_SWITCHS
-    #define USE_DEC_END_SWITCHS 0
+// Enable DEC End Switches in your local configuration. Do not edit here!
+#ifndef USE_DEC_END_SWITCH
+    #define USE_DEC_END_SWITCH 0
 #endif
 
 //////////////////////////////////////////

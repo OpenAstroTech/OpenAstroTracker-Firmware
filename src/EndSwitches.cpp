@@ -4,33 +4,54 @@
 #include "EndSwitches.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+
+/////////////////////////////////
+//
+// EndSwitch ctor
+//
+/////////////////////////////////
+EndSwitch::EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin)
+{
+    _state            = EndSwitchState::SWITCH_NOT_ACTIVE;
+    _pMount           = mount;
+    _axis             = axis;
+    _dir              = (_axis == StepperAxis::RA_STEPS) ? (EAST | WEST) : (NORTH | SOUTH);
+    _minPin           = minPin;
+    _maxPin           = maxPin;
+    _posWhenTriggered = 0;
+    pinMode(_minPin, INPUT);
+    pinMode(_maxPin, INPUT);
+}
+
 /////////////////////////////////
 //
 // getSwitchState
 //
 /////////////////////////////////
-String EndSwitch::getSwitchState(EndSwitchState state) const
-{
-    MappedDict<EndSwitchState, String>::DictEntry_t lookupTable[] = {
-        {SWITCH_RA_EAST_ACTIVE, F("EAST_ACTIVE")},
-        {SWITCH_RA_WEST_ACTIVE, F("WEST_ACTIVE")},
-        {SWITCH_DEC_UP_ACTIVE, F("UP_ACTIVE")},
-        {SWITCH_DEC_DOWN_ACTIVE, F("DOWN_ACTIVE")},
-        {SWITCH_NOT_ACTIVE, F("NOT_ACTIVE")},
-    };
-
-    auto strLookup = MappedDict<EndSwitchState, String>(lookupTable, ARRAY_SIZE(lookupTable));
-    String rtnStr;
-    if (strLookup.tryGet(state, &rtnStr))
-    {
-        return rtnStr;
-    }
-    return F("WTF_STATE");
-}
-
 EndSwitchState EndSwitch::getSwitchState() const
 {
-    return _endSwitchData.state;
+    return _state;
+}
+
+/////////////////////////////////
+//
+// setSwitchState
+//
+/////////////////////////////////
+void EndSwitch::setSwitchState(EndSwitchState state)
+{
+    _state = state;
+}
+
+/////////////////////////////////
+//
+// getPosWhenTriggered
+//
+/////////////////////////////////
+long EndSwitch::getPosWhenTriggered() const
+{
+    return _posWhenTriggered;
 }
 
 /////////////////////////////////
@@ -40,33 +61,82 @@ EndSwitchState EndSwitch::getSwitchState() const
 /////////////////////////////////
 void EndSwitch::processEndSwitchState()
 {
-    if (_axis == StepperAxis::RA_STEPS)
+    switch (_state)
     {
-        if (digitalRead(_minPin) == LOW)
-        {
-            _endSwitchData.state = EndSwitchState::SWITCH_RA_EAST_ACTIVE;
-            LOG(DEBUG_MOUNT, "[ENDSWITCH]: EndSwitch East signalled");
-        }
-        
-        if (digitalRead(_maxPin) == LOW)
-        {
-            _endSwitchData.state = EndSwitchState::SWITCH_RA_WEST_ACTIVE;
-            LOG(DEBUG_MOUNT, "[ENDSWITCH]: EndSwitch West signalled");
-        }
+        case EndSwitchState::SWITCH_NOT_ACTIVE:
+            {
+                if (digitalRead(_minPin) == LOW)
+                {
+                    _state            = EndSwitchState::SWITCH_AT_MINIMUM;
+                    _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
+                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Reached minimum position on %s axis!", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                }
+
+                if (digitalRead(_maxPin) == LOW)
+                {
+                    _state            = EndSwitchState::SWITCH_AT_MAXIMUM;
+                    _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
+                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Reached maximum position on %s axis!", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                }
+            }
+            break;
+
+        case EndSwitchState::SWITCH_AT_MAXIMUM:
+        case EndSwitchState::SWITCH_AT_MINIMUM:
+            break;
+
+        case EndSwitchState::SWITCH_SLEWING_OFF_MINIMUM:
+            {
+                if (digitalRead(_minPin) == HIGH)
+                {
+                    _state = EndSwitchState::SWITCH_NOT_ACTIVE;
+                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Finished moving off %s axis minimum!", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                }
+            }
+            break;
+        case EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM:
+            {
+                if (digitalRead(_maxPin) == HIGH)
+                {
+                    _state = EndSwitchState::SWITCH_NOT_ACTIVE;
+                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Finished moving off %s axis maximum!", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                }
+            }
+            break;
     }
+}
 
-    if (_axis == StepperAxis::DEC_STEPS)
+///////////////////////////
+//
+// checkSwitchState
+//
+///////////////////////////
+void EndSwitch::checkSwitchState()
+{
+    if ((_state == EndSwitchState::SWITCH_AT_MINIMUM) || (_state == EndSwitchState::SWITCH_AT_MAXIMUM))
     {
-        if (digitalRead(_minPin) == LOW)
+        if (_pMount->isSlewingRAorDEC())
         {
-            _endSwitchData.state = EndSwitchState::SWITCH_DEC_UP_ACTIVE;
-            LOG(DEBUG_MOUNT, "[ENDSWITCH]: EndSwitch Up signalled");
-        }
-
-        if (digitalRead(_maxPin) == LOW)
-        {
-            _endSwitchData.state = EndSwitchState::SWITCH_DEC_DOWN_ACTIVE;
-            LOG(DEBUG_MOUNT, "[ENDSWITCH]: EndSwitch Down signalled");
+            _pMount->stopSlewing(_dir);
+            _pMount->waitUntilStopped(_dir);
+            if ((_state == EndSwitchState::SWITCH_AT_MAXIMUM) && (_axis == StepperAxis::RA_STEPS))
+            {
+                _pMount->stopSlewing(TRACKING);
+            }
+            long currentPos       = _pMount->getCurrentStepperPosition(_dir);
+            long backDistance     = _posWhenTriggered - currentPos;
+            long backSlewDistance = (12 * backDistance) / 10;  // Go back 120% distance that we ran past the switch
+            LOG(DEBUG_MOUNT,
+                "[ENDSWITCH]: Loop: Reached maximum at %l. Stopped at %l (%l delta), moving back %l. Stopped tracking.",
+                _posWhenTriggered,
+                currentPos,
+                backDistance,
+                backSlewDistance);
+            _pMount->moveStepperBy(_axis, backSlewDistance);
+            _state = _state == EndSwitchState::SWITCH_AT_MINIMUM ? EndSwitchState::SWITCH_SLEWING_OFF_MINIMUM
+                                                                 : EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM;
         }
     }
 }
+
+#endif
