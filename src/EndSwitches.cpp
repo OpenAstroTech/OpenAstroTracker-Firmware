@@ -69,14 +69,14 @@ void EndSwitch::processEndSwitchState()
                 {
                     _state            = EndSwitchState::SWITCH_AT_MINIMUM;
                     _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
-                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Reached minimum position on %s axis!", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Reached minimum position on %s axis at %l", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC", _posWhenTriggered);
                 }
 
                 if (digitalRead(_maxPin) == LOW)
                 {
                     _state            = EndSwitchState::SWITCH_AT_MAXIMUM;
                     _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
-                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Reached maximum position on %s axis!", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Reached maximum position on %s axis at %l", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC", _posWhenTriggered);
                 }
             }
             break;
@@ -117,6 +117,7 @@ void EndSwitch::checkSwitchState()
     {
         if (_pMount->isSlewingRAorDEC())
         {
+            LOG(DEBUG_MOUNT, "[ENDSWITCH]: Switch activated, stopping and reversing %s axis", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
             _pMount->stopSlewing(_dir);
             _pMount->waitUntilStopped(_dir);
             if ((_state == EndSwitchState::SWITCH_AT_MAXIMUM) && (_axis == StepperAxis::RA_STEPS))
@@ -127,7 +128,7 @@ void EndSwitch::checkSwitchState()
             long backDistance     = _posWhenTriggered - currentPos;
             long backSlewDistance = (12 * backDistance) / 10;  // Go back 120% distance that we ran past the switch
             LOG(DEBUG_MOUNT,
-                "[ENDSWITCH]: Loop: Reached maximum at %l. Stopped at %l (%l delta), moving back %l. Stopped tracking.",
+                "[ENDSWITCH]: Reached maximum at %l. Stopped at %l (%l delta), moving back %l. Stopped tracking (if RA).",
                 _posWhenTriggered,
                 currentPos,
                 backDistance,
