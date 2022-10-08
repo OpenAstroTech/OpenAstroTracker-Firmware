@@ -534,6 +534,18 @@
     #endif
 #endif
 
+#if DEW_HEATER == 1
+    // Careful with those values, they might melt your lens.
+    // Make doubly sure your setup can handle 12V.
+    // this is the PWM duty cycle with vales from 0...255
+    #if !defined(DEW_HEATER_1_MAX)
+        #define DEW_HEATER_1_MAX 255
+    #endif
+    #if !defined(DEW_HEATER_2_MAX)
+        #define DEW_HEATER_2_MAX 255
+    #endif
+#endif
+
 ////////////////////////////
 //
 // DEBUG OUTPUT

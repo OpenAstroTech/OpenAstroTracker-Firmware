@@ -62,6 +62,9 @@ class EEPROMStore
     static int32_t getRAHomingOffset();
     static void storeRAHomingOffset(int32_t raHomingOffset);
 
+    static void getHeaterValues(unsigned *heaterValues);
+    static void storeHeaterValues(unsigned *heaterValues);
+
   private:
     /////////////////////////////////
     //
@@ -121,6 +124,7 @@ class EEPROMStore
         RA_HOMING_MARKER_FLAG      = 0x0008,
         RA_NORM_STEPS_MARKER_FLAG  = 0x0010,
         DEC_NORM_STEPS_MARKER_FLAG = 0x0020,
+        HEATER_VALUES_MARKER_FLAG  = 0x0040,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -179,6 +183,8 @@ class EEPROMStore
         _DEC_NORM_STEPS_DEGREE_ADDR_1,
         _DEC_NORM_STEPS_DEGREE_ADDR_2,
         _DEC_NORM_STEPS_DEGREE_ADDR_3,  // Int32
+        HEATER_VALUES_ADDR = 52,
+        _HEATER_VALUES_ADDR_1,
         STORE_SIZE = 64
     };
 

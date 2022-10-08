@@ -422,6 +422,11 @@ class Mount
     void testDEC_UART_TX();
     #endif
 #endif
+#if DEW_HEATER == 1
+    void heater(unsigned num, unsigned val);
+    unsigned getHeater(unsigned num);
+#endif
+
   private:
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -530,6 +535,10 @@ class Mount
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     HomingData _homing;
+#endif
+
+#if DEW_HEATER == 1
+    unsigned _heaters[2];
 #endif
 
     unsigned long _guideRaEndTime;

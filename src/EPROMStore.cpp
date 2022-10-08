@@ -803,3 +803,33 @@ void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
     updateFlagsExtended(RA_HOMING_MARKER_FLAG);
     commit();  // Complete the transaction
 }
+
+// Return the stored heater values
+// If it is not present then the default value of 0,0 is returned.
+void EEPROMStore::getHeaterValues(unsigned *heaterValues)
+{
+    heaterValues[0] = 0;
+    heaterValues[1] = 0;
+
+    if (isPresentExtended(HEATER_VALUES_MARKER_FLAG))
+    {
+        heaterValues[0] = readUint8(HEATER_VALUES_ADDR);
+        heaterValues[1] = readUint8(_HEATER_VALUES_ADDR_1);
+        LOG(DEBUG_EEPROM, "[EEPROM]: heater values read as %d,%d", heaterValues[0], heaterValues[1]);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for heaters");
+    }
+}
+
+// Store the configured heater values.
+void EEPROMStore::storeHeaterValues(unsigned *heaterValues)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating heater values to %l", heaterValues[0], heaterValues[1]);
+
+    updateUint8(HEATER_VALUES_ADDR, heaterValues[0]);
+    updateUint8(_HEATER_VALUES_ADDR_1, heaterValues[1]);
+    updateFlagsExtended(HEATER_VALUES_MARKER_FLAG);
+    commit();  // Complete the transaction
+}

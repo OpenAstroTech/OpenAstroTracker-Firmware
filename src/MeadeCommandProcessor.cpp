@@ -816,6 +816,22 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "HHMMSS"
 //
+// :XGh#
+//      Description:
+//        Get Heater values
+//      Information:
+//        Get the current values for both heaters
+//      Returns:
+//        "NNN,NNN"
+//
+// :XShNnnn#
+//      Description:
+//        Set strength for heater N to nnn
+//      Information:
+//        Set PWM duty cycle for heater N (0 or 1) to nnn (0 - 10). The final PWM value is goes from 0 to DEW_HEATER_N_MAX.
+//      Returns:
+//        1#
+//
 // :XSBn#
 //      Description:
 //        Set Backlash correction steps
@@ -1071,6 +1087,12 @@ String MeadeCommandProcessor::handleMeadeInit(String inCmd)
     _lcdMenu->printMenu("Remote control");
     _lcdMenu->setCursor(0, 1);
     _lcdMenu->printMenu(">SELECT to quit");
+
+#if DEW_HEATER == 1
+    LOG(DEBUG_ANY, "Starting dew heater");
+    _mount->heater(0, _mount->getHeater(0));
+    _mount->heater(1, _mount->getHeater(1));
+#endif
     return "";
 }
 
@@ -1669,13 +1691,21 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 #if (WIFI_ENABLED == 1)
             return wifiControl.getStatus() + "#";
 #endif
-
             return "0,#";
+        }
+        else if (inCmd[1] == 'h')  // :XGh#
+        {
+#if (DEW_HEATER == 1)
+            char scratchBuffer[10];
+            sprintf(scratchBuffer, "%d,%d#", _mount->getHeater(0), _mount->getHeater(1));
+            return String(scratchBuffer);
+#endif
+            return "0,0#";
         }
     }
     else if (inCmd[0] == 'R')
     {
-        void(* resetFunc) (void) = 0;
+        void (*resetFunc)(void) = 0;
         resetFunc();
     }
 
@@ -1760,6 +1790,20 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             {
                 _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
             }
+        }
+        else if (inCmd[1] == 'h' && inCmd.length() > 3)
+        {
+#if (DEW_HEATER == 1)
+            long num = inCmd[2] - '0';
+            if (num >= 0 && num < 2)
+            {
+                // :XSh0255# :XSh05# :XSh128# :XSh00# :XSh1255# :XSh1128# :XSh10#
+                // :XSh0255# :XSh00# :XSh01#    :XGh# :XSh010# :XSh011#
+                _mount->heater(num, inCmd.substring(3).toInt());
+                return String("1#");
+            }
+#endif
+            return String("0#");
         }
     }
     else if (inCmd[0] == 'L')

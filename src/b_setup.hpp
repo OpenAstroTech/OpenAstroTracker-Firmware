@@ -111,12 +111,6 @@ void setup()
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
 #endif
 
-//Turn on dew heater
-#if DEW_HEATER == 1
-    digitalWrite(DEW_HEATER_1_PIN, HIGH);
-    digitalWrite(DEW_HEATER_2_PIN, HIGH);
-#endif
-
     /////////////////////////////////
     //   Microstepping/driver pins
     /////////////////////////////////
@@ -362,6 +356,11 @@ void setup()
     // The mount uses EEPROM storage locations 0-10 that it reads during construction
     // The LCD uses EEPROM storage location 11
     mount.readConfiguration();
+
+#if DEW_HEATER == 1
+    pinMode(DEW_HEATER_1_PIN, OUTPUT);
+    pinMode(DEW_HEATER_2_PIN, OUTPUT);
+#endif
 
     // Read other persisted values and set in mount
     DayTime haTime = EEPROMStore::getHATime();

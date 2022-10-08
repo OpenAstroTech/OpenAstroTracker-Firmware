@@ -223,6 +223,10 @@ void Mount::readPersistentData()
     _homing.offsetRA = EEPROMStore::getRAHomingOffset();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: RA Homing offset read as %l", _homing.offsetRA);
 #endif
+#if DEW_HEATER == 1
+    EEPROMStore::getHeaterValues(_heaters);
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: heater values read as %d %d", _heaters[0], _heaters[1]);
+#endif
 }
 
 /////////////////////////////////
@@ -1027,6 +1031,12 @@ String Mount::getMountHardwareInfo()
     ret += F("HSAH,");
 #else
     ret += F("NO_HSAH,");
+#endif
+
+#if DEW_HEATER == 1
+    ret += F("HEATER,");
+#else
+    ret += F("NO_HEATER,");
 #endif
 
     return ret;
@@ -3023,14 +3033,14 @@ void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
 {
     if (upper)
     {
-        stepperPos = stepperPos  == 0 ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
+        stepperPos     = stepperPos == 0 ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
         _decUpperLimit = stepperPos;
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        stepperPos = stepperPos  == 0 ? -DEC_LIMIT_DOWN * _stepsPerDECDegree : stepperPos;
+        stepperPos     = stepperPos == 0 ? -DEC_LIMIT_DOWN * _stepsPerDECDegree : stepperPos;
         _decLowerLimit = stepperPos;
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
@@ -3801,3 +3811,54 @@ void Mount::checkRALimit()
     }
     _lastTRKCheck = millis();
 }
+
+#if DEW_HEATER == 1
+/////////////////////////////////
+//
+// heater
+//
+/////////////////////////////////
+void Mount::heater(unsigned num, unsigned val)
+{
+    unsigned pin = 0, max = 0;
+    if (num == 0)
+    {
+        pin = DEW_HEATER_1_PIN;
+        max = DEW_HEATER_1_MAX;
+    }
+    else if (num == 1)
+    {
+        pin = DEW_HEATER_2_PIN;
+        max = DEW_HEATER_2_MAX;
+    }
+    if (pin > 0)
+    {
+        val = map(val > 10 ? 10 : val, 0, 10, 0, max);
+        LOG(DEBUG_ANY, "[MOUNT]: heater %d (pin %d) setting to %d", num, pin, val);
+        analogWrite(pin, val);
+        //digitalWrite(pin, val > 0 ? HIGH : LOW);
+        _heaters[num] = val;
+        LOG(DEBUG_ANY, "[MOUNT]: heater %d was set to %d", num, val);
+        EEPROMStore::storeHeaterValues(_heaters);
+    }
+    else
+    {
+        LOG(DEBUG_MOUNT, "[MOUNT]: wrong pin number %d", num);
+    }
+}
+
+unsigned Mount::getHeater(unsigned num)
+{
+    unsigned val = _heaters[num], max;
+    if (num == 0)
+    {
+        max = DEW_HEATER_1_MAX;
+    }
+    else if (num == 1)
+    {
+        max = DEW_HEATER_2_MAX;
+    }
+    val = map(val, 0, max, 0, 10);
+    return val;
+}
+#endif
