@@ -2622,11 +2622,13 @@ bool Mount::findRAHomeByHallSensor(int initialDirection, int searchDistance)
 void Mount::setupEndSwitches()
 {
     #if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch = new EndSwitch(this, StepperAxis::RA_STEPS, RA_ENDSWITCH_EAST_SENSOR_PIN, RA_ENDSWITCH_WEST_SENSOR_PIN);
+    _raEndSwitch = new EndSwitch(
+        this, StepperAxis::RA_STEPS, RA_ENDSWITCH_EAST_SENSOR_PIN, RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE);
     #endif
 
     #if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch = new EndSwitch(this, StepperAxis::DEC_STEPS, DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_ENDSWITCH_UP_SENSOR_PIN);
+    _decEndSwitch = new EndSwitch(
+        this, StepperAxis::DEC_STEPS, DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE);
     #endif
 }
 #endif
@@ -3343,12 +3345,12 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
     if (_decUpperLimit != 0)
     {
         targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %f", targetDECSteps);
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: Keep DEC below Upper Limit (%l). To: %f", _decUpperLimit, targetDECSteps);
     }
     if (_decLowerLimit != 0)
     {
         targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %f", targetDECSteps);
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: Keep DEC above Lower Limit (%l). To: %f", _decLowerLimit, targetDECSteps);
     }
 
     _stepperDEC->moveTo(targetDECSteps);

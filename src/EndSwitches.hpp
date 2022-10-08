@@ -29,12 +29,14 @@ class EndSwitch
     Mount *_pMount;
     StepperAxis _axis;
     long _posWhenTriggered;
+    int _activeState;
+    int _inactiveState;
     int _dir;
     int _minPin;
     int _maxPin;
 
   public:
-    EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin);
+    EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin,int activeState);
     void processEndSwitchState();
     void checkSwitchState();
 
