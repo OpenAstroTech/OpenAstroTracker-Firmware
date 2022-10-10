@@ -1803,8 +1803,9 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             long num = inCmd[2] - '0';
             if (num >= 0 && num < 2)
             {
-                // :XSh0255# :XSh05# :XSh128# :XSh00# :XSh1255# :XSh1128# :XSh10#
-                // :XSh0255# :XSh00# :XSh01#    :XGh# :XSh010# :XSh011#
+                // :XSh010# :XSh05# :XSh00#
+                // :XSh110# :XSh15# :XSh10#
+                // :XGh# :XGh0# :XGh1#
                 _mount->setHeater(num, inCmd.substring(3).toInt());
                 return String("1#");
             }

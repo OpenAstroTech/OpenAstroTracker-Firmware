@@ -3839,8 +3839,14 @@ void Mount::setHeater(unsigned num, unsigned val)
     {
         val = map(val > 10 ? 10 : val, 0, 10, 0, max);
         LOG(DEBUG_GENERAL, "[MOUNT]: heater %d (pin %d) setting to %d", num, pin, val);
-        analogWrite(pin, val);
-        //digitalWrite(pin, val > 0 ? HIGH : LOW);
+        if (max == 1)
+        {
+            digitalWrite(pin, val > 0 ? HIGH : LOW);
+        }
+        else
+        {
+            analogWrite(pin, val);
+        }
         _heaters[num] = val;
         LOG(DEBUG_GENERAL, "[MOUNT]: heater %d was set to %d", num, val);
         EEPROMStore::storeHeaterValues(_heaters);
