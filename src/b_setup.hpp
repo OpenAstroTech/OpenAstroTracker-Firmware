@@ -113,8 +113,12 @@ void setup()
 
 //Turn on dew heater
 #if DEW_HEATER == 1
-    digitalWrite(DEW_HEATER_1_PIN, HIGH);
-    digitalWrite(DEW_HEATER_2_PIN, HIGH);
+    #if defined(DEW_HEATER_1_PIN)
+        digitalWrite(DEW_HEATER_1_PIN, HIGH);
+    #endif
+    #if defined(DEW_HEATER_2_PIN) 
+        digitalWrite(DEW_HEATER_2_PIN, HIGH);
+    #endif
 #endif
 
     /////////////////////////////////
