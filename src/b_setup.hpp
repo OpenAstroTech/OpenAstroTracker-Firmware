@@ -358,8 +358,16 @@ void setup()
     mount.readConfiguration();
 
 #if DEW_HEATER == 1
+    LOG(DEBUG_GENERAL, "Starting dew heater");
+
+    #if defined(DEW_HEATER_1_PIN)
     pinMode(DEW_HEATER_1_PIN, OUTPUT);
+    mount.setHeater(0, mount.getHeater(0));
+    #endif
+    #if defined(DEW_HEATER_2_PIN)
     pinMode(DEW_HEATER_2_PIN, OUTPUT);
+    mount.setHeater(1, mount.getHeater(1));
+    #endif
 #endif
 
     // Read other persisted values and set in mount

@@ -3823,13 +3823,17 @@ void Mount::setHeater(unsigned num, unsigned val)
     unsigned pin = 0, max = 0;
     if (num == 0)
     {
+    #if defined(DEW_HEATER_1_PIN)
         pin = DEW_HEATER_1_PIN;
         max = DEW_HEATER_1_MAX;
+    #endif
     }
     else if (num == 1)
     {
+    #if defined(DEW_HEATER_2_PIN)
         pin = DEW_HEATER_2_PIN;
         max = DEW_HEATER_2_MAX;
+    #endif
     }
     if (pin > 0)
     {

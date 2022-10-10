@@ -816,13 +816,13 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "HHMMSS"
 //
-// :XGh#
+// :XGhN#
 //      Description:
-//        Get Heater values
+//        Get value for heaters
 //      Information:
-//        Get the current values for both heaters
+//        Get value for heater N in the range from 0-10, or both heaters if no N is given.
 //      Returns:
-//        "NNN,NNN"
+//        "NNN,NNN#" or "N#"
 //
 // :XShNnnn#
 //      Description:
@@ -838,7 +838,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Restarts the mount like into a state which is like the one you get when you use the reset button.
 //      Returns:
-//        1#
+//        nothing, the mount reboots
 //
 // :XSBn#
 //      Description:
@@ -1096,11 +1096,6 @@ String MeadeCommandProcessor::handleMeadeInit(String inCmd)
     _lcdMenu->setCursor(0, 1);
     _lcdMenu->printMenu(">SELECT to quit");
 
-#if DEW_HEATER == 1
-    LOG(DEBUG_ANY, "Starting dew heater");
-    _mount->setHeater(0, _mount->getHeater(0));
-    _mount->setHeater(1, _mount->getHeater(1));
-#endif
     return "";
 }
 
@@ -1701,17 +1696,20 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 #endif
             return "0,#";
         }
-        else if (inCmd[1] == 'h')  // :XGh#
+        else if (inCmd[1] == 'h')  // :XGh# :XGh0#
         {
 #if (DEW_HEATER == 1)
             char scratchBuffer[10];
-            sprintf(scratchBuffer, "%d,%d#", _mount->getHeater(0), _mount->getHeater(1));
+            if (inCmd.length() > 2)
+                sprintf(scratchBuffer, "%d#", _mount->getHeater(inCmd.substring(2).toInt()));
+            else
+                sprintf(scratchBuffer, "%d,%d#", _mount->getHeater(0), _mount->getHeater(1));
             return String(scratchBuffer);
 #endif
             return "0,0#";
         }
     }
-    else if (inCmd.length() == 3 && inCmd[0] == 'R' && inCmd[1] == 'S' && inCmd[2] == 'T')
+    else if (inCmd.length() == 4 && inCmd[0] == 'R' && inCmd[1] == 'S' && inCmd[2] == 'T')  // :XRST#
     {
         void (*resetFunc)(void) = 0;
         resetFunc();
