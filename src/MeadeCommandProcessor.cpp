@@ -828,7 +828,15 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set strength for heater N to nnn
 //      Information:
-//        Set PWM duty cycle for heater N (0 or 1) to nnn (0 - 10). The final PWM value is goes from 0 to DEW_HEATER_N_MAX.
+//        Set scale of the PWM duty cycle for heater N (0 or 1) to nnn (0 - 10). The final PWM value goes from 0 to DEW_HEATER_N_MAX.
+//      Returns:
+//        1#
+//
+// :XRST#
+//      Description:
+//        Restart the mount
+//      Information:
+//        Restarts the mount like into a state which is like the one you get when you use the reset button.
 //      Returns:
 //        1#
 //
@@ -1090,8 +1098,8 @@ String MeadeCommandProcessor::handleMeadeInit(String inCmd)
 
 #if DEW_HEATER == 1
     LOG(DEBUG_ANY, "Starting dew heater");
-    _mount->heater(0, _mount->getHeater(0));
-    _mount->heater(1, _mount->getHeater(1));
+    _mount->setHeater(0, _mount->getHeater(0));
+    _mount->setHeater(1, _mount->getHeater(1));
 #endif
     return "";
 }
@@ -1703,7 +1711,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             return "0,0#";
         }
     }
-    else if (inCmd[0] == 'R')
+    else if (inCmd.length() == 3 && inCmd[0] == 'R' && inCmd[1] == 'S' && inCmd[2] == 'T')
     {
         void (*resetFunc)(void) = 0;
         resetFunc();
@@ -1799,7 +1807,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             {
                 // :XSh0255# :XSh05# :XSh128# :XSh00# :XSh1255# :XSh1128# :XSh10#
                 // :XSh0255# :XSh00# :XSh01#    :XGh# :XSh010# :XSh011#
-                _mount->heater(num, inCmd.substring(3).toInt());
+                _mount->setHeater(num, inCmd.substring(3).toInt());
                 return String("1#");
             }
 #endif

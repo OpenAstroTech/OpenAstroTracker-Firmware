@@ -3815,10 +3815,10 @@ void Mount::checkRALimit()
 #if DEW_HEATER == 1
 /////////////////////////////////
 //
-// heater
+// setHeater
 //
 /////////////////////////////////
-void Mount::heater(unsigned num, unsigned val)
+void Mount::setHeater(unsigned num, unsigned val)
 {
     unsigned pin = 0, max = 0;
     if (num == 0)
@@ -3834,11 +3834,11 @@ void Mount::heater(unsigned num, unsigned val)
     if (pin > 0)
     {
         val = map(val > 10 ? 10 : val, 0, 10, 0, max);
-        LOG(DEBUG_ANY, "[MOUNT]: heater %d (pin %d) setting to %d", num, pin, val);
+        LOG(DEBUG_GENERAL, "[MOUNT]: heater %d (pin %d) setting to %d", num, pin, val);
         analogWrite(pin, val);
         //digitalWrite(pin, val > 0 ? HIGH : LOW);
         _heaters[num] = val;
-        LOG(DEBUG_ANY, "[MOUNT]: heater %d was set to %d", num, val);
+        LOG(DEBUG_GENERAL, "[MOUNT]: heater %d was set to %d", num, val);
         EEPROMStore::storeHeaterValues(_heaters);
     }
     else

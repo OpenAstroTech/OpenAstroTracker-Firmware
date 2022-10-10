@@ -423,7 +423,7 @@ class Mount
     #endif
 #endif
 #if DEW_HEATER == 1
-    void heater(unsigned num, unsigned val);
+    void setHeater(unsigned num, unsigned val);
     unsigned getHeater(unsigned num);
 #endif
 
