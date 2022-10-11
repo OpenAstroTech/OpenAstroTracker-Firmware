@@ -3820,7 +3820,8 @@ void Mount::checkRALimit()
 /////////////////////////////////
 void Mount::setHeater(unsigned num, unsigned val)
 {
-    unsigned pin = 0, max = 0;
+    unsigned pin = 0;
+    unsigned max = 0;
     if (num == 0)
     {
     #if defined(DEW_HEATER_1_PIN)
@@ -3859,7 +3860,7 @@ void Mount::setHeater(unsigned num, unsigned val)
 
 unsigned Mount::getHeater(unsigned num)
 {
-    unsigned val = _heaters[num], max;
+    unsigned max = 0;
     if (num == 0)
     {
         max = DEW_HEATER_1_MAX;
@@ -3868,7 +3869,12 @@ unsigned Mount::getHeater(unsigned num)
     {
         max = DEW_HEATER_2_MAX;
     }
-    val = map(val, 0, max, 0, 10);
-    return val;
+    if (max > 0)
+    {
+        unsigned val = _heaters[num];
+        val = map(val, 0, max, 0, 10);
+        return val;
+    }
+    return 0;
 }
 #endif
