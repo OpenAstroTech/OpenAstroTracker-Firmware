@@ -3023,13 +3023,13 @@ void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
 {
     if (upper)
     {
-        _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
+        _decUpperLimit = (stepperPos == 0) ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
+        _decLowerLimit = (stepperPos == 0) ? -(DEC_LIMIT_DOWN * _stepsPerDECDegree) : stepperPos;
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
@@ -3306,13 +3306,24 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
 
     if (_decUpperLimit != 0)
     {
+        #if DEBUG_LEVEL > 0
+        if (targetDECSteps > (float) _decUpperLimit)
+        {
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %l", _decUpperLimit);
+        }
+        #endif
         targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %f", targetDECSteps);
     }
+
     if (_decLowerLimit != 0)
     {
+        #if DEBUG_LEVEL > 0
+        if (targetDECSteps < (float) _decLowerLimit)
+        {
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %l", _decLowerLimit);
+        }
+        #endif
         targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %f", targetDECSteps);
     }
 
     _stepperDEC->moveTo(targetDECSteps);
