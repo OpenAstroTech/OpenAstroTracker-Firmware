@@ -820,15 +820,15 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get value for heaters
 //      Information:
-//        Get value for heater N in the range from 0-10, or both heaters if no N is given.
+//        Get value for heater N (0 or 1) as a value in the range from 0-10, or both heaters if no N is given.
 //      Returns:
-//        "NNN,NNN#" or "N#"
+//        "nn,nn#" or "n#"
 //
-// :XShNnnn#
+// :XShNnn#
 //      Description:
-//        Set strength for heater N to nnn
+//        Set strength for heater N to nn
 //      Information:
-//        Set scale of the PWM duty cycle for heater N (0 or 1) to nnn (0 - 10). The final PWM value goes from 0 to DEW_HEATER_N_MAX.
+//        Set scale of the PWM duty cycle for heater N (0 or 1) to nn (0 - 10). The final PWM value goes from 0 to DEW_HEATER_(N+1)_MAX.
 //      Returns:
 //        1#
 //
@@ -836,7 +836,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Restart the mount
 //      Information:
-//        Restarts the mount like into a state which is like the one you get when you use the reset button.
+//        Restarts the mount in the same way pressing the Reset button on the LCD would.
 //      Returns:
 //        nothing, the mount reboots
 //
