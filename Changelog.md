@@ -1,3 +1,6 @@
+**V1.11.11 - Updates**
+- Fix DEC limit code to use parameters.
+
 **V1.11.10 - Updates**
 - Fix dew heater pin assignments.
 
