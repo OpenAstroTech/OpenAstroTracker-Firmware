@@ -1810,7 +1810,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             {
                 // :XSh010# :XSh05# :XSh00#
                 // :XSh110# :XSh15# :XSh10#
-                // :XGh# :XGh0# :XGh1#
+                // :XGh# :XGh0# :XGh1# :XGh2#
                 _mount->setHeater(num, inCmd.substring(3).toInt());
                 return String("1#");
             }

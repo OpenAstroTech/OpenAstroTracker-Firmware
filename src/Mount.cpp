@@ -3872,7 +3872,7 @@ unsigned Mount::getHeater(unsigned num)
     if (max > 0)
     {
         unsigned val = _heaters[num];
-        val = map(val, 0, max, 0, 10);
+        val          = map(val, 0, max, 0, 10);
         return val;
     }
     return 0;
