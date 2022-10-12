@@ -862,7 +862,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set the upper limit for the DEC axis to the current position if no parameter is given,
 //        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the degrees from home that the DEC ring can travel upwards. Passing 0 or omitting this 
+//        "nnnnn" is the degrees from home that the DEC ring can travel upwards. Passing 0 or omitting this
 //                parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
@@ -871,7 +871,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC upper limit
 //      Information:
-//        Resets the upper limit for the DEC axis to the configuration-defined position. 
+//        Resets the upper limit for the DEC axis to the configuration-defined position.
 //        If unconfigured, the limit is cleared.
 //      Returns:
 //        nothing
@@ -883,7 +883,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set the lower limit for the DEC axis to the current position if no parameter is given,
 //        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the degrees from home that the DEC ring can travel downwards. Passing 0 or omitting this 
+//        "nnnnn" is the degrees from home that the DEC ring can travel downwards. Passing 0 or omitting this
 //                parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
@@ -892,9 +892,9 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC lower limit
 //      Information:
-//        Resets the lower limit for the DEC axis to the configuration-defined position. 
+//        Resets the lower limit for the DEC axis to the configuration-defined position.
 //        If unconfigured, the limit is cleared.
-//      Returns: 
+//      Returns:
 //        nothing
 //
 // :XSDPnnnn#
