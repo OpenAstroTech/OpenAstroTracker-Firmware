@@ -3009,27 +3009,17 @@ void Mount::setDecParkingOffset(long offset)
 // setDecLimitPosition
 //
 /////////////////////////////////
-void Mount::setDecLimitPosition(bool upper)
-{
-    setDecLimitPositionAbs(upper, _stepperDEC->currentPosition());
-}
-
-/////////////////////////////////
-//
-// setDecLimitPositionAbs
-//
-/////////////////////////////////
-void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
+void Mount::setDecLimitPosition(bool upper, long limitAngle)
 {
     if (upper)
     {
-        _decUpperLimit = (stepperPos == 0) ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
+        _decUpperLimit = (limitAngle == 0) ? _stepperDEC->currentPosition() : (limitAngle * _stepsPerDECDegree);
         EEPROMStore::storeDECUpperLimit(_decUpperLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = (stepperPos == 0) ? -(DEC_LIMIT_DOWN * _stepsPerDECDegree) : stepperPos;
+        _decLowerLimit = (limitAngle == 0) ? _stepperDEC->currentPosition() : -(limitAngle * _stepsPerDECDegree);
         EEPROMStore::storeDECLowerLimit(_decLowerLimit);
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }

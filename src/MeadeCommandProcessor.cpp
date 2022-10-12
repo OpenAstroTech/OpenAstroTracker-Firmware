@@ -859,11 +859,11 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC upper limit
 //      Information:
-//        Set the upper limit for the DEC stepper motor to the current position if no parameter is given,
-//        otherwise to the given parameter.
+//        Set the upper limit for the DEC axis to the current position if no parameter is given,
+//        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel upwards. Passing 0 will reset it to the
-//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
+//        "nnnnn" is the degrees from home that the DEC ring can travel upwards. Passing 0 or omitting this 
+//                parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -871,7 +871,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC upper limit
 //      Information:
-//        Clears the upper limit for the DEC stepper motor
+//        Resets the upper limit for the DEC axis to the configuration-defined position. 
+//        If unconfigured, the limit is cleared.
 //      Returns:
 //        nothing
 //
@@ -879,11 +880,11 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC lower limit
 //      Information:
-//        Set the lowerlimit for the DEC stepper motor to the current position if no parameter is given,
-//        otherwise to the given parameter.
+//        Set the lower limit for the DEC axis to the current position if no parameter is given,
+//        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel downwards. Passing 0 will reset it to the
-//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
+//        "nnnnn" is the degrees from home that the DEC ring can travel downwards. Passing 0 or omitting this 
+//                parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -891,8 +892,10 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC lower limit
 //      Information:
-//        Clear the lower limit for the DEC stepper motor
-//      Returns: nothing
+//        Resets the lower limit for the DEC axis to the configuration-defined position. 
+//        If unconfigured, the limit is cleared.
+//      Returns: 
+//        nothing
 //
 // :XSDPnnnn#
 //      Description:
@@ -1689,7 +1692,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     if (inCmd.length() > 4)
                     {
-                        _mount->setDecLimitPositionAbs(false, inCmd.substring(4).toInt());
+                        _mount->setDecLimitPosition(false, inCmd.substring(4).toInt());
                     }
                     else
                     {
@@ -1700,7 +1703,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     if (inCmd.length() > 4)
                     {
-                        _mount->setDecLimitPositionAbs(true, inCmd.substring(4).toInt());
+                        _mount->setDecLimitPosition(true, inCmd.substring(4).toInt());
                     }
                     else
                     {
