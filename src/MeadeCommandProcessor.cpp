@@ -1692,7 +1692,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     if (inCmd.length() > 4)
                     {
-                        _mount->setDecLimitPosition(false, inCmd.substring(4).toInt());
+                        _mount->setDecLimitPosition(false, inCmd.substring(4).toFloat());
                     }
                     else
                     {
@@ -1703,7 +1703,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     if (inCmd.length() > 4)
                     {
-                        _mount->setDecLimitPosition(true, inCmd.substring(4).toInt());
+                        _mount->setDecLimitPosition(true, inCmd.substring(4).toFloat());
                     }
                     else
                     {

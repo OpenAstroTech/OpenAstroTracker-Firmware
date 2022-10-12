@@ -302,7 +302,7 @@ class Mount
     // Set the DEC limit position to the given angle in degrees (saved as DEC steps).
     // If upper is true, sets the upper limit, else the lower limit.
     // If limitAngle is 0, limit is set to current position.
-    void setDecLimitPosition(bool upper, long limitAngle = 0);
+    void setDecLimitPosition(bool upper, float limitAngle = 0);
 
     // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
     void clearDecLimitPosition(bool upper);
