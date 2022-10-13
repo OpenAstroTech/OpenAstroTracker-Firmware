@@ -716,62 +716,62 @@ void EEPROMStore::storeDECParkingPos(int32_t decParkingPos)
 
 // Return the stored DEC Lower Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-int32_t EEPROMStore::getDECLowerLimit()
+float EEPROMStore::getDECLowerLimit()
 {
-    int32_t decLowerLimit(0);  // microsteps (slew)
+    float decLowerLimit(0);  // limit angle (deg)
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
-        decLowerLimit = readInt32(DEC_LOWER_LIMIT_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC lower limit read as %l", decLowerLimit);
+        decLowerLimit = readInt32(DEC_LOWER_LIMIT_ADDR) / 100.0f;
+        LOG(DEBUG_EEPROM, "[EEPROM]: DEC lower limit read as %f", decLowerLimit);
     }
     else
     {
         LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
     }
 
-    return decLowerLimit;  // microsteps (slew)
+    return decLowerLimit;  // limit angle (deg)
 }
 
 // Store the configured DEC Lower Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECLowerLimit(int32_t decLowerLimit)
+void EEPROMStore::storeDECLowerLimit(float decLowerLimit)
 {
     LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Lower Limit to %l", decLowerLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
-    updateInt32(DEC_LOWER_LIMIT_ADDR, decLowerLimit);
+    updateInt32(DEC_LOWER_LIMIT_ADDR, static_cast<int32_t>(roundf(decLowerLimit * 100.0f)));
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
 // Return the stored DEC Upper Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-int32_t EEPROMStore::getDECUpperLimit()
+float EEPROMStore::getDECUpperLimit()
 {
-    int32_t decUpperLimit(0);  // microsteps (slew)
+    float decUpperLimit(0);  // limit angle (deg)
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
-        decUpperLimit = readInt32(DEC_UPPER_LIMIT_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC upper limit read as %l", decUpperLimit);
+        decUpperLimit = readInt32(DEC_UPPER_LIMIT_ADDR) / 100.0f;
+        LOG(DEBUG_EEPROM, "[EEPROM]: DEC upper limit read as %f", decUpperLimit);
     }
     else
     {
         LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
     }
 
-    return decUpperLimit;  // microsteps (slew)
+    return decUpperLimit;  // limit angle (deg)
 }
 
 // Store the configured DEC Upper Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECUpperLimit(int32_t decUpperLimit)
+void EEPROMStore::storeDECUpperLimit(float decUpperLimit)
 {
     LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Upper Limit to %l", decUpperLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
-    updateInt32(DEC_UPPER_LIMIT_ADDR, decUpperLimit);
+    updateInt32(DEC_UPPER_LIMIT_ADDR, static_cast<int32_t>(roundf(decUpperLimit * 100.0f)));
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }

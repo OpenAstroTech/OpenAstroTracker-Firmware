@@ -53,11 +53,11 @@ class EEPROMStore
     static int32_t getDECParkingPos();
     static void storeDECParkingPos(int32_t decParkingPos);
 
-    static int32_t getDECLowerLimit();
-    static void storeDECLowerLimit(int32_t decLowerLimit);
+    static float getDECLowerLimit();
+    static void storeDECLowerLimit(float decLowerLimit);
 
-    static int32_t getDECUpperLimit();
-    static void storeDECUpperLimit(int32_t decUpperLimit);
+    static float getDECUpperLimit();
+    static void storeDECUpperLimit(float decUpperLimit);
 
     static int32_t getRAHomingOffset();
     static void storeRAHomingOffset(int32_t raHomingOffset);
