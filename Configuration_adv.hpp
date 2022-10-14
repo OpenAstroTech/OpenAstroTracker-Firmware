@@ -535,7 +535,9 @@
 #endif
 
 #if DEW_HEATER == 1
-    // Careful with those values, they might melt your lens.
+    // Careful with those values, they might melt your lens
+    // or set your house on fire.
+    // Only use heaters with fuses!
     // Make doubly sure your setup can handle 12V.
     // this is the PWM duty cycle with values from 0...255
     #if !defined(DEW_HEATER_1_MAX)

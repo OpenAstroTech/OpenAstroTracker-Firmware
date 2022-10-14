@@ -105,8 +105,6 @@ void setup()
     #endif
 #endif
 
-    LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT %s!", VERSION);
-
 #if USE_GPS == 1
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
 #endif
@@ -195,6 +193,15 @@ void setup()
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     pinMode(RA_HOMING_SENSOR_PIN, INPUT);
+#endif
+
+#if DEW_HEATER == 1
+    #if defined(DEW_HEATER_1_PIN)
+    pinMode(DEW_HEATER_1_PIN, OUTPUT);
+    #endif
+    #if defined(DEW_HEATER_2_PIN)
+    pinMode(DEW_HEATER_2_PIN, OUTPUT);
+    #endif
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
@@ -361,11 +368,9 @@ void setup()
     LOG(DEBUG_GENERAL, "Starting dew heater");
 
     #if defined(DEW_HEATER_1_PIN)
-    pinMode(DEW_HEATER_1_PIN, OUTPUT);
     mount.setHeater(0, mount.getHeater(0));
     #endif
     #if defined(DEW_HEATER_2_PIN)
-    pinMode(DEW_HEATER_2_PIN, OUTPUT);
     mount.setHeater(1, mount.getHeater(1));
     #endif
 #endif

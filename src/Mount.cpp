@@ -224,8 +224,17 @@ void Mount::readPersistentData()
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: RA Homing offset read as %l", _homing.offsetRA);
 #endif
 #if DEW_HEATER == 1
-    EEPROMStore::getHeaterValues(_heaters);
-    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: heater values read as %d %d", _heaters[0], _heaters[1]);
+    unsigned heaterValues[2];
+    EEPROMStore::getHeaterValues(heaterValues);
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: heater values read as %d %d", heaterValues[0], heaterValues[1]);
+    #if defined(DEW_HEATER_1_PIN)
+    _heaters[0] = new Heater(0, DEW_HEATER_1_PIN, DEW_HEATER_1_MAX);
+    _heaters[0]->setValue(heaterValues[0]);
+    #endif
+    #if defined(DEW_HEATER_2_PIN)
+    _heaters[1] = new Heater(1, DEW_HEATER_2_PIN, DEW_HEATER_2_MAX);
+    _heaters[1]->setValue(heaterValues[1]);
+    #endif
 #endif
 }
 
@@ -2699,6 +2708,16 @@ void Mount::interruptLoop()
         _stepperFocus->runSpeed();
     }
 #endif
+#if DEW_HEATER == 1
+    if(_heaters[0]) 
+    {
+        _heaters[0]->runLoop();
+    }
+    if(_heaters[1]) 
+    {
+        _heaters[1]->runLoop();
+    }
+#endif
 }
 
 /////////////////////////////////
@@ -3835,60 +3854,36 @@ void Mount::checkRALimit()
 /////////////////////////////////
 void Mount::setHeater(unsigned num, unsigned val)
 {
-    unsigned pin = 0;
-    unsigned max = 0;
-    if (num == 0)
+    if(num < 2)
     {
-    #if defined(DEW_HEATER_1_PIN)
-        pin = DEW_HEATER_1_PIN;
-        max = DEW_HEATER_1_MAX;
-    #endif
-    }
-    else if (num == 1)
-    {
-    #if defined(DEW_HEATER_2_PIN)
-        pin = DEW_HEATER_2_PIN;
-        max = DEW_HEATER_2_MAX;
-    #endif
-    }
-    if (pin > 0)
-    {
-        val = map(val > 10 ? 10 : val, 0, 10, 0, max);
-        LOG(DEBUG_GENERAL, "[MOUNT]: heater %d (pin %d) setting to %d", num, pin, val);
-        if (max == 1)
+        if(_heaters[num])
         {
-            digitalWrite(pin, val > 0 ? HIGH : LOW);
+            _heaters[num]->setValue(val);
         }
-        else
+        unsigned heaterValues[2] = {0, 0};
+        if(_heaters[0])
         {
-            analogWrite(pin, val);
+            heaterValues[0] = _heaters[0]->getValue();
         }
-        _heaters[num] = val;
+        if(_heaters[1])
+        {
+            heaterValues[1] = _heaters[1]->getValue();
+        }
         LOG(DEBUG_GENERAL, "[MOUNT]: heater %d was set to %d", num, val);
-        EEPROMStore::storeHeaterValues(_heaters);
+        EEPROMStore::storeHeaterValues(heaterValues);
     }
     else
     {
         LOG(DEBUG_MOUNT, "[MOUNT]: wrong pin number %d", num);
     }
+    return;
 }
 
 unsigned Mount::getHeater(unsigned num)
 {
-    unsigned max = 0;
-    if (num == 0)
+    if (num <= 2 && _heaters[num])
     {
-        max = DEW_HEATER_1_MAX;
-    }
-    else if (num == 1)
-    {
-        max = DEW_HEATER_2_MAX;
-    }
-    if (max > 0)
-    {
-        unsigned val = _heaters[num];
-        val          = map(val, 0, max, 0, 10);
-        return val;
+        return _heaters[num]->getValue();
     }
     return 0;
 }

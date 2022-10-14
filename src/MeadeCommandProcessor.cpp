@@ -830,7 +830,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set strength for heater N to nn
 //      Information:
-//        Set scale of the PWM duty cycle for heater N to nn. The final PWM value goes from 0 to DEW_HEATER_(N+1)_MAX.
+//        Set scale of the PWM duty cycle for heater N to nn. 
+//        The final PWM value goes from 0 to DEW_HEATER_(N+1)_MAX.
 //      Parameters:
 //        "N" heater number is one of 0 or 1
 //        "nn" value in the range of 0 to 10
@@ -1711,9 +1712,13 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 #if (DEW_HEATER == 1)
             char scratchBuffer[10];
             if (inCmd.length() > 2)
+            {
                 sprintf(scratchBuffer, "%d#", _mount->getHeater(inCmd.substring(2).toInt()));
+            }
             else
+            {
                 sprintf(scratchBuffer, "%d,%d#", _mount->getHeater(0), _mount->getHeater(1));
+            }
             return String(scratchBuffer);
 #endif
             return "0,0#";
@@ -1813,8 +1818,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             long num = inCmd[2] - '0';
             if (num >= 0 && num < 2)
             {
-                // :XSh010# :XSh05# :XSh00#
-                // :XSh110# :XSh15# :XSh10#
+                // :XSh010# :XSh05# :XSh01# :XSh00#
+                // :XSh110# :XSh15# :XSh01# :XSh10#
                 // :XGh# :XGh0# :XGh1# :XGh2#
                 _mount->setHeater(num, inCmd.substring(3).toInt());
                 return String("1#");
