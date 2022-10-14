@@ -93,47 +93,48 @@ enum FocuserDirection
     FOCUS_FORWARD  = 1
 };
 
-
-class Heater {
-    public:
+class Heater
+{
+  public:
     Heater(unsigned num, unsigned pin, unsigned max)
     {
         _num = num;
         _pin = pin;
         _max = max;
     }
-    private:
-        unsigned _num;
-        unsigned _pwm;
-        unsigned _pin;
-        unsigned _max;
-        unsigned _value;
-        unsigned _tick;
-        unsigned _on;
-    public:
-        void setValue(unsigned value)
-        {
-            _value = value;
-            _pwm = map(value > 10 ? 10 : value, 0, 10, 0, _max);
-            LOG(DEBUG_GENERAL, "[MOUNT]: heater %d (%d) was set to %d (%d of %d)", _num, _pin, _value, _pwm, _max);
-        }
-        unsigned getValue()
-        {
-            return _value;
-        }
-        void runLoop()
-        {
-            _tick = ++_tick >= 256 ? 0 : _tick;
-            unsigned on = _tick < _pwm;
-            if(on != _on)
-            {
-                _on = on;
-                digitalWrite(_pin, on ? HIGH : LOW);
-                // LOG(DEBUG_GENERAL, "[MOUNT]: heater %d (%d) was set to %d", _num, _pin, on);
-            }
-        }
-};
 
+  private:
+    unsigned _num;
+    unsigned _pwm;
+    unsigned _pin;
+    unsigned _max;
+    unsigned _value;
+    unsigned _tick;
+    unsigned _on;
+
+  public:
+    void setValue(unsigned value)
+    {
+        _value = value;
+        _pwm   = map(value > 10 ? 10 : value, 0, 10, 0, _max);
+        LOG(DEBUG_GENERAL, "[MOUNT]: heater %d (%d) was set to %d (%d of %d)", _num, _pin, _value, _pwm, _max);
+    }
+    unsigned getValue()
+    {
+        return _value;
+    }
+    void runLoop()
+    {
+        _tick       = ++_tick >= 256 ? 0 : _tick;
+        unsigned on = _tick < _pwm;
+        if (on != _on)
+        {
+            _on = on;
+            digitalWrite(_pin, on ? HIGH : LOW);
+            // LOG(DEBUG_GENERAL, "[MOUNT]: heater %d (%d) was set to %d", _num, _pin, on);
+        }
+    }
+};
 
 //////////////////////////////////////////////////////////////////
 //

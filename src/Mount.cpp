@@ -2709,11 +2709,11 @@ void Mount::interruptLoop()
     }
 #endif
 #if DEW_HEATER == 1
-    if(_heaters[0]) 
+    if (_heaters[0])
     {
         _heaters[0]->runLoop();
     }
-    if(_heaters[1]) 
+    if (_heaters[1])
     {
         _heaters[1]->runLoop();
     }
@@ -3854,18 +3854,18 @@ void Mount::checkRALimit()
 /////////////////////////////////
 void Mount::setHeater(unsigned num, unsigned val)
 {
-    if(num < 2)
+    if (num < 2)
     {
-        if(_heaters[num])
+        if (_heaters[num])
         {
             _heaters[num]->setValue(val);
         }
         unsigned heaterValues[2] = {0, 0};
-        if(_heaters[0])
+        if (_heaters[0])
         {
             heaterValues[0] = _heaters[0]->getValue();
         }
-        if(_heaters[1])
+        if (_heaters[1])
         {
             heaterValues[1] = _heaters[1]->getValue();
         }

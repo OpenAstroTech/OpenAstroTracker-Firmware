@@ -830,7 +830,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set strength for heater N to nn
 //      Information:
-//        Set scale of the PWM duty cycle for heater N to nn. 
+//        Set scale of the PWM duty cycle for heater N to nn.
 //        The final PWM value goes from 0 to DEW_HEATER_(N+1)_MAX.
 //      Parameters:
 //        "N" heater number is one of 0 or 1
