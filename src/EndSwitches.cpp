@@ -59,6 +59,10 @@ long EndSwitch::getPosWhenTriggered() const
 /////////////////////////////////
 //
 // processHomingProgress
+// 
+// This function runs in the interrupt of the stepping code
+// so it needs to be very fast. We only set a flag and remember
+// when we triggered the switch.
 //
 /////////////////////////////////
 void EndSwitch::processEndSwitchState()
@@ -72,9 +76,10 @@ void EndSwitch::processEndSwitchState()
                     _state            = EndSwitchState::SWITCH_AT_MINIMUM;
                     _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
                     LOG(DEBUG_MOUNT,
-                        "[ENDSWITCH]: Reached minimum position on %s axis at %l",
+                        "[ENDSWITCH]: Reached minimum position on %s axis at %l. State is %x, %x",
                         _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
-                        _posWhenTriggered);
+                        _posWhenTriggered,
+                        _pMount->slewStatus(), _pMount->mountStatus());
                 }
 
                 if (digitalRead(_maxPin) == _activeState)
@@ -82,9 +87,10 @@ void EndSwitch::processEndSwitchState()
                     _state            = EndSwitchState::SWITCH_AT_MAXIMUM;
                     _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
                     LOG(DEBUG_MOUNT,
-                        "[ENDSWITCH]: Reached maximum position on %s axis at %l",
+                        "[ENDSWITCH]: Reached maximum position on %s axis at %l. State is %x, %x",
                         _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
-                        _posWhenTriggered);
+                        _posWhenTriggered,
+                        _pMount->slewStatus(), _pMount->mountStatus());
                 }
             }
             break;
@@ -117,12 +123,19 @@ void EndSwitch::processEndSwitchState()
 ///////////////////////////
 //
 // checkSwitchState
+// This runs in the Mount::loop() function where all the logic
+// about stopping, parking, etc. happens.
 //
 ///////////////////////////
 void EndSwitch::checkSwitchState()
 {
     if ((_state == EndSwitchState::SWITCH_AT_MINIMUM) || (_state == EndSwitchState::SWITCH_AT_MAXIMUM))
     {
+        LOG(DEBUG_MOUNT,
+            "[ENDSWITCH]: Switch Active. Check whether slewing any axis (%d, %x, %x)",
+            _pMount->isSlewingRAorDEC(),
+            _pMount->slewStatus(), _pMount->mountStatus());
+
         if (_pMount->isSlewingRAorDEC())
         {
             int stopSlewDir = _dir;
@@ -135,11 +148,10 @@ void EndSwitch::checkSwitchState()
             // Set state first thing to avoid re-entrancy in call to waitUntilStopped() below.
             _state = _state == EndSwitchState::SWITCH_AT_MINIMUM ? EndSwitchState::SWITCH_SLEWING_OFF_MINIMUM
                                                                  : EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM;
-            LOG(DEBUG_MOUNT,
-                "[ENDSWITCH]: Switch activated, stopping and reversing %s axis",
-                _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+            LOG(DEBUG_MOUNT, "[ENDSWITCH]: Slewing is active, so stopping slew on %s axis (%x, %x)", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC", stopSlewDir, _dir);
             _pMount->stopSlewing(stopSlewDir);
             _pMount->waitUntilStopped(_dir);
+            LOG(DEBUG_MOUNT, "[ENDSWITCH]: Slewing stopped on %s axis. (%x, %x)", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC", _pMount->slewStatus(), _pMount->mountStatus());
             long currentPos       = _pMount->getCurrentStepperPosition(_dir);
             long backDistance     = _posWhenTriggered - currentPos;
             long backSlewDistance = (12 * backDistance) / 10;  // Go back 120% distance that we ran past the switch

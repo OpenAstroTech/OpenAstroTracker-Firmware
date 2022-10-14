@@ -2039,6 +2039,11 @@ byte Mount::slewStatus() const
     return slewState;
 }
 
+byte Mount::mountStatus() const
+{
+    return _mountStatus;
+}
+
 /////////////////////////////////
 //
 // isGuiding

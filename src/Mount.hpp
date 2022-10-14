@@ -412,6 +412,11 @@ class Mount
     DayTime calculateLst();
     DayTime calculateHa();
 
+    // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
+    byte slewStatus() const;
+    byte mountStatus() const;
+
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -435,9 +440,6 @@ class Mount
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC);
-
-    // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
-    byte slewStatus() const;
 
     void autoCalcHa();
 
