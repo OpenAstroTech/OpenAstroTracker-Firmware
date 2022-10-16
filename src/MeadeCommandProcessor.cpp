@@ -724,13 +724,16 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#"
 //
-// :XGDL#
+// :XGDLx#
 //      Description:
 //        Get DEC limits
 //      Information:
-//        Get the lower and upper limits for the DEC stepper motor in steps
+//        Get the either lower, upper or both limits for the DEC stepper motor in degrees.
+//      Parameters:
+//        'x' is optional or can be 'U' or 'L'. If it is 'U' only the upper bound is returned,
+//            if it is 'L' only the lower bound is returned and if it is missing, both are returned.
 //      Returns:
-//        "integer|integer#"
+//        "float#" or "float|float#"
 //
 // :XGDP#
 //      Description:
@@ -1588,13 +1591,29 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2)
             {
-                if (inCmd[2] == 'L')  // :XGDL#
+                if (inCmd[2] == 'L')  // :XGDLx#
                 {
-                    long loLimit, hiLimit;
+                    float loLimit, hiLimit;
                     _mount->getDecLimitPositions(loLimit, hiLimit);
-                    char scratchBuffer[20];
-                    sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
-                    return String(scratchBuffer);
+                    if (inCmd.length() > 3)
+                    {
+                        if (inCmd[3] == 'L')  // :XGDLL#
+                        {
+                            return String(loLimit, 1) + "#";
+                        }
+                        else if (inCmd[3] == 'U')  // :XGDLU#
+                        {
+                            return String(hiLimit, 1) + "#";
+                        }
+                        else
+                        {
+                            return "0#";
+                        }
+                    }
+                    else  // :XGDL#
+                    {
+                        return String(loLimit, 1) + "|" + String(hiLimit, 1) + "#";
+                    }
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
                 {
@@ -1683,37 +1702,40 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'D')  // :XSD
         {
-            if ((inCmd.length() > 3) && (inCmd[2] == 'L'))  // :XSDL
+            if ((inCmd.length() > 2) && (inCmd[2] == 'L'))  // :XSDL
             {
-                if (inCmd[3] == 'L')  // :XSDLL
+                if (inCmd.length() > 3)
                 {
-                    if (inCmd.length() > 4)
+                    if (inCmd[3] == 'L')  // :XSDLL
                     {
-                        _mount->setDecLimitPositionAbs(false, inCmd.substring(4).toInt());
+                        if (inCmd.length() > 4)
+                        {
+                            _mount->setDecLimitPosition(false, inCmd.substring(4).toFloat());
+                        }
+                        else
+                        {
+                            _mount->setDecLimitPosition(false);
+                        }
                     }
-                    else
+                    else if (inCmd[3] == 'U')  // :XSDLU
                     {
-                        _mount->setDecLimitPosition(false);
+                        if (inCmd.length() > 4)
+                        {
+                            _mount->setDecLimitPosition(true, inCmd.substring(4).toFloat());
+                        }
+                        else
+                        {
+                            _mount->setDecLimitPosition(true);
+                        }
                     }
-                }
-                else if (inCmd[3] == 'U')  // :XSDLU
-                {
-                    if (inCmd.length() > 4)
+                    else if (inCmd[3] == 'l')  // :XSDLl
                     {
-                        _mount->setDecLimitPositionAbs(true, inCmd.substring(4).toInt());
+                        _mount->clearDecLimitPosition(false);
                     }
-                    else
+                    else if (inCmd[3] == 'u')  // :XSDLU
                     {
-                        _mount->setDecLimitPosition(true);
+                        _mount->clearDecLimitPosition(true);
                     }
-                }
-                else if (inCmd[3] == 'l')  // :XSDLl
-                {
-                    _mount->clearDecLimitPosition(false);
-                }
-                else if (inCmd[3] == 'u')  // :XSDLU
-                {
-                    _mount->clearDecLimitPosition(true);
                 }
             }
             else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
@@ -1722,7 +1744,11 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else
             {
-                _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
+                float stepsPerDegree = inCmd.substring(2).toFloat();
+                if (stepsPerDegree > 0)
+                {
+                    _mount->setStepsPerDegree(DEC_STEPS, stepsPerDegree);
+                }
             }
         }
         else if (inCmd[1] == 'S')  // :XSS

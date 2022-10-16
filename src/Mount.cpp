@@ -3023,15 +3023,31 @@ void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
 {
     if (upper)
     {
-        _decUpperLimit = (stepperPos == 0) ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
-        EEPROMStore::storeDECUpperLimit(_decUpperLimit);
-        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
+        if (limitAngle == 0)
+        {
+            _decUpperLimit = _stepperDEC->currentPosition();
+            EEPROMStore::storeDECUpperLimit(fabsf(_decUpperLimit / _stepsPerDECDegree));
+        }
+        else
+        {
+            _decUpperLimit = (limitAngle * _stepsPerDECDegree);
+            EEPROMStore::storeDECUpperLimit(limitAngle);
+        }
+        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper) to %f: limit DEC: %l -> %l", limitAngle, _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = (stepperPos == 0) ? -(DEC_LIMIT_DOWN * _stepsPerDECDegree) : stepperPos;
-        EEPROMStore::storeDECLowerLimit(_decLowerLimit);
-        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
+        if (limitAngle == 0)
+        {
+            _decLowerLimit = _stepperDEC->currentPosition();
+            EEPROMStore::storeDECLowerLimit(fabsf(_decLowerLimit / _stepsPerDECDegree));
+        }
+        else
+        {
+            _decLowerLimit = -(limitAngle * _stepsPerDECDegree);
+            EEPROMStore::storeDECLowerLimit(limitAngle);
+        }
+        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower) to %f: limit DEC: %l -> %l", limitAngle, _decLowerLimit, _decUpperLimit);
     }
 }
 
@@ -3061,10 +3077,16 @@ void Mount::clearDecLimitPosition(bool upper)
 // getDecLimitPositions
 //
 /////////////////////////////////
-void Mount::getDecLimitPositions(long &lowerLimit, long &upperLimit)
+void Mount::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 {
-    lowerLimit = _decLowerLimit;
-    upperLimit = _decUpperLimit;
+    lowerLimit = -1.0f * _decLowerLimit / _stepsPerDECDegree;
+    upperLimit = 1.0f * _decUpperLimit / _stepsPerDECDegree;
+    LOG(DEBUG_MOUNT,
+        "[MOUNT]: getDecLimitPositions: limit DEC: %l -> %l (%f -> %f)",
+        _decLowerLimit,
+        _decUpperLimit,
+        lowerLimit,
+        upperLimit);
 }
 
 /////////////////////////////////
