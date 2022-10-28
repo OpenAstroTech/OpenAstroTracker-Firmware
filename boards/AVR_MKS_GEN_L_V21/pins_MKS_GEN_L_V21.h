@@ -162,7 +162,7 @@
 
 // DEC End Switch Up pin
 #ifndef DEC_ENDSWITCH_UP_SENSOR_PIN
-    #define DEC_ENDSWITCH_UP_SENSOR_PIN 15
+    #define DEC_ENDSWITCH_UP_SENSOR_PIN 3
 #endif
 
 // DEC End Switch Down pin
