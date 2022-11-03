@@ -108,7 +108,9 @@ void EndSwitch::processEndSwitchState()
                 if (digitalRead(_minPin) == _inactiveState)
                 {
                     _state = EndSwitchState::SWITCH_NOT_ACTIVE;
-                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Finished moving off %s axis minimum! State is now SWITCH_INACTIVE", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                    LOG(DEBUG_MOUNT,
+                        "[ENDSWITCH]: Finished moving off %s axis minimum! State is now SWITCH_INACTIVE",
+                        _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
                 }
             }
             break;
@@ -117,7 +119,9 @@ void EndSwitch::processEndSwitchState()
                 if (digitalRead(_maxPin) == _inactiveState)
                 {
                     _state = EndSwitchState::SWITCH_NOT_ACTIVE;
-                    LOG(DEBUG_MOUNT, "[ENDSWITCH]: Finished moving off %s axis maximum! State is now SWITCH_INACTIVE", _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+                    LOG(DEBUG_MOUNT,
+                        "[ENDSWITCH]: Finished moving off %s axis maximum! State is now SWITCH_INACTIVE",
+                        _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
                 }
             }
             break;
@@ -135,14 +139,12 @@ void EndSwitch::checkSwitchState()
 {
     if ((_state == EndSwitchState::SWITCH_AT_MINIMUM) || (_state == EndSwitchState::SWITCH_AT_MAXIMUM))
     {
-        LOG(DEBUG_MOUNT,
-            "[ENDSWITCH]: Switch Active. Check whether slewing any axis (%d, %x, %x). State is SWITCH_AT_LIMIT",
-            _pMount->isSlewingRAorDEC(),
-            _pMount->slewStatus(),
-            _pMount->mountStatus());
-
         if (_pMount->isSlewingRAorDEC())
         {
+            LOG(DEBUG_MOUNT,
+                "[ENDSWITCH]: Switch Active while slewing. (%x, %x). State is SWITCH_AT_LIMIT",
+                _pMount->slewStatus(),
+                _pMount->mountStatus());
             int stopSlewDir = _dir;
             // Check if we should stop tracking, which we do if RA is at maximum.
             if ((_state == EndSwitchState::SWITCH_AT_MAXIMUM) && (_axis == StepperAxis::RA_STEPS))
@@ -159,7 +161,7 @@ void EndSwitch::checkSwitchState()
                 stopSlewDir,
                 _dir);
             _pMount->stopSlewing(stopSlewDir);
-            _pMount->waitUntilStopped(_dir); // This function will call checkSwitchState
+            _pMount->waitUntilStopped(_dir);  // This function will call checkSwitchState
             LOG(DEBUG_MOUNT,
                 "[ENDSWITCH]: Slewing stopped on %s axis. (%x, %x)",
                 _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
@@ -169,7 +171,8 @@ void EndSwitch::checkSwitchState()
             long backDistance     = _posWhenTriggered - currentPos;
             long backSlewDistance = (12 * backDistance) / 10;  // Go back 120% distance that we ran past the switch
             LOG(DEBUG_MOUNT,
-                "[ENDSWITCH]: Reached maximum at %l. Stopped at %l (%l delta), moving back 1.2x (%l). Stopped tracking (if RA at Max). State is SWITCH_SLEWING_OFF",
+                "[ENDSWITCH]: Reached maximum at %l. Stopped at %l (%l delta), moving back 1.2x (%l). Stopped tracking (if RA at Max). "
+                "State is SWITCH_SLEWING_OFF",
                 _posWhenTriggered,
                 currentPos,
                 backDistance,
@@ -177,6 +180,21 @@ void EndSwitch::checkSwitchState()
             _pMount->moveStepperBy(_axis, backSlewDistance);
             _state = _state == EndSwitchState::WAIT_FOR_STOP_AT_MINIMUM ? EndSwitchState::SWITCH_SLEWING_OFF_MINIMUM
                                                                         : EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM;
+        }
+        else if ((_state == EndSwitchState::SWITCH_AT_MAXIMUM) && _pMount->isSlewingTRK())
+        {
+            // If we are not slewing, we must have tracked into the maximum, so just stop tracking and wait for it to be moved off maximum manually.
+            LOG(DEBUG_MOUNT,
+                "[ENDSWITCH]: Reached maximum position on %s axis while tracking. Stopping tracking. State is now SWITCH_SLEWING_OFF",
+                _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
+            _pMount->stopSlewing(TRACKING);
+            _state = EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM;
+        }
+        else if (_state == EndSwitchState::SWITCH_AT_MINIMUM)
+        {
+            // This shouldn't really happen, since we can't really reach minimum if we're not slewing, since tracking goes to maximum.
+            // But just so that the state machine resets correctly once we move off this switch we transition to the state that waits for that.
+            _state = EndSwitchState::SWITCH_SLEWING_OFF_MINIMUM;
         }
     }
 }
