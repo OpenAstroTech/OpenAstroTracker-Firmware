@@ -1,3 +1,9 @@
+**V1.11.11 - Updates**
+- Fix DEC limit code to use parameters.
+
+**V1.11.10 - Updates**
+- Fix dew heater pin assignments.
+
 **V1.11.9 - Updates**
 - Change storage of RA and DEC steps/degree to be independent of microstepping settings.
 
