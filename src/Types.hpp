@@ -10,5 +10,4 @@ enum StepperAxis
     FOCUS_STEPS
 };
 
-
 #endif

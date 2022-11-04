@@ -38,7 +38,7 @@ class EndSwitch
     int _maxPin;
 
   public:
-    EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin,int activeState);
+    EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin, int activeState);
     void processEndSwitchState();
     void checkSwitchState();
 

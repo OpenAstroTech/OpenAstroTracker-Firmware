@@ -415,7 +415,6 @@ class Mount
     byte slewStatus() const;
     byte mountStatus() const;
 
-
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -532,10 +531,10 @@ class Mount
 #endif
 
 #if USE_RA_END_SWITCH == 1
-    EndSwitch* _raEndSwitch;
+    EndSwitch *_raEndSwitch;
 #endif
 #if USE_DEC_END_SWITCH == 1
-    EndSwitch* _decEndSwitch;
+    EndSwitch *_decEndSwitch;
 #endif
 
     unsigned long _guideRaEndTime;

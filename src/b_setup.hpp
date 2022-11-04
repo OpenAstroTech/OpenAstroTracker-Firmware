@@ -121,7 +121,7 @@ void setup()
     #endif
 #endif
 
-#if(USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
     LOG(DEBUG_ANY, "[SYSTEM]: Init EndSwitches...");
     mount.setupEndSwitches();
 #endif
