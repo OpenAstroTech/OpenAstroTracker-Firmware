@@ -1,5 +1,6 @@
 **V1.11.12 - Updates**
 - Added end switch support for RA and DEC.
+- Guide pulses are only executed when tracking.
 
 **V1.11.11 - Updates**
 - Fix DEC limit code to use parameters.

@@ -41,10 +41,6 @@ class EndSwitch
     EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin, int activeState);
     void processEndSwitchState();
     void checkSwitchState();
-
-    EndSwitchState getSwitchState() const;
-    void setSwitchState(EndSwitchState state);
-    long getPosWhenTriggered() const;
 };
 
 #endif

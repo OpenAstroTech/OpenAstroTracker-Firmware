@@ -338,7 +338,6 @@ class Mount
 
 #if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
     void setupEndSwitches();
-    void processEndSwitchState();
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
