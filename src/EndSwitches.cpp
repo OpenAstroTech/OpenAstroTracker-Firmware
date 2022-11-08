@@ -128,7 +128,7 @@ void EndSwitch::checkSwitchState()
 
         // Set state first thing to avoid re-entrancy in call to waitUntilStopped() below.
         _state = _state == EndSwitchState::SWITCH_AT_MINIMUM ? EndSwitchState::WAIT_FOR_STOP_AT_MINIMUM
-                                                                : EndSwitchState::WAIT_FOR_STOP_AT_MAXIMUM;
+                                                             : EndSwitchState::WAIT_FOR_STOP_AT_MAXIMUM;
         LOG(DEBUG_MOUNT,
             "[ENDSWITCH]: Slewing is active, so stopping slew on %s axis (%x, %x). State is WAIT_FOR_STOP",
             _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
