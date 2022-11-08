@@ -3031,14 +3031,30 @@ void Mount::setDecLimitPosition(bool upper, float limitAngle)
 {
     if (upper)
     {
-        _decUpperLimit = (stepperPos == 0) ? DEC_LIMIT_UP * _stepsPerDECDegree : stepperPos;
-        EEPROMStore::storeDECUpperLimit(_decUpperLimit);
+        if (limitAngle == 0)
+        {
+            _decUpperLimit = _stepperDEC->currentPosition();
+            EEPROMStore::storeDECUpperLimit(fabsf(_decUpperLimit / _stepsPerDECDegree));
+        }
+        else
+        {
+            _decUpperLimit = (limitAngle * _stepsPerDECDegree);
+            EEPROMStore::storeDECUpperLimit(limitAngle);
+        }
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = (stepperPos == 0) ? -(DEC_LIMIT_DOWN * _stepsPerDECDegree) : stepperPos;
-        EEPROMStore::storeDECLowerLimit(_decLowerLimit);
+        if (limitAngle == 0)
+        {
+            _decLowerLimit = _stepperDEC->currentPosition();
+            EEPROMStore::storeDECLowerLimit(fabsf(_decLowerLimit / _stepsPerDECDegree));
+        }
+        else
+        {
+            _decLowerLimit = -(limitAngle * _stepsPerDECDegree);
+            EEPROMStore::storeDECLowerLimit(limitAngle);
+        }
         LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
 }
