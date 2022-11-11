@@ -3066,7 +3066,7 @@ void Mount::setDecLimitPosition(bool upper, float limitAngle)
             _decUpperLimit = (limitAngle * _stepsPerDECDegree);
             EEPROMStore::storeDECUpperLimit(limitAngle);
         }
-        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
+        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper) to %f: limit DEC: %l -> %l", limitAngle, _decLowerLimit, _decUpperLimit);
     }
     else
     {
@@ -3080,7 +3080,7 @@ void Mount::setDecLimitPosition(bool upper, float limitAngle)
             _decLowerLimit = -(limitAngle * _stepsPerDECDegree);
             EEPROMStore::storeDECLowerLimit(limitAngle);
         }
-        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
+        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower) to %f: limit DEC: %l -> %l", limitAngle, _decLowerLimit, _decUpperLimit);
     }
 }
 
@@ -3110,10 +3110,16 @@ void Mount::clearDecLimitPosition(bool upper)
 // getDecLimitPositions
 //
 /////////////////////////////////
-void Mount::getDecLimitPositions(long &lowerLimit, long &upperLimit)
+void Mount::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 {
-    lowerLimit = _decLowerLimit;
-    upperLimit = _decUpperLimit;
+    lowerLimit = -1.0f * _decLowerLimit / _stepsPerDECDegree;
+    upperLimit = 1.0f * _decUpperLimit / _stepsPerDECDegree;
+    LOG(DEBUG_MOUNT,
+        "[MOUNT]: getDecLimitPositions: limit DEC: %l -> %l (%f -> %f)",
+        _decLowerLimit,
+        _decUpperLimit,
+        lowerLimit,
+        upperLimit);
 }
 
 /////////////////////////////////
