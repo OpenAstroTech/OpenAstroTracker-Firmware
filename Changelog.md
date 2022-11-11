@@ -1,3 +1,7 @@
+**V1.11.12 - Updates**
+- Change DEC limit code to return degrees instead of stepper positions. 
+- Support separate limits for DEC Limits being queried.
+
 **V1.11.11 - Updates**
 - Fix DEC limit code to use parameters.
 

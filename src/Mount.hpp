@@ -308,7 +308,7 @@ class Mount
     void clearDecLimitPosition(bool upper);
 
     // Get the DEC limit positions
-    void getDecLimitPositions(long &lowerLimit, long &upperLimit);
+    void getDecLimitPositions(float &lowerLimit, float &upperLimit);
 
     // Asynchronously parks the mount. Moves to the home position and stops all motors.
     void park();
