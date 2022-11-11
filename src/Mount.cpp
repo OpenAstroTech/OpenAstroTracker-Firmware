@@ -1030,6 +1030,18 @@ String Mount::getMountHardwareInfo()
     ret += F("NO_HSAH,");
 #endif
 
+#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
+    ret += F("ENDSW");
+    #if (USE_RA_END_SWITCH == 1)
+    ret += F("_RA");
+    #endif
+    #if || (USE_DEC_END_SWITCH == 1)
+    ret += F("_DEC");
+    #endif
+#else
+    ret += F("NO_ENDSW,");
+#endif
+
     return ret;
 }
 

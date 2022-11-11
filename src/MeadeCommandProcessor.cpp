@@ -728,7 +728,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get DEC limits
 //      Information:
-//        Get the either lower, upper or both limits for the DEC stepper motor in degrees.
+//        Get either lower, upper or both limits for the DEC stepper motor in degrees.
 //      Parameters:
 //        'x' is optional or can be 'U' or 'L'. If it is 'U' only the upper bound is returned,
 //            if it is 'L' only the lower bound is returned and if it is missing, both are returned.
@@ -779,15 +779,22 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get Mount configuration settings
 //      Returns:
-//        "<board>,<RA Stepper Info>,<DEC Stepper Info>,<GPS info>,<AzAlt info>,<Gyro info>#"
+//        "<board>,<RA Stepper Info>,<DEC Stepper Info>,<GPS info>,<AzAlt info>,<Gyro info>,<Display info>,(more features...)#"
 //      Parameters:
 //        "<board>" is one of the supported boards (currently Mega, ESP32, MKS)
 //        "<Stepper Info>" is a pipe-delimited string of Motor type (NEMA or 28BYJ), Pulley Teeth, Steps per revolution)
 //        "<GPS info>" is either NO_GPS or GPS, depending on whether a GPS module is present
 //        "<AzAlt info>" is either NO_AZ_ALT, AUTO_AZ_ALT, AUTO_AZ, or AUTO_ALT, depending on which AutoPA stepper motors are present
 //        "<Gyro info>" is either NO_GYRO or GYRO depending on whether the Digial level is present
+//        "<Display info>" is either NO_LCD or LCD_display_type depending on whether LCD is present and if so, which one
+//        "<Focuser info>" is either NO_FOC or FOC depending on whether the focuser motor is enabled
+//        "<RAHallSensor info>" is either NO_HSAH or HSAH depending on whether the Hall sensor based auto homing for RA is enabled
+//        "<Endswitch info>" is either NO_ENDSW or ENDS_RA, ENDSW_DEC, or ENDSW_RA_DEC depending on which axis have end switches installed
+//      Remarks
+//        As OAT firmware supports more features, these may be appended, separated by a comma. Any further features will 
+//        have a 'NO_xxxxx' if the feature is not supported.
 //      Example:
-//        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO#"
+//        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO,NO_LCD,NO_FOC,NO_ENDSW#"
 //
 // :XGMS#
 //      Description:
