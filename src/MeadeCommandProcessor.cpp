@@ -791,7 +791,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "<RAHallSensor info>" is either NO_HSAH or HSAH depending on whether the Hall sensor based auto homing for RA is enabled
 //        "<Endswitch info>" is either NO_ENDSW or ENDS_RA, ENDSW_DEC, or ENDSW_RA_DEC depending on which axis have end switches installed
 //      Remarks
-//        As OAT firmware supports more features, these may be appended, separated by a comma. Any further features will 
+//        As OAT firmware supports more features, these may be appended, separated by a comma. Any further features will
 //        have a 'NO_xxxxx' if the feature is not supported.
 //      Example:
 //        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO,NO_LCD,NO_FOC,NO_ENDSW#"
