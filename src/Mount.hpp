@@ -6,7 +6,16 @@
 #include "Longitude.hpp"
 
 // Forward declarations
+#ifdef ARDUINO_AVR_ATmega2560
+#include "StepperConfiguration.hpp"
+using StepperRA = InterruptAccelStepper<config::Ra::stepper>;
+using StepperDEC = InterruptAccelStepper<config::Dec::stepper>;
+#else
 class AccelStepper;
+using StepperRa = AccelStepper;
+using StepperDec = AccelStepper;
+#endif
+
 class LcdMenu;
 class TMC2209Stepper;
 
@@ -485,10 +494,10 @@ class Mount
     Longitude _longitude;
 
     // Stepper control for RA, DEC and TRK.
-    AccelStepper *_stepperRA;
-    AccelStepper *_stepperDEC;
-    AccelStepper *_stepperTRK;
-    AccelStepper *_stepperGUIDE;
+    StepperRA *_stepperRA;
+    StepperDEC *_stepperDEC;
+    StepperRA *_stepperTRK;
+    StepperDEC *_stepperGUIDE;
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverRA;
 #endif

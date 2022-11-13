@@ -7,7 +7,12 @@
 #include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
+#ifdef __AVR_ATmega2560__
+#include "InterruptAccelStepper.h"
+#include "StepperConfiguration.hpp"
+#else
 #include <AccelStepper.h>
+#endif
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
     || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                       \
     || (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -232,14 +237,21 @@ void Mount::readPersistentData()
 /////////////////////////////////
 void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperRA = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+#ifdef __AVR_ATmega2560__
+    _stepperRA = new StepperRA();
+
+    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
+    _stepperTRK = new StepperRA();
+#else
+    _stepperRA = new StepperRA(AccelStepper::DRIVER, pin1, pin2);
+
+    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
+    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+#endif
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
     _maxRASpeed        = maxSpeed;
     _maxRAAcceleration = maxAcceleration;
-
-    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperTRK->setMaxSpeed(2000);
     _stepperTRK->setAcceleration(15000);
@@ -255,14 +267,14 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 /////////////////////////////////
 void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    // _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);
     _maxDECSpeed        = maxSpeed;
     _maxDECAcceleration = maxAcceleration;
 
     // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
-    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    // _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperGUIDE->setMaxSpeed(2000);
     _stepperGUIDE->setAcceleration(15000);
@@ -1511,38 +1523,26 @@ void Mount::runDriftAlignmentPhase(int direction, int durationSecs)
             // Move steps east at the calculated speed, synchronously
             _stepperRA->setMaxSpeed(speed);
             _stepperRA->move(numSteps);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
 
             // Overcome the gearing gap
             _stepperRA->setMaxSpeed(300);
             _stepperRA->move(-20);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
             break;
 
         case WEST:
             // Move steps west at the calculated speed, synchronously
             _stepperRA->setMaxSpeed(speed);
             _stepperRA->move(-numSteps);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
             break;
 
         case 0:
             // Fix the gearing to go back the other way
             _stepperRA->setMaxSpeed(300);
             _stepperRA->move(20);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
 
             // Re-configure the stepper to the correct parameters.
             _stepperRA->setMaxSpeed(_maxRASpeed);
