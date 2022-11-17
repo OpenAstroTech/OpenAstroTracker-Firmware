@@ -1,3 +1,7 @@
+**V1.11.13 - Updates**
+- Added end switch support for RA and DEC.
+- Guide pulses are only executed when tracking.
+
 **V1.11.12 - Updates**
 - Change DEC limit code to return degrees instead of stepper positions. 
 - Support separate limits for DEC Limits being queried.

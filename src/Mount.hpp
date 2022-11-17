@@ -4,11 +4,13 @@
 #include "Declination.hpp"
 #include "Latitude.hpp"
 #include "Longitude.hpp"
+#include "Types.hpp"
 
 // Forward declarations
 class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
+class EndSwitch;
 
 #define NORTH          B00000001
 #define EAST           B00000010
@@ -63,15 +65,6 @@ struct HomingData {
     unsigned long stopAt;
 };
 #endif
-
-enum StepperAxis
-{
-    RA_STEPS,
-    DEC_STEPS,
-    AZIMUTH_STEPS,
-    ALTITUDE_STEPS,
-    FOCUS_STEPS
-};
 
 struct LocalDate {
     int year;
@@ -343,6 +336,10 @@ class Mount
     // Set the speed of the given motor
     void setSpeed(StepperAxis which, float speedDegsPerSec);
 
+#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
+    void setupEndSwitches();
+#endif
+
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // Support for moving the mount in azimuth and altitude (requires extra hardware)
     void moveBy(int direction, float arcMinutes);
@@ -413,6 +410,10 @@ class Mount
     DayTime calculateLst();
     DayTime calculateHa();
 
+    // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
+    byte slewStatus() const;
+    byte mountStatus() const;
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -436,9 +437,6 @@ class Mount
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC);
-
-    // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
-    byte slewStatus() const;
 
     void autoCalcHa();
 
@@ -529,6 +527,13 @@ class Mount
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     HomingData _homing;
+#endif
+
+#if USE_RA_END_SWITCH == 1
+    EndSwitch *_raEndSwitch;
+#endif
+#if USE_DEC_END_SWITCH == 1
+    EndSwitch *_decEndSwitch;
 #endif
 
     unsigned long _guideRaEndTime;

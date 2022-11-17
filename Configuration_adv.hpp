@@ -355,8 +355,11 @@
 
     #define ALTITUDE_STEPS_PER_REV                                                                                                         \
         (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING           \
-         * ALT_WORMGEAR_RATIO)                                                      // Actually u-steps/rev
-    #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+         * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+
+    #ifndef ALTITUDE_STEPS_PER_ARC_MINUTE
+        #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    #endif
 
     // ALT TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
@@ -429,6 +432,30 @@
 // Enable homing in your local configuration. Do not edit here!
 #ifndef USE_HALL_SENSOR_RA_AUTOHOME
     #define USE_HALL_SENSOR_RA_AUTOHOME 0
+#endif
+
+//////////////////////////////////////////
+// RA EndSwitch support
+//////////////////////////////////////////
+// Enable RA End Switches in your local configuration. Do not edit here!
+#ifndef USE_RA_END_SWITCH
+    #define USE_RA_END_SWITCH 0
+#else
+    #ifndef RA_END_SWITCH_ACTIVE_STATE
+        #define RA_END_SWITCH_ACTIVE_STATE LOW
+    #endif
+#endif
+
+//////////////////////////////////////////
+// DEC EndSwitch support
+//////////////////////////////////////////
+// Enable DEC End Switches in your local configuration. Do not edit here!
+#ifndef USE_DEC_END_SWITCH
+    #define USE_DEC_END_SWITCH 0
+#else
+    #ifndef DEC_END_SWITCH_ACTIVE_STATE
+        #define DEC_END_SWITCH_ACTIVE_STATE LOW
+    #endif
 #endif
 
 //////////////////////////////////////////
