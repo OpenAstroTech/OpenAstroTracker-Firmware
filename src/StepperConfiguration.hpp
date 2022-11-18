@@ -65,7 +65,10 @@ namespace config
         using interrupt = IntervalInterrupt<Timer::TIMER_3>;
         using driver = Driver<SPR, pin_step, pin_dir, RA_DRIVER_INVERT_STEP>;
         using ramp = AccelerationRamp<256, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+
         using stepper = Stepper<interrupt, driver, ramp>;
+
+        constexpr static float SPEED_SLEWING_SPS = SPEED_SLEWING / stepper::ANGLE_PER_STEP * TRANSMISSION;
     };
 
     struct Dec
@@ -88,56 +91,56 @@ namespace config
 
         using interrupt = IntervalInterrupt<Timer::TIMER_4>;
         using driver = Driver<SPR, Pin<DEC_STEP_PIN>, Pin<DEC_DIR_PIN>, DEC_DRIVER_INVERT_STEP>;
-        using ramp = AccelerationRamp<256, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
-        using stepper = Stepper<interrupt, driver, ramp>;
+        // using ramp = AccelerationRamp<256, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using stepper = Stepper<interrupt, driver, Ra::ramp>;
     };
 
-    struct AZ
-    {
-        constexpr static auto TRANSMISSION = AZ_TRANSMISSION;
+    // struct AZ
+    // {
+    //     constexpr static auto TRANSMISSION = AZ_TRANSMISSION;
 
-        constexpr static auto SPR = AZ_STEPPER_SPR;
+    //     constexpr static auto SPR = AZ_STEPPER_SPR;
 
-        constexpr static Angle SPEED_SIDEREAL = Angle::deg(360.0f) / SIDEREAL_SECONDS_PER_DAY;
+    //     constexpr static Angle SPEED_SIDEREAL = Angle::deg(360.0f) / SIDEREAL_SECONDS_PER_DAY;
 
-        constexpr static Angle SPEED_TRACKING = Angle::deg(0.0f);
-        constexpr static Angle SPEED_SLEWING = Angle::deg(AZ_SLEWING_SPEED);
-        constexpr static Angle ACCELERATION = Angle::deg(AZ_SLEWING_ACCELERATION);
+    //     constexpr static Angle SPEED_TRACKING = Angle::deg(0.0f);
+    //     constexpr static Angle SPEED_SLEWING = Angle::deg(AZ_SLEWING_SPEED);
+    //     constexpr static Angle ACCELERATION = Angle::deg(AZ_SLEWING_ACCELERATION);
 
-        constexpr static Angle SPEED_GUIDE_POS = Angle::deg(0.0f);
-        constexpr static Angle SPEED_GUIDE_NEG = Angle::deg(0.0f);
+    //     constexpr static Angle SPEED_GUIDE_POS = Angle::deg(0.0f);
+    //     constexpr static Angle SPEED_GUIDE_NEG = Angle::deg(0.0f);
 
-        using pin_step = Pin<AZ_STEP_PIN>;
-        using pin_dir = Pin<AZ_DIR_PIN>;
+    //     using pin_step = Pin<AZ_STEP_PIN>;
+    //     using pin_dir = Pin<AZ_DIR_PIN>;
 
-        using interrupt = IntervalInterrupt<Timer::TIMER_4>;
-        using driver = Driver<SPR, Pin<AZ_STEP_PIN>, Pin<AZ_DIR_PIN>, AZ_DRIVER_INVERT_STEP>;
-        using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
-        using stepper = Stepper<interrupt, driver, ramp>;
-    };
+    //     using interrupt = IntervalInterrupt<Timer::TIMER_4>;
+    //     using driver = Driver<SPR, Pin<AZ_STEP_PIN>, Pin<AZ_DIR_PIN>, AZ_DRIVER_INVERT_STEP>;
+    //     using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+    //     using stepper = Stepper<interrupt, driver, ramp>;
+    // };
     
-    struct ALT
-    {
-        constexpr static auto TRANSMISSION = ALT_TRANSMISSION;
+    // struct ALT
+    // {
+    //     constexpr static auto TRANSMISSION = ALT_TRANSMISSION;
 
-        constexpr static auto SPR = ALT_STEPPER_SPR;
+    //     constexpr static auto SPR = ALT_STEPPER_SPR;
 
-        constexpr static Angle SPEED_SIDEREAL = Angle::deg(360.0f) / SIDEREAL_SECONDS_PER_DAY;
+    //     constexpr static Angle SPEED_SIDEREAL = Angle::deg(360.0f) / SIDEREAL_SECONDS_PER_DAY;
 
-        constexpr static Angle SPEED_TRACKING = Angle::deg(0.0f);
-        constexpr static Angle SPEED_SLEWING = Angle::deg(ALT_SLEWING_SPEED);
-        constexpr static Angle ACCELERATION = Angle::deg(ALT_SLEWING_ACCELERATION);
+    //     constexpr static Angle SPEED_TRACKING = Angle::deg(0.0f);
+    //     constexpr static Angle SPEED_SLEWING = Angle::deg(ALT_SLEWING_SPEED);
+    //     constexpr static Angle ACCELERATION = Angle::deg(ALT_SLEWING_ACCELERATION);
 
-        constexpr static Angle SPEED_GUIDE_POS = Angle::deg(0.0f);
-        constexpr static Angle SPEED_GUIDE_NEG = Angle::deg(0.0f);
+    //     constexpr static Angle SPEED_GUIDE_POS = Angle::deg(0.0f);
+    //     constexpr static Angle SPEED_GUIDE_NEG = Angle::deg(0.0f);
 
-        using pin_step = Pin<ALT_STEP_PIN>;
-        using pin_dir = Pin<ALT_DIR_PIN>;
+    //     using pin_step = Pin<ALT_STEP_PIN>;
+    //     using pin_dir = Pin<ALT_DIR_PIN>;
 
-        using interrupt = IntervalInterrupt<Timer::TIMER_5>;
-        using driver = Driver<SPR, Pin<ALT_STEP_PIN>, Pin<ALT_DIR_PIN>, ALT_DRIVER_INVERT_STEP>;
-        using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
-        using stepper = Stepper<interrupt, driver, ramp>;
-    };
+    //     using interrupt = IntervalInterrupt<Timer::TIMER_5>;
+    //     using driver = Driver<SPR, Pin<ALT_STEP_PIN>, Pin<ALT_DIR_PIN>, ALT_DRIVER_INVERT_STEP>;
+    //     using ramp = AccelerationRamp<64, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+    //     using stepper = Stepper<interrupt, driver, ramp>;
+    // };
 
 }

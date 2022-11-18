@@ -11,6 +11,7 @@
 using StepperRA = InterruptAccelStepper<config::Ra::stepper>;
 using StepperDEC = InterruptAccelStepper<config::Dec::stepper>;
 #else
+#include "AccelStepper.h"
 class AccelStepper;
 using StepperRa = AccelStepper;
 using StepperDec = AccelStepper;

@@ -16,12 +16,13 @@
 template <typename STEPPER> class InterruptAccelStepper
 {
   private:
-    Angle max_speed;
+    float max_speed;
     long target;
 
   public:
-    InterruptAccelStepper() : max_speed(Angle::deg(0)), target(0)
+    InterruptAccelStepper() : max_speed(0.0f), target(0)
     {
+        STEPPER::init();
     }
 
     void moveTo(long absolute)
@@ -33,33 +34,28 @@ template <typename STEPPER> class InterruptAccelStepper
     void move(long relative)
     {
         target = STEPPER::getPosition() + relative;
-        if (relative >= 0)
-        {
-            STEPPER::moveTo(max_speed, target);
-        }
-        else
-        {
-            STEPPER::moveTo(-max_speed, target);
-        }
+        moveTo(target);
     }
 
     void setMaxSpeed(float speed)
     {
-        max_speed = STEPPER::ANGLE_PER_STEP * ABS(speed);
+        max_speed = ABS(speed);
     }
 
     void setAcceleration(float value)
     {
+        // STUB
     }
 
     float maxSpeed()
     {
-        return max_speed / STEPPER::ANGLE_PER_STEP;
+        return max_speed;
     }
 
     void setSpeed(float speed)
     {
         setMaxSpeed(speed);
+        moveTo((speed >= 0.0f) ? INT32_MAX : INT32_MIN);
     }
 
     float speed()
@@ -89,10 +85,12 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void run()
     {
+        // STUB
     }
 
     void runSpeed()
     {
+        // STUB
     }
 
     void runToPosition()
@@ -102,10 +100,6 @@ template <typename STEPPER> class InterruptAccelStepper
             yield();
         }
     }
-
-    //    void runToPosition();
-
-    //    bool runSpeedToPosition();
 
     void runToNewPosition(long position)
     {
@@ -118,19 +112,10 @@ template <typename STEPPER> class InterruptAccelStepper
         STEPPER::stop();
     }
 
-    //    virtual void disableOutputs();
-
-    //    virtual void enableOutputs();
-
-    //    void setMinPulseWidth(unsigned int minWidth);
-
-    //    void setEnablePin(uint8_t enablePin = 0xff);
-
     void setPinsInverted(bool directionInvert = false, bool stepInvert = false, bool enableInvert = false)
     {
+        // STUB
     }
-
-    //    void setPinsInverted(bool pin1Invert, bool pin2Invert, bool pin3Invert, bool pin4Invert, bool enableInvert);
 
     bool isRunning()
     {

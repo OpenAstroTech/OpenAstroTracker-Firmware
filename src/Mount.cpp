@@ -267,6 +267,13 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 /////////////////////////////////
 void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
+#ifdef __AVR_ATmega2560__
+    _stepperDEC = new StepperDEC();
+    _stepperGUIDE = new StepperDEC();
+#else
+    _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+#endif
     // _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);

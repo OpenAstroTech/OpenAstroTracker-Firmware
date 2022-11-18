@@ -17,3 +17,10 @@
 #include "c78_menuINFO.hpp"
 #include "c_buttons.hpp"
 #include "f_serial.hpp"
+
+#ifdef ARDUINO_ARCH_AVR
+ISR(TIMER3_OVF_vect) { IntervalInterrupt_AVR<Timer::TIMER_3>::handle_overflow(); }
+ISR(TIMER3_COMPA_vect) { IntervalInterrupt_AVR<Timer::TIMER_3>::handle_compare_match(); }
+ISR(TIMER4_OVF_vect) { IntervalInterrupt_AVR<Timer::TIMER_4>::handle_overflow(); }
+ISR(TIMER4_COMPA_vect) { IntervalInterrupt_AVR<Timer::TIMER_4>::handle_compare_match(); }
+#endif
