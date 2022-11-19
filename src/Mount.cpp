@@ -239,15 +239,15 @@ void Mount::readPersistentData()
 void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
 #ifdef __AVR_ATmega2560__
-    _stepperRA = new StepperRA();
+    _stepperRA = new StepperRaSlew();
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new StepperRA();
+    _stepperTRK = new StepperRaTrk();
 #else
-    _stepperRA = new StepperRA(AccelStepper::DRIVER, pin1, pin2);
+    _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
 #endif
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
@@ -269,20 +269,16 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
 #ifdef __AVR_ATmega2560__
-    _stepperDEC = new StepperDEC();
-    _stepperGUIDE = new StepperDEC();
+    _stepperDEC = new StepperDecSlew();
+    _stepperGUIDE = new StepperDecTrk();
 #else
-    _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
-    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperDEC = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
 #endif
-    // _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);
     _maxDECSpeed        = maxSpeed;
     _maxDECAcceleration = maxAcceleration;
-
-    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
-    // _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperGUIDE->setMaxSpeed(2000);
     _stepperGUIDE->setAcceleration(15000);

@@ -64,11 +64,15 @@ namespace config
 
         using interrupt = IntervalInterrupt<Timer::TIMER_3>;
         using driver = Driver<SPR, pin_step, pin_dir, RA_DRIVER_INVERT_STEP>;
-        using ramp = AccelerationRamp<256, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
 
-        using stepper = Stepper<interrupt, driver, ramp>;
+        using ramp_slew = AccelerationRamp<256, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
+        using ramp_trk = AccelerationRamp<2, interrupt::FREQ, driver::SPR, (SPEED_TRACKING * TRANSMISSION).mrad_u32(), (SPEED_TRACKING * TRANSMISSION).mrad_u32()>;
 
-        constexpr static float SPEED_SLEWING_SPS = SPEED_SLEWING / stepper::ANGLE_PER_STEP * TRANSMISSION;
+        using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
+        using stepper_trk = Stepper<interrupt, driver, ramp_trk>;
+
+        constexpr static float SPEED_SLEWING_SPS = SPEED_SLEWING / stepper_slew::ANGLE_PER_STEP * TRANSMISSION;
+        constexpr static float SPEED_TRACKING_SPS = SPEED_TRACKING / stepper_trk::ANGLE_PER_STEP * TRANSMISSION;
     };
 
     struct Dec
@@ -91,8 +95,10 @@ namespace config
 
         using interrupt = IntervalInterrupt<Timer::TIMER_4>;
         using driver = Driver<SPR, Pin<DEC_STEP_PIN>, Pin<DEC_DIR_PIN>, DEC_DRIVER_INVERT_STEP>;
-        // using ramp = AccelerationRamp<256, interrupt::FREQ, driver::SPR, (SPEED_SLEWING * TRANSMISSION).mrad_u32(), (ACCELERATION * TRANSMISSION).mrad_u32()>;
-        using stepper = Stepper<interrupt, driver, Ra::ramp>;
+        
+        using stepper_slew = Stepper<interrupt, driver, Ra::ramp_slew>;
+        using stepper_trk = Stepper<interrupt, driver, Ra::ramp_trk>;
+
     };
 
     // struct AZ
