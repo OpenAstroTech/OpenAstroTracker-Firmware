@@ -2,6 +2,7 @@
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "LcdMenu.hpp"
+#include "EndSwitches.hpp"
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
@@ -1048,6 +1049,18 @@ String Mount::getMountHardwareInfo()
     ret += F("NO_HSAH,");
 #endif
 
+#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
+    ret += F("ENDSW");
+    #if (USE_RA_END_SWITCH == 1)
+    ret += F("_RA");
+    #endif
+    #if || (USE_DEC_END_SWITCH == 1)
+    ret += F("_DEC");
+    #endif
+#else
+    ret += F("NO_ENDSW,");
+#endif
+
     return ret;
 }
 
@@ -2045,6 +2058,11 @@ byte Mount::slewStatus() const
     return slewState;
 }
 
+byte Mount::mountStatus() const
+{
+    return _mountStatus;
+}
+
 /////////////////////////////////
 //
 // isGuiding
@@ -2619,6 +2637,26 @@ bool Mount::findRAHomeByHallSensor(int initialDirection, int searchDistance)
 
 #endif
 
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+/////////////////////////////////
+//
+// End Switches RA/DEC
+//
+/////////////////////////////////
+void Mount::setupEndSwitches()
+{
+    #if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch = new EndSwitch(
+        this, StepperAxis::RA_STEPS, RA_ENDSWITCH_EAST_SENSOR_PIN, RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE);
+    #endif
+
+    #if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch = new EndSwitch(
+        this, StepperAxis::DEC_STEPS, DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE);
+    #endif
+}
+#endif
+
 /////////////////////////////////
 //
 // delay
@@ -2642,7 +2680,8 @@ void Mount::delay(int ms)
 /////////////////////////////////
 void Mount::interruptLoop()
 {
-    if (_mountStatus & STATUS_GUIDE_PULSE)
+    // Only process guide pulses if we are tracking.
+    if ((_mountStatus & STATUS_GUIDE_PULSE) && (_mountStatus & STATUS_TRACKING))
     {
         _stepperTRK->runSpeed();
         if (_mountStatus & STATUS_GUIDE_PULSE_DEC)
@@ -2695,6 +2734,14 @@ void Mount::interruptLoop()
     {
         _stepperFocus->runSpeed();
     }
+#endif
+
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->processEndSwitchState();
+#endif
+
+#if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->processEndSwitchState();
 #endif
 }
 
@@ -2944,6 +2991,14 @@ void Mount::loop()
             }
         }
     }
+
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->checkSwitchState();
+#endif
+
+#if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->checkSwitchState();
+#endif
 
     _stepperWasRunning = raStillRunning || decStillRunning;
 }
