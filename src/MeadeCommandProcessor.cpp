@@ -745,13 +745,16 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#"
 //
-// :XGDL#
+// :XGDLx#
 //      Description:
 //        Get DEC limits
 //      Information:
-//        Get the lower and upper limits for the DEC stepper motor in steps
+//        Get either lower, upper or both limits for the DEC stepper motor in degrees.
+//      Parameters:
+//        'x' is optional or can be 'U' or 'L'. If it is 'U' only the upper bound is returned,
+//            if it is 'L' only the lower bound is returned and if it is missing, both are returned.
 //      Returns:
-//        "integer|integer#"
+//        "float#" or "float|float#"
 //
 // :XGDP#
 //      Description:
@@ -797,15 +800,22 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get Mount configuration settings
 //      Returns:
-//        "<board>,<RA Stepper Info>,<DEC Stepper Info>,<GPS info>,<AzAlt info>,<Gyro info>#"
+//        "<board>,<RA Stepper Info>,<DEC Stepper Info>,<GPS info>,<AzAlt info>,<Gyro info>,<Display info>,(more features...)#"
 //      Parameters:
 //        "<board>" is one of the supported boards (currently Mega, ESP32, MKS)
 //        "<Stepper Info>" is a pipe-delimited string of Motor type (NEMA or 28BYJ), Pulley Teeth, Steps per revolution)
 //        "<GPS info>" is either NO_GPS or GPS, depending on whether a GPS module is present
 //        "<AzAlt info>" is either NO_AZ_ALT, AUTO_AZ_ALT, AUTO_AZ, or AUTO_ALT, depending on which AutoPA stepper motors are present
 //        "<Gyro info>" is either NO_GYRO or GYRO depending on whether the Digial level is present
+//        "<Display info>" is either NO_LCD or LCD_display_type depending on whether LCD is present and if so, which one
+//        "<Focuser info>" is either NO_FOC or FOC depending on whether the focuser motor is enabled
+//        "<RAHallSensor info>" is either NO_HSAH or HSAH depending on whether the Hall sensor based auto homing for RA is enabled
+//        "<Endswitch info>" is either NO_ENDSW or ENDS_RA, ENDSW_DEC, or ENDSW_RA_DEC depending on which axis have end switches installed
+//      Remarks
+//        As OAT firmware supports more features, these may be appended, separated by a comma. Any further features will
+//        have a 'NO_xxxxx' if the feature is not supported.
 //      Example:
-//        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO#"
+//        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO,NO_LCD,NO_FOC,NO_ENDSW#"
 //
 // :XGMS#
 //      Description:
@@ -891,10 +901,11 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC upper limit
 //      Information:
-//        Set the upper limit for the DEC stepper motor to the current position if no parameter is given,
-//        otherwise to the given parameter.
+//        Set the upper limit for the DEC axis to the current position if no parameter is given,
+//        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel upwards
+//        "nnnnn" is the number of steps from home that the DEC ring can travel upwards. Passing 0 will reset it to the
+//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -902,7 +913,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC upper limit
 //      Information:
-//        Clears the upper limit for the DEC stepper motor
+//        Resets the upper limit for the DEC axis to the configuration-defined position.
+//        If unconfigured, the limit is cleared.
 //      Returns:
 //        nothing
 //
@@ -910,10 +922,11 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC lower limit
 //      Information:
-//        Set the lowerlimit for the DEC stepper motor to the current position if no parameter is given,
-//        otherwise to the given parameter.
+//        Set the lower limit for the DEC axis to the current position if no parameter is given,
+//        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel downwards
+//        "nnnnn" is the number of steps from home that the DEC ring can travel downwards. Passing 0 will reset it to the
+//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -921,8 +934,10 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC lower limit
 //      Information:
-//        Clear the lower limit for the DEC stepper motor
-//      Returns: nothing
+//        Resets the lower limit for the DEC axis to the configuration-defined position.
+//        If unconfigured, the limit is cleared.
+//      Returns:
+//        nothing
 //
 // :XSDPnnnn#
 //      Description:
@@ -1640,13 +1655,29 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2)
             {
-                if (inCmd[2] == 'L')  // :XGDL#
+                if (inCmd[2] == 'L')  // :XGDLx#
                 {
-                    long loLimit, hiLimit;
+                    float loLimit, hiLimit;
                     _mount->getDecLimitPositions(loLimit, hiLimit);
-                    char scratchBuffer[20];
-                    sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
-                    return String(scratchBuffer);
+                    if (inCmd.length() > 3)
+                    {
+                        if (inCmd[3] == 'L')  // :XGDLL#
+                        {
+                            return String(loLimit, 1) + "#";
+                        }
+                        else if (inCmd[3] == 'U')  // :XGDLU#
+                        {
+                            return String(hiLimit, 1) + "#";
+                        }
+                        else
+                        {
+                            return "0#";
+                        }
+                    }
+                    else  // :XGDL#
+                    {
+                        return String(loLimit, 1) + "|" + String(hiLimit, 1) + "#";
+                    }
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
                 {
@@ -1740,37 +1771,40 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'D')  // :XSD
         {
-            if ((inCmd.length() > 3) && (inCmd[2] == 'L'))  // :XSDL
+            if ((inCmd.length() > 2) && (inCmd[2] == 'L'))  // :XSDL
             {
-                if (inCmd[3] == 'L')  // :XSDLL
+                if (inCmd.length() > 3)
                 {
-                    if (inCmd.length() > 4)
+                    if (inCmd[3] == 'L')  // :XSDLL
                     {
-                        _mount->setDecLimitPositionAbs(false, inCmd.substring(4).toInt());
+                        if (inCmd.length() > 4)
+                        {
+                            _mount->setDecLimitPosition(false, inCmd.substring(4).toFloat());
+                        }
+                        else
+                        {
+                            _mount->setDecLimitPosition(false);
+                        }
                     }
-                    else
+                    else if (inCmd[3] == 'U')  // :XSDLU
                     {
-                        _mount->setDecLimitPosition(false);
+                        if (inCmd.length() > 4)
+                        {
+                            _mount->setDecLimitPosition(true, inCmd.substring(4).toFloat());
+                        }
+                        else
+                        {
+                            _mount->setDecLimitPosition(true);
+                        }
                     }
-                }
-                else if (inCmd[3] == 'U')  // :XSDLU
-                {
-                    if (inCmd.length() > 4)
+                    else if (inCmd[3] == 'l')  // :XSDLl
                     {
-                        _mount->setDecLimitPositionAbs(true, inCmd.substring(4).toInt());
+                        _mount->clearDecLimitPosition(false);
                     }
-                    else
+                    else if (inCmd[3] == 'u')  // :XSDLU
                     {
-                        _mount->setDecLimitPosition(true);
+                        _mount->clearDecLimitPosition(true);
                     }
-                }
-                else if (inCmd[3] == 'l')  // :XSDLl
-                {
-                    _mount->clearDecLimitPosition(false);
-                }
-                else if (inCmd[3] == 'u')  // :XSDLU
-                {
-                    _mount->clearDecLimitPosition(true);
                 }
             }
             else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
@@ -1779,7 +1813,11 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else
             {
-                _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
+                float stepsPerDegree = inCmd.substring(2).toFloat();
+                if (stepsPerDegree > 0)
+                {
+                    _mount->setStepsPerDegree(DEC_STEPS, stepsPerDegree);
+                }
             }
         }
         else if (inCmd[1] == 'S')  // :XSS

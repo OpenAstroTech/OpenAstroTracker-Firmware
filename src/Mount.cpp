@@ -3,6 +3,7 @@
 #include "EPROMStore.hpp"
 #include "LcdMenu.hpp"
 #include "HallSensorHoming.hpp"
+#include "EndSwitches.hpp"
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
@@ -189,15 +190,15 @@ void Mount::readPersistentData()
     _decParkingPos = EEPROMStore::getDECParkingPos();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Parking position read as R:%l, D:%l", _raParkingPos, _decParkingPos);
 
-    _decLowerLimit = EEPROMStore::getDECLowerLimit();
+    _decLowerLimit = static_cast<long>(-(EEPROMStore::getDECLowerLimit() * _stepsPerDECDegree));
     if (_decLowerLimit == 0 && DEC_LIMIT_DOWN != 0)
     {
-        _decLowerLimit = long(-(DEC_LIMIT_DOWN * _stepsPerDECDegree));
+        _decLowerLimit = static_cast<long>(-(DEC_LIMIT_DOWN * _stepsPerDECDegree));
     }
-    _decUpperLimit = EEPROMStore::getDECUpperLimit();
+    _decUpperLimit = static_cast<long>((EEPROMStore::getDECUpperLimit() * _stepsPerDECDegree));
     if (_decUpperLimit == 0 && DEC_LIMIT_UP != 0)
     {
-        _decUpperLimit = long(DEC_LIMIT_UP * _stepsPerDECDegree);
+        _decUpperLimit = static_cast<long>(DEC_LIMIT_UP * _stepsPerDECDegree);
     }
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %l -> %l", _decLowerLimit, _decUpperLimit);
 }
@@ -1019,6 +1020,18 @@ String Mount::getMountHardwareInfo()
     #if (USE_DEC_END_SWITCH == 1)
     ret += F("_DEC");
     #endif
+#endif
+
+#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
+    ret += F("ENDSW");
+    #if (USE_RA_END_SWITCH == 1)
+    ret += F("_RA");
+    #endif
+    #if (USE_DEC_END_SWITCH == 1)
+    ret += F("_DEC");
+    #endif
+#else
+    ret += F("NO_ENDSW,");
 #endif
 
     return ret;
@@ -2074,6 +2087,11 @@ byte Mount::slewStatus() const
     return slewState;
 }
 
+byte Mount::mountStatus() const
+{
+    return _mountStatus;
+}
+
 /////////////////////////////////
 //
 // isGuiding
@@ -2474,6 +2492,26 @@ void Mount::processHomingProgress()
 }
 #endif
 
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+/////////////////////////////////
+//
+// End Switches RA/DEC
+//
+/////////////////////////////////
+void Mount::setupEndSwitches()
+{
+    #if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch = new EndSwitch(
+        this, StepperAxis::RA_STEPS, RA_ENDSWITCH_EAST_SENSOR_PIN, RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE);
+    #endif
+
+    #if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch = new EndSwitch(
+        this, StepperAxis::DEC_STEPS, DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE);
+    #endif
+}
+#endif
+
 /////////////////////////////////
 //
 // delay
@@ -2497,7 +2535,8 @@ void Mount::delay(int ms)
 /////////////////////////////////
 void Mount::interruptLoop()
 {
-    if (_mountStatus & STATUS_GUIDE_PULSE)
+    // Only process guide pulses if we are tracking.
+    if ((_mountStatus & STATUS_GUIDE_PULSE) && (_mountStatus & STATUS_TRACKING))
     {
         _stepperTRK->runSpeed();
         if (_mountStatus & STATUS_GUIDE_PULSE_DEC)
@@ -2556,6 +2595,14 @@ void Mount::interruptLoop()
     {
         _stepperFocus->runSpeed();
     }
+#endif
+
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->processEndSwitchState();
+#endif
+
+#if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->processEndSwitchState();
 #endif
 }
 
@@ -2806,6 +2853,14 @@ void Mount::loop()
         }
     }
 
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->checkSwitchState();
+#endif
+
+#if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->checkSwitchState();
+#endif
+
     _stepperWasRunning = raStillRunning || decStillRunning;
 }
 
@@ -2874,29 +2929,35 @@ void Mount::setDecParkingOffset(long offset)
 // setDecLimitPosition
 //
 /////////////////////////////////
-void Mount::setDecLimitPosition(bool upper)
-{
-    setDecLimitPositionAbs(upper, _stepperDEC->currentPosition());
-}
-
-/////////////////////////////////
-//
-// setDecLimitPositionAbs
-//
-/////////////////////////////////
-void Mount::setDecLimitPositionAbs(bool upper, long stepperPos)
+void Mount::setDecLimitPosition(bool upper, float limitAngle)
 {
     if (upper)
     {
-        _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
-        EEPROMStore::storeDECUpperLimit(_decUpperLimit);
-        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
+        if (limitAngle == 0)
+        {
+            _decUpperLimit = _stepperDEC->currentPosition();
+            EEPROMStore::storeDECUpperLimit(fabsf(_decUpperLimit / _stepsPerDECDegree));
+        }
+        else
+        {
+            _decUpperLimit = (limitAngle * _stepsPerDECDegree);
+            EEPROMStore::storeDECUpperLimit(limitAngle);
+        }
+        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Upper) to %f: limit DEC: %l -> %l", limitAngle, _decLowerLimit, _decUpperLimit);
     }
     else
     {
-        _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
-        EEPROMStore::storeDECLowerLimit(_decLowerLimit);
-        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
+        if (limitAngle == 0)
+        {
+            _decLowerLimit = _stepperDEC->currentPosition();
+            EEPROMStore::storeDECLowerLimit(fabsf(_decLowerLimit / _stepsPerDECDegree));
+        }
+        else
+        {
+            _decLowerLimit = -(limitAngle * _stepsPerDECDegree);
+            EEPROMStore::storeDECLowerLimit(limitAngle);
+        }
+        LOG(DEBUG_MOUNT, "[MOUNT]: setDecLimitPosition(Lower) to %f: limit DEC: %l -> %l", limitAngle, _decLowerLimit, _decUpperLimit);
     }
 }
 
@@ -2910,13 +2971,13 @@ void Mount::clearDecLimitPosition(bool upper)
     if (upper)
     {
         _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
-        EEPROMStore::storeDECUpperLimit(_decUpperLimit);
+        EEPROMStore::storeDECUpperLimit(DEC_LIMIT_UP);
         LOG(DEBUG_MOUNT, "[MOUNT]: clearDecLimitPosition(Upper): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
     else
     {
         _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
-        EEPROMStore::storeDECLowerLimit(_decLowerLimit);
+        EEPROMStore::storeDECLowerLimit(DEC_LIMIT_DOWN);
         LOG(DEBUG_MOUNT, "[MOUNT]: clearDecLimitPosition(Lower): limit DEC: %l -> %l", _decLowerLimit, _decUpperLimit);
     }
 }
@@ -2926,10 +2987,16 @@ void Mount::clearDecLimitPosition(bool upper)
 // getDecLimitPositions
 //
 /////////////////////////////////
-void Mount::getDecLimitPositions(long &lowerLimit, long &upperLimit)
+void Mount::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 {
-    lowerLimit = _decLowerLimit;
-    upperLimit = _decUpperLimit;
+    lowerLimit = -1.0f * _decLowerLimit / _stepsPerDECDegree;
+    upperLimit = 1.0f * _decUpperLimit / _stepsPerDECDegree;
+    LOG(DEBUG_MOUNT,
+        "[MOUNT]: getDecLimitPositions: limit DEC: %l -> %l (%f -> %f)",
+        _decLowerLimit,
+        _decUpperLimit,
+        lowerLimit,
+        upperLimit);
 }
 
 /////////////////////////////////
@@ -3171,13 +3238,24 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
 
     if (_decUpperLimit != 0)
     {
+#if DEBUG_LEVEL > 0
+        if (targetDECSteps > (float) _decUpperLimit)
+        {
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %l", _decUpperLimit);
+        }
+#endif
         targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %f", targetDECSteps);
     }
+
     if (_decLowerLimit != 0)
     {
+#if DEBUG_LEVEL > 0
+        if (targetDECSteps < (float) _decLowerLimit)
+        {
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %l", _decLowerLimit);
+        }
+#endif
         targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %f", targetDECSteps);
     }
 
     _stepperDEC->moveTo(targetDECSteps);

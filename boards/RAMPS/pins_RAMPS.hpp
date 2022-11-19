@@ -165,8 +165,11 @@
 #endif
 
 //Pin to turn on dew heater MOSFET
-#ifndef DEW_HEATER_PIN
-    #define DEW_HEATER_PIN 10
+#ifndef DEW_HEATER_1_PIN
+    #define DEW_HEATER_1_PIN 10
+#endif
+#ifndef DEW_HEATER_2_PIN
+    #define DEW_HEATER_2_PIN 9
 #endif
 
 //Serial port for external debugging

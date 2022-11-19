@@ -136,17 +136,17 @@ void printStatusSubmenu()
 
             case 5:
                 {
-                    long lowerLimit, upperLimit;
+                    float lowerLimit, upperLimit;
                     mount.getDecLimitPositions(lowerLimit, upperLimit);
-                    lcdMenu.printMenu("DEC Lo: " + String(lowerLimit));
+                    lcdMenu.printMenu("DEC Lo: " + String(lowerLimit, 1));
                 }
                 break;
 
             case 6:
                 {
-                    long lowerLimit, upperLimit;
+                    float lowerLimit, upperLimit;
                     mount.getDecLimitPositions(lowerLimit, upperLimit);
-                    lcdMenu.printMenu("DEC Up: " + String(upperLimit));
+                    lcdMenu.printMenu("DEC Up: " + String(upperLimit, 1));
                 }
                 break;
 

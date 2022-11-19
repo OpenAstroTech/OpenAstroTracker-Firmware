@@ -5,13 +5,13 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
-// #include "HallSensorHoming.hpp"
 
 // Forward declarations
 class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
 class HallSensorHoming;
+class EndSwitch;
 
 #define NORTH          B00000001
 #define EAST           B00000010
@@ -46,6 +46,42 @@ class HallSensorHoming;
 #define STATUS_GUIDE_PULSE_DEC   0B0000000000100000
 #define STATUS_GUIDE_PULSE_MASK  0B0000000011100000
 #define STATUS_FINDING_HOME      0B0010000000000000
+
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+enum HomingState
+{
+    HOMING_MOVE_OFF,
+    HOMING_MOVING_OFF,
+    HOMING_STOP_AT_TIME,
+    HOMING_WAIT_FOR_STOP,
+    HOMING_START_FIND_START,
+    HOMING_FINDING_START,
+    HOMING_FINDING_START_REVERSE,
+    HOMING_FINDING_END,
+    HOMING_RANGE_FOUND,
+    HOMING_FAILED,
+    HOMING_SUCCESSFUL,
+
+    HOMING_NOT_ACTIVE
+};
+
+    #define HOMING_START_PIN_POSITION 0
+    #define HOMING_END_PIN_POSITION   1
+
+struct HomingData {
+    HomingState state;
+    HomingState nextState;
+    int pinState;
+    int lastPinState;
+    int savedRate;
+    int initialDir;
+    int searchDistance;
+    long position[2];
+    long offsetRA;
+    long startPos;
+    unsigned long stopAt;
+};
+#endif
 
 struct LocalDate {
     int year;
@@ -280,17 +316,16 @@ class Mount
     long getDecParkingOffset();
     void setDecParkingOffset(long offset);
 
-    // Set the DEC limit position to the current stepper position. If upper is true, sets the upper limit, else the lower limit.
-    void setDecLimitPosition(bool upper);
-
-    // Set the DEC limit position to the given position. If upper is true, sets the upper limit, else the lower limit.
-    void setDecLimitPositionAbs(bool upper, long stepperPos);
+    // Set the DEC limit position to the given angle in degrees (saved as DEC steps).
+    // If upper is true, sets the upper limit, else the lower limit.
+    // If limitAngle is 0, limit is set to current position.
+    void setDecLimitPosition(bool upper, float limitAngle = 0);
 
     // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
     void clearDecLimitPosition(bool upper);
 
     // Get the DEC limit positions
-    void getDecLimitPositions(long &lowerLimit, long &upperLimit);
+    void getDecLimitPositions(float &lowerLimit, float &upperLimit);
 
     // Asynchronously parks the mount. Moves to the home position and stops all motors.
     void park();
@@ -326,6 +361,10 @@ class Mount
 
     // Set the speed of the given motor
     void setSpeed(StepperAxis which, float speedDegsPerSec);
+
+#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
+    void setupEndSwitches();
+#endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // Support for moving the mount in azimuth and altitude (requires extra hardware)
@@ -397,6 +436,10 @@ class Mount
     DayTime calculateLst();
     DayTime calculateHa();
 
+    // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
+    byte slewStatus() const;
+    byte mountStatus() const;
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -420,9 +463,6 @@ class Mount
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC);
-
-    // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
-    byte slewStatus() const;
 
     void autoCalcHa();
 
@@ -516,6 +556,13 @@ class Mount
 #endif
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
     HallSensorHoming* _decHoming;
+#endif
+
+#if USE_RA_END_SWITCH == 1
+    EndSwitch *_raEndSwitch;
+#endif
+#if USE_DEC_END_SWITCH == 1
+    EndSwitch *_decEndSwitch;
 #endif
 
     unsigned long _guideRaEndTime;

@@ -113,8 +113,17 @@ void setup()
 
 //Turn on dew heater
 #if DEW_HEATER == 1
+    #if defined(DEW_HEATER_1_PIN)
     digitalWrite(DEW_HEATER_1_PIN, HIGH);
+    #endif
+    #if defined(DEW_HEATER_2_PIN)
     digitalWrite(DEW_HEATER_2_PIN, HIGH);
+    #endif
+#endif
+
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+    LOG(DEBUG_ANY, "[SYSTEM]: Init EndSwitches...");
+    mount.setupEndSwitches();
 #endif
 
     /////////////////////////////////

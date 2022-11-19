@@ -155,6 +155,26 @@
     #define DEC_HOMING_SENSOR_PIN 52
 #endif
 
+// RA End Switch East pin
+#ifndef RA_ENDSWITCH_EAST_SENSOR_PIN
+    #define RA_ENDSWITCH_EAST_SENSOR_PIN 19
+#endif
+
+// RA End Switch West pin
+#ifndef RA_ENDSWITCH_WEST_SENSOR_PIN
+    #define RA_ENDSWITCH_WEST_SENSOR_PIN 18
+#endif
+
+// DEC End Switch Up pin
+#ifndef DEC_ENDSWITCH_UP_SENSOR_PIN
+    #define DEC_ENDSWITCH_UP_SENSOR_PIN 3
+#endif
+
+// DEC End Switch Down pin
+#ifndef DEC_ENDSWITCH_DOWN_SENSOR_PIN
+    #define DEC_ENDSWITCH_DOWN_SENSOR_PIN 2
+#endif
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
     #define GPS_SERIAL_PORT Serial1
@@ -186,10 +206,10 @@
 #endif
 
 //Pin to turn on dew heater MOSFET
-#ifndef DEW_HEATER_PIN1
+#ifndef DEW_HEATER_1_PIN
     #define DEW_HEATER_1_PIN 10
 #endif
-#ifndef DEW_HEATER_PIN2
+#ifndef DEW_HEATER_2_PIN
     #define DEW_HEATER_2_PIN 7
 #endif
 

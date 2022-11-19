@@ -414,7 +414,7 @@ void EEPROMStore::storeRAStepsPerDegree(float raStepsPerDegree)
     // Store steps as 100x steps/deg at 256 MS.
     const float factor = SteppingStorageNormalized / RA_TRACKING_MICROSTEPPING;
     int32_t val        = raStepsPerDegree * factor;
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing RA steps to %d (%f)", val, raStepsPerDegree);
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing RA steps to %l (%f)", val, raStepsPerDegree);
 
     updateInt32(RA_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(RA_NORM_STEPS_MARKER_FLAG);
@@ -453,7 +453,7 @@ void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
 {
     const float factor = SteppingStorageNormalized / DEC_GUIDE_MICROSTEPPING;
     int32_t val        = decStepsPerDegree * factor;
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing DEC steps to %d (%f)", val, decStepsPerDegree);
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing DEC steps to %l (%f)", val, decStepsPerDegree);
 
     updateInt32(DEC_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(DEC_NORM_STEPS_MARKER_FLAG);
@@ -487,7 +487,7 @@ void EEPROMStore::storeSpeedFactor(float speedFactor)
     // Store the fractional speed factor since it is a number very close to 1
     int32_t val = (speedFactor - 1.0f) * 10000.0f;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Speed Factor to %d (%f)", val, speedFactor);
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Speed Factor to %l (%f)", val, speedFactor);
 
     // Speed factor bytes are in split locations :-(
     updateUint8(SPEED_FACTOR_LOW_ADDR, val & 0xFF);
@@ -550,7 +550,7 @@ void EEPROMStore::storeLatitude(Latitude const &latitude)
 {
     int32_t val = static_cast<int32_t>(roundf(latitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Latitude as %d (%f)", val, latitude.getTotalHours());
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Latitude as %l (%f)", val, latitude.getTotalHours());
 
     updateInt16(LATITUDE_ADDR, val);
     updateFlags(LATITUDE_FLAG);
@@ -581,7 +581,7 @@ void EEPROMStore::storeLongitude(Longitude const &longitude)
 {
     int32_t val = static_cast<int32_t>(roundf(longitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Longitude as %d (%f)", val, longitude.getTotalHours());
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Longitude as %l (%f)", val, longitude.getTotalHours());
 
     updateInt16(LONGITUDE_ADDR, val);
     updateFlags(LONGITUDE_FLAG);
@@ -598,7 +598,7 @@ float EEPROMStore::getPitchCalibrationAngle()
     {
         int32_t val           = readUint16(PITCH_OFFSET_ADDR);
         pitchCalibrationAngle = (val - 16384) / 100.0;
-        LOG(DEBUG_EEPROM, "[EEPROM]: Pitch Offset Marker OK! Pitch Offset is %d (%f)", val, pitchCalibrationAngle);
+        LOG(DEBUG_EEPROM, "[EEPROM]: Pitch Offset Marker OK! Pitch Offset is %l (%f)", val, pitchCalibrationAngle);
     }
     else
     {
@@ -613,7 +613,7 @@ void EEPROMStore::storePitchCalibrationAngle(float pitchCalibrationAngle)
 {
     int32_t val = (pitchCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Pitch calibration %d (%f)", val, pitchCalibrationAngle);
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Pitch calibration %l (%f)", val, pitchCalibrationAngle);
 
     updateInt16(PITCH_OFFSET_ADDR, val);
     updateFlags(PITCH_OFFSET_FLAG);
@@ -630,7 +630,7 @@ float EEPROMStore::getRollCalibrationAngle()
     {
         int32_t val          = readUint16(ROLL_OFFSET_ADDR);
         rollCalibrationAngle = (val - 16384) / 100.0;
-        LOG(DEBUG_EEPROM, "[EEPROM]: Roll Offset Marker OK! Roll Offset is %d (%f)", val, rollCalibrationAngle);
+        LOG(DEBUG_EEPROM, "[EEPROM]: Roll Offset Marker OK! Roll Offset is %l (%f)", val, rollCalibrationAngle);
     }
     else
     {
@@ -645,7 +645,7 @@ void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
 {
     int32_t val = (rollCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Roll calibration %d (%f)", val, rollCalibrationAngle);
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Roll calibration %l (%f)", val, rollCalibrationAngle);
 
     updateInt16(ROLL_OFFSET_ADDR, val);
     updateFlags(ROLL_OFFSET_FLAG);
@@ -716,62 +716,62 @@ void EEPROMStore::storeDECParkingPos(int32_t decParkingPos)
 
 // Return the stored DEC Lower Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-int32_t EEPROMStore::getDECLowerLimit()
+float EEPROMStore::getDECLowerLimit()
 {
-    int32_t decLowerLimit(0);  // microsteps (slew)
+    float decLowerLimit(0);  // limit angle (deg)
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
-        decLowerLimit = readInt32(DEC_LOWER_LIMIT_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC lower limit read as %l", decLowerLimit);
+        decLowerLimit = readInt32(DEC_LOWER_LIMIT_ADDR) / 100.0f;
+        LOG(DEBUG_EEPROM, "[EEPROM]: DEC lower limit read as %f", decLowerLimit);
     }
     else
     {
         LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
     }
 
-    return decLowerLimit;  // microsteps (slew)
+    return decLowerLimit;  // limit angle (deg)
 }
 
 // Store the configured DEC Lower Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECLowerLimit(int32_t decLowerLimit)
+void EEPROMStore::storeDECLowerLimit(float decLowerLimit)
 {
     LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Lower Limit to %l", decLowerLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
-    updateInt32(DEC_LOWER_LIMIT_ADDR, decLowerLimit);
+    updateInt32(DEC_LOWER_LIMIT_ADDR, static_cast<int32_t>(roundf(decLowerLimit * 100.0f)));
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
 // Return the stored DEC Upper Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-int32_t EEPROMStore::getDECUpperLimit()
+float EEPROMStore::getDECUpperLimit()
 {
-    int32_t decUpperLimit(0);  // microsteps (slew)
+    float decUpperLimit(0);  // limit angle (deg)
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
-        decUpperLimit = readInt32(DEC_UPPER_LIMIT_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC upper limit read as %l", decUpperLimit);
+        decUpperLimit = readInt32(DEC_UPPER_LIMIT_ADDR) / 100.0f;
+        LOG(DEBUG_EEPROM, "[EEPROM]: DEC upper limit read as %f", decUpperLimit);
     }
     else
     {
         LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
     }
 
-    return decUpperLimit;  // microsteps (slew)
+    return decUpperLimit;  // limit angle (deg)
 }
 
 // Store the configured DEC Upper Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECUpperLimit(int32_t decUpperLimit)
+void EEPROMStore::storeDECUpperLimit(float decUpperLimit)
 {
     LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Upper Limit to %l", decUpperLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
-    updateInt32(DEC_UPPER_LIMIT_ADDR, decUpperLimit);
+    updateInt32(DEC_UPPER_LIMIT_ADDR, static_cast<int32_t>(roundf(decUpperLimit * 100.0f)));
     updateFlagsExtended(DEC_LIMIT_MARKER_FLAG);
     commit();  // Complete the transaction
 }
