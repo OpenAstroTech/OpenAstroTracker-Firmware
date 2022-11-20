@@ -1020,16 +1020,7 @@ String Mount::getMountHardwareInfo()
     #if (USE_DEC_END_SWITCH == 1)
     ret += F("_DEC");
     #endif
-#endif
-
-#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
-    ret += F("ENDSW");
-    #if (USE_RA_END_SWITCH == 1)
-    ret += F("_RA");
-    #endif
-    #if (USE_DEC_END_SWITCH == 1)
-    ret += F("_DEC");
-    #endif
+    ret += F(",");
 #else
     ret += F("NO_ENDSW,");
 #endif
@@ -1683,18 +1674,20 @@ bool Mount::isAxisRunning(StepperAxis axis)
             return _stepperRA->isRunning();
         case DEC_STEPS:
             return _stepperDEC->isRunning();
-#if (ALTITUDE_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         case ALTITUDE_STEPS:
             return _stepperALT->isRunning();
 #endif
-#if (AZIMUTH_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         case AZIMUTH_STEPS:
             return _stepperAZ->isRunning();
 #endif
-#if (FOC_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
         case FOCUS_STEPS:
             return _stepperFocus->isRunning();
 #endif
+        default:
+            break;
     }
     return false;
 }
@@ -2309,13 +2302,13 @@ void Mount::stopSlewing(StepperAxis axis)
     }
     else if (axis == AZIMUTH_STEPS)
     {
-#if (AZIMUTH_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         _stepperAZ->stop();
 #endif
     }
     else if (axis == ALTITUDE_STEPS)
     {
-#if (ALTITUDE_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         _stepperALT->stop();
 #endif
     }
@@ -2387,13 +2380,13 @@ long Mount::getCurrentStepperPosition(StepperAxis axis)
     }
     if (axis == StepperAxis::ALTITUDE_STEPS)
     {
-#if (ALTITUDE_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         return _stepperALT->currentPosition();
 #endif
     }
     if (axis == StepperAxis::AZIMUTH_STEPS)
     {
-#if (AZIMUTH_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         return _stepperAZ->currentPosition();
 #endif
     }
