@@ -9,10 +9,10 @@
 
 PUSH_NO_WARNINGS
 #ifdef __AVR_ATmega2560__
-#include "InterruptAccelStepper.h"
-#include "StepperConfiguration.hpp"
+    #include "InterruptAccelStepper.h"
+    #include "StepperConfiguration.hpp"
 #else
-#include <AccelStepper.h>
+    #include <AccelStepper.h>
 #endif
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
     || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                       \
@@ -247,7 +247,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
+    _stepperTRK   = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
 #endif
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
@@ -269,10 +269,10 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
 #ifdef __AVR_ATmega2560__
-    _stepperDEC = new StepperDecSlew();
+    _stepperDEC   = new StepperDecSlew();
     _stepperGUIDE = new StepperDecTrk();
 #else
-    _stepperDEC = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperDEC   = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
 #endif
     _stepperDEC->setMaxSpeed(maxSpeed);
@@ -1050,9 +1050,10 @@ String Mount::getMountHardwareInfo()
     #if (USE_RA_END_SWITCH == 1)
     ret += F("_RA");
     #endif
-    #if || (USE_DEC_END_SWITCH == 1)
+    #if (USE_DEC_END_SWITCH == 1)
     ret += F("_DEC");
     #endif
+    ret += F(",");
 #else
     ret += F("NO_ENDSW,");
 #endif
@@ -2732,6 +2733,13 @@ void Mount::interruptLoop()
     }
 #endif
 
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if (_mountStatus & STATUS_FINDING_HOME)
+    {
+        processRAHomingProgress();
+    }
+#endif
+
 #if (USE_RA_END_SWITCH == 1)
     _raEndSwitch->processEndSwitchState();
 #endif
@@ -2988,11 +2996,20 @@ void Mount::loop()
         }
     }
 
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if (_mountStatus & STATUS_FINDING_HOME)
+    {
+        processRAHomingProgress();
+    }
+#endif
+
 #if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->processEndSwitchState();
     _raEndSwitch->checkSwitchState();
 #endif
 
 #if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->processEndSwitchState();
     _decEndSwitch->checkSwitchState();
 #endif
 
