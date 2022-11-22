@@ -54,12 +54,12 @@ class HallSensorHoming
   public:
     HallSensorHoming(Mount *mount, StepperAxis axis, long stepsPerDegree, int sensorPin, int32_t offset)
     {
-        _homingData.state = HomingState::HOMING_NOT_ACTIVE;
+        _homingData.state  = HomingState::HOMING_NOT_ACTIVE;
         _homingData.offset = offset;
-        _pMount           = mount;
-        _axis             = axis;
-        _stepsPerDegree   = stepsPerDegree;
-        _sensorPin        = sensorPin;
+        _pMount            = mount;
+        _axis              = axis;
+        _stepsPerDegree    = stepsPerDegree;
+        _sensorPin         = sensorPin;
     }
 
     bool findHomeByHallSensor(int initialDirection, int searchDistanceDegrees);

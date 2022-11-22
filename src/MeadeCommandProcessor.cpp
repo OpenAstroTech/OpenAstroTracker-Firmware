@@ -1561,8 +1561,8 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         int decDistance = 30;
         if (inCmd.length() > 3)
         {
-            decDistance  = clamp((int) inCmd.substring(3).toInt(), 15, 75);
-            LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", decDistance );
+            decDistance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
+            LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", decDistance);
         }
 
         if (inCmd[2] == 'U')  // :MHDU
@@ -1850,7 +1850,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XSHR
             {
                 _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
-            } else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XSHD
+            }
+            else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XSHD
             {
                 _mount->setHomingOffset(StepperAxis::DEC_STEPS, inCmd.substring(3).toInt());
             }

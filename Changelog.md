@@ -1,3 +1,6 @@
+**V1.11.14 - Updates**
+- Add DEC Autohoming via Hall sensor (same as RA Autohoming)
+
 **V1.11.13 - Updates**
 - Added end switch support for RA and DEC.
 - Guide pulses are only executed when tracking.

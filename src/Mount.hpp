@@ -260,7 +260,7 @@ class Mount
     // Gets the position in one of eight directions or tracking
     long getCurrentStepperPosition(int direction);
     long getCurrentStepperPosition(StepperAxis axis);
-    
+
     // Set the tracking stepper position
     void setTrackingStepperPos(long stepPos);
 
@@ -516,10 +516,10 @@ class Mount
 #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    HallSensorHoming* _raHoming;
+    HallSensorHoming *_raHoming;
 #endif
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    HallSensorHoming* _decHoming;
+    HallSensorHoming *_decHoming;
 #endif
 
 #if USE_RA_END_SWITCH == 1
