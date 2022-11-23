@@ -7,7 +7,6 @@
 
 #include <stdint.h>
 #include <math.h>
-#include "Angle.h"
 
 #define ABS(x) ((x >= 0) ? x : -x)
 
@@ -27,12 +26,7 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void moveTo(long absolute)
     {
-        LOG(DEBUG_STEPPERS, "[IAS] moveTo(%l) at %f", absolute, max_speed);
         target = absolute;
-
-        auto movement = STEPPER::MovementSpec::distance(max_speed, target - STEPPER::getPosition());
-
-        LOG(DEBUG_STEPPERS, "[IAS] steps=%l, run_interval=%l, accel_stair=%d", movement.steps, movement.run_interval, movement.accel_stair);
 
         STEPPER::moveTo(max_speed, target);
     }
