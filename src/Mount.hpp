@@ -113,10 +113,10 @@ class Mount
     static Mount instance();
 
     // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
-    void configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+    void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 
     // Configure the DEC stepper motor.
-    void configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
+    void configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 
 // Configure the AZ stepper motors.
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)

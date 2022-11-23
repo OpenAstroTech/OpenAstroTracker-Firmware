@@ -295,14 +295,14 @@ void setup()
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
-    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, static_cast<int32_t>(config::Ra::SPEED_SLEWING_SPS), RA_STEPPER_ACCELERATION);
+    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, config::Ra::SPEED_SLEWING, RA_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.
 #endif
 
 #if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
-    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEWING, DEC_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.
 #endif

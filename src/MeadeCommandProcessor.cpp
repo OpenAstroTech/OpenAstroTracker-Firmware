@@ -1485,7 +1485,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if (inCmd[0] == 'X')  // :MX
     {
         long steps = inCmd.substring(2).toInt();
-        LOG(DEBUG_MEADE, "[MEADE]: Move: %l in %d", steps, inCmd[1]);
+        LOG(DEBUG_MEADE, "[MEADE]: Move: %l in %c", steps, inCmd[1]);
         if (inCmd[1] == 'r')
             _mount->moveStepperBy(RA_STEPS, steps);
         else if (inCmd[1] == 'd')

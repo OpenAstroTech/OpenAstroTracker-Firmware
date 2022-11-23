@@ -236,7 +236,7 @@ void Mount::readPersistentData()
 // configureRAStepper
 //
 /////////////////////////////////
-void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
 #ifdef __AVR_ATmega2560__
     _stepperRA = new StepperRaSlew();
@@ -266,7 +266,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 // configureDECStepper
 //
 /////////////////////////////////
-void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
 #ifdef __AVR_ATmega2560__
     _stepperDEC   = new StepperDecSlew();
