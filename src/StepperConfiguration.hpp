@@ -16,7 +16,7 @@ POP_NO_WARNINGS
 // CONFIGURATION
 #define RA_TRANSMISSION 35.46611505122143f
 #define RA_SLEWING_SPEED_DEG 2.0f        // deg/s
-#define RA_SLEWING_ACCELERATION_DEG 2.0f // deg/s/s
+#define RA_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
 #define RA_GUIDING_SPEED 0.5f        // fraction of sidereal speed to add/substract to/from tracking speed
 #define RA_DRIVER_INVERT_DIR false
 #define RA_STEPPER_SPR 400
@@ -26,7 +26,7 @@ POP_NO_WARNINGS
 
 #define DEC_TRANSMISSION 17.70597411692611f
 #define DEC_SLEWING_SPEED_DEG 2.0f        // deg/s
-#define DEC_SLEWING_ACCELERATION_DEG 2.0f // deg/s/s
+#define DEC_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
 #define DEC_GUIDING_SPEED 0.5f        // fraction of sidereal speed to add/substract to/from tracking speed
 #define DEC_DRIVER_INVERT_DIR false
 #define DEC_STEPPER_SPR 400
@@ -80,6 +80,8 @@ namespace config
 
         using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
         using stepper_trk = Stepper<interrupt_trk, driver, ramp_trk>;
+
+        constexpr static float SPEED_COMPENSATION = static_cast<float>(interrupt::FREQ) / static_cast<float>(ramp_slew::interval(1));
     };
 
     struct Dec

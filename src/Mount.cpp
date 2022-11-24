@@ -2909,7 +2909,14 @@ void Mount::loop()
                             now,
                             elapsed,
                             compensationSteps);
-                        _stepperTRK->runToNewPosition(_stepperTRK->currentPosition() + compensationSteps);
+
+                        // calculate compensation distance by including tracking steps done during compensation
+                        // to avoid another difference after compensation
+
+                        long totalCompensationSteps = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRACKING);
+                        _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
+                        _stepperTRK->move(totalCompensationSteps);
+                        _stepperTRK->runToPosition();
                         _compensateForTrackerOff = false;
                     }
 

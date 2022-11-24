@@ -12,11 +12,20 @@
 
 #define SIGN(x) ((x >= 0) ? 1 : -1)
 
-template <typename STEPPER> class InterruptAccelStepper
+template <typename STEPPER> 
+class InterruptAccelStepper
 {
   private:
     float max_speed;
     long target;
+
+    void inline log(String input, ...)
+    {
+        va_list argp;
+        va_start(argp, input);
+        logv(DEBUG_STEPPERS, "[IAS-%d] " + input, STEPPER::TIMER_ID, argp);
+        va_end(argp);
+    }
 
   public:
     InterruptAccelStepper() : max_speed(0.0f), target(0)
@@ -26,6 +35,9 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void moveTo(long absolute)
     {
+        log("moveTo(%l)", absolute);
+        log("relative=%l", absolute - STEPPER::getPosition());
+
         target = absolute;
 
         STEPPER::moveTo(max_speed, target);
@@ -33,12 +45,16 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void move(long relative)
     {
+        log("moveBy(%l)", relative);
+
         target = STEPPER::getPosition() + relative;
+
         moveTo(target);
     }
 
     void setMaxSpeed(float speed)
     {
+        log("setMaxSpeed(%f)", speed);
         max_speed = ABS(speed);
     }
 
@@ -54,6 +70,7 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void setSpeed(float speed)
     {
+        log("setSpeed(%f)", speed);
         setMaxSpeed(speed);
         moveTo((speed >= 0.0f) ? INT32_MAX : INT32_MIN);
     }
@@ -80,6 +97,7 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void setCurrentPosition(long position)
     {
+        log("setCurrentPosition(%f)", position);
         STEPPER::setPosition(position);
     }
 
@@ -95,7 +113,8 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void runToPosition()
     {
-        while (STEPPER::isRunning())
+        log("runToPosition()");
+        while (isRunning())
         {
             yield();
         }
@@ -103,12 +122,14 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void runToNewPosition(long position)
     {
+        log("runToNewPosition(%l)", position);
         moveTo(position);
         runToPosition();
     }
 
     void stop()
     {
+        log("stop()");
         STEPPER::stop();
     }
 
