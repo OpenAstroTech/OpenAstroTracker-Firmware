@@ -160,6 +160,26 @@
     #define DEC_WHEEL_CIRCUMFERENCE 565.5f
 #endif
 
+#ifndef RA_TRANSMISSION
+    #define RA_TRANSMISSION (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH))
+#endif
+
+#ifndef RA_SLEWING_SPEED_DEG
+    #define RA_SLEWING_SPEED_DEG 2.0f        // deg/s
+#endif
+
+#ifndef RA_SLEWING_ACCELERATION_DEG
+    #define RA_SLEWING_ACCELERATION_DEG 2.0f // deg/s/s
+#endif
+
+#ifndef DEC_SLEWING_SPEED_DEG
+    #define DEC_SLEWING_SPEED_DEG 2.0f        // deg/s
+#endif
+
+#ifndef DEC_SLEWING_ACCELERATION_DEG
+    #define DEC_SLEWING_ACCELERATION_DEG 2.0f // deg/s/s
+#endif
+
 // RA movement:
 // The radius of the surface that the belt runs on (in V1 of the ring) was 168.24mm.
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
@@ -170,8 +190,7 @@
 // Theoretically correct RA tracking speed is 1.246586 (300 x 14.95903 / 3600) (V2 : 1.333800 (322 x 14.95903 / 3600) steps/sec (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef RA_STEPS_PER_DEGREE
-    #define RA_STEPS_PER_DEGREE                                                                                                            \
-        (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
+    #define RA_STEPS_PER_DEGREE (RA_TRANSMISSION * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 // RA limits
@@ -184,6 +203,11 @@
 #ifndef RA_TRACKING_LIMIT
     #define RA_TRACKING_LIMIT 7.0f
 #endif
+
+#ifndef DEC_TRANSMISSION
+    #define DEC_TRANSMISSION (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH))
+#endif
+
 // DEC movement:
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
 // DEC wheel is 2 x PI x 90mm circumference which is 565.5mm
@@ -192,8 +216,7 @@
 // So there are 160.85 steps/degree (57907/360) (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef DEC_STEPS_PER_DEGREE
-    #define DEC_STEPS_PER_DEGREE                                                                                                           \
-        (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
+    #define DEC_STEPS_PER_DEGREE (DEC_TRANSMISSION * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 #ifndef DEC_LIMIT_UP

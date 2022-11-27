@@ -16,46 +16,39 @@ template <typename STEPPER>
 class InterruptAccelStepper
 {
   private:
-    float max_speed;
-    long target;
-
-    void inline log(String input, ...)
-    {
-        va_list argp;
-        va_start(argp, input);
-        logv(DEBUG_STEPPERS, "[IAS-%d] " + input, STEPPER::TIMER_ID, argp);
-        va_end(argp);
-    }
+    float _max_speed;
+    float _speed;
+    long _target;
 
   public:
-    InterruptAccelStepper() : max_speed(0.0f), target(0)
+    InterruptAccelStepper() : _max_speed(0.0f), _target(0)
     {
         STEPPER::init();
     }
 
     void moveTo(long absolute)
     {
-        log("moveTo(%l)", absolute);
-        log("relative=%l", absolute - STEPPER::getPosition());
+        LOG(DEBUG_STEPPERS, "[IAS-%d] moveTo(%l)", STEPPER::TIMER_ID, absolute);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] relative=%l", STEPPER::TIMER_ID, absolute - STEPPER::getPosition());
 
-        target = absolute;
+        _target = absolute;
 
-        STEPPER::moveTo(max_speed, target);
+        STEPPER::moveTo(_max_speed, _target);
     }
 
     void move(long relative)
     {
-        log("moveBy(%l)", relative);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] move(%l)", STEPPER::TIMER_ID, relative);
 
-        target = STEPPER::getPosition() + relative;
+        _target = STEPPER::getPosition() + relative;
 
-        moveTo(target);
+        moveTo(_target);
     }
 
     void setMaxSpeed(float speed)
     {
-        log("setMaxSpeed(%f)", speed);
-        max_speed = ABS(speed);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] setMaxSpeed(%f)", STEPPER::TIMER_ID, speed);
+        _max_speed = ABS(speed);
     }
 
     void setAcceleration(float value)
@@ -65,19 +58,19 @@ class InterruptAccelStepper
 
     float maxSpeed()
     {
-        return max_speed;
+        return _max_speed;
     }
 
     void setSpeed(float speed)
     {
-        log("setSpeed(%f)", speed);
-        setMaxSpeed(speed);
-        moveTo((speed >= 0.0f) ? INT32_MAX : INT32_MIN);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] setSpeed(%f)", STEPPER::TIMER_ID, speed);
+        _speed = speed;
+        STEPPER::moveTo(_speed, INT32_MAX);
     }
 
     float speed()
     {
-        return maxSpeed();
+        return _speed;
     }
 
     uint32_t distanceToGo()
@@ -87,7 +80,7 @@ class InterruptAccelStepper
 
     long targetPosition()
     {
-        return target;
+        return _target;
     }
 
     long currentPosition()
@@ -97,7 +90,7 @@ class InterruptAccelStepper
 
     void setCurrentPosition(long position)
     {
-        log("setCurrentPosition(%f)", position);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] setCurrentPosition(%l)", STEPPER::TIMER_ID, position);
         STEPPER::setPosition(position);
     }
 
@@ -108,12 +101,12 @@ class InterruptAccelStepper
 
     void runSpeed()
     {
-        // STUB
+
     }
 
     void runToPosition()
     {
-        log("runToPosition()");
+        LOG(DEBUG_STEPPERS, "[IAS-%d] runToPosition(%l)", STEPPER::TIMER_ID);
         while (isRunning())
         {
             yield();
@@ -122,14 +115,14 @@ class InterruptAccelStepper
 
     void runToNewPosition(long position)
     {
-        log("runToNewPosition(%l)", position);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] runToNewPosition(%l)", position);
         moveTo(position);
         runToPosition();
     }
 
     void stop()
     {
-        log("stop()");
+        LOG(DEBUG_STEPPERS, "[IAS-%d] stop()");
         STEPPER::stop();
     }
 

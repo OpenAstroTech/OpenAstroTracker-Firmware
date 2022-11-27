@@ -55,9 +55,6 @@ POP_NO_WARNINGS
 
 #define UART_CONNECTION_TEST_RETRIES 5
 
-// Seconds per astronomical day (23h 56m 4.0905s)
-const float secondsPerDay = 86164.0905f;
-
 const char *formatStringsDEC[] = {
     "",
     " {d}@ {m}' {s}\"",  // LCD Menu w/ cursor
@@ -816,7 +813,7 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
-                     / secondsPerDay;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+                     / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
 
@@ -2912,8 +2909,7 @@ void Mount::loop()
 
                         // calculate compensation distance by including tracking steps done during compensation
                         // to avoid another difference after compensation
-
-                        long totalCompensationSteps = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRACKING);
+                        long totalCompensationSteps = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
                         _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
                         _stepperTRK->move(totalCompensationSteps);
                         _stepperTRK->runToPosition();

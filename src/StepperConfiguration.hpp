@@ -1,6 +1,5 @@
 #pragma once
 #include "../Configuration.hpp"
-#undef DEC
 
 #include "Pin.h"
 #include "IntervalInterrupt.h"
@@ -11,103 +10,65 @@ PUSH_NO_WARNINGS
 #include "InterruptAccelStepper.h"
 POP_NO_WARNINGS
 
-#undef DEC
-
-// CONFIGURATION
-#define RA_TRANSMISSION 35.46611505122143f
-#define RA_SLEWING_SPEED_DEG 2.0f        // deg/s
-#define RA_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
-#define RA_GUIDING_SPEED 0.5f        // fraction of sidereal speed to add/substract to/from tracking speed
-#define RA_DRIVER_INVERT_DIR false
-#define RA_STEPPER_SPR 400
-#define RA_MICROSTEPPING 256
-#define RA_STEP_PIN 54
-#define RA_DIR_PIN 55
-
-#define DEC_TRANSMISSION 17.70597411692611f
-#define DEC_SLEWING_SPEED_DEG 2.0f        // deg/s
-#define DEC_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
-#define DEC_GUIDING_SPEED 0.5f        // fraction of sidereal speed to add/substract to/from tracking speed
-#define DEC_DRIVER_INVERT_DIR false
-#define DEC_STEPPER_SPR 400
-#define DEC_MICROSTEPPING 256
-#define DEC_STEP_PIN 60
-#define DEC_DIR_PIN 61
-
-// #define AZ_STEPPER_SPR (400UL * 32UL)
-// #define AZ_TRANSMISSION 17.70597411692611f
-// #define AZ_SLEWING_SPEED 0.5f        // deg/s
-// #define AZ_SLEWING_ACCELERATION 2.0f // deg/s/s
-// #define AZ_DRIVER_INVERT_DIR false
-
-// #define ALT_STEPPER_SPR (400UL * 32UL)
-// #define ALT_TRANSMISSION 17.70597411692611f
-// #define ALT_SLEWING_SPEED 0.5f        // deg/s
-// #define ALT_SLEWING_ACCELERATION 2.0f // deg/s/s
-// #define ALT_DRIVER_INVERT_DIR false
-
-// Seconds per astronomical day (23h 56m 4.0905s)
-#define SIDEREAL_SECONDS_PER_DAY 86164.0905f
-
 #define UINT32(x) static_cast<uint32_t>(x)
 
 namespace config
 {
     struct Ra
     {
-        constexpr static uint32_t DRIVER_SPR = static_cast<uint32_t>(RA_STEPPER_SPR) * static_cast<uint32_t>(RA_MICROSTEPPING);
+        constexpr static uint32_t DRIVER_SPR_SLEW = static_cast<uint32_t>(RA_STEPPER_SPR) * static_cast<uint32_t>(RA_SLEW_MICROSTEPPING);
+        constexpr static uint32_t DRIVER_SPR_TRK = static_cast<uint32_t>(RA_STEPPER_SPR) * static_cast<uint32_t>(RA_TRACKING_MICROSTEPPING);
 
-        constexpr static float SPR = DRIVER_SPR * RA_TRANSMISSION;
+        constexpr static float SPR_SLEW = DRIVER_SPR_SLEW * RA_TRANSMISSION;
+        constexpr static float SPR_TRK = DRIVER_SPR_TRK * RA_TRANSMISSION;
 
-        constexpr static float SPEED_SIDEREAL = SPR / SIDEREAL_SECONDS_PER_DAY;
+        constexpr static float SPEED_SIDEREAL_SLEW = SPR_SLEW / SIDEREAL_SECONDS_PER_DAY;
+        constexpr static float SPEED_SIDEREAL_TRK = SPR_TRK / SIDEREAL_SECONDS_PER_DAY;
 
-        constexpr static float SPEED_TRACKING = SPEED_SIDEREAL;
-        constexpr static float SPEED_SLEWING = SPR / 360.0f * RA_SLEWING_SPEED_DEG;
-        constexpr static float ACCELERATION = SPR / 360.0f * RA_SLEWING_ACCELERATION_DEG;
-
-        constexpr static auto SPEED_GUIDE_POS = SPEED_TRACKING + (SPEED_SIDEREAL * RA_GUIDING_SPEED);
-        constexpr static auto SPEED_GUIDE_NEG = SPEED_TRACKING - (SPEED_SIDEREAL * RA_GUIDING_SPEED);
+        constexpr static float SPEED_TRK = SPEED_SIDEREAL_TRK;
+        constexpr static float SPEED_SLEW = SPR_SLEW / 360.0f * RA_SLEWING_SPEED_DEG;
+        constexpr static float ACCEL_SLEW = SPR_SLEW / 360.0f * RA_SLEWING_ACCELERATION_DEG;
 
         using pin_step = Pin<RA_STEP_PIN>;
         using pin_dir = Pin<RA_DIR_PIN>;
 
         using interrupt = IntervalInterrupt<Timer::TIMER_3>;
         using interrupt_trk = IntervalInterrupt<Timer::TIMER_5>;
-        using driver = Driver<DRIVER_SPR, pin_step, pin_dir, RA_DRIVER_INVERT_DIR>;
+        using driver = Driver<pin_step, pin_dir, RA_INVERT_DIR>;
 
-        using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEWING), UINT32(ACCELERATION)>;
-        using ramp_trk = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_TRACKING), UINT32(SPEED_TRACKING)>;
+        using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+        using ramp_trk = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_TRK), UINT32(SPEED_TRK)>;
 
         using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
         using stepper_trk = Stepper<interrupt_trk, driver, ramp_trk>;
 
-        constexpr static float SPEED_COMPENSATION = static_cast<float>(interrupt::FREQ) / static_cast<float>(ramp_slew::interval(1));
+        constexpr static float SPEED_COMPENSATION = static_cast<float>(interrupt::FREQ) / static_cast<float>(ramp_slew::interval(1)) - (SPEED_TRK * 2.0f);
     };
 
     struct Dec
     {
-        constexpr static uint32_t DRIVER_SPR = static_cast<uint32_t>(DEC_STEPPER_SPR) * static_cast<uint32_t>(DEC_MICROSTEPPING);
+        constexpr static uint32_t DRIVER_SPR_SLEW = static_cast<uint32_t>(DEC_STEPPER_SPR) * static_cast<uint32_t>(DEC_SLEW_MICROSTEPPING);
+        constexpr static uint32_t DRIVER_SPR_TRK = static_cast<uint32_t>(DEC_STEPPER_SPR) * static_cast<uint32_t>(DEC_GUIDE_MICROSTEPPING);
 
-        constexpr static float SPR = DRIVER_SPR * DEC_TRANSMISSION;
+        constexpr static float SPR_SLEW = DRIVER_SPR_SLEW * DEC_TRANSMISSION;
+        constexpr static float SPR_TRK = DRIVER_SPR_TRK * DEC_TRANSMISSION;
 
-        constexpr static float SPEED_SIDEREAL = SPR / SIDEREAL_SECONDS_PER_DAY;
+        constexpr static float SPEED_SIDEREAL_SLEW = SPR_SLEW / SIDEREAL_SECONDS_PER_DAY;
+        constexpr static float SPEED_SIDEREAL_TRK = SPR_TRK / SIDEREAL_SECONDS_PER_DAY;
 
-        constexpr static float SPEED_TRACKING = SPEED_SIDEREAL;
-        constexpr static float SPEED_SLEWING = SPR / 360.0f * DEC_SLEWING_SPEED_DEG;
-        constexpr static float ACCELERATION = SPR / 360.0f * DEC_SLEWING_ACCELERATION_DEG;
-
-        constexpr static auto SPEED_GUIDE_POS = SPEED_TRACKING + (SPEED_SIDEREAL * DEC_GUIDING_SPEED);
-        constexpr static auto SPEED_GUIDE_NEG = SPEED_TRACKING - (SPEED_SIDEREAL * DEC_GUIDING_SPEED);
+        constexpr static float SPEED_TRK = SPEED_SIDEREAL_TRK;
+        constexpr static float SPEED_SLEW = SPR_SLEW / 360.0f * DEC_SLEWING_SPEED_DEG;
+        constexpr static float ACCEL_SLEW = SPR_SLEW / 360.0f * DEC_SLEWING_ACCELERATION_DEG;
 
         using pin_step = Pin<DEC_STEP_PIN>;
         using pin_dir = Pin<DEC_DIR_PIN>;
 
         using interrupt = IntervalInterrupt<Timer::TIMER_4>;
         using interrupt_trk = IntervalInterrupt<Timer::TIMER_1>;
-        using driver = Driver<DRIVER_SPR, pin_step, pin_dir, DEC_DRIVER_INVERT_DIR>;
+        using driver = Driver<pin_step, pin_dir, DEC_INVERT_DIR>;
 
-        using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEWING), UINT32(ACCELERATION)>;
-        using ramp_trk = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_TRACKING), UINT32(SPEED_TRACKING)>;
+        using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+        using ramp_trk = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_TRK), UINT32(SPEED_TRK)>;
 
         using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
         using stepper_trk = Stepper<interrupt_trk, driver, ramp_trk>;
