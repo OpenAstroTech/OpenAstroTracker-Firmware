@@ -13,11 +13,29 @@ using StepperRaSlew = InterruptAccelStepper<config::Ra::stepper_slew>;
 using StepperRaTrk = InterruptAccelStepper<config::Ra::stepper_trk>;
 using StepperDecSlew = InterruptAccelStepper<config::Dec::stepper_slew>;
 using StepperDecTrk = InterruptAccelStepper<config::Dec::stepper_trk>;
+
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAzSlew = InterruptAccelStepper<config::Az::stepper_slew>;
+#endif
+
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAltSlew = InterruptAccelStepper<config::Alt::stepper_slew>;
+#endif
+
 #else
 #include "AccelStepper.h"
 class AccelStepper;
 using StepperRa = AccelStepper;
 using StepperDec = AccelStepper;
+
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAzSlew = AccelStepper;
+#endif
+
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAltSlew = AccelStepper;
+#endif
+
 #endif
 
 class LcdMenu;
@@ -509,14 +527,14 @@ class Mount
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _azAltWasRunning;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    AccelStepper *_stepperAZ;
+    StepperAzSlew *_stepperAZ;
     const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
     #endif
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    AccelStepper *_stepperALT;
+    StepperAltSlew *_stepperALT;
     const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;

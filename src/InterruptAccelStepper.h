@@ -115,14 +115,14 @@ class InterruptAccelStepper
 
     void runToNewPosition(long position)
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] runToNewPosition(%l)", position);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] runToNewPosition(%l)", STEPPER::TIMER_ID, position);
         moveTo(position);
         runToPosition();
     }
 
     void stop()
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] stop()");
+        LOG(DEBUG_STEPPERS, "[IAS-%d] stop()", STEPPER::TIMER_ID);
         STEPPER::stop();
     }
 

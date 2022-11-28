@@ -3430,9 +3430,6 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
     switch (direction)
     {
         case RA_STEPS:
-            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
-            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-            _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
             {
                 // Only stop tracking if we're actually going to slew somewhere else, otherwise the
@@ -3442,14 +3439,17 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 _trackerStoppedAt        = millis();
                 _compensateForTrackerOff = true;
 
-// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-                _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
-
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: TRK stopped at %lms", _trackerStoppedAt);
             }
+
+// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
+            _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
+#endif
+            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
+            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
         case DEC_STEPS:
             moveSteppersTo(_stepperRA->targetPosition(), _stepperDEC->targetPosition() + steps);

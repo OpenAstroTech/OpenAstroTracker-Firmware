@@ -165,19 +165,19 @@
 #endif
 
 #ifndef RA_SLEWING_SPEED_DEG
-    #define RA_SLEWING_SPEED_DEG 2.0f        // deg/s
+    #define RA_SLEWING_SPEED_DEG 4.0f        // deg/s
 #endif
 
 #ifndef RA_SLEWING_ACCELERATION_DEG
-    #define RA_SLEWING_ACCELERATION_DEG 2.0f // deg/s/s
+    #define RA_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
 #endif
 
 #ifndef DEC_SLEWING_SPEED_DEG
-    #define DEC_SLEWING_SPEED_DEG 2.0f        // deg/s
+    #define DEC_SLEWING_SPEED_DEG 4.0f        // deg/s
 #endif
 
 #ifndef DEC_SLEWING_ACCELERATION_DEG
-    #define DEC_SLEWING_ACCELERATION_DEG 2.0f // deg/s/s
+    #define DEC_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
 #endif
 
 // RA movement:
