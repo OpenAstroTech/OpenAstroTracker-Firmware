@@ -105,7 +105,7 @@ namespace config
         using pin_step = Pin<ALT_STEP_PIN>;
         using pin_dir = Pin<ALT_DIR_PIN>;
 
-        using interrupt = IntervalInterrupt<Timer::TIMER_1>;
+        using interrupt = IntervalInterrupt<Timer::TIMER_5>;
         using driver = Driver<pin_step, pin_dir, ALT_INVERT_DIR>;
 
         using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
