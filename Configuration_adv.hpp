@@ -299,17 +299,16 @@
 // Enable Azimuth motor functionality in your local Configuration. Do not edit here!
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
     #ifndef AZ_MICROSTEPPING
-        #define AZ_MICROSTEPPING 64.0f
+        #define AZ_MICROSTEPPING 64
     #endif
     #ifndef AZ_STEPPER_SPR
         #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef AZ_STEPPER_SPEED
-        #define AZ_STEPPER_SPEED                                                                                                           \
-            100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define AZ_STEPPER_SPEED (100 * AZ_MICROSTEPPING)  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
     #endif
     #ifndef AZ_STEPPER_ACCELERATION
-        #define AZ_STEPPER_ACCELERATION 100 * AZ_MICROSTEPPING
+        #define AZ_STEPPER_ACCELERATION (100 * AZ_MICROSTEPPING)
     #endif
 
     // the Circumference of the AZ rotation. 808mm dia.
@@ -348,17 +347,16 @@
 // Enable Altitude motor functionality in your local configuration. Do not edit here!
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #ifndef ALT_MICROSTEPPING
-        #define ALT_MICROSTEPPING 4.0f
+        #define ALT_MICROSTEPPING 4
     #endif
     #ifndef ALT_STEPPER_SPR
         #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef ALT_STEPPER_SPEED
-        #define ALT_STEPPER_SPEED                                                                                                          \
-            3000 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define ALT_STEPPER_SPEED 2000
     #endif
     #ifndef ALT_STEPPER_ACCELERATION
-        #define ALT_STEPPER_ACCELERATION 100 * ALT_MICROSTEPPING
+        #define ALT_STEPPER_ACCELERATION 2000
     #endif
 
     // the Circumference of the AZ rotation. 770mm dia.

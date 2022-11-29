@@ -72,13 +72,8 @@ namespace config
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
     struct Az
     {
-        constexpr static uint32_t DRIVER_SPR_SLEW = static_cast<uint32_t>(AZ_STEPPER_SPR) * static_cast<uint32_t>(AZ_SLEW_MICROSTEPPING);
-
-        constexpr static float SPR_SLEW = DRIVER_SPR_SLEW * AZ_TRANSMISSION;
-        constexpr static float SPR_TRK = DRIVER_SPR_TRK * AZ_TRANSMISSION;
-
-        constexpr static float SPEED_SLEW = SPR_SLEW / 360.0f * AZ_SLEWING_SPEED_DEG;
-        constexpr static float ACCEL_SLEW = SPR_SLEW / 360.0f * AZ_SLEWING_ACCELERATION_DEG;
+        constexpr static float SPEED_SLEW = static_cast<float>(AZ_STEPPER_SPEED);
+        constexpr static float ACCEL_SLEW = static_cast<float>(AZ_STEPPER_ACCELERATION);
 
         using pin_step = Pin<AZ_STEP_PIN>;
         using pin_dir = Pin<AZ_DIR_PIN>;
@@ -86,7 +81,7 @@ namespace config
         using interrupt = IntervalInterrupt<Timer::TIMER_1>;
         using driver = Driver<pin_step, pin_dir, AZ_INVERT_DIR>;
 
-        using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+        using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
         using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
     };
@@ -95,13 +90,8 @@ namespace config
 #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
     struct Alt
     {
-        constexpr static uint32_t DRIVER_SPR_SLEW = static_cast<uint32_t>(ALT_STEPPER_SPR) * static_cast<uint32_t>(ALT_SLEW_MICROSTEPPING);
-
-        constexpr static float SPR_SLEW = DRIVER_SPR_SLEW * ALT_TRANSMISSION;
-        constexpr static float SPR_TRK = DRIVER_SPR_TRK * ALT_TRANSMISSION;
-
-        constexpr static float SPEED_SLEW = SPR_SLEW / 360.0f * ALT_SLEWING_SPEED_DEG;
-        constexpr static float ACCEL_SLEW = SPR_SLEW / 360.0f * ALT_SLEWING_ACCELERATION_DEG;
+        constexpr static float SPEED_SLEW = static_cast<float>(ALT_STEPPER_SPEED);
+        constexpr static float ACCEL_SLEW = static_cast<float>(ALT_STEPPER_ACCELERATION);
 
         using pin_step = Pin<ALT_STEP_PIN>;
         using pin_dir = Pin<ALT_DIR_PIN>;
@@ -109,7 +99,27 @@ namespace config
         using interrupt = IntervalInterrupt<Timer::TIMER_5>;
         using driver = Driver<pin_step, pin_dir, ALT_INVERT_DIR>;
 
-        using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+        using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+
+        using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
+    };
+#endif
+
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    struct Focus
+    {
+        constexpr static float SPEED_SLEW = static_cast<float>(FOCUS_STEPPER_SPEED);
+        constexpr static float ACCEL_SLEW = static_cast<float>(FOCUS_STEPPER_ACCELERATION);
+
+        using pin_step = Pin<FOCUS_STEP_PIN>;
+        using pin_dir = Pin<FOCUS_DIR_PIN>;
+
+        using interrupt = IntervalInterrupt<Timer::TIMER_5>;
+        using driver = Driver<pin_step, pin_dir>;
+
+        using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+
+        constexpr static auto x = ramp_slew::STEPS_PER_STAIR;
 
         using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
     };

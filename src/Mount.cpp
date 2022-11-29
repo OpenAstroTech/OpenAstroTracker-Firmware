@@ -11,9 +11,10 @@ PUSH_NO_WARNINGS
 #ifdef __AVR_ATmega2560__
     #include "InterruptAccelStepper.h"
     #include "StepperConfiguration.hpp"
-#else
-    #include <AccelStepper.h>
 #endif
+
+#include <AccelStepper.h>
+
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
     || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                       \
     || (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -235,17 +236,10 @@ void Mount::readPersistentData()
 /////////////////////////////////
 void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-#ifdef __AVR_ATmega2560__
-    _stepperRA = new StepperRaSlew();
-
-    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new StepperRaTrk();
-#else
     _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
     _stepperTRK   = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
-#endif
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
     _maxRASpeed        = maxSpeed;
@@ -265,13 +259,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
 /////////////////////////////////
 void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-#ifdef __AVR_ATmega2560__
-    _stepperDEC   = new StepperDecSlew();
-    _stepperGUIDE = new StepperDecTrk();
-#else
     _stepperDEC   = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
-#endif
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);
     _maxDECSpeed        = maxSpeed;
@@ -294,7 +283,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
     _maxAZSpeed        = maxSpeed;
@@ -307,7 +296,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
     _maxALTSpeed        = maxSpeed;
@@ -326,7 +315,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperFocus->setMaxSpeed(maxSpeed);
     _stepperFocus->setAcceleration(maxAcceleration);
     _stepperFocus->setSpeed(0);

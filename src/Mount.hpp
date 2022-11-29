@@ -22,11 +22,17 @@ using StepperAzSlew = InterruptAccelStepper<config::Az::stepper_slew>;
 using StepperAltSlew = InterruptAccelStepper<config::Alt::stepper_slew>;
 #endif
 
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
+#endif
+
 #else
 #include "AccelStepper.h"
 class AccelStepper;
 using StepperRa = AccelStepper;
+using StepperRaTrk = AccelStepper;
 using StepperDec = AccelStepper;
+using StepperDecTrk = AccelStepper;
 
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperAzSlew = AccelStepper;
@@ -34,6 +40,14 @@ using StepperAzSlew = AccelStepper;
 
 #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperAltSlew = AccelStepper;
+#endif
+
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAltSlew = AccelStepper;
+#endif
+
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperFocusSlew = AccelStepper;
 #endif
 
 #endif
@@ -547,7 +561,7 @@ class Mount
     FocuserMode _focuserMode = FOCUS_IDLE;
     float _maxFocusRateSpeed;
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    AccelStepper *_stepperFocus;
+    StepperFocusSlew *_stepperFocus;
     int _focusRate;
         #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverFocus;

@@ -21,7 +21,7 @@ class InterruptAccelStepper
     long _target;
 
   public:
-    InterruptAccelStepper() : _max_speed(0.0f), _target(0)
+    InterruptAccelStepper(...) : _max_speed(0.0f), _target(0)
     {
         STEPPER::init();
     }
