@@ -255,9 +255,8 @@ void setup()
         {
             LOG(DEBUG_INFO, "[SYSTEM]: Erasing configuration in EEPROM!");
             mount.clearConfiguration();
+            LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
         }
-
-        LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
     }
 
     // Create the LCD top-level menu items
