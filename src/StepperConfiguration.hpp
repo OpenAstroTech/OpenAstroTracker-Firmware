@@ -51,6 +51,7 @@ namespace config
         constexpr static float SPR_TRK = DRIVER_SPR_TRK * DEC_TRANSMISSION;
 
         constexpr static float SPEED_TRK = 0;
+        constexpr static float SPEED_SIDEREAL = SPR_TRK / SIDEREAL_SECONDS_PER_DAY;
         constexpr static float SPEED_SLEW = SPR_SLEW / 360.0f * DEC_SLEWING_SPEED_DEG;
         constexpr static float ACCEL_SLEW = SPR_SLEW / 360.0f * DEC_SLEWING_ACCELERATION_DEG;
 
@@ -62,7 +63,7 @@ namespace config
         using driver = Driver<pin_step, pin_dir, DEC_INVERT_DIR>;
 
         using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
-        using ramp_trk = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+        using ramp_trk = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_SIDEREAL), UINT32(SPEED_SIDEREAL)>;
 
         using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
         using stepper_trk = Stepper<interrupt_trk, driver, ramp_trk>;
