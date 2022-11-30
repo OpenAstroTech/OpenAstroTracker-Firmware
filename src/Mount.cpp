@@ -239,7 +239,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
     _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK   = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
+    _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
     _maxRASpeed        = maxSpeed;
@@ -1306,13 +1306,7 @@ void Mount::startSlewingToTarget()
         targetDECPosition -= _homeOffsetDEC;
     }
 
-    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
-
-    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-    if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
+    if (targetRAPosition != _stepperRA->currentPosition())
     {
         // Only stop tracking if we're actually going to slew somewhere else, otherwise the
         // mount::loop() code won't detect the end of the slewing operation...
@@ -1329,6 +1323,12 @@ void Mount::startSlewingToTarget()
 
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %lms", _trackerStoppedAt);
     }
+
+    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
+    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
+    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
@@ -1371,20 +1371,15 @@ void Mount::startSlewingToHome()
         trackingOffset,
         targetRAPosition);
 
-    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
-
-    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
-    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-    if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
+    long raStepsToGo = targetRAPosition - _stepperRA->currentPosition();
+    if (raStepsToGo != 0)
     {
         // Only stop tracking if we're actually going to slew somewhere else, otherwise the
         // mount::loop() code won't detect the end of the slewing operation...
         LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
         stopSlewing(TRACKING);
         _trackerStoppedAt        = millis();
-        _compensateForTrackerOff = false;
+        _compensateForTrackerOff = true;
 
 // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -1394,6 +1389,12 @@ void Mount::startSlewingToHome()
 
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %lms", _trackerStoppedAt);
     }
+
+    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
+    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
+    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
@@ -2898,7 +2899,8 @@ void Mount::loop()
 
                         // calculate compensation distance by including tracking steps done during compensation
                         // to avoid another difference after compensation
-                        long totalCompensationSteps = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
+                        long totalCompensationSteps
+                            = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
                         _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
                         _stepperTRK->move(totalCompensationSteps);
                         _stepperTRK->runToPosition();
@@ -3419,7 +3421,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
     switch (direction)
     {
         case RA_STEPS:
-            if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
+            if (steps != 0)
             {
                 // Only stop tracking if we're actually going to slew somewhere else, otherwise the
                 // mount::loop() code won't detect the end of the slewing operation...
@@ -3436,12 +3438,13 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
             _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
 #endif
-            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
+            moveSteppersTo(_stepperRA->currentPosition() + steps, _stepperDEC->currentPosition());
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
+            
         case DEC_STEPS:
-            moveSteppersTo(_stepperRA->targetPosition(), _stepperDEC->targetPosition() + steps);
+            moveSteppersTo(_stepperRA->currentPosition(), _stepperDEC->currentPosition() + steps);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
 
