@@ -6,6 +6,12 @@
 //                            ////////
 //////////////////////////////////////
 
+#define MIN_CONFIG_VERSION 1
+
+#if CONFIG_VERSION < MIN_CONFIG_VERSION
+    #error This firmware requires more recent configuration, visit https://config.openastrotech.com/
+#endif
+
 // Platform
 #if defined(ESP32) || defined(__AVR_ATmega2560__)
 // Valid platform
