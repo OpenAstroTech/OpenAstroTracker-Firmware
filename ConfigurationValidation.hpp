@@ -8,7 +8,7 @@
 
 #define MIN_CONFIG_VERSION 1
 
-#if CONFIG_VERSION < MIN_CONFIG_VERSION
+#if !defined(CONFIG_VERSION) || CONFIG_VERSION < MIN_CONFIG_VERSION
     #error This firmware requires more recent configuration, visit https://config.openastrotech.com/
 #endif
 
