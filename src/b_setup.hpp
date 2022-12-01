@@ -232,19 +232,31 @@ void setup()
     delay(1000);  // Pause on splash screen
 
     // Check for EEPROM reset (Button down during boot)
+    long lcdCheckStart = millis();
     if (lcdButtons.currentState() == btnDOWN)
     {
-        LOG(DEBUG_INFO, "[SYSTEM]: Erasing configuration in EEPROM!");
-        mount.clearConfiguration();
         // Wait for button release
         lcdMenu.setCursor(13, 1);
         lcdMenu.printMenu("CLR");
-        LOG(DEBUG_INFO, "[SYSTEM]: Waiting for button release!");
+        LOG(DEBUG_INFO, "[SYSTEM]: DOWN pressed, waiting for button release!");
+        bool timedOut = false;
         while (lcdButtons.currentState() != btnNONE)
         {
             delay(10);
+            // Wait 3s maximum for button to be released.
+            if (millis() - lcdCheckStart > 3000)
+            {
+                LOG(DEBUG_INFO, "[SYSTEM]: Timedout waiting for button release. LCD not installed?");
+                timedOut = true;
+                break;
+            }
         }
-        LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
+        if (!timedOut)
+        {
+            LOG(DEBUG_INFO, "[SYSTEM]: Erasing configuration in EEPROM!");
+            mount.clearConfiguration();
+            LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
+        }
     }
 
     // Create the LCD top-level menu items
