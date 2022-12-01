@@ -3421,6 +3421,9 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
     switch (direction)
     {
         case RA_STEPS:
+            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
+            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             if (steps != 0)
             {
                 // Only stop tracking if we're actually going to slew somewhere else, otherwise the

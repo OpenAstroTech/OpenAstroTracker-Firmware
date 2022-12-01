@@ -1,3 +1,7 @@
+**V1.11.14 - Updates**
+- Prevented firmware from hanging at boot if LCD is defined but not connected.
+- Fixed a (rare) bug that would throw off GoTo commands when a target coordinate had been set.
+
 **V1.11.13 - Updates**
 - Added end switch support for RA and DEC.
 - Guide pulses are only executed when tracking.
