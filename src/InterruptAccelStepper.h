@@ -12,8 +12,7 @@
 
 #define SIGN(x) ((x >= 0) ? 1 : -1)
 
-template <typename STEPPER> 
-class InterruptAccelStepper
+template <typename STEPPER> class InterruptAccelStepper
 {
   private:
     float _max_speed;
@@ -101,7 +100,6 @@ class InterruptAccelStepper
 
     void runSpeed()
     {
-
     }
 
     void runToPosition()

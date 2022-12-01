@@ -3442,7 +3442,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
-            
+
         case DEC_STEPS:
             moveSteppersTo(_stepperRA->currentPosition(), _stepperDEC->currentPosition() + steps);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;

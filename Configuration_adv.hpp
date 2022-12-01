@@ -165,19 +165,19 @@
 #endif
 
 #ifndef RA_SLEWING_SPEED_DEG
-    #define RA_SLEWING_SPEED_DEG 4.0f        // deg/s
+    #define RA_SLEWING_SPEED_DEG 4.0f  // deg/s
 #endif
 
 #ifndef RA_SLEWING_ACCELERATION_DEG
-    #define RA_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
+    #define RA_SLEWING_ACCELERATION_DEG 4.0f  // deg/s/s
 #endif
 
 #ifndef DEC_SLEWING_SPEED_DEG
-    #define DEC_SLEWING_SPEED_DEG 4.0f        // deg/s
+    #define DEC_SLEWING_SPEED_DEG 4.0f  // deg/s
 #endif
 
 #ifndef DEC_SLEWING_ACCELERATION_DEG
-    #define DEC_SLEWING_ACCELERATION_DEG 4.0f // deg/s/s
+    #define DEC_SLEWING_ACCELERATION_DEG 4.0f  // deg/s/s
 #endif
 
 // RA movement:
@@ -305,7 +305,8 @@
         #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef AZ_STEPPER_SPEED
-        #define AZ_STEPPER_SPEED (100 * AZ_MICROSTEPPING)  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define AZ_STEPPER_SPEED                                                                                                           \
+            (100 * AZ_MICROSTEPPING)  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
     #endif
     #ifndef AZ_STEPPER_ACCELERATION
         #define AZ_STEPPER_ACCELERATION (100 * AZ_MICROSTEPPING)

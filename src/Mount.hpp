@@ -8,47 +8,47 @@
 
 // Forward declarations
 #ifdef ARDUINO_AVR_ATmega2560
-#include "StepperConfiguration.hpp"
-using StepperRaSlew = InterruptAccelStepper<config::Ra::stepper_slew>;
-using StepperRaTrk = InterruptAccelStepper<config::Ra::stepper_trk>;
+    #include "StepperConfiguration.hpp"
+using StepperRaSlew  = InterruptAccelStepper<config::Ra::stepper_slew>;
+using StepperRaTrk   = InterruptAccelStepper<config::Ra::stepper_trk>;
 using StepperDecSlew = InterruptAccelStepper<config::Dec::stepper_slew>;
-using StepperDecTrk = InterruptAccelStepper<config::Dec::stepper_trk>;
+using StepperDecTrk  = InterruptAccelStepper<config::Dec::stepper_trk>;
 
-#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperAzSlew = InterruptAccelStepper<config::Az::stepper_slew>;
-#endif
+    #endif
 
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperAltSlew = InterruptAccelStepper<config::Alt::stepper_slew>;
-#endif
+    #endif
 
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
-#endif
+    #endif
 
 #else
-#include "AccelStepper.h"
+    #include "AccelStepper.h"
 class AccelStepper;
-using StepperRa = AccelStepper;
-using StepperRaTrk = AccelStepper;
-using StepperDec = AccelStepper;
-using StepperDecTrk = AccelStepper;
+using StepperRa        = AccelStepper;
+using StepperRaTrk     = AccelStepper;
+using StepperDec       = AccelStepper;
+using StepperDecTrk    = AccelStepper;
 
-#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew = AccelStepper;
-#endif
+    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAzSlew    = AccelStepper;
+    #endif
 
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew = AccelStepper;
-#endif
+    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAltSlew   = AccelStepper;
+    #endif
 
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew = AccelStepper;
-#endif
+    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAltSlew   = AccelStepper;
+    #endif
 
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperFocusSlew = AccelStepper;
-#endif
+    #endif
 
 #endif
 
