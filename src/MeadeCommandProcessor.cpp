@@ -1704,7 +1704,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 }
                 else if (inCmd[2] == 'S')  // :XGHS#
                 {
-                    return String(inNorthernHemisphere ? "N#" : "S#")
+                    return String(inNorthernHemisphere ? "N#" : "S#");
                 }
             }
             else

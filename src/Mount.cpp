@@ -1204,7 +1204,7 @@ const DayTime Mount::currentRA() const
     hourPos += _zeroPosRA.getTotalHours();
 
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
+    if (degreePos < 0)
     {
         hourPos += 12;
         if (hourPos > 24)
@@ -1271,6 +1271,12 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     {
         decAdjust = -decAdjust;
     }
+
+    // if (!inNorthernHemisphere)
+    // {
+    //     decAdjust += 180;
+    // }
+
     _zeroPosDEC += decAdjust;
     LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zerPosDEC adjusted by: %f", decAdjust);
     LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zerPosDEC: %f", _zeroPosDEC);
@@ -3277,6 +3283,10 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move DEC to?
     float moveDEC = decTarget.getTotalDegrees();
+    // if (!inNorthernHemisphere)
+    // {
+    //     moveDEC += 180;
+    // }
 
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f (regRA: %f), DEC: %f", homeTargetDeltaRA, moveRA, moveDEC);
 
@@ -3769,6 +3779,14 @@ DayTime Mount::calculateLst()
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
     DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
+    LOG(DEBUG_INFO,
+        "[MOUNT]: Calculating LST. UTC time: %s. Date: %d-%d-%d. Longitude: %s",
+        timeUTC.ToString(),
+        localDate.year,
+        localDate.month,
+        localDate.day,
+        longitude().ToString());
+    LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
     return lst;
 }
 
@@ -3780,7 +3798,10 @@ DayTime Mount::calculateLst()
 DayTime Mount::calculateHa()
 {
     DayTime lst = calculateLst();
-    return Sidereal::calculateHa(lst.getTotalHours());
+    LOG(DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
+    DayTime ha = Sidereal::calculateHa(lst.getTotalHours());
+    LOG(DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
+    return ha;
 }
 
 /////////////////////////////////
