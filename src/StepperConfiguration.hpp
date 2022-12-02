@@ -29,14 +29,13 @@ struct Ra {
     using pin_dir  = Pin<RA_DIR_PIN>;
 
     using interrupt     = IntervalInterrupt<Timer::TIMER_3>;
-    using interrupt_trk = IntervalInterrupt<Timer::TIMER_3>;
     using driver        = Driver<pin_step, pin_dir, RA_INVERT_DIR>;
 
     using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
-    using ramp_trk  = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_TRK), UINT32(SPEED_TRK)>;
+    using ramp_trk  = ConstantRamp<interrupt::FREQ>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
-    using stepper_trk  = Stepper<interrupt_trk, driver, ramp_trk>;
+    using stepper_trk  = Stepper<interrupt, driver, ramp_trk>;
 
     constexpr static float SPEED_COMPENSATION
         = static_cast<float>(interrupt::FREQ) / static_cast<float>(ramp_slew::interval(1)) - (SPEED_TRK * 2.0f);
@@ -58,14 +57,13 @@ struct Dec {
     using pin_dir  = Pin<DEC_DIR_PIN>;
 
     using interrupt     = IntervalInterrupt<Timer::TIMER_4>;
-    using interrupt_trk = IntervalInterrupt<Timer::TIMER_4>;
     using driver        = Driver<pin_step, pin_dir, DEC_INVERT_DIR>;
 
     using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
-    using ramp_trk  = AccelerationRamp<2, interrupt_trk::FREQ, UINT32(SPEED_SIDEREAL), UINT32(SPEED_SIDEREAL)>;
+    using ramp_trk  = ConstantRamp<interrupt::FREQ>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
-    using stepper_trk  = Stepper<interrupt_trk, driver, ramp_trk>;
+    using stepper_trk  = Stepper<interrupt, driver, ramp_trk>;
 };
 
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -114,8 +112,6 @@ struct Focus {
     using driver    = Driver<pin_step, pin_dir>;
 
     using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
-
-    constexpr static auto x = ramp_slew::STEPS_PER_STAIR;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
 };
