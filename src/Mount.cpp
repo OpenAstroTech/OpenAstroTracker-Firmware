@@ -3265,7 +3265,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
     switch (direction)
     {
         case RA_STEPS:
-            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
+            moveSteppersTo(_stepperRA->currentPosition() + steps, _stepperDEC->currentPosition());
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
@@ -3287,7 +3287,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             }
             break;
         case DEC_STEPS:
-            moveSteppersTo(_stepperRA->targetPosition(), _stepperDEC->targetPosition() + steps);
+            moveSteppersTo(_stepperRA->currentPosition(), _stepperDEC->currentPosition() + steps);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
 
