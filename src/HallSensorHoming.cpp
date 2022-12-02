@@ -290,7 +290,6 @@ void HallSensorHoming::processHomingProgress()
                 _pMount->setHome(false);
                 _pMount->setSlewRate(_homingData.savedRate);
                 _pMount->clearStatusFlag(STATUS_FINDING_HOME);
-                _pMount->startSlewing(TRACKING);
             }
             break;
 
@@ -315,11 +314,13 @@ void HallSensorHoming::processHomingProgress()
 
 bool HallSensorHoming::isIdleOrComplete() const
 {
-    if (_homingData.state == HomingState::HOMING_FAILED)
-        return true;
-    if (_homingData.state == HomingState::HOMING_SUCCESSFUL)
-        return true;
-    if (_homingData.state == HomingState::HOMING_NOT_ACTIVE)
-        return true;
-    return false;
+    switch (_homingData.state)
+    {
+        case HomingState::HOMING_FAILED:
+        case HomingState::HOMING_SUCCESSFUL:
+        case HomingState::HOMING_NOT_ACTIVE:
+            return true;
+        default:
+            return false;
+    }
 }

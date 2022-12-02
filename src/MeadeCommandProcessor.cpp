@@ -508,7 +508,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This attempts to find the hall sensor and to home the RA ring accordingly.
 //      Parameters:
 //        "x" is either 'R' or 'L' and determines the direction in which the search starts (L is CW, R is CCW).
-//        "n" (Optional) is the maximum number of hours to move while searching for the sensor location. Defaults to 2h. Limited to the range 1h-5h.
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
 //      Remarks:
 //        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
 //        it will move twice the amount (60 degrees by default) in the opposite direction.
@@ -519,7 +519,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        the RA ring off the trigger in the opposite direction specified for a max of 15 degrees before searching 30 degrees in the
 //        specified direction.
 //      Returns:
-//        "1" returns if search is started
+//        "1" if search is started
 //        "0" if homing has not been enabled in the local config
 //
 // :MHDxn#
@@ -540,7 +540,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        the DEC ring off the trigger in the opposite direction specified for a max of 15 degrees before searching 30 degrees in the
 //        specified direction.
 //      Returns:
-//        "1" returns if search is started
+//        "1" if search is started
 //        "0" if homing has not been enabled in the local config
 //
 // :MAZn.nn#
