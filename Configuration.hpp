@@ -47,11 +47,6 @@
     #error You have to specify the board
 #endif
 
-// Set to 1 for the northern hemisphere, 0 otherwise
-#ifndef NORTHERN_HEMISPHERE
-    #define NORTHERN_HEMISPHERE 1
-#endif
-
 /**
  * @brief Display & keypad configuration.
  * See Constants.hpp for supported DISPLAY_TYPE options.

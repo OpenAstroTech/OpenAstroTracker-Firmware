@@ -17,3 +17,4 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 
 extern bool inSerialControl;  // True when the serial port is in control
+extern bool inNorthernHemisphere;

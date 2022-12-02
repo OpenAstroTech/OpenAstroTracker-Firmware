@@ -98,6 +98,13 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 void Mount::initializeVariables()
 {
+// If we have defined the hemisphere, transfer it to the variable. This is
+// for older local config files, the define is only needed for southern
+// hemisphere and can now be switched by a Meade command.
+#ifdef NORTHERN_HEMISPHERE
+    inNorthernHemisphere = NORTHERN_HEMISPHERE == 1;
+#endif
+
     _stepsPerRADegree  = RA_STEPS_PER_DEGREE;   // u-steps per degree when slewing
     _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
 
@@ -245,8 +252,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     _stepperTRK->setMaxSpeed(2000);
     _stepperTRK->setAcceleration(15000);
 
-    _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
-    _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
+    _stepperRA->setPinsInverted(inNorthernHemisphere == RA_INVERT_DIR, false, false);
+    _stepperTRK->setPinsInverted(inNorthernHemisphere == RA_INVERT_DIR, false, false);
 }
 
 /////////////////////////////////
@@ -1035,9 +1042,10 @@ String Mount::getMountHardwareInfo()
     #if (USE_RA_END_SWITCH == 1)
     ret += F("_RA");
     #endif
-    #if || (USE_DEC_END_SWITCH == 1)
+    #if (USE_DEC_END_SWITCH == 1)
     ret += F("_DEC");
     #endif
+    ret += F(",");
 #else
     ret += F("NO_ENDSW,");
 #endif
@@ -1196,7 +1204,7 @@ const DayTime Mount::currentRA() const
     hourPos += _zeroPosRA.getTotalHours();
 
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
+    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
     {
         hourPos += 12;
         if (hourPos > 24)
@@ -2148,7 +2156,7 @@ void Mount::startSlewing(int direction)
         else
         {
             // Start slewing
-            int sign = NORTHERN_HEMISPHERE ? 1 : -1;
+            int sign = inNorthernHemisphere ? 1 : -1;
 
             // Set move rate to last commanded slew rate
             setSlewRate(_moveRate);
@@ -3231,7 +3239,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move RA to?
     float moveRA = raTarget.getTotalHours();
-    if (!NORTHERN_HEMISPHERE)
+    if (!inNorthernHemisphere)
     {
         moveRA += 12;
     }
@@ -3281,13 +3289,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
-#if NORTHERN_HEMISPHERE == 1
-    float const RALimitL = -RA_LIMIT_LEFT;
-    float const RALimitR = RA_LIMIT_RIGHT;
-#else
-    float const RALimitL = -RA_LIMIT_RIGHT;
-    float const RALimitR = RA_LIMIT_LEFT;
-#endif
+    float const RALimitL = inNorthernHemisphere ? -RA_LIMIT_LEFT : -RA_LIMIT_RIGHT;
+    float const RALimitR = inNorthernHemisphere ? RA_LIMIT_RIGHT : RA_LIMIT_LEFT;
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", RALimitL, RALimitR);
 
     if (pSolutions != nullptr)
@@ -3854,7 +3857,7 @@ void Mount::checkRALimit()
     const float RALimit      = RA_TRACKING_LIMIT;
     const float degreePos    = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
     float hourPos            = currentRA().getTotalHours();
-    if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
+    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
     {
         hourPos -= 12;
         if (hourPos < 0)

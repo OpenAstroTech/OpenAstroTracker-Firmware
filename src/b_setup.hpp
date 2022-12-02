@@ -106,6 +106,7 @@ void setup()
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT %s!", VERSION);
+    LOG(DEBUG_ANY, "[SYSTEM]: Located in %s hemisphere.", inNorthernHemisphere ? "northern" : "southern");
 
 #if USE_GPS == 1
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);

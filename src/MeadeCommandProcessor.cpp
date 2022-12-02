@@ -616,7 +616,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1#"
 //
 // :XDnnn#
-//      Description:
+//      Description:S
 //        Run drift alignment
 //      Information:
 //        This runs a drift alignment procedure where the mounts slews east, pauses, slews west and pauses.
@@ -775,6 +775,15 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "n#" - the number of steps from the center of the hall sensor trigger range to the home position.
 //
+// :XGHS#
+//      Description:
+//        Get Hemisphere
+//      Information:
+//        Get the hemisphere that the OAT currently assumes it is operating in.
+//      Returns:
+//        "N#" - for northern hemisphere
+//        "S#" - for southern hemisphere
+//
 // :XGM#
 //      Description:
 //        Get Mount configuration settings
@@ -833,6 +842,17 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Sets the number of steps the RA stepper motor needs to overshoot and backtrack when slewing east.
 //      Returns:
 //        nothing
+//
+// :XSHSx#
+//      Description:
+//        Set hemisphere
+//      Information:
+//        Set the hemisphere in which the OAT should be set to work in
+//      Parameters:
+//        "x" is either "N" or "S", depending on whether the OAT is in the northern or southern hemisphere
+//      Returns:
+//        "0" if the hemisphere was not set (x was not N or S)
+//        "1" if the hemisphere was set
 //
 // :XSHRnnn#
 //      Description:
@@ -1676,9 +1696,16 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'H')  // :XGH#
         {
-            if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XGHR#
+            if (inCmd.length() > 2)
             {
-                return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+                if (inCmd[2] == 'R')  // :XGHR#
+                {
+                    return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+                }
+                else if (inCmd[2] == 'S')  // :XGHS#
+                {
+                    return String(inNorthernHemisphere ? "N#" : "S#")
+                }
             }
             else
             {
@@ -1785,12 +1812,31 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setBacklashCorrection(inCmd.substring(2).toInt());
         }
-
         else if (inCmd[1] == 'H')  // :XSH
         {
-            if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XSHR
+            if (inCmd.length() > 2)
             {
-                _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+                if (inCmd[2] == 'R')  // :XSHR
+                {
+                    _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+                }
+                else if (inCmd[2] == 'S')  // :XSHSx
+                {
+                    if (inCmd.length() > 3)
+                    {
+                        if (inCmd[3] == 'S') // :XSHSS
+                        {
+                            inNorthernHemisphere = false;
+                            return "1";
+                        }
+                        else if (inCmd[3] == 'N')  // :XSHSN
+                        {
+                            inNorthernHemisphere = true;
+                            return "1";
+                        }
+                    }
+                    return "0";
+                }
             }
         }
     }
