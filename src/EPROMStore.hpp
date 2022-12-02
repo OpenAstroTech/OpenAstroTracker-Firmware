@@ -62,6 +62,9 @@ class EEPROMStore
     static int32_t getRAHomingOffset();
     static void storeRAHomingOffset(int32_t raHomingOffset);
 
+    static int32_t getDECHomingOffset();
+    static void storeDECHomingOffset(int32_t decHomingOffset);
+
   private:
     /////////////////////////////////
     //
@@ -121,6 +124,7 @@ class EEPROMStore
         RA_HOMING_MARKER_FLAG      = 0x0008,
         RA_NORM_STEPS_MARKER_FLAG  = 0x0010,
         DEC_NORM_STEPS_MARKER_FLAG = 0x0020,
+        DEC_HOMING_MARKER_FLAG     = 0x0040,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -179,6 +183,10 @@ class EEPROMStore
         _DEC_NORM_STEPS_DEGREE_ADDR_1,
         _DEC_NORM_STEPS_DEGREE_ADDR_2,
         _DEC_NORM_STEPS_DEGREE_ADDR_3,  // Int32
+        DEC_HOMING_OFFSET_ADDR = 52,
+        _DEC_HOMING_OFFSET_ADDR_1,
+        _DEC_HOMING_OFFSET_ADDR_2,
+        _DEC_HOMING_OFFSET_ADDR_3,  // Int32
         STORE_SIZE = 64
     };
 

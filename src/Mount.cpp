@@ -2,6 +2,7 @@
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "LcdMenu.hpp"
+#include "HallSensorHoming.hpp"
 #include "EndSwitches.hpp"
 #include "Mount.hpp"
 #include "Sidereal.hpp"
@@ -15,22 +16,6 @@ PUSH_NO_WARNINGS
     #include <TMCStepper.h>  // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
 #endif
 POP_NO_WARNINGS
-
-//mountstatus
-#define STATUS_PARKED            0B0000000000000000
-#define STATUS_SLEWING           0B0000000000000010
-#define STATUS_SLEWING_TO_TARGET 0B0000000000000100
-#define STATUS_SLEWING_FREE      0B0000000000000010
-#define STATUS_SLEWING_MANUAL    0B0000000100000000
-#define STATUS_TRACKING          0B0000000000001000
-#define STATUS_PARKING           0B0000000000010000
-#define STATUS_PARKING_POS       0B0001000000000000
-#define STATUS_GUIDE_PULSE       0B0000000010000000
-#define STATUS_GUIDE_PULSE_DIR   0B0000000001100000
-#define STATUS_GUIDE_PULSE_RA    0B0000000001000000
-#define STATUS_GUIDE_PULSE_DEC   0B0000000000100000
-#define STATUS_GUIDE_PULSE_MASK  0B0000000011100000
-#define STATUS_FINDING_HOME      0B0010000000000000
 
 // slewingStatus()
 #define SLEWING_DEC      B00000010
@@ -118,13 +103,10 @@ void Mount::initializeVariables()
     _compensateForTrackerOff = false;
     _trackerStoppedAt        = 0;
 
-    _totalDECMove  = 0;
-    _totalRAMove   = 0;
-    _homeOffsetRA  = 0;
-    _homeOffsetDEC = 0;
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    _homing.state = HomingState::HOMING_NOT_ACTIVE;
-#endif
+    _totalDECMove            = 0;
+    _totalRAMove             = 0;
+    _homeOffsetRA            = 0;
+    _homeOffsetDEC           = 0;
     _moveRate                = 4;
     _backlashCorrectionSteps = 0;
     _correctForBacklash      = false;
@@ -226,11 +208,6 @@ void Mount::readPersistentData()
         _decUpperLimit = static_cast<long>(DEC_LIMIT_UP * _stepsPerDECDegree);
     }
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %l -> %l", _decLowerLimit, _decUpperLimit);
-
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    _homing.offsetRA = EEPROMStore::getRAHomingOffset();
-    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: RA Homing offset read as %l", _homing.offsetRA);
-#endif
 }
 
 /////////////////////////////////
@@ -1036,6 +1013,11 @@ String Mount::getMountHardwareInfo()
 #else
     ret += F("NO_HSAH,");
 #endif
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    ret += F("HSAV,");
+#else
+    ret += F("NO_HSAV,");
+#endif
 
 #if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
     ret += F("ENDSW");
@@ -1078,6 +1060,16 @@ void Mount::setSlewRate(int rate)
     _stepperDEC->setMaxSpeed(speedFactor[_moveRate] * _maxDECSpeed);
     _stepperRA->setMaxSpeed(speedFactor[_moveRate] * _maxRASpeed);
     LOG(DEBUG_MOUNT, "[MOUNT]: setSlewRate, new speeds are RA: %f  DEC: %f", _stepperRA->maxSpeed(), _stepperDEC->maxSpeed());
+}
+
+/////////////////////////////////
+//
+// setSlewRate
+//
+/////////////////////////////////
+int Mount::getSlewRate()
+{
+    return _moveRate;
 }
 
 /////////////////////////////////
@@ -1687,6 +1679,32 @@ void Mount::park()
     _mountStatus |= STATUS_PARKING;
 }
 
+bool Mount::isAxisRunning(StepperAxis axis)
+{
+    switch (axis)
+    {
+        case RA_STEPS:
+            return _stepperRA->isRunning();
+        case DEC_STEPS:
+            return _stepperDEC->isRunning();
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        case ALTITUDE_STEPS:
+            return _stepperALT->isRunning();
+#endif
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        case AZIMUTH_STEPS:
+            return _stepperAZ->isRunning();
+#endif
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        case FOCUS_STEPS:
+            return _stepperFocus->isRunning();
+#endif
+        default:
+            break;
+    }
+    return false;
+}
+
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
@@ -1946,6 +1964,16 @@ void Mount::focusStop()
 void Mount::setTrackingStepperPos(long stepPos)
 {
     _stepperTRK->setCurrentPosition(stepPos);
+}
+
+void Mount::setStatusFlag(int flag)
+{
+    _mountStatus |= flag;
+}
+
+void Mount::clearStatusFlag(int flag)
+{
+    _mountStatus &= ~flag;
 }
 
 /////////////////////////////////
@@ -2275,6 +2303,36 @@ void Mount::stopSlewing(int direction)
     }
 }
 
+void Mount::stopSlewing(StepperAxis axis)
+{
+    if (axis == RA_STEPS)
+    {
+        _stepperRA->stop();
+    }
+    else if (axis == DEC_STEPS)
+    {
+        _stepperDEC->stop();
+    }
+    else if (axis == AZIMUTH_STEPS)
+    {
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        _stepperAZ->stop();
+#endif
+    }
+    else if (axis == ALTITUDE_STEPS)
+    {
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        _stepperALT->stop();
+#endif
+    }
+    else if (axis == FOCUS_STEPS)
+    {
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        _stepperFocus->stop();
+#endif
+    }
+}
+
 /////////////////////////////////
 //
 // waitUntilStopped
@@ -2317,6 +2375,37 @@ long Mount::getCurrentStepperPosition(int direction)
     return 0;
 }
 
+long Mount::getCurrentStepperPosition(StepperAxis axis)
+{
+    if (axis == StepperAxis::DEC_STEPS)
+    {
+        return _stepperDEC->currentPosition();
+    }
+    if (axis == StepperAxis::RA_STEPS)
+    {
+        return _stepperRA->currentPosition();
+    }
+    if (axis == StepperAxis::FOCUS_STEPS)
+    {
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        return _stepperFocus->currentPosition();
+#endif
+    }
+    if (axis == StepperAxis::ALTITUDE_STEPS)
+    {
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        return _stepperALT->currentPosition();
+#endif
+    }
+    if (axis == StepperAxis::AZIMUTH_STEPS)
+    {
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        return _stepperAZ->currentPosition();
+#endif
+    }
+    return 0;
+}
+
 /////////////////////////////////
 //
 // setHomingOffset
@@ -2326,11 +2415,13 @@ void Mount::setHomingOffset(StepperAxis axis, long offset)
 {
     if (axis == StepperAxis::RA_STEPS)
     {
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-        _homing.offsetRA = offset;
-#endif
         EEPROMStore::storeRAHomingOffset(offset);
         LOG(DEBUG_MOUNT, "[MOUNT]: setHomingOffset(RA): Offset: %l", offset);
+    }
+    if (axis == StepperAxis::DEC_STEPS)
+    {
+        EEPROMStore::storeDECHomingOffset(offset);
+        LOG(DEBUG_MOUNT, "[MOUNT]: setDECHomingOffset(DEC): Offset: %l", offset);
     }
 }
 
@@ -2343,305 +2434,68 @@ long Mount::getHomingOffset(StepperAxis axis)
 {
     if (axis == StepperAxis::RA_STEPS)
     {
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-        return _homing.offsetRA;
-#endif
+        return EEPROMStore::getRAHomingOffset();
+    }
+    else if (axis == StepperAxis::DEC_STEPS)
+    {
+        return EEPROMStore::getDECHomingOffset();
     }
     return 0;
 }
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-
-String Mount::getHomingState(HomingState state) const
+/////////////////////////////////
+//
+// findHomeByHallSensor
+//
+/////////////////////////////////
+#if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
+bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance)
 {
-    MappedDict<HomingState, String>::DictEntry_t lookupTable[] = {
-        {HOMING_MOVE_OFF, F("MOVE_OFF")},
-        {HOMING_MOVING_OFF, F("MOVING_OFF")},
-        {HOMING_STOP_AT_TIME, F("STOP_AT_TIME")},
-        {HOMING_WAIT_FOR_STOP, F("WAIT_FOR_STOP")},
-        {HOMING_START_FIND_START, F("START_FIND_START")},
-        {HOMING_FINDING_START, F("FINDING_START")},
-        {HOMING_FINDING_START_REVERSE, F("FINDING_START_REVERSE")},
-        {HOMING_FINDING_END, F("FINDING_END")},
-        {HOMING_RANGE_FOUND, F("RANGE_FOUND")},
-        {HOMING_FAILED, F("FAILED")},
-        {HOMING_SUCCESSFUL, F("SUCCESSFUL")},
-        {HOMING_NOT_ACTIVE, F("NOT_ACTIVE")},
-    };
-
-    auto strLookup = MappedDict<HomingState, String>(lookupTable, ARRAY_SIZE(lookupTable));
-    String rtnStr;
-    if (strLookup.tryGet(state, &rtnStr))
+    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if (axis == StepperAxis::RA_STEPS)
     {
-        return rtnStr;
+        if (_raHoming != nullptr)
+            delete _raHoming;
+        int32_t offset = EEPROMStore::getRAHomingOffset();
+        _raHoming      = new HallSensorHoming(this, axis, _stepsPerRADegree, RA_HOMING_SENSOR_PIN, offset);
+        return _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
     }
-    return F("WTF_STATE");
+    #endif
+
+    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    if (axis == StepperAxis::DEC_STEPS)
+    {
+        if (_decHoming != nullptr)
+            delete _decHoming;
+        int32_t offset = EEPROMStore::getDECHomingOffset();
+        _decHoming     = new HallSensorHoming(this, axis, _stepsPerDECDegree, DEC_HOMING_SENSOR_PIN, offset);
+        return _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
+    }
+    #endif
+    return false;
 }
 
 /////////////////////////////////
 //
-// processRAHomingProgress
+// processHomingProgress
 //
 /////////////////////////////////
-void Mount::processRAHomingProgress()
+void Mount::processHomingProgress()
 {
-    switch (_homing.state)
+    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if ((_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
     {
-        case HomingState::HOMING_NOT_ACTIVE:
-            break;
-
-        case HomingState::HOMING_STOP_AT_TIME:
-            {
-                if (millis() > _homing.stopAt)
-                {
-                    LOG(DEBUG_STEPPERS,
-                        "[HOMING]: Initiating stop at requested time. Advance to state %s",
-                        getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
-                    _stepperRA->stop();
-                    _homing.state = HomingState::HOMING_WAIT_FOR_STOP;
-                }
-            }
-            break;
-
-        case HomingState::HOMING_WAIT_FOR_STOP:
-            {
-                if (!_stepperRA->isRunning())
-                {
-                    LOG(DEBUG_STEPPERS,
-                        "[HOMING]: Stepper has stopped as expected, advancing to next state %s",
-                        getHomingState(_homing.nextState).c_str());
-                    _homing.state     = _homing.nextState;
-                    _homing.nextState = HomingState::HOMING_NOT_ACTIVE;
-                }
-            }
-            break;
-
-        case HomingState::HOMING_MOVE_OFF:
-            {
-                LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Currently over Sensor, so moving off of it by reverse 1h. (%l steps). Advance to %s",
-                    (long) (-_homing.initialDir * _stepsPerRADegree * siderealDegreesInHour),
-                    getHomingState(HomingState::HOMING_MOVING_OFF).c_str());
-                moveStepperBy(StepperAxis::RA_STEPS, -_homing.initialDir * _stepsPerRADegree * siderealDegreesInHour);
-                _homing.state = HomingState::HOMING_MOVING_OFF;
-            }
-            break;
-
-        case HomingState::HOMING_MOVING_OFF:
-            {
-                if (_stepperRA->isRunning())
-                {
-                    int homingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
-                    if (homingPinState == HIGH)
-                    {
-                        LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Stepper has moved off sensor... stopping in 2s. Advance to %s",
-                            getHomingState(HomingState::HOMING_STOP_AT_TIME).c_str());
-                        _homing.stopAt    = millis() + 2000;
-                        _homing.state     = HomingState::HOMING_STOP_AT_TIME;
-                        _homing.nextState = HomingState::HOMING_START_FIND_START;
-                    }
-                }
-                else
-                {
-                    LOG(DEBUG_STEPPERS,
-                        "[HOMING]: Stepper was unable to move off sensor... homing failed! Advance to %s",
-                        getHomingState(HomingState::HOMING_FAILED).c_str());
-                    _homing.state = HomingState::HOMING_FAILED;
-                }
-            }
-            break;
-
-        case HomingState::HOMING_START_FIND_START:
-            {
-                long distance = (long) (_homing.initialDir * _stepsPerRADegree * siderealDegreesInHour * _homing.searchDistance);
-                LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Finding start on forward pass by moving RA by %dh (%l steps). Advance to %s",
-                    _homing.searchDistance,
-                    distance,
-                    getHomingState(HomingState::HOMING_FINDING_START).c_str());
-                _homing.pinState = _homing.lastPinState     = digitalRead(RA_HOMING_SENSOR_PIN);
-                _homing.position[HOMING_START_PIN_POSITION] = 0;
-                _homing.position[HOMING_END_PIN_POSITION]   = 0;
-
-                // Move in initial direction
-                moveStepperBy(StepperAxis::RA_STEPS, distance);
-
-                _homing.state = HomingState::HOMING_FINDING_START;
-            }
-            break;
-
-        case HomingState::HOMING_FINDING_START:
-            {
-                if (_stepperRA->isRunning())
-                {
-                    int homingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
-                    if (_homing.lastPinState != homingPinState)
-                    {
-                        LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found start of sensor, continuing until end is found. Advance to %s",
-                            getHomingState(HomingState::HOMING_FINDING_END).c_str());
-                        // Found the start of the sensor, keep going until we find the end
-                        _homing.position[HOMING_START_PIN_POSITION] = _stepperRA->currentPosition();
-                        _homing.lastPinState                        = homingPinState;
-                        _homing.state                               = HomingState::HOMING_FINDING_END;
-                    }
-                }
-                else
-                {
-                    // Did not find start. Go reverse direction for twice the distance
-                    long distance = (long) (-_homing.initialDir * _stepsPerRADegree * siderealDegreesInHour * _homing.searchDistance * 2);
-                    LOG(DEBUG_STEPPERS,
-                        "[HOMING]: Hall not found on forward pass. Moving RA reverse by %dh (%l steps). Advance to %s",
-                        2 * _homing.searchDistance,
-                        distance,
-                        getHomingState(HomingState::HOMING_FINDING_START_REVERSE).c_str());
-                    moveStepperBy(StepperAxis::RA_STEPS, distance);
-                    _homing.state = HomingState::HOMING_FINDING_START_REVERSE;
-                }
-            }
-            break;
-
-        case HomingState::HOMING_FINDING_START_REVERSE:
-            {
-                if (_stepperRA->isRunning())
-                {
-                    int homingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
-                    if (_homing.lastPinState != homingPinState)
-                    {
-                        LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found start of sensor reverse, continuing until end is found. Advance to %s",
-                            getHomingState(HomingState::HOMING_FINDING_END).c_str());
-                        _homing.position[HOMING_START_PIN_POSITION] = _stepperRA->currentPosition();
-                        _homing.lastPinState                        = homingPinState;
-                        _homing.state                               = HomingState::HOMING_FINDING_END;
-                    }
-                }
-                else
-                {
-                    // Did not find start in either direction, abort.
-                    LOG(DEBUG_STEPPERS,
-                        "[HOMING]: Sensor not found on reverse pass either. Homing Failed. Advance to %s",
-                        getHomingState(HomingState::HOMING_FAILED).c_str());
-                    _homing.state = HomingState::HOMING_FAILED;
-                }
-            }
-            break;
-
-        case HomingState::HOMING_FINDING_END:
-            {
-                if (_stepperRA->isRunning())
-                {
-                    int homingPinState = digitalRead(RA_HOMING_SENSOR_PIN);
-                    if (_homing.lastPinState != homingPinState)
-                    {
-                        LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found end of sensor, stopping... Advance to %s",
-                            getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
-                        _homing.position[HOMING_END_PIN_POSITION] = _stepperRA->currentPosition();
-                        _homing.lastPinState                      = homingPinState;
-                        _stepperRA->stop();
-                        _homing.state     = HomingState::HOMING_WAIT_FOR_STOP;
-                        _homing.nextState = HomingState::HOMING_RANGE_FOUND;
-                    }
-                }
-                else
-                {
-                    LOG(DEBUG_STEPPERS,
-                        "[HOMING]: End of sensor not found! Advance to %s",
-                        getHomingState(HomingState::HOMING_FAILED).c_str());
-                    _homing.state = HomingState::HOMING_FAILED;
-                }
-            }
-            break;
-
-        case HomingState::HOMING_RANGE_FOUND:
-            {
-                LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Stepper stopped, Hall sensor found! Range: [%l to %l] size: %l",
-                    _homing.position[HOMING_START_PIN_POSITION],
-                    _homing.position[HOMING_END_PIN_POSITION],
-                    _homing.position[HOMING_START_PIN_POSITION] - _homing.position[HOMING_END_PIN_POSITION]);
-
-                long midPos = (_homing.position[HOMING_START_PIN_POSITION] + _homing.position[HOMING_END_PIN_POSITION]) / 2;
-
-                LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Moving RA to home by %l - (%l) - (%l) steps. Advance to %s",
-                    midPos,
-                    _stepperRA->currentPosition(),
-                    _homing.offsetRA,
-                    getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
-
-                moveStepperBy(StepperAxis::RA_STEPS, midPos - _stepperRA->currentPosition() - _homing.offsetRA);
-
-                _homing.state     = HomingState::HOMING_WAIT_FOR_STOP;
-                _homing.nextState = HomingState::HOMING_SUCCESSFUL;
-            }
-            break;
-
-        case HomingState::HOMING_SUCCESSFUL:
-            {
-                LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Successfully homed! Setting home and restoring Rate setting. Advance to %s",
-                    getHomingState(HomingState::HOMING_NOT_ACTIVE).c_str());
-                setHome(false);
-                setSlewRate(_homing.savedRate);
-                _homing.state = HomingState::HOMING_NOT_ACTIVE;
-                _mountStatus &= ~STATUS_FINDING_HOME;
-                startSlewing(TRACKING);
-            }
-            break;
-
-        case HomingState::HOMING_FAILED:
-            {
-                LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Failed to home! Restoring Rate setting and slewing to start position. Advance to %s",
-                    getHomingState(HomingState::HOMING_NOT_ACTIVE).c_str());
-                setSlewRate(_homing.savedRate);
-                _homing.state = HomingState::HOMING_NOT_ACTIVE;
-                _mountStatus &= ~STATUS_FINDING_HOME;
-                _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-                _stepperRA->moveTo(_homing.startPos);
-            }
-            break;
-
-        default:
-            LOG(DEBUG_STEPPERS, "[HOMING]: Unhandled state (%d)! ", _homing.state);
-            break;
+        _raHoming->processHomingProgress();
     }
+    #endif
+
+    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    if ((_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
+    {
+        _decHoming->processHomingProgress();
+    }
+    #endif
 }
-
-/////////////////////////////////
-//
-// findRAHomeByHallSensor
-//
-/////////////////////////////////
-bool Mount::findRAHomeByHallSensor(int initialDirection, int searchDistance)
-{
-    _homing.startPos       = _stepperRA->currentPosition();
-    _homing.savedRate      = _moveRate;
-    _homing.initialDir     = initialDirection;
-    _homing.searchDistance = searchDistance;
-
-    setSlewRate(4);
-
-    _mountStatus |= STATUS_FINDING_HOME;
-
-    // Check where we are over the sensor already
-    if (digitalRead(RA_HOMING_SENSOR_PIN) == LOW)
-    {
-        _homing.state = HomingState::HOMING_MOVE_OFF;
-        LOG(DEBUG_STEPPERS, "[HOMING]: Sensor is signalled, move off sensor started");
-    }
-    else
-    {
-        _homing.state = HomingState::HOMING_START_FIND_START;
-        LOG(DEBUG_STEPPERS, "[HOMING]: Sensor is not signalled, find start of range");
-    }
-
-    return true;
-}
-
 #endif
 
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
@@ -2717,13 +2571,19 @@ void Mount::interruptLoop()
         }
     }
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
     if (_mountStatus & STATUS_FINDING_HOME)
     {
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
         _stepperRA->run();
-        processRAHomingProgress();
-    }
+        if (_raHoming != nullptr)
+            _raHoming->processHomingProgress();
 #endif
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+        _stepperDEC->run();
+        if (_decHoming != nullptr)
+            _decHoming->processHomingProgress();
+#endif
+    }
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperAZ->run();
@@ -3018,9 +2878,6 @@ void Mount::loop()
 void Mount::bootComplete()
 {
     _bootComplete = true;
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    _homing.pinState = _homing.lastPinState = digitalRead(RA_HOMING_SENSOR_PIN);
-#endif
 }
 
 /////////////////////////////////
@@ -3290,7 +3147,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f (regRA: %f), DEC: %f", homeTargetDeltaRA, moveRA, moveDEC);
 
-    /*
+/*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
   * Since tracking does not trigger the meridian flip, we try to extend the possible tracking time 
   * without reaching the RA ring end by executing the meridian flip before slewing to the target.
@@ -3475,6 +3332,18 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
 #endif
             break;
     }
+}
+
+/////////////////////////////////
+//
+// moveStepperTo
+//
+/////////////////////////////////
+void Mount::moveStepperTo(StepperAxis axis, long position)
+{
+    long curPos = getCurrentStepperPosition(axis);
+    long delta  = position - curPos;
+    moveStepperBy(axis, delta);
 }
 
 /////////////////////////////////

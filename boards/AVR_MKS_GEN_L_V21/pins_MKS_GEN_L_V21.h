@@ -150,6 +150,11 @@
     #define RA_HOMING_SENSOR_PIN 53
 #endif
 
+// DEC Homing pin for Hall sensor
+#ifndef DEC_HOMING_SENSOR_PIN
+    #define DEC_HOMING_SENSOR_PIN 52
+#endif
+
 // RA End Switch East pin
 #ifndef RA_ENDSWITCH_EAST_SENSOR_PIN
     #define RA_ENDSWITCH_EAST_SENSOR_PIN 19
