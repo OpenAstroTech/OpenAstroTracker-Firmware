@@ -210,6 +210,10 @@ void setup()
     pinMode(RA_HOMING_SENSOR_PIN, INPUT);
 #endif
 
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
+#endif
+
     LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
     EEPROMStore::initialize();
 
