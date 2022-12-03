@@ -153,14 +153,14 @@ void DayTime::addHours(float deltaHours)
 
 void DayTime::checkHours()
 {
-    while (totalSeconds >= SIDEREAL_SECONDS_PER_DAY)
+    while (totalSeconds >= secondsPerDay)
     {
-        totalSeconds -= SIDEREAL_SECONDS_PER_DAY;
+        totalSeconds -= secondsPerDay;
     }
 
     while (totalSeconds < 0)
     {
-        totalSeconds += SIDEREAL_SECONDS_PER_DAY;
+        totalSeconds += secondsPerDay;
     }
 }
 
