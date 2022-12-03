@@ -1,12 +1,11 @@
 **V1.12.0 - Updates**
-- Big change in stepping logic on atmega2560 based boards
-- using https://github.com/andre-stefanov/avr-interrupt-stepper instead of AccelStepper
-- using interrupts instead of main loop for stepping
-- maximal stepping rate (in total) increased drastically (theoretically up to 80.000 steps/s but it is recommended to stay under 40.000 to keep UART stable)
-- stepping frequency stability and thus tracking speed accuracy improved
-- added CONFIG_VERSION validation to allow breaking changes in local configurations
-- esp32 still using AccelStepper (to change in future releases)
-- memory footprint increased because of acceleration lookup tables
+- Rewrite of the Stepper driver logic on ATMega2560 based boards.
+  - Now using https://github.com/andre-stefanov/avr-interrupt-stepper instead of AccelStepper.
+  - Now using dynamic interrupts instead of main loop for stepping control.
+  - The maximum stepping rate (in total) increased drastically (theoretically up to 80.000 steps/s but it is recommended to stay under 40.000 to keep UART stable).
+  - Improved stepping frequency stability and thus tracking speed accuracy.
+  - ESP32 still uses AccelStepper (likely to change in future releases).
+- Added CONFIG_VERSION validation to allow breaking changes in local configurations.
 
 **V1.11.15 - Updates**
 - Add DEC Autohoming via Hall sensor (same as RA Autohoming)
