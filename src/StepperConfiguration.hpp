@@ -28,8 +28,8 @@ struct Ra {
     using pin_step = Pin<RA_STEP_PIN>;
     using pin_dir  = Pin<RA_DIR_PIN>;
 
-    using interrupt     = IntervalInterrupt<Timer::TIMER_3>;
-    using driver        = Driver<pin_step, pin_dir, RA_INVERT_DIR>;
+    using interrupt = IntervalInterrupt<Timer::TIMER_3>;
+    using driver    = Driver<pin_step, pin_dir, RA_INVERT_DIR>;
 
     using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
     using ramp_trk  = ConstantRamp<interrupt::FREQ>;
@@ -56,8 +56,8 @@ struct Dec {
     using pin_step = Pin<DEC_STEP_PIN>;
     using pin_dir  = Pin<DEC_DIR_PIN>;
 
-    using interrupt     = IntervalInterrupt<Timer::TIMER_4>;
-    using driver        = Driver<pin_step, pin_dir, DEC_INVERT_DIR>;
+    using interrupt = IntervalInterrupt<Timer::TIMER_4>;
+    using driver    = Driver<pin_step, pin_dir, DEC_INVERT_DIR>;
 
     using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
     using ramp_trk  = ConstantRamp<interrupt::FREQ>;
