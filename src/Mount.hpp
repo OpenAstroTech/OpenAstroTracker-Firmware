@@ -6,9 +6,10 @@
 #include "Longitude.hpp"
 #include "Types.hpp"
 
+#include "StepperConfiguration.hpp"
+
 // Forward declarations
 #ifdef ARDUINO_AVR_ATmega2560
-    #include "StepperConfiguration.hpp"
 using StepperRaSlew  = InterruptAccelStepper<config::Ra::stepper_slew>;
 using StepperRaTrk   = InterruptAccelStepper<config::Ra::stepper_trk>;
 using StepperDecSlew = InterruptAccelStepper<config::Dec::stepper_slew>;
@@ -29,9 +30,9 @@ using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
 #else
     #include "AccelStepper.h"
 class AccelStepper;
-using StepperRa        = AccelStepper;
+using StepperRaSlew    = AccelStepper;
 using StepperRaTrk     = AccelStepper;
-using StepperDec       = AccelStepper;
+using StepperDecSlew   = AccelStepper;
 using StepperDecTrk    = AccelStepper;
 
     #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
