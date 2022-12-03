@@ -9,7 +9,13 @@
 #include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
+#ifdef __AVR_ATmega2560__
+    #include "InterruptAccelStepper.h"
+    #include "StepperConfiguration.hpp"
+#endif
+
 #include <AccelStepper.h>
+
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
     || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                       \
     || (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
@@ -34,9 +40,6 @@ POP_NO_WARNINGS
 #define SLEW_MASK_ANY   B1111
 
 #define UART_CONNECTION_TEST_RETRIES 5
-
-// Seconds per astronomical day (23h 56m 4.0905s)
-const float secondsPerDay = 86164.0905f;
 
 const char *formatStringsDEC[] = {
     "",
@@ -208,16 +211,16 @@ void Mount::readPersistentData()
 // configureRAStepper
 //
 /////////////////////////////////
-void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-    _stepperRA = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
+
+    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
+    _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
     _maxRASpeed        = maxSpeed;
     _maxRAAcceleration = maxAcceleration;
-
-    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperTRK->setMaxSpeed(2000);
     _stepperTRK->setAcceleration(15000);
@@ -231,16 +234,14 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 // configureDECStepper
 //
 /////////////////////////////////
-void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
+void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-    _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperDEC   = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);
     _maxDECSpeed        = maxSpeed;
     _maxDECAcceleration = maxAcceleration;
-
-    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
-    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperGUIDE->setMaxSpeed(2000);
     _stepperGUIDE->setAcceleration(15000);
@@ -259,7 +260,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
     _maxAZSpeed        = maxSpeed;
@@ -272,7 +273,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
     _maxALTSpeed        = maxSpeed;
@@ -291,7 +292,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
     _stepperFocus->setMaxSpeed(maxSpeed);
     _stepperFocus->setAcceleration(maxAcceleration);
     _stepperFocus->setSpeed(0);
@@ -778,7 +779,7 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
-                     / secondsPerDay;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+                     / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
 
@@ -1297,13 +1298,7 @@ void Mount::startSlewingToTarget()
         targetDECPosition -= _homeOffsetDEC;
     }
 
-    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
-
-    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-    if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
+    if (targetRAPosition != _stepperRA->currentPosition())
     {
         // Only stop tracking if we're actually going to slew somewhere else, otherwise the
         // mount::loop() code won't detect the end of the slewing operation...
@@ -1320,6 +1315,12 @@ void Mount::startSlewingToTarget()
 
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %lms", _trackerStoppedAt);
     }
+
+    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
+    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
+    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
@@ -1362,20 +1363,15 @@ void Mount::startSlewingToHome()
         trackingOffset,
         targetRAPosition);
 
-    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
-
-    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
-    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-    if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
+    long raStepsToGo = targetRAPosition - _stepperRA->currentPosition();
+    if (raStepsToGo != 0)
     {
         // Only stop tracking if we're actually going to slew somewhere else, otherwise the
         // mount::loop() code won't detect the end of the slewing operation...
         LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
         stopSlewing(TRACKING);
         _trackerStoppedAt        = millis();
-        _compensateForTrackerOff = false;
+        _compensateForTrackerOff = true;
 
 // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -1385,6 +1381,12 @@ void Mount::startSlewingToHome()
 
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %lms", _trackerStoppedAt);
     }
+
+    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
+    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
+    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
@@ -1517,38 +1519,26 @@ void Mount::runDriftAlignmentPhase(int direction, int durationSecs)
             // Move steps east at the calculated speed, synchronously
             _stepperRA->setMaxSpeed(speed);
             _stepperRA->move(numSteps);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
 
             // Overcome the gearing gap
             _stepperRA->setMaxSpeed(300);
             _stepperRA->move(-20);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
             break;
 
         case WEST:
             // Move steps west at the calculated speed, synchronously
             _stepperRA->setMaxSpeed(speed);
             _stepperRA->move(-numSteps);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
             break;
 
         case 0:
             // Fix the gearing to go back the other way
             _stepperRA->setMaxSpeed(300);
             _stepperRA->move(20);
-            while (_stepperRA->run())
-            {
-                yield();
-            }
+            _stepperRA->runToPosition();
 
             // Re-configure the stepper to the correct parameters.
             _stepperRA->setMaxSpeed(_maxRASpeed);
@@ -2590,6 +2580,13 @@ void Mount::interruptLoop()
     }
 #endif
 
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if (_mountStatus & STATUS_FINDING_HOME)
+    {
+        processRAHomingProgress();
+    }
+#endif
+
 #if (USE_RA_END_SWITCH == 1)
     _raEndSwitch->processEndSwitchState();
 #endif
@@ -2759,7 +2756,14 @@ void Mount::loop()
                             now,
                             elapsed,
                             compensationSteps);
-                        _stepperTRK->runToNewPosition(_stepperTRK->currentPosition() + compensationSteps);
+
+                        // calculate compensation distance by including tracking steps done during compensation
+                        // to avoid another difference after compensation
+                        long totalCompensationSteps
+                            = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
+                        _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
+                        _stepperTRK->move(totalCompensationSteps);
+                        _stepperTRK->runToPosition();
                         _compensateForTrackerOff = false;
                     }
 
@@ -2846,11 +2850,20 @@ void Mount::loop()
         }
     }
 
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if (_mountStatus & STATUS_FINDING_HOME)
+    {
+        processRAHomingProgress();
+    }
+#endif
+
 #if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->processEndSwitchState();
     _raEndSwitch->checkSwitchState();
 #endif
 
 #if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->processEndSwitchState();
     _decEndSwitch->checkSwitchState();
 #endif
 
@@ -3265,10 +3278,10 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
     switch (direction)
     {
         case RA_STEPS:
-            moveSteppersTo(_stepperRA->currentPosition() + steps, _stepperDEC->currentPosition());
+            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
-            if ((_stepperRA->distanceToGo() != 0) || (_stepperDEC->distanceToGo() != 0))
+            if (steps != 0)
             {
                 // Only stop tracking if we're actually going to slew somewhere else, otherwise the
                 // mount::loop() code won't detect the end of the slewing operation...
@@ -3277,15 +3290,19 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 _trackerStoppedAt        = millis();
                 _compensateForTrackerOff = true;
 
-// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-                _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
-
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: TRK stopped at %lms", _trackerStoppedAt);
             }
+
+// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
+            _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
+#endif
+            moveSteppersTo(_stepperRA->currentPosition() + steps, _stepperDEC->currentPosition());
+            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
+
         case DEC_STEPS:
             moveSteppersTo(_stepperRA->currentPosition(), _stepperDEC->currentPosition() + steps);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
