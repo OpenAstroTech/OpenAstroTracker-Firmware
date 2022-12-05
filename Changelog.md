@@ -1,3 +1,6 @@
+**V1.13.12 - Updates**
+- Parallelize matrix_build.py for faster CI builds
+
 **V1.13.11 - Updates**
 - Fixed DEBUG macro usage.
 - Clarified some Meade documentation.
