@@ -1544,13 +1544,11 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 
         if (inCmd[2] == 'R')  // :MHRR
         {
-            _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, -1, distance);
-            return "1";
+            return _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, -1, distance) ? "1" : "0";
         }
         else if (inCmd[2] == 'L')  // :MHRL
         {
-            _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, 1, distance);
-            return "1";
+            return _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, 1, distance) ? "1" : "0";
         }
         return "0";
 #endif
@@ -1567,13 +1565,11 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 
         if (inCmd[2] == 'U')  // :MHDU
         {
-            _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, 1, decDistance);
-            return "1";
+            return _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, 1, decDistance) ? "1" : "0";
         }
         else if (inCmd[2] == 'D')  // :MHDD
         {
-            _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, -1, decDistance);
-            return "1";
+            return _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, -1, decDistance) ? "1" : "0";
         }
 #endif
         return "0";

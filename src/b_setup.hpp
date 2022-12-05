@@ -69,17 +69,6 @@ void IRAM_ATTR stepperControlTask(void *payload)
     }
 }
 
-#else
-// This is the callback function for the timer interrupt on ATMega platforms.
-// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
-// It is called every 500 us (2 kHz rate)
-void stepperControlTimerCallback(void *payload)
-{
-    Mount *mountCopy = reinterpret_cast<Mount *>(payload);
-    if (mountCopy)
-        mountCopy->interruptLoop();
-}
-
 #endif
 
 /////////////////////////////////

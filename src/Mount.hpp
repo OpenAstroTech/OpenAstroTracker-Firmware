@@ -312,8 +312,10 @@ class Mount
     // Process any stepper movement.
     void loop();
 
-    // Low-leve process any stepper movement on interrupt callback.
+// Low-leve process any stepper movement on interrupt callback.
+#if defined(ESP32)
     void interruptLoop();
+#endif
 
     // Set the current stepper positions to be home.
     void setHome(bool clearZeroPos);
