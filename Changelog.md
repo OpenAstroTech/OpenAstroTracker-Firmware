@@ -1,3 +1,6 @@
+**V1.12.4 - Updates**
+- Parallelize matrix_build.py for faster CI builds
+
 **V1.12.3 - Updates**
 - Fixed a bug that incorrectly calculated minimum stepper frequency. This caused Tracking to never run.
 
