@@ -229,8 +229,12 @@ void Mount::configureRAStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     _stepperTRK->setMaxSpeed(2000);
     _stepperTRK->setAcceleration(15000);
 
-    _stepperRA->setPinsInverted(inNorthernHemisphere == RA_INVERT_DIR, false, false);
-    _stepperTRK->setPinsInverted(inNorthernHemisphere == RA_INVERT_DIR, false, false);
+    // _stepperRA->setPinsInverted(inNorthernHemisphere == (RA_INVERT_DIR == 1), false, false);
+    // _stepperTRK->setPinsInverted(inNorthernHemisphere == (RA_INVERT_DIR == 1), false, false);
+#if RA_INVERT_DIR == 1
+    _stepperRA->setPinsInverted(true, false, false);
+    _stepperTRK->setPinsInverted(true, false, false);
+#endif
 }
 
 /////////////////////////////////
@@ -3094,6 +3098,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     DayTime raTarget      = _targetRA;
     Declination decTarget = _targetDEC;
 
+    // Calculate how far from the home position this new target is.
     raTarget.subtractTime(_zeroPosRA);
     LOG(DEBUG_COORD_CALC,
         "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
@@ -3102,10 +3107,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move RA to?
     float moveRA = raTarget.getTotalHours();
-    if (!inNorthernHemisphere)
-    {
-        moveRA += 12;
-    }
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveRA (target) is %f", moveRA);
 
     // Total hours of tracking-to-date
     float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
@@ -3113,9 +3115,14 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // The current RA of the home position, taking tracking-to-date into account
     float homeRA = _zeroPosRA.getTotalHours() + trackedHours;
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: homeRA adjusted by elasped tracking actually represents %f h", homeRA);
 
     // Delta between target RA and home position with a normalized range of -12 hr to 12 hr
     float homeTargetDeltaRA = _targetRA.getTotalHours() - homeRA;
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: CalcSteppersIn: Delta of home to targetRA (%f) is %f (will use to check limits) ",
+        _targetRA.getTotalHours(),
+        homeTargetDeltaRA);
     while (homeTargetDeltaRA > 12)
     {
         homeTargetDeltaRA = homeTargetDeltaRA - 24;
@@ -3140,14 +3147,20 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move DEC to?
     float moveDEC = decTarget.getTotalDegrees();
-    // if (!inNorthernHemisphere)
-    // {
-    //     moveDEC += 180;
-    // }
+    if (!inNorthernHemisphere)
+    {
+        LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", moveDEC);
+        moveDEC = -moveDEC;
+    }
 
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f (regRA: %f), DEC: %f", homeTargetDeltaRA, moveRA, moveDEC);
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: CalcSteppersIn: Target hrs pos RA: Delta:%f (moveRA: %f), DEC: %s (moveDEC: %f)",
+        homeTargetDeltaRA,
+        moveRA,
+        decTarget.ToString(),
+        moveDEC);
 
-/*
+    /*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
   * Since tracking does not trigger the meridian flip, we try to extend the possible tracking time 
   * without reaching the RA ring end by executing the meridian flip before slewing to the target.
@@ -3178,7 +3191,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     if (homeTargetDeltaRA > RALimitR)
     {
         LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: targetRA %f (RA:%f) is past max limit %f  (solution 2)",
+            "[MOUNT]: CalcSteppersIn: Using Solution 2, since hometargetDeltaRA %f (RA:%f) is past max limit %f, inverting both axes",
             homeTargetDeltaRA,
             moveRA,
             RALimitR);
@@ -3192,7 +3205,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     else if (homeTargetDeltaRA < RALimitL)
     {
         LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: targetRA %f (RA:%f) is past min limit: %f, (solution 3)",
+            "[MOUNT]: CalcSteppersIn: Using solution 3 since homeTargetDeltaRA %f (RA:%f) is past min limit: %f, inverting both axes",
             homeTargetDeltaRA,
             moveRA,
             RALimitL);
@@ -3205,19 +3218,19 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     else
     {
         LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: targetRA %f is in range. RA: %f, DEC: %f  (solution 1)",
+            "[MOUNT]: CalcSteppersIn: Using solution 1 since targetRA %f is in range. RA: %f, DEC: %f",
             homeTargetDeltaRA,
             moveRA,
             moveDEC);
     }
 
-    moveDEC -= _zeroPosDEC;  // deg
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: _zeroPosDEC: %f", _zeroPosDEC);
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted moveDEC: %f", moveDEC);
+    moveDEC
+        -= _zeroPosDEC;  // in degs. zeroPosDEC will be zero unless one or more Sync commands have moved it, in which case it is the accumulated offset from zero (home).
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: adjusted DEC by _zeroPosDEC: %f => DEC: %f", _zeroPosDEC, moveDEC);
 
     targetRASteps  = -moveRA * stepsPerSiderealHour;
     targetDECSteps = moveDEC * _stepsPerDECDegree;
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: Target Steps RA: %l, DEC: %l", targetRASteps, targetDECSteps);
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: ResultTarget Steps RA: %l, DEC: %l", targetRASteps, targetDECSteps);
 }
 
 /////////////////////////////////
