@@ -68,6 +68,13 @@ BUILD_FLAGS = {
     "AZ_OPERATING_CURRENT_SETTING": "1",
     "FOCUS_MOTOR_CURRENT_RATING": "1",
     "FOCUS_OPERATING_CURRENT_SETTING": "1",
+    # Not all boards define the pins, so just hardcode it for compile testing
+    "RA_HOMING_SENSOR_PIN": "1",
+    "DEC_HOMING_SENSOR_PIN": "1",
+    "RA_ENDSWITCH_EAST_SENSOR_PIN": "1",
+    "RA_ENDSWITCH_WEST_SENSOR_PIN": "1",
+    "DEC_ENDSWITCH_UP_SENSOR_PIN": "1",
+    "DEC_ENDSWITCH_DOWN_SENSOR_PIN": "1",
 }
 
 STEPPER_SUPPORT = {

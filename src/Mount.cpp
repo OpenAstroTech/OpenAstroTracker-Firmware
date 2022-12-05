@@ -2432,7 +2432,9 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
     if (axis == StepperAxis::RA_STEPS)
     {
         if (_raHoming != nullptr)
+        {
             delete _raHoming;
+        }
         int32_t offset = EEPROMStore::getRAHomingOffset();
         _raHoming      = new HallSensorHoming(this, axis, _stepsPerRADegree, RA_HOMING_SENSOR_PIN, offset);
         return _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
@@ -2443,7 +2445,9 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
     if (axis == StepperAxis::DEC_STEPS)
     {
         if (_decHoming != nullptr)
+        {
             delete _decHoming;
+        }
         int32_t offset = EEPROMStore::getDECHomingOffset();
         _decHoming     = new HallSensorHoming(this, axis, _stepsPerDECDegree, DEC_HOMING_SENSOR_PIN, offset);
         return _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
@@ -2514,8 +2518,9 @@ void Mount::delay(int ms)
 //
 // interruptLoop()
 //
-// This function is run in an ISR. It needs to be fast and do little work.
+// This function is only called on run in an ISR. It needs to be fast and do little work.
 /////////////////////////////////
+#if defined(ESP32)
 void Mount::interruptLoop()
 {
     // Only process guide pulses if we are tracking.
@@ -2550,26 +2555,30 @@ void Mount::interruptLoop()
 
     if (_mountStatus & STATUS_FINDING_HOME)
     {
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
         _stepperRA->run();
         if (_raHoming != nullptr)
+        {
             _raHoming->processHomingProgress();
-#endif
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+        }
+    #endif
+    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
         _stepperDEC->run();
         if (_decHoming != nullptr)
+        {
             _decHoming->processHomingProgress();
-#endif
+        }
+    #endif
     }
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperAZ->run();
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #endif
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperALT->run();
-#endif
+    #endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_focuserMode == FOCUS_TO_TARGET)
     {
         _stepperFocus->run();
@@ -2578,23 +2587,17 @@ void Mount::interruptLoop()
     {
         _stepperFocus->runSpeed();
     }
-#endif
+    #endif
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    if (_mountStatus & STATUS_FINDING_HOME)
-    {
-        processRAHomingProgress();
-    }
-#endif
-
-#if (USE_RA_END_SWITCH == 1)
+    #if (USE_RA_END_SWITCH == 1)
     _raEndSwitch->processEndSwitchState();
-#endif
+    #endif
 
-#if (USE_DEC_END_SWITCH == 1)
+    #if (USE_DEC_END_SWITCH == 1)
     _decEndSwitch->processEndSwitchState();
-#endif
+    #endif
 }
+#endif
 
 /////////////////////////////////
 //
@@ -2850,10 +2853,10 @@ void Mount::loop()
         }
     }
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+#if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
     if (_mountStatus & STATUS_FINDING_HOME)
     {
-        processRAHomingProgress();
+        processHomingProgress();
     }
 #endif
 

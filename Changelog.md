@@ -1,3 +1,7 @@
+**V1.12.1 - Updates**
+- Fixed a bug that caused Autohoming to cause a build break.
+- Fixed a bug that would prevent Hall sensor based Autohoming from completing.
+
 **V1.12.0 - Updates**
 - Rewrite of the Stepper driver logic on ATMega2560 based boards.
   - Now using https://github.com/andre-stefanov/avr-interrupt-stepper instead of AccelStepper.
