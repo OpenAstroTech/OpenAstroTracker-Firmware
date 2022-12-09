@@ -64,7 +64,15 @@ template <typename STEPPER> class InterruptAccelStepper
     {
         LOG(DEBUG_STEPPERS, "[IAS-%d] setSpeed(%f)", STEPPER::TIMER_ID, speed);
         _speed = speed;
-        STEPPER::moveTo(_speed, INT32_MAX);
+
+        if (speed == 0.0f)
+        {
+            STEPPER::stop();
+        }
+        else
+        {
+            STEPPER::moveTo(_speed, INT32_MAX);
+        }
     }
 
     float speed()
