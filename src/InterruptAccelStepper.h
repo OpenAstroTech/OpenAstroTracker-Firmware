@@ -8,8 +8,6 @@
 #include <stdint.h>
 #include <math.h>
 
-#define ABS(x) ((x >= 0) ? x : -x)
-
 #define SIGN(x) ((x >= 0) ? 1 : -1)
 
 // minimal stepping frequency (steps/s) based on cpu frequency, timer counter overflow and max amount of overflows
@@ -50,7 +48,7 @@ template <typename STEPPER> class InterruptAccelStepper
     void setMaxSpeed(float speed)
     {
         LOG(DEBUG_STEPPERS, "[IAS-%d] setMaxSpeed(%f)", STEPPER::TIMER_ID, speed);
-        _max_speed = ABS(speed);
+        _max_speed = abs(speed);
     }
 
     void setAcceleration(float value)
