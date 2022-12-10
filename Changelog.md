@@ -1,3 +1,6 @@
+**V1.12.2 - Updates**
+- Fixed a bug that caused Focuser stepper to misbehave after booting.
+
 **V1.12.1 - Updates**
 - Fixed a bug that caused Autohoming to cause a build break.
 - Fixed a bug that would prevent Hall sensor based Autohoming from completing.
