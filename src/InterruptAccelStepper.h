@@ -48,7 +48,7 @@ template <typename STEPPER> class InterruptAccelStepper
     void setMaxSpeed(float speed)
     {
         LOG(DEBUG_STEPPERS, "[IAS-%d] setMaxSpeed(%f)", STEPPER::TIMER_ID, speed);
-        _max_speed = abs(speed);
+        _max_speed = fabsf(speed);
     }
 
     void setAcceleration(float value)
@@ -66,7 +66,7 @@ template <typename STEPPER> class InterruptAccelStepper
         LOG(DEBUG_STEPPERS, "[IAS-%d] setSpeed(%f)", STEPPER::TIMER_ID, speed);
         _speed = speed;
 
-        if (abs(speed) < MIN_STEPS_PER_SEC)
+        if (fabsf(speed) < MIN_STEPS_PER_SEC)
         {
             STEPPER::stop();
         }
