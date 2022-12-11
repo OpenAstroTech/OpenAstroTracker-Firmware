@@ -1,3 +1,6 @@
+**V1.12.3 - Updates**
+- Fixed a bug that incorrectly calculated minimum stepper frequency. This caused Tracking to never run.
+
 **V1.12.2 - Updates**
 - Fixed a bug that caused Focuser stepper to misbehave after booting.
 
