@@ -11,7 +11,7 @@
 #define SIGN(x) ((x >= 0) ? 1 : -1)
 
 // minimal stepping frequency (steps/s) based on cpu frequency, timer counter overflow and max amount of overflows
-#define MIN_STEPS_PER_SEC (static_cast<float>(F_CPU) / (UINT16_MAX * UINT8_MAX))
+#define MIN_STEPS_PER_SEC (static_cast<float>(F_CPU) / (static_cast<long>(UINT16_MAX) * static_cast<long>(UINT8_MAX)))
 
 template <typename STEPPER> class InterruptAccelStepper
 {
@@ -68,6 +68,7 @@ template <typename STEPPER> class InterruptAccelStepper
 
         if (fabsf(speed) < MIN_STEPS_PER_SEC)
         {
+            LOG(DEBUG_STEPPERS, "[IAS-%d] setSpeed(%f) - speed is too low (%f). Stopping.", STEPPER::TIMER_ID, speed, MIN_STEPS_PER_SEC);
             STEPPER::stop();
         }
         else
@@ -113,7 +114,7 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void runToPosition()
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] runToPosition(%l)", STEPPER::TIMER_ID);
+        LOG(DEBUG_STEPPERS, "[IAS-%d] runToPosition(%l)", STEPPER::TIMER_ID, _target);
         while (isRunning())
         {
             yield();
