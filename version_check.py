@@ -130,9 +130,6 @@ def get_previous_header_version(version_header_path: str, refspec: str) -> semve
 
 
 def main():
-    if only_changed_non_fw_files(args.branchspec):
-        print('No FW files changed, not checking version.')
-        return
     version_header_path = './Version.h'
     # Get the current version from the header
     print(f'Checking current header version from {version_header_path}')
@@ -143,9 +140,17 @@ def main():
     # Get the previous version (using git)
     previous_header_version = get_previous_header_version(version_header_path, args.branchspec)
 
-    # Check that the version has been increased
-    if header_version <= previous_header_version:
-        die(f'Header version must be greater than the previous version {header_version} <= {previous_header_version}')
+    if only_changed_non_fw_files(args.branchspec):
+        print('No FW files changed, not mandating that version needs to be increased')
+        # Still need to check that the version has not been changed to be lower
+        if header_version < previous_header_version:
+            die(f'Header version must be greater or equal than the previous version:'
+                f'{header_version} <= {previous_header_version}')
+    else:
+        # Check that the version has been increased
+        if header_version <= previous_header_version:
+            die(f'Header version must be greater than the previous version:'
+                f'{header_version} <= {previous_header_version}')
 
     changelog_markdown_path = './Changelog.md'
     # Get a string from the changelog, should have a version in the latest entry
