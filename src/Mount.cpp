@@ -3289,7 +3289,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
     {
         case RA_AND_DEC_STEPS:
             LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: MoveStepperBy does not support multiple axes.");
-        break;
+            break;
 
         case RA_STEPS:
             if (steps != 0)
