@@ -473,7 +473,7 @@ class Mount
 
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
     void displayStepperPosition();
-    void moveSteppersTo(float targetRA, float targetDEC);
+    void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);
 
     void autoCalcHa();
 

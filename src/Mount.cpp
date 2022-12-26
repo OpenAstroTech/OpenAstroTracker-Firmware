@@ -1317,7 +1317,7 @@ void Mount::startSlewingToTarget()
     }
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
+    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
     _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
     LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
@@ -1383,7 +1383,7 @@ void Mount::startSlewingToHome()
     }
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    moveSteppersTo(targetRAPosition, targetDECPosition);  // u-steps (in slew mode)
+    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
     _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
     LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
@@ -3229,45 +3229,51 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 // moveSteppersTo
 //
 /////////////////////////////////
-void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
+void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxis direction)
 {  // Units are u-steps (in slew mode)
     // Show time: tell the steppers where to go!
     _correctForBacklash = false;
     LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: RA  From: %l  To: %f", _stepperRA->currentPosition(), targetRASteps);
     LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC From: %l  To: %f", _stepperDEC->currentPosition(), targetDECSteps);
 
-    if ((_backlashCorrectionSteps != 0) && ((_stepperRA->currentPosition() - targetRASteps) > 0))
+    if ((direction == RA_AND_DEC_STEPS) || (direction == RA_STEPS))
     {
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: Needs backlash correction of %d!", _backlashCorrectionSteps);
-        targetRASteps -= _backlashCorrectionSteps;
-        _correctForBacklash = true;
-    }
-
-    _stepperRA->moveTo(targetRASteps);
-
-    if (_decUpperLimit != 0)
-    {
-#if DEBUG_LEVEL > 0
-        if (targetDECSteps > (float) _decUpperLimit)
+        if ((_backlashCorrectionSteps != 0) && ((_stepperRA->currentPosition() - targetRASteps) > 0))
         {
-            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %l", _decUpperLimit);
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: Needs backlash correction of %d!", _backlashCorrectionSteps);
+            targetRASteps -= _backlashCorrectionSteps;
+            _correctForBacklash = true;
         }
-#endif
-        targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
+
+        _stepperRA->moveTo(targetRASteps);
     }
 
-    if (_decLowerLimit != 0)
+    if ((direction == RA_AND_DEC_STEPS) || (direction == DEC_STEPS))
     {
-#if DEBUG_LEVEL > 0
-        if (targetDECSteps < (float) _decLowerLimit)
+        if (_decUpperLimit != 0)
         {
-            LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %l", _decLowerLimit);
-        }
+#if DEBUG_LEVEL > 0
+            if (targetDECSteps > (float) _decUpperLimit)
+            {
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %l", _decUpperLimit);
+            }
 #endif
-        targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
-    }
+            targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
+        }
 
-    _stepperDEC->moveTo(targetDECSteps);
+        if (_decLowerLimit != 0)
+        {
+#if DEBUG_LEVEL > 0
+            if (targetDECSteps < (float) _decLowerLimit)
+            {
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %l", _decLowerLimit);
+            }
+#endif
+            targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
+        }
+
+        _stepperDEC->moveTo(targetDECSteps);
+    }
 }
 
 /////////////////////////////////
@@ -3278,12 +3284,14 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps)
 void Mount::moveStepperBy(StepperAxis direction, long steps)
 {
     LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: %l", steps);
+
     switch (direction)
     {
+        case RA_AND_DEC_STEPS:
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: MoveStepperBy does not support multiple axes.");
+            break;
+
         case RA_STEPS:
-            moveSteppersTo(_stepperRA->targetPosition() + steps, _stepperDEC->targetPosition());
-            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-            _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             if (steps != 0)
             {
                 // Only stop tracking if we're actually going to slew somewhere else, otherwise the
@@ -3301,43 +3309,53 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
             _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
 #endif
-            moveSteppersTo(_stepperRA->currentPosition() + steps, _stepperDEC->currentPosition());
+            moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
 
         case DEC_STEPS:
-            moveSteppersTo(_stepperRA->currentPosition(), _stepperDEC->currentPosition() + steps);
-            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-            _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
+            {
+                moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
+                _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+                _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
 
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-            LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
-            _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+                // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
+                _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
+            }
+            break;
 
-            break;
         case FOCUS_STEPS:
+            {
 #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-            focusMoveBy(steps);
+                focusMoveBy(steps);
 #endif
+            }
             break;
+
         case AZIMUTH_STEPS:
+            {
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-            enableAzAltMotors();
-            LOG(DEBUG_STEPPERS,
-                "[STEPPERS]: moveStepperBy: AZ from %l to %l",
-                _stepperAZ->currentPosition(),
-                _stepperAZ->currentPosition() + steps);
-            _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
+                enableAzAltMotors();
+                LOG(DEBUG_STEPPERS,
+                    "[STEPPERS]: moveStepperBy: AZ from %l to %l",
+                    _stepperAZ->currentPosition(),
+                    _stepperAZ->currentPosition() + steps);
+                _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
 #endif
+            }
             break;
+
         case ALTITUDE_STEPS:
+            {
 #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-            enableAzAltMotors();
-            _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
+                enableAzAltMotors();
+                _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
 #endif
+            }
             break;
     }
 }

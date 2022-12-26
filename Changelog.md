@@ -1,3 +1,6 @@
+**V1.12.4 - Updates**
+- Fixed a bug that incorrectly stopped the RA motor after issuing a DEC move.
+
 **V1.12.3 - Updates**
 - Fixed a bug that incorrectly calculated minimum stepper frequency. This caused Tracking to never run.
 
