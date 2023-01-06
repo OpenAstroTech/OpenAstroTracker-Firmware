@@ -314,13 +314,5 @@ void HallSensorHoming::processHomingProgress()
 
 bool HallSensorHoming::isIdleOrComplete() const
 {
-    switch (_homingData.state)
-    {
-        case HomingState::HOMING_FAILED:
-        case HomingState::HOMING_SUCCESSFUL:
-        case HomingState::HOMING_NOT_ACTIVE:
-            return true;
-        default:
-            return false;
-    }
+    return _homingData.state == HomingState::HOMING_NOT_ACTIVE;
 }

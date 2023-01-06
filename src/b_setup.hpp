@@ -12,8 +12,6 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 #endif
 
-#include "InterruptCallback.hpp"
-
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "a_inits.hpp"
@@ -69,17 +67,6 @@ void IRAM_ATTR stepperControlTask(void *payload)
         mountCopy->interruptLoop();
         vTaskDelay(1);  // 1 ms 	// This will limit max stepping rate to 1 kHz
     }
-}
-
-#else
-// This is the callback function for the timer interrupt on ATMega platforms.
-// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
-// It is called every 500 us (2 kHz rate)
-void stepperControlTimerCallback(void *payload)
-{
-    Mount *mountCopy = reinterpret_cast<Mount *>(payload);
-    if (mountCopy)
-        mountCopy->interruptLoop();
 }
 
 #endif
@@ -314,14 +301,14 @@ void setup()
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
-    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
+    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, config::Ra::SPEED_SLEW, RA_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.
 #endif
 
 #if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
-    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEW, DEC_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.
 #endif
@@ -411,13 +398,6 @@ void setup()
                             2,                   // Priority (2 is higher than 1)
                             &StepperTask,        // The location that receives the thread id
                             0);                  // The core to run this on
-
-#else
-    // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
-    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
-    {
-        LOG(DEBUG_MOUNT, "[SYSTEM]: CANNOT setup interrupt timer!");
-    }
 #endif
 
 #if UART_CONNECTION_TEST_TX == 1

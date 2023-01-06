@@ -202,6 +202,10 @@
     #define DEW_HEATER 0
 #endif
 
+#ifndef SIDEREAL_SECONDS_PER_DAY
+    #define SIDEREAL_SECONDS_PER_DAY 86164.0905f
+#endif
+
 // These values are needed to calculate the current position during initial alignment.
 // Use something like Stellarium to look up the RA of Polaris in JNow (on date) variant.
 // This changes slightly over weeks, so adjust every couple of months.
