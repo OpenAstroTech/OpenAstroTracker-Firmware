@@ -1,3 +1,6 @@
+**V1.12.5 - Updates**
+- Bound interrupt stepper library to version 0.0.1.
+
 **V1.12.4 - Updates**
 - Fixed a bug that incorrectly stopped the RA motor after issuing a DEC move.
 
