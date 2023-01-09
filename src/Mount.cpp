@@ -86,9 +86,8 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 void Mount::initializeVariables()
 {
-    // If we have defined the hemisphere, transfer it to the variable. This is
-    // for older local config files, the define is only needed for southern
-    // hemisphere and can now be switched by a Meade command.
+    // We are now defaulting to northern hemisphere at 45deg. Switching is now supported
+    // at runtime when the Latitude is received via Meade command.
     inNorthernHemisphere = true;  // Since we set latitude to +45 below.
 
     _stepsPerRADegree  = RA_STEPS_PER_DEGREE;   // u-steps per degree when slewing
@@ -221,7 +220,7 @@ void Mount::configureHemisphere(bool inNorthern)
     inNorthernHemisphere = inNorthern;
     bool invertDir       = inNorthernHemisphere ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
     LOG(DEBUG_ANY,
-        "[SYSTEM]: Configured steppers for %s hemisphere. Invert is %d",
+        "[SYSTEM]: Configured RA steppers for %s hemisphere. DIR Invert is %d",
         inNorthernHemisphere ? "northern" : "southern",
         invertDir);
     _stepperRA->setPinsInverted(invertDir, false, false);

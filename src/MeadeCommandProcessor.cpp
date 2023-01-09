@@ -637,7 +637,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1#"
 //
 // :XDnnn#
-//      Description:S
+//      Description:
 //        Run drift alignment
 //      Information:
 //        This runs a drift alignment procedure where the mounts slews east, pauses, slews west and pauses.
