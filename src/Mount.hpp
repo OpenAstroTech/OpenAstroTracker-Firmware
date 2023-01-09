@@ -129,6 +129,8 @@ class Mount
     // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
     void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 
+    void configureHemisphere(bool isNorthern);
+
     // Configure the DEC stepper motor.
     void configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 

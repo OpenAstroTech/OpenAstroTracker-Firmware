@@ -136,7 +136,7 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void setPinsInverted(bool directionInvert = false, bool stepInvert = false, bool enableInvert = false)
     {
-        // STUB
+        STEPPER::setInverted(directionInvert);
     }
 
     bool isRunning()

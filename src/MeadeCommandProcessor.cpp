@@ -800,7 +800,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get Hemisphere
 //      Information:
-//        Get the hemisphere that the OAT currently assumes it is operating in.
+//        Get the hemisphere that the OAT currently assumes it is operating in. This is set via setting Latitude (see ":St" command)
 //      Returns:
 //        "N#" - for northern hemisphere
 //        "S#" - for southern hemisphere
@@ -863,17 +863,6 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Sets the number of steps the RA stepper motor needs to overshoot and backtrack when slewing east.
 //      Returns:
 //        nothing
-//
-// :XSHSx#
-//      Description:
-//        Set hemisphere
-//      Information:
-//        Set the hemisphere in which the OAT should be set to work in
-//      Parameters:
-//        "x" is either "N" or "S", depending on whether the OAT is in the northern or southern hemisphere
-//      Returns:
-//        "0" if the hemisphere was not set (x was not N or S)
-//        "1" if the hemisphere was set
 //
 // :XSHRnnn#
 //      Description:
@@ -1874,23 +1863,6 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 if (inCmd[2] == 'R')  // :XSHR
                 {
                     _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
-                }
-                else if (inCmd[2] == 'S')  // :XSHSx
-                {
-                    if (inCmd.length() > 3)
-                    {
-                        if (inCmd[3] == 'S') // :XSHSS
-                        {
-                            inNorthernHemisphere = false;
-                            return "1";
-                        }
-                        else if (inCmd[3] == 'N')  // :XSHSN
-                        {
-                            inNorthernHemisphere = true;
-                            return "1";
-                        }
-                    }
-                    return "0";
                 }
             }
             else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XSHD

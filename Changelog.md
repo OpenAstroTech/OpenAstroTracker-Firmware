@@ -1,3 +1,8 @@
+**V1.12.6 - Updates**
+- Added support for DIR inversion to interrupt stepper library.
+- Firmware now determines hemisphere automatically from the given Latitude, switching at the equator.
+- Fixed the logic in Sync call to account for both hemispheres.
+
 **V1.12.5 - Updates**
 - Bound interrupt stepper library to version 0.0.1.
 

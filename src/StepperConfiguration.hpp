@@ -32,7 +32,7 @@ struct Ra {
     using pin_dir  = Pin<RA_DIR_PIN>;
 
     using interrupt = IntervalInterrupt<Timer::TIMER_3>;
-    using driver    = Driver<pin_step, pin_dir, RA_INVERT_DIR>;
+    using driver    = Driver<pin_step, pin_dir>;
 
     using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
     using ramp_trk  = ConstantRamp<interrupt::FREQ>;
@@ -64,7 +64,7 @@ struct Dec {
     using pin_dir  = Pin<DEC_DIR_PIN>;
 
     using interrupt = IntervalInterrupt<Timer::TIMER_4>;
-    using driver    = Driver<pin_step, pin_dir, DEC_INVERT_DIR>;
+    using driver    = Driver<pin_step, pin_dir>;
 
     using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
     using ramp_trk  = ConstantRamp<interrupt::FREQ>;
@@ -84,7 +84,7 @@ struct Az {
     using pin_dir  = Pin<AZ_DIR_PIN>;
 
     using interrupt = IntervalInterrupt<Timer::TIMER_1>;
-    using driver    = Driver<pin_step, pin_dir, AZ_INVERT_DIR>;
+    using driver    = Driver<pin_step, pin_dir>;
 
     using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
@@ -103,7 +103,7 @@ struct Alt {
     using pin_dir  = Pin<ALT_DIR_PIN>;
 
     using interrupt = IntervalInterrupt<Timer::TIMER_5>;
-    using driver    = Driver<pin_step, pin_dir, ALT_INVERT_DIR>;
+    using driver    = Driver<pin_step, pin_dir>;
 
     using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
