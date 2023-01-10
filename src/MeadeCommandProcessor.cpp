@@ -772,6 +772,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#"
 //
+// :XGST#
+//      Description:
+//        Get Remaining Safe Time
+//      Information:
+//        Get the number of hours before the RA ring reaches its end.
+//      Returns:
+//        "float#"
+//
 // :XGT#
 //      Description:
 //        Get Tracking speed
@@ -1355,7 +1363,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         }
         else if (inCmd[1] == 'P')
         {
-            // Set home point
+            // Set home point :SHP#
             _mount->setHome(false);
         }
         else
@@ -1694,9 +1702,16 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
             }
         }
-        else if (inCmd[1] == 'S')  // :XGS#
+        else if (inCmd[1] == 'S')
         {
-            return String(_mount->getSpeedCalibration(), 5) + "#";
+            if (inCmd.length() == 2)  // :XGS#
+            {
+                return String(_mount->getSpeedCalibration(), 5) + "#";
+            }
+            else if ((inCmd.length() == 3) && (inCmd[2] == 'T'))  // :XGST#
+            {
+                return String(_mount->checkRALimit(), 7) + "#";
+            }
         }
         else if (inCmd[1] == 'T')  // :XGT#
         {

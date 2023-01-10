@@ -215,16 +215,34 @@ void Mount::readPersistentData()
 // configureHemisphere
 //
 /////////////////////////////////
-void Mount::configureHemisphere(bool inNorthern)
+void Mount::configureHemisphere(bool inNorthern, bool force)
 {
-    inNorthernHemisphere = inNorthern;
-    bool invertDir       = inNorthernHemisphere ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
-    LOG(DEBUG_ANY,
-        "[SYSTEM]: Configured RA steppers for %s hemisphere. DIR Invert is %d",
-        inNorthernHemisphere ? "northern" : "southern",
-        invertDir);
-    _stepperRA->setPinsInverted(invertDir, false, false);
-    _stepperTRK->setPinsInverted(invertDir, false, false);
+    if ((inNorthernHemisphere != inNorthern) || force)
+    {
+        bool wasTracking = isSlewingTRK();
+        LOG(DEBUG_ANY, "[SYSTEM]: Hemisphere changed (or forced update) to %s.", inNorthern ? "northern" : "southern");
+        LOG(DEBUG_ANY, "[SYSTEM]: Stopping all steppers.");
+        stopSlewing(ALL_DIRECTIONS | TRACKING);
+        waitUntilStopped(ALL_DIRECTIONS);
+        inNorthernHemisphere = inNorthern;
+        bool invertDir       = inNorthernHemisphere ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
+        LOG(DEBUG_ANY, "[SYSTEM]: Configured RA steppers, DIR Invert is %d", invertDir);
+        _stepperRA->setPinsInverted(invertDir, false, false);
+        _stepperTRK->setPinsInverted(invertDir, false, false);
+
+        LOG(DEBUG_ANY, "[SYSTEM]: Reset RA and TRK positions to 0");
+        _stepperTRK->setCurrentPosition(0);
+        _stepperRA->setCurrentPosition(0);
+        if (wasTracking)
+        {
+            LOG(DEBUG_ANY, "[SYSTEM]: Restarting TRK since it was on.");
+            startSlewing(TRACKING);
+        }
+    }
+    else
+    {
+        LOG(DEBUG_ANY, "[SYSTEM]: Already in %s hemisphere, no action taken.", inNorthernHemisphere ? "northern" : "southern");
+    }
 }
 
 /////////////////////////////////
@@ -246,7 +264,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
     _stepperTRK->setMaxSpeed(2000);
     _stepperTRK->setAcceleration(15000);
 
-    configureHemisphere(inNorthernHemisphere);
+    configureHemisphere(inNorthernHemisphere, true);
 }
 
 /////////////////////////////////
@@ -1357,16 +1375,16 @@ void Mount::startSlewingToTarget()
     }
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
+    _stepperWasRunning = true;
+    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
+    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
+    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 }
 
 /////////////////////////////////
@@ -1423,16 +1441,16 @@ void Mount::startSlewingToHome()
     }
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
-    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
+    _stepperWasRunning = true;
+    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
+    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
+    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 }
 
 /////////////////////////////////
@@ -2739,8 +2757,11 @@ void Mount::loop()
     }
     else
     {
-        // Check whether we should stop tracking now
-        checkRALimit();
+        // Check whether we should stop tracking every 3 seconds
+        if (now - _lastTRKCheck > 3000)
+        {
+            checkRALimit();
+        }
 
         if (_mountStatus & STATUS_SLEWING_MANUAL)
         {
@@ -3055,7 +3076,16 @@ void Mount::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 /////////////////////////////////
 void Mount::setHome(bool clearZeroPos)
 {
-    LOG(DEBUG_MOUNT, "[MOUNT]: setHome() called");
+    LOG(DEBUG_MOUNT, "[MOUNT]: setHome() called. Stopping steppers");
+    bool wasTracking = isSlewingTRK();
+    stopSlewing(ALL_DIRECTIONS);
+    waitUntilStopped(ALL_DIRECTIONS);
+    if (wasTracking)
+    {
+        LOG(DEBUG_MOUNT, "[MOUNT]: setHome: Tracking was on, so start it again.");
+        startSlewing(TRACKING);
+    }
+
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: currentRA is %s", currentRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: targetRA is %s", targetRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: zeroPos is %s", _zeroPosRA.ToString());
@@ -3068,9 +3098,11 @@ void Mount::setHome(bool clearZeroPos)
     _stepperRA->setCurrentPosition(0);
     _stepperDEC->setCurrentPosition(0);
     _stepperTRK->setCurrentPosition(0);
-    // TODO: Set New Guide Stepper to 0
+    _stepperGUIDE->setCurrentPosition(0);
 
-    _targetRA = currentRA();
+    _targetRA      = currentRA();
+    _slewingToHome = false;
+    _slewingToPark = false;
 
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: currentRA is %s", currentRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: zeroPos is %s", _zeroPosRA.ToString());
@@ -3357,22 +3389,23 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
             _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
 #endif
-            moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            _stepperWasRunning = true;
+            moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
 
         case DEC_STEPS:
             {
-                moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
                 _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-                _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                 // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
                 _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
+                _stepperWasRunning = true;
+                moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
+                _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
             }
             break;
 
@@ -3811,31 +3844,34 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 // checkRALimit
 //
 /////////////////////////////////
-void Mount::checkRALimit()
+float Mount::checkRALimit()
 {
-    // Check tracking limits every 5 seconds
-    if (millis() - _lastTRKCheck < 5000)
-        return;
     const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
     const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
     const float RALimit      = RA_TRACKING_LIMIT;
-    const float degreePos    = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    float hourPos            = currentRA().getTotalHours();
+    LOG(DEBUG_MOUNT_VERBOSE,
+        "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)",
+        homeRA,
+        _zeroPosRA.getTotalHours(),
+        trackedHours);
+    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
+    float hourPos         = currentRA().getTotalHours();
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: degreePosDec: %f , RA hourpos : %f)", degreePos, hourPos);
     if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
     {
         hourPos -= 12;
         if (hourPos < 0)
             hourPos += 24;
+        LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: switching RA hourPos to: %f", hourPos);
     }
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: homeRA: %f", homeRA);
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: currentRA: %f", currentRA().getTotalHours());
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: currentRA (adjusted): %f", hourPos);
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: RA hourPos (adjusted): %f", hourPos);
     float homeCurrentDeltaRA = homeRA - hourPos;
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: DeltaRA: %f (home:%f - hour:%f)", homeCurrentDeltaRA, homeRA, hourPos);
     while (homeCurrentDeltaRA > 12)
         homeCurrentDeltaRA -= 24;
     while (homeCurrentDeltaRA < -12)
         homeCurrentDeltaRA += 24;
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: homeRAdelta: %f", homeCurrentDeltaRA);
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: deltaRA: %f => Check against %f", homeCurrentDeltaRA, RALimit);
 
     if (homeCurrentDeltaRA > RALimit)
     {
@@ -3843,4 +3879,6 @@ void Mount::checkRALimit()
         stopSlewing(TRACKING);
     }
     _lastTRKCheck = millis();
+
+    return RALimit - homeCurrentDeltaRA;
 }
