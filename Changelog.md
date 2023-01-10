@@ -1,7 +1,12 @@
 **V1.12.6 - Updates**
+- Fixed all known issues related to running in the southern hemisphere.
 - Added support for DIR inversion to interrupt stepper library.
-- Firmware now determines hemisphere automatically from the given Latitude, switching at the equator.
+- Hemisphere no longer needs to be defined in config, firmware determines it automatically from the given Latitude, switching at the equator.
 - Fixed the logic in Sync call to account for both hemispheres.
+- Fixed some logic that stopped tracking when setting home position.
+- Fixed a bug that caused the firmware to fail to recognize the end of very short slews.
+- Added Meade Extension command to query remaining tracking time
+- Added Meade Extension command to query the hemisphere that is set.
 
 **V1.12.5 - Updates**
 - Bound interrupt stepper library to version 0.0.1.

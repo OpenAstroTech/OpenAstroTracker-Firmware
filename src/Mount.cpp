@@ -2757,8 +2757,8 @@ void Mount::loop()
     }
     else
     {
-        // Check whether we should stop tracking every 3 seconds
-        if (now - _lastTRKCheck > 3000)
+        // Check whether we should stop tracking every 5 seconds
+        if (now - _lastTRKCheck > 5000)
         {
             checkRALimit();
         }
@@ -3295,8 +3295,9 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
             moveDEC);
     }
 
-    moveDEC
-        -= _zeroPosDEC;  // in degs. zeroPosDEC will be zero unless one or more Sync commands have moved it, in which case it is the accumulated offset from zero (home).
+    // zeroPosDEC will be zero unless one or more Sync commands have moved it, in which case it is the
+    // accumulated offset from zero (home) in degrees.
+    moveDEC -= _zeroPosDEC;
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: adjusted DEC by _zeroPosDEC: %f => DEC: %f", _zeroPosDEC, moveDEC);
 
     targetRASteps  = -moveRA * stepsPerSiderealHour;
@@ -3558,21 +3559,15 @@ String Mount::DECString(byte type, byte active)
     Declination dec;
     if ((type & TARGET_STRING) == TARGET_STRING)
     {
-        //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: DECString: TARGET!");
         dec = _targetDEC;
     }
     else
     {
-        //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: DECString: CURRENT!");
         dec = currentDEC();
     }
-    //LOG(DEBUG_INFO, "[MOUNT]: DECString: Precheck  : %s   %s  %dm %ds", dec.ToString(), dec.getDegreesDisplay().c_str(), dec.getMinutes(), dec.getSeconds());
-    // dec.checkHours();
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: DECString: Postcheck : %s", dec.ToString());
 
     dec.formatString(scratchBuffer, formatStringsDEC[type & FORMAT_STRING_MASK]);
 
-    // sprintf(scratchBuffer, formatStringsDEC[type & FORMAT_STRING_MASK], dec.getDegreesDisplay().c_str(), dec.getMinutes(), dec.getSeconds());
     if ((type & FORMAT_STRING_MASK) == LCDMENU_STRING)
     {
         scratchBuffer[active * 4 + (active > 0 ? 1 : 0)] = '>';
