@@ -89,8 +89,8 @@ const char *Declination::ToString() const
     *p++ = ' ';
     *p++ = '(';
     strcpy(p, String(inNorthernHemisphere ? 90 - fabsf(getTotalHours()) : -90 + fabsf(getTotalHours()), 4).c_str());
-    strcat(p,", ");
-    strcat(p,String(getTotalHours(),4).c_str());
+    strcat(p, ", ");
+    strcat(p, String(getTotalHours(), 4).c_str());
     strcat(p, ")");
 
     return achBufDeg;
