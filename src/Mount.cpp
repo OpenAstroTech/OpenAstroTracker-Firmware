@@ -88,7 +88,7 @@ void Mount::initializeVariables()
 {
     // We are now defaulting to northern hemisphere at 45deg. Switching is now supported
     // at runtime when the Latitude is received via Meade command.
-    inNorthernHemisphere = true;  // Since we set latitude to +45 below.
+    inNorthernHemisphere = NORTHERN_HEMISPHERE == 1;
 
     _stepsPerRADegree  = RA_STEPS_PER_DEGREE;   // u-steps per degree when slewing
     _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
@@ -96,7 +96,7 @@ void Mount::initializeVariables()
     _mountStatus       = 0;
     _lastDisplayUpdate = 0;
     _stepperWasRunning = false;
-    _latitude          = Latitude(45.0);
+    _latitude          = Latitude(inNorthernHemisphere? 45.0f : -45.0f);
     _longitude         = Longitude(100.0);
     _zeroPosDEC        = 0.0f;
 
