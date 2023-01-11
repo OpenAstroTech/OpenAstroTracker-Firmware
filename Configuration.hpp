@@ -47,7 +47,7 @@
     #error You have to specify the board
 #endif
 
-// Set to 1 for the northern hemisphere, 0 otherwise
+// Default to northern hemisphere
 #ifndef NORTHERN_HEMISPHERE
     #define NORTHERN_HEMISPHERE 1
 #endif

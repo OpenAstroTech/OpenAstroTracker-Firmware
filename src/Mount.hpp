@@ -129,6 +129,8 @@ class Mount
     // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
     void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 
+    void configureHemisphere(bool isNorthern, bool force = false);
+
     // Configure the DEC stepper motor.
     void configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 
@@ -451,6 +453,9 @@ class Mount
     byte slewStatus() const;
     byte mountStatus() const;
 
+    // Returns the remaining tracking time available and stops tracking if it reaches zero.
+    float checkRALimit();
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -465,8 +470,6 @@ class Mount
     void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
     #endif
 #endif
-
-    void checkRALimit();
 
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();

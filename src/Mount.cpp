@@ -86,13 +86,17 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 void Mount::initializeVariables()
 {
+    // We are now defaulting to northern hemisphere at 45deg. Switching is now supported
+    // at runtime when the Latitude is received via Meade command.
+    inNorthernHemisphere = NORTHERN_HEMISPHERE == 1;
+
     _stepsPerRADegree  = RA_STEPS_PER_DEGREE;   // u-steps per degree when slewing
     _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
 
     _mountStatus       = 0;
     _lastDisplayUpdate = 0;
     _stepperWasRunning = false;
-    _latitude          = Latitude(45.0);
+    _latitude          = Latitude(inNorthernHemisphere ? 45.0f : -45.0f);
     _longitude         = Longitude(100.0);
     _zeroPosDEC        = 0.0f;
 
@@ -208,6 +212,41 @@ void Mount::readPersistentData()
 
 /////////////////////////////////
 //
+// configureHemisphere
+//
+/////////////////////////////////
+void Mount::configureHemisphere(bool inNorthern, bool force)
+{
+    if ((inNorthernHemisphere != inNorthern) || force)
+    {
+        bool wasTracking = isSlewingTRK();
+        LOG(DEBUG_ANY, "[SYSTEM]: Hemisphere changed (or forced update) to %s.", inNorthern ? "northern" : "southern");
+        LOG(DEBUG_ANY, "[SYSTEM]: Stopping all steppers.");
+        stopSlewing(ALL_DIRECTIONS | TRACKING);
+        waitUntilStopped(ALL_DIRECTIONS);
+        inNorthernHemisphere = inNorthern;
+        bool invertDir       = inNorthernHemisphere ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
+        LOG(DEBUG_ANY, "[SYSTEM]: Configured RA steppers, DIR Invert is %d", invertDir);
+        _stepperRA->setPinsInverted(invertDir, false, false);
+        _stepperTRK->setPinsInverted(invertDir, false, false);
+
+        LOG(DEBUG_ANY, "[SYSTEM]: Reset RA and TRK positions to 0");
+        _stepperTRK->setCurrentPosition(0);
+        _stepperRA->setCurrentPosition(0);
+        if (wasTracking)
+        {
+            LOG(DEBUG_ANY, "[SYSTEM]: Restarting TRK since it was on.");
+            startSlewing(TRACKING);
+        }
+    }
+    else
+    {
+        LOG(DEBUG_ANY, "[SYSTEM]: Already in %s hemisphere, no action taken.", inNorthernHemisphere ? "northern" : "southern");
+    }
+}
+
+/////////////////////////////////
+//
 // configureRAStepper
 //
 /////////////////////////////////
@@ -225,8 +264,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
     _stepperTRK->setMaxSpeed(2000);
     _stepperTRK->setAcceleration(15000);
 
-    _stepperRA->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
-    _stepperTRK->setPinsInverted(NORTHERN_HEMISPHERE == RA_INVERT_DIR, false, false);
+    configureHemisphere(inNorthernHemisphere, true);
 }
 
 /////////////////////////////////
@@ -1118,6 +1156,7 @@ void Mount::setLST(const DayTime &lst)
 void Mount::setLatitude(Latitude latitude)
 {
     _latitude = latitude;
+    configureHemisphere(_latitude.getTotalHours() > 0);
     EEPROMStore::storeLatitude(_latitude);
 }
 
@@ -1190,7 +1229,7 @@ const DayTime Mount::currentRA() const
     hourPos += _zeroPosRA.getTotalHours();
 
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
+    if (degreePos < 0)
     {
         hourPos += 12;
         if (hourPos > 24)
@@ -1233,7 +1272,15 @@ void Mount::syncPosition(DayTime ra, Declination dec)
     long solutions[6];
     _targetDEC = dec;
     _targetRA  = ra;
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition( RA: %s and DEC: %s )", _targetRA.ToString(), _targetDEC.ToString());
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: syncPosition: Target Sync is RA: %f  and DEC: %f",
+        _targetRA.getTotalHours(),
+        _targetDEC.getTotalDegrees());
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: syncPosition: Current Pos is RA: %f  and DEC: %f )",
+        currentRA().getTotalHours(),
+        currentDEC().getTotalDegrees());
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: ZeroPos values RA: %f  and DEC: %f)", _zeroPosRA.getTotalHours(), _zeroPosDEC);
 
     // Adjust the home RA position by the delta sync position.
     float raAdjust = ra.getTotalHours() - currentRA().getTotalHours();
@@ -1252,14 +1299,25 @@ void Mount::syncPosition(DayTime ra, Declination dec)
 
     // Adjust the home DEC position by the delta between the sync'd target and current position.
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
-    float decAdjust       = dec.getTotalDegrees() - fabsf(currentDEC().getTotalDegrees());
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: DEC degreePos is: %f", degreePos);
+
+    // Dec totalhours can be plus or minus the distance from the pole (because it keeps track of whether we are upwards or downwards from the pole)
+    // So we use the abs of both values to find their difference
+    float decAdjust = fabsf(dec.getTotalDegrees()) - fabsf(currentDEC().getTotalDegrees());
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: syncPosition: DecAdjust is: %f ( |%f| - |%f| )",
+        decAdjust,
+        dec.getTotalDegrees(),
+        currentDEC().getTotalDegrees());
     if (degreePos < 0)
     {
+        LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: Inverted DecAdjust to: %f (below home pos)", decAdjust);
         decAdjust = -decAdjust;
     }
+
     _zeroPosDEC += decAdjust;
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zerPosDEC adjusted by: %f", decAdjust);
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zerPosDEC: %f", _zeroPosDEC);
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zeroPosDEC adjusted by: %f", decAdjust);
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zeroPosDEC: %f", _zeroPosDEC);
 
     long targetRAPosition, targetDECPosition;
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition, solutions);
@@ -1317,16 +1375,16 @@ void Mount::startSlewingToTarget()
     }
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
+    _stepperWasRunning = true;
+    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
+    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
+    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 }
 
 /////////////////////////////////
@@ -1383,16 +1441,16 @@ void Mount::startSlewingToHome()
     }
 
     _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
-    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
-
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
+    _stepperWasRunning = true;
+    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
+    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
+    _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l,   DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 }
 
 /////////////////////////////////
@@ -2167,7 +2225,7 @@ void Mount::startSlewing(int direction)
         else
         {
             // Start slewing
-            int sign = NORTHERN_HEMISPHERE ? 1 : -1;
+            int sign = inNorthernHemisphere ? 1 : -1;
 
             // Set move rate to last commanded slew rate
             setSlewRate(_moveRate);
@@ -2699,8 +2757,11 @@ void Mount::loop()
     }
     else
     {
-        // Check whether we should stop tracking now
-        checkRALimit();
+        // Check whether we should stop tracking every 5 seconds
+        if (now - _lastTRKCheck > 5000)
+        {
+            checkRALimit();
+        }
 
         if (_mountStatus & STATUS_SLEWING_MANUAL)
         {
@@ -3015,7 +3076,16 @@ void Mount::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 /////////////////////////////////
 void Mount::setHome(bool clearZeroPos)
 {
-    LOG(DEBUG_MOUNT, "[MOUNT]: setHome() called");
+    LOG(DEBUG_MOUNT, "[MOUNT]: setHome() called. Stopping steppers");
+    bool wasTracking = isSlewingTRK();
+    stopSlewing(ALL_DIRECTIONS);
+    waitUntilStopped(ALL_DIRECTIONS);
+    if (wasTracking)
+    {
+        LOG(DEBUG_MOUNT, "[MOUNT]: setHome: Tracking was on, so start it again.");
+        startSlewing(TRACKING);
+    }
+
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: currentRA is %s", currentRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: targetRA is %s", targetRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: zeroPos is %s", _zeroPosRA.ToString());
@@ -3028,9 +3098,11 @@ void Mount::setHome(bool clearZeroPos)
     _stepperRA->setCurrentPosition(0);
     _stepperDEC->setCurrentPosition(0);
     _stepperTRK->setCurrentPosition(0);
-    // TODO: Set New Guide Stepper to 0
+    _stepperGUIDE->setCurrentPosition(0);
 
-    _targetRA = currentRA();
+    _targetRA      = currentRA();
+    _slewingToHome = false;
+    _slewingToPark = false;
 
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: currentRA is %s", currentRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: zeroPos is %s", _zeroPosRA.ToString());
@@ -3097,6 +3169,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     DayTime raTarget      = _targetRA;
     Declination decTarget = _targetDEC;
 
+    // Calculate how far from the home position this new target is.
     raTarget.subtractTime(_zeroPosRA);
     LOG(DEBUG_COORD_CALC,
         "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
@@ -3105,10 +3178,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move RA to?
     float moveRA = raTarget.getTotalHours();
-    if (!NORTHERN_HEMISPHERE)
-    {
-        moveRA += 12;
-    }
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveRA (target) is %f", moveRA);
 
     // Total hours of tracking-to-date
     float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
@@ -3116,9 +3186,14 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // The current RA of the home position, taking tracking-to-date into account
     float homeRA = _zeroPosRA.getTotalHours() + trackedHours;
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: homeRA adjusted by elasped tracking actually represents %f h", homeRA);
 
     // Delta between target RA and home position with a normalized range of -12 hr to 12 hr
     float homeTargetDeltaRA = _targetRA.getTotalHours() - homeRA;
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: CalcSteppersIn: Delta of home to targetRA (%f) is %f (will use to check limits) ",
+        _targetRA.getTotalHours(),
+        homeTargetDeltaRA);
     while (homeTargetDeltaRA > 12)
     {
         homeTargetDeltaRA = homeTargetDeltaRA - 24;
@@ -3143,10 +3218,20 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 
     // Where do we want to move DEC to?
     float moveDEC = decTarget.getTotalDegrees();
+    if (!inNorthernHemisphere)
+    {
+        LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", moveDEC);
+        moveDEC = -moveDEC;
+    }
 
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Target hrs pos RA: %f (regRA: %f), DEC: %f", homeTargetDeltaRA, moveRA, moveDEC);
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: CalcSteppersIn: Target hrs pos RA: Delta:%f (moveRA: %f), DEC: %s (moveDEC: %f)",
+        homeTargetDeltaRA,
+        moveRA,
+        decTarget.ToString(),
+        moveDEC);
 
-/*
+    /*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
   * Since tracking does not trigger the meridian flip, we try to extend the possible tracking time 
   * without reaching the RA ring end by executing the meridian flip before slewing to the target.
@@ -3155,13 +3240,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
-#if NORTHERN_HEMISPHERE == 1
-    float const RALimitL = -RA_LIMIT_LEFT;
-    float const RALimitR = RA_LIMIT_RIGHT;
-#else
-    float const RALimitL = -RA_LIMIT_RIGHT;
-    float const RALimitR = RA_LIMIT_LEFT;
-#endif
+    float const RALimitL = inNorthernHemisphere ? -RA_LIMIT_LEFT : -RA_LIMIT_RIGHT;
+    float const RALimitR = inNorthernHemisphere ? RA_LIMIT_RIGHT : RA_LIMIT_LEFT;
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", RALimitL, RALimitR);
 
     if (pSolutions != nullptr)
@@ -3182,7 +3262,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     if (homeTargetDeltaRA > RALimitR)
     {
         LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: targetRA %f (RA:%f) is past max limit %f  (solution 2)",
+            "[MOUNT]: CalcSteppersIn: Using Solution 2, since hometargetDeltaRA %f (RA:%f) is past max limit %f, inverting both axes",
             homeTargetDeltaRA,
             moveRA,
             RALimitR);
@@ -3196,7 +3276,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     else if (homeTargetDeltaRA < RALimitL)
     {
         LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: targetRA %f (RA:%f) is past min limit: %f, (solution 3)",
+            "[MOUNT]: CalcSteppersIn: Using solution 3 since homeTargetDeltaRA %f (RA:%f) is past min limit: %f, inverting both axes",
             homeTargetDeltaRA,
             moveRA,
             RALimitL);
@@ -3209,19 +3289,20 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     else
     {
         LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: targetRA %f is in range. RA: %f, DEC: %f  (solution 1)",
+            "[MOUNT]: CalcSteppersIn: Using solution 1 since targetRA %f is in range. RA: %f, DEC: %f",
             homeTargetDeltaRA,
             moveRA,
             moveDEC);
     }
 
-    moveDEC -= _zeroPosDEC;  // deg
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: _zeroPosDEC: %f", _zeroPosDEC);
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted moveDEC: %f", moveDEC);
+    // zeroPosDEC will be zero unless one or more Sync commands have moved it, in which case it is the
+    // accumulated offset from zero (home) in degrees.
+    moveDEC -= _zeroPosDEC;
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: adjusted DEC by _zeroPosDEC: %f => DEC: %f", _zeroPosDEC, moveDEC);
 
     targetRASteps  = -moveRA * stepsPerSiderealHour;
     targetDECSteps = moveDEC * _stepsPerDECDegree;
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: Target Steps RA: %l, DEC: %l", targetRASteps, targetDECSteps);
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: ResultTarget Steps RA: %l, DEC: %l", targetRASteps, targetDECSteps);
 }
 
 /////////////////////////////////
@@ -3309,22 +3390,23 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
             _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
 #endif
-            moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
             _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            _stepperWasRunning = true;
+            moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
 
         case DEC_STEPS:
             {
-                moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
                 _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-                _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                 // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
                 _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
+                _stepperWasRunning = true;
+                moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
+                _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
             }
             break;
 
@@ -3477,21 +3559,15 @@ String Mount::DECString(byte type, byte active)
     Declination dec;
     if ((type & TARGET_STRING) == TARGET_STRING)
     {
-        //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: DECString: TARGET!");
         dec = _targetDEC;
     }
     else
     {
-        //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: DECString: CURRENT!");
         dec = currentDEC();
     }
-    //LOG(DEBUG_INFO, "[MOUNT]: DECString: Precheck  : %s   %s  %dm %ds", dec.ToString(), dec.getDegreesDisplay().c_str(), dec.getMinutes(), dec.getSeconds());
-    // dec.checkHours();
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: DECString: Postcheck : %s", dec.ToString());
 
     dec.formatString(scratchBuffer, formatStringsDEC[type & FORMAT_STRING_MASK]);
 
-    // sprintf(scratchBuffer, formatStringsDEC[type & FORMAT_STRING_MASK], dec.getDegreesDisplay().c_str(), dec.getMinutes(), dec.getSeconds());
     if ((type & FORMAT_STRING_MASK) == LCDMENU_STRING)
     {
         scratchBuffer[active * 4 + (active > 0 ? 1 : 0)] = '>';
@@ -3674,6 +3750,14 @@ DayTime Mount::calculateLst()
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
     DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
+    LOG(DEBUG_INFO,
+        "[MOUNT]: Calculating LST. UTC time: %s. Date: %d-%d-%d. Longitude: %s",
+        timeUTC.ToString(),
+        localDate.year,
+        localDate.month,
+        localDate.day,
+        longitude().ToString());
+    LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
     return lst;
 }
 
@@ -3685,7 +3769,10 @@ DayTime Mount::calculateLst()
 DayTime Mount::calculateHa()
 {
     DayTime lst = calculateLst();
-    return Sidereal::calculateHa(lst.getTotalHours());
+    LOG(DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
+    DayTime ha = Sidereal::calculateHa(lst.getTotalHours());
+    LOG(DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
+    return ha;
 }
 
 /////////////////////////////////
@@ -3752,31 +3839,34 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 // checkRALimit
 //
 /////////////////////////////////
-void Mount::checkRALimit()
+float Mount::checkRALimit()
 {
-    // Check tracking limits every 5 seconds
-    if (millis() - _lastTRKCheck < 5000)
-        return;
     const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
     const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
     const float RALimit      = RA_TRACKING_LIMIT;
-    const float degreePos    = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    float hourPos            = currentRA().getTotalHours();
-    if (NORTHERN_HEMISPHERE ? degreePos < 0 : degreePos > 0)
+    LOG(DEBUG_MOUNT_VERBOSE,
+        "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)",
+        homeRA,
+        _zeroPosRA.getTotalHours(),
+        trackedHours);
+    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
+    float hourPos         = currentRA().getTotalHours();
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: degreePosDec: %f , RA hourpos : %f)", degreePos, hourPos);
+    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
     {
         hourPos -= 12;
         if (hourPos < 0)
             hourPos += 24;
+        LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: switching RA hourPos to: %f", hourPos);
     }
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: homeRA: %f", homeRA);
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: currentRA: %f", currentRA().getTotalHours());
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: currentRA (adjusted): %f", hourPos);
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: RA hourPos (adjusted): %f", hourPos);
     float homeCurrentDeltaRA = homeRA - hourPos;
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: DeltaRA: %f (home:%f - hour:%f)", homeCurrentDeltaRA, homeRA, hourPos);
     while (homeCurrentDeltaRA > 12)
         homeCurrentDeltaRA -= 24;
     while (homeCurrentDeltaRA < -12)
         homeCurrentDeltaRA += 24;
-    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: homeRAdelta: %f", homeCurrentDeltaRA);
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: deltaRA: %f => Check against %f", homeCurrentDeltaRA, RALimit);
 
     if (homeCurrentDeltaRA > RALimit)
     {
@@ -3784,4 +3874,6 @@ void Mount::checkRALimit()
         stopSlewing(TRACKING);
     }
     _lastTRKCheck = millis();
+
+    return RALimit - homeCurrentDeltaRA;
 }
