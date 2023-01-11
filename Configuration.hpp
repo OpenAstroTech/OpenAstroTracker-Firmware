@@ -48,9 +48,9 @@
 #endif
 
 // Default to northern hemisphere
-#ifndef NORTHERN_HEMISPHERE	
+#ifndef NORTHERN_HEMISPHERE
     #define NORTHERN_HEMISPHERE 1
-#endif	
+#endif
 
 /**
  * @brief Display & keypad configuration.
