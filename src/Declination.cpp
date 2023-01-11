@@ -99,16 +99,16 @@ const char *Declination::ToString() const
 Declination Declination::ParseFromMeade(String const &s)
 {
     Declination result;
-    LOG(DEBUG_GENERAL, "[DECLINATION]: Declination.Parse(%s) for %s Hemi", s.c_str(), inNorthernHemisphere ? "N" : "S");
+    LOG(DEBUG_MEADE, "[DECLINATION]: Declination.Parse(%s) for %s Hemi", s.c_str(), inNorthernHemisphere ? "N" : "S");
 
     // Use the DayTime code to parse it...
     DayTime dt = DayTime::ParseFromMeade(s);
-    LOG(DEBUG_GENERAL, "[DECLINATION]: Declination DayTime is %l secs", dt.getTotalSeconds());
+    LOG(DEBUG_MEADE, "[DECLINATION]: Declination DayTime is %l secs", dt.getTotalSeconds());
 
     // ...and then correct for hemisphere
     result.totalSeconds = inNorthernHemisphere ? (arcSecondsPerHemisphere / 2) - labs(dt.getTotalSeconds())
                                                : -(arcSecondsPerHemisphere / 2) + labs(dt.getTotalSeconds());
-    LOG(DEBUG_GENERAL, "[DECLINATION]: Adjust for hemisphere. %s -> %s (%l secs)", s.c_str(), result.ToString(), result.totalSeconds);
+    LOG(DEBUG_MEADE, "[DECLINATION]: Adjust for hemisphere. %s -> %s (%l secs)", s.c_str(), result.ToString(), result.totalSeconds);
     return result;
 }
 
