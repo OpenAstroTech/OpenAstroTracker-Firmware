@@ -249,6 +249,41 @@ void Mount::configureHemisphere(bool inNorthern, bool force)
 
 /////////////////////////////////
 //
+// configureHemisphere
+//
+/////////////////////////////////
+void Mount::configureHemisphere(bool inNorthern, bool force)
+{
+    if ((inNorthernHemisphere != inNorthern) || force)
+    {
+        bool wasTracking = isSlewingTRK();
+        LOG(DEBUG_ANY, "[SYSTEM]: Hemisphere changed (or forced update) to %s.", inNorthern ? "northern" : "southern");
+        LOG(DEBUG_ANY, "[SYSTEM]: Stopping all steppers.");
+        stopSlewing(ALL_DIRECTIONS | TRACKING);
+        waitUntilStopped(ALL_DIRECTIONS);
+        inNorthernHemisphere = inNorthern;
+        bool invertDir       = inNorthernHemisphere ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
+        LOG(DEBUG_ANY, "[SYSTEM]: Configured RA steppers, DIR Invert is %d", invertDir);
+        _stepperRA->setPinsInverted(invertDir, false, false);
+        _stepperTRK->setPinsInverted(invertDir, false, false);
+
+        LOG(DEBUG_ANY, "[SYSTEM]: Reset RA and TRK positions to 0");
+        _stepperTRK->setCurrentPosition(0);
+        _stepperRA->setCurrentPosition(0);
+        if (wasTracking)
+        {
+            LOG(DEBUG_ANY, "[SYSTEM]: Restarting TRK since it was on.");
+            startSlewing(TRACKING);
+        }
+    }
+    else
+    {
+        LOG(DEBUG_ANY, "[SYSTEM]: Already in %s hemisphere, no action taken.", inNorthernHemisphere ? "northern" : "southern");
+    }
+}
+
+/////////////////////////////////
+//
 // configureRAStepper
 //
 /////////////////////////////////
