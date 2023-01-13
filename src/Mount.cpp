@@ -208,6 +208,8 @@ void Mount::readPersistentData()
         _decUpperLimit = static_cast<long>(DEC_LIMIT_UP * _stepsPerDECDegree);
     }
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %l -> %l", _decLowerLimit, _decUpperLimit);
+
+    configureHemisphere(_latitude.getTotalHours() > 0);
 }
 
 /////////////////////////////////
