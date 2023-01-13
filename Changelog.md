@@ -1,3 +1,6 @@
+**V1.12.7 - Updates**
+- Fixed a bug where southern hemisphere setting would not persist between session.
+
 **V1.12.6 - Updates**
 - Fixed all known issues related to running in the southern hemisphere.
 - Added support for DIR inversion to interrupt stepper library.
