@@ -1,3 +1,6 @@
+**V1.12.8 - Updates**
+- Fixed compile error caused by GPS being enabled in RAMPS environment.
+
 **V1.12.7 - Updates**
 - Fixed a bug where southern hemisphere setting would not persist between session.
 
