@@ -299,14 +299,32 @@ void setup()
 
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA.");
+    LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", RA_TRANSMISSION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Ra::DRIVER_SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Ra::DRIVER_SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Ra::SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk         : %f", config::Ra::SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Ra::SPEED_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Ra::SPEED_TRK);
+    
     mount.configureRAStepper(RAmotorPin1, RAmotorPin2, config::Ra::SPEED_SLEW, RA_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.
 #endif
 
 #if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA.");
+    LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", DEC_TRANSMISSION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", DEC_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Dec::DRIVER_SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Dec::DRIVER_SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Dec::SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk         : %f", config::Dec::SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Dec::SPEED_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Dec::SPEED_TRK);
+
     mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEW, DEC_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.

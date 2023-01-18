@@ -1,3 +1,7 @@
+**V1.12.9 - Updates**
+- Fixed integer size mismatch for RA and DEC speeds. This caused integer overflows when RA was configured for 256 step microstepping.
+- Added some logging at boot to show stepper variables.
+
 **V1.12.8 - Updates**
 - Fixed compile error caused by GPS being enabled in RAMPS environment.
 

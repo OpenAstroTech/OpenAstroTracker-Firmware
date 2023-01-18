@@ -1342,9 +1342,9 @@ void Mount::startSlewingToTarget()
     stopGuiding();
 
     // Make sure we're slewing at full speed on a GoTo
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set DEC to MaxSpeed(%d)", _maxDECSpeed);
+    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set DEC to MaxSpeed(%l)", _maxDECSpeed);
     _stepperDEC->setMaxSpeed(_maxDECSpeed);
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set RA  to MaxSpeed(%d)", _maxRASpeed);
+    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set RA  to MaxSpeed(%l)", _maxRASpeed);
     _stepperRA->setMaxSpeed(_maxRASpeed);
 
     // Calculate new RA stepper target (and DEC). We are never in guiding mode here.
@@ -1401,9 +1401,9 @@ void Mount::startSlewingToHome()
     stopGuiding();
 
     // Make sure we're slewing at full speed on a GoTo
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set DEC to MaxSpeed(%d)", _maxDECSpeed);
+    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set DEC to MaxSpeed(%l)", _maxDECSpeed);
     _stepperDEC->setMaxSpeed(_maxDECSpeed);
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set RA  to MaxSpeed(%d)", _maxRASpeed);
+    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set RA  to MaxSpeed(%l)", _maxRASpeed);
     _stepperRA->setMaxSpeed(_maxRASpeed);
 
     _currentRAStepperPosition = _stepperRA->currentPosition();
@@ -1629,8 +1629,8 @@ void Mount::setManualSlewMode(bool state)
         _mountStatus &= ~STATUS_SLEWING_MANUAL;
         stopSlewing(ALL_DIRECTIONS);
         waitUntilStopped(ALL_DIRECTIONS);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: setManualSlewMode: Set RA  speed/accel:  %f  / %f", _maxRASpeed, _maxRAAcceleration);
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: setManualSlewMode: Set DEC speed/accel:  %f  / %f", _maxDECSpeed, _maxDECAcceleration);
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: setManualSlewMode: Set RA  speed/accel:  %l  / %l", _maxRASpeed, _maxRAAcceleration);
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: setManualSlewMode: Set DEC speed/accel:  %l  / %l", _maxDECSpeed, _maxDECAcceleration);
         _stepperRA->setAcceleration(_maxRAAcceleration);
         _stepperRA->setMaxSpeed(_maxRASpeed);
         _stepperDEC->setMaxSpeed(_maxDECSpeed);

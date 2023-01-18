@@ -484,13 +484,13 @@ class Mount
     LcdMenu *_lcdMenu;
     float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
     float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
-    int _maxRASpeed;
-    int _maxDECSpeed;
+    uint32_t _maxRASpeed;
+    uint32_t _maxDECSpeed;
     int _maxAZSpeed;
     int _maxALTSpeed;
     int _maxFocusSpeed;
-    int _maxRAAcceleration;
-    int _maxDECAcceleration;
+    uint32_t _maxRAAcceleration;
+    uint32_t _maxDECAcceleration;
     int _maxAZAcceleration;
     int _maxALTAcceleration;
     int _maxFocusAcceleration;
