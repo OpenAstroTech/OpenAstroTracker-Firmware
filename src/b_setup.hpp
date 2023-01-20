@@ -12,8 +12,6 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 #endif
 
-#include "InterruptCallback.hpp"
-
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "a_inits.hpp"
@@ -71,17 +69,6 @@ void IRAM_ATTR stepperControlTask(void *payload)
     }
 }
 
-#else
-// This is the callback function for the timer interrupt on ATMega platforms.
-// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
-// It is called every 500 us (2 kHz rate)
-void stepperControlTimerCallback(void *payload)
-{
-    Mount *mountCopy = reinterpret_cast<Mount *>(payload);
-    if (mountCopy)
-        mountCopy->interruptLoop();
-}
-
 #endif
 
 /////////////////////////////////
@@ -119,6 +106,11 @@ void setup()
     #if defined(DEW_HEATER_2_PIN)
     digitalWrite(DEW_HEATER_2_PIN, HIGH);
     #endif
+#endif
+
+#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+    LOG(DEBUG_ANY, "[SYSTEM]: Init EndSwitches...");
+    mount.setupEndSwitches();
 #endif
 
     /////////////////////////////////
@@ -207,6 +199,10 @@ void setup()
     pinMode(RA_HOMING_SENSOR_PIN, INPUT);
 #endif
 
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
+#endif
+
     LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
     EEPROMStore::initialize();
 
@@ -227,19 +223,31 @@ void setup()
     delay(1000);  // Pause on splash screen
 
     // Check for EEPROM reset (Button down during boot)
+    long lcdCheckStart = millis();
     if (lcdButtons.currentState() == btnDOWN)
     {
-        LOG(DEBUG_INFO, "[SYSTEM]: Erasing configuration in EEPROM!");
-        mount.clearConfiguration();
         // Wait for button release
         lcdMenu.setCursor(13, 1);
         lcdMenu.printMenu("CLR");
-        LOG(DEBUG_INFO, "[SYSTEM]: Waiting for button release!");
+        LOG(DEBUG_INFO, "[SYSTEM]: DOWN pressed, waiting for button release!");
+        bool timedOut = false;
         while (lcdButtons.currentState() != btnNONE)
         {
             delay(10);
+            // Wait 3s maximum for button to be released.
+            if (millis() - lcdCheckStart > 3000)
+            {
+                LOG(DEBUG_INFO, "[SYSTEM]: Timedout waiting for button release. LCD not installed?");
+                timedOut = true;
+                break;
+            }
         }
-        LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
+        if (!timedOut)
+        {
+            LOG(DEBUG_INFO, "[SYSTEM]: Erasing configuration in EEPROM!");
+            mount.clearConfiguration();
+            LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
+        }
     }
 
     // Create the LCD top-level menu items
@@ -291,15 +299,33 @@ void setup()
 
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
-    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA.");
+    LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", RA_TRANSMISSION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Ra::DRIVER_SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Ra::DRIVER_SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Ra::SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk         : %f", config::Ra::SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Ra::SPEED_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Ra::SPEED_TRK);
+
+    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, config::Ra::SPEED_SLEW, RA_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.
 #endif
 
 #if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
-    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA.");
+    LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", DEC_TRANSMISSION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", DEC_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Dec::DRIVER_SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Dec::DRIVER_SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Dec::SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk         : %f", config::Dec::SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Dec::SPEED_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Dec::SPEED_TRK);
+
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEW, DEC_STEPPER_ACCELERATION);
 #else
     #error New stepper type? Configure it here.
 #endif
@@ -389,13 +415,6 @@ void setup()
                             2,                   // Priority (2 is higher than 1)
                             &StepperTask,        // The location that receives the thread id
                             0);                  // The core to run this on
-
-#else
-    // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
-    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
-    {
-        LOG(DEBUG_MOUNT, "[SYSTEM]: CANNOT setup interrupt timer!");
-    }
 #endif
 
 #if UART_CONNECTION_TEST_TX == 1

@@ -266,13 +266,12 @@ void loop()
     }
 }
 
-#else  // DISPLAY not NONE
+#else
 
+// No display present.
 void loop()
 {
-    #ifdef ESP32
     serialLoop();
-    #endif
 }
 
 #endif

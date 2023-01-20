@@ -35,11 +35,11 @@ Latitude Latitude::ParseFromMeade(String const &s)
 {
     Latitude result(0.0);
 
-    LOG(DEBUG_GENERAL, "[LATITUDE]: Latitude.Parse(%s)", s.c_str());
+    LOG(DEBUG_MEADE, "[LATITUDE]: Latitude.Parse(%s)", s.c_str());
     // Use the DayTime code to parse it.
     DayTime dt          = DayTime::ParseFromMeade(s);
     result.totalSeconds = dt.getTotalSeconds();
     result.checkHours();
-    LOG(DEBUG_GENERAL, "[LATITUDE]: Latitude.Parse(%s) -> %s", s.c_str(), result.ToString());
+    LOG(DEBUG_MEADE, "[LATITUDE]: Latitude.Parse(%s) -> %s", s.c_str(), result.ToString());
     return result;
 }

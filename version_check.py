@@ -2,13 +2,13 @@
 
 import sys
 import argparse
+import fnmatch
 from typing import Optional, Dict
 
 import mistune
 import CppHeaderParser
 import semver
 import git
-
 
 parser = argparse.ArgumentParser(description='''Check that the versioning of the repo has been correctly changed.
 Intended to run in a PR CI''')
@@ -32,6 +32,45 @@ class SemVerWithVPrefix(semver.VersionInfo):
 
     def __str__(self):
         return 'V' + super(SemVerWithVPrefix, self).__str__()
+
+
+def only_changed_non_fw_files(refspec: str) -> bool:
+    print('Checking if the files changed impact the firmware...')
+    repo = git.Repo('.')
+    index = repo.index
+    origin_develop_commit = repo.commit(refspec)
+
+    # index vs working copy (unstaged files)
+    changed_but_not_staged = [item.a_path for item in index.diff(None)]
+    # index vs current HEAD tree (staged files)
+    changed_and_staged = [item.a_path for item in index.diff('HEAD')]
+    # origin vs current HEAD tree (files changed in the branch)
+    branch_files_changed = [item.a_path for item in origin_develop_commit.diff('HEAD')]
+
+    print(f'Unstaged changes: {changed_but_not_staged}')
+    print(f'Staged changes: {changed_and_staged}')
+    print(f'Changed in branch: {branch_files_changed}')
+
+    all_changed_filenames = changed_but_not_staged + changed_and_staged + branch_files_changed
+    print(f'Total changed files: {all_changed_filenames}')
+
+    non_fw_globs = [
+        # non-build Python scripts (pre/post Platformio scripts still affect the build process)
+        'matrix_build*.py', 'version_check.py', 'scripts/MeadeCommandParser.py',
+        # prose text files
+        '*.md', 'LICENSE', '.mailmap',
+        # build system
+        '.github/*.yml', 'requirements_*.txt',
+        # misc tooling files
+        '.gitignore', '.git-blame-ignore-revs',
+    ]
+    for changed_filename in all_changed_filenames:
+        if not any(fnmatch.fnmatch(changed_filename, non_fw_glob) for non_fw_glob in non_fw_globs):
+            # If the changed file isn't a non-FW file (==> is a FW file)
+            # then we need to do the full version check
+            print(f"Changed file {changed_filename} will affect firmware ({non_fw_globs})")
+            return False
+    return True
 
 
 def get_header_defines(header_contents: str) -> Dict[str, str]:
@@ -91,6 +130,9 @@ def get_previous_header_version(version_header_path: str, refspec: str) -> semve
 
 
 def main():
+    if only_changed_non_fw_files(args.branchspec):
+        print('No FW files changed, not checking version.')
+        return
     version_header_path = './Version.h'
     # Get the current version from the header
     print(f'Checking current header version from {version_header_path}')

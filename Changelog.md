@@ -1,17 +1,62 @@
+**V1.12.9 - Updates**
+- Fixed integer size mismatch for RA and DEC speeds. This caused integer overflows when RA was configured for 256 step microstepping.
+- Added some logging at boot to show stepper variables.
+
+**V1.12.8 - Updates**
+- Fixed compile error caused by GPS being enabled in RAMPS environment.
+
+**V1.12.7 - Updates**
+- Fixed a bug where southern hemisphere setting would not persist between session.
+
+**V1.12.6 - Updates**
+- Fixed all known issues related to running in the southern hemisphere.
+- Added support for DIR inversion to interrupt stepper library.
+- Hemisphere no longer needs to be defined in config, firmware determines it automatically from the given Latitude, switching at the equator.
+- Fixed the logic in Sync call to account for both hemispheres.
+- Fixed some logic that stopped tracking when setting home position.
+- Fixed a bug that caused the firmware to fail to recognize the end of very short slews.
+- Added Meade Extension command to query remaining tracking time
+- Added Meade Extension command to query the hemisphere that is set.
+
+**V1.12.5 - Updates**
+- Bound interrupt stepper library to version 0.0.1.
+
+**V1.12.4 - Updates**
+- Fixed a bug that incorrectly stopped the RA motor after issuing a DEC move.
+
+**V1.12.3 - Updates**
+- Fixed a bug that incorrectly calculated minimum stepper frequency. This caused Tracking to never run.
+
+**V1.12.2 - Updates**
+- Fixed a bug that caused Focuser stepper to misbehave after booting.
+
+**V1.12.1 - Updates**
+- Fixed a bug that caused Autohoming to cause a build break.
+- Fixed a bug that would prevent Hall sensor based Autohoming from completing.
+
 **V1.12.0 - Updates**
-- Added RA Autohoming support to Guided startup
-- Added DEC Offset homing support to Guided startup
-- Defaulted Auto-home questions to YES on LCD during Guided Startup
-- Fixed bug that did not honor TrackingOffOnBoot flag when using Guided startup
-- Added DEC Offset homing support to CTRL menu
-- Removed SetParkingPos from CAL menu
-- Added SetDecHomingOffset to CAL menu
-- Fixed Park command to actually park DEC after homing
-- Fixed a bug that made DEC parking go in the wrong direction
-- Made Unpark go to home position after enabling Tracking
-- Fixed SetLimit commands to actually use passed limits
-- Fixed bug that did not change submenu items in the CTRL menu as button up and down were pressed
-- Renamed some menu items for clarity and consistency
+- Rewrite of the Stepper driver logic on ATMega2560 based boards.
+  - Now using https://github.com/andre-stefanov/avr-interrupt-stepper instead of AccelStepper.
+  - Now using dynamic interrupts instead of main loop for stepping control.
+  - The maximum stepping rate (in total) increased drastically (theoretically up to 80.000 steps/s but it is recommended to stay under 40.000 to keep UART stable).
+  - Improved stepping frequency stability and thus tracking speed accuracy.
+  - ESP32 still uses AccelStepper (likely to change in future releases).
+- Added CONFIG_VERSION validation to allow breaking changes in local configurations.
+
+**V1.11.15 - Updates**
+- Add DEC Autohoming via Hall sensor (same as RA Autohoming)
+
+**V1.11.14 - Updates**
+- Prevented firmware from hanging at boot if LCD is defined but not connected.
+- Fixed a (rare) bug that would throw off GoTo commands when a target coordinate had been set.
+
+**V1.11.13 - Updates**
+- Added end switch support for RA and DEC.
+- Guide pulses are only executed when tracking.
+
+**V1.11.12 - Updates**
+- Change DEC limit code to return degrees instead of stepper positions. 
+- Support separate limits for DEC Limits being queried.
 
 **V1.11.11 - Updates**
 - Fix DEC limit code to use parameters.

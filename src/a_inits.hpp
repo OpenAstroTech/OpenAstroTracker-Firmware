@@ -2,9 +2,6 @@
 
 #include "../Configuration.hpp"
 #include "inc/Globals.hpp"
-PUSH_NO_WARNINGS
-#include <AccelStepper.h>
-POP_NO_WARNINGS
 
 #include "Utility.hpp"
 #include "DayTime.hpp"

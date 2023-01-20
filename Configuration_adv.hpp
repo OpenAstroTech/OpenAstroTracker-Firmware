@@ -160,6 +160,26 @@
     #define DEC_WHEEL_CIRCUMFERENCE 565.5f
 #endif
 
+#ifndef RA_TRANSMISSION
+    #define RA_TRANSMISSION (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH))
+#endif
+
+#ifndef RA_SLEWING_SPEED_DEG
+    #define RA_SLEWING_SPEED_DEG 4.0f  // deg/s
+#endif
+
+#ifndef RA_SLEWING_ACCELERATION_DEG
+    #define RA_SLEWING_ACCELERATION_DEG 4.0f  // deg/s/s
+#endif
+
+#ifndef DEC_SLEWING_SPEED_DEG
+    #define DEC_SLEWING_SPEED_DEG 4.0f  // deg/s
+#endif
+
+#ifndef DEC_SLEWING_ACCELERATION_DEG
+    #define DEC_SLEWING_ACCELERATION_DEG 4.0f  // deg/s/s
+#endif
+
 // RA movement:
 // The radius of the surface that the belt runs on (in V1 of the ring) was 168.24mm.
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
@@ -170,8 +190,7 @@
 // Theoretically correct RA tracking speed is 1.246586 (300 x 14.95903 / 3600) (V2 : 1.333800 (322 x 14.95903 / 3600) steps/sec (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef RA_STEPS_PER_DEGREE
-    #define RA_STEPS_PER_DEGREE                                                                                                            \
-        (RA_WHEEL_CIRCUMFERENCE / (RA_PULLEY_TEETH * GT2_BELT_PITCH) * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
+    #define RA_STEPS_PER_DEGREE (RA_TRANSMISSION * RA_STEPPER_SPR * RA_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 // RA limits
@@ -184,6 +203,11 @@
 #ifndef RA_TRACKING_LIMIT
     #define RA_TRACKING_LIMIT 7.0f
 #endif
+
+#ifndef DEC_TRANSMISSION
+    #define DEC_TRANSMISSION (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH))
+#endif
+
 // DEC movement:
 // Belt moves 40mm for one stepper revolution (2mm pitch, 20 teeth).
 // DEC wheel is 2 x PI x 90mm circumference which is 565.5mm
@@ -192,8 +216,7 @@
 // So there are 160.85 steps/degree (57907/360) (this is for 20T)
 // Include microstepping ratio here such that steps/sec is updates/sec to stepper driver
 #ifndef DEC_STEPS_PER_DEGREE
-    #define DEC_STEPS_PER_DEGREE                                                                                                           \
-        (DEC_WHEEL_CIRCUMFERENCE / (DEC_PULLEY_TEETH * GT2_BELT_PITCH) * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
+    #define DEC_STEPS_PER_DEGREE (DEC_TRANSMISSION * DEC_STEPPER_SPR * DEC_SLEW_MICROSTEPPING / 360.0f)
 #endif
 
 #ifndef DEC_LIMIT_UP
@@ -276,17 +299,17 @@
 // Enable Azimuth motor functionality in your local Configuration. Do not edit here!
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
     #ifndef AZ_MICROSTEPPING
-        #define AZ_MICROSTEPPING 64.0f
+        #define AZ_MICROSTEPPING 64
     #endif
     #ifndef AZ_STEPPER_SPR
         #define AZ_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef AZ_STEPPER_SPEED
         #define AZ_STEPPER_SPEED                                                                                                           \
-            100 * AZ_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+            (100 * AZ_MICROSTEPPING)  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
     #endif
     #ifndef AZ_STEPPER_ACCELERATION
-        #define AZ_STEPPER_ACCELERATION 100 * AZ_MICROSTEPPING
+        #define AZ_STEPPER_ACCELERATION (100 * AZ_MICROSTEPPING)
     #endif
 
     // the Circumference of the AZ rotation. 808mm dia.
@@ -325,17 +348,16 @@
 // Enable Altitude motor functionality in your local configuration. Do not edit here!
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #ifndef ALT_MICROSTEPPING
-        #define ALT_MICROSTEPPING 4.0f
+        #define ALT_MICROSTEPPING 4
     #endif
     #ifndef ALT_STEPPER_SPR
         #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef ALT_STEPPER_SPEED
-        #define ALT_STEPPER_SPEED                                                                                                          \
-            3000 * ALT_MICROSTEPPING  // You can change the speed and acceleration of the steppers here. Max. Speed = 3000.
+        #define ALT_STEPPER_SPEED 2000
     #endif
     #ifndef ALT_STEPPER_ACCELERATION
-        #define ALT_STEPPER_ACCELERATION 100 * ALT_MICROSTEPPING
+        #define ALT_STEPPER_ACCELERATION 2000
     #endif
 
     // the Circumference of the AZ rotation. 770mm dia.
@@ -355,8 +377,11 @@
 
     #define ALTITUDE_STEPS_PER_REV                                                                                                         \
         (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING           \
-         * ALT_WORMGEAR_RATIO)                                                      // Actually u-steps/rev
-    #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+         * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+
+    #ifndef ALTITUDE_STEPS_PER_ARC_MINUTE
+        #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    #endif
 
     // ALT TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
@@ -429,6 +454,37 @@
 // Enable homing in your local configuration. Do not edit here!
 #ifndef USE_HALL_SENSOR_RA_AUTOHOME
     #define USE_HALL_SENSOR_RA_AUTOHOME 0
+#endif
+
+//////////////////////////////////////////
+// DEC Homing support
+//////////////////////////////////////////
+// Enable homing in your local configuration. Do not edit here!
+#ifndef USE_HALL_SENSOR_DEC_AUTOHOME
+    #define USE_HALL_SENSOR_DEC_AUTOHOME 0
+#endif
+
+// RA EndSwitch support
+//////////////////////////////////////////
+// Enable RA End Switches in your local configuration. Do not edit here!
+#ifndef USE_RA_END_SWITCH
+    #define USE_RA_END_SWITCH 0
+#else
+    #ifndef RA_END_SWITCH_ACTIVE_STATE
+        #define RA_END_SWITCH_ACTIVE_STATE LOW
+    #endif
+#endif
+
+//////////////////////////////////////////
+// DEC EndSwitch support
+//////////////////////////////////////////
+// Enable DEC End Switches in your local configuration. Do not edit here!
+#ifndef USE_DEC_END_SWITCH
+    #define USE_DEC_END_SWITCH 0
+#else
+    #ifndef DEC_END_SWITCH_ACTIVE_STATE
+        #define DEC_END_SWITCH_ACTIVE_STATE LOW
+    #endif
 #endif
 
 //////////////////////////////////////////
@@ -525,13 +581,7 @@
 
 // GPS
 #if USE_GPS == 1
-    #if defined(ESP32)
-        #define GPS_SERIAL_PORT Serial2  // TODO: Resolve potential conflict with RA_SERIAL_PORT & DEC_SERIAL_PORT
-        #define GPS_BAUD_RATE   9600
-    #elif defined(__AVR_ATmega2560__)
-        #define GPS_SERIAL_PORT Serial1
-        #define GPS_BAUD_RATE   9600
-    #endif
+    #define GPS_BAUD_RATE 9600
 #endif
 
 ////////////////////////////

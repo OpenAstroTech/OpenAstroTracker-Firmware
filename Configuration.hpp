@@ -47,7 +47,7 @@
     #error You have to specify the board
 #endif
 
-// Set to 1 for the northern hemisphere, 0 otherwise
+// Default to northern hemisphere
 #ifndef NORTHERN_HEMISPHERE
     #define NORTHERN_HEMISPHERE 1
 #endif
@@ -205,6 +205,10 @@
 // Enable dew heater output (for boards that have MOSFETs)
 #ifndef DEW_HEATER
     #define DEW_HEATER 0
+#endif
+
+#ifndef SIDEREAL_SECONDS_PER_DAY
+    #define SIDEREAL_SECONDS_PER_DAY 86164.0905f
 #endif
 
 // These values are needed to calculate the current position during initial alignment.
