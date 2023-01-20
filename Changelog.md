@@ -1,3 +1,6 @@
+**V1.12.10 - Updates**
+- Fixed a problem where slewing to targets more than 90degrees from the pole (in either hemisphere) would result in a target mirrored around the 'equator'.
+
 **V1.12.9 - Updates**
 - Fixed integer size mismatch for RA and DEC speeds. This caused integer overflows when RA was configured for 256 step microstepping.
 - Added some logging at boot to show stepper variables.
