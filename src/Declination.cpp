@@ -106,8 +106,8 @@ Declination Declination::ParseFromMeade(String const &s)
     LOG(DEBUG_MEADE, "[DECLINATION]: Declination DayTime is %l secs", dt.getTotalSeconds());
 
     // ...and then correct for hemisphere
-    result.totalSeconds = inNorthernHemisphere ? (arcSecondsPerHemisphere / 2) - labs(dt.getTotalSeconds())
-                                               : -(arcSecondsPerHemisphere / 2) + labs(dt.getTotalSeconds());
+    result.totalSeconds = inNorthernHemisphere ? (arcSecondsPerHemisphere / 2) - dt.getTotalSeconds()
+                                               : -(arcSecondsPerHemisphere / 2) + dt.getTotalSeconds();
     LOG(DEBUG_MEADE, "[DECLINATION]: Adjust for hemisphere. %s -> %s (%l secs)", s.c_str(), result.ToString(), result.totalSeconds);
     return result;
 }
