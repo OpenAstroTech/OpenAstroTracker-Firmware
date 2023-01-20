@@ -170,7 +170,7 @@ bool processControlKeys()
                     lcdMenu.setCursor(0, 0);
                     lcdMenu.printMenu("RA Homing...");
                     mount.stopSlewing(ALL_DIRECTIONS);
-                    mount.findRAHomeByHallSensor(-1, 2);  // Search 2hrs by default
+                    mount.findHomeByHallSensor(StepperAxis::RA_STEPS, -1, 2);  // Search 2hrs by default
                 }
                 else if (key == btnDOWN)
                 {
