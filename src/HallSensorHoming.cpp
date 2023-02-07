@@ -65,7 +65,7 @@ bool HallSensorHoming::findHomeByHallSensor(int initialDirection, int searchDist
         searchDistance);
 
     // Check where we are over the sensor already
-    if (digitalRead(_sensorPin) == LOW)
+    if (digitalRead(_sensorPin) == _activeState)
     {
         _homingData.state = HomingState::HOMING_MOVE_OFF;
         LOG(DEBUG_STEPPERS, "[HOMING]: Sensor is signalled, move off sensor started");
@@ -133,7 +133,7 @@ void HallSensorHoming::processHomingProgress()
                 if (_pMount->isAxisRunning(_axis))
                 {
                     int homingPinState = digitalRead(_sensorPin);
-                    if (homingPinState == HIGH)
+                    if (homingPinState != _activeState)
                     {
                         LOG(DEBUG_STEPPERS,
                             "[HOMING]: Stepper has moved off sensor... stopping in 2s. Advance to %s",

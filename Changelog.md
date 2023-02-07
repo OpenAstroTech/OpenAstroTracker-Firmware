@@ -1,3 +1,6 @@
+**V1.12.11 - Updates**
+- Allowed the active state of the hall sensors for auto homing RA and DEC to be configured.
+
 **V1.12.10 - Updates**
 - Fixed a problem where slewing to targets more than 90degrees from the pole (in either hemisphere) would result in a target mirrored around the 'equator'.
 
