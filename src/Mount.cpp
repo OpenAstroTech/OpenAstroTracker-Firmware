@@ -2496,7 +2496,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
             delete _raHoming;
         }
         int32_t offset = EEPROMStore::getRAHomingOffset();
-        _raHoming      = new HallSensorHoming(this, axis, _stepsPerRADegree, RA_HOMING_SENSOR_PIN, offset);
+        _raHoming      = new HallSensorHoming(this, axis, _stepsPerRADegree, RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE, offset);
         return _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
     }
     #endif
@@ -2509,7 +2509,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
             delete _decHoming;
         }
         int32_t offset = EEPROMStore::getDECHomingOffset();
-        _decHoming     = new HallSensorHoming(this, axis, _stepsPerDECDegree, DEC_HOMING_SENSOR_PIN, offset);
+        _decHoming = new HallSensorHoming(this, axis, _stepsPerDECDegree, DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE, offset);
         return _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
     }
     #endif
