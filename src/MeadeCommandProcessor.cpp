@@ -93,7 +93,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get the Product Name
 //      Returns:
-//        "OpenAstroTracker#"
+//        "OpenAstroTracker#" if the firmware was compiled for OAT
+//        "OpenAstroMount#" if the firmware was compiled for OAM
 //
 // :GVN#
 //      Description:
@@ -829,8 +830,9 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "<RAHallSensor info>" is either NO_HSAH or HSAH depending on whether the Hall sensor based auto homing for RA is enabled
 //        "<Endswitch info>" is either NO_ENDSW or ENDS_RA, ENDSW_DEC, or ENDSW_RA_DEC depending on which axis have end switches installed
 //      Remarks
-//        As OAT firmware supports more features, these may be appended, separated by a comma. Any further features will
+//        As OAT/OAM firmware supports more features, these may be appended, separated by a comma. Any further features will
 //        have a 'NO_xxxxx' if the feature is not supported.
+//        To differentiate between OAT and OAM, use the Get Product Name (#GVP) command.
 //      Example:
 //        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO,NO_LCD,NO_FOC,NO_ENDSW#"
 //
@@ -1156,7 +1158,11 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
             else if (cmdTwo == 'P')  // :GVP
             {
+                #ifdef OAM
+                return "OpenAstroMount#";
+                #else
                 return "OpenAstroTracker#";
+                #endif
             }
             break;
 
