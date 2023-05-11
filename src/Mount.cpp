@@ -2292,14 +2292,20 @@ void Mount::startSlewing(int direction)
 
             if (direction & EAST)
             {
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing(E): initial targetMoveTo is %l", -sign * 300000);
-                _stepperRA->moveTo(-sign * 300000);
+                // We need to subtract the distance tracked from the physical RA home coordinate
+                float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+                long targetEastPos = _stepsPerRADegree * 15.0 * (RA_PHYSICAL_LIMIT + trackedHours);
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing(E): initial targetMoveTo is %l (adjusted for %fh tracked)", -sign * targetEastPos, trackedHours);
+                _stepperRA->moveTo(-sign * targetEastPos);
                 _mountStatus |= STATUS_SLEWING;
             }
             if (direction & WEST)
             {
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing(W): initial targetMoveTo is %l", sign * 300000);
-                _stepperRA->moveTo(sign * 300000);
+                // We need to add the distance tracked from the physical RA home coordinate
+                float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+                long targetWestPos = _stepsPerRADegree * 15.0 * (min(RA_PHYSICAL_LIMIT, RA_TRACKING_LIMIT) - trackedHours);
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing(W): initial targetMoveTo is %l (adjusted for %fh tracked)", sign * targetWestPos, trackedHours);
+                _stepperRA->moveTo(sign * targetWestPos);
                 _mountStatus |= STATUS_SLEWING;
             }
         }
@@ -2765,19 +2771,35 @@ void Mount::loop()
             checkRALimit();
         }
 
-        if (_mountStatus & STATUS_SLEWING_MANUAL)
-        {
-            if (_stepperWasRunning)
-            {
-                _mountStatus &= ~(STATUS_SLEWING);
-            }
-        }
-        else
+        // if (_mountStatus & STATUS_SLEWING_MANUAL)
+        // {
+        //     if (_stepperWasRunning)
+        //     {
+        //         _mountStatus &= ~(STATUS_SLEWING);
+
+        //         LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+        //             "[MOUNT]: Loop: Manual slew stopped at  RA:%l, DEC:%l",
+        //             _stepperRA->currentPosition(),
+        //             _stepperDEC->currentPosition());
+
+        //         LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Manual Slew stopped. RA driver setMicrosteps(%d)", RA_TRACKING_MICROSTEPPING);
+        //         _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
+
+        //         if (_compensateForTrackerOff)
+        //         {
+        //             // Since this was a manual slew, we can compensate for the tracking being off by just setting the stepper,
+        //             LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Tracker was on, restarting");
+        //             _compensateForTrackerOff = false;
+        //             startSlewing(TRACKING);
+        //         }
+        //     }
+        // }
+        // else
         {
             //
             // Arrived at target after Slew!
             //
-            _mountStatus &= ~(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
+            _mountStatus &= ~(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET | STATUS_SLEWING_MANUAL);
 
             if (_stepperWasRunning)
             {
@@ -2817,19 +2839,25 @@ void Mount::loop()
                         now                             = millis();
                         unsigned long elapsed           = now - _trackerStoppedAt;
                         unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
-                        LOG(DEBUG_STEPPERS,
-                            "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms (%l steps), compensating.",
-                            now,
-                            elapsed,
-                            compensationSteps);
 
                         // calculate compensation distance by including tracking steps done during compensation
                         // to avoid another difference after compensation
                         long totalCompensationSteps
                             = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
+
+                        LOG(DEBUG_STEPPERS,
+                            "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms, result in %l steps (%l total) at speed %f, "
+                            "compensating.",
+                            now,
+                            elapsed,
+                            compensationSteps,
+                            totalCompensationSteps,
+                            config::Ra::SPEED_COMPENSATION);
+
                         _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
                         _stepperTRK->move(totalCompensationSteps);
                         _stepperTRK->runToPosition();
+                        LOG(DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
                         _compensateForTrackerOff = false;
                     }
 
@@ -2848,7 +2876,7 @@ void Mount::loop()
                 if (_correctForBacklash)
                 {
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
-                        "[MOUNT]: Loop:   Reached target at %d. Compensating by %d",
+                        "[MOUNT]: Loop:   Reached target at %d. Compensating for backlash by %d",
                         (int) _currentRAStepperPosition,
                         _backlashCorrectionSteps);
                     _currentRAStepperPosition += _backlashCorrectionSteps;
