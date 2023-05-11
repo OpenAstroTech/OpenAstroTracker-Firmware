@@ -40,8 +40,8 @@ struct Ra {
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
     using stepper_trk  = Stepper<interrupt, driver, ramp_trk>;
 
-    constexpr static float SPEED_COMPENSATION
-        = static_cast<float>(interrupt::FREQ) / static_cast<float>(ramp_slew::interval(1)) - (SPEED_TRK * 2.0f);
+    constexpr static float SPEED_COMPENSATION = SPEED_SLEW;
+         // = static_cast<float>(interrupt::FREQ) / static_cast<float>(ramp_slew::interval(1)) - (SPEED_TRK * 2.0f);
 #else
     constexpr static float SPEED_COMPENSATION = SPEED_SLEW;
 #endif

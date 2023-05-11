@@ -263,7 +263,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
     _maxRASpeed        = maxSpeed;
     _maxRAAcceleration = maxAcceleration;
 
-    _stepperTRK->setMaxSpeed(2000);
+    _stepperTRK->setMaxSpeed(5000);
     _stepperTRK->setAcceleration(15000);
 
     configureHemisphere(inNorthernHemisphere, true);
@@ -283,8 +283,8 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
     _maxDECSpeed        = maxSpeed;
     _maxDECAcceleration = maxAcceleration;
 
-    _stepperGUIDE->setMaxSpeed(2000);
-    _stepperGUIDE->setAcceleration(15000);
+    _stepperGUIDE->setMaxSpeed(maxSpeed);
+    _stepperGUIDE->setAcceleration(maxAcceleration);
 
 #if DEC_INVERT_DIR == 1
     _stepperDEC->setPinsInverted(true, false, false);
@@ -817,7 +817,7 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
 
     // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
-    // Also compensate for higher precision microstepping in tracking mode
+    // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
                      / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);

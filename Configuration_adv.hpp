@@ -147,12 +147,14 @@
 #define GT2_BELT_PITCH 2.0f  // mm
 
 // the Circumference of the RA wheel.  V1 = 1057.1  |  V2 = 1131.0
-#if RA_WHEEL_VERSION == 1
-    #define RA_WHEEL_CIRCUMFERENCE 1057.1f
-#elif RA_WHEEL_VERSION >= 2
-    #define RA_WHEEL_CIRCUMFERENCE 1132.73f
-#else
-    #error Unsupported RA wheel version, please recheck RA_WHEEL_VERSION
+#ifndef RA_WHEEL_CIRCUMFERENCE
+    #if RA_WHEEL_VERSION == 1
+        #define RA_WHEEL_CIRCUMFERENCE 1057.1f
+    #elif RA_WHEEL_VERSION >= 2
+        #define RA_WHEEL_CIRCUMFERENCE 1132.73f
+    #else
+        #error Unsupported RA wheel version, please recheck RA_WHEEL_VERSION
+    #endif
 #endif
 
 // the Circumference of the DEC wheel.
@@ -321,7 +323,7 @@
     #ifndef AZIMUTH_STEPS_PER_REV
         #define AZIMUTH_STEPS_PER_REV                                                                                                      \
             (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
-             * AZ_MICROSTEPPING)  // Actually u-steps/rev
+             * AZ_MICROSTEPPING)                                                  // Actually u-steps/rev
     #endif
     #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
 
