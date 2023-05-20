@@ -1,5 +1,6 @@
 /**
  * @brief a pins configuration file for an MKS Gen L V2.1 OAT.
+ * https://github.com/makerbase-mks/MKS-GEN_L/blob/master/hardware/MKS%20Gen_L%20V2.0_001/MKS%20Gen_L%20V2.0_001%20PIN.pdf
  */
 
 #pragma once
@@ -183,7 +184,7 @@
 //Serial port for external debugging
 #if DEBUG_SEPARATE_SERIAL == 1
     #ifndef DEBUG_SERIAL_PORT
-        #define DEBUG_SERIAL_PORT Serial3  //D14 (Y-MIN) - TX3 and D15 (Y-MAX) - RX3
+        #define DEBUG_SERIAL_PORT Serial2  //D16 (LCD_RS) - TXD2 and D17 (LCD_EN) - RXD2
     #endif
 #else
     #ifndef DEBUG_SERIAL_PORT

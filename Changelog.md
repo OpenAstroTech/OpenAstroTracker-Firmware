@@ -1,4 +1,7 @@
-**V1.12.11 - Updates**
+**V1.12.12 - Updates**
+- Change MKS Gen L v1.0, v2.0, v2.1 default separate debug serial port from `Serial3` to `Serial2`.
+
+- **V1.12.11 - Updates**
 - Allowed the active state of the hall sensors for auto homing RA and DEC to be configured.
 
 **V1.12.10 - Updates**
