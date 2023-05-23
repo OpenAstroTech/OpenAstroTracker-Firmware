@@ -28,7 +28,7 @@ EndSwitch::EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin, int
 
 /////////////////////////////////
 //
-// processHomingProgress
+// processEndSwitchState
 //
 // This function runs in the interrupt of the stepping code
 // so it needs to be very fast. We only set a flag and remember
@@ -143,7 +143,8 @@ void EndSwitch::checkSwitchState()
             _pMount->mountStatus());
         long currentPos       = _pMount->getCurrentStepperPosition(_dir);
         long backDistance     = _posWhenTriggered - currentPos;
-        long backSlewDistance = (12 * backDistance) / 10;  // Go back 120% distance that we ran past the switch
+        long backslewPercent   = (_axis == StepperAxis::DEC_STEPS) ? DEC_ENDSWITCH_BACKSLEW_PERCENT : RA_ENDSWITCH_BACKSLEW_PERCENT;
+        long backSlewDistance = (backslewPercent * backDistance) / 100;  // Go back distance that we ran past the switch
         LOG(DEBUG_MOUNT,
             "[ENDSWITCH]: Reached maximum at %l. Stopped at %l (%l delta), moving back 1.2x (%l). Stopped tracking (if RA at Max). "
             "State is SWITCH_SLEWING_OFF",

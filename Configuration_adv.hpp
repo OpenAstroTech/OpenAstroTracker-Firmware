@@ -487,6 +487,9 @@
     #ifndef RA_END_SWITCH_ACTIVE_STATE
         #define RA_END_SWITCH_ACTIVE_STATE LOW
     #endif
+    #ifndef RA_ENDSWITCH_BACKSLEW_PERCENT
+        #define RA_ENDSWITCH_BACKSLEW_PERCENT 200
+    #endif
 #endif
 
 //////////////////////////////////////////
@@ -499,6 +502,10 @@
     #ifndef DEC_END_SWITCH_ACTIVE_STATE
         #define DEC_END_SWITCH_ACTIVE_STATE LOW
     #endif
+     #ifndef DEC_ENDSWITCH_BACKSLEW_PERCENT
+        #define DEC_ENDSWITCH_BACKSLEW_PERCENT 200
+    #endif
+   
 #endif
 
 //////////////////////////////////////////
