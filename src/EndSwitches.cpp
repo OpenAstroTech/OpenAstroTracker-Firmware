@@ -143,7 +143,7 @@ void EndSwitch::checkSwitchState()
             _pMount->mountStatus());
         long currentPos       = _pMount->getCurrentStepperPosition(_dir);
         long backDistance     = _posWhenTriggered - currentPos;
-        long backslewPercent   = (_axis == StepperAxis::DEC_STEPS) ? DEC_ENDSWITCH_BACKSLEW_PERCENT : RA_ENDSWITCH_BACKSLEW_PERCENT;
+        long backslewPercent  = (_axis == StepperAxis::DEC_STEPS) ? DEC_ENDSWITCH_BACKSLEW_PERCENT : RA_ENDSWITCH_BACKSLEW_PERCENT;
         long backSlewDistance = (backslewPercent * backDistance) / 100;  // Go back distance that we ran past the switch
         LOG(DEBUG_MOUNT,
             "[ENDSWITCH]: Reached maximum at %l. Stopped at %l (%l delta), moving back 1.2x (%l). Stopped tracking (if RA at Max). "

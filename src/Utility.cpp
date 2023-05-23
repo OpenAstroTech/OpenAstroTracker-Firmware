@@ -363,7 +363,7 @@ void logv(int levelFlags, String input, ...)
 {
     if ((levelFlags & DEBUG_LEVEL) != 0)
     {
-        unsigned long now = millis();
+        unsigned long now   = millis();
         unsigned long delta = now - lastLog;
         va_list argp;
         va_start(argp, input);

@@ -1158,11 +1158,11 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
             else if (cmdTwo == 'P')  // :GVP
             {
-                #ifdef OAM
+#ifdef OAM
                 return "OpenAstroMount#";
-                #else
+#else
                 return "OpenAstroTracker#";
-                #endif
+#endif
             }
             break;
 

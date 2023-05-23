@@ -323,7 +323,7 @@
     #ifndef AZIMUTH_STEPS_PER_REV
         #define AZIMUTH_STEPS_PER_REV                                                                                                      \
             (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
-             * AZ_MICROSTEPPING)                                                  // Actually u-steps/rev
+             * AZ_MICROSTEPPING)  // Actually u-steps/rev
     #endif
     #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
 
@@ -480,8 +480,8 @@
 
 // RA EndSwitch support
 //////////////////////////////////////////
-// End switches allow you to define how many percent of the distance needed to stop 
-// should be reversed to un-signal the end switch. Mechanical end switches will have 
+// End switches allow you to define how many percent of the distance needed to stop
+// should be reversed to un-signal the end switch. Mechanical end switches will have
 // a hysteresis behavior, meaning once signaled, it needs to move well back beyond the
 // signal point to become un-signaled.
 // Enable RA End Switches in your local configuration. Do not edit here!
@@ -499,8 +499,8 @@
 //////////////////////////////////////////
 // DEC EndSwitch support
 //////////////////////////////////////////
-// End switches allow you to define how many percent of the distance needed to stop 
-// should be reversed to un-signal the end switch. Mechanical end switches will have 
+// End switches allow you to define how many percent of the distance needed to stop
+// should be reversed to un-signal the end switch. Mechanical end switches will have
 // a hysteresis behavior, meaning once signaled, it needs to move well back beyond the
 // signal point to become un-signaled.
 // Enable DEC End Switches in your local configuration. Do not edit here!
@@ -510,10 +510,10 @@
     #ifndef DEC_END_SWITCH_ACTIVE_STATE
         #define DEC_END_SWITCH_ACTIVE_STATE LOW
     #endif
-     #ifndef DEC_ENDSWITCH_BACKSLEW_PERCENT
+    #ifndef DEC_ENDSWITCH_BACKSLEW_PERCENT
         #define DEC_ENDSWITCH_BACKSLEW_PERCENT 200
     #endif
-   
+
 #endif
 
 //////////////////////////////////////////

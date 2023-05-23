@@ -399,8 +399,8 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverRA->blank_time(24);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
     _driverRA->fclktrim(4);
-    _driverRA->TCOOLTHRS(0xFFFFF);                                                          //xFFFFF);
-    _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
+    _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverRA->semin(0);            //disable CoolStep so that current is consistent
     _driverRA->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -439,7 +439,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
     _driverRA->fclktrim(4);
-    _driverRA->TCOOLTHRS(0xFFFFF);                                                          //xFFFFF);
+    _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -483,7 +483,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->microsteps(
         DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(0);                                             //disable CoolStep so that current is consistent
+    _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -522,7 +522,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->microsteps(
         DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(0);                                             //disable CoolStep so that current is consistent
+    _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -1513,7 +1513,7 @@ void Mount::guidePulse(byte direction, int duration)
     float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
                             / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
     float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                           / 3600.0f;   // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+                           / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
     raGuidingSpeed *= _trackingSpeedCalibration;
 
     // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
