@@ -480,6 +480,10 @@
 
 // RA EndSwitch support
 //////////////////////////////////////////
+// End switches allow you to define how many percent of the distance needed to stop 
+// should be reversed to un-signal teh end switch. Mechanical end switches will have 
+// a hysteresis behavior, meaning once signaled, it needs to move well back beyond the
+// signal point to become un-signaled.
 // Enable RA End Switches in your local configuration. Do not edit here!
 #ifndef USE_RA_END_SWITCH
     #define USE_RA_END_SWITCH 0
@@ -495,6 +499,10 @@
 //////////////////////////////////////////
 // DEC EndSwitch support
 //////////////////////////////////////////
+// End switches allow you to define how many percent of the distance needed to stop 
+// should be reversed to un-signal teh end switch. Mechanical end switches will have 
+// a hysteresis behavior, meaning once signaled, it needs to move well back beyond the
+// signal point to become un-signaled.
 // Enable DEC End Switches in your local configuration. Do not edit here!
 #ifndef USE_DEC_END_SWITCH
     #define USE_DEC_END_SWITCH 0
