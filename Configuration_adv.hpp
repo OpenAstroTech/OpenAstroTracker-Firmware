@@ -207,7 +207,7 @@
 #endif
 
 #ifndef RA_PHYSICAL_LIMIT
-    #define RA_PHYSICAL_LIMIT 6.6f
+    #define RA_PHYSICAL_LIMIT 7.0f
 #endif
 
 #ifndef DEC_TRANSMISSION
