@@ -2290,10 +2290,10 @@ void Mount::startSlewing(int direction)
                 _mountStatus |= STATUS_SLEWING;
             }
 
+            const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
             if (direction & EAST)
             {
                 // We need to subtract the distance tracked from the physical RA home coordinate
-                float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
                 long targetEastPos = _stepsPerRADegree * 15.0 * (RA_PHYSICAL_LIMIT + trackedHours);
                 LOG(DEBUG_STEPPERS,
                     "[STEPPERS]: startSlewing(E): initial targetMoveTo is %l (adjusted for %fh tracked)",
@@ -2305,7 +2305,6 @@ void Mount::startSlewing(int direction)
             if (direction & WEST)
             {
                 // We need to add the distance tracked from the physical RA home coordinate
-                float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
                 long targetWestPos = _stepsPerRADegree * 15.0 * (min(RA_PHYSICAL_LIMIT, RA_TRACKING_LIMIT) - trackedHours);
                 LOG(DEBUG_STEPPERS,
                     "[STEPPERS]: startSlewing(W): initial targetMoveTo is %l (adjusted for %fh tracked)",
