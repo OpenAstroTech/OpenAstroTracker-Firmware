@@ -372,11 +372,11 @@ void logv(int levelFlags, String input, ...)
     #else
         DEBUG_SERIAL_PORT.print("[");
         DEBUG_SERIAL_PORT.print(String(now));
-        DEBUG_SERIAL_PORT.print("] ms:{");
+        DEBUG_SERIAL_PORT.print("]{");
         DEBUG_SERIAL_PORT.print(String(delta));
-        DEBUG_SERIAL_PORT.print("} ms:");
+        DEBUG_SERIAL_PORT.print("}ms:");
         DEBUG_SERIAL_PORT.print(String(freeMemory()));
-        DEBUG_SERIAL_PORT.print(" B: ");
+        DEBUG_SERIAL_PORT.print("B: ");
         DEBUG_SERIAL_PORT.println(formatArg(input.c_str(), argp));
         DEBUG_SERIAL_PORT.flush();
     #endif

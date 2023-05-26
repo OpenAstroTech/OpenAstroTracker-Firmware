@@ -487,12 +487,11 @@
     #ifndef RA_END_SWITCH_ACTIVE_STATE
         #define RA_END_SWITCH_ACTIVE_STATE LOW
     #endif
-    // End switches allow you to define how many percent of the distance needed to stop
-    // should be reversed to un-signal the end switch. Mechanical end switches will have
-    // a hysteresis behavior, meaning once signaled, it needs to move well back beyond the
-    // signal point to become un-signaled.
-    #ifndef RA_ENDSWITCH_BACKSLEW_PERCENT
-        #define RA_ENDSWITCH_BACKSLEW_PERCENT 200
+    // You can define how many degrees to slew back after the end switch has triggered. 
+    // Mechanical end switches might have a hysteresis behavior, meaning once signaled, 
+    // it needs to move well back beyond the signal point to become un-signaled.
+    #ifndef RA_ENDSWITCH_BACKSLEW_DEG
+        #define RA_ENDSWITCH_BACKSLEW_DEG 0.5
     #endif
 #endif
 
@@ -506,12 +505,11 @@
     #ifndef DEC_END_SWITCH_ACTIVE_STATE
         #define DEC_END_SWITCH_ACTIVE_STATE LOW
     #endif
-    // End switches allow you to define how many percent of the distance needed to stop
-    // should be reversed to un-signal the end switch. Mechanical end switches will have
-    // a hysteresis behavior, meaning once signaled, it needs to move well back beyond the
-    // signal point to become un-signaled.
-    #ifndef DEC_ENDSWITCH_BACKSLEW_PERCENT
-        #define DEC_ENDSWITCH_BACKSLEW_PERCENT 200
+    // You can define how many degrees to slew back after the end switch has triggered. 
+    // Mechanical end switches might have a hysteresis behavior, meaning once signaled, 
+    // it needs to move well back beyond the signal point to become un-signaled.
+    #ifndef DEC_ENDSWITCH_BACKSLEW_DEG
+        #define DEC_ENDSWITCH_BACKSLEW_DEG 0.5
     #endif
 
 #endif

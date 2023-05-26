@@ -141,10 +141,12 @@ void EndSwitch::checkSwitchState()
             _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
             _pMount->slewStatus(),
             _pMount->mountStatus());
-        long currentPos       = _pMount->getCurrentStepperPosition(_dir);
-        long backDistance     = _posWhenTriggered - currentPos;
-        long backslewPercent  = (_axis == StepperAxis::DEC_STEPS) ? DEC_ENDSWITCH_BACKSLEW_PERCENT : RA_ENDSWITCH_BACKSLEW_PERCENT;
-        long backSlewDistance = (backslewPercent * backDistance) / 100;  // Go back distance that we ran past the switch
+        long currentPos      = _pMount->getCurrentStepperPosition(_dir);
+        long backDistance    = _posWhenTriggered - currentPos;
+        long backSign        = sign(backDistance);
+        long backslewDegrees = (_axis == StepperAxis::DEC_STEPS) ? DEC_ENDSWITCH_BACKSLEW_DEG : RA_ENDSWITCH_BACKSLEW_DEG;
+        // Go back the distance that we ran past the switch plus the number of degrees to overcome the hysteresis of the switch
+        long backSlewDistance = backDistance + (backSign * backslewDegrees * _pMount->getStepsPerDegree(_axis));
         LOG(DEBUG_MOUNT,
             "[ENDSWITCH]: Reached maximum at %l. Stopped at %l (%l delta), moving back 1.2x (%l). Stopped tracking (if RA at Max). "
             "State is SWITCH_SLEWING_OFF",
