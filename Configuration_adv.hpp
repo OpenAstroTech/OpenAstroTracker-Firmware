@@ -147,12 +147,14 @@
 #define GT2_BELT_PITCH 2.0f  // mm
 
 // the Circumference of the RA wheel.  V1 = 1057.1  |  V2 = 1131.0
-#if RA_WHEEL_VERSION == 1
-    #define RA_WHEEL_CIRCUMFERENCE 1057.1f
-#elif RA_WHEEL_VERSION >= 2
-    #define RA_WHEEL_CIRCUMFERENCE 1132.73f
-#else
-    #error Unsupported RA wheel version, please recheck RA_WHEEL_VERSION
+#ifndef RA_WHEEL_CIRCUMFERENCE
+    #if RA_WHEEL_VERSION == 1
+        #define RA_WHEEL_CIRCUMFERENCE 1057.1f
+    #elif RA_WHEEL_VERSION >= 2
+        #define RA_WHEEL_CIRCUMFERENCE 1132.73f
+    #else
+        #error Unsupported RA wheel version, please recheck RA_WHEEL_VERSION
+    #endif
 #endif
 
 // the Circumference of the DEC wheel.
@@ -202,6 +204,10 @@
 #endif
 #ifndef RA_TRACKING_LIMIT
     #define RA_TRACKING_LIMIT 7.0f
+#endif
+
+#ifndef RA_PHYSICAL_LIMIT
+    #define RA_PHYSICAL_LIMIT 7.0f
 #endif
 
 #ifndef DEC_TRANSMISSION
@@ -481,6 +487,12 @@
     #ifndef RA_END_SWITCH_ACTIVE_STATE
         #define RA_END_SWITCH_ACTIVE_STATE LOW
     #endif
+    // You can define how many degrees to slew back after the end switch has triggered.
+    // Mechanical end switches might have a hysteresis behavior, meaning once signaled,
+    // it needs to move well back beyond the signal point to become un-signaled.
+    #ifndef RA_ENDSWITCH_BACKSLEW_DEG
+        #define RA_ENDSWITCH_BACKSLEW_DEG 0.5
+    #endif
 #endif
 
 //////////////////////////////////////////
@@ -493,6 +505,13 @@
     #ifndef DEC_END_SWITCH_ACTIVE_STATE
         #define DEC_END_SWITCH_ACTIVE_STATE LOW
     #endif
+    // You can define how many degrees to slew back after the end switch has triggered.
+    // Mechanical end switches might have a hysteresis behavior, meaning once signaled,
+    // it needs to move well back beyond the signal point to become un-signaled.
+    #ifndef DEC_ENDSWITCH_BACKSLEW_DEG
+        #define DEC_ENDSWITCH_BACKSLEW_DEG 0.5
+    #endif
+
 #endif
 
 //////////////////////////////////////////

@@ -263,7 +263,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
     _maxRASpeed        = maxSpeed;
     _maxRAAcceleration = maxAcceleration;
 
-    _stepperTRK->setMaxSpeed(2000);
+    _stepperTRK->setMaxSpeed(5000);
     _stepperTRK->setAcceleration(15000);
 
     configureHemisphere(inNorthernHemisphere, true);
@@ -283,8 +283,8 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
     _maxDECSpeed        = maxSpeed;
     _maxDECAcceleration = maxAcceleration;
 
-    _stepperGUIDE->setMaxSpeed(2000);
-    _stepperGUIDE->setAcceleration(15000);
+    _stepperGUIDE->setMaxSpeed(maxSpeed);
+    _stepperGUIDE->setAcceleration(maxAcceleration);
 
 #if DEC_INVERT_DIR == 1
     _stepperDEC->setPinsInverted(true, false, false);
@@ -817,7 +817,7 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
 
     // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
-    // Also compensate for higher precision microstepping in tracking mode
+    // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
                      / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
@@ -2290,16 +2290,27 @@ void Mount::startSlewing(int direction)
                 _mountStatus |= STATUS_SLEWING;
             }
 
+            const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
             if (direction & EAST)
             {
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing(E): initial targetMoveTo is %l", -sign * 300000);
-                _stepperRA->moveTo(-sign * 300000);
+                // We need to subtract the distance tracked from the physical RA home coordinate
+                long targetEastPos = _stepsPerRADegree * 15.0 * (RA_PHYSICAL_LIMIT + trackedHours);
+                LOG(DEBUG_STEPPERS,
+                    "[STEPPERS]: startSlewing(E): initial targetMoveTo is %l (adjusted for %fh tracked)",
+                    -sign * targetEastPos,
+                    trackedHours);
+                _stepperRA->moveTo(-sign * targetEastPos);
                 _mountStatus |= STATUS_SLEWING;
             }
             if (direction & WEST)
             {
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing(W): initial targetMoveTo is %l", sign * 300000);
-                _stepperRA->moveTo(sign * 300000);
+                // We need to add the distance tracked from the physical RA home coordinate
+                long targetWestPos = _stepsPerRADegree * 15.0 * (min(RA_PHYSICAL_LIMIT, RA_TRACKING_LIMIT) - trackedHours);
+                LOG(DEBUG_STEPPERS,
+                    "[STEPPERS]: startSlewing(W): initial targetMoveTo is %l (adjusted for %fh tracked)",
+                    sign * targetWestPos,
+                    trackedHours);
+                _stepperRA->moveTo(sign * targetWestPos);
                 _mountStatus |= STATUS_SLEWING;
             }
         }
@@ -2765,154 +2776,150 @@ void Mount::loop()
             checkRALimit();
         }
 
-        if (_mountStatus & STATUS_SLEWING_MANUAL)
+        //
+        // Arrived at target after Slew!
+        //
+        _mountStatus &= ~(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET | STATUS_SLEWING_MANUAL);
+
+        if (_stepperWasRunning)
         {
-            if (_stepperWasRunning)
+            LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+                "[MOUNT]: Loop: Reached target. RA:%l, DEC:%l",
+                _stepperRA->currentPosition(),
+                _stepperDEC->currentPosition());
+            // Mount is at Target!
+            // If we we're parking, we just reached home. Clear the flag, reset the motors and stop tracking.
+            if (isParking())
             {
-                _mountStatus &= ~(STATUS_SLEWING);
-            }
-        }
-        else
-        {
-            //
-            // Arrived at target after Slew!
-            //
-            _mountStatus &= ~(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
-
-            if (_stepperWasRunning)
-            {
-                LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
-                    "[MOUNT]: Loop: Reached target. RA:%l, DEC:%l",
-                    _stepperRA->currentPosition(),
-                    _stepperDEC->currentPosition());
-                // Mount is at Target!
-                // If we we're parking, we just reached home. Clear the flag, reset the motors and stop tracking.
-                if (isParking())
+                stopSlewing(TRACKING);
+                // If we're on the second part of the slew to parking, don't set home here
+                if (!_slewingToPark)
                 {
-                    stopSlewing(TRACKING);
-                    // If we're on the second part of the slew to parking, don't set home here
-                    if (!_slewingToPark)
-                    {
-                        LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Parking, stop tracking and set home.");
-                        setHome(false);
-                    }
-                    else
-                    {
-                        LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Parking, stop tracking.");
-                    }
-                }
-
-                _currentRAStepperPosition = _stepperRA->currentPosition();
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                if (!isFindingHome())  // When finding home, we never want to switch back to tracking until homing is finished.
-                {
-                    LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived. RA driver setMicrosteps(%d)", RA_TRACKING_MICROSTEPPING);
-                    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
-                }
-#endif
-                if (!isParking())
-                {
-                    if (_compensateForTrackerOff)
-                    {
-                        now                             = millis();
-                        unsigned long elapsed           = now - _trackerStoppedAt;
-                        unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
-                        LOG(DEBUG_STEPPERS,
-                            "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms (%l steps), compensating.",
-                            now,
-                            elapsed,
-                            compensationSteps);
-
-                        // calculate compensation distance by including tracking steps done during compensation
-                        // to avoid another difference after compensation
-                        long totalCompensationSteps
-                            = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
-                        _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
-                        _stepperTRK->move(totalCompensationSteps);
-                        _stepperTRK->runToPosition();
-                        _compensateForTrackerOff = false;
-                    }
-
-                    if (!isFindingHome())  // If we're homing, RA must stay in Slew configuration
-                    {
-                        startSlewing(TRACKING);
-                    }
-                }
-
-// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
-                _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
-#endif
-
-                if (_correctForBacklash)
-                {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
-                        "[MOUNT]: Loop:   Reached target at %d. Compensating by %d",
-                        (int) _currentRAStepperPosition,
-                        _backlashCorrectionSteps);
-                    _currentRAStepperPosition += _backlashCorrectionSteps;
-                    _stepperRA->runToNewPosition(_currentRAStepperPosition);
-                    _correctForBacklash = false;
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Backlash correction done. Pos: %d", _currentRAStepperPosition);
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Parking, stop tracking and set home.");
+                    setHome(false);
                 }
                 else
                 {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
-                        "[MOUNT]: Loop:   Reached target at %d, no backlash compensation needed",
-                        _currentRAStepperPosition);
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Parking, stop tracking.");
                 }
-
-                if (_slewingToHome)
-                {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Slewing home, so setting stepper RA and TRK to zero.");
-                    _stepperRA->setCurrentPosition(0);
-                    _stepperDEC->setCurrentPosition(0);
-                    LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop:  TRK.setCurrentPos(0)");
-                    _stepperTRK->setCurrentPosition(0);
-                    _stepperGUIDE->setCurrentPosition(0);
-                    _homeOffsetRA  = 0;
-                    _homeOffsetDEC = 0;
-
-                    _targetRA = currentRA();
-                    if (isParking())
-                    {
-                        LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
-                        _mountStatus &= ~STATUS_PARKING;
-                        _slewingToPark = true;
-                        _stepperRA->moveTo(_raParkingPos);
-                        _stepperDEC->moveTo(_decParkingPos);
-                        _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
-                        _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
-                        LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
-                            "[MOUNT]: Loop:   Park Position is R:%l  D:%l, TotalMove is R:%f, D:%f",
-                            _raParkingPos,
-                            _decParkingPos,
-                            _totalRAMove,
-                            _totalDECMove);
-                        if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
-                        {
-                            _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
-                        }
-                    }
-                    else
-                    {
-                        LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Restart tracking.");
-                        startSlewing(TRACKING);
-                    }
-                    _slewingToHome = false;
-                }
-                else if (_slewingToPark)
-                {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
-                    _mountStatus &= ~(STATUS_PARKING_POS | STATUS_SLEWING_TO_TARGET);
-                    _slewingToPark = false;
-                }
-                _totalDECMove = _totalRAMove = 0;
-
-                // Make sure we do one last update when the steppers have stopped.
-                displayStepperPosition();
             }
+
+            _currentRAStepperPosition = _stepperRA->currentPosition();
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            if (!isFindingHome())  // When finding home, we never want to switch back to tracking until homing is finished.
+            {
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived. RA driver setMicrosteps(%d)", RA_TRACKING_MICROSTEPPING);
+                _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
+            }
+#endif
+            if (!isParking())
+            {
+                if (_compensateForTrackerOff)
+                {
+                    now                             = millis();
+                    unsigned long elapsed           = now - _trackerStoppedAt;
+                    unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
+
+                    // calculate compensation distance by including tracking steps done during compensation
+                    // to avoid another difference after compensation
+                    long totalCompensationSteps
+                        = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
+
+                    LOG(DEBUG_STEPPERS,
+                        "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms, result in %l steps (%l total) at speed %f, "
+                        "compensating.",
+                        now,
+                        elapsed,
+                        compensationSteps,
+                        totalCompensationSteps,
+                        config::Ra::SPEED_COMPENSATION);
+
+                    _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
+                    _stepperTRK->move(totalCompensationSteps);
+                    _stepperTRK->runToPosition();
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
+                    _compensateForTrackerOff = false;
+                }
+
+                if (!isFindingHome())  // If we're homing, RA must stay in Slew configuration
+                {
+                    startSlewing(TRACKING);
+                }
+            }
+
+// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
+            _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
+#endif
+
+            if (_correctForBacklash)
+            {
+                LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+                    "[MOUNT]: Loop:   Reached target at %d. Compensating for backlash by %d",
+                    (int) _currentRAStepperPosition,
+                    _backlashCorrectionSteps);
+                _currentRAStepperPosition += _backlashCorrectionSteps;
+                _stepperRA->runToNewPosition(_currentRAStepperPosition);
+                _correctForBacklash = false;
+                LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Backlash correction done. Pos: %d", _currentRAStepperPosition);
+            }
+            else
+            {
+                LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+                    "[MOUNT]: Loop:   Reached target at %d, no backlash compensation needed",
+                    _currentRAStepperPosition);
+            }
+
+            if (_slewingToHome)
+            {
+                LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Slewing home, so setting stepper RA and TRK to zero.");
+                _stepperRA->setCurrentPosition(0);
+                _stepperDEC->setCurrentPosition(0);
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop:  TRK.setCurrentPos(0)");
+                _stepperTRK->setCurrentPosition(0);
+                _stepperGUIDE->setCurrentPosition(0);
+                _homeOffsetRA  = 0;
+                _homeOffsetDEC = 0;
+
+                _targetRA = currentRA();
+                if (isParking())
+                {
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
+                    _mountStatus &= ~STATUS_PARKING;
+                    _slewingToPark = true;
+                    _stepperRA->moveTo(_raParkingPos);
+                    _stepperDEC->moveTo(_decParkingPos);
+                    _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
+                    _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+                        "[MOUNT]: Loop:   Park Position is R:%l  D:%l, TotalMove is R:%f, D:%f",
+                        _raParkingPos,
+                        _decParkingPos,
+                        _totalRAMove,
+                        _totalDECMove);
+                    if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
+                    {
+                        _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
+                    }
+                }
+                else
+                {
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Restart tracking.");
+                    startSlewing(TRACKING);
+                }
+                _slewingToHome = false;
+            }
+            else if (_slewingToPark)
+            {
+                LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
+                _mountStatus &= ~(STATUS_PARKING_POS | STATUS_SLEWING_TO_TARGET);
+                _slewingToPark = false;
+            }
+            _totalDECMove = _totalRAMove = 0;
+
+            // Make sure we do one last update when the steppers have stopped.
+            displayStepperPosition();
         }
     }
 

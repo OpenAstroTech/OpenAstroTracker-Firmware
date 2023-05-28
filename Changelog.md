@@ -1,3 +1,16 @@
+**V1.12.13 - Updates**
+- Added ability to override RA Wheel circumference in local configuration
+- Added a physical limit define which defines how far RA can turn before physical issues arise. 
+- Manual slewing now targets the physical limit of the axis, instead of just going x thousand steps.
+- Added support to define the back slew distance that is required to un-signal a signaled end switch. Some
+  mechanical switches have a hysteresis that requires a lot (600%!) of back movement to un-signal.
+- Manual slewing termination was incorrect and not executing pending operations.
+- Set Tracking compensation speed to slewing speed instead of other calculation that was way too slow and 
+  caused long post-slew delays.
+- Firmware returns"OpenAstroMount" for :GVP# Meade command if compiled for OAM.
+- Enhanced logging output to show time since last log output.
+- Added output of all stepper settings to log output.
+
 **V1.12.12 - Updates**
 - Change MKS Gen L v1.0, v2.0, v2.1 default separate debug serial port from `Serial3` to `Serial2`.
 
