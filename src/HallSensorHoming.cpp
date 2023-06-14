@@ -180,7 +180,8 @@ void HallSensorHoming::processHomingProgress()
                     if (_homingData.lastPinState != homingPinState)
                     {
                         LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found start of sensor, continuing until end is found. Advance to %s",
+                            "[HOMING]: Found start of sensor at %l, continuing until end is found. Advance to %s",
+                            _pMount->getCurrentStepperPosition(_axis),
                             getHomingState(HomingState::HOMING_FINDING_END).c_str());
                         // Found the start of the sensor, keep going until we find the end
                         _homingData.position[HOMING_START_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
@@ -211,7 +212,8 @@ void HallSensorHoming::processHomingProgress()
                     if (_homingData.lastPinState != homingPinState)
                     {
                         LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found start of sensor reverse, continuing until end is found. Advance to %s",
+                            "[HOMING]: Found start of sensor in reverse at %l, continuing until end is found. Advance to %s",
+                            _pMount->getCurrentStepperPosition(_axis),
                             getHomingState(HomingState::HOMING_FINDING_END).c_str());
                         _homingData.position[HOMING_START_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
                         _homingData.lastPinState                        = homingPinState;
@@ -237,7 +239,8 @@ void HallSensorHoming::processHomingProgress()
                     if (_homingData.lastPinState != homingPinState)
                     {
                         LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found end of sensor, stopping... Advance to %s",
+                            "[HOMING]: Found end of sensor at %l, stopping... Advance to %s",
+                            _pMount->getCurrentStepperPosition(_axis),
                             getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
                         _homingData.position[HOMING_END_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
                         _homingData.lastPinState                      = homingPinState;

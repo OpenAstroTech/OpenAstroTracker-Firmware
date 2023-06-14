@@ -2843,6 +2843,7 @@ void Mount::loop()
 
                 if (!isFindingHome())  // If we're homing, RA must stay in Slew configuration
                 {
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Not finding home, so start tracking");
                     startSlewing(TRACKING);
                 }
             }
@@ -2905,7 +2906,7 @@ void Mount::loop()
                 }
                 else
                 {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Restart tracking.");
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slewed home, not parking, so restart tracking.");
                     startSlewing(TRACKING);
                 }
                 _slewingToHome = false;
@@ -3879,7 +3880,12 @@ float Mount::checkRALimit()
 
     if (homeCurrentDeltaRA > RALimit)
     {
-        LOG(DEBUG_MOUNT, "[MOUNT]: checkRALimit: Tracking limit reached");
+        LOG(DEBUG_MOUNT,
+            "[MOUNT]: checkRALimit: Tracking limit reached. deltaRA: %f > RALimit:%f.  TrackedHrs:%f, HomeRA:%f, ",
+            homeCurrentDeltaRA,
+            RALimit,
+            trackedHours,
+            homeRA);
         stopSlewing(TRACKING);
     }
     _lastTRKCheck = millis();
