@@ -3880,7 +3880,12 @@ float Mount::checkRALimit()
 
     if (homeCurrentDeltaRA > RALimit)
     {
-        LOG(DEBUG_MOUNT, "[MOUNT]: checkRALimit: Tracking limit reached. deltaRA: %f > RALimit:%f.  TrackedHrs:%f, HomeRA:%f, ", homeCurrentDeltaRA, RALimit, trackedHours, homeRA);
+        LOG(DEBUG_MOUNT,
+            "[MOUNT]: checkRALimit: Tracking limit reached. deltaRA: %f > RALimit:%f.  TrackedHrs:%f, HomeRA:%f, ",
+            homeCurrentDeltaRA,
+            RALimit,
+            trackedHours,
+            homeRA);
         stopSlewing(TRACKING);
     }
     _lastTRKCheck = millis();
