@@ -1,3 +1,7 @@
+**V1.12.14 - Updates**
+- Southern hemisphere fix
+- Added and changed some logging
+
 **V1.12.13 - Updates**
 - Added ability to override RA Wheel circumference in local configuration
 - Added a physical limit define which defines how far RA can turn before physical issues arise. 
