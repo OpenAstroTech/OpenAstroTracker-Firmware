@@ -270,8 +270,6 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
 
     _stepperTRK->setMaxSpeed(5000);
     _stepperTRK->setAcceleration(15000);
-
-    configureHemisphere(inNorthernHemisphere, true);
 }
 
 /////////////////////////////////
