@@ -6,6 +6,7 @@
 #include "Longitude.hpp"
 #include "Types.hpp"
 
+/*
 #include "StepperConfiguration.hpp"
 
 // Forward declarations
@@ -52,7 +53,9 @@ using StepperFocusSlew = AccelStepper;
     #endif
 
 #endif
+*/
 
+class AccelStepper;
 class LcdMenu;
 class TMC2209Stepper;
 class HallSensorHoming;
@@ -314,10 +317,10 @@ class Mount
     // Process any stepper movement.
     void loop();
 
-// Low-leve process any stepper movement on interrupt callback.
-#if defined(ESP32)
+// Low-level process any stepper movement on interrupt callback.
+//#if defined(ESP32)
     void interruptLoop();
-#endif
+//#endif
 
     // Set the current stepper positions to be home.
     void setHome(bool clearZeroPos);
@@ -523,10 +526,14 @@ class Mount
     Longitude _longitude;
 
     // Stepper control for RA, DEC and TRK.
-    StepperRaSlew *_stepperRA;
-    StepperRaTrk *_stepperTRK;
-    StepperDecSlew *_stepperDEC;
-    StepperDecTrk *_stepperGUIDE;
+//    StepperRaSlew *_stepperRA;
+//    StepperRaTrk *_stepperTRK;
+//    StepperDecSlew *_stepperDEC;
+//    StepperDecTrk *_stepperGUIDE;
+    AccelStepper *_stepperRA;
+    AccelStepper *_stepperDEC;
+    AccelStepper *_stepperTRK;
+    AccelStepper *_stepperGUIDE;
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverRA;
 #endif
@@ -537,14 +544,16 @@ class Mount
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _azAltWasRunning;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    StepperAzSlew *_stepperAZ;
+    // StepperAzSlew *_stepperAZ;
+    AccelStepper *_stepperAZ;
     const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
     #endif
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    StepperAltSlew *_stepperALT;
+    // StepperAltSlew *_stepperALT;
+    AccelStepper *_stepperALT;
     const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;
@@ -557,7 +566,8 @@ class Mount
     FocuserMode _focuserMode = FOCUS_IDLE;
     float _maxFocusRateSpeed;
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    StepperFocusSlew *_stepperFocus;
+    // StepperFocusSlew *_stepperFocus;
+    AccelStepper *_stepperFocus;
     int _focusRate;
         #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverFocus;

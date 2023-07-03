@@ -4,7 +4,7 @@
 
 #ifndef AVR_INTERRUPT_STEPPER_INTERRUPTACCELSTEPPER_H
 #define AVR_INTERRUPT_STEPPER_INTERRUPTACCELSTEPPER_H
-
+/*
 #include <stdint.h>
 #include <math.h>
 
@@ -144,5 +144,5 @@ template <typename STEPPER> class InterruptAccelStepper
         return STEPPER::isRunning();
     }
 };
-
+*/
 #endif  //AVR_INTERRUPT_STEPPER_INTERRUPTACCELSTEPPER_H

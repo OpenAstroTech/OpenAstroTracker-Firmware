@@ -9,11 +9,12 @@
 #include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
+/*
 #ifdef __AVR_ATmega2560__
     #include "InterruptAccelStepper.h"
     #include "StepperConfiguration.hpp"
 #endif
-
+*/
 #include <AccelStepper.h>
 
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
@@ -254,14 +255,18 @@ void Mount::configureHemisphere(bool inNorthern, bool force)
 /////////////////////////////////
 void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-    _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
+    // _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
+    // _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
+    _stepperRA = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
     _maxRASpeed        = maxSpeed;
     _maxRAAcceleration = maxAcceleration;
+
+    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
+    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperTRK->setMaxSpeed(5000);
     _stepperTRK->setAcceleration(15000);
@@ -276,12 +281,16 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
 /////////////////////////////////
 void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-    _stepperDEC   = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
-    _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
+    //_stepperDEC   = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
+    //_stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
+    _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);
     _maxDECSpeed        = maxSpeed;
     _maxDECAcceleration = maxAcceleration;
+
+    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
+    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperGUIDE->setMaxSpeed(maxSpeed);
     _stepperGUIDE->setAcceleration(maxAcceleration);
@@ -300,7 +309,8 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
+    //_stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
     _maxAZSpeed        = maxSpeed;
@@ -313,7 +323,8 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
+    //_stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
     _maxALTSpeed        = maxSpeed;
@@ -332,7 +343,8 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    _stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
+    //_stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     _stepperFocus->setMaxSpeed(maxSpeed);
     _stepperFocus->setAcceleration(maxAcceleration);
     _stepperFocus->setSpeed(0);
@@ -399,8 +411,8 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverRA->blank_time(24);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
     _driverRA->fclktrim(4);
-    _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
-    _driverRA->semin(0);            //disable CoolStep so that current is consistent
+    _driverRA->TCOOLTHRS(0xFFFFF);                                                          //xFFFFF);
+    _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
     _driverRA->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -439,7 +451,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
     _driverRA->fclktrim(4);
-    _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverRA->TCOOLTHRS(0xFFFFF);                                                          //xFFFFF);
     _driverRA->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -483,7 +495,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->microsteps(
         DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(0);  //disable CoolStep so that current is consistent
+    _driverDEC->semin(0);                                             //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -522,7 +534,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->microsteps(
         DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(0);  //disable CoolStep so that current is consistent
+    _driverDEC->semin(0);                                             //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -1513,7 +1525,7 @@ void Mount::guidePulse(byte direction, int duration)
     float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
                             / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
     float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                           / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+                           / 3600.0f;   // u-steps/deg * deg/hr / sec/hr = u-steps/sec
     raGuidingSpeed *= _trackingSpeedCalibration;
 
     // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
@@ -2591,7 +2603,7 @@ void Mount::delay(int ms)
 //
 // This function is only called on run in an ISR. It needs to be fast and do little work.
 /////////////////////////////////
-#if defined(ESP32)
+// #if defined(ESP32)
 void Mount::interruptLoop()
 {
     // Only process guide pulses if we are tracking.
@@ -2626,30 +2638,30 @@ void Mount::interruptLoop()
 
     if (_mountStatus & STATUS_FINDING_HOME)
     {
-    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
         _stepperRA->run();
         if (_raHoming != nullptr)
         {
             _raHoming->processHomingProgress();
         }
-    #endif
-    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+#endif
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
         _stepperDEC->run();
         if (_decHoming != nullptr)
         {
             _decHoming->processHomingProgress();
         }
-    #endif
+#endif
     }
 
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperAZ->run();
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperALT->run();
-    #endif
+#endif
 
-    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_focuserMode == FOCUS_TO_TARGET)
     {
         _stepperFocus->run();
@@ -2658,17 +2670,17 @@ void Mount::interruptLoop()
     {
         _stepperFocus->runSpeed();
     }
-    #endif
-
-    #if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch->processEndSwitchState();
-    #endif
-
-    #if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch->processEndSwitchState();
-    #endif
-}
 #endif
+
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->processEndSwitchState();
+#endif
+
+#if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->processEndSwitchState();
+#endif
+}
+//#endif
 
 /////////////////////////////////
 //
@@ -2819,24 +2831,30 @@ void Mount::loop()
                     now                             = millis();
                     unsigned long elapsed           = now - _trackerStoppedAt;
                     unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
+                    LOG(DEBUG_STEPPERS,
+                        "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms (%l steps), compensating.",
+                        now,
+                        elapsed,
+                        compensationSteps);
+                    _stepperTRK->runToNewPosition(_stepperTRK->currentPosition() + compensationSteps);
 
                     // calculate compensation distance by including tracking steps done during compensation
                     // to avoid another difference after compensation
-                    long totalCompensationSteps
-                        = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
+                    //long totalCompensationSteps
+                    //    = compensationSteps * config::Ra::SPEED_COMPENSATION / (config::Ra::SPEED_COMPENSATION - config::Ra::SPEED_TRK);
 
-                    LOG(DEBUG_STEPPERS,
-                        "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms, result in %l steps (%l total) at speed %f, "
-                        "compensating.",
-                        now,
-                        elapsed,
-                        compensationSteps,
-                        totalCompensationSteps,
-                        config::Ra::SPEED_COMPENSATION);
+                    //LOG(DEBUG_STEPPERS,
+                    //    "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms, result in %l steps (%l total) at speed %f, "
+                    //    "compensating.",
+                    //    now,
+                    //    elapsed,
+                    //    compensationSteps,
+                    //    totalCompensationSteps,
+                    //    config::Ra::SPEED_COMPENSATION);
 
-                    _stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
-                    _stepperTRK->move(totalCompensationSteps);
-                    _stepperTRK->runToPosition();
+                    //_stepperTRK->setMaxSpeed(config::Ra::SPEED_COMPENSATION);
+                    //_stepperTRK->move(totalCompensationSteps);
+                    //_stepperTRK->runToPosition();
                     LOG(DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
                     _compensateForTrackerOff = false;
                 }

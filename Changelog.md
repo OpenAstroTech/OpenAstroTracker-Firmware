@@ -1,3 +1,6 @@
+**V1.13.1 - Updates**
+- Re-integrated old stepper library
+
 **V1.12.14 - Updates**
 - Southern hemisphere fix
 - Added and changed some logging

@@ -1,4 +1,5 @@
 #pragma once
+/*
 #include "../Configuration.hpp"
 
 #ifdef ARDUINO_AVR_ATmega2560
@@ -131,3 +132,4 @@ struct Focus {
 #endif
 
 }  // namespace config
+*/
