@@ -106,15 +106,11 @@ void Mount::initializeVariables()
 
     _totalDECMove            = 0;
     _totalRAMove             = 0;
-    _homeOffsetRA            = 0;
-    _homeOffsetDEC           = 0;
     _moveRate                = 4;
     _backlashCorrectionSteps = 0;
     _correctForBacklash      = false;
     _slewingToHome           = false;
     _slewingToPark           = false;
-    _raParkingPos            = 0;
-    _decParkingPos           = 0;
     _decLowerLimit           = 0;
     _decUpperLimit           = 0;
 
@@ -163,6 +159,26 @@ void Mount::readConfiguration()
 void Mount::readPersistentData()
 {
     // EEPROMStore will always return valid data, even if no data is present in the store
+    int16_t lastFlashed = EEPROMStore::getLastFlashedVersion();
+
+    // Calculate this running firmwares version.
+    String sVersion = String(VERSION);
+    int firstDot    = sVersion.indexOf(".");
+    int secondDot   = sVersion.indexOf(".", firstDot + 1);
+    int16_t version = 10000 * sVersion.substring(1, firstDot).toInt();
+    version += 100 * sVersion.substring(firstDot + 1, secondDot).toInt();
+    version += sVersion.substring(secondDot + 1).toInt();
+
+    if (lastFlashed != version)
+    {
+        LOG(DEBUG_INFO, "[MOUNT]: EEPROM: New Flash detected! Flashed from %d to %d.", lastFlashed, version);
+        // Write upgrade code here if needed. lastFlashed is 0 if we have never flashed V1.14.x and beyond
+        EEPROMStore::storeLastFlashedVersion(version);
+    }
+    else
+    {
+        LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Same firmware version as last boot %d.", version);
+    }
 
     _stepsPerRADegree = EEPROMStore::getRAStepsPerDegree();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: RA steps/deg is %f", _stepsPerRADegree);
@@ -193,10 +209,6 @@ void Mount::readPersistentData()
     _rollCalibrationAngle = EEPROMStore::getRollCalibrationAngle();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Roll Offset is %f", _rollCalibrationAngle);
 #endif
-
-    _raParkingPos  = EEPROMStore::getRAParkingPos();
-    _decParkingPos = EEPROMStore::getDECParkingPos();
-    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Parking position read as R:%l, D:%l", _raParkingPos, _decParkingPos);
 
     _decLowerLimit = static_cast<long>(-(EEPROMStore::getDECLowerLimit() * _stepsPerDECDegree));
     if (_decLowerLimit == 0 && DEC_LIMIT_DOWN != 0)
@@ -1362,12 +1374,6 @@ void Mount::startSlewingToTarget()
     long targetRAPosition, targetDECPosition;
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
 
-    if (_slewingToHome)
-    {
-        targetRAPosition -= _homeOffsetRA;
-        targetDECPosition -= _homeOffsetDEC;
-    }
-
     if (targetRAPosition != _stepperRA->currentPosition())
     {
         // Only stop tracking if we're actually going to slew somewhere else, otherwise the
@@ -1418,10 +1424,8 @@ void Mount::startSlewingToHome()
 
     _currentRAStepperPosition = _stepperRA->currentPosition();
 
-    // Take any syncs that have happened into account
-    long targetRAPosition        = -_homeOffsetRA;
-    const long targetDECPosition = -_homeOffsetDEC;
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Sync op offsets: RA: %l, DEC: %l", targetRAPosition, targetDECPosition);
+    long targetRAPosition        = 0;
+    const long targetDECPosition = 0;
 
     _slewingToHome = true;
     // Take tracking into account
@@ -2805,13 +2809,20 @@ void Mount::loop()
                 // If we're on the second part of the slew to parking, don't set home here
                 if (!_slewingToPark)
                 {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Parking, stop tracking and set home.");
+                    bool saveHomeSlew = _slewingToHome;
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+                        "[MOUNT]: Loop:   Was Parking, not slewing to park so stop tracking and set home. SlewToHome: %d",
+                        _slewingToHome);
                     setHome(false);
+                    _slewingToHome = saveHomeSlew;
                 }
                 else
                 {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Parking, stop tracking.");
+                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+                        "[MOUNT]: Loop:   Was Parking and slewing to Park, stop tracking. SlewToHome: %d",
+                        _slewingToHome);
                 }
+                LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slew2Park:%d, Slew2Home:%d", _slewingToPark, _slewingToHome);
             }
 
             _currentRAStepperPosition = _stepperRA->currentPosition();
@@ -2824,6 +2835,7 @@ void Mount::loop()
 #endif
             if (!isParking())
             {
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Not parking");
                 if (_compensateForTrackerOff)
                 {
                     now                             = millis();
@@ -2888,36 +2900,35 @@ void Mount::loop()
                     _currentRAStepperPosition);
             }
 
+            LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slew2Park:%d, Slew2Home:%d", _slewingToPark, _slewingToHome);
             if (_slewingToHome)
             {
-                LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Slewing home, so setting stepper RA and TRK to zero.");
-                _stepperRA->setCurrentPosition(0);
-                _stepperDEC->setCurrentPosition(0);
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop:  TRK.setCurrentPos(0)");
-                _stepperTRK->setCurrentPosition(0);
-                _stepperGUIDE->setCurrentPosition(0);
-                _homeOffsetRA  = 0;
-                _homeOffsetDEC = 0;
-
+                LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Slewing home...");
                 _targetRA = currentRA();
                 if (isParking())
                 {
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
                     _mountStatus &= ~STATUS_PARKING;
                     _slewingToPark = true;
-                    _stepperRA->moveTo(_raParkingPos);
-                    _stepperDEC->moveTo(_decParkingPos);
+                    _stepperRA->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
+                    _stepperDEC->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
                     _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
                     _totalRAMove  = 1.0f * _stepperRA->distanceToGo();
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Park Position is R:%l  D:%l, TotalMove is R:%f, D:%f",
-                        _raParkingPos,
-                        _decParkingPos,
+                        -getHomingOffset(StepperAxis::RA_STEPS),
+                        -getHomingOffset(StepperAxis::DEC_STEPS),
                         _totalRAMove,
                         _totalDECMove);
                     if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
                     {
+                        LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Distance to Parking is non-zero, slewing to park position...");
                         _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
+                    }
+                    else
+                    {
+                        LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Already at Parking pos, so done.");
+                        _mountStatus = STATUS_PARKED;
                     }
                 }
                 else
@@ -2930,7 +2941,7 @@ void Mount::loop()
             else if (_slewingToPark)
             {
                 LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
-                _mountStatus &= ~(STATUS_PARKING_POS | STATUS_SLEWING_TO_TARGET);
+                _mountStatus   = STATUS_PARKED;
                 _slewingToPark = false;
             }
             _totalDECMove = _totalRAMove = 0;
@@ -2978,46 +2989,6 @@ void Mount::bootComplete()
 bool Mount::isBootComplete()
 {
     return _bootComplete;
-}
-
-/////////////////////////////////
-//
-// setParkingPosition
-//
-/////////////////////////////////
-void Mount::setParkingPosition()
-{
-    // Calculate how far the tracker has moved in the RA coordinate system.
-    long trackedInSlewCoordinates = RA_SLEW_MICROSTEPPING * _stepperTRK->currentPosition() / RA_TRACKING_MICROSTEPPING;
-
-    _raParkingPos = _stepperRA->currentPosition() - trackedInSlewCoordinates;
-    // TODO: Take guide pulses on DEC into account
-    _decParkingPos = _stepperDEC->currentPosition();
-
-    LOG(DEBUG_MOUNT, "[MOUNT]: setParkingPos: parking RA: %l  DEC:%l", _raParkingPos, _decParkingPos);
-
-    EEPROMStore::storeRAParkingPos(_raParkingPos);
-    EEPROMStore::storeDECParkingPos(_decParkingPos);
-}
-
-/////////////////////////////////
-//
-// getDecParkingOffset
-//
-/////////////////////////////////
-long Mount::getDecParkingOffset()
-{
-    return EEPROMStore::getDECParkingPos();
-}
-
-/////////////////////////////////
-//
-// setDecParkingOffset
-//
-/////////////////////////////////
-void Mount::setDecParkingOffset(long offset)
-{
-    EEPROMStore::storeDECParkingPos(offset);
 }
 
 /////////////////////////////////

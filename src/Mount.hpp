@@ -325,13 +325,6 @@ class Mount
     // Set the current stepper positions to be home.
     void setHome(bool clearZeroPos);
 
-    // Set the current stepper positions to be parking position.
-    void setParkingPosition();
-
-    // Get and set the offset from home to the parking position for DEC.
-    long getDecParkingOffset();
-    void setDecParkingOffset(long offset);
-
     // Set the DEC limit position to the given angle in degrees (saved as DEC steps).
     // If upper is true, sets the upper limit, else the lower limit.
     // If limitAngle is 0, limit is set to current position.
@@ -499,8 +492,6 @@ class Mount
     int _maxFocusAcceleration;
     int _backlashCorrectionSteps;
     int _moveRate;
-    long _raParkingPos;   // Parking position in slewing steps
-    long _decParkingPos;  // Parking position in slewing steps
     long _decLowerLimit;  // Movement limit in slewing steps
     long _decUpperLimit;  // Movement limit in slewing steps
 
@@ -598,8 +589,6 @@ class Mount
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
     volatile int _mountStatus;
-    long _homeOffsetRA;
-    long _homeOffsetDEC;
 
     char scratchBuffer[24];
     bool _stepperWasRunning;

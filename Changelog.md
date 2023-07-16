@@ -1,3 +1,8 @@
+**V1.13.2 - Updates**
+- Added ability to detect new firmware flashed
+- Removed/disabled parking offset variable and commands, use home offset instead
+- Fixed Park command to slew home and then to the parking position (home offset)
+
 **V1.13.1 - Updates**
 - Re-integrated old stepper library
 

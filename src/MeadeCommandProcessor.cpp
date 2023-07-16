@@ -571,8 +571,9 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Park Scope and stop motors
 //      Information:
-//        This slews the scope back to it's home position (RA ring centered, DEC
-//        at 90, basically pointing at celestial pole) and stops all movement (including tracking).
+//        This slews the scope back to it's home position (RA ring centered, DEC at 90, basically
+//        pointing at celestial pole), then advances to the parking position (defined by the Homing offsets) 
+//        and stops all movement (including tracking).
 //      Returns:
 //        nothing
 //
@@ -757,13 +758,13 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#" or "float|float#"
 //
-// :XGDP#
+// :XGDP# (obsolete, disabled)
 //      Description:
 //        Get DEC parking position
 //      Information:
 //        Gets the number of steps from the home position to the parking position for DEC
 //      Returns:
-//        "long#"
+//        "0#"
 //
 // :XGS#
 //      Description:
@@ -801,9 +802,25 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get RA Homing offset
 //      Information:
-//        Get the RA ring homing offset for Hall sensor auto homing
+//        Get the RA ring homing offset. 
+//        If a Hall sensor is present this is the number of steps from the center of the sensor range to 
+//        where the actual center position is located.
+//        If no Hall sensor is present this is the number of steps from the power on position of the RA axis to
+//        where the actual center position is located.
 //      Returns:
-//        "n#" - the number of steps from the center of the hall sensor trigger range to the home position.
+//        "n#" - the number of steps
+//
+// :XGHD#
+//      Description:
+//        Get DEC Homing offset
+//      Information:
+//        Get the DEC ring homing offset. 
+//        If a Hall sensor is present this is the number of steps from the center of the sensor range to 
+//        where the actual center position is located.
+//        If no Hall sensor is present this is the number of steps from the power on position of the DEC axis to
+//        where the actual center position is located.
+//      Returns:
+//        "n#" - the number of steps
 //
 // :XGHS#
 //      Description:
@@ -958,7 +975,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :XSDPnnnn#
+// :XSDPnnnn# (obsolete, disabled)
 //      Description:
 //        Set DEC parking position offset
 //      Information:
@@ -1166,19 +1183,19 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
             break;
 
-        case 'r':                                                   // :Gr
-            return _mount->RAString(MEADE_STRING | TARGET_STRING);  // returns trailing #
+        case 'r':                                                     // :Gr
+            return _mount->RAString(MEADE_STRING | TARGET_STRING);    // returns trailing #
 
-        case 'd':                                                    // :Gd
-            return _mount->DECString(MEADE_STRING | TARGET_STRING);  // returns trailing #
+        case 'd':                                                     // :Gd
+            return _mount->DECString(MEADE_STRING | TARGET_STRING);   // returns trailing #
 
-        case 'R':                                                    // :GR
-            return _mount->RAString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
+        case 'R':                                                     // :GR
+            return _mount->RAString(MEADE_STRING | CURRENT_STRING);   // returns trailing #
 
         case 'D':                                                     // :GD
             return _mount->DECString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
 
-        case 'X':  // :GX
+        case 'X':                                                     // :GX
             return _mount->getStatusString() + "#";
 
         case 'I':
@@ -1256,7 +1273,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             {
                 return "OAT4#";
             }
-        case 'T':  // :GT
+        case 'T':                // :GT
             {
                 return "60.0#";  //default MEADE Tracking Frequency
             }
@@ -1700,7 +1717,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
                 {
-                    return String(_mount->getDecParkingOffset()) + "#";
+                    return "0#";
                 }
             }
             else  // :XGD#
@@ -1750,7 +1767,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             return _mount->getMountHardwareInfo() + "#";  // :XGM#
         }
-        else if (inCmd[1] == 'O')  // :XGO#
+        else if (inCmd[1] == 'O')                         // :XGO#
         {
             return getLogBuffer();
         }
@@ -1762,17 +1779,17 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
                 }
+                else if (inCmd[2] == 'D')  // :XGHD#
+                {
+                    return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
+                }
                 else if (inCmd[2] == 'S')  // :XGHS#
                 {
                     return String(inNorthernHemisphere ? "N#" : "S#");
                 }
-            }
-            else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XGHD#
-            {
-                return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
+                return "0#";
             }
             else
-
             {
                 char scratchBuffer[10];
                 DayTime ha = _mount->calculateHa();
@@ -1802,7 +1819,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
         }
-        else if (inCmd[1] == 'D')  // :XSD
+        else if (inCmd[1] == 'D')                           // :XSD
         {
             if ((inCmd.length() > 2) && (inCmd[2] == 'L'))  // :XSDL
             {
@@ -1842,7 +1859,6 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
             {
-                _mount->setDecParkingOffset(inCmd.substring(3).toInt());
             }
             else
             {
