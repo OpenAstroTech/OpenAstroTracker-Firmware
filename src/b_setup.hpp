@@ -462,14 +462,14 @@ void setup()
     #endif
 #endif
 
+    LOG(DEBUG_ANY, "[SYSTEM]: Setting %s hemisphere...", inNorthernHemisphere?"northern":"southern");
+    mount.configureHemisphere(inNorthernHemisphere, true);
+
 #if TRACK_ON_BOOT == 1
     // Start the tracker.
     LOG(DEBUG_ANY, "[SYSTEM]: Start Tracking...");
     mount.startSlewing(TRACKING);
 #endif
-
-    LOG(DEBUG_ANY, "[SYSTEM]: Setting %s hemisphere...", inNorthernHemisphere ? "northern" : "southern");
-    mount.configureHemisphere(inNorthernHemisphere, true);
 
     mount.bootComplete();
     LOG(DEBUG_ANY, "[SYSTEM]: Boot complete!");
