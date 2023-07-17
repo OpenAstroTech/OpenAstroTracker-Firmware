@@ -2286,7 +2286,7 @@ void Mount::startSlewing(int direction)
 
             if (direction & NORTH)
             {
-                long targetLocation = 300000;
+                long targetLocation = _stepsPerDECDegree * DEC_LIMIT_UP;
                 if (_decUpperLimit != 0)
                 {
                     targetLocation = _decUpperLimit;
@@ -2306,7 +2306,7 @@ void Mount::startSlewing(int direction)
 
             if (direction & SOUTH)
             {
-                long targetLocation = -300000;
+                long targetLocation = -_stepsPerDECDegree * DEC_LIMIT_DOWN;
                 if (_decLowerLimit != 0)
                 {
                     targetLocation = _decLowerLimit;
