@@ -7,24 +7,26 @@
 // whatever timer is used for the hardware being run
 //////////////////////////////////////
 
-#if defined ESP32
-// We don't support ESP32 boards in interrupt mode
-#elif defined __AVR_ATmega2560__  // Arduino Mega
-    #define USE_TIMER_1 true
-    #define USE_TIMER_2 true
-    #define USE_TIMER_3 false
-    #define USE_TIMER_4 false
-    #define USE_TIMER_5 false
+#ifndef NEW_STEPPER_LIB
+
+    #if defined ESP32
+    // We don't support ESP32 boards in interrupt mode
+    #elif defined __AVR_ATmega2560__  // Arduino Mega
+        #define USE_TIMER_1 true
+        #define USE_TIMER_2 true
+        #define USE_TIMER_3 false
+        #define USE_TIMER_4 false
+        #define USE_TIMER_5 false
 PUSH_NO_WARNINGS
-    #include "libs/TimerInterrupt/TimerInterrupt.h"
+        #include "libs/TimerInterrupt/TimerInterrupt.h"
 POP_NO_WARNINGS
-#else
-    #error Unrecognized board selected. Either implement interrupt code or define the board here.
-#endif
+    #else
+        #error Unrecognized board selected. Either implement interrupt code or define the board here.
+    #endif
 
-#if defined(ESP32)
+    #if defined(ESP32)
 
-#elif defined __AVR_ATmega2560__
+    #elif defined __AVR_ATmega2560__
 
 bool InterruptCallback::setInterval(float intervalMs, interrupt_callback_p callback, void *payload)
 {
@@ -45,4 +47,5 @@ void InterruptCallback::start()
     ITimer2.restartTimer();
 }
 
+    #endif
 #endif

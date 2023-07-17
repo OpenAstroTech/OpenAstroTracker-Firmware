@@ -18,8 +18,8 @@
 #include "c_buttons.hpp"
 #include "f_serial.hpp"
 
-#ifdef ARDUINO_ARCH_AVR
-/*
+#ifdef NEW_STEPPER_LIB
+    #ifdef ARDUINO_ARCH_AVR
 ISR(TIMER1_OVF_vect)
 {
     IntervalInterrupt_AVR<Timer::TIMER_1>::handle_overflow();
@@ -52,5 +52,5 @@ ISR(TIMER5_COMPA_vect)
 {
     IntervalInterrupt_AVR<Timer::TIMER_5>::handle_compare_match();
 }
-*/
+    #endif
 #endif

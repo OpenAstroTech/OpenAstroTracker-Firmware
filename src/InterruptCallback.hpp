@@ -5,6 +5,8 @@
 // whatever timer is used for the hardware being run.
 //////////////////////////////////////
 
+#ifndef NEW_STEPPER_LIB
+
 // The callback function signature
 typedef void (*interrupt_callback_p)(void *);
 
@@ -22,3 +24,5 @@ class InterruptCallback
     // Stops the timer interrupts (currently not called/used)
     void static stop();
 };
+
+#endif

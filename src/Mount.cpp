@@ -9,12 +9,13 @@
 #include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
-/*
-#ifdef __AVR_ATmega2560__
-    #include "InterruptAccelStepper.h"
-    #include "StepperConfiguration.hpp"
+#ifdef NEW_STEPPER_LIB
+    #ifdef __AVR_ATmega2560__
+        #include "InterruptAccelStepper.h"
+        #include "StepperConfiguration.hpp"
+    #endif
 #endif
-*/
+
 #include <AccelStepper.h>
 
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
@@ -267,18 +268,22 @@ void Mount::configureHemisphere(bool inNorthern, bool force)
 /////////////////////////////////
 void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-    // _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
+#ifdef NEW_STEPPER_LIB
+    _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    // _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
+    _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
+#else
     _stepperRA = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+
+    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
+    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+#endif
+
     _stepperRA->setMaxSpeed(maxSpeed);
     _stepperRA->setAcceleration(maxAcceleration);
     _maxRASpeed        = maxSpeed;
     _maxRAAcceleration = maxAcceleration;
-
-    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperTRK->setMaxSpeed(5000);
     _stepperTRK->setAcceleration(15000);
@@ -291,16 +296,21 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
 /////////////////////////////////
 void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-    //_stepperDEC   = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
-    //_stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
+#ifdef NEW_STEPPER_LIB
+    _stepperDEC = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
+
+    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
+    _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
+#else
     _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+
+    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
+    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+#endif
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);
     _maxDECSpeed        = maxSpeed;
     _maxDECAcceleration = maxAcceleration;
-
-    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
-    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
 
     _stepperGUIDE->setMaxSpeed(maxSpeed);
     _stepperGUIDE->setAcceleration(maxAcceleration);
@@ -319,8 +329,11 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    //_stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
-    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    #ifdef NEW_STEPPER_LIB
+    _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
+    #else
+    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
     _maxAZSpeed        = maxSpeed;
@@ -330,11 +343,15 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #endif
 }
 #endif
+
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    //_stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
-    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    #ifdef NEW_STEPPER_LIB
+    _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
+    #else
+    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
     _maxALTSpeed        = maxSpeed;
@@ -353,8 +370,11 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    //_stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
+    #ifdef NEW_STEPPER_LIB
+    _stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
+    #else
     _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    #endif
     _stepperFocus->setMaxSpeed(maxSpeed);
     _stepperFocus->setAcceleration(maxAcceleration);
     _stepperFocus->setSpeed(0);
@@ -2605,7 +2625,7 @@ void Mount::delay(int ms)
 //
 // This function is only called on run in an ISR. It needs to be fast and do little work.
 /////////////////////////////////
-// #if defined(ESP32)
+#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
 void Mount::interruptLoop()
 {
     // Only process guide pulses if we are tracking.
@@ -2640,30 +2660,30 @@ void Mount::interruptLoop()
 
     if (_mountStatus & STATUS_FINDING_HOME)
     {
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
         _stepperRA->run();
         if (_raHoming != nullptr)
         {
             _raHoming->processHomingProgress();
         }
-#endif
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    #endif
+    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
         _stepperDEC->run();
         if (_decHoming != nullptr)
         {
             _decHoming->processHomingProgress();
         }
-#endif
+    #endif
     }
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperAZ->run();
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #endif
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperALT->run();
-#endif
+    #endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_focuserMode == FOCUS_TO_TARGET)
     {
         _stepperFocus->run();
@@ -2672,17 +2692,17 @@ void Mount::interruptLoop()
     {
         _stepperFocus->runSpeed();
     }
-#endif
+    #endif
 
-#if (USE_RA_END_SWITCH == 1)
+    #if (USE_RA_END_SWITCH == 1)
     _raEndSwitch->processEndSwitchState();
-#endif
+    #endif
 
-#if (USE_DEC_END_SWITCH == 1)
+    #if (USE_DEC_END_SWITCH == 1)
     _decEndSwitch->processEndSwitchState();
-#endif
+    #endif
 }
-//#endif
+#endif
 
 /////////////////////////////////
 //

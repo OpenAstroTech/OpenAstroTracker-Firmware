@@ -2,9 +2,12 @@
 
 #include "../Configuration.hpp"
 #include "inc/Globals.hpp"
+
+#ifndef NEW_STEPPER_LIB
 PUSH_NO_WARNINGS
-#include <AccelStepper.h>
+    #include <AccelStepper.h>
 POP_NO_WARNINGS
+#endif
 
 #include "Utility.hpp"
 #include "DayTime.hpp"
