@@ -244,8 +244,8 @@
     #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
 #elif (BOARD == BOARD_AVR_RAMPS)
     #include "boards/RAMPS/pins_RAMPS.hpp"
-#elif (BOARD == BOARD_ESP32_ESP32DEV)
-    #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
+#elif (BOARD == BOARD_ESP32_FYSETCE4)
+    #include "boards/ESP32_FYSETCE4/pins_FYSETCE4.hpp"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V1)
     #include "boards/AVR_MKS_GEN_L_V1/pins_MKS_GEN_L_V1.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V2)

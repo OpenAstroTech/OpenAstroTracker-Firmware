@@ -343,8 +343,12 @@
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
         #endif
     #endif
-    #ifndef AZ_ALWAYS_ON
-        #define AZ_ALWAYS_ON 0
+    #if (BOARD == BOARD_ESP32_FYSETCE4)
+        #define AZ_ALWAYS_ON 1
+    #elif
+        #ifndef AZ_ALWAYS_ON
+            #define AZ_ALWAYS_ON 0
+        #endif
     #endif
 #endif
 
@@ -405,8 +409,12 @@
                 0  //By default Vref is ignored when using UART to specify rms current. Only enable if you know what you are doing.
         #endif
     #endif
-    #ifndef ALT_ALWAYS_ON
-        #define ALT_ALWAYS_ON 0
+    #if (BOARD == BOARD_ESP32_FYSETCE4)
+        #define ALT_ALWAYS_ON 1
+    #elif
+        #ifndef ALT_ALWAYS_ON
+            #define ALT_ALWAYS_ON 0
+        #endif
     #endif
 #endif
 
@@ -583,7 +591,7 @@
 // Stepper drivers
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if defined(ESP32)
-        #define RA_SERIAL_PORT Serial2  // Can be shared with DEC_SERIAL_PORT
+        #define RA_SERIAL_PORT Serial1  // Can be shared with DEC_SERIAL_PORT
     #elif defined(__AVR_ATmega2560__)
     // Uses SoftwareSerial
     #endif
@@ -591,7 +599,23 @@
 
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if defined(ESP32)
-        #define DEC_SERIAL_PORT Serial2  // Can be shared with RA_SERIAL_PORT
+        #define DEC_SERIAL_PORT Serial1  // Can be shared with RA_SERIAL_PORT
+    #elif defined(__AVR_ATmega2560__)
+    // Uses SoftwareSerial
+    #endif
+#endif
+
+#if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    #if defined(ESP32)
+        #define RA_SERIAL_PORT Serial1  // Can be shared with DEC_SERIAL_PORT
+    #elif defined(__AVR_ATmega2560__)
+    // Uses SoftwareSerial
+    #endif
+#endif
+
+#if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
+    #if defined(ESP32)
+        #define DEC_SERIAL_PORT Serial1  // Can be shared with RA_SERIAL_PORT
     #elif defined(__AVR_ATmega2560__)
     // Uses SoftwareSerial
     #endif
@@ -608,7 +632,13 @@
 
 // GPS
 #if USE_GPS == 1
-    #define GPS_BAUD_RATE 9600
+    #if defined(ESP32)
+        #define GPS_SERIAL_PORT Serial2  // TODO: Resolve potential conflict with RA_SERIAL_PORT & DEC_SERIAL_PORT
+        #define GPS_BAUD_RATE   9600
+    #elif defined(__AVR_ATmega2560__)
+        #define GPS_SERIAL_PORT Serial1
+        #define GPS_BAUD_RATE   9600
+    #endif
 #endif
 
 ////////////////////////////

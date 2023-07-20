@@ -67,7 +67,7 @@
     #else
         #error Defined an AZ driver, but no AZ stepper.
     #endif
-#elif defined(__AVR_ATmega2560__)
+#elif defined(ESP32) || defined(__AVR_ATmega2560__)
     // Azimuth configuration
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef AZ_DRIVER_ADDRESS
@@ -87,7 +87,7 @@
     #else
         #error Defined an ALT driver, but no ALT stepper.
     #endif
-#elif defined(__AVR_ATmega2560__)
+#elif defined(ESP32) || defined(__AVR_ATmega2560__)
     // Altitude configuration
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef ALT_DRIVER_ADDRESS
@@ -179,7 +179,7 @@
         #warning Missing pin assignments for MS pins
     #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN)
+    #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
     #endif
@@ -199,7 +199,7 @@
         #warning Missing pin assignments for MS pins
     #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN)
+    #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
     #endif
@@ -216,7 +216,7 @@
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)
+        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
         #endif
@@ -234,7 +234,7 @@
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
+        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
         #endif
@@ -431,6 +431,22 @@
         #else
             #error                                                                                                                         \
                 "FOCUS_OPERATING_CURRENT_SETTING is not defined. Please define the operating percentage of your motor in you local configuration file using the FOCUS_OPERATING_CURRENT_SETTING keyword."
+        #endif
+    #endif
+#endif
+
+#if (BOARD == BOARD_ESP32_FYSETCE4)
+    #if (RA_DRIVER_TYPE != DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE != DRIVER_TYPE_TMC2209_UART)
+        #error "FYSETC E4 must have TMC2209_UART configured for any driver used"
+    #endif
+    #if defined(AZ_DRIVER_TYPE)
+        #if (AZ_DRIVER_TYPE != DRIVER_TYPE_TMC2209_UART)
+            #error "FYSETC E4 must have TMC2209_UART configured for any driver used"
+        #endif
+    #endif
+    #if defined(ALT_DRIVER_TYPE)
+        #if (ALT_DRIVER_TYPE != DRIVER_TYPE_TMC2209_UART)
+            #error "FYSETC E4 must have TMC2209_UART configured for any driver used"
         #endif
     #endif
 #endif

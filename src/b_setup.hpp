@@ -131,7 +131,9 @@ void setup()
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // include TMC2209 UART pins
+    #ifdef RA_DIAG_PIN
     pinMode(RA_DIAG_PIN, INPUT);
+    #endif
     #ifdef RA_SERIAL_PORT
     RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
@@ -151,7 +153,9 @@ void setup()
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // include TMC2209 UART pins
+    #ifdef DEC_DIAG_PIN
     pinMode(DEC_DIAG_PIN, INPUT);
+    #endif
     #ifdef DEC_SERIAL_PORT
     DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
@@ -161,8 +165,10 @@ void setup()
     pinMode(AZ_EN_PIN, OUTPUT);
     digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // include TMC2209 UART pins
+        // include TMC2209 UART pins
+        #ifdef AZ_DIAG_PIN
     pinMode(AZ_DIAG_PIN, INPUT);
+        #endif
         #ifdef AZ_SERIAL_PORT
     AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
@@ -173,8 +179,10 @@ void setup()
     pinMode(ALT_EN_PIN, OUTPUT);
     digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // include TMC2209 UART pins
+        // include TMC2209 UART pins
+        #ifdef ALT_DIAG_PIN
     pinMode(ALT_DIAG_PIN, INPUT);
+        #endif
         #ifdef ALT_SERIAL_PORT
     ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
