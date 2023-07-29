@@ -1,3 +1,8 @@
+**V1.12.15 - Updates**
+- Corrected ALT calculation for OAM
+- Allowed overriding AZ_CIRCUMFERENCE in local config
+- Allowed overriding the maximum search distance for autohoming in local config, default remains 30degs
+
 **V1.12.14 - Updates**
 - Southern hemisphere fix
 - Added and changed some logging
