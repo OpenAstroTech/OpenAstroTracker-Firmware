@@ -1512,6 +1512,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         if (inCmd[1] == 'L')  // :MAL
         {
             float arcMinute = inCmd.substring(2).toFloat();
+            LOG(DEBUG_MEADE, "[MEADE]: Move ALT by %f arcmins", arcMinute);
             _mount->moveBy(ALTITUDE_STEPS, arcMinute);
         }
 #endif
@@ -1558,7 +1559,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')
     {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-        int distance = 30;
+        int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
         if (inCmd.length() > 3)
         {
             distance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
@@ -1579,7 +1580,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'D')
     {
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-        int decDistance = 30;
+        int decDistance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
         if (inCmd.length() > 3)
         {
             decDistance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
