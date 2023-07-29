@@ -326,7 +326,7 @@
     #ifndef AZIMUTH_STEPS_PER_REV
         #define AZIMUTH_STEPS_PER_REV                                                                                                      \
             (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
-             * AZ_MICROSTEPPING)                                                  // Actually u-steps/rev
+             * AZ_MICROSTEPPING)  // Actually u-steps/rev
     #endif
     #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
 
