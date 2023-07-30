@@ -1166,19 +1166,19 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
             break;
 
-        case 'r':                                                     // :Gr
-            return _mount->RAString(MEADE_STRING | TARGET_STRING);    // returns trailing #
+        case 'r':                                                   // :Gr
+            return _mount->RAString(MEADE_STRING | TARGET_STRING);  // returns trailing #
 
-        case 'd':                                                     // :Gd
-            return _mount->DECString(MEADE_STRING | TARGET_STRING);   // returns trailing #
+        case 'd':                                                    // :Gd
+            return _mount->DECString(MEADE_STRING | TARGET_STRING);  // returns trailing #
 
-        case 'R':                                                     // :GR
-            return _mount->RAString(MEADE_STRING | CURRENT_STRING);   // returns trailing #
+        case 'R':                                                    // :GR
+            return _mount->RAString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
 
         case 'D':                                                     // :GD
             return _mount->DECString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
 
-        case 'X':                                                     // :GX
+        case 'X':  // :GX
             return _mount->getStatusString() + "#";
 
         case 'I':
@@ -1256,7 +1256,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             {
                 return "OAT4#";
             }
-        case 'T':                // :GT
+        case 'T':  // :GT
             {
                 return "60.0#";  //default MEADE Tracking Frequency
             }
@@ -1751,7 +1751,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             return _mount->getMountHardwareInfo() + "#";  // :XGM#
         }
-        else if (inCmd[1] == 'O')                         // :XGO#
+        else if (inCmd[1] == 'O')  // :XGO#
         {
             return getLogBuffer();
         }
@@ -1802,7 +1802,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
         }
-        else if (inCmd[1] == 'D')                           // :XSD
+        else if (inCmd[1] == 'D')  // :XSD
         {
             if ((inCmd.length() > 2) && (inCmd[2] == 'L'))  // :XSDL
             {
