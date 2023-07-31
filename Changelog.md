@@ -1,3 +1,6 @@
+**V1.12.16 - Updates**
+- Fixed a bug that prevented clients from reading the DEC offset.
+
 **V1.12.15 - Updates**
 - Corrected ALT calculation for OAM
 - Allowed overriding AZ_CIRCUMFERENCE in local config

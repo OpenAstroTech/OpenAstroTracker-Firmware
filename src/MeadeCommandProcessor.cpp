@@ -1767,13 +1767,12 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     return String(inNorthernHemisphere ? "N#" : "S#");
                 }
-            }
-            else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XGHD#
-            {
-                return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
+                else if (inCmd[2] == 'D')  // :XGHD#
+                {
+                    return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
+                }
             }
             else
-
             {
                 char scratchBuffer[10];
                 DayTime ha = _mount->calculateHa();
