@@ -1885,10 +1885,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 {
                     _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
                 }
-            }
-            else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XSHD
-            {
-                _mount->setHomingOffset(StepperAxis::DEC_STEPS, inCmd.substring(3).toInt());
+                else if (inCmd[2] == 'D')  // :XSHD
+                {
+                    _mount->setHomingOffset(StepperAxis::DEC_STEPS, inCmd.substring(3).toInt());
+                }
             }
         }
     }
