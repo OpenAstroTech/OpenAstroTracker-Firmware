@@ -1,3 +1,6 @@
+**V1.12.17 - Updates**
+- Fixed a bug that prevented clients from writing the DEC offset.
+
 **V1.12.16 - Updates**
 - Fixed a bug that prevented clients from reading the DEC offset.
 
