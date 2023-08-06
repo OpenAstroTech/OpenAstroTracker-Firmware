@@ -53,14 +53,17 @@ class EEPROMStore
     static int32_t getDECParkingPos();
     static void storeDECParkingPos(int32_t decParkingPos);
 
-    static int32_t getDECLowerLimit();
-    static void storeDECLowerLimit(int32_t decLowerLimit);
+    static float getDECLowerLimit();
+    static void storeDECLowerLimit(float decLowerLimit);
 
-    static int32_t getDECUpperLimit();
-    static void storeDECUpperLimit(int32_t decUpperLimit);
+    static float getDECUpperLimit();
+    static void storeDECUpperLimit(float decUpperLimit);
 
     static int32_t getRAHomingOffset();
     static void storeRAHomingOffset(int32_t raHomingOffset);
+
+    static int32_t getDECHomingOffset();
+    static void storeDECHomingOffset(int32_t decHomingOffset);
 
   private:
     /////////////////////////////////
@@ -115,10 +118,13 @@ class EEPROMStore
     enum ExtendedItemFlag
     {
         // The marker bits for the extended values
-        PARKING_POS_MARKER_FLAG = 0x0001,
-        DEC_LIMIT_MARKER_FLAG   = 0x0002,
-        UTC_OFFSET_MARKER_FLAG  = 0x0004,
-        RA_HOMING_MARKER_FLAG   = 0x0008,
+        PARKING_POS_MARKER_FLAG    = 0x0001,
+        DEC_LIMIT_MARKER_FLAG      = 0x0002,
+        UTC_OFFSET_MARKER_FLAG     = 0x0004,
+        RA_HOMING_MARKER_FLAG      = 0x0008,
+        RA_NORM_STEPS_MARKER_FLAG  = 0x0010,
+        DEC_NORM_STEPS_MARKER_FLAG = 0x0020,
+        DEC_HOMING_MARKER_FLAG     = 0x0040,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -169,6 +175,18 @@ class EEPROMStore
         _RA_HOMING_OFFSET_ADDR_1,
         _RA_HOMING_OFFSET_ADDR_2,
         _RA_HOMING_OFFSET_ADDR_3,  // Int32
+        RA_NORM_STEPS_DEGREE_ADDR = 44,
+        _RA_NORM_STEPS_DEGREE_ADDR_1,
+        _RA_NORM_STEPS_DEGREE_ADDR_2,
+        _RA_NORM_STEPS_DEGREE_ADDR_3,  // Int32
+        DEC_NORM_STEPS_DEGREE_ADDR = 48,
+        _DEC_NORM_STEPS_DEGREE_ADDR_1,
+        _DEC_NORM_STEPS_DEGREE_ADDR_2,
+        _DEC_NORM_STEPS_DEGREE_ADDR_3,  // Int32
+        DEC_HOMING_OFFSET_ADDR = 52,
+        _DEC_HOMING_OFFSET_ADDR_1,
+        _DEC_HOMING_OFFSET_ADDR_2,
+        _DEC_HOMING_OFFSET_ADDR_3,  // Int32
         STORE_SIZE = 64
     };
 

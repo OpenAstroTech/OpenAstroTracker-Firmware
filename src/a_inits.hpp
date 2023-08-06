@@ -2,9 +2,6 @@
 
 #include "../Configuration.hpp"
 #include "inc/Globals.hpp"
-PUSH_NO_WARNINGS
-#include <AccelStepper.h>
-POP_NO_WARNINGS
 
 #include "Utility.hpp"
 #include "DayTime.hpp"
@@ -96,9 +93,6 @@ bool inStartup = false;  // Start with a guided startup
 bool okToUpdateMenu                = true;   // Can be used to supress rendering the first line of the menu.
 bool quitSerialOnNextButtonRelease = false;  // Used to detect SELECT button to quit Serial mode.
 
-// Global variables
-bool isUnreachable = false;
-
 // RA variables
 int RAselect;
 
@@ -107,6 +101,3 @@ int DECselect;
 
 // HA variables
 int HAselect;
-
-//debugging
-String inBT;

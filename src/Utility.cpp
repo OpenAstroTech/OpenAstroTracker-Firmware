@@ -9,7 +9,6 @@
 
 #if DEBUG_LEVEL > 0
 unsigned long RealTime::_pausedTime   = 0;
-unsigned long RealTime::_startTime    = micros();
 unsigned long RealTime::_suspendStart = 0;
 int RealTime::_suspended              = 0;
 #endif
@@ -358,11 +357,14 @@ String format(const char *input, ...)
     return ret;
 }
 
+unsigned long lastLog = 0;
+
 void logv(int levelFlags, String input, ...)
 {
     if ((levelFlags & DEBUG_LEVEL) != 0)
     {
-        unsigned long now = millis();
+        unsigned long now   = millis();
+        unsigned long delta = now - lastLog;
         va_list argp;
         va_start(argp, input);
     #if BUFFER_LOGS == true
@@ -370,12 +372,15 @@ void logv(int levelFlags, String input, ...)
     #else
         DEBUG_SERIAL_PORT.print("[");
         DEBUG_SERIAL_PORT.print(String(now));
-        DEBUG_SERIAL_PORT.print("]:");
+        DEBUG_SERIAL_PORT.print("]{");
+        DEBUG_SERIAL_PORT.print(String(delta));
+        DEBUG_SERIAL_PORT.print("}ms:");
         DEBUG_SERIAL_PORT.print(String(freeMemory()));
-        DEBUG_SERIAL_PORT.print(": ");
+        DEBUG_SERIAL_PORT.print("B: ");
         DEBUG_SERIAL_PORT.println(formatArg(input.c_str(), argp));
         DEBUG_SERIAL_PORT.flush();
     #endif
+        lastLog = now;
         va_end(argp);
     }
 }

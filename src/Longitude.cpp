@@ -35,7 +35,7 @@ void Longitude::checkHours()
 Longitude Longitude::ParseFromMeade(String const &s)
 {
     Longitude result(0.0);
-    LOG(DEBUG_GENERAL, "[LONGITUDE]: Parse(%s)", s.c_str());
+    LOG(DEBUG_MEADE, "[LONGITUDE]: Parse(%s)", s.c_str());
 
     // Use the DayTime code to parse it.
     DayTime dt = DayTime::ParseFromMeade(s);
@@ -52,7 +52,7 @@ Longitude Longitude::ParseFromMeade(String const &s)
     }
     result.checkHours();
 
-    LOG(DEBUG_GENERAL, "[LONGITUDE]: Parse(%s) -> %s = %ls", s.c_str(), result.ToString(), result.getTotalSeconds());
+    LOG(DEBUG_MEADE, "[LONGITUDE]: Parse(%s) -> %s = %ls", s.c_str(), result.ToString(), result.getTotalSeconds());
     return result;
 }
 

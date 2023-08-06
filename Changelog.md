@@ -1,3 +1,117 @@
+**V1.12.16 - Updates**
+- Fixed a bug that prevented clients from reading the DEC offset.
+
+**V1.12.15 - Updates**
+- Corrected ALT calculation for OAM
+- Allowed overriding AZ_CIRCUMFERENCE in local config
+- Allowed overriding the maximum search distance for autohoming in local config, default remains 30degs
+
+**V1.12.14 - Updates**
+- Southern hemisphere fix
+- Added and changed some logging
+
+**V1.12.13 - Updates**
+- Added ability to override RA Wheel circumference in local configuration
+- Added a physical limit define which defines how far RA can turn before physical issues arise. 
+- Manual slewing now targets the physical limit of the axis, instead of just going x thousand steps.
+- Added support to define the back slew distance that is required to un-signal a signaled end switch. Some
+  mechanical switches have a hysteresis that requires a lot (600%!) of back movement to un-signal.
+- Manual slewing termination was incorrect and not executing pending operations.
+- Set Tracking compensation speed to slewing speed instead of other calculation that was way too slow and 
+  caused long post-slew delays.
+- Firmware returns"OpenAstroMount" for :GVP# Meade command if compiled for OAM.
+- Enhanced logging output to show time since last log output.
+- Added output of all stepper settings to log output.
+
+**V1.12.12 - Updates**
+- Change MKS Gen L v1.0, v2.0, v2.1 default separate debug serial port from `Serial3` to `Serial2`.
+
+- **V1.12.11 - Updates**
+- Allowed the active state of the hall sensors for auto homing RA and DEC to be configured.
+
+**V1.12.10 - Updates**
+- Fixed a problem where slewing to targets more than 90degrees from the pole (in either hemisphere) would result in a target mirrored around the 'equator'.
+
+**V1.12.9 - Updates**
+- Fixed integer size mismatch for RA and DEC speeds. This caused integer overflows when RA was configured for 256 step microstepping.
+- Added some logging at boot to show stepper variables.
+
+**V1.12.8 - Updates**
+- Fixed compile error caused by GPS being enabled in RAMPS environment.
+
+**V1.12.7 - Updates**
+- Fixed a bug where southern hemisphere setting would not persist between session.
+
+**V1.12.6 - Updates**
+- Fixed all known issues related to running in the southern hemisphere.
+- Added support for DIR inversion to interrupt stepper library.
+- Hemisphere no longer needs to be defined in config, firmware determines it automatically from the given Latitude, switching at the equator.
+- Fixed the logic in Sync call to account for both hemispheres.
+- Fixed some logic that stopped tracking when setting home position.
+- Fixed a bug that caused the firmware to fail to recognize the end of very short slews.
+- Added Meade Extension command to query remaining tracking time
+- Added Meade Extension command to query the hemisphere that is set.
+
+**V1.12.5 - Updates**
+- Bound interrupt stepper library to version 0.0.1.
+
+**V1.12.4 - Updates**
+- Fixed a bug that incorrectly stopped the RA motor after issuing a DEC move.
+
+**V1.12.3 - Updates**
+- Fixed a bug that incorrectly calculated minimum stepper frequency. This caused Tracking to never run.
+
+**V1.12.2 - Updates**
+- Fixed a bug that caused Focuser stepper to misbehave after booting.
+
+**V1.12.1 - Updates**
+- Fixed a bug that caused Autohoming to cause a build break.
+- Fixed a bug that would prevent Hall sensor based Autohoming from completing.
+
+**V1.12.0 - Updates**
+- Rewrite of the Stepper driver logic on ATMega2560 based boards.
+  - Now using https://github.com/andre-stefanov/avr-interrupt-stepper instead of AccelStepper.
+  - Now using dynamic interrupts instead of main loop for stepping control.
+  - The maximum stepping rate (in total) increased drastically (theoretically up to 80.000 steps/s but it is recommended to stay under 40.000 to keep UART stable).
+  - Improved stepping frequency stability and thus tracking speed accuracy.
+  - ESP32 still uses AccelStepper (likely to change in future releases).
+- Added CONFIG_VERSION validation to allow breaking changes in local configurations.
+
+**V1.11.15 - Updates**
+- Add DEC Autohoming via Hall sensor (same as RA Autohoming)
+
+**V1.11.14 - Updates**
+- Prevented firmware from hanging at boot if LCD is defined but not connected.
+- Fixed a (rare) bug that would throw off GoTo commands when a target coordinate had been set.
+
+**V1.11.13 - Updates**
+- Added end switch support for RA and DEC.
+- Guide pulses are only executed when tracking.
+
+**V1.11.12 - Updates**
+- Change DEC limit code to return degrees instead of stepper positions. 
+- Support separate limits for DEC Limits being queried.
+
+**V1.11.11 - Updates**
+- Fix DEC limit code to use parameters.
+
+**V1.11.10 - Updates**
+- Fix dew heater pin assignments.
+
+**V1.11.9 - Updates**
+- Change storage of RA and DEC steps/degree to be independent of microstepping settings.
+
+**V1.11.8 - Updates**
+- Remove dead code
+- Clean up README
+
+**V1.11.7 - Updates**
+- Add .mailmap file
+
+**V1.11.6 - Updates**
+- Fix platformio GitHub workflow to coincide with 6.0.2 update
+- Disable Wdouble-promotion globally due to esp32 build failure and GCC bug 55578
+
 **V1.11.5 - Updates**
 - Corrected Longitude parsing to account for sign
 - Corrected Longitude output to provide sign

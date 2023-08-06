@@ -17,7 +17,6 @@ int freeMemory();
 class RealTime
 {
     static unsigned long _pausedTime;
-    static unsigned long _startTime;
     static unsigned long _suspendStart;
     static int _suspended;
 

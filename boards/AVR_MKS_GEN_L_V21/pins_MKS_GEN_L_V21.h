@@ -1,5 +1,6 @@
 /**
  * @brief a pins configuration file for an MKS Gen L V2.1 OAT.
+ * https://github.com/makerbase-mks/MKS-GEN_L/blob/master/hardware/MKS%20Gen_L%20V2.1_001/MKS%20GEN_L%20V2.1_001%20PIN.pdf
  */
 
 #pragma once
@@ -150,6 +151,31 @@
     #define RA_HOMING_SENSOR_PIN 53
 #endif
 
+// DEC Homing pin for Hall sensor
+#ifndef DEC_HOMING_SENSOR_PIN
+    #define DEC_HOMING_SENSOR_PIN 52
+#endif
+
+// RA End Switch East pin
+#ifndef RA_ENDSWITCH_EAST_SENSOR_PIN
+    #define RA_ENDSWITCH_EAST_SENSOR_PIN 19
+#endif
+
+// RA End Switch West pin
+#ifndef RA_ENDSWITCH_WEST_SENSOR_PIN
+    #define RA_ENDSWITCH_WEST_SENSOR_PIN 18
+#endif
+
+// DEC End Switch Up pin
+#ifndef DEC_ENDSWITCH_UP_SENSOR_PIN
+    #define DEC_ENDSWITCH_UP_SENSOR_PIN 3
+#endif
+
+// DEC End Switch Down pin
+#ifndef DEC_ENDSWITCH_DOWN_SENSOR_PIN
+    #define DEC_ENDSWITCH_DOWN_SENSOR_PIN 2
+#endif
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
     #define GPS_SERIAL_PORT Serial1
@@ -181,17 +207,17 @@
 #endif
 
 //Pin to turn on dew heater MOSFET
-#ifndef DEW_HEATER_PIN1
+#ifndef DEW_HEATER_1_PIN
     #define DEW_HEATER_1_PIN 10
 #endif
-#ifndef DEW_HEATER_PIN2
+#ifndef DEW_HEATER_2_PIN
     #define DEW_HEATER_2_PIN 7
 #endif
 
 //Serial port for external debugging
 #if DEBUG_SEPARATE_SERIAL == 1
     #ifndef DEBUG_SERIAL_PORT
-        #define DEBUG_SERIAL_PORT Serial3  //D14 (Y-MIN) - TX3 and D15 (Y-MAX) - RX3
+        #define DEBUG_SERIAL_PORT Serial2  //D16 (LCD_RS) - TXD2 and D17 (LCD_EN) - RXD2
     #endif
 #else
     #ifndef DEBUG_SERIAL_PORT

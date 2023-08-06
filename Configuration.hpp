@@ -10,11 +10,9 @@
 * and not need to worry about a new version from Git overwriting your setup. 
 * There are multiple ways to define a local config file:
 *  - For all boards/hardware configs:
-*    Create a file called Configuration_local.hpp (best to copy configuration_sample_local.hpp and 
-*    change it as needed)
+*    Create a file called Configuration_local.hpp (best to visit https://config.openastrotech.com/)
 *  - Specific to a board:
-*    Create a file called Configuration_local_<board>.hpp, where <board> is either 'mega' or 
-*    'esp32' or (here, too, best to copy Configuration_sample_local.hpp and change it as needed). 
+*    Create a file called Configuration_local_<board>.hpp, see valid board types in LocalConfiguration.hpp
 *    The code automatically picks the right one at compile time. This is useful if you are 
 *    developer or just have multiple OATs. 
 *  - Custom configurations or advanced builds:
@@ -49,7 +47,7 @@
     #error You have to specify the board
 #endif
 
-// Set to 1 for the northern hemisphere, 0 otherwise
+// Default to northern hemisphere
 #ifndef NORTHERN_HEMISPHERE
     #define NORTHERN_HEMISPHERE 1
 #endif
@@ -207,6 +205,10 @@
 // Enable dew heater output (for boards that have MOSFETs)
 #ifndef DEW_HEATER
     #define DEW_HEATER 0
+#endif
+
+#ifndef SIDEREAL_SECONDS_PER_DAY
+    #define SIDEREAL_SECONDS_PER_DAY 86164.0905f
 #endif
 
 // These values are needed to calculate the current position during initial alignment.

@@ -93,7 +93,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get the Product Name
 //      Returns:
-//        "OpenAstroTracker#"
+//        "OpenAstroTracker#" if the firmware was compiled for OAT
+//        "OpenAstroMount#" if the firmware was compiled for OAM
 //
 // :GVN#
 //      Description:
@@ -508,7 +509,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This attempts to find the hall sensor and to home the RA ring accordingly.
 //      Parameters:
 //        "x" is either 'R' or 'L' and determines the direction in which the search starts (L is CW, R is CCW).
-//        "n" (Optional) is the maximum number of hours to move while searching for the sensor location. Defaults to 2h. Limited to the range 1h-5h.
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
 //      Remarks:
 //        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
 //        it will move twice the amount (60 degrees by default) in the opposite direction.
@@ -519,7 +520,28 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        the RA ring off the trigger in the opposite direction specified for a max of 15 degrees before searching 30 degrees in the
 //        specified direction.
 //      Returns:
-//        "1" returns if search is started
+//        "1" if search is started
+//        "0" if homing has not been enabled in the local config
+//
+// :MHDxn#
+//      Description:
+//        Home DEC stepper via Hall sensor
+//      Information:
+//        This attempts to find the hall sensor and to home the DEC axis accordingly.
+//      Parameters:
+//        "x" is either 'U' or 'D' and determines the direction in which the search starts (U is up, D is down).
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
+//      Remarks:
+//        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
+//        it will move twice the amount (60 degrees by default) in the opposite direction.
+//        If a hall sensor is not encountered during that slew, the homing exits with a failure.
+//        If the sensor is found, it will slew to the middle position of the Hall sensor trigger range and then to the offset
+//        specified in the Home offset position (set with the ":XSHDnnnn#" command).
+//        If the DEC ring is positioned such that the Hall sensor is already triggered when the command is received, the mount will move
+//        the DEC ring off the trigger in the opposite direction specified for a max of 15 degrees before searching 30 degrees in the
+//        specified direction.
+//      Returns:
+//        "1" if search is started
 //        "0" if homing has not been enabled in the local config
 //
 // :MAZn.nn#
@@ -724,13 +746,16 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#"
 //
-// :XGDL#
+// :XGDLx#
 //      Description:
 //        Get DEC limits
 //      Information:
-//        Get the lower and upper limits for the DEC stepper motor in steps
+//        Get either lower, upper or both limits for the DEC stepper motor in degrees.
+//      Parameters:
+//        'x' is optional or can be 'U' or 'L'. If it is 'U' only the upper bound is returned,
+//            if it is 'L' only the lower bound is returned and if it is missing, both are returned.
 //      Returns:
-//        "integer|integer#"
+//        "float#" or "float|float#"
 //
 // :XGDP#
 //      Description:
@@ -745,6 +770,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Get Tracking speed adjustment
 //      Information:
 //        Get the adjustment factor used to speed up (>1.0) or slow down (<1.0) the tracking speed of the mount.
+//      Returns:
+//        "float#"
+//
+// :XGST#
+//      Description:
+//        Get Remaining Safe Time
+//      Information:
+//        Get the number of hours before the RA ring reaches its end.
 //      Returns:
 //        "float#"
 //
@@ -772,19 +805,36 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "n#" - the number of steps from the center of the hall sensor trigger range to the home position.
 //
+// :XGHS#
+//      Description:
+//        Get Hemisphere
+//      Information:
+//        Get the hemisphere that the OAT currently assumes it is operating in. This is set via setting Latitude (see ":St" command)
+//      Returns:
+//        "N#" - for northern hemisphere
+//        "S#" - for southern hemisphere
+//
 // :XGM#
 //      Description:
 //        Get Mount configuration settings
 //      Returns:
-//        "<board>,<RA Stepper Info>,<DEC Stepper Info>,<GPS info>,<AzAlt info>,<Gyro info>#"
+//        "<board>,<RA Stepper Info>,<DEC Stepper Info>,<GPS info>,<AzAlt info>,<Gyro info>,<Display info>,(more features...)#"
 //      Parameters:
 //        "<board>" is one of the supported boards (currently Mega, ESP32, MKS)
 //        "<Stepper Info>" is a pipe-delimited string of Motor type (NEMA or 28BYJ), Pulley Teeth, Steps per revolution)
 //        "<GPS info>" is either NO_GPS or GPS, depending on whether a GPS module is present
 //        "<AzAlt info>" is either NO_AZ_ALT, AUTO_AZ_ALT, AUTO_AZ, or AUTO_ALT, depending on which AutoPA stepper motors are present
 //        "<Gyro info>" is either NO_GYRO or GYRO depending on whether the Digial level is present
+//        "<Display info>" is either NO_LCD or LCD_display_type depending on whether LCD is present and if so, which one
+//        "<Focuser info>" is either NO_FOC or FOC depending on whether the focuser motor is enabled
+//        "<RAHallSensor info>" is either NO_HSAH or HSAH depending on whether the Hall sensor based auto homing for RA is enabled
+//        "<Endswitch info>" is either NO_ENDSW or ENDS_RA, ENDSW_DEC, or ENDSW_RA_DEC depending on which axis have end switches installed
+//      Remarks
+//        As OAT/OAM firmware supports more features, these may be appended, separated by a comma. Any further features will
+//        have a 'NO_xxxxx' if the feature is not supported.
+//        To differentiate between OAT and OAM, use the Get Product Name (#GVP) command.
 //      Example:
-//        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO#"
+//        "ESP32,28BYJ|16|4096.00,28BYJ|16|4096.00,NO_GPS,NO_AZ_ALT,NO_GYRO,NO_LCD,NO_FOC,NO_ENDSW#"
 //
 // :XGMS#
 //      Description:
@@ -835,6 +885,17 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
+// :XSHDnnn#
+//      Description:
+//        Set homing offset for DEC ring from Hall sensor center
+//      Information:
+//        This offset is added to the position of the DEC ring when it is centered on the hall sensor triggered range after running.
+//        the DEC homing command (:MHDx#)
+//      Parameters:
+//        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
+//      Returns:
+//        nothing
+//
 // :XSRn.n#
 //      Description:
 //        Set RA steps
@@ -859,10 +920,11 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC upper limit
 //      Information:
-//        Set the upper limit for the DEC stepper motor to the current position if no parameter is given,
-//        otherwise to the given parameter.
+//        Set the upper limit for the DEC axis to the current position if no parameter is given,
+//        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel upwards
+//        "nnnnn" is the number of steps from home that the DEC ring can travel upwards. Passing 0 will reset it to the
+//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -870,7 +932,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC upper limit
 //      Information:
-//        Clears the upper limit for the DEC stepper motor
+//        Resets the upper limit for the DEC axis to the configuration-defined position.
+//        If unconfigured, the limit is cleared.
 //      Returns:
 //        nothing
 //
@@ -878,10 +941,11 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set DEC lower limit
 //      Information:
-//        Set the lowerlimit for the DEC stepper motor to the current position if no parameter is given,
-//        otherwise to the given parameter.
+//        Set the lower limit for the DEC axis to the current position if no parameter is given,
+//        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
-//        "nnnnn" is the number of steps from home that the DEC ring can travel downwards
+//        "nnnnn" is the number of steps from home that the DEC ring can travel downwards. Passing 0 will reset it to the
+//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -889,8 +953,10 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Clear DEC lower limit
 //      Information:
-//        Clear the lower limit for the DEC stepper motor
-//      Returns: nothing
+//        Resets the lower limit for the DEC axis to the configuration-defined position.
+//        If unconfigured, the limit is cleared.
+//      Returns:
+//        nothing
 //
 // :XSDPnnnn#
 //      Description:
@@ -1092,7 +1158,11 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
             else if (cmdTwo == 'P')  // :GVP
             {
+#ifdef OAM
+                return "OpenAstroMount#";
+#else
                 return "OpenAstroTracker#";
+#endif
             }
             break;
 
@@ -1299,7 +1369,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         }
         else if (inCmd[1] == 'P')
         {
-            // Set home point
+            // Set home point :SHP#
             _mount->setHome(false);
         }
         else
@@ -1442,6 +1512,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         if (inCmd[1] == 'L')  // :MAL
         {
             float arcMinute = inCmd.substring(2).toFloat();
+            LOG(DEBUG_MEADE, "[MEADE]: Move ALT by %f arcmins", arcMinute);
             _mount->moveBy(ALTITUDE_STEPS, arcMinute);
         }
 #endif
@@ -1470,7 +1541,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if (inCmd[0] == 'X')  // :MX
     {
         long steps = inCmd.substring(2).toInt();
-        LOG(DEBUG_MEADE, "[MEADE]: Move: %l in %d", steps, inCmd[1]);
+        LOG(DEBUG_MEADE, "[MEADE]: Move: %l in %c", steps, inCmd[1]);
         if (inCmd[1] == 'r')
             _mount->moveStepperBy(RA_STEPS, steps);
         else if (inCmd[1] == 'd')
@@ -1488,26 +1559,44 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'R')
     {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-        int distance = 2;
+        int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
         if (inCmd.length() > 3)
         {
-            distance = clamp((int) inCmd.substring(3).toInt(), 1, 5);
+            distance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
             LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
         }
 
         if (inCmd[2] == 'R')  // :MHRR
         {
-            _mount->findRAHomeByHallSensor(-1, distance);
-            return "1";
+            return _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, -1, distance) ? "1" : "0";
         }
         else if (inCmd[2] == 'L')  // :MHRL
         {
-            _mount->findRAHomeByHallSensor(1, distance);
-            return "1";
+            return _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, 1, distance) ? "1" : "0";
         }
-#else
         return "0";
 #endif
+    }
+    else if ((inCmd[0] == 'H') && (inCmd.length() > 2) && inCmd[1] == 'D')
+    {
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+        int decDistance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
+        if (inCmd.length() > 3)
+        {
+            decDistance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
+            LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", decDistance);
+        }
+
+        if (inCmd[2] == 'U')  // :MHDU
+        {
+            return _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, 1, decDistance) ? "1" : "0";
+        }
+        else if (inCmd[2] == 'D')  // :MHDD
+        {
+            return _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, -1, decDistance) ? "1" : "0";
+        }
+#endif
+        return "0";
     }
 
     return "0";
@@ -1586,13 +1675,29 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2)
             {
-                if (inCmd[2] == 'L')  // :XGDL#
+                if (inCmd[2] == 'L')  // :XGDLx#
                 {
-                    long loLimit, hiLimit;
+                    float loLimit, hiLimit;
                     _mount->getDecLimitPositions(loLimit, hiLimit);
-                    char scratchBuffer[20];
-                    sprintf(scratchBuffer, "%ld|%ld#", loLimit, hiLimit);
-                    return String(scratchBuffer);
+                    if (inCmd.length() > 3)
+                    {
+                        if (inCmd[3] == 'L')  // :XGDLL#
+                        {
+                            return String(loLimit, 1) + "#";
+                        }
+                        else if (inCmd[3] == 'U')  // :XGDLU#
+                        {
+                            return String(hiLimit, 1) + "#";
+                        }
+                        else
+                        {
+                            return "0#";
+                        }
+                    }
+                    else  // :XGDL#
+                    {
+                        return String(loLimit, 1) + "|" + String(hiLimit, 1) + "#";
+                    }
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
                 {
@@ -1604,9 +1709,16 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
             }
         }
-        else if (inCmd[1] == 'S')  // :XGS#
+        else if (inCmd[1] == 'S')
         {
-            return String(_mount->getSpeedCalibration(), 5) + "#";
+            if (inCmd.length() == 2)  // :XGS#
+            {
+                return String(_mount->getSpeedCalibration(), 5) + "#";
+            }
+            else if ((inCmd.length() == 3) && (inCmd[2] == 'T'))  // :XGST#
+            {
+                return String(_mount->checkRALimit(), 7) + "#";
+            }
         }
         else if (inCmd[1] == 'T')  // :XGT#
         {
@@ -1645,9 +1757,20 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'H')  // :XGH#
         {
-            if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XGHR#
+            if (inCmd.length() > 2)
             {
-                return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+                if (inCmd[2] == 'R')  // :XGHR#
+                {
+                    return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+                }
+                else if (inCmd[2] == 'S')  // :XGHS#
+                {
+                    return String(inNorthernHemisphere ? "N#" : "S#");
+                }
+                else if (inCmd[2] == 'D')  // :XGHD#
+                {
+                    return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
+                }
             }
             else
             {
@@ -1681,37 +1804,40 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'D')  // :XSD
         {
-            if ((inCmd.length() > 3) && (inCmd[2] == 'L'))  // :XSDL
+            if ((inCmd.length() > 2) && (inCmd[2] == 'L'))  // :XSDL
             {
-                if (inCmd[3] == 'L')  // :XSDLL
+                if (inCmd.length() > 3)
                 {
-                    if (inCmd.length() > 4)
+                    if (inCmd[3] == 'L')  // :XSDLL
                     {
-                        _mount->setDecLimitPositionAbs(false, inCmd.substring(4).toInt());
+                        if (inCmd.length() > 4)
+                        {
+                            _mount->setDecLimitPosition(false, inCmd.substring(4).toFloat());
+                        }
+                        else
+                        {
+                            _mount->setDecLimitPosition(false);
+                        }
                     }
-                    else
+                    else if (inCmd[3] == 'U')  // :XSDLU
                     {
-                        _mount->setDecLimitPosition(false);
+                        if (inCmd.length() > 4)
+                        {
+                            _mount->setDecLimitPosition(true, inCmd.substring(4).toFloat());
+                        }
+                        else
+                        {
+                            _mount->setDecLimitPosition(true);
+                        }
                     }
-                }
-                else if (inCmd[3] == 'U')  // :XSDLU
-                {
-                    if (inCmd.length() > 4)
+                    else if (inCmd[3] == 'l')  // :XSDLl
                     {
-                        _mount->setDecLimitPositionAbs(true, inCmd.substring(4).toInt());
+                        _mount->clearDecLimitPosition(false);
                     }
-                    else
+                    else if (inCmd[3] == 'u')  // :XSDLU
                     {
-                        _mount->setDecLimitPosition(true);
+                        _mount->clearDecLimitPosition(true);
                     }
-                }
-                else if (inCmd[3] == 'l')  // :XSDLl
-                {
-                    _mount->clearDecLimitPosition(false);
-                }
-                else if (inCmd[3] == 'u')  // :XSDLU
-                {
-                    _mount->clearDecLimitPosition(true);
                 }
             }
             else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
@@ -1720,7 +1846,11 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else
             {
-                _mount->setStepsPerDegree(DEC_STEPS, inCmd.substring(2).toFloat());
+                float stepsPerDegree = inCmd.substring(2).toFloat();
+                if (stepsPerDegree > 0)
+                {
+                    _mount->setStepsPerDegree(DEC_STEPS, stepsPerDegree);
+                }
             }
         }
         else if (inCmd[1] == 'S')  // :XSS
@@ -1747,12 +1877,18 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setBacklashCorrection(inCmd.substring(2).toInt());
         }
-
         else if (inCmd[1] == 'H')  // :XSH
         {
-            if (inCmd.length() > 2 && inCmd[2] == 'R')  // :XSHR
+            if (inCmd.length() > 2)
             {
-                _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+                if (inCmd[2] == 'R')  // :XSHR
+                {
+                    _mount->setHomingOffset(StepperAxis::RA_STEPS, inCmd.substring(3).toInt());
+                }
+            }
+            else if (inCmd.length() > 2 && inCmd[2] == 'D')  // :XSHD
+            {
+                _mount->setHomingOffset(StepperAxis::DEC_STEPS, inCmd.substring(3).toInt());
             }
         }
     }

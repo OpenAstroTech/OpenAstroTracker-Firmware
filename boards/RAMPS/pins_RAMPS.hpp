@@ -129,6 +129,11 @@
     #define RA_HOMING_SENSOR_PIN 53
 #endif
 
+// DEC Homing pin for Hall sensor
+#ifndef DEC_HOMING_SENSOR_PIN
+    #define DEC_HOMING_SENSOR_PIN 52
+#endif
+
 //GPS pin configuration
 #ifndef GPS_SERIAL_PORT
     #define GPS_SERIAL_PORT Serial2  // Pins 16 and 17
@@ -160,8 +165,11 @@
 #endif
 
 //Pin to turn on dew heater MOSFET
-#ifndef DEW_HEATER_PIN
-    #define DEW_HEATER_PIN 10
+#ifndef DEW_HEATER_1_PIN
+    #define DEW_HEATER_1_PIN 10
+#endif
+#ifndef DEW_HEATER_2_PIN
+    #define DEW_HEATER_2_PIN 9
 #endif
 
 //Serial port for external debugging
