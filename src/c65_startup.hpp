@@ -18,7 +18,7 @@ void setControlMode(bool);  // In CTRL menu
 enum startupState_t
 {
     StartupAskIfRAHomingShouldRun,
-    StartupAskIfDECHomingShouldRun, //DEC
+    StartupAskIfDECHomingShouldRun,  //DEC
     StartupAskIfIsInHomePosition,
     StartupSetRoll,
     StartupWaitForRollCompletion,
@@ -41,7 +41,7 @@ startupState_t startupState = StartupAskIfRAHomingShouldRun;
 startupState_t startupState = StartupAskIfIsInHomePosition;
         #endif
 
-//DEC-
+    //DEC-
         #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
 startupState_t startupState = StartupAskIfDECHomingShouldRun;
         #else
@@ -59,7 +59,7 @@ void startupIsCompleted()
     inStartup      = false;
     okToUpdateMenu = true;
 
-////    mount.startSlewing(TRACKING);
+    ////    mount.startSlewing(TRACKING);
 
     // Start on the RA menu
     lcdMenu.setActive(RA_Menu);
@@ -72,8 +72,8 @@ bool processStartupKeys()
     bool waitForRelease = false;
     switch (startupState)
     {
-        case StartupAskIfRAHomingShouldRun: // RA
-        case StartupAskIfDECHomingShouldRun: // DEC
+        case StartupAskIfRAHomingShouldRun:   // RA
+        case StartupAskIfDECHomingShouldRun:  // DEC
         case StartupAskIfIsInHomePosition:
             {
                 if (lcdButtons.keyChanged(&key))
@@ -187,10 +187,11 @@ void printStartupMenu()
 {
     switch (startupState)
     {
-        case StartupAskIfRAHomingShouldRun: // RA
-        case StartupAskIfDECHomingShouldRun: // DEC
+        case StartupAskIfRAHomingShouldRun:   // RA
+        case StartupAskIfDECHomingShouldRun:  // DEC
 
-        case StartupAskIfIsInHomePosition:            {
+        case StartupAskIfIsInHomePosition:
+            {
                 //              0123456789012345
                 String choices(" Yes  No  Cancl ");
                 if (isInHomePosition == YES)

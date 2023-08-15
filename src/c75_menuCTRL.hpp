@@ -11,11 +11,11 @@ enum ctrlState_t
     HIGHLIGHT_MANUAL,
     HIGHLIGHT_SERIAL,
     HIGHLIGHT_RA_AUTO_HOME,
-    HIGHLIGHT_DEC_AUTO_HOME, //DEC
+    HIGHLIGHT_DEC_AUTO_HOME,  //DEC
     MANUAL_CONTROL_MODE,
     MANUAL_CONTROL_CONFIRM_HOME,
     RUNNING_RA_HOMING_MODE,
-    RUNNING_DEC_HOMING_MODE, //DEC
+    RUNNING_DEC_HOMING_MODE,  //DEC
 };
 
 ctrlState_t ctrlState = HIGHLIGHT_MANUAL;
@@ -123,7 +123,7 @@ bool processControlKeys()
                     ctrlState = HIGHLIGHT_SERIAL;
         #endif
                 }
-//DEC-
+                //DEC-
                 else if (key == btnDOWN)
                 {
         #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
@@ -132,7 +132,7 @@ bool processControlKeys()
                     ctrlState = HIGHLIGHT_SERIAL;
         #endif
                 }
-//-DEC
+                //-DEC
                 else if (key == btnUP)
                 {
                     ctrlState = HIGHLIGHT_SERIAL;
@@ -161,12 +161,12 @@ bool processControlKeys()
                 {
                     ctrlState = HIGHLIGHT_MANUAL;
                 }
-//DEC-
+                //DEC-
                 else if (key == btnDOWN)
                 {
                     ctrlState = HIGHLIGHT_DEC_AUTO_HOME;
                 }
-//-DEC
+                //-DEC
                 else if (key == btnDOWN)
                 {
                     ctrlState = HIGHLIGHT_SERIAL;
@@ -188,7 +188,7 @@ bool processControlKeys()
             break;
         #endif
 
-//DEC-
+                //DEC-
         #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
 
         case HIGHLIGHT_DEC_AUTO_HOME:
@@ -226,7 +226,7 @@ bool processControlKeys()
             }
             break;
         #endif
-//-DEC
+            //-DEC
         case HIGHLIGHT_SERIAL:
             if (lcdButtons.keyChanged(&key))
             {
@@ -247,7 +247,7 @@ bool processControlKeys()
                     ctrlState = HIGHLIGHT_MANUAL;
         #endif
                 }
-//DEC-
+                //DEC-
                 else if (key == btnUP)
                 {
         #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
@@ -256,7 +256,7 @@ bool processControlKeys()
                     ctrlState = HIGHLIGHT_MANUAL;
         #endif
                 }
-//-DEC
+                //-DEC
                 else if (key == btnRIGHT)
                 {
                     inSerialControl = false;
@@ -295,7 +295,7 @@ bool processControlKeys()
                         lcdMenu.setNextActive();
                     }
 
-                    ctrlState      = HIGHLIGHT_MANUAL;
+                    ctrlState = HIGHLIGHT_MANUAL;
                     mount.stopSlewing(TRACKING);
                     okToUpdateMenu = true;
                     setZeroPoint   = true;
@@ -317,8 +317,8 @@ bool processControlKeys()
         #if SUPPORT_GUIDED_STARTUP == 1
                 if (startupState == StartupWaitForPoleCompletion)
                 {
-                    startupState   = StartupPoleConfirmed;
-                    ctrlState      = HIGHLIGHT_MANUAL;
+                    startupState = StartupPoleConfirmed;
+                    ctrlState    = HIGHLIGHT_MANUAL;
                     mount.stopSlewing(TRACKING);
                     waitForRelease = true;
                     inStartup      = true;
@@ -329,7 +329,7 @@ bool processControlKeys()
                     okToUpdateMenu = false;
                     lcdMenu.setCursor(0, 0);
                     lcdMenu.printMenu("Set home pos?");
-                    ctrlState      = MANUAL_CONTROL_CONFIRM_HOME;
+                    ctrlState = MANUAL_CONTROL_CONFIRM_HOME;
                     mount.stopSlewing(TRACKING);
                     waitForRelease = true;
                 }
@@ -350,11 +350,11 @@ void printControlSubmenu()
         case HIGHLIGHT_RA_AUTO_HOME:
             lcdMenu.printMenu(">Run RA Homing");
             break;
-//DEC-
+            //DEC-
         case HIGHLIGHT_DEC_AUTO_HOME:
             lcdMenu.printMenu(">Run DEC Homing");
             break;
-//-DEC
+            //-DEC
         case HIGHLIGHT_SERIAL:
             lcdMenu.printMenu(">Serial display");
             break;
