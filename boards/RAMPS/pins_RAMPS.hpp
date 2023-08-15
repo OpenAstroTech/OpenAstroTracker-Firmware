@@ -22,7 +22,7 @@
     #define RA_SERIAL_PORT_TX 23  // SoftwareSerial TX port
 #endif
 #ifndef RA_SERIAL_PORT_RX
-    #define RA_SERIAL_PORT_RX 25  // SoftwareSerial RX port
+    #define RA_SERIAL_PORT_RX 3  // SoftwareSerial RX port
 #endif
 #ifndef RA_DRIVER_ADDRESS
     #define RA_DRIVER_ADDRESS 0b00
@@ -42,10 +42,10 @@
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef DEC_SERIAL_PORT_TX
-    #define DEC_SERIAL_PORT_TX 27  // SoftwareSerial TX port
+    #define DEC_SERIAL_PORT_TX 25  // SoftwareSerial TX port
 #endif
 #ifndef DEC_SERIAL_PORT_RX
-    #define DEC_SERIAL_PORT_RX 29  // SoftwareSerial RX port
+    #define DEC_SERIAL_PORT_RX 2  // SoftwareSerial RX port
 #endif
 #ifndef DEC_DRIVER_ADDRESS
     #define DEC_DRIVER_ADDRESS 0b00
@@ -68,10 +68,10 @@
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef AZ_SERIAL_PORT_TX
-    #define AZ_SERIAL_PORT_TX 31  // SoftwareSerial TX port
+    #define AZ_SERIAL_PORT_TX 27  // SoftwareSerial TX port
 #endif
 #ifndef AZ_SERIAL_PORT_RX
-    #define AZ_SERIAL_PORT_RX 33  // SoftwareSerial RX port
+    #define AZ_SERIAL_PORT_RX 18  // SoftwareSerial RX port
 #endif
 #ifndef AZ_DRIVER_ADDRESS
     #define AZ_DRIVER_ADDRESS 0b00
@@ -91,10 +91,10 @@
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef ALT_SERIAL_PORT_TX
-    #define ALT_SERIAL_PORT_TX 35  // SoftwareSerial TX port
+    #define ALT_SERIAL_PORT_TX 29  // SoftwareSerial TX port
 #endif
 #ifndef ALT_SERIAL_PORT_RX
-    #define ALT_SERIAL_PORT_RX 37  // SoftwareSerial RX port
+    #define ALT_SERIAL_PORT_RX 19  // SoftwareSerial RX port
 #endif
 #ifndef ALT_DRIVER_ADDRESS
     #define ALT_DRIVER_ADDRESS 0b00
@@ -115,10 +115,10 @@
 #endif
 // DRIVER_TYPE_TMC2209_UART requires 2 additional digital pins for SoftwareSerial, can be shared across all drivers
 #ifndef FOCUS_SERIAL_PORT_TX
-    #define FOCUS_SERIAL_PORT_TX 39  // SoftwareSerial TX port
+    #define FOCUS_SERIAL_PORT_TX 6  // SoftwareSerial TX port
 #endif
 #ifndef FOCUS_SERIAL_PORT_RX
-    #define FOCUS_SERIAL_PORT_RX 41  // SoftwareSerial RX port
+    #define FOCUS_SERIAL_PORT_RX 11  // SoftwareSerial RX port
 #endif
 #ifndef FOCUS_DRIVER_ADDRESS
     #define FOCUS_DRIVER_ADDRESS 0b00
