@@ -3,4 +3,4 @@
 // Also, numbers are interpreted as simple numbers.                        _   __   _
 // So 1.8 is actually 1.08, meaning that 1.12 is a later version than 1.8.  \_(..)_/
 
-#define VERSION "V1.12.17"
+#define VERSION "V1.12.18"

@@ -1,3 +1,8 @@
+**V1.12.18 - Updates**
+- Added RA Autohoming via Hall sensor to the LCD menu
+- Added DEC Autohoming via Hall sensor to the LCD menu
+- Disabled tracking when setting up the home position via the LCD menu
+
 **V1.12.17 - Updates**
 - Fixed a bug that prevented clients from writing the DEC offset.
 

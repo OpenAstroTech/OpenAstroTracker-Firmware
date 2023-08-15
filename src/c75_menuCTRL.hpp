@@ -10,8 +10,12 @@ enum ctrlState_t
 {
     HIGHLIGHT_MANUAL,
     HIGHLIGHT_SERIAL,
+    HIGHLIGHT_RA_AUTO_HOME,
+    HIGHLIGHT_DEC_AUTO_HOME, //DEC
     MANUAL_CONTROL_MODE,
     MANUAL_CONTROL_CONFIRM_HOME,
+    RUNNING_RA_HOMING_MODE,
+    RUNNING_DEC_HOMING_MODE, //DEC
 };
 
 ctrlState_t ctrlState = HIGHLIGHT_MANUAL;
@@ -111,7 +115,25 @@ bool processControlKeys()
                     ctrlState = MANUAL_CONTROL_MODE;
                     mount.stopSlewing(ALL_DIRECTIONS);
                 }
-                else if ((key == btnDOWN) || (key == btnUP))
+                else if (key == btnDOWN)
+                {
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+        #else
+                    ctrlState = HIGHLIGHT_SERIAL;
+        #endif
+                }
+//DEC-
+                else if (key == btnDOWN)
+                {
+        #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+                    ctrlState = HIGHLIGHT_DEC_AUTO_HOME;
+        #else
+                    ctrlState = HIGHLIGHT_SERIAL;
+        #endif
+                }
+//-DEC
+                else if (key == btnUP)
                 {
                     ctrlState = HIGHLIGHT_SERIAL;
                 }
@@ -122,6 +144,89 @@ bool processControlKeys()
             }
             break;
 
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+
+        case HIGHLIGHT_RA_AUTO_HOME:
+            if (lcdButtons.keyChanged(&key))
+            {
+                waitForRelease = true;
+                if (key == btnSELECT)
+                {
+                    ctrlState = RUNNING_RA_HOMING_MODE;
+                    lcdMenu.printMenu("RA Homing...");
+                    mount.stopSlewing(ALL_DIRECTIONS);
+                    mount.findHomeByHallSensor(StepperAxis::RA_STEPS, -1, 2);  // Search 2hrs by default
+                }
+                else if (key == btnUP)
+                {
+                    ctrlState = HIGHLIGHT_MANUAL;
+                }
+//DEC-
+                else if (key == btnDOWN)
+                {
+                    ctrlState = HIGHLIGHT_DEC_AUTO_HOME;
+                }
+//-DEC
+                else if (key == btnDOWN)
+                {
+                    ctrlState = HIGHLIGHT_SERIAL;
+                }
+                else if (key == btnRIGHT)
+                {
+                    lcdMenu.setNextActive();
+                }
+            }
+            break;
+
+        case RUNNING_RA_HOMING_MODE:
+            {
+                if (!mount.isFindingHome())
+                {
+                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+                }
+            }
+            break;
+        #endif
+
+//DEC-
+        #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+
+        case HIGHLIGHT_DEC_AUTO_HOME:
+            if (lcdButtons.keyChanged(&key))
+            {
+                waitForRelease = true;
+                if (key == btnSELECT)
+                {
+                    ctrlState = RUNNING_DEC_HOMING_MODE;
+                    lcdMenu.printMenu("DEC Homing...");
+                    mount.stopSlewing(ALL_DIRECTIONS);
+                    mount.findHomeByHallSensor(StepperAxis::DEC_STEPS, -1, 2);  // Search 2hrs by default
+                }
+                else if (key == btnUP)
+                {
+                    ctrlState = HIGHLIGHT_MANUAL;
+                }
+                else if (key == btnDOWN)
+                {
+                    ctrlState = HIGHLIGHT_SERIAL;
+                }
+                else if (key == btnRIGHT)
+                {
+                    lcdMenu.setNextActive();
+                }
+            }
+            break;
+
+        case RUNNING_DEC_HOMING_MODE:
+            {
+                if (!mount.isFindingHome())
+                {
+                    ctrlState = HIGHLIGHT_DEC_AUTO_HOME;
+                }
+            }
+            break;
+        #endif
+//-DEC
         case HIGHLIGHT_SERIAL:
             if (lcdButtons.keyChanged(&key))
             {
@@ -130,10 +235,28 @@ bool processControlKeys()
                 {
                     inSerialControl = !inSerialControl;
                 }
-                else if ((key == btnDOWN) || (key == btnUP))
+                else if ((key == btnDOWN))
                 {
                     ctrlState = HIGHLIGHT_MANUAL;
                 }
+                else if (key == btnUP)
+                {
+        #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+                    ctrlState = HIGHLIGHT_RA_AUTO_HOME;
+        #else
+                    ctrlState = HIGHLIGHT_MANUAL;
+        #endif
+                }
+//DEC-
+                else if (key == btnUP)
+                {
+        #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+                    ctrlState = HIGHLIGHT_DEC_AUTO_HOME;
+        #else
+                    ctrlState = HIGHLIGHT_MANUAL;
+        #endif
+                }
+//-DEC
                 else if (key == btnRIGHT)
                 {
                     inSerialControl = false;
@@ -173,6 +296,7 @@ bool processControlKeys()
                     }
 
                     ctrlState      = HIGHLIGHT_MANUAL;
+                    mount.stopSlewing(TRACKING);
                     okToUpdateMenu = true;
                     setZeroPoint   = true;
                 }
@@ -195,6 +319,7 @@ bool processControlKeys()
                 {
                     startupState   = StartupPoleConfirmed;
                     ctrlState      = HIGHLIGHT_MANUAL;
+                    mount.stopSlewing(TRACKING);
                     waitForRelease = true;
                     inStartup      = true;
                 }
@@ -205,6 +330,7 @@ bool processControlKeys()
                     lcdMenu.setCursor(0, 0);
                     lcdMenu.printMenu("Set home pos?");
                     ctrlState      = MANUAL_CONTROL_CONFIRM_HOME;
+                    mount.stopSlewing(TRACKING);
                     waitForRelease = true;
                 }
             }
@@ -221,6 +347,14 @@ void printControlSubmenu()
         case HIGHLIGHT_MANUAL:
             lcdMenu.printMenu(">Manual slewing");
             break;
+        case HIGHLIGHT_RA_AUTO_HOME:
+            lcdMenu.printMenu(">Run RA Homing");
+            break;
+//DEC-
+        case HIGHLIGHT_DEC_AUTO_HOME:
+            lcdMenu.printMenu(">Run DEC Homing");
+            break;
+//-DEC
         case HIGHLIGHT_SERIAL:
             lcdMenu.printMenu(">Serial display");
             break;
