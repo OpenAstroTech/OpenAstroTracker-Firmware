@@ -1813,7 +1813,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     if (direction == AZIMUTH_STEPS)
     {
         enableAzAltMotors();
-        int stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
+        long stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
         _stepperAZ->move(stepsToMove);
     }
     #endif
@@ -1821,7 +1821,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     if (direction == ALTITUDE_STEPS)
     {
         enableAzAltMotors();
-        int stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
+        long stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
         _stepperALT->move(stepsToMove);
     }
     #endif

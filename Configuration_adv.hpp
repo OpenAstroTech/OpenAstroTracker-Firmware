@@ -377,24 +377,34 @@
         #define ALT_STEPPER_ACCELERATION 2000
     #endif
 
-    // the Circumference of the AZ rotation. 770mm dia.
-    #define ALT_CIRCUMFERENCE 2419.0f
-
     #ifndef AUTOPA_VERSION
         #define AUTOPA_VERSION 1
     #endif
 
-    #if AUTOPA_VERSION == 1
-        // the ratio of the ALT gearbox for AutoPA V1 (40:3)
-        #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
-    #else
-        // the ratio of the ALT gearbox for AutoPA V2 (40:1)
-        #define ALT_WORMGEAR_RATIO (40.0f)
-    #endif
+    #ifdef OAM
+        #ifndef ALT_ROD_PITCH
+            #define ALT_ROD_PITCH 1.0  // mm/rev
+        #endif
+        // the Circumference of the AZ rotation. 209.1mm radius.
+        #define ALT_CIRCUMFERENCE 209.1 * 2 * PI
+        #define ALTITUDE_STEPS_PER_REV                                                                                                     \
+            (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING)  // Actually u-steps/rev
 
-    #define ALTITUDE_STEPS_PER_REV                                                                                                         \
-        (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING           \
-         * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+    #else
+        // the Circumference of the AZ rotation. 770mm dia.
+        #define ALT_CIRCUMFERENCE 2419.0f
+        #if AUTOPA_VERSION == 1
+            // the ratio of the ALT gearbox for AutoPA V1 (40:3)
+            #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
+        #else
+            // the ratio of the ALT gearbox for AutoPA V2 (40:1)
+            #define ALT_WORMGEAR_RATIO (40.0f)
+        #endif
+
+        #define ALTITUDE_STEPS_PER_REV                                                                                                     \
+            (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING       \
+             * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+    #endif
 
     #ifndef ALTITUDE_STEPS_PER_ARC_MINUTE
         #define ALTITUDE_STEPS_PER_ARC_MINUTE (ALTITUDE_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
@@ -475,6 +485,9 @@
     #ifndef RA_HOMING_SENSOR_ACTIVE_STATE
         #define RA_HOMING_SENSOR_ACTIVE_STATE LOW
     #endif
+    #ifndef RA_HOMING_SENSOR_SEARCH_DEGREES
+        #define RA_HOMING_SENSOR_SEARCH_DEGREES 30
+    #endif
 #endif
 
 //////////////////////////////////////////
@@ -486,6 +499,9 @@
 #elif USE_HALL_SENSOR_DEC_AUTOHOME == 1
     #ifndef DEC_HOMING_SENSOR_ACTIVE_STATE
         #define DEC_HOMING_SENSOR_ACTIVE_STATE LOW
+    #endif
+    #ifndef DEC_HOMING_SENSOR_SEARCH_DEGREES
+        #define DEC_HOMING_SENSOR_SEARCH_DEGREES 30
     #endif
 #endif
 
