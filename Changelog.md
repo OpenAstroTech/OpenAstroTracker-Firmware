@@ -1,3 +1,6 @@
+**V1.13.4 - Updates**
+- Inadvertantly removed some default #defines. Put them back.
+
 **V1.13.3 - Updates**
 - Allow new stepper lib to be enabled by via #define
 
