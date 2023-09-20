@@ -1,3 +1,7 @@
+**V1.13.5 - Updates**
+- Ported some bug fix code from the LCD branch (e.g. track on boot)
+- Potentially some DEC guide issues were fixed.
+
 **V1.13.4 - Updates**
 - Inadvertantly removed some default #defines. Put them back.
 

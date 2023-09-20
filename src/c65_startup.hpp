@@ -44,11 +44,16 @@ void startupIsCompleted()
     inStartup      = false;
     okToUpdateMenu = true;
 
+        #if TRACK_ON_BOOT == 1
+    // Start tracking.
+    LOG(DEBUG_ANY, "[STARTUP]: Start Tracking.");
     mount.startSlewing(TRACKING);
+        #endif
 
     // Start on the RA menu
     lcdMenu.setActive(RA_Menu);
     lcdMenu.updateDisplay();
+    LOG(DEBUG_ANY, "[STARTUP]: Completed!");
 }
 
 bool processStartupKeys()

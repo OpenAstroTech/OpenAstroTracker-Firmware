@@ -441,8 +441,8 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverRA->blank_time(24);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
     _driverRA->fclktrim(4);
-    _driverRA->TCOOLTHRS(0xFFFFF);                                                          //xFFFFF);
-    _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
+    _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
+    _driverRA->semin(0);            //disable CoolStep so that current is consistent
     _driverRA->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -481,7 +481,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
     _driverRA->fclktrim(4);
-    _driverRA->TCOOLTHRS(0xFFFFF);                                                          //xFFFFF);
+    _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -525,7 +525,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->microsteps(
         DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(0);                                             //disable CoolStep so that current is consistent
+    _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -564,7 +564,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->microsteps(
         DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
-    _driverDEC->semin(0);                                             //disable CoolStep so that current is consistent
+    _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -1199,6 +1199,7 @@ void Mount::setLST(const DayTime &lst)
 /////////////////////////////////
 void Mount::setLatitude(Latitude latitude)
 {
+    LOG(DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", latitude.getTotalHours());
     _latitude = latitude;
     configureHemisphere(_latitude.getTotalHours() > 0);
     EEPROMStore::storeLatitude(_latitude);
@@ -1211,6 +1212,7 @@ void Mount::setLatitude(Latitude latitude)
 /////////////////////////////////
 void Mount::setLongitude(Longitude longitude)
 {
+    LOG(DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", longitude.getTotalHours());
     _longitude = longitude;
     EEPROMStore::storeLongitude(_longitude);
 
@@ -1396,14 +1398,17 @@ void Mount::startSlewingToTarget()
 
     if (targetRAPosition != _stepperRA->currentPosition())
     {
-        // Only stop tracking if we're actually going to slew somewhere else, otherwise the
+        // Only stop tracking if we're tracking and actually going to slew somewhere else, otherwise the
         // mount::loop() code won't detect the end of the slewing operation...
-        LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
-        stopSlewing(TRACKING);
-        _trackerStoppedAt        = millis();
-        _compensateForTrackerOff = true;
+        if (isSlewingTRK())
+        {
+            LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
+            stopSlewing(TRACKING);
+            _trackerStoppedAt        = millis();
+            _compensateForTrackerOff = true;
+        }
 
-// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+// Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
         _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
@@ -1547,7 +1552,7 @@ void Mount::guidePulse(byte direction, int duration)
     float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
                             / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
     float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                           / 3600.0f;   // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+                           / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
     raGuidingSpeed *= _trackingSpeedCalibration;
 
     // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
@@ -2927,6 +2932,11 @@ void Mount::loop()
                 _targetRA = currentRA();
                 if (isParking())
                 {
+// Set DEC to Slew microstepping since it is set to guiding.
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Parking. DEC driver setMicrosteps(%d)", DEC_SLEW_MICROSTEPPING);
+                    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+#endif
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
                     _mountStatus &= ~STATUS_PARKING;
                     _slewingToPark = true;
@@ -2957,6 +2967,11 @@ void Mount::loop()
                     startSlewing(TRACKING);
                 }
                 _slewingToHome = false;
+// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived at park. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
+                _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
+#endif
             }
             else if (_slewingToPark)
             {
@@ -3392,14 +3407,16 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
         case RA_STEPS:
             if (steps != 0)
             {
-                // Only stop tracking if we're actually going to slew somewhere else, otherwise the
+                // Only stop tracking if we're actually tracking and going to slew somewhere else, otherwise the
                 // mount::loop() code won't detect the end of the slewing operation...
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Stop tracking (NEMA steppers)");
-                stopSlewing(TRACKING);
-                _trackerStoppedAt        = millis();
-                _compensateForTrackerOff = true;
-
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: TRK stopped at %lms", _trackerStoppedAt);
+                if (isSlewingTRK())
+                {
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Stop tracking (NEMA steppers)");
+                    stopSlewing(TRACKING);
+                    _trackerStoppedAt        = millis();
+                    _compensateForTrackerOff = true;
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: TRK stopped at %lms", _trackerStoppedAt);
+                }
             }
 
 // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
