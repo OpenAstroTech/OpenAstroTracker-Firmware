@@ -1,24 +1,16 @@
-**V1.13.6 - Updates**
+**V1.13.0 - Updates**
+NOTE: Make sure to do a Factory Reset when using this version.
 - Sped up ESP32 stepper code.
 - Re-instate some defines that were inadvertantly removed.
-
-**V1.13.5 - Updates**
 - Ported some bug fix code from the LCD branch (e.g. track on boot)
 - Potentially some DEC guide issues were fixed.
-
-**V1.13.4 - Updates**
 - Inadvertantly removed some default #defines. Put them back.
-
-**V1.13.3 - Updates**
 - Allow new stepper lib to be enabled by via #define
-
-**V1.13.2 - Updates**
 - Added ability to detect new firmware flashed
 - Removed/disabled parking offset variable and commands, use home offset instead
 - Fixed Park command to slew home and then to the parking position (home offset)
-
-**V1.13.1 - Updates**
 - Re-integrated old stepper library
+
 
 **V1.12.17 - Updates**
 - Fixed a bug that prevented clients from writing the DEC offset.

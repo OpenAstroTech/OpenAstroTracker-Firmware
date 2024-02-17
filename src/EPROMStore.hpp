@@ -47,12 +47,6 @@ class EEPROMStore
     static float getRollCalibrationAngle();
     static void storeRollCalibrationAngle(float rollCalibrationAngle);
 
-    // static int32_t getRAParkingPos();
-    // static void storeRAParkingPos(int32_t raParkingPos);
-
-    // static int32_t getDECParkingPos();
-    // static void storeDECParkingPos(int32_t decParkingPos);
-
     static float getDECLowerLimit();
     static void storeDECLowerLimit(float decLowerLimit);
 
@@ -99,7 +93,7 @@ class EEPROMStore
     //                        RA Homing Offet (40-43) -----------------------+|||
     //                                UTC Offset (39) ------------------------+||
     //     DEC lower (31-34) and upper (35-38) limits -------------------------+|
-    //     RA (23-26) and DEC (27-30) Parking offsets --------------------------+   ( ==== Obsolete after V1.13.1 ==== )
+    //     RA (23-26) and DEC (27-30) Parking offsets --------------------------+   ( ==== Obsolete V1.13.0 and beyond ==== )
     //
     /////////////////////////////////
 

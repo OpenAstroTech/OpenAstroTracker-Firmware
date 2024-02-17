@@ -17,7 +17,6 @@ enum
     HIGHLIGHT_RA_STEPS,
     HIGHLIGHT_DEC_STEPS,
     HIGHLIGHT_BACKLASH_STEPS,
-    // HIGHLIGHT_PARKING_POS,
     HIGHLIGHT_DEC_LOWER_LIMIT,
     HIGHLIGHT_DEC_UPPER_LIMIT,
     HIGHLIGHT_UTC_OFFSET,
@@ -61,9 +60,6 @@ enum
 
         // Backlash calibration only has one state, allowing you to adjust the number of steps with UP and DOWN
         #define BACKLASH_CALIBRATION 70
-
-        // Confirm that the current position is the parking position
-        // #define PARKING_POS_CONFIRM 80
 
         // Confirm that current position is the DEC Lower limit
         #define DEC_LOWER_LIMIT_CONFIRM 90
@@ -784,42 +780,6 @@ bool processCalibrationKeys()
                 }
                 break;
 
-                // case PARKING_POS_CONFIRM:
-                //     {
-                //         if (key == btnDOWN || key == btnLEFT || key == btnUP)
-                //         {
-                //             parkYesNoIndex = adjustWrap(parkYesNoIndex, 1, 0, 1);
-                //         }
-                //         if (key == btnSELECT)
-                //         {
-                //             if (parkYesNoIndex == 0)
-                //             {  // Yes
-                //                 mount.setParkingPosition();
-                //                 lcdMenu.printMenu("Position stored.");
-                //                 mount.delay(800);
-                //             }
-                //             else
-                //             {
-                //                 lcdMenu.printMenu("Use CTRL to move");
-                //                 mount.delay(750);
-                //                 lcdMenu.setCursor(0, 1);
-                //                 lcdMenu.printMenu("OAT to park pos,");
-                //                 mount.delay(750);
-                //                 lcdMenu.setCursor(0, 1);
-                //                 lcdMenu.printMenu("then come back.");
-                //                 mount.delay(700);
-                //             }
-                //             calState = HIGHLIGHT_PARKING_POS;
-                //         }
-                //         else if (key == btnRIGHT)
-                //         {
-                //             // RIGHT cancels duration selection and returns to menu
-                //             calState      = HIGHLIGHT_PARKING_POS;
-                //             driftSubIndex = 1;
-                //         }
-                //     }
-                //     break;
-
             case DEC_LOWER_LIMIT_CONFIRM:
             case DEC_UPPER_LIMIT_CONFIRM:
                 {
@@ -912,22 +872,6 @@ bool processCalibrationKeys()
                     }
                 }
                 break;
-
-                // case HIGHLIGHT_PARKING_POS:
-                //     {
-                //         if (key == btnDOWN)
-                //             gotoNextHighlightState(1);
-                //         if (key == btnUP)
-                //             gotoNextHighlightState(-1);
-                //         else if (key == btnSELECT)
-                //             calState = PARKING_POS_CONFIRM;
-                //         else if (key == btnRIGHT)
-                //         {
-                //             gotoNextMenu();
-                //             calState = HIGHLIGHT_FIRST;
-                //         }
-                //     }
-                //     break;
 
             case HIGHLIGHT_DEC_LOWER_LIMIT:
             case HIGHLIGHT_DEC_UPPER_LIMIT:
@@ -1102,10 +1046,6 @@ void printCalibrationSubmenu()
     {
         lcdMenu.printMenu(">Backlash Adjust");
     }
-    // else if (calState == HIGHLIGHT_PARKING_POS)
-    // {
-    //     lcdMenu.printMenu(">Set Parking Pos");
-    // }
     else if (calState == HIGHLIGHT_DEC_LOWER_LIMIT)
     {
         lcdMenu.printMenu(">DEC Lower Limit");
@@ -1182,12 +1122,6 @@ void printCalibrationSubmenu()
         sprintf(scratchBuffer, "Backlash: %d", BacklashSteps);
         lcdMenu.printMenu(scratchBuffer);
     }
-    // else if (calState == PARKING_POS_CONFIRM)
-    // {
-    //     sprintf(scratchBuffer, "Parked?  Yes  No");
-    //     scratchBuffer[8 + parkYesNoIndex * 5] = '>';
-    //     lcdMenu.printMenu(scratchBuffer);
-    // }
     else if (calState == DEC_LOWER_LIMIT_CONFIRM)
     {
         lcdMenu.setCursor(0, 0);

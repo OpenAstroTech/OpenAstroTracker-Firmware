@@ -677,68 +677,6 @@ void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
     commit();  // Complete the transaction
 }
 
-// // Return the stored RA Parking Pos (slew microsteps relative to home).
-// // If it is not present then the default value of 0 steps.
-// int32_t EEPROMStore::getRAParkingPos()
-// {
-//     int32_t raParkingPos(0);  // microsteps (slew)
-
-//     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-//     if (isPresentExtended(PARKING_POS_MARKER_FLAG))
-//     {
-//         raParkingPos = readInt32(RA_PARKING_POS_ADDR);
-//         LOG(DEBUG_EEPROM, "[EEPROM]: RA Parking position read as %l", raParkingPos);
-//     }
-//     else
-//     {
-//         LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Parking position");
-//     }
-
-//     return raParkingPos;  // microsteps (slew)
-// }
-
-// // Store the configured RA Parking Pos (slew microsteps relative to home).
-// void EEPROMStore::storeRAParkingPos(int32_t raParkingPos)
-// {
-//     LOG(DEBUG_EEPROM, "[EEPROM]: Updating RA Parking Pos to %l", raParkingPos);
-
-//     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-//     updateInt32(RA_PARKING_POS_ADDR, raParkingPos);
-//     updateFlagsExtended(PARKING_POS_MARKER_FLAG);
-//     commit();  // Complete the transaction
-// }
-
-// // Return the stored DEC Parking Pos (slew microsteps relative to home).
-// // If it is not present then the default value of 0 steps.
-// int32_t EEPROMStore::getDECParkingPos()
-// {
-//     int32_t decParkingPos(0);  // microsteps (slew)
-
-//     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-//     if (isPresentExtended(PARKING_POS_MARKER_FLAG))
-//     {
-//         decParkingPos = readInt32(DEC_PARKING_POS_ADDR);
-//         LOG(DEBUG_EEPROM, "[EEPROM]: DEC Parking position read as %l", decParkingPos);
-//     }
-//     else
-//     {
-//         LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Parking position");
-//     }
-
-//     return decParkingPos;  // microsteps (slew)
-// }
-
-// // Store the configured DEC Parking Pos (slew microsteps relative to home).
-// void EEPROMStore::storeDECParkingPos(int32_t decParkingPos)
-// {
-//     LOG(DEBUG_EEPROM, "[EEPROM]: Updating DEC Parking Pos to %l", decParkingPos);
-
-//     // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-//     updateInt32(DEC_PARKING_POS_ADDR, decParkingPos);
-//     updateFlagsExtended(PARKING_POS_MARKER_FLAG);
-//     commit();  // Complete the transaction
-// }
-
 // Return the stored DEC Lower Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
 float EEPROMStore::getDECLowerLimit()
