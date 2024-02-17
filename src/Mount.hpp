@@ -6,27 +6,54 @@
 #include "Longitude.hpp"
 #include "Types.hpp"
 
-#include "StepperConfiguration.hpp"
+#ifdef NEW_STEPPER_LIB
 
-// Forward declarations
-#ifdef ARDUINO_AVR_ATmega2560
+    #include "StepperConfiguration.hpp"
+
+    // Forward declarations
+    #ifdef ARDUINO_AVR_ATmega2560
 using StepperRaSlew  = InterruptAccelStepper<config::Ra::stepper_slew>;
 using StepperRaTrk   = InterruptAccelStepper<config::Ra::stepper_trk>;
 using StepperDecSlew = InterruptAccelStepper<config::Dec::stepper_slew>;
 using StepperDecTrk  = InterruptAccelStepper<config::Dec::stepper_trk>;
 
-    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+        #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperAzSlew = InterruptAccelStepper<config::Az::stepper_slew>;
-    #endif
+        #endif
 
-    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+        #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperAltSlew = InterruptAccelStepper<config::Alt::stepper_slew>;
-    #endif
+        #endif
 
-    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+        #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
-    #endif
+        #endif
 
+    #else
+        #include "AccelStepper.h"
+class AccelStepper;
+using StepperRaSlew    = AccelStepper;
+using StepperRaTrk     = AccelStepper;
+using StepperDecSlew   = AccelStepper;
+using StepperDecTrk    = AccelStepper;
+
+        #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAzSlew    = AccelStepper;
+        #endif
+
+        #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAltSlew   = AccelStepper;
+        #endif
+
+        #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperAltSlew   = AccelStepper;
+        #endif
+
+        #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+using StepperFocusSlew = AccelStepper;
+        #endif
+
+    #endif
 #else
     #include "AccelStepper.h"
 class AccelStepper;
@@ -50,7 +77,6 @@ using StepperAltSlew   = AccelStepper;
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
 using StepperFocusSlew = AccelStepper;
     #endif
-
 #endif
 
 class LcdMenu;
@@ -314,20 +340,13 @@ class Mount
     // Process any stepper movement.
     void loop();
 
-// Low-leve process any stepper movement on interrupt callback.
-#if defined(ESP32)
+// Low-level process any stepper movement on interrupt callback.
+#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
     void interruptLoop();
 #endif
 
     // Set the current stepper positions to be home.
     void setHome(bool clearZeroPos);
-
-    // Set the current stepper positions to be parking position.
-    void setParkingPosition();
-
-    // Get and set the offset from home to the parking position for DEC.
-    long getDecParkingOffset();
-    void setDecParkingOffset(long offset);
 
     // Set the DEC limit position to the given angle in degrees (saved as DEC steps).
     // If upper is true, sets the upper limit, else the lower limit.
@@ -496,8 +515,6 @@ class Mount
     int _maxFocusAcceleration;
     int _backlashCorrectionSteps;
     int _moveRate;
-    long _raParkingPos;   // Parking position in slewing steps
-    long _decParkingPos;  // Parking position in slewing steps
     long _decLowerLimit;  // Movement limit in slewing steps
     long _decUpperLimit;  // Movement limit in slewing steps
 
@@ -523,10 +540,17 @@ class Mount
     Longitude _longitude;
 
     // Stepper control for RA, DEC and TRK.
+#ifdef NEW_STEPPER_LIB
     StepperRaSlew *_stepperRA;
     StepperRaTrk *_stepperTRK;
     StepperDecSlew *_stepperDEC;
     StepperDecTrk *_stepperGUIDE;
+#else
+    AccelStepper *_stepperRA;
+    AccelStepper *_stepperDEC;
+    AccelStepper *_stepperTRK;
+    AccelStepper *_stepperGUIDE;
+#endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverRA;
 #endif
@@ -537,14 +561,22 @@ class Mount
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _azAltWasRunning;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        #ifdef NEW_STEPPER_LIB
     StepperAzSlew *_stepperAZ;
+        #else
+    AccelStepper *_stepperAZ;
+        #endif
     const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
     #endif
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        #ifdef NEW_STEPPER_LIB
     StepperAltSlew *_stepperALT;
+        #else
+    AccelStepper *_stepperALT;
+        #endif
     const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;
@@ -557,7 +589,11 @@ class Mount
     FocuserMode _focuserMode = FOCUS_IDLE;
     float _maxFocusRateSpeed;
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        #ifdef NEW_STEPPER_LIB
     StepperFocusSlew *_stepperFocus;
+        #else
+    AccelStepper *_stepperFocus;
+        #endif
     int _focusRate;
         #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverFocus;
@@ -588,8 +624,6 @@ class Mount
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
     volatile int _mountStatus;
-    long _homeOffsetRA;
-    long _homeOffsetDEC;
 
     char scratchBuffer[24];
     bool _stepperWasRunning;

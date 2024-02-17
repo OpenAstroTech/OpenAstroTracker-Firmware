@@ -1,3 +1,17 @@
+**V1.13.0 - Updates**
+NOTE: Make sure to do a Factory Reset when using this version.
+- Sped up ESP32 stepper code.
+- Re-instate some defines that were inadvertantly removed.
+- Ported some bug fix code from the LCD branch (e.g. track on boot)
+- Potentially some DEC guide issues were fixed.
+- Inadvertantly removed some default #defines. Put them back.
+- Allow new stepper lib to be enabled by via #define
+- Added ability to detect new firmware flashed
+- Removed/disabled parking offset variable and commands, use home offset instead
+- Fixed Park command to slew home and then to the parking position (home offset)
+- Re-integrated old stepper library
+
+
 **V1.12.17 - Updates**
 - Fixed a bug that prevented clients from writing the DEC offset.
 
@@ -29,7 +43,7 @@
 **V1.12.12 - Updates**
 - Change MKS Gen L v1.0, v2.0, v2.1 default separate debug serial port from `Serial3` to `Serial2`.
 
-- **V1.12.11 - Updates**
+**V1.12.11 - Updates**
 - Allowed the active state of the hall sensors for auto homing RA and DEC to be configured.
 
 **V1.12.10 - Updates**
