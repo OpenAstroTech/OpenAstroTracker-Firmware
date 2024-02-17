@@ -69,7 +69,6 @@ void IRAM_ATTR stepperControlTask(void *payload)
     for (;;)
     {
         mountCopy->interruptLoop();
-        vTaskDelay(1);  // 1 ms 	// This will limit max stepping rate to 1 kHz
     }
 }
 

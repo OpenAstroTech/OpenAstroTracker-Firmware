@@ -1,3 +1,7 @@
+**V1.13.6 - Updates**
+- Sped up ESP32 stepper code.
+- Re-instate some defines that were inadvertantly removed.
+
 **V1.13.5 - Updates**
 - Ported some bug fix code from the LCD branch (e.g. track on boot)
 - Potentially some DEC guide issues were fixed.
