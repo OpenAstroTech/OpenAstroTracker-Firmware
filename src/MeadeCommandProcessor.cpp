@@ -572,7 +572,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Park Scope and stop motors
 //      Information:
 //        This slews the scope back to it's home position (RA ring centered, DEC at 90, basically
-//        pointing at celestial pole), then advances to the parking position (defined by the Homing offsets) 
+//        pointing at celestial pole), then advances to the parking position (defined by the Homing offsets)
 //        and stops all movement (including tracking).
 //      Returns:
 //        nothing
@@ -802,8 +802,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get RA Homing offset
 //      Information:
-//        Get the RA ring homing offset. 
-//        If a Hall sensor is present this is the number of steps from the center of the sensor range to 
+//        Get the RA ring homing offset.
+//        If a Hall sensor is present this is the number of steps from the center of the sensor range to
 //        where the actual center position is located.
 //        If no Hall sensor is present this is the number of steps from the power on position of the RA axis to
 //        where the actual center position is located.
@@ -814,8 +814,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get DEC Homing offset
 //      Information:
-//        Get the DEC ring homing offset. 
-//        If a Hall sensor is present this is the number of steps from the center of the sensor range to 
+//        Get the DEC ring homing offset.
+//        If a Hall sensor is present this is the number of steps from the center of the sensor range to
 //        where the actual center position is located.
 //        If no Hall sensor is present this is the number of steps from the power on position of the DEC axis to
 //        where the actual center position is located.
@@ -1183,19 +1183,19 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
             break;
 
-        case 'r':                                                     // :Gr
-            return _mount->RAString(MEADE_STRING | TARGET_STRING);    // returns trailing #
+        case 'r':                                                   // :Gr
+            return _mount->RAString(MEADE_STRING | TARGET_STRING);  // returns trailing #
 
-        case 'd':                                                     // :Gd
-            return _mount->DECString(MEADE_STRING | TARGET_STRING);   // returns trailing #
+        case 'd':                                                    // :Gd
+            return _mount->DECString(MEADE_STRING | TARGET_STRING);  // returns trailing #
 
-        case 'R':                                                     // :GR
-            return _mount->RAString(MEADE_STRING | CURRENT_STRING);   // returns trailing #
+        case 'R':                                                    // :GR
+            return _mount->RAString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
 
         case 'D':                                                     // :GD
             return _mount->DECString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
 
-        case 'X':                                                     // :GX
+        case 'X':  // :GX
             return _mount->getStatusString() + "#";
 
         case 'I':
@@ -1273,7 +1273,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             {
                 return "OAT4#";
             }
-        case 'T':                // :GT
+        case 'T':  // :GT
             {
                 return "60.0#";  //default MEADE Tracking Frequency
             }
@@ -1768,7 +1768,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             return _mount->getMountHardwareInfo() + "#";  // :XGM#
         }
-        else if (inCmd[1] == 'O')                         // :XGO#
+        else if (inCmd[1] == 'O')  // :XGO#
         {
             return getLogBuffer();
         }
@@ -1826,7 +1826,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
         }
-        else if (inCmd[1] == 'D')                           // :XSD
+        else if (inCmd[1] == 'D')  // :XSD
         {
             if ((inCmd.length() > 2) && (inCmd[2] == 'L'))  // :XSDL
             {

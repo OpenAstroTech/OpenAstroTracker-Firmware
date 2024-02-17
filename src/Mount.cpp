@@ -462,7 +462,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected      = connectToDriver(_driverRA, "RA");
+    UART_Rx_connected = connectToDriver(_driverRA, "RA");
     if (!UART_Rx_connected)
     {
         digitalWrite(RA_EN_PIN,
@@ -545,7 +545,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected      = connectToDriver(_driverDEC, "DEC");
+    UART_Rx_connected = connectToDriver(_driverDEC, "DEC");
     if (!UART_Rx_connected)
     {
         digitalWrite(DEC_EN_PIN,
@@ -627,7 +627,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
     _driverAZ->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected      = connectToDriver(_driverAZ, "AZ");
+    UART_Rx_connected = connectToDriver(_driverAZ, "AZ");
     if (!UART_Rx_connected)
     {
         digitalWrite(AZ_EN_PIN,
@@ -708,7 +708,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -799,7 +799,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected = connectToDriver(_driverFocus, "Focus");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,

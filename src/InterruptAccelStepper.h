@@ -146,6 +146,6 @@ template <typename STEPPER> class InterruptAccelStepper
         return STEPPER::isRunning();
     }
 };
-    #endif
+#endif
 
 #endif  //AVR_INTERRUPT_STEPPER_INTERRUPTACCELSTEPPER_H

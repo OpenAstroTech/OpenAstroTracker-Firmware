@@ -784,41 +784,41 @@ bool processCalibrationKeys()
                 }
                 break;
 
-            // case PARKING_POS_CONFIRM:
-            //     {
-            //         if (key == btnDOWN || key == btnLEFT || key == btnUP)
-            //         {
-            //             parkYesNoIndex = adjustWrap(parkYesNoIndex, 1, 0, 1);
-            //         }
-            //         if (key == btnSELECT)
-            //         {
-            //             if (parkYesNoIndex == 0)
-            //             {  // Yes
-            //                 mount.setParkingPosition();
-            //                 lcdMenu.printMenu("Position stored.");
-            //                 mount.delay(800);
-            //             }
-            //             else
-            //             {
-            //                 lcdMenu.printMenu("Use CTRL to move");
-            //                 mount.delay(750);
-            //                 lcdMenu.setCursor(0, 1);
-            //                 lcdMenu.printMenu("OAT to park pos,");
-            //                 mount.delay(750);
-            //                 lcdMenu.setCursor(0, 1);
-            //                 lcdMenu.printMenu("then come back.");
-            //                 mount.delay(700);
-            //             }
-            //             calState = HIGHLIGHT_PARKING_POS;
-            //         }
-            //         else if (key == btnRIGHT)
-            //         {
-            //             // RIGHT cancels duration selection and returns to menu
-            //             calState      = HIGHLIGHT_PARKING_POS;
-            //             driftSubIndex = 1;
-            //         }
-            //     }
-            //     break;
+                // case PARKING_POS_CONFIRM:
+                //     {
+                //         if (key == btnDOWN || key == btnLEFT || key == btnUP)
+                //         {
+                //             parkYesNoIndex = adjustWrap(parkYesNoIndex, 1, 0, 1);
+                //         }
+                //         if (key == btnSELECT)
+                //         {
+                //             if (parkYesNoIndex == 0)
+                //             {  // Yes
+                //                 mount.setParkingPosition();
+                //                 lcdMenu.printMenu("Position stored.");
+                //                 mount.delay(800);
+                //             }
+                //             else
+                //             {
+                //                 lcdMenu.printMenu("Use CTRL to move");
+                //                 mount.delay(750);
+                //                 lcdMenu.setCursor(0, 1);
+                //                 lcdMenu.printMenu("OAT to park pos,");
+                //                 mount.delay(750);
+                //                 lcdMenu.setCursor(0, 1);
+                //                 lcdMenu.printMenu("then come back.");
+                //                 mount.delay(700);
+                //             }
+                //             calState = HIGHLIGHT_PARKING_POS;
+                //         }
+                //         else if (key == btnRIGHT)
+                //         {
+                //             // RIGHT cancels duration selection and returns to menu
+                //             calState      = HIGHLIGHT_PARKING_POS;
+                //             driftSubIndex = 1;
+                //         }
+                //     }
+                //     break;
 
             case DEC_LOWER_LIMIT_CONFIRM:
             case DEC_UPPER_LIMIT_CONFIRM:
@@ -913,21 +913,21 @@ bool processCalibrationKeys()
                 }
                 break;
 
-            // case HIGHLIGHT_PARKING_POS:
-            //     {
-            //         if (key == btnDOWN)
-            //             gotoNextHighlightState(1);
-            //         if (key == btnUP)
-            //             gotoNextHighlightState(-1);
-            //         else if (key == btnSELECT)
-            //             calState = PARKING_POS_CONFIRM;
-            //         else if (key == btnRIGHT)
-            //         {
-            //             gotoNextMenu();
-            //             calState = HIGHLIGHT_FIRST;
-            //         }
-            //     }
-            //     break;
+                // case HIGHLIGHT_PARKING_POS:
+                //     {
+                //         if (key == btnDOWN)
+                //             gotoNextHighlightState(1);
+                //         if (key == btnUP)
+                //             gotoNextHighlightState(-1);
+                //         else if (key == btnSELECT)
+                //             calState = PARKING_POS_CONFIRM;
+                //         else if (key == btnRIGHT)
+                //         {
+                //             gotoNextMenu();
+                //             calState = HIGHLIGHT_FIRST;
+                //         }
+                //     }
+                //     break;
 
             case HIGHLIGHT_DEC_LOWER_LIMIT:
             case HIGHLIGHT_DEC_UPPER_LIMIT:
