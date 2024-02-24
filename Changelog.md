@@ -1,3 +1,6 @@
+**V1.13.1 - Updates**
+- Fix for uploading on AVR platform. Apparently atmelavr@5.0.0 (current stable) is broken and can't upload, so we peg it at atmelavr@4.2.0 for now.
+
 **V1.13.0 - Updates**
 NOTE: Make sure to do a Factory Reset when using this version.
 - Sped up ESP32 stepper code.
