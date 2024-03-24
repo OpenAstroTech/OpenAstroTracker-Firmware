@@ -61,6 +61,20 @@
     #define DISPLAY_TYPE DISPLAY_TYPE_NONE
 #endif
 
+#ifndef INFO_DISPLAY_TYPE
+    #define INFO_DISPLAY_TYPE INFO_DISPLAY_TYPE_NONE
+#elif (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #ifndef INFO_DISPLAY_I2C_ADDRESS 
+        #define INFO_DISPLAY_I2C_ADDRESS 0x3C
+    #endif
+    #ifndef INFO_DISPLAY_I2C_SDA_PIN 
+        #define INFO_DISPLAY_I2C_SDA_PIN 5
+    #endif
+    #ifndef INFO_DISPLAY_I2C_SCL_PIN 
+        #define INFO_DISPLAY_I2C_SCL_PIN 4
+    #endif
+#endif
+
 // Used RA wheel version. Unless you printed your OAT before March 2020, you're using
 // a version 2 or higher (software only differentiates between 1 and more than 1)
 #ifndef RA_WHEEL_VERSION

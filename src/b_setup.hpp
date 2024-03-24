@@ -222,6 +222,10 @@ void setup()
     LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
     EEPROMStore::initialize();
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.setupInfoDisplay();
+#endif
+
 // Calling the LCD startup here, I2C can't be found if called earlier
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
     LOG(DEBUG_ANY, "[SYSTEM]: Get LCD ready...");

@@ -16,6 +16,9 @@ PUSH_NO_WARNINGS
     #endif
 #endif
 
+#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #include "SSD1306_128x64_Display.hpp"
+#endif
 #include <AccelStepper.h>
 
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
@@ -332,7 +335,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef NEW_STEPPER_LIB
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -350,7 +353,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef NEW_STEPPER_LIB
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -708,7 +711,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected      = connectToDriver(_driverALT, "ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -799,7 +802,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -2057,48 +2060,58 @@ void Mount::clearStatusFlag(int flag)
 // getStatusString
 //
 /////////////////////////////////
-String Mount::getStatusString()
+String Mount::getStatusStateString()
 {
     String status;
     if (_mountStatus == STATUS_PARKED)
     {
-        status = F("Parked,");
+        status = F("Parked");
     }
     else if ((_mountStatus & STATUS_PARKING) || (_mountStatus & STATUS_PARKING_POS))
     {
-        status = F("Parking,");
+        status = F("Parking");
     }
     else if (isFindingHome())
     {
-        status = F("Homing,");
+        status = F("Homing");
     }
     else if (isGuiding())
     {
-        status = F("Guiding,");
+        status = F("Guiding");
     }
     else if (slewStatus() & SLEW_MASK_ANY)
     {
         if (_mountStatus & STATUS_SLEWING_TO_TARGET)
         {
-            status = F("SlewToTarget,");
+            status = F("SlewToTarget");
         }
         else if (_mountStatus & STATUS_SLEWING_FREE)
         {
-            status = F("FreeSlew,");
+            status = F("FreeSlew");
         }
         else if (_mountStatus & STATUS_SLEWING_MANUAL)
         {
-            status = F("ManualSlew,");
+            status = F("ManualSlew");
         }
         else if (slewStatus() & SLEWING_TRACKING)
         {
-            status = F("Tracking,");
+            status = F("Tracking");
         }
     }
     else
     {
-        status = "Idle,";
+        status = "Idle";
     }
+    return status;
+}
+/////////////////////////////////
+//
+// getStatusString
+//
+/////////////////////////////////
+String Mount::getStatusString()
+{
+    String status = getStatusStateString() + ",";
 
     String disp = "------,";
     if (_mountStatus & STATUS_SLEWING)
@@ -2987,7 +3000,27 @@ void Mount::loop()
 #endif
 
     _stepperWasRunning = raStillRunning || decStillRunning;
+#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
+    updateInfoDisplay();
+#endif
 }
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+void Mount::setupInfoDisplay()
+{
+    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
+    infoDisplay->init();
+    #endif
+}
+
+void Mount::updateInfoDisplay()
+{
+    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    infoDisplay->render(this);
+    #endif
+}
+#endif
 
 /////////////////////////////////
 //

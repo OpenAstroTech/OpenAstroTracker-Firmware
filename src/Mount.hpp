@@ -6,6 +6,10 @@
 #include "Longitude.hpp"
 #include "Types.hpp"
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    #include "InfoDisplayRender.hpp"
+#endif
+
 #ifdef NEW_STEPPER_LIB
 
     #include "StepperConfiguration.hpp"
@@ -32,21 +36,21 @@ using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
     #else
         #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
         #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -57,21 +61,21 @@ using StepperFocusSlew = AccelStepper;
 #else
     #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
     #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -374,8 +378,12 @@ class Mount
     // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
     String RAString(byte type, byte active = 0);
 
+    // Returns string (singfle word) representing the mounts status.
+    String getStatusStateString();
+
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
+
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 
@@ -384,6 +392,10 @@ class Mount
 
     // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
     void displayStepperPositionThrottled();
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    void setupInfoDisplay();
+    void updateInfoDisplay();
+#endif
 
     // Runs a phase of the drift alignment procedure
     void runDriftAlignmentPhase(int direction, int durationSecs);
@@ -501,6 +513,9 @@ class Mount
 
   private:
     LcdMenu *_lcdMenu;
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    InfoDisplayRender *infoDisplay;
+#endif
     float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
     float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
     uint32_t _maxRASpeed;
