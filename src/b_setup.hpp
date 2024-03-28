@@ -445,7 +445,7 @@ void setup()
                             "StepperControl",    // Name of this task
                             32767,               // Stack space in bytes
                             &mount,              // payload
-                            2,                   // Priority (2 is higher than 1)
+                            1,                   // Priority (2 is higher than 1)
                             &StepperTask,        // The location that receives the thread id
                             0);                  // The core to run this on
 

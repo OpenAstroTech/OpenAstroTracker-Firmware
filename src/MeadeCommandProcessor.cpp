@@ -2131,6 +2131,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
         LOG(DEBUG_MEADE, "[MEADE]: Processing command '%s'", inCmd.c_str());
         char command = inCmd[1];
         inCmd        = inCmd.substring(2);
+        _mount->commandReceived();
         switch (command)
         {
             case 'S':

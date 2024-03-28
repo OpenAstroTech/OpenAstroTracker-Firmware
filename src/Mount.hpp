@@ -397,6 +397,10 @@ class Mount
     void updateInfoDisplay();
 #endif
 
+    // Called by Meade processor every time a command is received.
+    void commandReceived();
+    long getNumCommandsReceived() { return _commandReceived; }
+
     // Runs a phase of the drift alignment procedure
     void runDriftAlignmentPhase(int direction, int durationSecs);
 
@@ -487,6 +491,9 @@ class Mount
     // Returns the remaining tracking time available and stops tracking if it reaches zero.
     float checkRALimit();
 
+    // Calculate the stepper positions for the current target coordinates 
+    void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -505,7 +512,6 @@ class Mount
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
 
-    void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);
 
@@ -553,6 +559,7 @@ class Mount
     float _totalRAMove;
     Latitude _latitude;
     Longitude _longitude;
+    long _commandReceived;
 
     // Stepper control for RA, DEC and TRK.
 #ifdef NEW_STEPPER_LIB

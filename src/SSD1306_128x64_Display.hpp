@@ -8,29 +8,43 @@
 class SDD1306OLED128x64 : public InfoDisplayRender
 {
     SSD1306Wire *display;
+    int _leftEdgeMount = 83;  // Must be odd
+    int _sizeMount;
+
 
   public:
     SDD1306OLED128x64(byte addr, int sda, int scl) : InfoDisplayRender()
     {
         display = new SSD1306Wire(addr, sda, scl, GEOMETRY_128_64);
+        _sizeMount     = 128 - _leftEdgeMount;
+
     }
 
     virtual void init()
     {
         display->init();
+        // Wire.setClock(700000);
         display->clear();
         display->displayOn();
     };
 
     virtual void render(Mount *mount)
     {
+        //long start=millis();
         display->clear();
+        //long seg1=millis();
         drawIndicators(mount);
+        //long seg2=millis();
         display->display();
+        //long end = millis();
+        //LOG(DEBUG_INFO, "Clr: %l  Draw: %l  Disp: %l  Total: %ld",seg1-start,seg2-seg1,end-seg2,end-start);
     };
 
     void drawIndicators(Mount *mount)
     {
+        display->setFont(Bitmap5x7);
+         display->setColor(WHITE);
+
         drawStepperStates(mount);
         if (false /*slewinprogress*/)
         {
@@ -39,7 +53,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         }
         else
         {
-            drawVersion();
+            drawVersion(mount);
         }
         drawCoordinates(mount);
         drawMountPosition(mount);
@@ -87,7 +101,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         drawStepperState("TRK", mount->isSlewingTRK(), 107, 21);
     }
 
-    void drawVersion()
+    void drawVersion(Mount* mount)
     {
         char achVersion[10];
         char *n = achVersion;
@@ -107,6 +121,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         display->setFont(Bitmap3x5);
         int len = display->getStringWidth(achVersion);
         display->drawString(128 - len, 59, achVersion);
+        display->drawString(_leftEdgeMount, 59, String(mount->getNumCommandsReceived()).c_str());
     }
 
     void drawCoordinate(int x, int y, const char *coord)
@@ -166,55 +181,61 @@ class SDD1306OLED128x64 : public InfoDisplayRender
 
     void drawMountPosition(Mount *mount)
     {
-        float leftRA    = -7.0f;
-        float rightRA   = 7.0f;
+        float raStepsPerDeg = mount->getStepsPerDegree(StepperAxis::RA_STEPS);
+        float leftRA    = -7.0f*raStepsPerDeg*15;
+        float rightRA   = 7.0f*raStepsPerDeg*15;
         float rangeRA   = rightRA - leftRA;
         // float topDEC    = 90.0f;
-        float bottomDEC = -90.0f;
-        float rangeDEC  = 180.0;
+        float decStepsPerDeg = mount->getStepsPerDegree(StepperAxis::DEC_STEPS);
+        float bottomDEC = 90.0f*decStepsPerDeg;
+        float rangeDEC  = -180.0*decStepsPerDeg;
 
         int top               = 12;
-        int left              = 83;  // Must be odd
-        int size              = 128 - left;
-        int half              = (size - 1) / 2;
-        DayTime raPos         = mount->currentRA();
-        Declination decPos    = mount->currentDEC();
+        int half              = (_sizeMount - 1) / 2;
+        long  raPos=0;
+        long decPos=0;
         DayTime raTarget      = mount->targetRA();
         Declination decTarget = mount->targetDEC();
 
         display->setColor(WHITE);
-        display->drawRect(left, top, size, size);
-        for (int p = 0; p < size - 1; p += 2)
+        display->drawRect(_leftEdgeMount, top, _sizeMount, _sizeMount);
+        for (int p = 0; p < _sizeMount - 1; p += 2)
         {
-            display->setPixel(left + 1 + p, top + half);
-            display->setPixel(left + half, top + 1 + p);
+            display->setPixel(_leftEdgeMount + 1 + p, top + half);
+            display->setPixel(_leftEdgeMount + half, top + 1 + p);
         }
 
-        int r = (size - 2) * (raPos.getTotalHours() - leftRA) / rangeRA;
-        display->setPixel(left + 1 + r, top + size - 3);
-        display->setPixel(left + r, top + size - 2);
-        display->setPixel(left + 1 + r, top + size - 2);
-        display->setPixel(left + 2 + r, top + size - 2);
+        long raSteps = mount->getCurrentStepperPosition(StepperAxis::RA_STEPS);
+        long decSteps = mount->getCurrentStepperPosition(StepperAxis::DEC_STEPS);
+       
+        int r = (_sizeMount - 2) * (raSteps - leftRA) / rangeRA;
+        display->setPixel(_leftEdgeMount + 1 + r, top + _sizeMount - 3);
+        display->setPixel(_leftEdgeMount + r, top + _sizeMount - 2);
+        display->setPixel(_leftEdgeMount + 1 + r, top + _sizeMount - 2);
+        display->setPixel(_leftEdgeMount + 2 + r, top + _sizeMount - 2);
 
-        int rt = (size - 2) * (raTarget.getTotalHours() - leftRA) / rangeRA;
-        display->drawVerticalLine(left + 1 + rt, top + size - 5, 4);
+        int d = (_sizeMount - 2) * (decSteps - bottomDEC) / rangeDEC;
+        display->setPixel(_leftEdgeMount + _sizeMount - 3, top + 1 + d);
+        display->setPixel(_leftEdgeMount + _sizeMount - 2, top + d);
+        display->setPixel(_leftEdgeMount + _sizeMount - 2, top + 1 + d);
+        display->setPixel(_leftEdgeMount + _sizeMount - 2, top + 2 + d);
+  
+        mount->calculateStepperPositions(raTarget.getTotalHours(), decTarget.getTotalDegrees(), raPos, decPos);
 
-        int d = (size - 2) * (decPos.getTotalDegrees() - bottomDEC) / rangeDEC;
-        display->setPixel(left + size - 3, top + 1 + d);
-        display->setPixel(left + size - 2, top + d);
-        display->setPixel(left + size - 2, top + 1 + d);
-        display->setPixel(left + size - 2, top + 2 + d);
+        int rt = (_sizeMount - 2) * (raPos - leftRA) / rangeRA;
+        display->drawVerticalLine(_leftEdgeMount + 1 + rt, top + _sizeMount - 5, 4);
 
-        int dt = (size - 2) * (decTarget.getTotalDegrees() - bottomDEC) / rangeDEC;
-        display->drawHorizontalLine(left + size - 5, top + 1 + dt, 4);
+        int dt = (_sizeMount - 2) * (decPos - bottomDEC) / rangeDEC;
+        display->drawHorizontalLine(_leftEdgeMount + _sizeMount - 5, top + 1 + dt, 4);
     }
 
     void drawStatus(Mount *mount)
     {
         display->setColor(WHITE);
-        display->setFont(RetroGaming7x8);
+        display->setFont(Bitmap5x7);
         String state = mount->getStatusStateString();
         state.toUpperCase();
         display->drawString(0, 14, state.c_str());
+        display->drawString(36,1,String(millis()).c_str());
     }
 };

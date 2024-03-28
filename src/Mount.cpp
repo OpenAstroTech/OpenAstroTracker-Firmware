@@ -85,6 +85,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 #endif
 
 {
+    _commandReceived=0;
     _lcdMenu = lcdMenu;
     initializeVariables();
 }
@@ -1595,10 +1596,17 @@ void Mount::guidePulse(byte direction, int duration)
             _guideRaEndTime = millis() + duration;
             break;
     }
+    // Since we will not be updating the display during a guide pulse, update the display here.
+    #if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
+        updateInfoDisplay();
+    #endif
 
     LOG(DEBUG_STEPPERS, "[STEPPERS]: guidePulse: < Guide Pulse");
 }
 
+void Mount::commandReceived(){
+    _commandReceived++;
+}
 /////////////////////////////////
 //
 // runDriftAlignmentPhase
@@ -2194,7 +2202,7 @@ byte Mount::mountStatus() const
 /////////////////////////////////
 bool Mount::isGuiding() const
 {
-    return (_mountStatus & STATUS_GUIDE_PULSE);
+    return (_mountStatus & STATUS_GUIDE_PULSE) != 0;
 }
 
 /////////////////////////////////
