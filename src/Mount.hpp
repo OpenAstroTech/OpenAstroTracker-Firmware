@@ -7,7 +7,7 @@
 #include "Types.hpp"
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    #include "InfoDisplayRender.hpp"
+class InfoDisplayRender;
 #endif
 
 #ifdef NEW_STEPPER_LIB
@@ -390,11 +390,15 @@ class Mount
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction);
 
+    // See if a slew to target is in progress and return the percentage along the path
+    bool getStepperProgress(int &raPercentage, int &decPercentage);
+
     // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
     void displayStepperPositionThrottled();
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     void setupInfoDisplay();
     void updateInfoDisplay();
+    InfoDisplayRender* getInfoDisplay();
 #endif
 
     // Called by Meade processor every time a command is received.

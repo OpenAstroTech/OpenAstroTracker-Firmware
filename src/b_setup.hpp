@@ -21,6 +21,9 @@ POP_NO_WARNINGS
 #include "a_inits.hpp"
 #include "LcdMenu.hpp"
 #include "LcdButtons.hpp"
+#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #include "SSD1306_128x64_Display.hpp"
+#endif
 
 LcdMenu lcdMenu(16, 2, MAXMENUITEMS);
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
@@ -109,6 +112,13 @@ void setup()
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT %s!", VERSION);
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
+    mount.setupInfoDisplay();
+    LOG(DEBUG_ANY, "[SYSTEM]: OLED info screen ready!");
+    mount.getInfoDisplay()->addConsoleText("BOOTING...", false);
+#endif
 
 #if USE_GPS == 1
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
@@ -219,11 +229,16 @@ void setup()
     pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
 #endif
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int eepromLine = mount.getInfoDisplay()->addConsoleText("INIT EEPROM...");
+#endif
+
     LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
     EEPROMStore::initialize();
+    LOG(DEBUG_ANY, "[SYSTEM]: EEPROM store ready!");
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.setupInfoDisplay();
+    mount.getInfoDisplay()->updateConsoleText(eepromLine, "INIT EEPROM... OK");
 #endif
 
 // Calling the LCD startup here, I2C can't be found if called earlier
@@ -311,11 +326,17 @@ void setup()
     wifiControl.setup();
 #endif
 
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int stepperLine = mount.getInfoDisplay()->addConsoleText("INIT STEPPERS...");
+#endif
+
     // Configure the mount
     // Delay for a while to get UARTs booted...
     delay(1000);
 
     LOG(DEBUG_ANY, "[SYSTEM]: Configure steppers...");
+
 
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -420,6 +441,14 @@ void setup()
     #endif
 #endif
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(stepperLine, "INIT STEPPERS... OK");
+#endif
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->addConsoleText("CONFIGURING...");
+#endif
+
     LOG(DEBUG_ANY, "[SYSTEM]: Read Configuration...");
 
     // The mount uses EEPROM storage locations 0-10 that it reads during construction
@@ -460,6 +489,9 @@ void setup()
 #endif
 
 #if UART_CONNECTION_TEST_TX == 1
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int testLine = mount.getInfoDisplay()->addConsoleText("TEST STEPPERS...");
+    #endif
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Moving RA axis using UART commands...");
     mount.testRA_UART_TX();
@@ -470,6 +502,9 @@ void setup()
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Moving DEC axis using UART commands...");
     mount.testDEC_UART_TX();
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Finished moving DEC axis using UART commands.");
+    #endif
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(testLine, "TEST STEPPERS... OK");
     #endif
 #endif
 
@@ -484,4 +519,9 @@ void setup()
 
     mount.bootComplete();
     LOG(DEBUG_ANY, "[SYSTEM]: Boot complete!");
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->addConsoleText("BOOT COMPLETE!");
+    delay(250);
+    mount.getInfoDisplay()->setConsoleMode(false);
+    #endif
 }

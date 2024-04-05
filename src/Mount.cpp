@@ -85,8 +85,8 @@ Mount::Mount(LcdMenu *lcdMenu)
 #endif
 
 {
-    _commandReceived=0;
-    _lcdMenu = lcdMenu;
+    _commandReceived = 0;
+    _lcdMenu         = lcdMenu;
     initializeVariables();
 }
 
@@ -1596,15 +1596,16 @@ void Mount::guidePulse(byte direction, int duration)
             _guideRaEndTime = millis() + duration;
             break;
     }
-    // Since we will not be updating the display during a guide pulse, update the display here.
-    #if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
-        updateInfoDisplay();
-    #endif
+// Since we will not be updating the display during a guide pulse, update the display here.
+#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
+    updateInfoDisplay();
+#endif
 
     LOG(DEBUG_STEPPERS, "[STEPPERS]: guidePulse: < Guide Pulse");
 }
 
-void Mount::commandReceived(){
+void Mount::commandReceived()
+{
     _commandReceived++;
 }
 /////////////////////////////////
@@ -3017,6 +3018,7 @@ void Mount::loop()
 void Mount::setupInfoDisplay()
 {
     #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    LOG(DEBUG_ANY, "[SYSTEM]: Create SSD1306 OLED class...");
     infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
     infoDisplay->init();
     #endif
@@ -3028,6 +3030,12 @@ void Mount::updateInfoDisplay()
     infoDisplay->render(this);
     #endif
 }
+
+InfoDisplayRender *Mount::getInfoDisplay()
+{
+    return infoDisplay;
+}
+
 #endif
 
 /////////////////////////////////
@@ -3512,6 +3520,37 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
     moveStepperBy(axis, delta);
 }
 
+/////////////////////////////////
+//
+// getStepperProgress
+//
+/////////////////////////////////
+bool Mount::getStepperProgress(int &raPercentage, int &decPercentage)
+{
+    bool slewInProgress = true;
+    if ((fabsf(_totalDECMove) > 0.001f) && (fabsf(_totalRAMove) > 0.001f))
+    {
+        // Both axes moving to target
+        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove);
+        raPercentage  = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove);
+    }
+    else if (fabsf(_totalDECMove) > 0.001f)
+    {
+        // Only DEC moving to target
+        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove);
+    }
+    else if (fabsf(_totalRAMove) > 0.001f)
+    {
+        // Only RA is moving to target
+        raPercentage = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove);
+    }
+    else
+    {
+        // Nothing is slewing
+        slewInProgress = false;
+    }
+    return slewInProgress;
+}
 /////////////////////////////////
 //
 // displayStepperPosition
