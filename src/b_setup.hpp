@@ -117,7 +117,7 @@ void setup()
     LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
     mount.setupInfoDisplay();
     LOG(DEBUG_ANY, "[SYSTEM]: OLED info screen ready!");
-    mount.getInfoDisplay()->addConsoleText("BOOTING...", false);
+    mount.getInfoDisplay()->addConsoleText("BOOTING " VERSION, false);
 #endif
 
 #if USE_GPS == 1

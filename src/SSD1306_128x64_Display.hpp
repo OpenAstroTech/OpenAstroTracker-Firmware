@@ -1,5 +1,4 @@
 #pragma once
-
 #include <SSD1306Wire.h>
 #include "Version.h"
 #include "fonts128x64.h"
@@ -10,16 +9,22 @@
 class SDD1306OLED128x64 : public InfoDisplayRender
 {
 #ifdef OAM
-    const float bottomDEC = -170.0f;
-    const float rangeDEC  = 340.0;
+    const float bottomDEC = -180.0f;
+    const float rangeDEC  = 360.0;
 #else
     const float bottomDEC = -90.0f;
     const float rangeDEC  = 270.0;
 #endif
-    const float leftRA       = -7.0f;
-    const float rightRA      = 7.0f;
-    const int _leftEdgeMount = 83;  // Must be odd. This is the location of the left edge of the mount square
-    const int _topEdgeMount  = 12;
+    const float leftRA  = -6.0f;
+    const float rightRA = 6.0f;
+
+    const int _leftEdgeMount = 69;  // x pos of start of scale
+    const int _raSize        = 41;  // width of ra scale
+    const int _raScalePos    = 51;  // Y pos of ra scale dotted line
+
+    const int _topEdgeMount = 14;
+    const int _decSize      = 43;
+    const int _decScalePos  = 115;
 
     SSD1306Wire *display;
     int _sizeMount;
@@ -65,9 +70,9 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             // Name on the right
             display->setFont(Bitmap5x7);
 #ifdef OAM
-            display->drawString(32, 6, "OpenAstroMount");
+            display->drawString(32, 6, F("OpenAstroMount"));
 #else
-            display->drawString(32, 6, "OpenAstroTracker");
+            display->drawString(32, 6, F("OpenAstroTracker"));
 #endif
 
             // Other lines
@@ -123,8 +128,13 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         }
         else
         {
-            drawVersion(mount);
+            display->setFont(CommSymbols);
+            display->drawString(11, 59, F("L"));
+            display->setFont(Bitmap3x5);
+            display->drawString(20, 59, String(freeMemory()));
+            drawCommunicationStatus(mount);
             drawSafeTime(mount);
+            // drawVersion();
         }
         drawCoordinates(mount);
         drawMountPosition(mount);
@@ -143,7 +153,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     }
 
     // Display a rectangle with the stepper label in it
-    void drawStepperState(const char *name, bool active, int xoff, int width, int textOffX = 0)
+    void drawStepperState(String name, bool active, int xoff, int width, int textOffX = 0)
     {
         display->setColor(WHITE);
         if (active)
@@ -163,32 +173,36 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     void drawStepperStates(Mount *mount)
     {
         display->setFont(Bitmap5x7);
-        drawStepperState("RA", mount->isAxisRunning(RA_STEPS), 0, 15);
-        drawStepperState("DEC", mount->isAxisRunning(DEC_STEPS), 16, 21);
+        drawStepperState(F("RA"), mount->isAxisRunning(RA_STEPS), 0, 15);
+        drawStepperState(F("DEC"), mount->isAxisRunning(DEC_STEPS), 16, 21);
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        drawStepperState("ALT", mount->isRunningALT(), 38, 21);
+        drawStepperState(F("ALT"), mount->isRunningALT(), 38, 21);
 #endif
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        drawStepperState("AZ", mount->isRunningAZ(), 60, 16);
+        drawStepperState(F("AZ"), mount->isRunningAZ(), 60, 16);
 #endif
-        drawStepperState("GDE", mount->isGuiding(), 83, 21);
-        drawStepperState("TRK", mount->isSlewingTRK(), 105, 23, 1);
+        drawStepperState(F("GDE"), mount->isGuiding(), 83, 21);
+        drawStepperState(F("TRK"), mount->isSlewingTRK(), 105, 23, 1);
     }
 
-    // Display the firmware version and communication activity marker in the bottom right corner
-    void drawVersion(Mount *mount)
+    // // Display the firmware version and communication activity marker in the bottom right corner
+    // void drawVersion()
+    // {
+    //     display->setColor(WHITE);
+    //     display->setFont(Bitmap3x5);
+    //     int len = display->getStringWidth(VERSION);
+    //     // Leave 8 pixels for the indicator
+    //     display->drawString(127 - len, 59, VERSION);
+    // }
+
+    void drawCommunicationStatus(Mount *mount)
     {
-        display->setColor(WHITE);
-        display->setFont(Bitmap3x5);
-        int len = display->getStringWidth(VERSION);
-        // Leave 8 pixels for the indicator
-        display->drawString(128 - len - 8, 59, VERSION);
         long recvdCmds = mount->getNumCommandsReceived();
         // If we have received any commands since the last display, draw the marker.
         if (recvdCmds != _lastNumCmds)
         {
             display->setFont(CommSymbols);
-            display->drawString(121, 59, "C");
+            display->drawString(0, 59, "C");
             _lastNumCmds = recvdCmds;
         }
     }
@@ -254,22 +268,19 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     int xc(float ra)
     {
         float rangeRA = rightRA - leftRA;
-        int x         = (int) round(1.0f * (_sizeMount - 2) * ((ra - leftRA) / rangeRA));
-        return (_leftEdgeMount + x + 1);
+        int x         = 4 + (int) round(1.0f * (_raSize - 9) * ((ra - leftRA) / rangeRA));
+        return (_leftEdgeMount + x);
     }
 
     int yc(float dec)
     {
-        int y = (int) round(1.0f * (_sizeMount - 2) * ((dec - bottomDEC) / rangeDEC));
-        return (_topEdgeMount + _sizeMount - y - 1);
+        int y = (int) round(1.0f * (_decSize) * ((dec - bottomDEC) / rangeDEC));
+        return (_topEdgeMount + _decSize - y);
     }
 
     // Draw the rectangle with the current and target positions
     void drawMountPosition(Mount *mount)
     {
-        float raStepsPerDeg  = mount->getStepsPerDegree(StepperAxis::RA_STEPS);
-        float decStepsPerDeg = mount->getStepsPerDegree(StepperAxis::DEC_STEPS);
-
         // int half              = (_sizeMount - 1) / 2;
         // long raPos            = 0;
         // long decPos           = 0;
@@ -277,56 +288,75 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         // Declination decTarget = mount->targetDEC();
 
         display->setColor(WHITE);
-        display->drawRect(_leftEdgeMount, _topEdgeMount, _sizeMount, _sizeMount);
-        int yZero = yc(0.0f);
-        int xZero = xc(0.0f);
+        display->setFont(Bitmap3x5);
+        // int yZero = yc(0.0f);
+        // int xZero = xc(0.0f);
 
-        for (int p = 0; p < _sizeMount - 1; p += 2)
+        // DEC tickmarks
+        for (int p = _topEdgeMount; p <= _topEdgeMount + _decSize; p += 2)
         {
-            display->setPixel(_leftEdgeMount + 1 + p, yZero);
-            display->setPixel(xZero, _topEdgeMount + 1 + p);
+            display->setPixel(_decScalePos, p);
         }
+#ifdef OAM
+        display->drawHorizontalLine(_decScalePos - 1, yc(-180.0), 2);
+#endif
+        display->drawHorizontalLine(_decScalePos - 1, yc(-90.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yc(0.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yc(90.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yc(180.0), 2);
+// DEC tickmark labels
+#ifdef OAM
+        display->drawString(_decScalePos + 6, yc(-180.0f) - 2, F("180"));
+        display->drawHorizontalLine(_decScalePos + 3, yc(-180.0), 2);  // Smaller minus sign
+#endif
+        display->drawString(_decScalePos + 6, yc(-90.0f) - 2, F("90"));
+        display->drawHorizontalLine(_decScalePos + 3, yc(-90.0), 2);  // Smaller minus sign
+        display->drawString(_decScalePos + 3, yc(0.0f) - 2, "0");
+        display->drawString(_decScalePos + 3, yc(90.0f) - 2, F("90"));
+        display->drawString(_decScalePos + 3, yc(180.0f) - 2, F("180"));
 
+        // DEC Pos Marker
+        float decStepsPerDeg = mount->getStepsPerDegree(StepperAxis::DEC_STEPS);
+        long decSteps        = mount->getCurrentStepperPosition(StepperAxis::DEC_STEPS);
+        float decDegrees     = decSteps / decStepsPerDeg;
+        int yMark            = yc(decDegrees);
+        display->setPixel(_decScalePos - 2, yMark);
+        display->drawVerticalLine(_decScalePos - 3, yMark - 1, 3);
+        display->drawVerticalLine(_decScalePos - 4, yMark - 2, 5);
+
+        // const int _leftEdgeMount = 69; // x pos of start of scale
+        // const int _raSize = 41;    // width of ra scale
+        // const int _raScalePos= 52; // Y pos of ra scale dotted line
+        // RA tickmarks
+        for (int p = _leftEdgeMount; p <= _leftEdgeMount + _raSize; p += 2)
+        {
+            display->setPixel(p, _raScalePos);
+        }
+        display->drawVerticalLine(xc(-6.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xc(-3.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xc(0.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xc(3.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xc(6.0f), _raScalePos - 1, 2);
+
+        // RA tickmark labels
+        display->drawString(xc(-6.0f) - 1, _raScalePos + 2, "6");
+        display->drawHorizontalLine(xc(-6.0f) - 4, _raScalePos + 2 + 2, 2);  // Smaller minus sign
+        display->drawString(xc(-3.0f) - 1, _raScalePos + 2, "3");
+        display->drawHorizontalLine(xc(-3.0f) - 4, _raScalePos + 2 + 2, 2);  // Smaller minus sign
+        display->drawString(xc(0.0f) - 1, _raScalePos + 2, "0");
+        display->drawString(xc(3.0f) - 1, _raScalePos + 2, "3");
+        display->drawString(xc(6.0f) - 1, _raScalePos + 2, "6");
+
+        float raStepsPerDeg = mount->getStepsPerDegree(StepperAxis::RA_STEPS);
         float trkSteps = 1.0f * mount->getCurrentStepperPosition(TRACKING) / (1.0f * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING);
         long raSteps   = mount->getCurrentStepperPosition(StepperAxis::RA_STEPS);
         float raHours  = (trkSteps + raSteps) / raStepsPerDeg / 15.0f;
 
-        long decSteps    = mount->getCurrentStepperPosition(StepperAxis::DEC_STEPS);
-        float decDegrees = decSteps / decStepsPerDeg;
-
+        // RA Position Marker
         int xMark = xc(raHours);
-        display->setPixel(xMark, _topEdgeMount + _sizeMount - 3);
-        display->setPixel(xMark - 1, _topEdgeMount + _sizeMount - 2);
-        display->setPixel(xMark, _topEdgeMount + _sizeMount - 2);
-        display->setPixel(xMark + 1, _topEdgeMount + _sizeMount - 2);
-
-        display->setPixel(xc(-6.0f), _topEdgeMount + _sizeMount - 2);
-        display->setPixel(xc(-3.0f), _topEdgeMount + _sizeMount - 2);
-        display->setPixel(xc(3.0f), _topEdgeMount + _sizeMount - 2);
-        display->setPixel(xc(6.0f), _topEdgeMount + _sizeMount - 2);
-
-        int yMark = yc(decDegrees);
-        display->setPixel(_leftEdgeMount + _sizeMount - 3, yMark);
-        display->setPixel(_leftEdgeMount + _sizeMount - 2, yMark - 1);
-        display->setPixel(_leftEdgeMount + _sizeMount - 2, yMark);
-        display->setPixel(_leftEdgeMount + _sizeMount - 2, yMark + 1);
-
-        display->setPixel(_leftEdgeMount + _sizeMount - 2, yc(-45.0f));
-        display->setPixel(_leftEdgeMount + _sizeMount - 2, yc(45.0f));
-        display->setPixel(_leftEdgeMount + _sizeMount - 2, yc(90.0f));
-        display->setPixel(_leftEdgeMount + _sizeMount - 2, yc(135.0f));
-
-        // LOG(DEBUG_DISPLAY, "DEC Y0: %f, Y90 %f", yZero, y90);
-        // LOG(DEBUG_DISPLAY, "DEC Deg: %l  -> %f (ratio: %f)", decSteps, decDegrees, (decDegrees - bottomDEC) / rangeDEC);
-        // LOG(DEBUG_DISPLAY, "DEC Pix: %d / %d", d, _sizeMount - 2);
-
-        // mount->calculateStepperPositions(raTarget.getTotalHours(), decTarget.getTotalDegrees(), raPos, decPos);
-
-        // int rt = xc(raPos);
-        // display->drawVerticalLine(_leftEdgeMount + 1 + rt, _topEdgeMount + _sizeMount - 5, 4);
-
-        // int dt = yc(1.0f * decPos / decStepsPerDeg);
-        // display->drawHorizontalLine(_leftEdgeMount + _sizeMount - 5, dt, 4);
+        display->setPixel(xMark, _raScalePos - 2);
+        display->drawHorizontalLine(xMark - 1, _raScalePos - 3, 3);
+        display->drawHorizontalLine(xMark - 2, _raScalePos - 4, 5);
     }
 
     // Display the tiem left before tracking hits the limit
@@ -336,8 +366,17 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         float hoursLeft = mount->checkRALimit();
         DayTime dt(hoursLeft);
         display->setColor(WHITE);
+
+        // display->setFont(CommSymbols);
+        // display->drawString(_leftEdgeMount + 11, 20, "K");
+        // display->setFont(Bitmap3x5);
+        // sprintf(achTemp, "%02d:%02d", dt.getHours(), dt.getMinutes());
+        // display->drawString(_leftEdgeMount + 21, 21, achTemp);
+        display->setFont(CommSymbols);
+        display->drawString(48, 59, "M");
         display->setFont(Bitmap3x5);
-        display->drawString(0, 59, dt.formatString(achTemp, "SAFE: {d}:{m}"));
+        sprintf(achTemp, "%02d:%02d", dt.getHours(), dt.getMinutes());
+        display->drawString(55, 59, achTemp);
     }
 
     // Display the mount status string
