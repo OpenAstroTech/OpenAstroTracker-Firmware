@@ -26,8 +26,13 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     const int _decSize      = 43;
     const int _decScalePos  = 115;
 
+    const int yMaxStatus = 7;
+
     SSD1306Wire *display;
     int _sizeMount;
+    int _yStatus;
+    int _dirStatus;
+    char _commLetter;
     long _lastNumCmds;
     long _lastUpdate;
     bool _consoleMode;
@@ -41,6 +46,9 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         _sizeMount   = 128 - _leftEdgeMount;
         _consoleMode = true;
         _curLine     = 0;
+        _yStatus     = 0;
+        _dirStatus   = 1;
+        _commLetter  = ' ';
         for (int i = 0; i < 6; i++)
         {
             _textList[i] = "";
@@ -199,10 +207,20 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     {
         long recvdCmds = mount->getNumCommandsReceived();
         // If we have received any commands since the last display, draw the marker.
-        if (recvdCmds != _lastNumCmds)
+
+        if (_commLetter != ' ')
         {
             display->setFont(CommSymbols);
-            display->drawString(0, 59, "C");
+            display->drawString(0, 59, String(_commLetter));
+            _commLetter++;
+            if (_commLetter == 'G')
+            {
+                _commLetter = ' ';
+            }
+        }
+        else if (recvdCmds != _lastNumCmds)
+        {
+            _commLetter  = 'C';
             _lastNumCmds = recvdCmds;
         }
     }
@@ -387,12 +405,28 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         String state = mount->getStatusStateString();
         state.toUpperCase();
         display->drawString(4, 14, state.c_str());
-        if (millis() - _lastUpdate > 1000)
+
+        // Bouncing pixel
+        _yStatus += _dirStatus;
+        if (_yStatus > yMaxStatus)
         {
-            display->drawVerticalLine(0, 15, 5);
-            display->drawVerticalLine(1, 16, 3);
-            display->setPixel(2, 17);
-            _lastUpdate = millis();
+            _dirStatus = -_dirStatus;
+            _yStatus  = yMaxStatus - 2;
         }
+        else if (_yStatus < 0)
+        {
+            _dirStatus = -_dirStatus;
+            _yStatus  = 1;
+        }
+        display->setPixel(0, 14 + _yStatus);
+
+        // Blinking triangle 
+        // if (millis() - _lastUpdate > 1000)
+        // {
+        //     display->drawVerticalLine(0, 15, 5);
+        //     display->drawVerticalLine(1, 16, 3);
+        //     display->setPixel(2, 17);
+        //     _lastUpdate = millis();
+        // }
     }
 };
