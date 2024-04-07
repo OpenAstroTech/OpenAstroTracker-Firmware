@@ -1,9 +1,13 @@
 #pragma once
 #include <SSD1306Wire.h>
+#include "Utility.hpp"
 #include "Version.h"
 #include "fonts128x64.h"
 #include "Mount.hpp"
 #include "InfoDisplayRender.hpp"
+
+const float sineSize              = 17.0;
+const uint8_t sineTable[] PROGMEM = {0, 22, 44, 66, 87, 108, 128, 146, 164, 180, 195, 209, 221, 231, 240, 246, 251, 254, 255};
 
 // This class renders the mount status to a 128x64 pixel display controlled by a SSD1306 chip.
 class SDD1306OLED128x64 : public InfoDisplayRender
@@ -397,6 +401,35 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         display->drawString(55, 59, achTemp);
     }
 
+    float sinLookup(float deg)
+    {
+        while (deg < 0.0f)
+            deg += 360.0f;
+        while (deg > 360.0f)
+            deg -= 360.0f;
+
+        if (deg <= 90)
+        {
+            int index = (int) roundf(sineSize * deg / 90.0f);
+            return 1.0f * pgm_read_byte(sineTable + index) / 255.0;
+        }
+        else if (deg <= 180)
+        {
+            int index = (int) roundf(sineSize * (180.0f - deg) / 90.0f);
+            return 1.0f * pgm_read_byte(sineTable + index) / 255.0;
+        }
+        else if (deg <= 270)
+        {
+            int index = (int) roundf(sineSize * (deg - 180.0f) / 90.0f);
+            return -1.0f * pgm_read_byte(sineTable + index) / 255.0;
+        }
+        else if (deg <= 360)
+        {
+            int index = (int) roundf(sineSize * (360.0f - deg) / 90.0f);
+            return -1.0f * pgm_read_byte(sineTable + index) / 255.0;
+        }
+    }
+
     // Display the mount status string
     void drawStatus(Mount *mount)
     {
@@ -406,21 +439,12 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         state.toUpperCase();
         display->drawString(4, 14, state.c_str());
 
-        // Bouncing pixel
-        _yStatus += _dirStatus;
-        if (_yStatus > yMaxStatus)
-        {
-            _dirStatus = -_dirStatus;
-            _yStatus  = yMaxStatus - 2;
-        }
-        else if (_yStatus < 0)
-        {
-            _dirStatus = -_dirStatus;
-            _yStatus  = 1;
-        }
-        display->setPixel(0, 14 + _yStatus);
+        // Bouncing pixel (bounce frequency every 1.5s). 180 degrees is one cap.
+        float deg = 180.0f * (millis() % 1500) / 1500.0f;
+        int pixPos   = (int) round(1.0f * yMaxStatus * sinLookup(deg));
+        display->setPixel(0, 14 + yMaxStatus - pixPos);
 
-        // Blinking triangle 
+        // Blinking triangle (1 frame every 1s)
         // if (millis() - _lastUpdate > 1000)
         // {
         //     display->drawVerticalLine(0, 15, 5);
