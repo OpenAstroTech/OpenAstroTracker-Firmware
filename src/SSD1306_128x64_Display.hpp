@@ -428,6 +428,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             int index = (int) roundf(sineSize * (360.0f - deg) / 90.0f);
             return -1.0f * pgm_read_byte(sineTable + index) / 255.0;
         }
+        return 0.0f;
     }
 
     // Display the mount status string
