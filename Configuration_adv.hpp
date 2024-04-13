@@ -549,6 +549,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                         ///
 // FEATURE SUPPORT SECTION ///
+//     FOR MOUNTS WITH     ///
+//       LCD DISPLAY       ///
 //                         ///
 //////////////////////////////
 //
@@ -589,7 +591,10 @@
     #define SUPPORT_MANUAL_CONTROL 0
     #define SUPPORT_CALIBRATION    0
     #define SUPPORT_INFO_DISPLAY   0
-
+    #if SUPPORT_DRIFT_ALIGNMENT == 1
+        #error "Drift Alignment is only available with a display."
+    #endif
+    #define SUPPORT_DRIFT_ALIGNMENT 0
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial

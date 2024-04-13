@@ -12,8 +12,9 @@
 enum
 {
     HIGHLIGHT_POLAR = 1,
-    HIGHLIGHT_DRIFT,
+        #ifdef SUPPOR_DRIFT_ALIGNMENT
     HIGHLIGHT_SPEED,
+        #endif
     HIGHLIGHT_RA_STEPS,
     HIGHLIGHT_DEC_STEPS,
     HIGHLIGHT_BACKLASH_STEPS,
@@ -42,12 +43,14 @@ enum
         #define POLAR_CALIBRATION_WAIT_CENTER_POLARIS 20
         #define POLAR_CALIBRATION_WAIT_HOME           21
 
-        // Drift calibration goes through 2 states
-        // 15- Display four durations and wait for the user to select one
-        // 16- Start the calibration run after user presses SELECT. This state waits 1.5s, takes duration time
-        //     to slew east in half the time selected, then waits 1.5s and slews west in the same duration, and waits 1.5s.
-        #define DRIFT_CALIBRATION_WAIT    30
-        #define DRIFT_CALIBRATION_RUNNING 31
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
+            // Drift calibration goes through 2 states
+            // 15- Display four durations and wait for the user to select one
+            // 16- Start the calibration run after user presses SELECT. This state waits 1.5s, takes duration time
+            //     to slew east in half the time selected, then waits 1.5s and slews west in the same duration, and waits 1.5s.
+            #define DRIFT_CALIBRATION_WAIT    30
+            #define DRIFT_CALIBRATION_RUNNING 31
+        #endif
 
         // Speed calibration only has one state, allowing you to adjust the speed with UP and DOWN
         #define SPEED_CALIBRATION 40
@@ -96,17 +99,19 @@ float SpeedCalibration;
 // The current delay in ms when changing calibration value. The longer a button is depressed, the smaller this gets.
 int calDelay = 150;
 
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
 // The index of durations that the user has selected.
 byte driftSubIndex = 1;
+
+// The requested total duration of the drift alignment run.
+byte driftDuration = 0;
+        #endif
 
 // The index of Yes or No to confirm parking pos
 byte parkYesNoIndex = 0;
 
 // The index of Y or N to confirm DEC limits (used for hi and lo).
 byte limitSetClearCancelIndex = 0;
-
-// The requested total duration of the drift alignment run.
-byte driftDuration = 0;
 
 // The number of steps to use for backlash compensation (read from the mount).
 int BacklashSteps = 0;
@@ -369,6 +374,7 @@ bool processCalibrationKeys()
         }
         #endif
     }
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == DRIFT_CALIBRATION_RUNNING)
     {
         lcdMenu.setCursor(0, 1);
@@ -396,7 +402,7 @@ bool processCalibrationKeys()
         mount.startSlewing(TRACKING);
         calState = HIGHLIGHT_DRIFT;
     }
-
+        #endif
     if (checkForKeyChange && lcdButtons.keyChanged(&key))
     {
         waitForRelease = true;
@@ -736,7 +742,7 @@ bool processCalibrationKeys()
                     }
                 }
                 break;
-
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
             case HIGHLIGHT_DRIFT:
                 {
                     if (key == btnDOWN)
@@ -779,7 +785,7 @@ bool processCalibrationKeys()
                     }
                 }
                 break;
-
+        #endif
             case DEC_LOWER_LIMIT_CONFIRM:
             case DEC_UPPER_LIMIT_CONFIRM:
                 {
@@ -1030,10 +1036,12 @@ void printCalibrationSubmenu()
     {
         lcdMenu.printMenu(">Speed calibratn");
     }
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == HIGHLIGHT_DRIFT)
     {
         lcdMenu.printMenu(">Drift alignment");
     }
+        #endif
     else if (calState == HIGHLIGHT_RA_STEPS)
     {
         lcdMenu.printMenu(">RA Step Adjust");
@@ -1101,12 +1109,14 @@ void printCalibrationSubmenu()
         dtostrf(mount.getSpeedCalibration(), 6, 4, &scratchBuffer[9]);
         lcdMenu.printMenu(scratchBuffer);
     }
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == DRIFT_CALIBRATION_WAIT)
     {
         sprintf(scratchBuffer, " 1m  2m  3m  5m");
         scratchBuffer[driftSubIndex * 4] = '>';
         lcdMenu.printMenu(scratchBuffer);
     }
+        #endif
     else if (calState == RA_STEP_CALIBRATION)
     {
         sprintf(scratchBuffer, "RA Steps: %s", String(0.1 * RAStepsPerDegree, 1).c_str());

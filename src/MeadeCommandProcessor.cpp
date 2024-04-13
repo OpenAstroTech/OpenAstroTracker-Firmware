@@ -640,7 +640,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //
 // :XDnnn#
 //      Description:
-//        Run drift alignment
+//        Run drift alignment (only supported if SUPPORT_DRIFT_ALIGNMENT is enabled)
 //      Information:
 //        This runs a drift alignment procedure where the mounts slews east, pauses, slews west and pauses.
 //        Where nnn is the number of seconds the entire alignment should take. The call is blocking and will
@@ -1450,7 +1450,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
     SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long. 
     The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
     */
-        return "1Updating Planetary Data#                              #";  //
+        return F("1Updating Planetary Data#                              #");  //
     }
     else
     {
@@ -1654,7 +1654,7 @@ String MeadeCommandProcessor::handleMeadeDistance(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 {
-    //   0123
+#if SUPPORT_DRIFT_ALIGNMENT == 1
     // :XDmmm
     if (inCmd[0] == 'D')  // :XD
     {                     // Drift Alignemnt
@@ -1682,7 +1682,9 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         _lcdMenu->setCursor(0, 1);
         _mount->startSlewing(TRACKING);
     }
-    else if (inCmd[0] == 'G')
+    else
+#endif
+        if (inCmd[0] == 'G')
     {                         // Get RA/DEC steps/deg, speedfactor
         if (inCmd[1] == 'R')  // :XGR#
         {

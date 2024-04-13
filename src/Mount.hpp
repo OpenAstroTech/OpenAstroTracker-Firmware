@@ -398,15 +398,20 @@ class Mount
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     void setupInfoDisplay();
     void updateInfoDisplay();
-    InfoDisplayRender* getInfoDisplay();
+    InfoDisplayRender *getInfoDisplay();
 #endif
 
     // Called by Meade processor every time a command is received.
     void commandReceived();
-    long getNumCommandsReceived() { return _commandReceived; }
+    long getNumCommandsReceived()
+    {
+        return _commandReceived;
+    }
 
+#if SUPPORT_DRIFT_ALIGNMENT == 1
     // Runs a phase of the drift alignment procedure
     void runDriftAlignmentPhase(int direction, int durationSecs);
+#endif
 
     // Toggle the state where we run the motors at a constant speed
     void setManualSlewMode(bool state);
@@ -495,7 +500,7 @@ class Mount
     // Returns the remaining tracking time available and stops tracking if it reaches zero.
     float checkRALimit();
 
-    // Calculate the stepper positions for the current target coordinates 
+    // Calculate the stepper positions for the current target coordinates
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
 
 #if UART_CONNECTION_TEST_TX == 1

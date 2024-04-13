@@ -141,7 +141,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         else
         {
             display->setFont(CommSymbols);
-            display->drawString(11, 59, F("L"));
+            display->drawString(11, 59, F("L")); // Memory chip icon
             display->setFont(Bitmap3x5);
             display->drawString(20, 59, String(freeMemory()));
             drawCommunicationStatus(mount);
@@ -217,14 +217,14 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             display->setFont(CommSymbols);
             display->drawString(0, 59, String(_commLetter));
             _commLetter++;
-            if (_commLetter == 'G')
+            if (_commLetter == 'G') // Past last communication animation frame (F)
             {
                 _commLetter = ' ';
             }
         }
         else if (recvdCmds != _lastNumCmds)
         {
-            _commLetter  = 'C';
+            _commLetter  = 'C'; // First communication animation frame
             _lastNumCmds = recvdCmds;
         }
     }
@@ -287,14 +287,16 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         drawCoordinate(0, 42, dc.c_str());
     }
 
-    int xc(float ra)
+    // Map the given RA coordinate to the pixel position on the display
+    int xRAPixel(float ra)
     {
         float rangeRA = rightRA - leftRA;
         int x         = 4 + (int) round(1.0f * (_raSize - 9) * ((ra - leftRA) / rangeRA));
         return (_leftEdgeMount + x);
     }
 
-    int yc(float dec)
+    // Map the given DEC coordinate to the pixel position on the display
+    int yDECPixel(float dec)
     {
         int y = (int) round(1.0f * (_decSize) * ((dec - bottomDEC) / rangeDEC));
         return (_topEdgeMount + _decSize - y);
@@ -303,16 +305,8 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     // Draw the rectangle with the current and target positions
     void drawMountPosition(Mount *mount)
     {
-        // int half              = (_sizeMount - 1) / 2;
-        // long raPos            = 0;
-        // long decPos           = 0;
-        // DayTime raTarget      = mount->targetRA();
-        // Declination decTarget = mount->targetDEC();
-
         display->setColor(WHITE);
         display->setFont(Bitmap3x5);
-        // int yZero = yc(0.0f);
-        // int xZero = xc(0.0f);
 
         // DEC tickmarks
         for (int p = _topEdgeMount; p <= _topEdgeMount + _decSize; p += 2)
@@ -320,54 +314,51 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             display->setPixel(_decScalePos, p);
         }
 #ifdef OAM
-        display->drawHorizontalLine(_decScalePos - 1, yc(-180.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yDECPixel(-180.0), 2);
 #endif
-        display->drawHorizontalLine(_decScalePos - 1, yc(-90.0), 2);
-        display->drawHorizontalLine(_decScalePos - 1, yc(0.0), 2);
-        display->drawHorizontalLine(_decScalePos - 1, yc(90.0), 2);
-        display->drawHorizontalLine(_decScalePos - 1, yc(180.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yDECPixel(-90.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yDECPixel(0.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yDECPixel(90.0), 2);
+        display->drawHorizontalLine(_decScalePos - 1, yDECPixel(180.0), 2);
 // DEC tickmark labels
 #ifdef OAM
-        display->drawString(_decScalePos + 6, yc(-180.0f) - 2, F("180"));
-        display->drawHorizontalLine(_decScalePos + 3, yc(-180.0), 2);  // Smaller minus sign
+        display->drawString(_decScalePos + 6, yDECPixel(-180.0f) - 2, F("180"));
+        display->drawHorizontalLine(_decScalePos + 3, yDECPixel(-180.0), 2);  // Smaller minus sign
 #endif
-        display->drawString(_decScalePos + 6, yc(-90.0f) - 2, F("90"));
-        display->drawHorizontalLine(_decScalePos + 3, yc(-90.0), 2);  // Smaller minus sign
-        display->drawString(_decScalePos + 3, yc(0.0f) - 2, "0");
-        display->drawString(_decScalePos + 3, yc(90.0f) - 2, F("90"));
-        display->drawString(_decScalePos + 3, yc(180.0f) - 2, F("180"));
+        display->drawString(_decScalePos + 6, yDECPixel(-90.0f) - 2, F("90"));
+        display->drawHorizontalLine(_decScalePos + 3, yDECPixel(-90.0), 2);  // Smaller minus sign
+        display->drawString(_decScalePos + 3, yDECPixel(0.0f) - 2, "0");
+        display->drawString(_decScalePos + 3, yDECPixel(90.0f) - 2, F("90"));
+        display->drawString(_decScalePos + 3, yDECPixel(180.0f) - 2, F("180"));
 
         // DEC Pos Marker
         float decStepsPerDeg = mount->getStepsPerDegree(StepperAxis::DEC_STEPS);
         long decSteps        = mount->getCurrentStepperPosition(StepperAxis::DEC_STEPS);
         float decDegrees     = decSteps / decStepsPerDeg;
-        int yMark            = yc(decDegrees);
+        int yMark            = yDECPixel(decDegrees);
         display->setPixel(_decScalePos - 2, yMark);
         display->drawVerticalLine(_decScalePos - 3, yMark - 1, 3);
         display->drawVerticalLine(_decScalePos - 4, yMark - 2, 5);
 
-        // const int _leftEdgeMount = 69; // x pos of start of scale
-        // const int _raSize = 41;    // width of ra scale
-        // const int _raScalePos= 52; // Y pos of ra scale dotted line
         // RA tickmarks
         for (int p = _leftEdgeMount; p <= _leftEdgeMount + _raSize; p += 2)
         {
             display->setPixel(p, _raScalePos);
         }
-        display->drawVerticalLine(xc(-6.0f), _raScalePos - 1, 2);
-        display->drawVerticalLine(xc(-3.0f), _raScalePos - 1, 2);
-        display->drawVerticalLine(xc(0.0f), _raScalePos - 1, 2);
-        display->drawVerticalLine(xc(3.0f), _raScalePos - 1, 2);
-        display->drawVerticalLine(xc(6.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xRAPixel(-6.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xRAPixel(-3.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xRAPixel(0.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xRAPixel(3.0f), _raScalePos - 1, 2);
+        display->drawVerticalLine(xRAPixel(6.0f), _raScalePos - 1, 2);
 
         // RA tickmark labels
-        display->drawString(xc(-6.0f) - 1, _raScalePos + 2, "6");
-        display->drawHorizontalLine(xc(-6.0f) - 4, _raScalePos + 2 + 2, 2);  // Smaller minus sign
-        display->drawString(xc(-3.0f) - 1, _raScalePos + 2, "3");
-        display->drawHorizontalLine(xc(-3.0f) - 4, _raScalePos + 2 + 2, 2);  // Smaller minus sign
-        display->drawString(xc(0.0f) - 1, _raScalePos + 2, "0");
-        display->drawString(xc(3.0f) - 1, _raScalePos + 2, "3");
-        display->drawString(xc(6.0f) - 1, _raScalePos + 2, "6");
+        display->drawString(xRAPixel(-6.0f) - 1, _raScalePos + 2, "6");
+        display->drawHorizontalLine(xRAPixel(-6.0f) - 4, _raScalePos + 2 + 2, 2);  // Smaller minus sign
+        display->drawString(xRAPixel(-3.0f) - 1, _raScalePos + 2, "3");
+        display->drawHorizontalLine(xRAPixel(-3.0f) - 4, _raScalePos + 2 + 2, 2);  // Smaller minus sign
+        display->drawString(xRAPixel(0.0f) - 1, _raScalePos + 2, "0");
+        display->drawString(xRAPixel(3.0f) - 1, _raScalePos + 2, "3");
+        display->drawString(xRAPixel(6.0f) - 1, _raScalePos + 2, "6");
 
         float raStepsPerDeg = mount->getStepsPerDegree(StepperAxis::RA_STEPS);
         float trkSteps = 1.0f * mount->getCurrentStepperPosition(TRACKING) / (1.0f * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING);
@@ -375,7 +366,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         float raHours  = (trkSteps + raSteps) / raStepsPerDeg / 15.0f;
 
         // RA Position Marker
-        int xMark = xc(raHours);
+        int xMark = xRAPixel(raHours);
         display->setPixel(xMark, _raScalePos - 2);
         display->drawHorizontalLine(xMark - 1, _raScalePos - 3, 3);
         display->drawHorizontalLine(xMark - 2, _raScalePos - 4, 5);
@@ -388,14 +379,8 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         float hoursLeft = mount->checkRALimit();
         DayTime dt(hoursLeft);
         display->setColor(WHITE);
-
-        // display->setFont(CommSymbols);
-        // display->drawString(_leftEdgeMount + 11, 20, "K");
-        // display->setFont(Bitmap3x5);
-        // sprintf(achTemp, "%02d:%02d", dt.getHours(), dt.getMinutes());
-        // display->drawString(_leftEdgeMount + 21, 21, achTemp);
         display->setFont(CommSymbols);
-        display->drawString(48, 59, "M");
+        display->drawString(48, 59, "M"); // Clock sign
         display->setFont(Bitmap3x5);
         sprintf(achTemp, "%02d:%02d", dt.getHours(), dt.getMinutes());
         display->drawString(55, 59, achTemp);
@@ -441,17 +426,8 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         display->drawString(4, 14, state.c_str());
 
         // Bouncing pixel (bounce frequency every 1.5s). 180 degrees is one cap.
-        float deg = 180.0f * (millis() % 1500) / 1500.0f;
-        int pixPos   = (int) round(1.0f * yMaxStatus * sinLookup(deg));
+        float deg  = 180.0f * (millis() % 1500) / 1500.0f;
+        int pixPos = (int) round(1.0f * yMaxStatus * sinLookup(deg));
         display->setPixel(0, 14 + yMaxStatus - pixPos);
-
-        // Blinking triangle (1 frame every 1s)
-        // if (millis() - _lastUpdate > 1000)
-        // {
-        //     display->drawVerticalLine(0, 15, 5);
-        //     display->drawVerticalLine(1, 16, 3);
-        //     display->setPixel(2, 17);
-        //     _lastUpdate = millis();
-        // }
     }
 };

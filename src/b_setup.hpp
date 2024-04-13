@@ -117,7 +117,7 @@ void setup()
     LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
     mount.setupInfoDisplay();
     LOG(DEBUG_ANY, "[SYSTEM]: OLED info screen ready!");
-    mount.getInfoDisplay()->addConsoleText("BOOTING " VERSION, false);
+    mount.getInfoDisplay()->addConsoleText(F("BOOTING " VERSION), false);
 #endif
 
 #if USE_GPS == 1
@@ -230,7 +230,7 @@ void setup()
 #endif
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int eepromLine = mount.getInfoDisplay()->addConsoleText("INIT EEPROM...");
+    int eepromLine = mount.getInfoDisplay()->addConsoleText(F("INIT EEPROM..."));
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
@@ -238,7 +238,7 @@ void setup()
     LOG(DEBUG_ANY, "[SYSTEM]: EEPROM store ready!");
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(eepromLine, "INIT EEPROM... OK");
+    mount.getInfoDisplay()->updateConsoleText(eepromLine, F("INIT EEPROM... OK"));
 #endif
 
 // Calling the LCD startup here, I2C can't be found if called earlier
@@ -328,7 +328,7 @@ void setup()
 
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int stepperLine = mount.getInfoDisplay()->addConsoleText("INIT STEPPERS...");
+    int stepperLine = mount.getInfoDisplay()->addConsoleText(F("INIT STEPPERS..."));
 #endif
 
     // Configure the mount
@@ -442,11 +442,11 @@ void setup()
 #endif
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(stepperLine, "INIT STEPPERS... OK");
+    mount.getInfoDisplay()->updateConsoleText(stepperLine, F("INIT STEPPERS... OK"));
 #endif
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->addConsoleText("CONFIGURING...");
+    mount.getInfoDisplay()->addConsoleText(F("CONFIGURING..."));
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Read Configuration...");
@@ -490,7 +490,7 @@ void setup()
 
 #if UART_CONNECTION_TEST_TX == 1
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int testLine = mount.getInfoDisplay()->addConsoleText("TEST STEPPERS...");
+    int testLine = mount.getInfoDisplay()->addConsoleText(F("TEST STEPPERS..."));
     #endif
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Moving RA axis using UART commands...");
@@ -504,7 +504,7 @@ void setup()
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Finished moving DEC axis using UART commands.");
     #endif
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(testLine, "TEST STEPPERS... OK");
+    mount.getInfoDisplay()->updateConsoleText(testLine, F("TEST STEPPERS... OK"));
     #endif
 #endif
 
@@ -520,7 +520,7 @@ void setup()
     mount.bootComplete();
     LOG(DEBUG_ANY, "[SYSTEM]: Boot complete!");
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->addConsoleText("BOOT COMPLETE!");
+    mount.getInfoDisplay()->addConsoleText(F("BOOT COMPLETE!"));
     delay(250);
     mount.getInfoDisplay()->setConsoleMode(false);
     #endif

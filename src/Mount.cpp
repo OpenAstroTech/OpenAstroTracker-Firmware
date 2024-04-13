@@ -1082,6 +1082,15 @@ String Mount::getMountHardwareInfo()
     ret += F("LCD_JOY_I2C_SSD1306,");
 #endif
 
+#if INFO_DISPLAY_TYPE == DISPLAY_TYPE_NONE
+    ret += F("NO_INFO_DISP,");
+#elif INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64
+    ret += F("INFO_I2C_SSD1306_128x64,");
+    // To add new display types, format this string in the same way: INFO_<interface>_<chip>_<resolution>
+#else
+    ret += F("INFO_UNKNOWN,");
+#endif
+
 #if FOCUS_STEPPER_TYPE == STEPPER_TYPE_NONE
     ret += F("NO_FOC,");
 #else
@@ -1604,10 +1613,18 @@ void Mount::guidePulse(byte direction, int duration)
     LOG(DEBUG_STEPPERS, "[STEPPERS]: guidePulse: < Guide Pulse");
 }
 
+/////////////////////////////////
+//
+// commandReceived()
+//
+// Keeps track of how many Meade commands have been processed.
+/////////////////////////////////
 void Mount::commandReceived()
 {
     _commandReceived++;
 }
+
+#if SUPPORT_DRIFT_ALIGNMENT == 1
 /////////////////////////////////
 //
 // runDriftAlignmentPhase
@@ -1656,6 +1673,7 @@ void Mount::runDriftAlignmentPhase(int direction, int durationSecs)
             break;
     }
 }
+#endif
 
 /////////////////////////////////
 //
