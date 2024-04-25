@@ -1,3 +1,6 @@
+**V1.13.2 - Updates**
+- Fix for RA steps being incrrectly set on every boot.
+
 **V1.13.1 - Updates**
 - Fix for uploading on AVR platform. Apparently atmelavr@5.0.0 (current stable) is broken and can't upload, so we peg it at atmelavr@4.2.0 for now.
 

@@ -391,7 +391,7 @@ float EEPROMStore::getRAStepsPerDegree()
     if (isPresentExtended(RA_NORM_STEPS_MARKER_FLAG))
     {
         // Latest version stores 100x steps/deg for 256 MS
-        const float factor = SteppingStorageNormalized / RA_TRACKING_MICROSTEPPING;
+        const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
         raStepsPerDegree   = readInt32(RA_NORM_STEPS_DEGREE_ADDR) / factor;
         LOG(DEBUG_EEPROM, "[EEPROM]: RA Normed Marker Present! RA steps/deg is %f", raStepsPerDegree);
     }
