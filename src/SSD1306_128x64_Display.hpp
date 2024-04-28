@@ -127,7 +127,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     // Display the tiem left before tracking hits the limit
     void drawTime(Mount *mount, String label, const DayTime &time)
     {
-        char achTemp[24];                    
+        char achTemp[24];
         display->setColor(WHITE);
         display->setFont(Bitmap3x5);
         sprintf(achTemp, "%s%02d:%02d", label.c_str(), time.getHours(), time.getMinutes());
@@ -150,44 +150,63 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         }
         else
         {
-            long timeSecs=millis()/2000; // Change every 2 secs
-            int index= timeSecs % 3; // Three displays
+            long timeSecs = millis() / 2000;  // Change every 2 secs
+            int index     = timeSecs % 5;     // Cycle through multiple data displays
 
             display->setFont(CommSymbols);
-            display->drawString(11, 59, F("L")); // Memory chip icon
+            display->drawString(11, 59, F("L"));  // Memory chip icon
             display->setFont(Bitmap3x5);
             long availMem = freeMemory();
-            if (availMem>9999) {
-                display->drawString(20, 59, String(availMem/1024)+"K");
-            } else {
+            if (availMem > 9999)
+            {
+                display->drawString(20, 59, String(availMem / 1024) + "K");
+            }
+            else
+            {
                 display->drawString(20, 59, String(availMem));
             }
             drawCommunicationStatus(mount);
             switch (index)
             {
-             case 0:{
-                float hoursLeft = mount->checkRALimit();
-                DayTime dt(hoursLeft);
-                drawTime(mount,F("REM "), dt); 
-             }
-                break;
-             case 1: {
-                drawTime(mount,F("LST "), mount->calculateLst()); 
-             }
-             break;
-             case 2:
-             {
-                long now      = millis();
-                long msPerDay = 60L * 60 * 24 * 1000;
-                int days      = (int) (now / msPerDay);
-                now -= days * msPerDay;
-                DayTime elapsed(1.0 * now / (1000.0 * 3600.0));
-                drawTime(mount,F("UPT "), elapsed);
-                         }
-                                     break;
+                case 0:
+                    {
+                        float hoursLeft = mount->checkRALimit();
+                        DayTime dt(hoursLeft);
+                        drawTime(mount, F("REM "), dt);
+                    }
+                    break;
+                case 1:
+                    {
+                        drawTime(mount, F("LST "), mount->calculateLst());
+                    }
+                    break;
+                case 2:
+                    {
+                        long now      = millis();
+                        long msPerDay = 60L * 60 * 24 * 1000;
+                        int days      = (int) (now / msPerDay);
+                        now -= days * msPerDay;
+                        DayTime elapsed(1.0 * now / (1000.0 * 3600.0));
+                        drawTime(mount, F("UPT "), elapsed);
+                    }
+                    break;
+                case 3:
+                    {
+                        display->drawString(55, 59, (String(F(" FW ")) + String(VERSION)).c_str());
+                    }
+                    break;
+                case 4:
+                    {
+                        char scratchBuffer[24];
+                        float lat          = fabsf(mount->latitude().getTotalHours());
+                        float lng          = fabsf(mount->longitude().getTotalHours());
+                        const char dirLat  = (mount->latitude().getTotalHours() < 0) ? 'S' : 'N';
+                        const char dirLong = (mount->longitude().getTotalHours() < 0) ? 'W' : 'E';
+                        sprintf(scratchBuffer, "LOC %s%c %s%c", String(lat, 1).c_str(), dirLat, String(lng, 1).c_str(), dirLong);
+                        display->drawString(55, 59, scratchBuffer);
+                    }
+                    break;
             }
-            
-            // drawVersion();
         }
         drawCoordinates(mount);
         drawMountPosition(mount);
@@ -238,16 +257,6 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         drawStepperState(F("TRK"), mount->isSlewingTRK(), 105, 23, 1);
     }
 
-    // // Display the firmware version and communication activity marker in the bottom right corner
-    // void drawVersion()
-    // {
-    //     display->setColor(WHITE);
-    //     display->setFont(Bitmap3x5);
-    //     int len = display->getStringWidth(VERSION);
-    //     // Leave 8 pixels for the indicator
-    //     display->drawString(127 - len, 59, VERSION);
-    // }
-
     void drawCommunicationStatus(Mount *mount)
     {
         long recvdCmds = mount->getNumCommandsReceived();
@@ -258,14 +267,14 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             display->setFont(CommSymbols);
             display->drawString(0, 59, String(_commLetter));
             _commLetter++;
-            if (_commLetter == 'G') // Past last communication animation frame (F)
+            if (_commLetter == 'G')  // Past last communication animation frame (F)
             {
                 _commLetter = ' ';
             }
         }
         else if (recvdCmds != _lastNumCmds)
         {
-            _commLetter  = 'C'; // First communication animation frame
+            _commLetter  = 'C';  // First communication animation frame
             _lastNumCmds = recvdCmds;
         }
     }
@@ -421,7 +430,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         DayTime dt(hoursLeft);
         display->setColor(WHITE);
         display->setFont(CommSymbols);
-        display->drawString(48, 59, "M"); // Clock sign
+        display->drawString(48, 59, "M");  // Clock sign
         display->setFont(Bitmap3x5);
         sprintf(achTemp, "%02d:%02d", dt.getHours(), dt.getMinutes());
         display->drawString(55, 59, achTemp);
