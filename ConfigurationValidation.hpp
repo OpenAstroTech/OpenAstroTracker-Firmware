@@ -42,7 +42,7 @@
         #endif
         #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
             #if (BOARD == BOARD_AVR_MKS_GEN_L_V1) || (BOARD == BOARD_AVR_MKS_GEN_L_V2) || (BOARD == BOARD_AVR_MKS_GEN_L_V21)
-                #error Unsupported configuration. OLED requires I2C, which is on the E1 port on a MKS GenL
+                #error Unsupported configuration. OLED requires I2C, which is on the E1 port on a MKS GenL, so a focuser cannot be used
             #endif
         #endif
     #endif

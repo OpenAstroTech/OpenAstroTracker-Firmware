@@ -124,6 +124,16 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         render(NULL);
     };
 
+    // Display the tiem left before tracking hits the limit
+    void drawTime(Mount *mount, String label, const DayTime &time)
+    {
+        char achTemp[24];                    
+        display->setColor(WHITE);
+        display->setFont(Bitmap3x5);
+        sprintf(achTemp, "%s%02d:%02d", label.c_str(), time.getHours(), time.getMinutes());
+        display->drawString(55, 59, achTemp);
+    }
+
     // Draw all the indicators on screen
     void drawIndicators(Mount *mount)
     {
@@ -140,12 +150,43 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         }
         else
         {
+            long timeSecs=millis()/2000; // Change every 2 secs
+            int index= timeSecs % 3; // Three displays
+
             display->setFont(CommSymbols);
             display->drawString(11, 59, F("L")); // Memory chip icon
             display->setFont(Bitmap3x5);
-            display->drawString(20, 59, String(freeMemory()));
+            long availMem = freeMemory();
+            if (availMem>9999) {
+                display->drawString(20, 59, String(availMem/1024)+"K");
+            } else {
+                display->drawString(20, 59, String(availMem));
+            }
             drawCommunicationStatus(mount);
-            drawSafeTime(mount);
+            switch (index)
+            {
+             case 0:{
+                float hoursLeft = mount->checkRALimit();
+                DayTime dt(hoursLeft);
+                drawTime(mount,F("REM "), dt); 
+             }
+                break;
+             case 1: {
+                drawTime(mount,F("LST "), mount->calculateLst()); 
+             }
+             break;
+             case 2:
+             {
+                long now      = millis();
+                long msPerDay = 60L * 60 * 24 * 1000;
+                int days      = (int) (now / msPerDay);
+                now -= days * msPerDay;
+                DayTime elapsed(1.0 * now / (1000.0 * 3600.0));
+                drawTime(mount,F("UPT "), elapsed);
+                         }
+                                     break;
+            }
+            
             // drawVersion();
         }
         drawCoordinates(mount);

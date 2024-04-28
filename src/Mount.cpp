@@ -86,6 +86,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 {
     _commandReceived = 0;
+    _loops = 0;
     _lcdMenu         = lcdMenu;
     initializeVariables();
 }
@@ -3038,15 +3039,20 @@ void Mount::setupInfoDisplay()
     #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
     LOG(DEBUG_ANY, "[SYSTEM]: Create SSD1306 OLED class...");
     infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
+    LOG(DEBUG_ANY, "[SYSTEM]: SSD1306 OLED created... initializing");
     infoDisplay->init();
-    #endif
+    LOG(DEBUG_ANY, "[SYSTEM]: SSD1306 OLED ready!");
+        #endif
 }
 
 void Mount::updateInfoDisplay()
 {
     #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
-    infoDisplay->render(this);
-    #endif
+    _loops++;
+    if (_loops % 8 == 0) {
+        infoDisplay->render(this);
+    }
+            #endif
 }
 
 InfoDisplayRender *Mount::getInfoDisplay()
