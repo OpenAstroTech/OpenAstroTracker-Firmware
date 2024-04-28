@@ -202,7 +202,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
                         float lng          = fabsf(mount->longitude().getTotalHours());
                         const char dirLat  = (mount->latitude().getTotalHours() < 0) ? 'S' : 'N';
                         const char dirLong = (mount->longitude().getTotalHours() < 0) ? 'W' : 'E';
-                        sprintf(scratchBuffer, "LOC %s%c %s%c", String(lat, 1).c_str(), dirLat, String(lng, 1).c_str(), dirLong);
+                        sprintf(scratchBuffer, "LOC %s%c %s%c", String(lat, 0).c_str(), dirLat, String(lng, 0).c_str(), dirLong);
                         display->drawString(55, 59, scratchBuffer);
                     }
                     break;
