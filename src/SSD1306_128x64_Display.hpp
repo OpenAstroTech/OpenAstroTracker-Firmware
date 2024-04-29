@@ -137,6 +137,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     // Draw all the indicators on screen
     void drawIndicators(Mount *mount)
     {
+        char scratchBuffer[24];
         display->setFont(Bitmap5x7);
         display->setColor(WHITE);
 
@@ -165,7 +166,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             {
                 display->drawString(20, 59, String(availMem));
             }
-            drawCommunicationStatus(mount);
+
             switch (index)
             {
                 case 0:
@@ -197,7 +198,6 @@ class SDD1306OLED128x64 : public InfoDisplayRender
                     break;
                 case 4:
                     {
-                        char scratchBuffer[24];
                         float lat          = fabsf(mount->latitude().getTotalHours());
                         float lng          = fabsf(mount->longitude().getTotalHours());
                         const char dirLat  = (mount->latitude().getTotalHours() < 0) ? 'S' : 'N';
@@ -207,6 +207,8 @@ class SDD1306OLED128x64 : public InfoDisplayRender
                     }
                     break;
             }
+            drawCommunicationStatus(mount);
+
         }
         drawCoordinates(mount);
         drawMountPosition(mount);
