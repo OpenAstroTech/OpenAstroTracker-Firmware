@@ -1,5 +1,12 @@
+**V1.13.3 - Updates**
+- Allowed ALT steps per revolution to be set directly
+- Removed drift alignment and added ability to add it back with define
+- Optimized string memory a little
+- Lowered ESP32 second core priority
+- Added support for informational display
+
 **V1.13.2 - Updates**
-- Fix for RA steps being incrrectly set on every boot.
+- Fix for RA steps being incorrectly set on every boot.
 
 **V1.13.1 - Updates**
 - Fix for uploading on AVR platform. Apparently atmelavr@5.0.0 (current stable) is broken and can't upload, so we peg it at atmelavr@4.2.0 for now.
