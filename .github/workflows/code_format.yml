@@ -18,7 +18,7 @@ jobs:
       - uses: DoozyX/clang-format-lint-action@v0.12
         with:
           source: '. ./src ./src/libs'
-          exclude: './src/libs/TimerInterrupt ./scripts fonts128x64.h'
+          exclude: './src/libs/TimerInterrupt ./scripts ./src/fonts128x64.h'
           extensions: 'c,cpp,h,hpp'
           clangFormatVersion: 12
           inplace: True
