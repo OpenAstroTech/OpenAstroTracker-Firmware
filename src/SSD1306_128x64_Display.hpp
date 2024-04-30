@@ -1,5 +1,5 @@
 #pragma once
-#include <SSD1306Wire.h>
+#include "./esp8266-oled-ssd1306/src/SSD1306Wire.h"
 #include "Utility.hpp"
 #include "Version.h"
 #include "fonts128x64.h"
