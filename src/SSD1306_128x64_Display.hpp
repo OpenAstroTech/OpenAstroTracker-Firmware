@@ -6,8 +6,8 @@
 #include "Mount.hpp"
 #include "InfoDisplayRender.hpp"
 
-const float sineSize              = 17.0;
-const uint8_t sineTable[] PROGMEM = {0, 22, 44, 66, 87, 108, 128, 146, 164, 180, 195, 209, 221, 231, 240, 246, 251, 254, 255};
+const float sineSize              = 18.0;
+const uint8_t sineTable[] PROGMEM = {0, 22, 44, 66, 87, 108, 128, 146, 164, 180, 195, 209, 221, 231, 240, 246, 251, 254, 255, 255};
 
 // This class renders the mount status to a 128x64 pixel display controlled by a SSD1306 chip.
 class SDD1306OLED128x64 : public InfoDisplayRender
@@ -30,7 +30,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     const int _decSize      = 43;
     const int _decScalePos  = 115;
 
-    const int yMaxStatus = 7;
+    const int yMaxStatus = 63-11;
 
     SSD1306Wire *display;
     int _sizeMount;
@@ -267,7 +267,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         if (_commLetter != ' ')
         {
             display->setFont(CommSymbols);
-            display->drawString(0, 59, String(_commLetter));
+            display->drawString(1, 59, String(_commLetter));
             _commLetter++;
             if (_commLetter == 'G')  // Past last communication animation frame (F)
             {
@@ -480,6 +480,6 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         // Bouncing pixel (bounce frequency every 1.5s). 180 degrees is one cap.
         float deg  = 180.0f * (millis() % 1500) / 1500.0f;
         int pixPos = (int) round(1.0f * yMaxStatus * sinLookup(deg));
-        display->setPixel(0, 14 + yMaxStatus - pixPos);
+        display->setPixel(0, 11 + yMaxStatus - pixPos);
     }
 };
