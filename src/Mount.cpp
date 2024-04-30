@@ -86,8 +86,10 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 {
     _commandReceived = 0;
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     _loops = 0;
-    _lcdMenu         = lcdMenu;
+#endif
+    _lcdMenu = lcdMenu;
     initializeVariables();
 }
 
@@ -3047,14 +3049,16 @@ void Mount::setupInfoDisplay()
 
 void Mount::updateInfoDisplay()
 {
-    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     _loops++;
-    if (_loops % 8 == 0) {
+    // Update display every 8 cycles
+    if (_loops % 8 == 0)
+    {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
         infoDisplay->render(this);
-        LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");        
+        LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
     }
-            #endif
+    #endif
 }
 
 InfoDisplayRender *Mount::getInfoDisplay()
@@ -3554,8 +3558,8 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
 bool Mount::getStepperProgress(int &raPercentage, int &decPercentage)
 {
     bool slewInProgress = true;
-    decPercentage = 100;
-    raPercentage = 100;
+    decPercentage       = 100;
+    raPercentage        = 100;
     if ((fabsf(_totalDECMove) > 0.001f) && (fabsf(_totalRAMove) > 0.001f))
     {
         // Both axes moving to target
