@@ -3554,6 +3554,8 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
 bool Mount::getStepperProgress(int &raPercentage, int &decPercentage)
 {
     bool slewInProgress = true;
+    decPercentage = 100;
+    raPercentage = 100;
     if ((fabsf(_totalDECMove) > 0.001f) && (fabsf(_totalRAMove) > 0.001f))
     {
         // Both axes moving to target
