@@ -399,10 +399,11 @@
             // the ratio of the ALT gearbox for AutoPA V2 (40:1)
             #define ALT_WORMGEAR_RATIO (40.0f)
         #endif
-
-        #define ALTITUDE_STEPS_PER_REV                                                                                                     \
-            (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING       \
-             * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+        #ifndef ALTITUDE_STEPS_PER_REV
+            #define ALTITUDE_STEPS_PER_REV                                                                                                 \
+                (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING   \
+                 * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+        #endif
     #endif
 
     #ifndef ALTITUDE_STEPS_PER_ARC_MINUTE
