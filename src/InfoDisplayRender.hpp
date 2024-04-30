@@ -3,7 +3,7 @@
 
 class Mount;
 
-// Base class to implement a 
+// Base class to implement a
 class InfoDisplayRender
 {
   public:

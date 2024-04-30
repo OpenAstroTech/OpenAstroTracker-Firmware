@@ -30,7 +30,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     const int _decSize      = 43;
     const int _decScalePos  = 115;
 
-    const int yMaxStatus = 63-11;
+    const int yMaxStatus = 63 - 11;
 
     SSD1306Wire *display;
     int _sizeMount;
@@ -208,7 +208,6 @@ class SDD1306OLED128x64 : public InfoDisplayRender
                     break;
             }
             drawCommunicationStatus(mount);
-
         }
         drawCoordinates(mount);
         drawMountPosition(mount);

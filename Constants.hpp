@@ -46,7 +46,7 @@
  * INFO_DISPLAY_TYPE_SSD1306_I2C_128x64:    I2C 128x64 OLED display module with SSD1306 controller, attached via I2C
  *                                          Amazon: https://www.amazon.com/dp/B06XRBTBTB?_encoding=UTF8&psc=1&ref_=cm_sw_r_cp_ud_dp_DQCWKZ7YB40X84RZSHJ0
  **/
-#define INFO_DISPLAY_TYPE_NONE               0 
+#define INFO_DISPLAY_TYPE_NONE               0
 #define INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 1
 
 // Supported stepper models

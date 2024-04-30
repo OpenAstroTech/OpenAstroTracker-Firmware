@@ -326,7 +326,6 @@ void setup()
     wifiControl.setup();
 #endif
 
-
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     int stepperLine = mount.getInfoDisplay()->addConsoleText(F("INIT STEPPERS..."));
 #endif
@@ -336,7 +335,6 @@ void setup()
     delay(1000);
 
     LOG(DEBUG_ANY, "[SYSTEM]: Configure steppers...");
-
 
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -519,9 +517,9 @@ void setup()
 
     mount.bootComplete();
     LOG(DEBUG_ANY, "[SYSTEM]: Boot complete!");
-    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     mount.getInfoDisplay()->addConsoleText(F("BOOT COMPLETE!"));
     delay(250);
     mount.getInfoDisplay()->setConsoleMode(false);
-    #endif
+#endif
 }

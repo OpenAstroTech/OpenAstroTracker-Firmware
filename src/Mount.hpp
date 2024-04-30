@@ -36,21 +36,21 @@ using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
     #else
         #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew  = AccelStepper;
-using StepperRaTrk   = AccelStepper;
-using StepperDecSlew = AccelStepper;
-using StepperDecTrk  = AccelStepper;
+using StepperRaSlew    = AccelStepper;
+using StepperRaTrk     = AccelStepper;
+using StepperDecSlew   = AccelStepper;
+using StepperDecTrk    = AccelStepper;
 
         #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew = AccelStepper;
+using StepperAzSlew    = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew = AccelStepper;
+using StepperAltSlew   = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew = AccelStepper;
+using StepperAltSlew   = AccelStepper;
         #endif
 
         #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -61,21 +61,21 @@ using StepperFocusSlew = AccelStepper;
 #else
     #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew  = AccelStepper;
-using StepperRaTrk   = AccelStepper;
-using StepperDecSlew = AccelStepper;
-using StepperDecTrk  = AccelStepper;
+using StepperRaSlew    = AccelStepper;
+using StepperRaTrk     = AccelStepper;
+using StepperDecSlew   = AccelStepper;
+using StepperDecTrk    = AccelStepper;
 
     #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew = AccelStepper;
+using StepperAzSlew    = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew = AccelStepper;
+using StepperAltSlew   = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew = AccelStepper;
+using StepperAltSlew   = AccelStepper;
     #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
