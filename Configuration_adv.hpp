@@ -69,6 +69,9 @@
     #ifndef RA_SLEW_MICROSTEPPING
         #define RA_SLEW_MICROSTEPPING 8  // Microstep mode set by MS pin strapping. Use the same microstep mode for both slewing & tracking
     #endif
+    #if defined(RA_TRACKING_MICROSTEPPING) && (RA_TRACKING_MICROSTEPPING != RA_SLEW_MICROSTEPPING)
+        #error With A4988 drivers or TMC2209 drivers in Standalone mode, RA microstepping must be the same for slewing and tracking. Delete RA_TRACKING_MICROSTEPPING from your config.
+    #endif
     #define RA_TRACKING_MICROSTEPPING RA_SLEW_MICROSTEPPING
 #else
     #error Unknown RA driver type
@@ -88,6 +91,9 @@
     #ifndef DEC_SLEW_MICROSTEPPING
         #define DEC_SLEW_MICROSTEPPING                                                                                                     \
             16  // Only UART drivers support dynamic switching. Use the same microstep mode for both slewing & guiding
+    #endif
+    #if defined(DEC_GUIDE_MICROSTEPPING) && (DEC_GUIDE_MICROSTEPPING != DEC_SLEW_MICROSTEPPING)
+        #error With A4988 drivers or TMC2209 drivers in Standalone mode, DEC microstepping must be the same for slewing and guiding. Delete DEC_GUIDE_MICROSTEPPING from your config.
     #endif
     #define DEC_GUIDE_MICROSTEPPING DEC_SLEW_MICROSTEPPING
 #else
