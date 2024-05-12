@@ -34,6 +34,20 @@
     #error Unsupported display configuration. Use at own risk.
 #endif
 
+// Info Display validations
+#if defined(__AVR_ATmega2560__)
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+        #if (DISPLAY_TYPE != DISPLAY_TYPE_NONE)
+            #error Unsupported configuration. Not enough memory to use LCD and OLED at the same time.
+        #endif
+        #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+            #if (BOARD == BOARD_AVR_MKS_GEN_L_V1) || (BOARD == BOARD_AVR_MKS_GEN_L_V2) || (BOARD == BOARD_AVR_MKS_GEN_L_V21)
+                #warning OLED requires I2C, so E1 port on a MKS GenL is not available. Make sure you are not attempting to use it.
+            #endif
+        #endif
+    #endif
+#endif
+
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #ifndef RA_DRIVER_ADDRESS
         // Serial bus address must be specified for TMC2209 in UART mode

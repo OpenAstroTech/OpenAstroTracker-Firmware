@@ -16,6 +16,9 @@ PUSH_NO_WARNINGS
     #endif
 #endif
 
+#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #include "SSD1306_128x64_Display.hpp"
+#endif
 #include <AccelStepper.h>
 
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
@@ -82,6 +85,10 @@ Mount::Mount(LcdMenu *lcdMenu)
 #endif
 
 {
+    _commandReceived = 0;
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    _loops = 0;
+#endif
     _lcdMenu = lcdMenu;
     initializeVariables();
 }
@@ -1078,6 +1085,15 @@ String Mount::getMountHardwareInfo()
     ret += F("LCD_JOY_I2C_SSD1306,");
 #endif
 
+#if INFO_DISPLAY_TYPE == DISPLAY_TYPE_NONE
+    ret += F("NO_INFO_DISP,");
+#elif INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64
+    ret += F("INFO_I2C_SSD1306_128x64,");
+    // To add new display types, format this string in the same way: INFO_<interface>_<chip>_<resolution>
+#else
+    ret += F("INFO_UNKNOWN,");
+#endif
+
 #if FOCUS_STEPPER_TYPE == STEPPER_TYPE_NONE
     ret += F("NO_FOC,");
 #else
@@ -1592,10 +1608,26 @@ void Mount::guidePulse(byte direction, int duration)
             _guideRaEndTime = millis() + duration;
             break;
     }
+// Since we will not be updating the display during a guide pulse, update the display here.
+#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
+    updateInfoDisplay();
+#endif
 
     LOG(DEBUG_STEPPERS, "[STEPPERS]: guidePulse: < Guide Pulse");
 }
 
+/////////////////////////////////
+//
+// commandReceived()
+//
+// Keeps track of how many Meade commands have been processed.
+/////////////////////////////////
+void Mount::commandReceived()
+{
+    _commandReceived++;
+}
+
+#if SUPPORT_DRIFT_ALIGNMENT == 1
 /////////////////////////////////
 //
 // runDriftAlignmentPhase
@@ -1644,6 +1676,7 @@ void Mount::runDriftAlignmentPhase(int direction, int durationSecs)
             break;
     }
 }
+#endif
 
 /////////////////////////////////
 //
@@ -2057,48 +2090,58 @@ void Mount::clearStatusFlag(int flag)
 // getStatusString
 //
 /////////////////////////////////
-String Mount::getStatusString()
+String Mount::getStatusStateString()
 {
     String status;
     if (_mountStatus == STATUS_PARKED)
     {
-        status = F("Parked,");
+        status = F("Parked");
     }
     else if ((_mountStatus & STATUS_PARKING) || (_mountStatus & STATUS_PARKING_POS))
     {
-        status = F("Parking,");
+        status = F("Parking");
     }
     else if (isFindingHome())
     {
-        status = F("Homing,");
+        status = F("Homing");
     }
     else if (isGuiding())
     {
-        status = F("Guiding,");
+        status = F("Guiding");
     }
     else if (slewStatus() & SLEW_MASK_ANY)
     {
         if (_mountStatus & STATUS_SLEWING_TO_TARGET)
         {
-            status = F("SlewToTarget,");
+            status = F("SlewToTarget");
         }
         else if (_mountStatus & STATUS_SLEWING_FREE)
         {
-            status = F("FreeSlew,");
+            status = F("FreeSlew");
         }
         else if (_mountStatus & STATUS_SLEWING_MANUAL)
         {
-            status = F("ManualSlew,");
+            status = F("ManualSlew");
         }
         else if (slewStatus() & SLEWING_TRACKING)
         {
-            status = F("Tracking,");
+            status = F("Tracking");
         }
     }
     else
     {
-        status = "Idle,";
+        status = "Idle";
     }
+    return status;
+}
+/////////////////////////////////
+//
+// getStatusString
+//
+/////////////////////////////////
+String Mount::getStatusString()
+{
+    String status = getStatusStateString() + ",";
 
     String disp = "------,";
     if (_mountStatus & STATUS_SLEWING)
@@ -2181,7 +2224,7 @@ byte Mount::mountStatus() const
 /////////////////////////////////
 bool Mount::isGuiding() const
 {
-    return (_mountStatus & STATUS_GUIDE_PULSE);
+    return (_mountStatus & STATUS_GUIDE_PULSE) != 0;
 }
 
 /////////////////////////////////
@@ -2987,7 +3030,43 @@ void Mount::loop()
 #endif
 
     _stepperWasRunning = raStillRunning || decStillRunning;
+#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
+    updateInfoDisplay();
+#endif
 }
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+void Mount::setupInfoDisplay()
+{
+    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    LOG(DEBUG_DISPLAY, "[DISPLAY]: Create SSD1306 OLED class...");
+    infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
+    LOG(DEBUG_ANY, "[SYSTEM]: SSD1306 OLED created... initializing");
+    infoDisplay->init();
+    LOG(DEBUG_DISPLAY, "[DISPLAY]: Created and initialized SSD1306 OLED class...");
+    #endif
+}
+
+void Mount::updateInfoDisplay()
+{
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    _loops++;
+    // Update display every 8 cycles
+    if (_loops % 8 == 0)
+    {
+        LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
+        infoDisplay->render(this);
+        LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
+    }
+    #endif
+}
+
+InfoDisplayRender *Mount::getInfoDisplay()
+{
+    return infoDisplay;
+}
+
+#endif
 
 /////////////////////////////////
 //
@@ -3471,6 +3550,39 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
     moveStepperBy(axis, delta);
 }
 
+/////////////////////////////////
+//
+// getStepperProgress
+//
+/////////////////////////////////
+bool Mount::getStepperProgress(int &raPercentage, int &decPercentage)
+{
+    bool slewInProgress = true;
+    decPercentage       = 100;
+    raPercentage        = 100;
+    if ((fabsf(_totalDECMove) > 0.001f) && (fabsf(_totalRAMove) > 0.001f))
+    {
+        // Both axes moving to target
+        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove);
+        raPercentage  = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove);
+    }
+    else if (fabsf(_totalDECMove) > 0.001f)
+    {
+        // Only DEC moving to target
+        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _totalDECMove);
+    }
+    else if (fabsf(_totalRAMove) > 0.001f)
+    {
+        // Only RA is moving to target
+        raPercentage = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _totalRAMove);
+    }
+    else
+    {
+        // Nothing is slewing
+        slewInProgress = false;
+    }
+    return slewInProgress;
+}
 /////////////////////////////////
 //
 // displayStepperPosition

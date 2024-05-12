@@ -6,6 +6,10 @@
 #include "Longitude.hpp"
 #include "Types.hpp"
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+class InfoDisplayRender;
+#endif
+
 #ifdef NEW_STEPPER_LIB
 
     #include "StepperConfiguration.hpp"
@@ -374,19 +378,41 @@ class Mount
     // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
     String RAString(byte type, byte active = 0);
 
+    // Returns string (singfle word) representing the mounts status.
+    String getStatusStateString();
+
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
+
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction);
 
+    // See if a slew to target is in progress and return the percentage along the path
+    bool getStepperProgress(int &raPercentage, int &decPercentage);
+
     // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
     void displayStepperPositionThrottled();
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    void setupInfoDisplay();
+    void updateInfoDisplay();
+    InfoDisplayRender *getInfoDisplay();
+    long _loops;
+#endif
 
+    // Called by Meade processor every time a command is received.
+    void commandReceived();
+    long getNumCommandsReceived()
+    {
+        return _commandReceived;
+    }
+
+#if SUPPORT_DRIFT_ALIGNMENT == 1
     // Runs a phase of the drift alignment procedure
     void runDriftAlignmentPhase(int direction, int durationSecs);
+#endif
 
     // Toggle the state where we run the motors at a constant speed
     void setManualSlewMode(bool state);
@@ -475,6 +501,9 @@ class Mount
     // Returns the remaining tracking time available and stops tracking if it reaches zero.
     float checkRALimit();
 
+    // Calculate the stepper positions for the current target coordinates
+    void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -493,7 +522,6 @@ class Mount
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
 
-    void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);
 
@@ -501,6 +529,9 @@ class Mount
 
   private:
     LcdMenu *_lcdMenu;
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    InfoDisplayRender *infoDisplay;
+#endif
     float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
     float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
     uint32_t _maxRASpeed;
@@ -538,6 +569,7 @@ class Mount
     float _totalRAMove;
     Latitude _latitude;
     Longitude _longitude;
+    long _commandReceived;
 
     // Stepper control for RA, DEC and TRK.
 #ifdef NEW_STEPPER_LIB

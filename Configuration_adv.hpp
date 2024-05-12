@@ -69,6 +69,9 @@
     #ifndef RA_SLEW_MICROSTEPPING
         #define RA_SLEW_MICROSTEPPING 8  // Microstep mode set by MS pin strapping. Use the same microstep mode for both slewing & tracking
     #endif
+    #if defined(RA_TRACKING_MICROSTEPPING) && (RA_TRACKING_MICROSTEPPING != RA_SLEW_MICROSTEPPING)
+        #error With A4988 drivers or TMC2209 drivers in Standalone mode, RA microstepping must be the same for slewing and tracking. Delete RA_TRACKING_MICROSTEPPING from your config.
+    #endif
     #define RA_TRACKING_MICROSTEPPING RA_SLEW_MICROSTEPPING
 #else
     #error Unknown RA driver type
@@ -88,6 +91,9 @@
     #ifndef DEC_SLEW_MICROSTEPPING
         #define DEC_SLEW_MICROSTEPPING                                                                                                     \
             16  // Only UART drivers support dynamic switching. Use the same microstep mode for both slewing & guiding
+    #endif
+    #if defined(DEC_GUIDE_MICROSTEPPING) && (DEC_GUIDE_MICROSTEPPING != DEC_SLEW_MICROSTEPPING)
+        #error With A4988 drivers or TMC2209 drivers in Standalone mode, DEC microstepping must be the same for slewing and guiding. Delete DEC_GUIDE_MICROSTEPPING from your config.
     #endif
     #define DEC_GUIDE_MICROSTEPPING DEC_SLEW_MICROSTEPPING
 #else
@@ -399,10 +405,11 @@
             // the ratio of the ALT gearbox for AutoPA V2 (40:1)
             #define ALT_WORMGEAR_RATIO (40.0f)
         #endif
-
-        #define ALTITUDE_STEPS_PER_REV                                                                                                     \
-            (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING       \
-             * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+        #ifndef ALTITUDE_STEPS_PER_REV
+            #define ALTITUDE_STEPS_PER_REV                                                                                                 \
+                (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING   \
+                 * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+        #endif
     #endif
 
     #ifndef ALTITUDE_STEPS_PER_ARC_MINUTE
@@ -549,6 +556,8 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                         ///
 // FEATURE SUPPORT SECTION ///
+//     FOR MOUNTS WITH     ///
+//       LCD DISPLAY       ///
 //                         ///
 //////////////////////////////
 //
@@ -589,7 +598,10 @@
     #define SUPPORT_MANUAL_CONTROL 0
     #define SUPPORT_CALIBRATION    0
     #define SUPPORT_INFO_DISPLAY   0
-
+    #if SUPPORT_DRIFT_ALIGNMENT == 1
+        #error "Drift Alignment is only available with a display."
+    #endif
+    #define SUPPORT_DRIFT_ALIGNMENT 0
 #endif  // DISPLAY_TYPE
 
 // Enable Meade protocol communication over serial
