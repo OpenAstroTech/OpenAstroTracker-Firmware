@@ -1,9 +1,14 @@
+**V1.13.4 - Updates**
+- Switched back to official repo for SSD1306-based displays
+
 **V1.13.3 - Updates**
+NOTE: Make sure to do a Factory Reset when using this version.
 - Allowed ALT steps per revolution to be set directly
 - Removed drift alignment and added ability to add it back with define
 - Optimized string memory a little
 - Lowered ESP32 second core priority
 - Added support for informational display
+- You must upgrade to OATControl V1.1.2.0 to use with this version (at least if you want to use teh DEC park/unpark feature)
 
 **V1.13.2 - Updates**
 - Fix for RA steps being incorrectly set on every boot.
