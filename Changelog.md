@@ -1,3 +1,6 @@
+**V1.13.5 - Updates**
+- Updated ThingPulse OLED library to 4.6.1
+
 **V1.13.4 - Updates**
 - Switched back to official repo for SSD1306-based displays
 
