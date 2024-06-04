@@ -714,7 +714,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get auto homing state
 //      Information:
-//        Get the current state of RA and DEC Autohoming status. Only valid when at least 
+//        Get the current state of RA and DEC Autohoming status. Only valid when at least
 //        one Hall sensor based autohoming axis is enabled.
 //      Returns:
 //        "rastate|decstate#" if either axis is enabled
