@@ -447,6 +447,7 @@ class Mount
     bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance);
     void processHomingProgress();
 #endif
+    String getAutoHomingStates() const;
 
     void setHomingOffset(StepperAxis axis, long offset);
     long getHomingOffset(StepperAxis axis);

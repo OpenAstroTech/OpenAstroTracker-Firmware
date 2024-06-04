@@ -339,7 +339,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef NEW_STEPPER_LIB
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -357,7 +357,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef NEW_STEPPER_LIB
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -715,7 +715,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected      = connectToDriver(_driverALT, "ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -806,7 +806,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -2631,6 +2631,33 @@ void Mount::processHomingProgress()
     #endif
 }
 #endif
+
+String Mount::getAutoHomingStates() const
+{
+    String state;
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if ((_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
+    {
+        state += _raHoming->getHomingState(_raHoming->getHomingState());
+    }
+    else
+    {
+        state += _raHoming->getLastResult();
+    }
+#endif
+    state += "|";
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    if ((_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
+    {
+        state += _decHoming->getHomingState(_decHoming->getHomingState());
+    }
+    else
+    {
+        state += _decHoming->getLastResult();
+    }
+#endif
+    return state;
+}
 
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
 /////////////////////////////////
