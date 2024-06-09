@@ -719,6 +719,25 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "rastate|decstate#" if either axis is enabled
 //        "|" if no autohoming is enabled
+//      Remarks:
+//        While the mount status (:GX#) is 'Homing', the command returns one of these:
+//          MOVE_OFF
+//          MOVING_OFF
+//          STOP_AT_TIME
+//          WAIT_FOR_STOP
+//          START_FIND_START
+//          FINDING_START
+//          FINDING_START_REVERSE
+//          FINDING_END
+//          RANGE_FOUND
+//          
+//        If the mount status (:GX#) is not 'Homing' the command returns one of these:
+//          SUCCEEDED
+//          NEVER RUN
+//          IN PROGRESS
+//          CANT MOVE OFF SENSOR
+//          CANT FIND SENSOR BEGIN
+//          CANT FIND SENSOR END
 //
 // :XGB#
 //      Description:
