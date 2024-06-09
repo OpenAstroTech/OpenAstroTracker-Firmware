@@ -710,6 +710,16 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1#" if succsessful
 //        "0#" if there is no Digital Level
 //
+// :XGAH#
+//      Description:
+//        Get auto homing state
+//      Information:
+//        Get the current state of RA and DEC Autohoming status. Only valid when at least
+//        one Hall sensor based autohoming axis is enabled.
+//      Returns:
+//        "rastate|decstate#" if either axis is enabled
+//        "|" if no autohoming is enabled
+//
 // :XGB#
 //      Description:
 //        Get Backlash correction steps
@@ -1579,7 +1589,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
         if (inCmd.length() > 3)
         {
-            distance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
+            distance = clamp((int) inCmd.substring(3).toInt(), 5, 75);
             LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
         }
 
@@ -1600,7 +1610,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         int decDistance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
         if (inCmd.length() > 3)
         {
-            decDistance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
+            decDistance = clamp((int) inCmd.substring(3).toInt(), 5, 75);
             LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", decDistance);
         }
 
@@ -1746,6 +1756,10 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         else if (inCmd[1] == 'B')  // :XGB#
         {
             return String(_mount->getBacklashCorrection()) + "#";
+        }
+        else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'H'))  // :XGAH#
+        {
+            return _mount->getAutoHomingStates() + "#";
         }
         else if (inCmd[1] == 'C')  // :XGCn.nn*m.mm#
         {

@@ -2632,6 +2632,33 @@ void Mount::processHomingProgress()
 }
 #endif
 
+String Mount::getAutoHomingStates() const
+{
+    String state;
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    if ((_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
+    {
+        state += _raHoming->getHomingState(_raHoming->getHomingState());
+    }
+    else
+    {
+        state += _raHoming->getLastResult();
+    }
+#endif
+    state += "|";
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    if ((_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
+    {
+        state += _decHoming->getHomingState(_decHoming->getHomingState());
+    }
+    else
+    {
+        state += _decHoming->getLastResult();
+    }
+#endif
+    return state;
+}
+
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
 /////////////////////////////////
 //

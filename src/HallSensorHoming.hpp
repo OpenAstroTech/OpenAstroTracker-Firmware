@@ -4,6 +4,13 @@
 #include "Types.hpp"
 #include "Mount.hpp"
 
+#define HOMING_RESULT_SUCCEEDED                   1
+#define HOMING_RESULT_HOMING_NEVER_RUN            0
+#define HOMING_RESULT_HOMING_IN_PROGRESS          -1
+#define HOMING_RESULT_CANT_MOVE_OFF_SENSOR        -2
+#define HOMING_RESULT_CANT_FIND_SENSOR_ON_REVERSE -3
+#define HOMING_RESULT_CANT_FIND_SENSOR_END        -4
+
 class Mount;
 
 enum HomingState
@@ -28,6 +35,7 @@ struct HomingData {
     HomingState nextState;
     int pinState;
     int lastPinState;
+    int pinChangeCount;
     int savedRate;
     int initialDir;
     long searchDistance;
@@ -51,17 +59,22 @@ class HallSensorHoming
     long _stepsPerDegree;
     int _sensorPin;
     int _activeState;
+    int _lastResult;
+    bool _wasTracking;
 
   public:
     HallSensorHoming(Mount *mount, StepperAxis axis, long stepsPerDegree, int sensorPin, int activeState, int32_t offset)
     {
-        _homingData.state  = HomingState::HOMING_NOT_ACTIVE;
-        _homingData.offset = offset;
-        _pMount            = mount;
-        _axis              = axis;
-        _stepsPerDegree    = stepsPerDegree;
-        _sensorPin         = sensorPin;
-        _activeState       = activeState;
+        _homingData.state          = HomingState::HOMING_NOT_ACTIVE;
+        _homingData.offset         = offset;
+        _homingData.pinChangeCount = 0;
+        _pMount                    = mount;
+        _axis                      = axis;
+        _stepsPerDegree            = stepsPerDegree;
+        _sensorPin                 = sensorPin;
+        _activeState               = activeState;
+        _lastResult                = HOMING_RESULT_HOMING_NEVER_RUN;
+        _wasTracking               = mount->isSlewingTRK();
     }
 
     bool findHomeByHallSensor(int initialDirection, int searchDistanceDegrees);
@@ -69,6 +82,7 @@ class HallSensorHoming
     String getHomingState(HomingState state) const;
     HomingState getHomingState() const;
     bool isIdleOrComplete() const;
+    String getLastResult() const;
 };
 
 #endif

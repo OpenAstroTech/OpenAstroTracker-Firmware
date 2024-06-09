@@ -1,3 +1,8 @@
+**V1.13.6 - Updates**
+- Added ability to query homing status during autohoming (:XGAH#)
+- Fixed a bug in autohoming that would make it fail if it did not pass over the sensor during the initial 30 degree search
+- Added debounce function to detection of sensor state changes. There were single false sensor trigger spikes that incorrectly detected sensor transitions.
+
 **V1.13.5 - Updates**
 - Updated ThingPulse OLED library to 4.6.1
 

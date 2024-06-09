@@ -45,11 +45,37 @@ HomingState HallSensorHoming::getHomingState() const
 
 /////////////////////////////////
 //
+// getLastResult
+//
+/////////////////////////////////
+String HallSensorHoming::getLastResult() const
+{
+    MappedDict<int, String>::DictEntry_t lookupTable[] = {
+        {HOMING_RESULT_SUCCEEDED, F("SUCCEEDED")},
+        {HOMING_RESULT_HOMING_NEVER_RUN, F("NEVER RUN")},
+        {HOMING_RESULT_HOMING_IN_PROGRESS, F("IN PROGRESS")},
+        {HOMING_RESULT_CANT_MOVE_OFF_SENSOR, F("CANT MOVE OFF SENSOR")},
+        {HOMING_RESULT_CANT_FIND_SENSOR_ON_REVERSE, F("CANT FIND SENSOR BEGIN")},
+        {HOMING_RESULT_CANT_FIND_SENSOR_END, F("CANT FIND SENSOR END")},
+    };
+
+    auto strLookup = MappedDict<int, String>(lookupTable, ARRAY_SIZE(lookupTable));
+    String rtnStr;
+    if (strLookup.tryGet(_lastResult, &rtnStr))
+    {
+        return rtnStr;
+    }
+    return F("WTF_RESULT");
+}
+
+/////////////////////////////////
+//
 // findHomeByHallSensor
 //
 /////////////////////////////////
 bool HallSensorHoming::findHomeByHallSensor(int initialDirection, int searchDistance)
 {
+    _lastResult                = HOMING_RESULT_HOMING_IN_PROGRESS;
     _homingData.startPos       = _pMount->getCurrentStepperPosition(_axis);
     _homingData.savedRate      = _pMount->getSlewRate();
     _homingData.initialDir     = initialDirection;
@@ -149,6 +175,7 @@ void HallSensorHoming::processHomingProgress()
                         "[HOMING]: Stepper was unable to move off sensor... homing failed! Advance to %s",
                         getHomingState(HomingState::HOMING_FAILED).c_str());
                     _homingData.state = HomingState::HOMING_FAILED;
+                    _lastResult       = HOMING_RESULT_CANT_MOVE_OFF_SENSOR;
                 }
             }
             break;
@@ -179,14 +206,41 @@ void HallSensorHoming::processHomingProgress()
                     int homingPinState = digitalRead(_sensorPin);
                     if (_homingData.lastPinState != homingPinState)
                     {
-                        LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found start of sensor at %l, continuing until end is found. Advance to %s",
-                            _pMount->getCurrentStepperPosition(_axis),
-                            getHomingState(HomingState::HOMING_FINDING_END).c_str());
-                        // Found the start of the sensor, keep going until we find the end
-                        _homingData.position[HOMING_START_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
-                        _homingData.lastPinState                        = homingPinState;
-                        _homingData.state                               = HomingState::HOMING_FINDING_END;
+                        if (_homingData.pinChangeCount == 0)
+                        {
+                            // First time the pin has triggered, record that position
+                            _homingData.position[HOMING_START_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Potentially found start of sensor at %l",
+                                _homingData.position[HOMING_START_PIN_POSITION]);
+                        }
+
+                        // Keep track of how many times the pin has been triggered
+                        _homingData.pinChangeCount++;
+
+                        if (_homingData.pinChangeCount > 4)
+                        {
+                            // If we have seen this pin stay triggered for 5 cycles, assume we've found the start of the sensor, now
+                            // change state to keep going until we find the end
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Found start of sensor at %l, continuing until end is found. Advance to %s",
+                                _homingData.position[HOMING_START_PIN_POSITION],
+                                getHomingState(HomingState::HOMING_FINDING_END).c_str());
+
+                            // Make sure we continue moving far enough to reach end
+                            long distance = _homingData.initialDir * _stepsPerDegree * _homingData.searchDistance;
+                            _pMount->moveStepperBy(_axis, distance);
+
+                            _homingData.lastPinState   = homingPinState;
+                            _homingData.pinChangeCount = 0;
+                            _homingData.state          = HomingState::HOMING_FINDING_END;
+                        }
+                    }
+                    else
+                    {
+                        // The pin is not triggered, so clear the recorded position and change count
+                        _homingData.position[HOMING_START_PIN_POSITION] = 0;
+                        _homingData.pinChangeCount                      = 0;
                     }
                 }
                 else
@@ -211,13 +265,41 @@ void HallSensorHoming::processHomingProgress()
                     int homingPinState = digitalRead(_sensorPin);
                     if (_homingData.lastPinState != homingPinState)
                     {
-                        LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found start of sensor in reverse at %l, continuing until end is found. Advance to %s",
-                            _pMount->getCurrentStepperPosition(_axis),
-                            getHomingState(HomingState::HOMING_FINDING_END).c_str());
-                        _homingData.position[HOMING_START_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
-                        _homingData.lastPinState                        = homingPinState;
-                        _homingData.state                               = HomingState::HOMING_FINDING_END;
+                        if (_homingData.pinChangeCount == 0)
+                        {
+                            // First time the pin has triggered, record that position
+                            _homingData.position[HOMING_START_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Potentially found start of sensor in reverse pass at %l",
+                                _homingData.position[HOMING_START_PIN_POSITION]);
+                        }
+
+                        // Keep track of how many times the pin has been triggered
+                        _homingData.pinChangeCount++;
+
+                        if (_homingData.pinChangeCount > 4)
+                        {
+                            // If we have seen this pin stay triggered for 5 cycles, assume we've found the start of the sensor, now
+                            // change state to keep going until we find the end
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Found start of sensor in reverse at %l, continuing until end is found. Advance to %s",
+                                _homingData.position[HOMING_START_PIN_POSITION],
+                                getHomingState(HomingState::HOMING_FINDING_END).c_str());
+
+                            // Make sure we continue moving far enough to reach end
+                            long distance = -_homingData.initialDir * _stepsPerDegree * _homingData.searchDistance;
+                            _pMount->moveStepperBy(_axis, distance);
+
+                            _homingData.lastPinState   = homingPinState;
+                            _homingData.pinChangeCount = 0;
+                            _homingData.state          = HomingState::HOMING_FINDING_END;
+                        }
+                    }
+                    else
+                    {
+                        // The pin is not triggered, so clear the recorded position and change count
+                        _homingData.position[HOMING_START_PIN_POSITION] = 0;
+                        _homingData.pinChangeCount                      = 0;
                     }
                 }
                 else
@@ -227,6 +309,7 @@ void HallSensorHoming::processHomingProgress()
                         "[HOMING]: Sensor not found on reverse pass either. Homing Failed. Advance to %s",
                         getHomingState(HomingState::HOMING_FAILED).c_str());
                     _homingData.state = HomingState::HOMING_FAILED;
+                    _lastResult       = HOMING_RESULT_CANT_FIND_SENSOR_ON_REVERSE;
                 }
             }
             break;
@@ -238,15 +321,36 @@ void HallSensorHoming::processHomingProgress()
                     int homingPinState = digitalRead(_sensorPin);
                     if (_homingData.lastPinState != homingPinState)
                     {
-                        LOG(DEBUG_STEPPERS,
-                            "[HOMING]: Found end of sensor at %l, stopping... Advance to %s",
-                            _pMount->getCurrentStepperPosition(_axis),
-                            getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
-                        _homingData.position[HOMING_END_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
-                        _homingData.lastPinState                      = homingPinState;
-                        _homingData.state                             = HomingState::HOMING_WAIT_FOR_STOP;
-                        _homingData.nextState                         = HomingState::HOMING_RANGE_FOUND;
-                        _pMount->stopSlewing(_axis);
+                        if (_homingData.pinChangeCount == 0)
+                        {
+                            _homingData.position[HOMING_END_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Potentially found end of sensor at %l",
+                                _homingData.position[HOMING_END_PIN_POSITION]);
+                        }
+
+                        // Keep track of how many times the pin has been triggered
+                        _homingData.pinChangeCount++;
+
+                        if (_homingData.pinChangeCount > 4)
+                        {
+                            // If we have seen this pin stay triggered for 5 cycles, assume we've found the start of the sensor, now
+                            // change state to keep going until we find the end
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Found end of sensor at %l, stopping... Advance to %s",
+                                _homingData.position[HOMING_END_PIN_POSITION],
+                                getHomingState(HomingState::HOMING_WAIT_FOR_STOP).c_str());
+                            _homingData.lastPinState   = homingPinState;
+                            _homingData.pinChangeCount = 0;
+                            _homingData.state          = HomingState::HOMING_WAIT_FOR_STOP;
+                            _homingData.nextState      = HomingState::HOMING_RANGE_FOUND;
+                            _pMount->stopSlewing(_axis);
+                        }
+                    }
+                    else
+                    {
+                        _homingData.position[HOMING_END_PIN_POSITION] = 0;
+                        _homingData.pinChangeCount                    = 0;
                     }
                 }
                 else
@@ -255,19 +359,21 @@ void HallSensorHoming::processHomingProgress()
                         "[HOMING]: End of sensor not found! Advance to %s",
                         getHomingState(HomingState::HOMING_FAILED).c_str());
                     _homingData.state = HomingState::HOMING_FAILED;
+                    _lastResult       = HOMING_RESULT_CANT_FIND_SENSOR_END;
                 }
             }
             break;
 
         case HomingState::HOMING_RANGE_FOUND:
             {
+                long midPos = (_homingData.position[HOMING_START_PIN_POSITION] + _homingData.position[HOMING_END_PIN_POSITION]) / 2;
+
                 LOG(DEBUG_STEPPERS,
-                    "[HOMING]: Stepper stopped, Hall sensor found! Range: [%l to %l] size: %l",
+                    "[HOMING]: Stepper stopped, Hall sensor found! Range: [%l to %l] size: %l, MidPos: %l",
                     _homingData.position[HOMING_START_PIN_POSITION],
                     _homingData.position[HOMING_END_PIN_POSITION],
-                    _homingData.position[HOMING_START_PIN_POSITION] - _homingData.position[HOMING_END_PIN_POSITION]);
-
-                long midPos = (_homingData.position[HOMING_START_PIN_POSITION] + _homingData.position[HOMING_END_PIN_POSITION]) / 2;
+                    _homingData.position[HOMING_START_PIN_POSITION] - _homingData.position[HOMING_END_PIN_POSITION],
+                    midPos);
 
                 LOG(DEBUG_STEPPERS,
                     "[HOMING]: Moving home by %l - (%l) - (%l), so %l steps. Advance to %s",
@@ -289,10 +395,15 @@ void HallSensorHoming::processHomingProgress()
                 LOG(DEBUG_STEPPERS,
                     "[HOMING]: Successfully homed! Setting home and restoring Rate setting. Advance to %s",
                     getHomingState(HomingState::HOMING_NOT_ACTIVE).c_str());
+                _lastResult       = HOMING_RESULT_SUCCEEDED;
                 _homingData.state = HomingState::HOMING_NOT_ACTIVE;
                 _pMount->setHome(false);
                 _pMount->setSlewRate(_homingData.savedRate);
                 _pMount->clearStatusFlag(STATUS_FINDING_HOME);
+                if (_wasTracking)
+                {
+                    _pMount->startSlewing(TRACKING);
+                }
             }
             break;
 
