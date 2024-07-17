@@ -544,6 +544,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1" if search is started
 //        "0" if homing has not been enabled in the local config
 //
+// :MAAH#
+//      Description:
+//        Move Azimuth and Altitude to home
+//      Information:
+//        If the scope supports automated azimuth and altitutde operations, move AZ and ALT axis to their zero positions.
+//      Returns:
+//        "1"
+//
 // :MAZn.nn#
 //      Description:
 //        Move Azimuth
@@ -587,13 +595,21 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        nothing
 //
 //------------------------------------------------------------------
-// PARK Extensions
+// HOME/PARK Extensions
 //
 // :hU#
 //      Description:
 //        Unpark Scope
 //      Information:
 //        This currently simply turns on tracking.
+//      Returns:
+//        "1"
+//
+// :hZ#
+//      Description:
+//        Set home position for AZ and ALT axes
+//      Information:
+//        If the mount supports AZ and ALT axes, this call sets their positions to 0 and stores this in persistent storage.
 //      Returns:
 //        "1"
 //
@@ -710,6 +726,15 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1#" if succsessful
 //        "0#" if there is no Digital Level
 //
+// :XGAA#
+//      Description:
+//        Get position of AZ and ALT axes
+//      Information:
+//        Get the current position in steps of the AZ and ALT axes if they are enabled.
+//        If an axis is not enabled, this always returns zero as the axis's value.
+//      Returns:
+//        "azpos|altpos#" if either axis is enabled
+//
 // :XGAH#
 //      Description:
 //        Get auto homing state
@@ -730,7 +755,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //          FINDING_START_REVERSE
 //          FINDING_END
 //          RANGE_FOUND
-//          
+//
 //        If the mount status (:GX#) is not 'Homing' the command returns one of these:
 //          SUCCEEDED
 //          NEVER RUN
@@ -1544,6 +1569,13 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     {
         LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
 
+        if (inCmd[1] == 'A')  // :MAA
+        {
+            LOG(DEBUG_MEADE, "[MEADE]: Move AZ and ALT to home");
+            _mount->moveAZALTToHome();
+            return "1";
+        }
+
         // Move Azimuth or Altitude by given arcminutes
         // :MAZ+32.1# or :MAL-32.1#
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -1653,17 +1685,22 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeHome(String inCmd)
 {
-    if (inCmd[0] == 'P')
-    {  // Park
+    if (inCmd[0] == 'P')  // :hP
+    {                     // Park
         _mount->park();
     }
-    else if (inCmd[0] == 'F')
-    {  // Home
+    else if (inCmd[0] == 'F')  // :hF
+    {                          // Home
         _mount->startSlewingToHome();
     }
-    else if (inCmd[0] == 'U')
-    {  // Unpark
+    else if (inCmd[0] == 'U')  // :hU
+    {                          // Unpark
         _mount->startSlewing(TRACKING);
+        return "1";
+    }
+    else if (inCmd[0] == 'Z')  // :hZ
+    {                          // Set AZ/ALT home
+        _mount->setAZALTHome();
         return "1";
     }
     return "";
@@ -1779,6 +1816,14 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'H'))  // :XGAH#
         {
             return _mount->getAutoHomingStates() + "#";
+        }
+        else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'A'))  // :XGAA#
+        {
+            int32_t azPos, altPos;
+            _mount->getAZALTPositions(azPos, altPos);
+            char scratchBuffer[20];
+            sprintf(scratchBuffer, "%ld|%ld#", azPos, altPos);
+            return String(scratchBuffer);
         }
         else if (inCmd[1] == 'C')  // :XGCn.nn*m.mm#
         {
