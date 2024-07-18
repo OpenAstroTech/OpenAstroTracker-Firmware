@@ -1789,7 +1789,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
 #endif
 }
 
-void Mount::getAZALTPositions(int32_t &azPos, int32_t &altPos)
+void Mount::getAZALTPositions(long &azPos, long &altPos)
 {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     azPos = _stepperAZ->currentPosition();

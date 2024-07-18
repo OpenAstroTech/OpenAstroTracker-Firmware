@@ -1819,7 +1819,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'A'))  // :XGAA#
         {
-            int32_t azPos, altPos;
+            long azPos, altPos;
             _mount->getAZALTPositions(azPos, altPos);
             char scratchBuffer[20];
             sprintf(scratchBuffer, "%ld|%ld#", azPos, altPos);
