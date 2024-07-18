@@ -356,7 +356,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef NEW_STEPPER_LIB
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -374,7 +374,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef NEW_STEPPER_LIB
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -732,7 +732,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -823,7 +823,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected = connectToDriver(_driverFocus, "Focus");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -1794,7 +1794,7 @@ void Mount::getAZALTPositions(int32_t &azPos, int32_t &altPos)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     azPos = _stepperAZ->currentPosition();
 #else
-    azPos = 0;
+    azPos  = 0;
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     altPos = _stepperALT->currentPosition();

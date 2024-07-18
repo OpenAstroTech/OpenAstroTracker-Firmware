@@ -205,7 +205,7 @@ class EEPROMStore
         _AZ_POSITION_ADDR_1,
         _AZ_POSITION_ADDR_2,
         _AZ_POSITION_ADDR_3,
-         ALT_POSITION_ADDR = 62,
+        ALT_POSITION_ADDR = 62,
         _ALT_POSITION_ADDR_1,
         _ALT_POSITION_ADDR_2,
         _ALT_POSITION_ADDR_3,
