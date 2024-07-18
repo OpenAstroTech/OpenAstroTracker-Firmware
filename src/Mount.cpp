@@ -238,12 +238,12 @@ void Mount::readPersistentData()
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %l -> %l", _decLowerLimit, _decUpperLimit);
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    int32_t altPos = EEPROMStore::getALTPosition();
+    long altPos = EEPROMStore::getALTPosition();
     _stepperALT->setCurrentPosition(altPos);
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    int32_t azPos = EEPROMStore::getAZPosition();
+    long azPos = EEPROMStore::getAZPosition();
     _stepperAZ->setCurrentPosition(azPos);
 #endif
 

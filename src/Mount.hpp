@@ -303,7 +303,7 @@ class Mount
 
     // Move AZ and ALT motors to their zero position
     void moveAZALTToHome();
-    void getAZALTPositions(int32_t &azPos, int32_t &altPos);
+    void getAZALTPositions(long &azPos, long &altPos);
     void setAZALTHome();
 
     // Various status query functions
