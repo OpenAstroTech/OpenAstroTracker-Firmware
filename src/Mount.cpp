@@ -1819,11 +1819,11 @@ void Mount::setAZALTHome()
 {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperAZ->setCurrentPosition(0);
-    EEPROMStore::setAZPosition(0);
+    EEPROMStore::storeAZPosition(0);
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepperALT->setCurrentPosition(0);
-    EEPROMStore::setALTPosition(0);
+    EEPROMStore::storeALTPosition(0);
 #endif
 }
 
@@ -2869,8 +2869,8 @@ void Mount::loop()
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
         _azAltWasRunning = false;
-        EEPROMStore::setAZPosition(_stepperAZ->currentPosition());
-        EEPROMStore::setALTPosition(_stepperALT->currentPosition());
+        EEPROMStore::storeAZPosition(_stepperAZ->currentPosition());
+        EEPROMStore::storeALTPosition(_stepperALT->currentPosition());
     }
 
     oneIsRunning = false;

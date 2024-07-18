@@ -1,3 +1,6 @@
+**V1.13.7 - Updates**
+- Added ability to keep track of AZ and ALT positions across sessions, set their home positions and slew back to their home positions.
+
 **V1.13.6 - Updates**
 - Added ability to query homing status during autohoming (:XGAH#)
 - Fixed a bug in autohoming that would make it fail if it did not pass over the sensor during the initial 30 degree search
