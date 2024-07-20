@@ -182,6 +182,13 @@ void Mount::readPersistentData()
         LOG(DEBUG_INFO, "[MOUNT]: EEPROM: New Flash detected! Flashed from %d to %d.", lastFlashed, version);
         // Write upgrade code here if needed. lastFlashed is 0 if we have never flashed V1.14.x and beyond
         EEPROMStore::storeLastFlashedVersion(version);
+        if (lastFlashed < 11307)
+        {
+            LOG(DEBUG_INFO, "[MOUNT]: EEPROM: First time post 1.13.6, setting AZ and ALT home to 0");
+            // Introduced these two in 1.13.7
+            EEPROMStore::storeALTPosition(0);
+            EEPROMStore::storeAZPosition(0);
+        }
     }
     else
     {
@@ -229,6 +236,16 @@ void Mount::readPersistentData()
         _decUpperLimit = static_cast<long>(DEC_LIMIT_UP * _stepsPerDECDegree);
     }
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %l -> %l", _decLowerLimit, _decUpperLimit);
+
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    long altPos = EEPROMStore::getALTPosition();
+    _stepperALT->setCurrentPosition(altPos);
+#endif
+
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    long azPos = EEPROMStore::getAZPosition();
+    _stepperAZ->setCurrentPosition(azPos);
+#endif
 
     configureHemisphere(_latitude.getTotalHours() > 0);
 }
@@ -1772,6 +1789,44 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
 #endif
 }
 
+void Mount::getAZALTPositions(long &azPos, long &altPos)
+{
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    azPos = _stepperAZ->currentPosition();
+#else
+    azPos  = 0;
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    altPos = _stepperALT->currentPosition();
+#else
+    altPos = 0;
+#endif
+}
+
+void Mount::moveAZALTToHome()
+{
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    enableAzAltMotors();
+    _stepperAZ->moveTo(0);
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    enableAzAltMotors();
+    _stepperALT->moveTo(0);
+#endif
+}
+
+void Mount::setAZALTHome()
+{
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _stepperAZ->setCurrentPosition(0);
+    EEPROMStore::storeAZPosition(0);
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _stepperALT->setCurrentPosition(0);
+    EEPROMStore::storeALTPosition(0);
+#endif
+}
+
 /////////////////////////////////
 //
 // park
@@ -2814,6 +2869,8 @@ void Mount::loop()
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
         _azAltWasRunning = false;
+        EEPROMStore::storeAZPosition(_stepperAZ->currentPosition());
+        EEPROMStore::storeALTPosition(_stepperALT->currentPosition());
     }
 
     oneIsRunning = false;
@@ -2854,11 +2911,17 @@ void Mount::loop()
     if (isGuiding())
     {
         now                 = millis();
-        bool stopRaGuiding  = now > _guideRaEndTime;
-        bool stopDecGuiding = now > _guideDecEndTime;
+        bool stopRaGuiding  = (now > _guideRaEndTime) && (_mountStatus & STATUS_GUIDE_PULSE_RA);
+        bool stopDecGuiding = (now > _guideDecEndTime) && (_mountStatus & STATUS_GUIDE_PULSE_DEC);
         if (stopRaGuiding || stopDecGuiding)
         {
             stopGuiding(stopRaGuiding, stopDecGuiding);
+        }
+        else
+        {
+#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
+            updateInfoDisplay();
+#endif
         }
         return;
     }

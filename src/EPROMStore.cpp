@@ -139,6 +139,8 @@ void EEPROMStore::displayContents()
     LOG(DEBUG_INFO, "[EEPROM]: Stored Pitch Calibration Angle: %f", getPitchCalibrationAngle());
     LOG(DEBUG_INFO, "[EEPROM]: Stored Roll Calibration Angle: %f", getRollCalibrationAngle());
     LOG(DEBUG_INFO, "[EEPROM]: Stored RA Homing Offset: %l", getRAHomingOffset());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored AZ Position: %l", getAZPosition());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored ALT Position: %l", getALTPosition());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Homing Offset : %l", getDECHomingOffset());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Lower Limit: %l", getDECLowerLimit());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Upper Limit: %l", getDECUpperLimit());
@@ -792,5 +794,61 @@ void EEPROMStore::storeDECHomingOffset(int32_t decHomingOffset)
 
     updateInt32(DEC_HOMING_OFFSET_ADDR, decHomingOffset);
     updateFlagsExtended(DEC_HOMING_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the current AZ position from home (in steps)
+int32_t EEPROMStore::getAZPosition()
+{
+    int32_t azPosition(0);  // microsteps (slew)
+
+    if (isPresentExtended(AZ_POSITION_MARKER_FLAG))
+    {
+        azPosition = readInt32(AZ_POSITION_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: AZ position read as %l", azPosition);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for AZ position");
+    }
+
+    return azPosition;  // microsteps (slew)
+}
+
+// Store the current AZ position (in steps)
+void EEPROMStore::storeAZPosition(int32_t azPosition)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating AZ Position to %l", azPosition);
+
+    updateInt32(AZ_POSITION_ADDR, azPosition);
+    updateFlagsExtended(AZ_POSITION_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the current ALT position from home (in steps)
+int32_t EEPROMStore::getALTPosition()
+{
+    int32_t altPosition(0);  // microsteps (slew)
+
+    if (isPresentExtended(ALT_POSITION_MARKER_FLAG))
+    {
+        altPosition = readInt32(ALT_POSITION_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: ALT position read as %l", altPosition);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for ALT position");
+    }
+
+    return altPosition;  // microsteps (slew)
+}
+
+// Store the current ALT position in steps
+void EEPROMStore::storeALTPosition(int32_t altPosition)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating ALT Position to %l", altPosition);
+
+    updateInt32(ALT_POSITION_ADDR, altPosition);
+    updateFlagsExtended(ALT_POSITION_MARKER_FLAG);
     commit();  // Complete the transaction
 }

@@ -301,6 +301,11 @@ class Mount
     // Sends the mount to the home position
     void startSlewingToHome();
 
+    // Move AZ and ALT motors to their zero position
+    void moveAZALTToHome();
+    void getAZALTPositions(long &azPos, long &altPos);
+    void setAZALTHome();
+
     // Various status query functions
     bool isSlewingRAorDEC() const;
     bool isSlewingIdle() const;

@@ -62,6 +62,12 @@ class EEPROMStore
     static int16_t getLastFlashedVersion();
     static void storeLastFlashedVersion(int16_t lastVersion);
 
+    static int32_t getAZPosition();
+    static void storeAZPosition(int32_t azPosition);
+
+    static int32_t getALTPosition();
+    static void storeALTPosition(int32_t altPosition);
+
   private:
     /////////////////////////////////
     //
@@ -85,7 +91,9 @@ class EEPROMStore
     // If Location 5 is 0xCF, then an extended 16-bit flag is stored in 21/22 and
     // indicates the additional fields that have been stored: 0000 0000 0000 0000
     //                                                        ^^^^ ^^^^ ^^^^ ^^^^
-    //                                                                  |||| ||||
+    //                                                               || |||| ||||
+    //                           ALT position (62-65) ---------------+| |||| ||||
+    //                            AZ Position (58-61) ----------------+ |||| ||||
     //                   Last flashed version (56-57) ------------------+||| ||||
     //                       DEC Homing Offet (52-55) -------------------+|| ||||
     //      DEC Steps/deg, normalized to 256MS (48-51) -------------------+| ||||
@@ -127,6 +135,8 @@ class EEPROMStore
         DEC_NORM_STEPS_MARKER_FLAG = 0x0020,
         DEC_HOMING_MARKER_FLAG     = 0x0040,
         LAST_FLASHED_MARKER_FLAG   = 0x0080,
+        AZ_POSITION_MARKER_FLAG    = 0x0100,
+        ALT_POSITION_MARKER_FLAG   = 0x0200,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -191,7 +201,15 @@ class EEPROMStore
         _DEC_HOMING_OFFSET_ADDR_3,  // Int32
         LAST_FLASHED_VERSION = 56,
         _LAST_FLASHED_VERSION_1,
-        STORE_SIZE = 64
+        AZ_POSITION_ADDR = 58,
+        _AZ_POSITION_ADDR_1,
+        _AZ_POSITION_ADDR_2,
+        _AZ_POSITION_ADDR_3,
+        ALT_POSITION_ADDR = 62,
+        _ALT_POSITION_ADDR_1,
+        _ALT_POSITION_ADDR_2,
+        _ALT_POSITION_ADDR_3,
+        STORE_SIZE = 66
     };
 
     // Helper functions
