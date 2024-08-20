@@ -1,18 +1,21 @@
 #pragma once
+
 #include "../Configuration.hpp"
 
-#ifdef ARDUINO_AVR_ATmega2560
-    #include "Pin.h"
-    #include "IntervalInterrupt.h"
-    #include "Driver.h"
+#ifdef NEW_STEPPER_LIB
+
+    #ifdef ARDUINO_AVR_ATmega2560
+        #include "Pin.h"
+        #include "IntervalInterrupt.h"
+        #include "Driver.h"
 
 PUSH_NO_WARNINGS
-    #include "Stepper.h"
-    #include "InterruptAccelStepper.h"
+        #include "Stepper.h"
+        #include "InterruptAccelStepper.h"
 POP_NO_WARNINGS
-#endif
+    #endif
 
-#define UINT32(x) static_cast<uint32_t>(x)
+    #define UINT32(x) static_cast<uint32_t>(x)
 
 namespace config
 {
@@ -27,7 +30,7 @@ struct Ra {
     constexpr static float SPEED_SLEW = SPR_SLEW / 360.0f * RA_SLEWING_SPEED_DEG;
     constexpr static float ACCEL_SLEW = SPR_SLEW / 360.0f * RA_SLEWING_ACCELERATION_DEG;
 
-#ifdef ARDUINO_AVR_ATmega2560
+    #ifdef ARDUINO_AVR_ATmega2560
     using pin_step = Pin<RA_STEP_PIN>;
     using pin_dir  = Pin<RA_DIR_PIN>;
 
@@ -41,9 +44,9 @@ struct Ra {
     using stepper_trk  = Stepper<interrupt, driver, ramp_trk>;
 
     constexpr static float SPEED_COMPENSATION = SPEED_SLEW;
-#else
+    #else
     constexpr static float SPEED_COMPENSATION = SPEED_SLEW;
-#endif
+    #endif
 };
 
 struct Dec {
@@ -58,7 +61,7 @@ struct Dec {
     constexpr static float SPEED_SLEW     = SPR_SLEW / 360.0f * DEC_SLEWING_SPEED_DEG;
     constexpr static float ACCEL_SLEW     = SPR_SLEW / 360.0f * DEC_SLEWING_ACCELERATION_DEG;
 
-#ifdef ARDUINO_AVR_ATmega2560
+    #ifdef ARDUINO_AVR_ATmega2560
     using pin_step = Pin<DEC_STEP_PIN>;
     using pin_dir  = Pin<DEC_DIR_PIN>;
 
@@ -70,15 +73,15 @@ struct Dec {
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
     using stepper_trk  = Stepper<interrupt, driver, ramp_trk>;
-#endif
+    #endif
 };
 
-#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 struct Az {
     constexpr static float SPEED_SLEW = static_cast<float>(AZ_STEPPER_SPEED);
     constexpr static float ACCEL_SLEW = static_cast<float>(AZ_STEPPER_ACCELERATION);
 
-    #ifdef ARDUINO_AVR_ATmega2560
+        #ifdef ARDUINO_AVR_ATmega2560
     using pin_step = Pin<AZ_STEP_PIN>;
     using pin_dir  = Pin<AZ_DIR_PIN>;
 
@@ -88,16 +91,16 @@ struct Az {
     using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
-    #endif
+        #endif
 };
-#endif
+    #endif
 
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
 struct Alt {
     constexpr static float SPEED_SLEW = static_cast<float>(ALT_STEPPER_SPEED);
     constexpr static float ACCEL_SLEW = static_cast<float>(ALT_STEPPER_ACCELERATION);
 
-    #ifdef ARDUINO_AVR_ATmega2560
+        #ifdef ARDUINO_AVR_ATmega2560
     using pin_step = Pin<ALT_STEP_PIN>;
     using pin_dir  = Pin<ALT_DIR_PIN>;
 
@@ -107,16 +110,16 @@ struct Alt {
     using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
-    #endif
+        #endif
 };
-#endif
+    #endif
 
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
 struct Focus {
     constexpr static float SPEED_SLEW = static_cast<float>(FOCUS_STEPPER_SPEED);
     constexpr static float ACCEL_SLEW = static_cast<float>(FOCUS_STEPPER_ACCELERATION);
 
-    #ifdef ARDUINO_AVR_ATmega2560
+        #ifdef ARDUINO_AVR_ATmega2560
     using pin_step = Pin<FOCUS_STEP_PIN>;
     using pin_dir  = Pin<FOCUS_DIR_PIN>;
 
@@ -126,8 +129,10 @@ struct Focus {
     using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
-    #endif
+        #endif
 };
-#endif
+    #endif
 
 }  // namespace config
+
+#endif

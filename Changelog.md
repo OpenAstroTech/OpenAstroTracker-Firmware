@@ -1,3 +1,46 @@
+**V1.13.7 - Updates**
+- Added ability to keep track of AZ and ALT positions across sessions, set their home positions and slew back to their home positions.
+
+**V1.13.6 - Updates**
+- Added ability to query homing status during autohoming (:XGAH#)
+- Fixed a bug in autohoming that would make it fail if it did not pass over the sensor during the initial 30 degree search
+- Added debounce function to detection of sensor state changes. There were single false sensor trigger spikes that incorrectly detected sensor transitions.
+
+**V1.13.5 - Updates**
+- Updated ThingPulse OLED library to 4.6.1
+
+**V1.13.4 - Updates**
+- Switched back to official repo for SSD1306-based displays
+
+**V1.13.3 - Updates**
+NOTE: Make sure to do a Factory Reset when using this version.
+- Allowed ALT steps per revolution to be set directly
+- Removed drift alignment and added ability to add it back with define
+- Optimized string memory a little
+- Lowered ESP32 second core priority
+- Added support for informational display
+- You must upgrade to OATControl V1.1.2.0 to use with this version (at least if you want to use teh DEC park/unpark feature)
+
+**V1.13.2 - Updates**
+- Fix for RA steps being incorrectly set on every boot.
+
+**V1.13.1 - Updates**
+- Fix for uploading on AVR platform. Apparently atmelavr@5.0.0 (current stable) is broken and can't upload, so we peg it at atmelavr@4.2.0 for now.
+
+**V1.13.0 - Updates**
+NOTE: Make sure to do a Factory Reset when using this version.
+- Sped up ESP32 stepper code.
+- Re-instate some defines that were inadvertantly removed.
+- Ported some bug fix code from the LCD branch (e.g. track on boot)
+- Potentially some DEC guide issues were fixed.
+- Inadvertantly removed some default #defines. Put them back.
+- Allow new stepper lib to be enabled by via #define
+- Added ability to detect new firmware flashed
+- Removed/disabled parking offset variable and commands, use home offset instead
+- Fixed Park command to slew home and then to the parking position (home offset)
+- Re-integrated old stepper library
+
+
 **V1.12.17 - Updates**
 - Fixed a bug that prevented clients from writing the DEC offset.
 
@@ -29,7 +72,7 @@
 **V1.12.12 - Updates**
 - Change MKS Gen L v1.0, v2.0, v2.1 default separate debug serial port from `Serial3` to `Serial2`.
 
-- **V1.12.11 - Updates**
+**V1.12.11 - Updates**
 - Allowed the active state of the hall sensors for auto homing RA and DEC to be configured.
 
 **V1.12.10 - Updates**

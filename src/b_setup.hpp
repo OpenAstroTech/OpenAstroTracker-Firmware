@@ -12,11 +12,18 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 #endif
 
+#ifndef NEW_STEPPER_LIB
+    #include "InterruptCallback.hpp"
+#endif
+
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "a_inits.hpp"
 #include "LcdMenu.hpp"
 #include "LcdButtons.hpp"
+#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #include "SSD1306_128x64_Display.hpp"
+#endif
 
 LcdMenu lcdMenu(16, 2, MAXMENUITEMS);
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
@@ -65,10 +72,22 @@ void IRAM_ATTR stepperControlTask(void *payload)
     for (;;)
     {
         mountCopy->interruptLoop();
-        vTaskDelay(1);  // 1 ms 	// This will limit max stepping rate to 1 kHz
     }
 }
 
+#else
+    #ifndef NEW_STEPPER_LIB
+
+// This is the callback function for the timer interrupt on ATMega platforms.
+// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
+// It is called every 500 us (2 kHz rate)
+void stepperControlTimerCallback(void *payload)
+{
+    Mount *mountCopy = reinterpret_cast<Mount *>(payload);
+    if (mountCopy)
+        mountCopy->interruptLoop();
+}
+    #endif
 #endif
 
 /////////////////////////////////
@@ -93,6 +112,13 @@ void setup()
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT %s!", VERSION);
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
+    mount.setupInfoDisplay();
+    LOG(DEBUG_ANY, "[SYSTEM]: OLED info screen ready!");
+    mount.getInfoDisplay()->addConsoleText(F("BOOTING " VERSION), false);
+#endif
 
 #if USE_GPS == 1
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
@@ -203,8 +229,17 @@ void setup()
     pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
 #endif
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int eepromLine = mount.getInfoDisplay()->addConsoleText(F("INIT EEPROM..."));
+#endif
+
     LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
     EEPROMStore::initialize();
+    LOG(DEBUG_ANY, "[SYSTEM]: EEPROM store ready!");
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(eepromLine, F("INIT EEPROM... OK"));
+#endif
 
 // Calling the LCD startup here, I2C can't be found if called earlier
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
@@ -291,6 +326,10 @@ void setup()
     wifiControl.setup();
 #endif
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int stepperLine = mount.getInfoDisplay()->addConsoleText(F("INIT STEPPERS..."));
+#endif
+
     // Configure the mount
     // Delay for a while to get UARTs booted...
     delay(1000);
@@ -305,6 +344,7 @@ void setup()
     LOG(DEBUG_ANY, "[STEPPERS]: Trk Microsteps  : %d", RA_TRACKING_MICROSTEPPING);
     LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
     LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", RA_TRANSMISSION);
+    #ifdef NEW_STEPPER_LIB
     LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Ra::DRIVER_SPR_SLEW);
     LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Ra::DRIVER_SPR_TRK);
     LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Ra::SPR_SLEW);
@@ -313,10 +353,12 @@ void setup()
     LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew      : %f", config::Ra::ACCEL_SLEW);
     LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Ra::SPEED_TRK);
     LOG(DEBUG_ANY, "[STEPPERS]: Speed TrkComp   : %f", config::Ra::SPEED_COMPENSATION);
-
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
     mount.configureRAStepper(RAmotorPin1, RAmotorPin2, config::Ra::SPEED_SLEW, config::Ra::ACCEL_SLEW);
-#else
-    #error New stepper type? Configure it here.
+    #else
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
+    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
+    #endif
 #endif
 
 #if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -324,6 +366,7 @@ void setup()
     LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps : %d", DEC_SLEW_MICROSTEPPING);
     LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", DEC_STEPPER_SPR);
     LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", DEC_TRANSMISSION);
+    #ifdef NEW_STEPPER_LIB
     LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Dec::DRIVER_SPR_SLEW);
     LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Dec::DRIVER_SPR_TRK);
     LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Dec::SPR_SLEW);
@@ -331,10 +374,12 @@ void setup()
     LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Dec::SPEED_SLEW);
     LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew      : %f", config::Dec::ACCEL_SLEW);
     LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Dec::SPEED_TRK);
-
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
     mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEW, config::Dec::ACCEL_SLEW);
-#else
-    #error New stepper type? Configure it here.
+    #else
+    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
+    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
+    #endif
 #endif
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -394,6 +439,14 @@ void setup()
     #endif
 #endif
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(stepperLine, F("INIT STEPPERS... OK"));
+#endif
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->addConsoleText(F("CONFIGURING..."));
+#endif
+
     LOG(DEBUG_ANY, "[SYSTEM]: Read Configuration...");
 
     // The mount uses EEPROM storage locations 0-10 that it reads during construction
@@ -419,12 +472,24 @@ void setup()
                             "StepperControl",    // Name of this task
                             32767,               // Stack space in bytes
                             &mount,              // payload
-                            2,                   // Priority (2 is higher than 1)
+                            1,                   // Priority (2 is higher than 1)
                             &StepperTask,        // The location that receives the thread id
                             0);                  // The core to run this on
+
+#else
+    #ifndef NEW_STEPPER_LIB
+    // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
+    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
+    {
+        LOG(DEBUG_MOUNT, "[SYSTEM]: CANNOT setup interrupt timer!");
+    }
+    #endif
 #endif
 
 #if UART_CONNECTION_TEST_TX == 1
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int testLine = mount.getInfoDisplay()->addConsoleText(F("TEST STEPPERS..."));
+    #endif
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Moving RA axis using UART commands...");
     mount.testRA_UART_TX();
@@ -436,7 +501,13 @@ void setup()
     mount.testDEC_UART_TX();
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Finished moving DEC axis using UART commands.");
     #endif
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(testLine, F("TEST STEPPERS... OK"));
+    #endif
 #endif
+
+    LOG(DEBUG_ANY, "[SYSTEM]: Setting %s hemisphere...", inNorthernHemisphere ? "northern" : "southern");
+    mount.configureHemisphere(inNorthernHemisphere, true);
 
 #if TRACK_ON_BOOT == 1
     // Start the tracker.
@@ -446,4 +517,9 @@ void setup()
 
     mount.bootComplete();
     LOG(DEBUG_ANY, "[SYSTEM]: Boot complete!");
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->addConsoleText(F("BOOT COMPLETE!"));
+    delay(250);
+    mount.getInfoDisplay()->setConsoleMode(false);
+#endif
 }

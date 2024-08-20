@@ -12,12 +12,13 @@
 enum
 {
     HIGHLIGHT_POLAR = 1,
+        #ifdef SUPPORT_DRIFT_ALIGNMENT
     HIGHLIGHT_DRIFT,
+        #endif
     HIGHLIGHT_SPEED,
     HIGHLIGHT_RA_STEPS,
     HIGHLIGHT_DEC_STEPS,
     HIGHLIGHT_BACKLASH_STEPS,
-    HIGHLIGHT_PARKING_POS,
     HIGHLIGHT_DEC_LOWER_LIMIT,
     HIGHLIGHT_DEC_UPPER_LIMIT,
     HIGHLIGHT_UTC_OFFSET,
@@ -43,12 +44,14 @@ enum
         #define POLAR_CALIBRATION_WAIT_CENTER_POLARIS 20
         #define POLAR_CALIBRATION_WAIT_HOME           21
 
-        // Drift calibration goes through 2 states
-        // 15- Display four durations and wait for the user to select one
-        // 16- Start the calibration run after user presses SELECT. This state waits 1.5s, takes duration time
-        //     to slew east in half the time selected, then waits 1.5s and slews west in the same duration, and waits 1.5s.
-        #define DRIFT_CALIBRATION_WAIT    30
-        #define DRIFT_CALIBRATION_RUNNING 31
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
+            // Drift calibration goes through 2 states
+            // 15- Display four durations and wait for the user to select one
+            // 16- Start the calibration run after user presses SELECT. This state waits 1.5s, takes duration time
+            //     to slew east in half the time selected, then waits 1.5s and slews west in the same duration, and waits 1.5s.
+            #define DRIFT_CALIBRATION_WAIT    30
+            #define DRIFT_CALIBRATION_RUNNING 31
+        #endif
 
         // Speed calibration only has one state, allowing you to adjust the speed with UP and DOWN
         #define SPEED_CALIBRATION 40
@@ -61,9 +64,6 @@ enum
 
         // Backlash calibration only has one state, allowing you to adjust the number of steps with UP and DOWN
         #define BACKLASH_CALIBRATION 70
-
-        // Confirm that the current position is the parking position
-        #define PARKING_POS_CONFIRM 80
 
         // Confirm that current position is the DEC Lower limit
         #define DEC_LOWER_LIMIT_CONFIRM 90
@@ -100,17 +100,19 @@ float SpeedCalibration;
 // The current delay in ms when changing calibration value. The longer a button is depressed, the smaller this gets.
 int calDelay = 150;
 
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
 // The index of durations that the user has selected.
 byte driftSubIndex = 1;
+
+// The requested total duration of the drift alignment run.
+byte driftDuration = 0;
+        #endif
 
 // The index of Yes or No to confirm parking pos
 byte parkYesNoIndex = 0;
 
 // The index of Y or N to confirm DEC limits (used for hi and lo).
 byte limitSetClearCancelIndex = 0;
-
-// The requested total duration of the drift alignment run.
-byte driftDuration = 0;
 
 // The number of steps to use for backlash compensation (read from the mount).
 int BacklashSteps = 0;
@@ -373,6 +375,7 @@ bool processCalibrationKeys()
         }
         #endif
     }
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == DRIFT_CALIBRATION_RUNNING)
     {
         lcdMenu.setCursor(0, 1);
@@ -400,7 +403,7 @@ bool processCalibrationKeys()
         mount.startSlewing(TRACKING);
         calState = HIGHLIGHT_DRIFT;
     }
-
+        #endif
     if (checkForKeyChange && lcdButtons.keyChanged(&key))
     {
         waitForRelease = true;
@@ -740,7 +743,7 @@ bool processCalibrationKeys()
                     }
                 }
                 break;
-
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
             case HIGHLIGHT_DRIFT:
                 {
                     if (key == btnDOWN)
@@ -783,43 +786,7 @@ bool processCalibrationKeys()
                     }
                 }
                 break;
-
-            case PARKING_POS_CONFIRM:
-                {
-                    if (key == btnDOWN || key == btnLEFT || key == btnUP)
-                    {
-                        parkYesNoIndex = adjustWrap(parkYesNoIndex, 1, 0, 1);
-                    }
-                    if (key == btnSELECT)
-                    {
-                        if (parkYesNoIndex == 0)
-                        {  // Yes
-                            mount.setParkingPosition();
-                            lcdMenu.printMenu("Position stored.");
-                            mount.delay(800);
-                        }
-                        else
-                        {
-                            lcdMenu.printMenu("Use CTRL to move");
-                            mount.delay(750);
-                            lcdMenu.setCursor(0, 1);
-                            lcdMenu.printMenu("OAT to park pos,");
-                            mount.delay(750);
-                            lcdMenu.setCursor(0, 1);
-                            lcdMenu.printMenu("then come back.");
-                            mount.delay(700);
-                        }
-                        calState = HIGHLIGHT_PARKING_POS;
-                    }
-                    else if (key == btnRIGHT)
-                    {
-                        // RIGHT cancels duration selection and returns to menu
-                        calState      = HIGHLIGHT_PARKING_POS;
-                        driftSubIndex = 1;
-                    }
-                }
-                break;
-
+        #endif
             case DEC_LOWER_LIMIT_CONFIRM:
             case DEC_UPPER_LIMIT_CONFIRM:
                 {
@@ -905,22 +872,6 @@ bool processCalibrationKeys()
                         gotoNextHighlightState(-1);
                     else if (key == btnSELECT)
                         calState = BACKLASH_CALIBRATION;
-                    else if (key == btnRIGHT)
-                    {
-                        gotoNextMenu();
-                        calState = HIGHLIGHT_FIRST;
-                    }
-                }
-                break;
-
-            case HIGHLIGHT_PARKING_POS:
-                {
-                    if (key == btnDOWN)
-                        gotoNextHighlightState(1);
-                    if (key == btnUP)
-                        gotoNextHighlightState(-1);
-                    else if (key == btnSELECT)
-                        calState = PARKING_POS_CONFIRM;
                     else if (key == btnRIGHT)
                     {
                         gotoNextMenu();
@@ -1086,10 +1037,12 @@ void printCalibrationSubmenu()
     {
         lcdMenu.printMenu(">Speed calibratn");
     }
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == HIGHLIGHT_DRIFT)
     {
         lcdMenu.printMenu(">Drift alignment");
     }
+        #endif
     else if (calState == HIGHLIGHT_RA_STEPS)
     {
         lcdMenu.printMenu(">RA Step Adjust");
@@ -1101,10 +1054,6 @@ void printCalibrationSubmenu()
     else if (calState == HIGHLIGHT_BACKLASH_STEPS)
     {
         lcdMenu.printMenu(">Backlash Adjust");
-    }
-    else if (calState == HIGHLIGHT_PARKING_POS)
-    {
-        lcdMenu.printMenu(">Set Parking Pos");
     }
     else if (calState == HIGHLIGHT_DEC_LOWER_LIMIT)
     {
@@ -1161,12 +1110,14 @@ void printCalibrationSubmenu()
         dtostrf(mount.getSpeedCalibration(), 6, 4, &scratchBuffer[9]);
         lcdMenu.printMenu(scratchBuffer);
     }
+        #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == DRIFT_CALIBRATION_WAIT)
     {
         sprintf(scratchBuffer, " 1m  2m  3m  5m");
         scratchBuffer[driftSubIndex * 4] = '>';
         lcdMenu.printMenu(scratchBuffer);
     }
+        #endif
     else if (calState == RA_STEP_CALIBRATION)
     {
         sprintf(scratchBuffer, "RA Steps: %s", String(0.1 * RAStepsPerDegree, 1).c_str());
@@ -1180,12 +1131,6 @@ void printCalibrationSubmenu()
     else if (calState == BACKLASH_CALIBRATION)
     {
         sprintf(scratchBuffer, "Backlash: %d", BacklashSteps);
-        lcdMenu.printMenu(scratchBuffer);
-    }
-    else if (calState == PARKING_POS_CONFIRM)
-    {
-        sprintf(scratchBuffer, "Parked?  Yes  No");
-        scratchBuffer[8 + parkYesNoIndex * 5] = '>';
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == DEC_LOWER_LIMIT_CONFIRM)

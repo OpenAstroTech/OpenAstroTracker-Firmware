@@ -20,7 +20,7 @@
 #define BOARD_ESP32_ESP32DEV 1001
 
 /**
- * Supported display types. Use one of these values for DISPLAY_TYPE configuration matching your used display.
+ * Supported keypad/display types. Use one of these values for DISPLAY_TYPE configuration matching your used display and keypad.
  * 
  * DISPLAY_TYPE_NONE:                       No display. Use this if you don't use any display.
  * DISPLAY_TYPE_LCD_KEYPAD:                 1602 LCD Keypad shield which can be mounted directly to an Arduino UNO / Mega boards.
@@ -38,6 +38,16 @@
 #define DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 2
 #define DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 3
 #define DISPLAY_TYPE_LCD_JOY_I2C_SSD1306     4
+
+/**
+ * Supported info display types. Use one of these values for INF_DISPLAY_TYPE configuration matching your used display.
+ * 
+ * INFO_DISPLAY_TYPE_NONE:                  No display. Use this if you don't use any display.
+ * INFO_DISPLAY_TYPE_SSD1306_I2C_128x64:    I2C 128x64 OLED display module with SSD1306 controller, attached via I2C
+ *                                          Amazon: https://www.amazon.com/dp/B06XRBTBTB?_encoding=UTF8&psc=1&ref_=cm_sw_r_cp_ud_dp_DQCWKZ7YB40X84RZSHJ0
+ **/
+#define INFO_DISPLAY_TYPE_NONE               0
+#define INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 1
 
 // Supported stepper models
 #define STEPPER_TYPE_NONE    -1
@@ -81,4 +91,5 @@
 #define DEBUG_GPS           0x0800  // GPS activity
 #define DEBUG_FOCUS         0x1000  // Focuser activity
 #define DEBUG_COORD_CALC    0x2000  // Calculations of coordinates
+#define DEBUG_DISPLAY       0x4000  // Info display
 #define DEBUG_ANY           0xFFFF  // All debug output

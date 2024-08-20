@@ -47,12 +47,6 @@ class EEPROMStore
     static float getRollCalibrationAngle();
     static void storeRollCalibrationAngle(float rollCalibrationAngle);
 
-    static int32_t getRAParkingPos();
-    static void storeRAParkingPos(int32_t raParkingPos);
-
-    static int32_t getDECParkingPos();
-    static void storeDECParkingPos(int32_t decParkingPos);
-
     static float getDECLowerLimit();
     static void storeDECLowerLimit(float decLowerLimit);
 
@@ -64,6 +58,15 @@ class EEPROMStore
 
     static int32_t getDECHomingOffset();
     static void storeDECHomingOffset(int32_t decHomingOffset);
+
+    static int16_t getLastFlashedVersion();
+    static void storeLastFlashedVersion(int16_t lastVersion);
+
+    static int32_t getAZPosition();
+    static void storeAZPosition(int32_t azPosition);
+
+    static int32_t getALTPosition();
+    static void storeALTPosition(int32_t altPosition);
 
   private:
     /////////////////////////////////
@@ -88,11 +91,17 @@ class EEPROMStore
     // If Location 5 is 0xCF, then an extended 16-bit flag is stored in 21/22 and
     // indicates the additional fields that have been stored: 0000 0000 0000 0000
     //                                                        ^^^^ ^^^^ ^^^^ ^^^^
-    //                                                                       ||||
+    //                                                               || |||| ||||
+    //                           ALT position (62-65) ---------------+| |||| ||||
+    //                            AZ Position (58-61) ----------------+ |||| ||||
+    //                   Last flashed version (56-57) ------------------+||| ||||
+    //                       DEC Homing Offet (52-55) -------------------+|| ||||
+    //      DEC Steps/deg, normalized to 256MS (48-51) -------------------+| ||||
+    //       RA Steps/deg, normalized to 256MS (44-47) --------------------+ ||||
     //                        RA Homing Offet (40-43) -----------------------+|||
     //                                UTC Offset (39) ------------------------+||
     //     DEC lower (31-34) and upper (35-38) limits -------------------------+|
-    //     RA (23-26) and DEC (27-30) Parking offsets --------------------------+
+    //     RA (23-26) and DEC (27-30) Parking offsets --------------------------+   ( ==== Obsolete V1.13.0 and beyond ==== )
     //
     /////////////////////////////////
 
@@ -125,6 +134,9 @@ class EEPROMStore
         RA_NORM_STEPS_MARKER_FLAG  = 0x0010,
         DEC_NORM_STEPS_MARKER_FLAG = 0x0020,
         DEC_HOMING_MARKER_FLAG     = 0x0040,
+        LAST_FLASHED_MARKER_FLAG   = 0x0080,
+        AZ_POSITION_MARKER_FLAG    = 0x0100,
+        ALT_POSITION_MARKER_FLAG   = 0x0200,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -187,7 +199,17 @@ class EEPROMStore
         _DEC_HOMING_OFFSET_ADDR_1,
         _DEC_HOMING_OFFSET_ADDR_2,
         _DEC_HOMING_OFFSET_ADDR_3,  // Int32
-        STORE_SIZE = 64
+        LAST_FLASHED_VERSION = 56,
+        _LAST_FLASHED_VERSION_1,
+        AZ_POSITION_ADDR = 58,
+        _AZ_POSITION_ADDR_1,
+        _AZ_POSITION_ADDR_2,
+        _AZ_POSITION_ADDR_3,
+        ALT_POSITION_ADDR = 62,
+        _ALT_POSITION_ADDR_1,
+        _ALT_POSITION_ADDR_2,
+        _ALT_POSITION_ADDR_3,
+        STORE_SIZE = 66
     };
 
     // Helper functions

@@ -8,10 +8,12 @@
 #include <stdint.h>
 #include <math.h>
 
-#define SIGN(x) ((x >= 0) ? 1 : -1)
+#ifdef NEW_STEPPER_LIB
 
-// minimal stepping frequency (steps/s) based on cpu frequency, timer counter overflow and max amount of overflows
-#define MIN_STEPS_PER_SEC (static_cast<float>(F_CPU) / (static_cast<long>(UINT16_MAX) * static_cast<long>(UINT8_MAX)))
+    #define SIGN(x) ((x >= 0) ? 1 : -1)
+
+    // minimal stepping frequency (steps/s) based on cpu frequency, timer counter overflow and max amount of overflows
+    #define MIN_STEPS_PER_SEC (static_cast<float>(F_CPU) / (static_cast<long>(UINT16_MAX) * static_cast<long>(UINT8_MAX)))
 
 template <typename STEPPER> class InterruptAccelStepper
 {
@@ -144,5 +146,6 @@ template <typename STEPPER> class InterruptAccelStepper
         return STEPPER::isRunning();
     }
 };
+#endif
 
 #endif  //AVR_INTERRUPT_STEPPER_INTERRUPTACCELSTEPPER_H

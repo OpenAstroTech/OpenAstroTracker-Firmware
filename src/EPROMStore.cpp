@@ -138,10 +138,13 @@ void EEPROMStore::displayContents()
     LOG(DEBUG_INFO, "[EEPROM]: Stored Longitude: %s", getLongitude().ToString());
     LOG(DEBUG_INFO, "[EEPROM]: Stored Pitch Calibration Angle: %f", getPitchCalibrationAngle());
     LOG(DEBUG_INFO, "[EEPROM]: Stored Roll Calibration Angle: %f", getRollCalibrationAngle());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored RA Parking Position: %l", getRAParkingPos());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Parking Position: %l", getDECParkingPos());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored RA Homing Offset: %l", getRAHomingOffset());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored AZ Position: %l", getAZPosition());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored ALT Position: %l", getALTPosition());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Homing Offset : %l", getDECHomingOffset());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Lower Limit: %l", getDECLowerLimit());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Upper Limit: %l", getDECUpperLimit());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored Last Flashed Version: %d", getLastFlashedVersion());
 #endif
 }
 
@@ -390,7 +393,7 @@ float EEPROMStore::getRAStepsPerDegree()
     if (isPresentExtended(RA_NORM_STEPS_MARKER_FLAG))
     {
         // Latest version stores 100x steps/deg for 256 MS
-        const float factor = SteppingStorageNormalized / RA_TRACKING_MICROSTEPPING;
+        const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
         raStepsPerDegree   = readInt32(RA_NORM_STEPS_DEGREE_ADDR) / factor;
         LOG(DEBUG_EEPROM, "[EEPROM]: RA Normed Marker Present! RA steps/deg is %f", raStepsPerDegree);
     }
@@ -412,7 +415,7 @@ float EEPROMStore::getRAStepsPerDegree()
 void EEPROMStore::storeRAStepsPerDegree(float raStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
-    const float factor = SteppingStorageNormalized / RA_TRACKING_MICROSTEPPING;
+    const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
     int32_t val        = raStepsPerDegree * factor;
     LOG(DEBUG_EEPROM, "[EEPROM]: Storing RA steps to %l (%f)", val, raStepsPerDegree);
 
@@ -430,7 +433,7 @@ float EEPROMStore::getDECStepsPerDegree()
     if (isPresentExtended(DEC_NORM_STEPS_MARKER_FLAG))
     {
         // This version stored 100x steps/deg for 256 MS
-        const float factor = SteppingStorageNormalized / DEC_GUIDE_MICROSTEPPING;
+        const float factor = SteppingStorageNormalized / DEC_SLEW_MICROSTEPPING;
         decStepsPerDegree  = readInt32(DEC_NORM_STEPS_DEGREE_ADDR) / factor;
         LOG(DEBUG_EEPROM, "[EEPROM]: DEC Normed Marker Present! DEC steps/deg is %f", decStepsPerDegree);
     }
@@ -451,12 +454,36 @@ float EEPROMStore::getDECStepsPerDegree()
 // Store the DEC steps per degree for guiding (actually microsteps per degree).
 void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
 {
-    const float factor = SteppingStorageNormalized / DEC_GUIDE_MICROSTEPPING;
+    const float factor = SteppingStorageNormalized / DEC_SLEW_MICROSTEPPING;
     int32_t val        = decStepsPerDegree * factor;
     LOG(DEBUG_EEPROM, "[EEPROM]: Storing DEC steps to %l (%f)", val, decStepsPerDegree);
 
     updateInt32(DEC_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(DEC_NORM_STEPS_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+int16_t EEPROMStore::getLastFlashedVersion()
+{
+    if (isPresentExtended(LAST_FLASHED_MARKER_FLAG))
+    {
+        // This version stored 100x steps/deg for 256 MS
+        int16_t version = readInt16(LAST_FLASHED_VERSION);
+        LOG(DEBUG_EEPROM, "[EEPROM]: Last Flashed version Marker Present! last version %d", version);
+        return version;
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Last Flashed Version");
+    }
+    return 0;
+}
+
+void EEPROMStore::storeLastFlashedVersion(int16_t version)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Last flashed version (%d)", version);
+    updateInt16(LAST_FLASHED_VERSION, version);
+    updateFlagsExtended(LAST_FLASHED_MARKER_FLAG);
     commit();  // Complete the transaction
 }
 
@@ -652,68 +679,6 @@ void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
     commit();  // Complete the transaction
 }
 
-// Return the stored RA Parking Pos (slew microsteps relative to home).
-// If it is not present then the default value of 0 steps.
-int32_t EEPROMStore::getRAParkingPos()
-{
-    int32_t raParkingPos(0);  // microsteps (slew)
-
-    // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-    if (isPresentExtended(PARKING_POS_MARKER_FLAG))
-    {
-        raParkingPos = readInt32(RA_PARKING_POS_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: RA Parking position read as %l", raParkingPos);
-    }
-    else
-    {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Parking position");
-    }
-
-    return raParkingPos;  // microsteps (slew)
-}
-
-// Store the configured RA Parking Pos (slew microsteps relative to home).
-void EEPROMStore::storeRAParkingPos(int32_t raParkingPos)
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: Updating RA Parking Pos to %l", raParkingPos);
-
-    // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-    updateInt32(RA_PARKING_POS_ADDR, raParkingPos);
-    updateFlagsExtended(PARKING_POS_MARKER_FLAG);
-    commit();  // Complete the transaction
-}
-
-// Return the stored DEC Parking Pos (slew microsteps relative to home).
-// If it is not present then the default value of 0 steps.
-int32_t EEPROMStore::getDECParkingPos()
-{
-    int32_t decParkingPos(0);  // microsteps (slew)
-
-    // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-    if (isPresentExtended(PARKING_POS_MARKER_FLAG))
-    {
-        decParkingPos = readInt32(DEC_PARKING_POS_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC Parking position read as %l", decParkingPos);
-    }
-    else
-    {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Parking position");
-    }
-
-    return decParkingPos;  // microsteps (slew)
-}
-
-// Store the configured DEC Parking Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECParkingPos(int32_t decParkingPos)
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: Updating DEC Parking Pos to %l", decParkingPos);
-
-    // Note that flags doesn't verify that _both_ RA & DEC parking have been written - these should always be stored as a pair
-    updateInt32(DEC_PARKING_POS_ADDR, decParkingPos);
-    updateFlagsExtended(PARKING_POS_MARKER_FLAG);
-    commit();  // Complete the transaction
-}
-
 // Return the stored DEC Lower Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
 float EEPROMStore::getDECLowerLimit()
@@ -829,5 +794,61 @@ void EEPROMStore::storeDECHomingOffset(int32_t decHomingOffset)
 
     updateInt32(DEC_HOMING_OFFSET_ADDR, decHomingOffset);
     updateFlagsExtended(DEC_HOMING_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the current AZ position from home (in steps)
+int32_t EEPROMStore::getAZPosition()
+{
+    int32_t azPosition(0);  // microsteps (slew)
+
+    if (isPresentExtended(AZ_POSITION_MARKER_FLAG))
+    {
+        azPosition = readInt32(AZ_POSITION_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: AZ position read as %l", azPosition);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for AZ position");
+    }
+
+    return azPosition;  // microsteps (slew)
+}
+
+// Store the current AZ position (in steps)
+void EEPROMStore::storeAZPosition(int32_t azPosition)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating AZ Position to %l", azPosition);
+
+    updateInt32(AZ_POSITION_ADDR, azPosition);
+    updateFlagsExtended(AZ_POSITION_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the current ALT position from home (in steps)
+int32_t EEPROMStore::getALTPosition()
+{
+    int32_t altPosition(0);  // microsteps (slew)
+
+    if (isPresentExtended(ALT_POSITION_MARKER_FLAG))
+    {
+        altPosition = readInt32(ALT_POSITION_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: ALT position read as %l", altPosition);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for ALT position");
+    }
+
+    return altPosition;  // microsteps (slew)
+}
+
+// Store the current ALT position in steps
+void EEPROMStore::storeALTPosition(int32_t altPosition)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating ALT Position to %l", altPosition);
+
+    updateInt32(ALT_POSITION_ADDR, altPosition);
+    updateFlagsExtended(ALT_POSITION_MARKER_FLAG);
     commit();  // Complete the transaction
 }

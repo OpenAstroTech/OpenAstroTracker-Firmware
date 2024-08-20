@@ -544,6 +544,14 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1" if search is started
 //        "0" if homing has not been enabled in the local config
 //
+// :MAAH#
+//      Description:
+//        Move Azimuth and Altitude to home
+//      Information:
+//        If the scope supports automated azimuth and altitutde operations, move AZ and ALT axis to their zero positions.
+//      Returns:
+//        "1"
+//
 // :MAZn.nn#
 //      Description:
 //        Move Azimuth
@@ -571,8 +579,9 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Park Scope and stop motors
 //      Information:
-//        This slews the scope back to it's home position (RA ring centered, DEC
-//        at 90, basically pointing at celestial pole) and stops all movement (including tracking).
+//        This slews the scope back to it's home position (RA ring centered, DEC at 90, basically
+//        pointing at celestial pole), then advances to the parking position (defined by the Homing offsets)
+//        and stops all movement (including tracking).
 //      Returns:
 //        nothing
 //
@@ -586,13 +595,21 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        nothing
 //
 //------------------------------------------------------------------
-// PARK Extensions
+// HOME/PARK Extensions
 //
 // :hU#
 //      Description:
 //        Unpark Scope
 //      Information:
 //        This currently simply turns on tracking.
+//      Returns:
+//        "1"
+//
+// :hZ#
+//      Description:
+//        Set home position for AZ and ALT axes
+//      Information:
+//        If the mount supports AZ and ALT axes, this call sets their positions to 0 and stores this in persistent storage.
 //      Returns:
 //        "1"
 //
@@ -639,7 +656,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //
 // :XDnnn#
 //      Description:
-//        Run drift alignment
+//        Run drift alignment (only supported if SUPPORT_DRIFT_ALIGNMENT is enabled)
 //      Information:
 //        This runs a drift alignment procedure where the mounts slews east, pauses, slews west and pauses.
 //        Where nnn is the number of seconds the entire alignment should take. The call is blocking and will
@@ -709,6 +726,44 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "1#" if succsessful
 //        "0#" if there is no Digital Level
 //
+// :XGAA#
+//      Description:
+//        Get position of AZ and ALT axes
+//      Information:
+//        Get the current position in steps of the AZ and ALT axes if they are enabled.
+//        If an axis is not enabled, this always returns zero as the axis's value.
+//      Returns:
+//        "azpos|altpos#" if either axis is enabled
+//
+// :XGAH#
+//      Description:
+//        Get auto homing state
+//      Information:
+//        Get the current state of RA and DEC Autohoming status. Only valid when at least
+//        one Hall sensor based autohoming axis is enabled.
+//      Returns:
+//        "rastate|decstate#" if either axis is enabled
+//        "|" if no autohoming is enabled
+//      Remarks:
+//        While the mount status (:GX#) is 'Homing', the command returns one of these:
+//          MOVE_OFF
+//          MOVING_OFF
+//          STOP_AT_TIME
+//          WAIT_FOR_STOP
+//          START_FIND_START
+//          FINDING_START
+//          FINDING_START_REVERSE
+//          FINDING_END
+//          RANGE_FOUND
+//
+//        If the mount status (:GX#) is not 'Homing' the command returns one of these:
+//          SUCCEEDED
+//          NEVER RUN
+//          IN PROGRESS
+//          CANT MOVE OFF SENSOR
+//          CANT FIND SENSOR BEGIN
+//          CANT FIND SENSOR END
+//
 // :XGB#
 //      Description:
 //        Get Backlash correction steps
@@ -757,13 +812,13 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#" or "float|float#"
 //
-// :XGDP#
+// :XGDP# (obsolete, disabled)
 //      Description:
 //        Get DEC parking position
 //      Information:
 //        Gets the number of steps from the home position to the parking position for DEC
 //      Returns:
-//        "long#"
+//        "0#"
 //
 // :XGS#
 //      Description:
@@ -801,9 +856,25 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get RA Homing offset
 //      Information:
-//        Get the RA ring homing offset for Hall sensor auto homing
+//        Get the RA ring homing offset.
+//        If a Hall sensor is present this is the number of steps from the center of the sensor range to
+//        where the actual center position is located.
+//        If no Hall sensor is present this is the number of steps from the power on position of the RA axis to
+//        where the actual center position is located.
 //      Returns:
-//        "n#" - the number of steps from the center of the hall sensor trigger range to the home position.
+//        "n#" - the number of steps
+//
+// :XGHD#
+//      Description:
+//        Get DEC Homing offset
+//      Information:
+//        Get the DEC ring homing offset.
+//        If a Hall sensor is present this is the number of steps from the center of the sensor range to
+//        where the actual center position is located.
+//        If no Hall sensor is present this is the number of steps from the power on position of the DEC axis to
+//        where the actual center position is located.
+//      Returns:
+//        "n#" - the number of steps
 //
 // :XGHS#
 //      Description:
@@ -958,7 +1029,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :XSDPnnnn#
+// :XSDPnnnn# (obsolete, disabled)
 //      Description:
 //        Set DEC parking position offset
 //      Information:
@@ -1433,7 +1504,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
     SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long. 
     The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
     */
-        return "1Updating Planetary Data#                              #";  //
+        return F("1Updating Planetary Data#                              #");  //
     }
     else
     {
@@ -1497,6 +1568,13 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
     else if (inCmd[0] == 'A')
     {
         LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
+
+        if (inCmd[1] == 'A')  // :MAA
+        {
+            LOG(DEBUG_MEADE, "[MEADE]: Move AZ and ALT to home");
+            _mount->moveAZALTToHome();
+            return "1";
+        }
 
         // Move Azimuth or Altitude by given arcminutes
         // :MAZ+32.1# or :MAL-32.1#
@@ -1562,7 +1640,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
         if (inCmd.length() > 3)
         {
-            distance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
+            distance = clamp((int) inCmd.substring(3).toInt(), 5, 75);
             LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
         }
 
@@ -1583,7 +1661,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         int decDistance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
         if (inCmd.length() > 3)
         {
-            decDistance = clamp((int) inCmd.substring(3).toInt(), 15, 75);
+            decDistance = clamp((int) inCmd.substring(3).toInt(), 5, 75);
             LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", decDistance);
         }
 
@@ -1607,17 +1685,22 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeHome(String inCmd)
 {
-    if (inCmd[0] == 'P')
-    {  // Park
+    if (inCmd[0] == 'P')  // :hP
+    {                     // Park
         _mount->park();
     }
-    else if (inCmd[0] == 'F')
-    {  // Home
+    else if (inCmd[0] == 'F')  // :hF
+    {                          // Home
         _mount->startSlewingToHome();
     }
-    else if (inCmd[0] == 'U')
-    {  // Unpark
+    else if (inCmd[0] == 'U')  // :hU
+    {                          // Unpark
         _mount->startSlewing(TRACKING);
+        return "1";
+    }
+    else if (inCmd[0] == 'Z')  // :hZ
+    {                          // Set AZ/ALT home
+        _mount->setAZALTHome();
         return "1";
     }
     return "";
@@ -1637,7 +1720,7 @@ String MeadeCommandProcessor::handleMeadeDistance(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 {
-    //   0123
+#if SUPPORT_DRIFT_ALIGNMENT == 1
     // :XDmmm
     if (inCmd[0] == 'D')  // :XD
     {                     // Drift Alignemnt
@@ -1665,7 +1748,9 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         _lcdMenu->setCursor(0, 1);
         _mount->startSlewing(TRACKING);
     }
-    else if (inCmd[0] == 'G')
+    else
+#endif
+        if (inCmd[0] == 'G')
     {                         // Get RA/DEC steps/deg, speedfactor
         if (inCmd[1] == 'R')  // :XGR#
         {
@@ -1701,7 +1786,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
                 {
-                    return String(_mount->getDecParkingOffset()) + "#";
+                    return "0#";
                 }
             }
             else  // :XGD#
@@ -1727,6 +1812,18 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         else if (inCmd[1] == 'B')  // :XGB#
         {
             return String(_mount->getBacklashCorrection()) + "#";
+        }
+        else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'H'))  // :XGAH#
+        {
+            return _mount->getAutoHomingStates() + "#";
+        }
+        else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'A'))  // :XGAA#
+        {
+            long azPos, altPos;
+            _mount->getAZALTPositions(azPos, altPos);
+            char scratchBuffer[20];
+            sprintf(scratchBuffer, "%ld|%ld#", azPos, altPos);
+            return String(scratchBuffer);
         }
         else if (inCmd[1] == 'C')  // :XGCn.nn*m.mm#
         {
@@ -1759,18 +1856,25 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2)
             {
+                LOG(DEBUG_MOUNT, "[MEADE]: XGH  -> %s", inCmd.c_str());
                 if (inCmd[2] == 'R')  // :XGHR#
                 {
+                    LOG(DEBUG_MOUNT, "[MEADE]: XGHR  -> %s", inCmd.c_str());
                     return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
-                }
-                else if (inCmd[2] == 'S')  // :XGHS#
-                {
-                    return String(inNorthernHemisphere ? "N#" : "S#");
                 }
                 else if (inCmd[2] == 'D')  // :XGHD#
                 {
+                    LOG(DEBUG_MOUNT, "[MEADE]: XGHD  -> %s", inCmd.c_str());
                     return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
                 }
+                else if (inCmd[2] == 'S')  // :XGHS#
+                {
+                    LOG(DEBUG_MOUNT, "[MEADE]: XGHS  -> %s", inCmd.c_str());
+                    return String(inNorthernHemisphere ? "N#" : "S#");
+                }
+                LOG(DEBUG_MOUNT, "[MEADE]: XGH?  -> %s", inCmd.c_str());
+
+                return "0#";
             }
             else
             {
@@ -1842,7 +1946,6 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else if ((inCmd.length() > 3) && (inCmd[2] == 'P'))  // :XSDP
             {
-                _mount->setDecParkingOffset(inCmd.substring(3).toInt());
             }
             else
             {
@@ -2108,6 +2211,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
         LOG(DEBUG_MEADE, "[MEADE]: Processing command '%s'", inCmd.c_str());
         char command = inCmd[1];
         inCmd        = inCmd.substring(2);
+        _mount->commandReceived();
         switch (command)
         {
             case 'S':
