@@ -500,7 +500,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, t for ALT)
 //        "nnnn" is the number of steps
 //      Returns:
-//        "1" if successfully scheduled
+//        "1" if successfully scheduled, else "0"
 //
 // :MHRxn#
 //      Description:
@@ -743,7 +743,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        one Hall sensor based autohoming axis is enabled.
 //      Returns:
 //        "rastate|decstate#" if either axis is enabled
-//        "|" if no autohoming is enabled
+//        "|#" if no autohoming is enabled
 //      Remarks:
 //        While the mount status (:GX#) is 'Homing', the command returns one of these:
 //          MOVE_OFF
@@ -935,7 +935,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Get the current LST of the mount.
 //      Returns:
-//        "HHMMSS"
+//        "HHMMSS#"
 //
 // :XSBn#
 //      Description:

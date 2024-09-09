@@ -233,14 +233,14 @@
 
 #ifndef DEC_LIMIT_UP
     #ifdef OAM
-        #define DEC_LIMIT_UP 100.0f
+        #define DEC_LIMIT_UP 160.0f
     #else
         #define DEC_LIMIT_UP 0.0f
     #endif
 #endif
 #ifndef DEC_LIMIT_DOWN
     #ifdef OAM
-        #define DEC_LIMIT_DOWN 100.0f
+        #define DEC_LIMIT_DOWN 160.0f
     #else
         #define DEC_LIMIT_DOWN 0.0f
     #endif
