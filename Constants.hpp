@@ -92,4 +92,5 @@
 #define DEBUG_FOCUS         0x1000  // Focuser activity
 #define DEBUG_COORD_CALC    0x2000  // Calculations of coordinates
 #define DEBUG_DISPLAY       0x4000  // Info display
+#define DEBUG_GUIDE         0x8000  // Guiding info
 #define DEBUG_ANY           0xFFFF  // All debug output
