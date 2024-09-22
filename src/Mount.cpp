@@ -356,7 +356,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef NEW_STEPPER_LIB
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -374,7 +374,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef NEW_STEPPER_LIB
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -732,7 +732,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected      = connectToDriver(_driverALT, "ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -823,7 +823,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -1540,14 +1540,14 @@ void Mount::stopGuiding(bool ra, bool dec)
     // Stop RA guide first, since it's just a speed change back to tracking speed
     if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
     {
-        LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: stopGuiding(RA): TRK.setSpeed(%f)", _trackingSpeed);
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    RA  set speed       : %f (at %l)", _trackingSpeed,_stepperTRK->currentPosition());
         _stepperTRK->setSpeed(_trackingSpeed);
         _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
     }
 
     if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
     {
-        LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: stopGuiding(DEC): Stop motor and wait");
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    DEC stop guide at   : %l",_stepperGUIDE->currentPosition());
 
         // Stop DEC guiding and wait for it to stop.
         _stepperGUIDE->stop();
@@ -1558,16 +1558,19 @@ void Mount::stopGuiding(bool ra, bool dec)
             _stepperTRK->runSpeed();
         }
 
-        LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: stopGuiding(DEC): GuideStepper stopped at %l", _stepperGUIDE->currentPosition());
-
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    DEC stopped at      : %l",_stepperGUIDE->currentPosition());
         _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
     }
 
     //disable pulse state if no direction is active
     if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
     {
-        LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: clear guiding state");
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: Clear guiding state");
         _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+    }
+    else
+    {
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: One axis still guiding");
     }
 }
 
@@ -1578,7 +1581,24 @@ void Mount::stopGuiding(bool ra, bool dec)
 /////////////////////////////////
 void Mount::guidePulse(byte direction, int duration)
 {
-    LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %d for %dms", direction, duration);
+    const char *directionName = "-NE-S---W";
+    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms", directionName[direction], duration);
+    if ((direction == NORTH) || (direction == SOUTH))
+    {
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC current steps   : %l", _stepperGUIDE->currentPosition());
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC steps/deg       : %f", _stepsPerDECDegree);
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+            "[GUIDE]: guidePulse:   DEC Microstep ratio : %f",
+            (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING));
+    }
+    else
+    {
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  current steps   : %l", _stepperTRK->currentPosition());
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  steps/deg       : %f", _stepsPerRADegree);
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+            "[GUIDE]: guidePulse:   RA  Microstep ratio : %f",
+            (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING));
+    }
 
     // DEC stepper moves at sidereal rate in both directions
     // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
@@ -1587,7 +1607,6 @@ void Mount::guidePulse(byte direction, int duration)
                             / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
     float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
                            / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-    raGuidingSpeed *= _trackingSpeedCalibration;
 
     // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
     // If so, we need to remember where we were when we started the guide pulse. Then at the end,
@@ -1597,14 +1616,16 @@ void Mount::guidePulse(byte direction, int duration)
     switch (direction)
     {
         case NORTH:
-            LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: guidePulse:  DEC.setSpeed(%f)", DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC guide speed     : %f", DEC_PULSE_MULTIPLIER * decGuidingSpeed);
             _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
             _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
             _guideDecEndTime = millis() + duration;
             break;
 
         case SOUTH:
-            LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: guidePulse:  DEC.setSpeed(%f)", -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC guide speed     : %f", -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
             _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
             _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
             _guideDecEndTime = millis() + duration;
@@ -1612,7 +1633,14 @@ void Mount::guidePulse(byte direction, int duration)
 
         case WEST:
             // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-            LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: guidePulse:  TRK.setSpeed(%f)", (RA_PULSE_MULTIPLIER * raGuidingSpeed));
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
+            raGuidingSpeed *= _trackingSpeedCalibration;
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                (RA_PULSE_MULTIPLIER * raGuidingSpeed),
+                RA_PULSE_MULTIPLIER);
             _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);  // Faster than siderael
             _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
             _guideRaEndTime = millis() + duration;
@@ -1620,7 +1648,14 @@ void Mount::guidePulse(byte direction, int duration)
 
         case EAST:
             // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-            LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: guidePulse:  TRK.setSpeed(%f)", (raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER)));
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
+            raGuidingSpeed *= _trackingSpeedCalibration;
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                (2.0 - RA_PULSE_MULTIPLIER * raGuidingSpeed),
+                (2.0 - RA_PULSE_MULTIPLIER));
             _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));  // Slower than siderael
             _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
             _guideRaEndTime = millis() + duration;
@@ -1631,7 +1666,7 @@ void Mount::guidePulse(byte direction, int duration)
     updateInfoDisplay();
 #endif
 
-    LOG(DEBUG_STEPPERS|DEBUG_GUIDE, "[GUIDE]: guidePulse: < Guide Pulse");
+    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: < Guide Pulse");
 }
 
 /////////////////////////////////
@@ -1795,7 +1830,7 @@ void Mount::getAZALTPositions(long &azPos, long &altPos)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     azPos = _stepperAZ->currentPosition();
 #else
-    azPos  = 0;
+    azPos = 0;
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     altPos = _stepperALT->currentPosition();
