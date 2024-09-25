@@ -15,7 +15,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
-      - uses: DoozyX/clang-format-lint-action@v0.12
+      - uses: DoozyX/clang-format-lint-action@v0.18.1
         with:
           source: '. ./src ./src/libs'
           exclude: './src/libs/TimerInterrupt ./scripts ./src/fonts128x64.h'
