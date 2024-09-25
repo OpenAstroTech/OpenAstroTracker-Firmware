@@ -1,4 +1,4 @@
-**V1.14.7 - Updates**
+**V1.13.8 - Updates**
 - Fixed DEC runaway issue by updating avr-interrupt-stepper library to version 0.0.3
 
 **V1.13.7 - Updates**
