@@ -343,7 +343,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
     _stepperDEC->setPinsInverted(true, false, false);
     _stepperGUIDE->setPinsInverted(true, false, false);
 #endif
-    _stepperGUIDE->setCurrentPosition(250000);
+    _stepperGUIDE->setCurrentPosition(0);
 }
 
 /////////////////////////////////
@@ -3319,7 +3319,7 @@ void Mount::setHome(bool clearZeroPos)
     _stepperRA->setCurrentPosition(0);
     _stepperDEC->setCurrentPosition(0);
     _stepperTRK->setCurrentPosition(0);
-    _stepperGUIDE->setCurrentPosition(250000);
+    _stepperGUIDE->setCurrentPosition(0);
 
     _targetRA      = currentRA();
     _slewingToHome = false;
