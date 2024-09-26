@@ -1,3 +1,9 @@
+**V1.13.9 - Updates**
+- Added guide logging support.
+- Fixed some Meade documentation errors.
+- Adjusted DEC limits for OAM to 135 degrees.
+- Reverted OLED library for InfoDisplay back to forked version so it compiles correctly.
+
 **V1.13.8 - Updates**
 - Fixed DEC runaway issue by updating avr-interrupt-stepper library to version 0.0.3
 

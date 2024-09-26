@@ -500,7 +500,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, t for ALT)
 //        "nnnn" is the number of steps
 //      Returns:
-//        "1" if successfully scheduled
+//        "1" if successfully scheduled, else "0"
 //
 // :MHRxn#
 //      Description:
@@ -743,7 +743,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        one Hall sensor based autohoming axis is enabled.
 //      Returns:
 //        "rastate|decstate#" if either axis is enabled
-//        "|" if no autohoming is enabled
+//        "|#" if no autohoming is enabled
 //      Remarks:
 //        While the mount status (:GX#) is 'Homing', the command returns one of these:
 //          MOVE_OFF
@@ -935,7 +935,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Get the current LST of the mount.
 //      Returns:
-//        "HHMMSS"
+//        "HHMMSS#"
 //
 // :XSBn#
 //      Description:
@@ -1856,23 +1856,23 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             if (inCmd.length() > 2)
             {
-                LOG(DEBUG_MOUNT, "[MEADE]: XGH  -> %s", inCmd.c_str());
+                LOG(DEBUG_MEADE, "[MEADE]: XGH  -> %s", inCmd.c_str());
                 if (inCmd[2] == 'R')  // :XGHR#
                 {
-                    LOG(DEBUG_MOUNT, "[MEADE]: XGHR  -> %s", inCmd.c_str());
+                    LOG(DEBUG_MEADE, "[MEADE]: XGHR  -> %s", inCmd.c_str());
                     return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
                 }
                 else if (inCmd[2] == 'D')  // :XGHD#
                 {
-                    LOG(DEBUG_MOUNT, "[MEADE]: XGHD  -> %s", inCmd.c_str());
+                    LOG(DEBUG_MEADE, "[MEADE]: XGHD  -> %s", inCmd.c_str());
                     return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
                 }
                 else if (inCmd[2] == 'S')  // :XGHS#
                 {
-                    LOG(DEBUG_MOUNT, "[MEADE]: XGHS  -> %s", inCmd.c_str());
+                    LOG(DEBUG_MEADE, "[MEADE]: XGHS  -> %s", inCmd.c_str());
                     return String(inNorthernHemisphere ? "N#" : "S#");
                 }
-                LOG(DEBUG_MOUNT, "[MEADE]: XGH?  -> %s", inCmd.c_str());
+                LOG(DEBUG_MEADE, "[MEADE]: XGH?  -> %s", inCmd.c_str());
 
                 return "0#";
             }
