@@ -1,3 +1,6 @@
+**V1.13.8 - Updates**
+- Fixed DEC runaway issue by updating avr-interrupt-stepper library to version 0.0.3
+
 **V1.13.7 - Updates**
 - Added ability to keep track of AZ and ALT positions across sessions, set their home positions and slew back to their home positions.
 
