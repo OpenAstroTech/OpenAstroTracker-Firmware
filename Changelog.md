@@ -1,3 +1,6 @@
+**V1.13.10 - Updates**
+- Fixed dependency specification for git tags
+
 **V1.13.9 - Updates**
 - Added guide logging support.
 - Fixed some Meade documentation errors.
