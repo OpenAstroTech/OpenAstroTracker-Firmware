@@ -509,7 +509,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This attempts to find the hall sensor and to home the RA ring accordingly.
 //      Parameters:
 //        "x" is either 'R' or 'L' and determines the direction in which the search starts (L is CW, R is CCW).
-//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 5degs - 75degs.
 //      Remarks:
 //        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
 //        it will move twice the amount (60 degrees by default) in the opposite direction.
@@ -530,7 +530,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This attempts to find the hall sensor and to home the DEC axis accordingly.
 //      Parameters:
 //        "x" is either 'U' or 'D' and determines the direction in which the search starts (U is up, D is down).
-//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 5degs - 75degs.
 //      Remarks:
 //        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
 //        it will move twice the amount (60 degrees by default) in the opposite direction.
