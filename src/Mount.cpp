@@ -1585,7 +1585,7 @@ void Mount::stopGuiding(bool ra, bool dec)
 /////////////////////////////////
 void Mount::guidePulse(byte direction, int duration)
 {
-#if (DEBUG_LEVEL & (DEBUG_STEPPERS | DEBUG_GUIDE))
+#if (DEBUG_LEVEL != DEBUG_NONE)
     const char *directionName = "-NE-S---W";
 #endif
     LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms", directionName[direction], duration);
