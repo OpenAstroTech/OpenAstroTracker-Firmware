@@ -1,3 +1,7 @@
+**V1.13.11 - Updates**
+- Fixed DEBUG macro usage.
+- Clarified some Meade documentation.
+
 **V1.13.10 - Updates**
 - Fixed dependency specification for git tags
 

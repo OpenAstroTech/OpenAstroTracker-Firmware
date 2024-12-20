@@ -952,7 +952,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This offset is added to the position of the RA ring when it is centered on the hall sensor triggered range after running.
 //        the RA homing command (:MHRx#)
 //      Parameters:
-//        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
+//        "n" is the (positive or negative) number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
 //      Returns:
 //        nothing
 //
@@ -963,7 +963,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This offset is added to the position of the DEC ring when it is centered on the hall sensor triggered range after running.
 //        the DEC homing command (:MHDx#)
 //      Parameters:
-//        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
+//        "n" is the (positive or negative) number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
 //      Returns:
 //        nothing
 //
@@ -973,7 +973,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Set the number of steps the RA stepper motor needs to take to rotate by one degree.
 //      Parameters:
-//        "n.n" is the number of steps (only one decimal point is supported)
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
 //      Returns:
 //        nothing
 //
@@ -983,7 +983,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Set the number of steps the DEC stepper motor needs to take to rotate by one degree.
 //      Parameters:
-//        "n.n" is the number of steps (only one decimal point is supported)
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
 //      Returns:
 //        nothing
 //
