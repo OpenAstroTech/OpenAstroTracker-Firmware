@@ -226,6 +226,46 @@ float atanf(float x)
     return static_cast<float>(atan(static_cast<double>(x)));
 }
 
+String *splitStringBy(String str, char splitChar)
+{
+    unsigned int count = 1;  // At least one string if input is non-empty
+
+    // Count occurrences of splitChar to determine the number of splits
+    for (unsigned int i = 0; i < str.length(); i++)
+    {
+        if (str[i] == splitChar)
+        {
+            count++;
+        }
+    }
+
+    // Dynamically allocate memory for the resulting array
+    String *array = new String[count + 1];  // +1 for the nullptr terminator
+    unsigned int r         = 0;                      // Start of the substring
+    unsigned int t         = 0;                      // Index in the result array
+
+    // Iterate through the string to split it
+    for (unsigned int i = 0; i < str.length(); i++)
+    {
+        if (str[i] == splitChar)
+        {
+            array[t++] = str.substring(r, i);  // Store substring
+            r          = i + 1;                // Move start to next character
+        }
+    }
+
+    // Add the last part of the string
+    if (r < str.length())
+    {
+        array[t++] = str.substring(r);
+    }
+
+    // Mark the end of the array with nullptr
+    array[t] = "";
+
+    return array;
+}
+
 #if defined(ESP32)
 int freeMemory()
 {

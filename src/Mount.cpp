@@ -66,6 +66,8 @@ const char *formatStringsRA[] = {
 
 const float siderealDegreesInHour = 14.95904348958;
 
+Mount* Mount::_instance = nullptr;
+
 /////////////////////////////////
 //
 // CTOR
@@ -90,6 +92,7 @@ Mount::Mount(LcdMenu *lcdMenu)
     _loops = 0;
 #endif
     _lcdMenu = lcdMenu;
+    _instance = this;
     initializeVariables();
 }
 

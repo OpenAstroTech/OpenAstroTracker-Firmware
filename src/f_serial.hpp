@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef TEST_VERIFY_MODE
+    #include "testmenu.hpp"
+    #include "testmenudef.hpp"
+#endif
+
 #include "b_setup.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
@@ -32,6 +37,40 @@ void serialEvent()
 }
     #endif
 
+    #ifdef TEST_VERIFY_MODE
+
+void processTestState()
+{
+    char buffer[2];
+    switch (TestMenu::getMenuState())
+    {
+        case testMenuState_t::CLEAR:
+            mainTestMenu.display();
+            TestMenu::setMenuState(testMenuState_t::WAITING_ON_INPUT);
+            break;
+
+        case testMenuState_t::WAITING_ON_INPUT:
+            while (Serial.available() > 0)
+            {
+                if (Serial.readBytes(buffer, 1) == 1)
+                {
+                    if ((buffer[0] >= '0') && (buffer[0] <= '9'))
+                    {
+                        Serial.println(buffer[0]);
+                        int pressedKey = buffer[0] - '0';
+                        TestMenu::getCurrentMenu()->onKeyPressed(pressedKey);
+                    }
+                }
+            }
+            break;
+    }
+}
+
+void processSerialData()
+{
+    processTestState();
+}
+    #else
 // ESP needs to call this in a loop :_(
 void processSerialData()
 {
@@ -43,11 +82,11 @@ void processSerialData()
             if (buffer[0] == 0x06)
             {
                 LOG(DEBUG_SERIAL, "[SERIAL]: Received: ACK request, replying P");
-                // When not debugging, print the result to the serial port .
-                // When debugging, only print the result to Serial if we're on seperate ports.
-    #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
+                    // When not debugging, print the result to the serial port .
+                    // When debugging, only print the result to Serial if we're on seperate ports.
+        #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
                 Serial.print('P');
-    #endif
+        #endif
             }
             else
             {
@@ -58,11 +97,11 @@ void processSerialData()
                 if (retVal != "")
                 {
                     LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal.c_str());
-                    // When not debugging, print the result to the serial port .
-                    // When debugging, only print the result to Serial if we're on seperate ports.
-    #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
+                        // When not debugging, print the result to the serial port .
+                        // When debugging, only print the result to Serial if we're on seperate ports.
+        #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
                     Serial.print(retVal);
-    #endif
+        #endif
                 }
                 else
                 {
@@ -75,4 +114,5 @@ void processSerialData()
     }
 }
 
+    #endif
 #endif

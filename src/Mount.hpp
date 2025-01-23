@@ -154,7 +154,7 @@ class Mount
 
     void initializeVariables();
 
-    static Mount instance();
+    static Mount* instance();
 
     // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
     void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
@@ -674,6 +674,7 @@ class Mount
     LocalDate _localStartDate;
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
+    static Mount* _instance;
 };
 
 #endif
