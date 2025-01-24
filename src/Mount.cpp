@@ -66,7 +66,7 @@ const char *formatStringsRA[] = {
 
 const float siderealDegreesInHour = 14.95904348958;
 
-Mount* Mount::_instance = nullptr;
+Mount *Mount::_instance = nullptr;
 
 /////////////////////////////////
 //
@@ -91,7 +91,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     _loops = 0;
 #endif
-    _lcdMenu = lcdMenu;
+    _lcdMenu  = lcdMenu;
     _instance = this;
     initializeVariables();
 }
@@ -360,7 +360,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef NEW_STEPPER_LIB
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -378,7 +378,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef NEW_STEPPER_LIB
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -416,23 +416,58 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #if UART_CONNECTION_TEST_TXRX == 1
-bool Mount::connectToDriver(TMC2209Stepper *driver, const char *driverKind)
+    #if UART_CONNECTION_TEST_TXRX == 1 || defined(TEST_VERIFY_MODE)
+bool Mount::connectToDriver(String driverKind)
 {
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: Testing UART Connection to %s driver...", driverKind);
-    for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++)
+    TMC2209Stepper *driver = nullptr;
+    if (driverKind == "RA")
     {
-        if (driver->test_connection() == 0)
-        {
-            LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver successful.", driverKind);
-            return true;
-        }
-        else
-        {
-            delay(500);
-        }
+        #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        driver = _driverRA;
+        #endif
     }
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver failed.", driverKind);
+    else if (driverKind == "DEC")
+    {
+        #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        driver = _driverDEC;
+        #endif
+    }
+    else if (driverKind == "ALT")
+    {
+        #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        driver = _driverALT;
+        #endif
+    }
+    else if (driverKind == "AZ")
+    {
+        #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        driver = _driverAZ;
+        #endif
+    }
+    else if (driverKind == "FOC")
+    {
+        #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        driver = _driverFocus;
+        #endif
+    }
+
+    if (driver != nullptr)
+    {
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: Testing UART Connection to %s driver...", driverKind.c_str());
+        for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++)
+        {
+            if (driver->test_connection() == 0)
+            {
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver successful.", driverKind.c_str());
+                return true;
+            }
+            else
+            {
+                delay(500);
+            }
+        }
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver failed.", driverKind.c_str());
+    }
     return false;
 }
     #endif
@@ -451,7 +486,7 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverRA->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverRA, "RA");
+    UART_Rx_connected = connectToDriver("RA");
     if (!UART_Rx_connected)
     {
         digitalWrite(RA_EN_PIN,
@@ -490,7 +525,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverRA, "RA");
+    UART_Rx_connected = connectToDriver("RA");
     if (!UART_Rx_connected)
     {
         digitalWrite(RA_EN_PIN,
@@ -534,7 +569,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverDEC, "DEC");
+    UART_Rx_connected = connectToDriver("DEC");
     if (!UART_Rx_connected)
     {
         digitalWrite(DEC_EN_PIN,
@@ -573,7 +608,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverDEC, "DEC");
+    UART_Rx_connected = connectToDriver("DEC");
     if (!UART_Rx_connected)
     {
         digitalWrite(DEC_EN_PIN,
@@ -617,7 +652,7 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverAZ->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverAZ, "AZ");
+    UART_Rx_connected = connectToDriver("AZ");
     if (!UART_Rx_connected)
     {
         digitalWrite(AZ_EN_PIN,
@@ -655,7 +690,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
     _driverAZ->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverAZ, "AZ");
+    UART_Rx_connected = connectToDriver("AZ");
     if (!UART_Rx_connected)
     {
         digitalWrite(AZ_EN_PIN,
@@ -698,7 +733,7 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
     _driverALT->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -736,7 +771,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected      = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -781,10 +816,10 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
     _driverFocus->begin();
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
-        digitalWrite(ALT_EN_PIN,
+        digitalWrite(FOCUS_EN_PIN,
                      HIGH);  //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
     }
         #endif
@@ -827,7 +862,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -1839,7 +1874,7 @@ void Mount::getAZALTPositions(long &azPos, long &altPos)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     azPos = _stepperAZ->currentPosition();
 #else
-    azPos  = 0;
+    azPos = 0;
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     altPos = _stepperALT->currentPosition();

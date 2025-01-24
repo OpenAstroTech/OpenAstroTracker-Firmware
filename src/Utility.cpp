@@ -240,9 +240,9 @@ String *splitStringBy(String str, char splitChar)
     }
 
     // Dynamically allocate memory for the resulting array
-    String *array = new String[count + 1];  // +1 for the nullptr terminator
-    unsigned int r         = 0;                      // Start of the substring
-    unsigned int t         = 0;                      // Index in the result array
+    String *array  = new String[count + 1];  // +1 for the nullptr terminator
+    unsigned int r = 0;                      // Start of the substring
+    unsigned int t = 0;                      // Index in the result array
 
     // Iterate through the string to split it
     for (unsigned int i = 0; i < str.length(); i++)
@@ -266,6 +266,14 @@ String *splitStringBy(String str, char splitChar)
     return array;
 }
 
+String rightJustify(String str, int width)
+{
+    while (str.length() < (unsigned int)width)
+    {
+        str = " " + str;  // Add spaces to the left
+    }
+    return str;
+}
 #if defined(ESP32)
 int freeMemory()
 {

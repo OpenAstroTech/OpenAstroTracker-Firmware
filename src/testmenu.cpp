@@ -72,103 +72,156 @@ String getComponent(String comp)
 {
     if (comp == "AUTO_AZ_ALT")
     {
-        return "AZ and ALT steppers (AutoPA)";
+        return F("AZ and ALT steppers (AutoPA)");
     }
     if (comp == "AUTO_AZ")
     {
-        return "AZ stepper";
+        return F("AZ stepper");
     }
     if (comp == "AUTO_ALT")
     {
-        return "ALT stepper";
+        return F("ALT stepper");
     }
     if (comp == "GYRO")
     {
-        return "Digital Level";
+        return F("Digital Level");
     }
     if (comp == "LCD_KEYPAD")
     {
-        return "LCD display and keypad";
+        return F("LCD display and keypad");
     }
 
     if (comp == "LCD_I2C_MCP23008")
     {
-        return "LCD display (MCP23008)";
+        return F("LCD display (MCP23008)");
     };
     if (comp == "LCD_I2C_MCP23017")
     {
-        return "LCD display (MCP23017)";
+        return F("LCD display (MCP23017)");
     };
     if (comp == "LCD_JOY_I2C_SSD1306")
     {
-        return "LCD display (SSD1306) with joystick";
+        return F("LCD display (SSD1306) with joystick");
     };
 
     if (comp == "INFO_I2C_SSD1306_128x64")
     {
-        return "Info display (SSD1306)";
+        return F("Info display (SSD1306)");
     };
     if (comp == "INFO_UNKNOWN")
     {
-        return "Info display (unknown type)";
+        return F("Info display (unknown type)");
     };
 
     if (comp == "FOC")
     {
-        return "Focuser stepper";
+        return F("Focuser stepper");
     };
 
     if (comp == "HSAH")
     {
-        return "RA Hall Sensor Auto-Homing";
+        return F("RA Hall Sensor Auto-Homing");
     };
     if (comp == "HSAV")
     {
-        return "DEC Hall Sensor Auto-Homing";
+        return F("DEC Hall Sensor Auto-Homing");
     };
 
     if (comp == "ENDSW_RA")
     {
-        return "End switches on RA";
+        return F("End switches on RA");
     };
     if (comp == "ENDSW_DEC")
     {
-        return "End switches on DEC";
+        return F("End switches on DEC");
     };
     if (comp == "ENDSW_RA_DEC")
     {
-        return "End switches on RA and DEC";
+        return F("End switches on RA and DEC");
     };
-    return "Unknown component";
+    return F("Unknown component");
+}
+
+void printStepperInfo(StepperAxis axis, String info)
+{
+    String *stp = splitStringBy(info, '|');
+    Serial.print(axis == RA_STEPS ? "RA" : "DEC");
+    Serial.print(F(" stepper: "));
+    Serial.print(*stp);
+    stp++;
+    Serial.print(", ");
+    Serial.print(*stp);
+    Serial.print(F("-teeth gear, "));
+    stp++;
+    if (*stp == "400")
+    {
+        Serial.print(F("0.9deg (400 steps/res)"));
+    }
+    else if (*stp == "200")
+    {
+        Serial.print(F("1.8deg (200 steps/res)"));
+    }
+    else
+    {
+        Serial.print(*stp);
+        Serial.print(F(" steps/res"));
+    }
+    Serial.print(F(", Slew MS: "));
+    Serial.print(axis == RA_STEPS ? RA_SLEW_MICROSTEPPING : DEC_SLEW_MICROSTEPPING);
+    if (axis == RA_STEPS)
+    {
+        Serial.print(F(", Tracking MS: "));
+        Serial.print(RA_TRACKING_MICROSTEPPING);
+    }
+    else
+    {
+        Serial.print(F(", Guiding MS: "));
+        Serial.print(DEC_GUIDE_MICROSTEPPING);
+    }
+
+    Serial.print(F(", Steps/deg: "));
+    Serial.println(mount.getStepsPerDegree(axis));
+    delete[] stp;
 }
 
 void TestMenu::listHardware() const
 {
-    Serial.println("Firmware is configured to support these hardware components:");
+    Serial.println(F("Firmware is configured to support these hardware components:"));
     String *hw = splitStringBy(mount.getMountHardwareInfo(), ',');
     String *p  = hw;
     int index  = 0;
+    Serial.print(F("Mount: "));
+#ifdef OAM
+    Serial.println(F("OpenAstroMount (OAM)"));
+#else
+    Serial.println(F("OpenAstroTracker (OAT)"));
+#endif
+
     while (p->length() > 0)
     {
         switch (index)
         {
             case 0:
-                Serial.print("Board: ");
+                Serial.print(F("Board: "));
                 Serial.println(*p);
+                Serial.print(F("Stepper library: "));
+#ifdef NEW_STEPPER_LIB
+                Serial.println(F("InterruptAccelStepper (new)"));
+#else
+                Serial.println(F("AccelStepper (old)"));
+#endif
                 break;
             case 1:
-                Serial.print("RA stepper: ");
-                Serial.println(*p);
+                printStepperInfo(RA_STEPS, *p);
                 break;
             case 2:
-                Serial.print("DEC stepper: ");
-                Serial.println(*p);
+                printStepperInfo(DEC_STEPS, *p);
                 break;
             default:
                 if (!p->startsWith("NO_"))
                 {
                     String component = getComponent(*p);
-                    Serial.print("Component: ");
+                    Serial.print(F("Component: "));
                     Serial.println(component);
                 }
                 break;
@@ -176,47 +229,19 @@ void TestMenu::listHardware() const
         p++;
         index++;
     }
-    delete [] hw;
+    delete[] hw;
 }
 
 void TestMenu::connectDriver(String axisStr)
 {
-    StepperAxis axis;
-    if (axisStr == "RA")
-        axis = StepperAxis::RA_STEPS;
-    if (axisStr == "DEC")
-        axis = StepperAxis::DEC_STEPS;
-    if (axisStr == "ALT")
-        axis = StepperAxis::ALTITUDE_STEPS;
-    if (axisStr == "AZ")
-        axis = StepperAxis::AZIMUTH_STEPS;
-    if (axisStr == "FOC")
-        axis = StepperAxis::FOCUS_STEPS;
-    switch (axis)
-    {
-        case StepperAxis::RA_STEPS:
-            {
-            }
-            break;
-        case StepperAxis::DEC_STEPS:
-            {
-            }
-            break;
-        case StepperAxis::ALTITUDE_STEPS:
-            {
-            }
-            break;
-        case StepperAxis::AZIMUTH_STEPS:
-            {
-            }
-            break;
-        case StepperAxis::FOCUS_STEPS:
-            {
-            }
-            break;
-        case StepperAxis::RA_AND_DEC_STEPS:
-            break;
-    }
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
+    || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
+    || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    Serial.print("Connecting to " + axisStr + " driver....");
+    Serial.println(mount.connectToDriver(axisStr) ? "OK" : "FAIL");
+#else
+    Serial.print(F("ERROR: Can only connect to TMC2209 UART drivers."));
+#endif
 }
 
 void TestMenu::onKeyPressed(int key)
@@ -253,39 +278,78 @@ void TestMenu::onKeyPressed(int key)
                 {
                     connectDriver(action.substring(8));
                 }
+                else if (action == "MoveRAAxis")
+                {
+                    long stepsPerDegree = mount.getStepsPerDegree(RA_STEPS);
+                    String output       = F("Moving RA axis by 1hr (15 degrees, ");
+                    output += stepsPerDegree * 15;
+                    output += " steps)";
+                    Serial.println(output);
+                    mount.moveStepperBy(RA_STEPS, stepsPerDegree * 15);
+                }
             }
-            _currentMenu->display();
+            if (TestMenu::getMenuState() == testMenuState_t::CLEAR)
+            {
+                _currentMenu->display();
+            }
             return;
         }
     }
-    Serial.println("Invalid key pressed.");
+    Serial.println(F("Invalid key pressed."));
+    _currentMenu->display();
 }
 
 void TestMenu::display() const
 {
     Serial.println("");
     Serial.println("");
+    String statusRaDec;
+    statusRaDec = "*  RA: ";
+    statusRaDec += mount.isAxisRunning(RA_STEPS) ? "^ " : ". ";
+    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(RA_STEPS)), 7);
+    statusRaDec += "    DEC: ";
+    statusRaDec += mount.isAxisRunning(DEC_STEPS) ? "^ " : ". ";
+    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(DEC_STEPS)), 7);
+    statusRaDec += "    TRK: ";
+    statusRaDec += mount.isSlewingTRK() ? "^ " : ". ";
+    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(TRACKING)), 7);
+
+    String statusAltAz;
+    statusAltAz = "* ALT: ";
+    statusAltAz += mount.isAxisRunning(ALTITUDE_STEPS) ? "^ " : ". ";
+    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(ALTITUDE_STEPS)), 7);
+    statusAltAz += "     AZ: ";
+    statusAltAz += mount.isAxisRunning(AZIMUTH_STEPS) ? "^ " : ". ";
+    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(AZIMUTH_STEPS)), 7);
+    statusAltAz += "    FOC: ";
+    statusAltAz += mount.isAxisRunning(FOCUS_STEPS) ? "^ " : ". ";
+    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(FOCUS_STEPS)), 7);
+
     if (_level == 0)
     {
-        Serial.print("*************** ");
+        Serial.println(F("**************************"));
+        Serial.print("* Mem: ");
         Serial.print(freeMemory());
         Serial.println(" bytes");
+        Serial.println(statusRaDec);
+        Serial.println(statusAltAz);
+        Serial.println(F("**************************"));
         Serial.print("* ");
         Serial.println(_name);
-        Serial.println("**************************");
+        Serial.println(F("**************************"));
     }
     else
     {
-        Serial.print("--------------- ");
+        Serial.print(F("--------------- "));
         Serial.print(freeMemory());
         Serial.println(" bytes");
         Serial.print("  ");
         Serial.print(_name);
         Serial.println(" Menu");
-        Serial.println("--------------------------");
+        Serial.println(F("--------------------------"));
     }
 
-    Serial.println("Please choose:");
+    Serial.println(F("Please choose:"));
     for (int i = 0; i < _numChoices; i++)
     {
         _choices[i].setKey(i + 1);
@@ -297,7 +361,7 @@ void TestMenu::display() const
         Serial.println();
         TestMenu::_backItem->display();
     }
-    Serial.print("Your choice:");
+    Serial.print(F("Your choice:"));
 }
 
 testMenuState_t TestMenu::getMenuState()

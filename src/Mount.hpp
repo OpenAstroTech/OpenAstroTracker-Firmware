@@ -36,21 +36,21 @@ using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
     #else
         #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
         #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -61,21 +61,21 @@ using StepperFocusSlew = AccelStepper;
 #else
     #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
     #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -154,7 +154,7 @@ class Mount
 
     void initializeVariables();
 
-    static Mount* instance();
+    static Mount *instance();
 
     // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
     void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
@@ -182,7 +182,8 @@ class Mount
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    bool connectToDriver(TMC2209Stepper *driver, const char *driverKind);
+    bool connectToDriver(String driverKind);
+
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // Configure the RA Driver (TMC2209 UART only)
@@ -674,7 +675,7 @@ class Mount
     LocalDate _localStartDate;
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
-    static Mount* _instance;
+    static Mount *_instance;
 };
 
 #endif
