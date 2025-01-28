@@ -7,6 +7,12 @@ enum testMenuState_t
     WAITING_ON_INPUT,
 };
 
+enum testMenuInternalState_t {
+  IDLE,
+  DISPLAY_RA,
+  DISPLAY_DEC,
+};
+
 class TestMenu;
 
 class TestMenuItem
@@ -29,12 +35,19 @@ class TestMenuItem
 class TestMenu
 {
     int _level;
+    unsigned long _lastTick;
     String _name;
     String _parent;
     TestMenuItem *_choices;
     int _numChoices;
     TestMenu *_parentMenu;
+    long _targetRA;
+    long _startRA;
+    long _targetDEC;
+    long _startDEC;
+
     static testMenuState_t _menuState;
+    static testMenuInternalState_t _internalState;
     static TestMenu *_currentMenu;
     static TestMenuItem *_backItem;
 
@@ -49,4 +62,5 @@ class TestMenu
 
     void listHardware() const;
     void connectDriver(String axisStr);
+    void tick();
 };

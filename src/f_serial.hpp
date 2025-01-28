@@ -26,6 +26,10 @@ void serialLoop()
     #if (WIFI_ENABLED == 1)
     wifiControl.loop();
     #endif
+
+    #ifdef TEST_VERIFY_MODE
+    mainTestMenu.tick();
+    #endif
 }
 
     //////////////////////////////////////////////////

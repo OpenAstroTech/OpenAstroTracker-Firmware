@@ -1,13 +1,17 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "Mount.hpp"
-#include "testmenu.hpp"
+
+#ifdef TEST_VERIFY_MODE
+
+    #include "testmenu.hpp"
 
 extern Mount mount;
 
-TestMenu *TestMenu::_currentMenu     = nullptr;
-TestMenuItem *TestMenu::_backItem    = nullptr;
-testMenuState_t TestMenu::_menuState = testMenuState_t::CLEAR;
+TestMenu *TestMenu::_currentMenu                 = nullptr;
+TestMenuItem *TestMenu::_backItem                = nullptr;
+testMenuState_t TestMenu::_menuState             = testMenuState_t::CLEAR;
+testMenuInternalState_t TestMenu::_internalState = testMenuInternalState_t::IDLE;
 
 TestMenuItem::TestMenuItem(String label, String action, TestMenu *subMenu)
 {
@@ -52,8 +56,14 @@ void TestMenu::setParentMenu(TestMenu *parentMenu)
 }
 
 TestMenu::TestMenu(int level, String name, String parent, TestMenuItem *choices, int numChoices, TestMenu *parentMenu)
-    : _level(level), _name(name), _parent(parent), _choices(choices), _numChoices(numChoices), _parentMenu(parentMenu)
 {
+    _lastTick   = 0;
+    _level      = level;
+    _name       = name;
+    _parent     = parent;
+    _choices    = choices;
+    _numChoices = numChoices;
+    _parentMenu = parentMenu;
     if (_currentMenu == nullptr)
     {
         _backItem = new TestMenuItem("Back", "Action:Back");
@@ -144,44 +154,49 @@ String getComponent(String comp)
 
 void printStepperInfo(StepperAxis axis, String info)
 {
-    String *stp = splitStringBy(info, '|');
-    Serial.print(axis == RA_STEPS ? "RA" : "DEC");
-    Serial.print(F(" stepper: "));
-    Serial.print(*stp);
+    String *splitInfo = splitStringBy(info, '|');
+    String *stp       = splitInfo;
+    Serial.println(axis == RA_STEPS ? "RA Info" : "DEC Info");
+    Serial.println(F("--------"));
+    Serial.print(F("       Stepper type: "));
+    Serial.println(*stp);
     stp++;
-    Serial.print(", ");
+    Serial.print(F("               Gear: "));
     Serial.print(*stp);
-    Serial.print(F("-teeth gear, "));
+    Serial.println(F("-tooth"));
     stp++;
     if (*stp == "400")
     {
-        Serial.print(F("0.9deg (400 steps/res)"));
+        Serial.println(F("         Resolution: 0.9 deg (400 steps/revolution)"));
     }
     else if (*stp == "200")
     {
-        Serial.print(F("1.8deg (200 steps/res)"));
+        Serial.println(F("         Resolution: 1.8 deg (200 steps/revolution)"));
     }
     else
     {
+        Serial.print(F("         Resolution: "));
         Serial.print(*stp);
-        Serial.print(F(" steps/res"));
+        Serial.println(F(" steps/revolution"));
     }
-    Serial.print(F(", Slew MS: "));
-    Serial.print(axis == RA_STEPS ? RA_SLEW_MICROSTEPPING : DEC_SLEW_MICROSTEPPING);
+    Serial.print(F("    Slew Microsteps: "));
+    Serial.println(axis == RA_STEPS ? RA_SLEW_MICROSTEPPING : DEC_SLEW_MICROSTEPPING);
     if (axis == RA_STEPS)
     {
-        Serial.print(F(", Tracking MS: "));
-        Serial.print(RA_TRACKING_MICROSTEPPING);
+        Serial.print(F("Tracking Microsteps: "));
+        Serial.println(RA_TRACKING_MICROSTEPPING);
+        Serial.print(F("     Tracking Speed: "));
+        Serial.println(mount.getSpeed(TRACKING));
     }
     else
     {
-        Serial.print(F(", Guiding MS: "));
-        Serial.print(DEC_GUIDE_MICROSTEPPING);
+        Serial.print(F(" Guiding Microsteps: "));
+        Serial.println(DEC_GUIDE_MICROSTEPPING);
     }
 
-    Serial.print(F(", Steps/deg: "));
+    Serial.print(F("       Steps/degree: "));
     Serial.println(mount.getStepsPerDegree(axis));
-    delete[] stp;
+    delete[] splitInfo;
 }
 
 void TestMenu::listHardware() const
@@ -190,38 +205,40 @@ void TestMenu::listHardware() const
     String *hw = splitStringBy(mount.getMountHardwareInfo(), ',');
     String *p  = hw;
     int index  = 0;
-    Serial.print(F("Mount: "));
-#ifdef OAM
+    Serial.print(F("                Mount: "));
+    #ifdef OAM
     Serial.println(F("OpenAstroMount (OAM)"));
-#else
+    #else
     Serial.println(F("OpenAstroTracker (OAT)"));
-#endif
+    #endif
 
     while (p->length() > 0)
     {
         switch (index)
         {
             case 0:
-                Serial.print(F("Board: "));
+                Serial.print(F("                Board: "));
                 Serial.println(*p);
-                Serial.print(F("Stepper library: "));
-#ifdef NEW_STEPPER_LIB
+                Serial.print(F("      Stepper library: "));
+    #ifdef NEW_STEPPER_LIB
                 Serial.println(F("InterruptAccelStepper (new)"));
-#else
+    #else
                 Serial.println(F("AccelStepper (old)"));
-#endif
+    #endif
                 break;
             case 1:
                 printStepperInfo(RA_STEPS, *p);
                 break;
             case 2:
                 printStepperInfo(DEC_STEPS, *p);
+                Serial.println(F("Add-Ons"));
+                Serial.println(F("--------"));
                 break;
             default:
                 if (!p->startsWith("NO_"))
                 {
                     String component = getComponent(*p);
-                    Serial.print(F("Component: "));
+                    Serial.print(F("          Component: "));
                     Serial.println(component);
                 }
                 break;
@@ -234,14 +251,14 @@ void TestMenu::listHardware() const
 
 void TestMenu::connectDriver(String axisStr)
 {
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
-    || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
-    || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                          \
+        || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                       \
+        || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     Serial.print("Connecting to " + axisStr + " driver....");
     Serial.println(mount.connectToDriver(axisStr) ? "OK" : "FAIL");
-#else
+    #else
     Serial.print(F("ERROR: Can only connect to TMC2209 UART drivers."));
-#endif
+    #endif
 }
 
 void TestMenu::onKeyPressed(int key)
@@ -264,28 +281,68 @@ void TestMenu::onKeyPressed(int key)
                 _currentMenu->display();
                 return;
             }
-            String cmd    = _choices[i].getAction();
-            int sep       = cmd.indexOf(':');
-            String verb   = cmd.substring(0, sep);
-            String action = cmd.substring(sep + 1);
+            String cmd       = _choices[i].getAction();
+            int sep          = cmd.indexOf(':');
+            String verb      = cmd.substring(0, sep);
+            String action    = cmd.substring(sep + 1);
+            String actionArg = "";
+            int argSep       = action.indexOf('|');
+            if (argSep > 0)
+            {
+                action    = action.substring(0, argSep);
+                actionArg = action.substring(argSep + 1);
+            }
             if (verb == "Action")
             {
                 if (action == "ListHardware")
                 {
                     listHardware();
                 }
-                else if (action.startsWith("Connect-"))
+                else if (action.startsWith("Connect"))
                 {
-                    connectDriver(action.substring(8));
+                    connectDriver(actionArg);
                 }
                 else if (action == "MoveRAAxis")
                 {
                     long stepsPerDegree = mount.getStepsPerDegree(RA_STEPS);
                     String output       = F("Moving RA axis by 1hr (15 degrees, ");
                     output += stepsPerDegree * 15;
-                    output += " steps)";
+                    output += " steps) " + actionArg;
                     Serial.println(output);
+                    _startRA  = mount.getCurrentStepperPosition(RA_STEPS);
+                    _targetRA = _startRA + (actionArg == "CCW" ? -1 : 1) * stepsPerDegree * 15;
                     mount.moveStepperBy(RA_STEPS, stepsPerDegree * 15);
+                    _internalState = DISPLAY_RA;
+                }
+                else if (action == "MoveDECAxis")
+                {
+                    long stepsPerDegree = mount.getStepsPerDegree(DEC_STEPS);
+                    String output       = F("Moving DEC axis by 15 degrees (");
+                    output += stepsPerDegree * 15;
+                    output += " steps) " + actionArg;
+                    Serial.println(output);
+                    _startDEC  = mount.getCurrentStepperPosition(DEC_STEPS);
+                    _targetDEC = _startDEC + (actionArg == "DOWN" ? -1 : 1) * stepsPerDegree * 15;
+                    mount.moveStepperBy(DEC_STEPS, stepsPerDegree * 15);
+                    _internalState = DISPLAY_DEC;
+                }
+                else if (action == "ToggleTRK")
+                {
+                    if (mount.isSlewingTRK())
+                    {
+                        mount.stopSlewing(TRACKING);
+                        Serial.println(F("Tracking stopped."));
+                    }
+                    else
+                    {
+                        mount.startSlewing(TRACKING);
+                        Serial.println(F("Tracking started."));
+                    }
+                }
+                else if (action == "FactoryReset")
+                {
+                    mount.clearConfiguration();
+                    Serial.println(F("Mount reset, EEPROM erased."));
                 }
             }
             if (TestMenu::getMenuState() == testMenuState_t::CLEAR)
@@ -327,25 +384,28 @@ void TestMenu::display() const
 
     if (_level == 0)
     {
-        Serial.println(F("**************************"));
-        Serial.print("* Mem: ");
+    #ifdef OAM
+        Serial.println(F("**************************************"));
+        Serial.println(F("*** OpenAstroMount (OAM) Test Menu ***"));
+    #else
+        Serial.println(F("** OpenAstroTracker (OAT) Test Menu **"));
+    #endif
+        Serial.println(F("**************************************"));
+        Serial.print(F("* Mem: "));
         Serial.print(freeMemory());
-        Serial.println(" bytes");
+        Serial.println(F(" bytes"));
         Serial.println(statusRaDec);
         Serial.println(statusAltAz);
-        Serial.println(F("**************************"));
-        Serial.print("* ");
-        Serial.println(_name);
-        Serial.println(F("**************************"));
+        Serial.println(F("**************************************"));
     }
     else
     {
         Serial.print(F("--------------- "));
         Serial.print(freeMemory());
-        Serial.println(" bytes");
+        Serial.println(F(" bytes"));
         Serial.print("  ");
         Serial.print(_name);
-        Serial.println(" Menu");
+        Serial.println(F(" Menu"));
         Serial.println(F("--------------------------"));
     }
 
@@ -364,6 +424,42 @@ void TestMenu::display() const
     Serial.print(F("Your choice:"));
 }
 
+void TestMenu::tick()
+{
+    if (millis() > _lastTick + 250)
+    {
+        _lastTick = millis();
+        switch (_internalState)
+        {
+            case DISPLAY_RA:
+                Serial.print("RA : ");
+                Serial.print(mount.getCurrentStepperPosition(RA_STEPS));
+                Serial.print(" (");
+                Serial.print(100 * (mount.getCurrentStepperPosition(RA_STEPS) - _startRA) / (_targetRA - _startRA));
+                Serial.println("%)");
+                if (!mount.isAxisRunning(RA_STEPS))
+                {
+                    _internalState = IDLE;
+                }
+                break;
+
+            case DISPLAY_DEC:
+                Serial.print("DEC: ");
+                Serial.print(mount.getCurrentStepperPosition(DEC_STEPS));
+                Serial.print(" (");
+                Serial.print(100 * (mount.getCurrentStepperPosition(DEC_STEPS) - _startDEC) / (_targetDEC - _startDEC));
+                Serial.println("%)");
+                if (!mount.isAxisRunning(DEC_STEPS))
+                {
+                    _internalState = IDLE;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}
+
 testMenuState_t TestMenu::getMenuState()
 {
     return TestMenu::_menuState;
@@ -378,3 +474,5 @@ TestMenu *TestMenu::getCurrentMenu()
 {
     return TestMenu::_currentMenu;
 }
+
+#endif  // TEST_VERIFY_MODE
