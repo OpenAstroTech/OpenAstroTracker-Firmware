@@ -49,7 +49,6 @@ void processTestState()
     switch (TestMenu::getMenuState())
     {
         case testMenuState_t::CLEAR:
-            mainTestMenu.display();
             TestMenu::setMenuState(testMenuState_t::WAITING_ON_INPUT);
             break;
 

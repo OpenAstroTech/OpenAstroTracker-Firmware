@@ -539,6 +539,7 @@ void setup()
     mount.getInfoDisplay()->setConsoleMode(false);
 #endif
 #ifdef TEST_VERIFY_MODE
+
     TestMenu::getCurrentMenu()->display();
 #endif
 }

@@ -1,6 +1,31 @@
 #pragma once
 #include <Arduino.h>
 
+enum menuText_t
+{
+    MENU_BACK,
+    MENU_CONNECT_RA,
+    MENU_CONNECT_DEC,
+    MENU_CONNECT_ALT,
+    MENU_CONNECT_AZ,
+    MENU_CONNECT_FOC,
+    MENU_PRIMARY_RA_CW,
+    MENU_PRIMARY_RA_CCW,
+    MENU_PRIMARY_DEC_UP,
+    MENU_PRIMARY_DEC_DOWN,
+    MENU_PRIMARY_GO_HOME,
+    MENU_TOGGLE_TRK,
+    MENU_SECONDARY_ALT_UP,
+    MENU_SECONDARY_ALT_DOWN,
+    MENU_SECONDARY_AZ_LEFT,
+    MENU_SECONDARY_AZ_RIGHT,
+    MENU_FACTORY_RESET,
+    MENU_MAIN_LIST_HARDWARE,
+    MENU_MAIN_CONNECT_DRIVERS,
+    MENU_MAIN_PRIMARY_AXIS_MOVES,
+    MENU_MAIN_SECONDARY_AXIS_MOVES,
+};
+
 enum testMenuState_t
 {
     CLEAR,
@@ -24,7 +49,7 @@ class TestMenuItem
     bool _isSubMenu;
 
   public:
-    TestMenuItem(String label, String action, TestMenu *subMenu = nullptr);
+    TestMenuItem(menuText_t labelId, TestMenu *subMenu = nullptr);
     void display() const;
     int getKey() const;
     void setKey(int key);
@@ -41,11 +66,11 @@ class TestMenu
     TestMenuItem *_choices;
     int _numChoices;
     TestMenu *_parentMenu;
-    long _targetRA;
-    long _startRA;
-    long _targetDEC;
-    long _startDEC;
 
+    static long _targetRA;
+    static long _startRA;
+    static long _targetDEC;
+    static long _startDEC;
     static testMenuState_t _menuState;
     static testMenuInternalState_t _internalState;
     static TestMenu *_currentMenu;

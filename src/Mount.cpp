@@ -417,7 +417,7 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if UART_CONNECTION_TEST_TXRX == 1 || defined(TEST_VERIFY_MODE)
-bool Mount::connectToDriver(String driverKind)
+bool Mount::connectToDriver(String driverKind, uint16_t *rmsCurrent)
 {
     TMC2209Stepper *driver = nullptr;
     if (driverKind == "RA")
@@ -459,6 +459,10 @@ bool Mount::connectToDriver(String driverKind)
             if (driver->test_connection() == 0)
             {
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver successful.", driverKind.c_str());
+                if (rmsCurrent != nullptr)
+                {
+                    *rmsCurrent = driver->rms_current();
+                }
                 return true;
             }
             else
@@ -467,6 +471,10 @@ bool Mount::connectToDriver(String driverKind)
             }
         }
         LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver failed.", driverKind.c_str());
+    }
+    if (rmsCurrent != nullptr)
+    {
+        *rmsCurrent = 0;
     }
     return false;
 }
