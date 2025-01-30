@@ -28,7 +28,8 @@ TestMenuItem primaryAxisMenuItems[] = {
     TestMenuItem(MENU_PRIMARY_GO_HOME),
     TestMenuItem(MENU_TOGGLE_TRK),
 };
-TestMenu primaryAxisMenu(1, "PrimaryAxisMoves", "Move Primary Axes", primaryAxisMenuItems, sizeof(primaryAxisMenuItems) / sizeof(primaryAxisMenuItems[0]));
+TestMenu primaryAxisMenu(
+    1, "PrimaryAxisMoves", "Move Primary Axes", primaryAxisMenuItems, sizeof(primaryAxisMenuItems) / sizeof(primaryAxisMenuItems[0]));
 
 TestMenuItem secondaryAxisMenuItems[] = {
     TestMenuItem(MENU_SECONDARY_RATE_1),
@@ -41,7 +42,11 @@ TestMenuItem secondaryAxisMenuItems[] = {
     TestMenuItem(MENU_SECONDARY_AZ_LEFT),
     TestMenuItem(MENU_SECONDARY_AZ_RIGHT),
 };
-TestMenu secondaryAxisMenu(1, "SecondaryAxisMoves", "Move Secondary Axes", secondaryAxisMenuItems, sizeof(secondaryAxisMenuItems) / sizeof(secondaryAxisMenuItems[0]));
+TestMenu secondaryAxisMenu(1,
+                           "SecondaryAxisMoves",
+                           "Move Secondary Axes",
+                           secondaryAxisMenuItems,
+                           sizeof(secondaryAxisMenuItems) / sizeof(secondaryAxisMenuItems[0]));
 
 TestMenuItem menuItems[] = {
     TestMenuItem(MENU_MAIN_LIST_HARDWARE),

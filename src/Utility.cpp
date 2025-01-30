@@ -268,7 +268,7 @@ String *splitStringBy(String str, char splitChar)
 
 String rightJustify(String str, int width)
 {
-    while (str.length() < (unsigned int)width)
+    while (str.length() < (unsigned int) width)
     {
         str = " " + str;  // Add spaces to the left
     }

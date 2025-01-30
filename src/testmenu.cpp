@@ -518,8 +518,8 @@ void TestMenu::onKeyPressed(int key)
                     String output = String(F("Moving ALT axis by ")) + String(_secondaryDistance, 1) + String(F(" arcMins ("));
                     output += String(ALTITUDE_STEPS_PER_ARC_MINUTE * _secondaryDistance, 0) + " steps) " + actionArg;
                     Serial.println(output);
-                    float arcmins       = actionArg == "UP" ? _secondaryDistance : -_secondaryDistance;
-                    TestMenu::_startALT = mount.getCurrentStepperPosition(ALTITUDE_STEPS);
+                    float arcmins        = actionArg == "UP" ? _secondaryDistance : -_secondaryDistance;
+                    TestMenu::_startALT  = mount.getCurrentStepperPosition(ALTITUDE_STEPS);
                     TestMenu::_targetALT = TestMenu::_startALT + arcmins * ALTITUDE_STEPS_PER_ARC_MINUTE;
                     mount.moveBy(ALTITUDE_STEPS, arcmins);
                     _internalState |= DISPLAY_ALT;
