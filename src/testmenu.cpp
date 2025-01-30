@@ -8,14 +8,29 @@
 
 extern Mount mount;
 
-TestMenu *TestMenu::_currentMenu                 = nullptr;
-TestMenuItem *TestMenu::_backItem                = nullptr;
-testMenuState_t TestMenu::_menuState             = testMenuState_t::CLEAR;
-testMenuInternalState_t TestMenu::_internalState = testMenuInternalState_t::IDLE;
-long TestMenu::_targetRA                         = 0;
-long TestMenu::_startRA                          = 0;
-long TestMenu::_targetDEC                        = 0;
-long TestMenu::_startDEC                         = 0;
+TestMenu *TestMenu::_currentMenu               = nullptr;
+TestMenuItem *TestMenu::_backItem              = nullptr;
+testMenuState_t TestMenu::_menuState           = testMenuState_t::CLEAR;
+testMenuInternalState TestMenu::_internalState = testMenuInternalState::IDLE;
+
+inline testMenuInternalState operator|=(testMenuInternalState &a, testMenuInternalState b)
+{
+    return a = static_cast<testMenuInternalState>(static_cast<int>(a) | static_cast<int>(b));
+};
+
+inline testMenuInternalState operator|=(testMenuInternalState &a, int b)
+{
+    return a = static_cast<testMenuInternalState>(static_cast<int>(a) | b);
+};
+
+long TestMenu::_targetRA  = 0;
+long TestMenu::_startRA   = 0;
+long TestMenu::_targetDEC = 0;
+long TestMenu::_startDEC  = 0;
+long TestMenu::_startAZ   = 0;
+long TestMenu::_targetAZ  = 0;
+long TestMenu::_startALT  = 0;
+long TestMenu::_targetALT = 0;
 
 String getMenuLabel(menuText_t labelId)
 {
@@ -34,23 +49,33 @@ String getMenuLabel(menuText_t labelId)
         case MENU_CONNECT_FOC:
             return F("Connect to FOCUS Driver");
         case MENU_PRIMARY_RA_CW:
-            return F("Move RA Axis 3h clockwise");
+            return F("Move RA Axis 1h clockwise");
         case MENU_PRIMARY_RA_CCW:
-            return F("Move RA Axis 3h counter-clockwise");
+            return F("Move RA Axis 1h counter-clockwise");
         case MENU_PRIMARY_DEC_UP:
             return F("Move DEC Axis 15deg up");
         case MENU_PRIMARY_DEC_DOWN:
             return F("Move DEC Axis 15deg down");
         case MENU_TOGGLE_TRK:
             return F("Stop/Start Tracking");
+        case MENU_SECONDARY_RATE_1:
+            return F("Set distance to 0.1 arcmin");
+        case MENU_SECONDARY_RATE_2:
+            return F("Set distance to 0.5 arcmin");
+        case MENU_SECONDARY_RATE_3:
+            return F("Set distance to 2 arcmin");
+        case MENU_SECONDARY_RATE_4:
+            return F("Set distance to 5 arcmin");
+        case MENU_SECONDARY_RATE_5:
+            return F("Set distance to 15 arcmin");
         case MENU_SECONDARY_ALT_UP:
             return F("Move ALT Axis Up");
         case MENU_SECONDARY_ALT_DOWN:
             return F("Move ALT Axis Down");
         case MENU_SECONDARY_AZ_LEFT:
-            return F("Move AZ Axis left");
+            return F("Move AZ Axis Left");
         case MENU_SECONDARY_AZ_RIGHT:
-            return F("Move AZ Axis right");
+            return F("Move AZ Axis Right");
         case MENU_FACTORY_RESET:
             return F("Factory Reset (Erase EEPROM)");
         case MENU_MAIN_LIST_HARDWARE:
@@ -61,6 +86,8 @@ String getMenuLabel(menuText_t labelId)
             return F("Primary Axis Moves (RA/DEC)");
         case MENU_MAIN_SECONDARY_AXIS_MOVES:
             return F("Secondary Axis Moves (ALT/AZ)");
+        case MENU_PRIMARY_SET_HOME:
+            return F("Set current as Home");
         case MENU_PRIMARY_GO_HOME:
             return F("Go Home");
         default:
@@ -88,6 +115,8 @@ String getMenuAction(menuText_t labelId)
             return F("Action:MoveRAAxis|CW");
         case MENU_PRIMARY_RA_CCW:
             return F("Action:MoveRAAxis|CCW");
+        case MENU_PRIMARY_SET_HOME:
+            return F("Action:SetHome");
         case MENU_PRIMARY_GO_HOME:
             return F("Action:GoHome");
         case MENU_PRIMARY_DEC_UP:
@@ -96,6 +125,18 @@ String getMenuAction(menuText_t labelId)
             return F("Action:MoveDECAxis|DOWN");
         case MENU_TOGGLE_TRK:
             return F("Action:ToggleTRK");
+
+        case MENU_SECONDARY_RATE_1:
+            return F("Action:SetSecDist|0.1");
+        case MENU_SECONDARY_RATE_2:
+            return F("Action:SetSecDist|0.5");
+        case MENU_SECONDARY_RATE_3:
+            return F("Action:SetSecDist|2");
+        case MENU_SECONDARY_RATE_4:
+            return F("Action:SetSecDist|5");
+        case MENU_SECONDARY_RATE_5:
+            return F("Action:SetSecDist|15");
+
         case MENU_SECONDARY_ALT_UP:
             return F("Action:MoveALTAxis|UP");
         case MENU_SECONDARY_ALT_DOWN:
@@ -162,13 +203,14 @@ void TestMenu::setParentMenu(TestMenu *parentMenu)
 
 TestMenu::TestMenu(int level, String name, String parent, TestMenuItem *choices, int numChoices, TestMenu *parentMenu)
 {
-    _lastTick   = 0;
-    _level      = level;
-    _name       = name;
-    _parent     = parent;
-    _choices    = choices;
-    _numChoices = numChoices;
-    _parentMenu = parentMenu;
+    _lastTick          = 0;
+    _level             = level;
+    _name              = name;
+    _parent            = parent;
+    _choices           = choices;
+    _numChoices        = numChoices;
+    _parentMenu        = parentMenu;
+    _secondaryDistance = 1;
     if (_currentMenu == nullptr)
     {
         _backItem = new TestMenuItem(MENU_BACK);
@@ -409,14 +451,30 @@ void TestMenu::onKeyPressed(int key)
                 if (action == "ListHardware")
                 {
                     listHardware();
+                    _currentMenu->display();
                 }
                 else if (action.startsWith("Connect"))
                 {
                     connectDriver(actionArg);
                 }
+                else if (action == "SetHome")
+                {
+                    mount.setHome(false);
+                    _currentMenu->display();
+                }
                 else if (action == "GoHome")
                 {
+                    _startDEC  = mount.getCurrentStepperPosition(DEC_STEPS);
+                    _startRA   = mount.getCurrentStepperPosition(RA_STEPS);
+                    _targetDEC = 0;
+                    _targetRA  = 0;
                     mount.startSlewingToHome();
+                    _internalState |= (DISPLAY_RA | DISPLAY_DEC);
+                }
+                else if (action == "SetSecDist")
+                {
+                    _secondaryDistance = actionArg.toFloat();
+                    _currentMenu->display();
                 }
                 else if (action == "MoveRAAxis")
                 {
@@ -429,7 +487,7 @@ void TestMenu::onKeyPressed(int key)
                     long steps          = (actionArg == "CCW" ? -1 : 1) * stepsPerDegree * 15;
                     TestMenu::_targetRA = TestMenu::_startRA + steps;
                     mount.moveStepperBy(RA_STEPS, steps);
-                    _internalState = DISPLAY_RA;
+                    _internalState |= DISPLAY_RA;
                 }
                 else if (action == "MoveDECAxis")
                 {
@@ -442,7 +500,29 @@ void TestMenu::onKeyPressed(int key)
                     long steps           = (actionArg == "DOWN" ? -1 : 1) * stepsPerDegree * 15;
                     TestMenu::_targetDEC = TestMenu::_startDEC + steps;
                     mount.moveStepperBy(DEC_STEPS, steps);
-                    _internalState = DISPLAY_DEC;
+                    _internalState |= DISPLAY_DEC;
+                }
+                else if (action == "MoveAZAxis")
+                {
+                    String output = String(F("Moving AZ axis by ")) + String(_secondaryDistance, 1) + String(F(" arcMins ("));
+                    output += String(AZIMUTH_STEPS_PER_ARC_MINUTE * _secondaryDistance, 0) + " steps) " + actionArg;
+                    Serial.println(output);
+                    float arcmins       = actionArg == "LEFT" ? _secondaryDistance : -_secondaryDistance;
+                    TestMenu::_startAZ  = mount.getCurrentStepperPosition(AZIMUTH_STEPS);
+                    TestMenu::_targetAZ = TestMenu::_startAZ + arcmins * AZIMUTH_STEPS_PER_ARC_MINUTE;
+                    mount.moveBy(AZIMUTH_STEPS, arcmins);
+                    _internalState |= DISPLAY_AZ;
+                }
+                else if (action == "MoveALTAxis")
+                {
+                    String output = String(F("Moving ALT axis by ")) + String(_secondaryDistance, 1) + String(F(" arcMins ("));
+                    output += String(ALTITUDE_STEPS_PER_ARC_MINUTE * _secondaryDistance, 0) + " steps) " + actionArg;
+                    Serial.println(output);
+                    float arcmins       = actionArg == "UP" ? _secondaryDistance : -_secondaryDistance;
+                    TestMenu::_startALT = mount.getCurrentStepperPosition(ALTITUDE_STEPS);
+                    TestMenu::_targetALT = TestMenu::_startALT + arcmins * ALTITUDE_STEPS_PER_ARC_MINUTE;
+                    mount.moveBy(ALTITUDE_STEPS, arcmins);
+                    _internalState |= DISPLAY_ALT;
                 }
                 else if (action == "ToggleTRK")
                 {
@@ -456,11 +536,13 @@ void TestMenu::onKeyPressed(int key)
                         mount.startSlewing(TRACKING);
                         Serial.println(F("Tracking started."));
                     }
+                    _currentMenu->display();
                 }
                 else if (action == "FactoryReset")
                 {
                     mount.clearConfiguration();
                     Serial.println(F("Mount reset, EEPROM erased."));
+                    _currentMenu->display();
                 }
             }
             if (TestMenu::getMenuState() == testMenuState_t::CLEAR)
@@ -475,60 +557,65 @@ void TestMenu::onKeyPressed(int key)
     _currentMenu->display();
 }
 
+void TestMenu::displayStepperPos() const
+{
+    String statusRaDec;
+    statusRaDec = F("  RA: ");
+    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(RA_STEPS)), 8);
+    statusRaDec += mount.isAxisRunning(RA_STEPS) ? "^" : " ";
+    statusRaDec += F("   ALT: ");
+    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(ALTITUDE_STEPS)), 8);
+    statusRaDec += mount.isAxisRunning(ALTITUDE_STEPS) ? "^" : " ";
+    statusRaDec += F("   TRK: ");
+    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(TRACKING)), 8);
+    statusRaDec += mount.isSlewingTRK() ? "^" : " ";
+
+    String statusAltAz;
+    statusAltAz = F(" DEC: ");
+    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(DEC_STEPS)), 8);
+    statusAltAz += mount.isAxisRunning(DEC_STEPS) ? "^" : " ";
+    statusAltAz += F("    AZ: ");
+    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(AZIMUTH_STEPS)), 8);
+    statusAltAz += mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ";
+    statusAltAz += F("   FOC: ");
+    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(FOCUS_STEPS)), 8);
+    statusAltAz += mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ";
+    Serial.println(statusRaDec);
+    Serial.println(statusAltAz);
+}
+
 void TestMenu::display() const
 {
     Serial.println("");
-    Serial.println("");
-    String statusRaDec;
-    statusRaDec = "*  RA: ";
-    statusRaDec += mount.isAxisRunning(RA_STEPS) ? "^ " : ". ";
-    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(RA_STEPS)), 7);
-    statusRaDec += "    DEC: ";
-    statusRaDec += mount.isAxisRunning(DEC_STEPS) ? "^ " : ". ";
-    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(DEC_STEPS)), 7);
-    statusRaDec += "    TRK: ";
-    statusRaDec += mount.isSlewingTRK() ? "^ " : ". ";
-    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(TRACKING)), 7);
-
-    String statusAltAz;
-    statusAltAz = "* ALT: ";
-    statusAltAz += mount.isAxisRunning(ALTITUDE_STEPS) ? "^ " : ". ";
-    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(ALTITUDE_STEPS)), 7);
-    statusAltAz += "     AZ: ";
-    statusAltAz += mount.isAxisRunning(AZIMUTH_STEPS) ? "^ " : ". ";
-    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(AZIMUTH_STEPS)), 7);
-    statusAltAz += "    FOC: ";
-    statusAltAz += mount.isAxisRunning(FOCUS_STEPS) ? "^ " : ". ";
-    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(FOCUS_STEPS)), 7);
 
     if (_level == 0)
     {
-    #ifdef OAM
         Serial.println(F("**************************************"));
+    #ifdef OAM
         Serial.println(F("*** OpenAstroMount (OAM) Test Menu ***"));
     #else
         Serial.println(F("** OpenAstroTracker (OAT) Test Menu **"));
     #endif
-        Serial.println(F("**************************************"));
-        Serial.print(F("* Mem: "));
+        Serial.print(F("************* "));
         Serial.print(freeMemory());
-        Serial.println(F(" bytes"));
-        Serial.println(statusRaDec);
-        Serial.println(statusAltAz);
+        Serial.println(F(" bytes *************"));
+        displayStepperPos();
         Serial.println(F("**************************************"));
     }
     else
     {
-        Serial.print(F("--------------- "));
+        Serial.print(F("------------------- "));
         Serial.print(freeMemory());
-        Serial.println(F(" bytes"));
+        Serial.println(F(" bytes -------------------"));
+        displayStepperPos();
+        Serial.println(F("--------------------------------------------------"));
         Serial.print("  ");
         Serial.print(_name);
         Serial.println(F(" Menu"));
         Serial.println(F("--------------------------"));
     }
 
-    Serial.println(F("Please choose:"));
+    //Serial.println(F("Please choose:"));
     for (int i = 0; i < _numChoices; i++)
     {
         _choices[i].setKey(i + 1);
@@ -548,39 +635,74 @@ void TestMenu::tick()
     if (millis() > _lastTick + 250)
     {
         _lastTick = millis();
-        switch (_internalState)
+        if (_internalState != testMenuInternalState::IDLE)
         {
-            case DISPLAY_RA:
-                Serial.print("RA : ");
+            if (_internalState & DISPLAY_RA)
+            {
+                Serial.print(F("RA : "));
                 Serial.print(mount.getCurrentStepperPosition(RA_STEPS));
                 Serial.print(" (");
                 Serial.print(String(100.0 * (mount.getCurrentStepperPosition(RA_STEPS) - TestMenu::_startRA)
                                         / (TestMenu::_targetRA - TestMenu::_startRA),
                                     0));
-                Serial.println("%)");
+                Serial.print(F("%)   "));
                 if (!mount.isAxisRunning(RA_STEPS))
                 {
-                    _internalState = IDLE;
-                    _currentMenu->display();
+                    _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_RA));
                 }
-                break;
+            }
 
-            case DISPLAY_DEC:
-                Serial.print("DEC: ");
+            if (_internalState & DISPLAY_DEC)
+            {
+                Serial.print(F("DEC: "));
                 Serial.print(mount.getCurrentStepperPosition(DEC_STEPS));
                 Serial.print(" (");
                 Serial.print(String(100.0 * (mount.getCurrentStepperPosition(DEC_STEPS) - TestMenu::_startDEC)
                                         / (TestMenu::_targetDEC - TestMenu::_startDEC),
                                     0));
-                Serial.println("%)");
+                Serial.print(F("%)   "));
                 if (!mount.isAxisRunning(DEC_STEPS))
                 {
-                    _internalState = IDLE;
-                    _currentMenu->display();
+                    _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_DEC));
                 }
-                break;
-            default:
-                break;
+            }
+
+            if (_internalState & DISPLAY_AZ)
+            {
+                Serial.print(F("AZ: "));
+                Serial.print(mount.getCurrentStepperPosition(AZIMUTH_STEPS));
+                Serial.print(" (");
+                Serial.print(String(100.0 * (mount.getCurrentStepperPosition(AZIMUTH_STEPS) - TestMenu::_startAZ)
+                                        / (TestMenu::_targetAZ - TestMenu::_startAZ),
+                                    0));
+                Serial.print(F("%)   "));
+                if (!mount.isAxisRunning(AZIMUTH_STEPS))
+                {
+                    _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_AZ));
+                }
+            }
+
+            if (_internalState & DISPLAY_ALT)
+            {
+                Serial.print(F("ALT: "));
+                Serial.print(mount.getCurrentStepperPosition(ALTITUDE_STEPS));
+                Serial.print(" (");
+                Serial.print(String(100.0 * (mount.getCurrentStepperPosition(ALTITUDE_STEPS) - TestMenu::_startALT)
+                                        / (TestMenu::_targetALT - TestMenu::_startALT),
+                                    0));
+                Serial.print(F("%)   "));
+                if (!mount.isAxisRunning(ALTITUDE_STEPS))
+                {
+                    _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_ALT));
+                }
+            }
+
+            Serial.println();
+
+            if (_internalState == testMenuInternalState::IDLE)
+            {
+                _currentMenu->display();
+            }
         }
     }
 }

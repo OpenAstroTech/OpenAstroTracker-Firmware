@@ -13,8 +13,14 @@ enum menuText_t
     MENU_PRIMARY_RA_CCW,
     MENU_PRIMARY_DEC_UP,
     MENU_PRIMARY_DEC_DOWN,
+    MENU_PRIMARY_SET_HOME,
     MENU_PRIMARY_GO_HOME,
     MENU_TOGGLE_TRK,
+    MENU_SECONDARY_RATE_1,
+    MENU_SECONDARY_RATE_2,
+    MENU_SECONDARY_RATE_3,
+    MENU_SECONDARY_RATE_4,
+    MENU_SECONDARY_RATE_5,
     MENU_SECONDARY_ALT_UP,
     MENU_SECONDARY_ALT_DOWN,
     MENU_SECONDARY_AZ_LEFT,
@@ -32,10 +38,14 @@ enum testMenuState_t
     WAITING_ON_INPUT,
 };
 
-enum testMenuInternalState_t {
-  IDLE,
-  DISPLAY_RA,
-  DISPLAY_DEC,
+// Flag as to what to display to terminal
+enum testMenuInternalState
+{
+    IDLE        = 0,
+    DISPLAY_RA  = 1 << 0,
+    DISPLAY_DEC = 1 << 1,
+    DISPLAY_AZ  = 1 << 2,
+    DISPLAY_ALT = 1 << 3,
 };
 
 class TestMenu;
@@ -66,13 +76,19 @@ class TestMenu
     TestMenuItem *_choices;
     int _numChoices;
     TestMenu *_parentMenu;
+    float _secondaryDistance;
 
     static long _targetRA;
     static long _startRA;
     static long _targetDEC;
     static long _startDEC;
+    static long _startAZ;
+    static long _targetAZ;
+    static long _startALT;
+    static long _targetALT;
+
     static testMenuState_t _menuState;
-    static testMenuInternalState_t _internalState;
+    static testMenuInternalState _internalState;
     static TestMenu *_currentMenu;
     static TestMenuItem *_backItem;
 
@@ -80,6 +96,7 @@ class TestMenu
     TestMenu(int level, String name, String parent, TestMenuItem *choices, int numChoices, TestMenu *parentMenu = nullptr);
     void onKeyPressed(int key);
     void display() const;
+    void displayStepperPos() const;
     void setParentMenu(TestMenu *parentMenu);
     static TestMenu *getCurrentMenu();
     static testMenuState_t getMenuState();

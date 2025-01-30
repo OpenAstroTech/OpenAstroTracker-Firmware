@@ -117,10 +117,12 @@ void setup()
 
 #ifdef TEST_VERIFY_MODE
     #ifdef OAM
-    LOG(DEBUG_ANY, "Booting OAM Firmware %s ...", VERSION);
+    Serial.print(F("Booting OAM Firmware "));
     #else
-    LOG(DEBUG_ANY, "Booting OAT Firmware %s ...", VERSION);
+    Serial.print(F("Booting OAT Firmware "));
     #endif
+    Serial.print(VERSION);
+    Serial.println(F(" ..."));
 #else
     #ifdef OAM
     LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAM Firmware %s!", VERSION);
@@ -539,7 +541,6 @@ void setup()
     mount.getInfoDisplay()->setConsoleMode(false);
 #endif
 #ifdef TEST_VERIFY_MODE
-
     TestMenu::getCurrentMenu()->display();
 #endif
 }

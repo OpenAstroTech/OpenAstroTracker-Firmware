@@ -24,12 +24,18 @@ TestMenuItem primaryAxisMenuItems[] = {
     TestMenuItem(MENU_PRIMARY_RA_CCW),
     TestMenuItem(MENU_PRIMARY_DEC_UP),
     TestMenuItem(MENU_PRIMARY_DEC_DOWN),
+    TestMenuItem(MENU_PRIMARY_SET_HOME),
     TestMenuItem(MENU_PRIMARY_GO_HOME),
     TestMenuItem(MENU_TOGGLE_TRK),
 };
 TestMenu primaryAxisMenu(1, "PrimaryAxisMoves", "Move Primary Axes", primaryAxisMenuItems, sizeof(primaryAxisMenuItems) / sizeof(primaryAxisMenuItems[0]));
 
 TestMenuItem secondaryAxisMenuItems[] = {
+    TestMenuItem(MENU_SECONDARY_RATE_1),
+    TestMenuItem(MENU_SECONDARY_RATE_2),
+    TestMenuItem(MENU_SECONDARY_RATE_3),
+    TestMenuItem(MENU_SECONDARY_RATE_4),
+    TestMenuItem(MENU_SECONDARY_RATE_5),
     TestMenuItem(MENU_SECONDARY_ALT_UP),
     TestMenuItem(MENU_SECONDARY_ALT_DOWN),
     TestMenuItem(MENU_SECONDARY_AZ_LEFT),
@@ -45,7 +51,7 @@ TestMenuItem menuItems[] = {
     TestMenuItem(MENU_MAIN_CONNECT_DRIVERS, &connectDriversMenu),
 #endif
     TestMenuItem(MENU_MAIN_PRIMARY_AXIS_MOVES, &primaryAxisMenu),
-    // TestMenuItem(MENU_MAIN_SECONDARY_AXIS_MOVES, &secondaryAxisMenu),
+    TestMenuItem(MENU_MAIN_SECONDARY_AXIS_MOVES, &secondaryAxisMenu),
     TestMenuItem(MENU_FACTORY_RESET),
 };
 

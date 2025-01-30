@@ -1,3 +1,6 @@
+**V1.13.12 - Updates**
+- Added basic test mode that can be run via terminal connection.
+
 **V1.13.11 - Updates**
 - Fixed DEBUG macro usage.
 - Clarified some Meade documentation.
