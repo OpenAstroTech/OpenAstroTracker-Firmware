@@ -1,6 +1,7 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "Mount.hpp"
+#include "MeadeCommandProcessor.hpp"
 
 #ifdef TEST_VERIFY_MODE
 
@@ -78,6 +79,8 @@ String getMenuLabel(menuText_t labelId)
             return F("Move AZ Axis Right");
         case MENU_FACTORY_RESET:
             return F("Factory Reset (Erase EEPROM)");
+        case MENU_PASSTHROUGH_COMMAND:
+            return F("Issue LX200 Command");
         case MENU_MAIN_LIST_HARDWARE:
             return F("List Hardware");
         case MENU_MAIN_CONNECT_DRIVERS:
@@ -147,6 +150,8 @@ String getMenuAction(menuText_t labelId)
             return F("Action:MoveAZAxis|RIGHT");
         case MENU_FACTORY_RESET:
             return F("Action:FactoryReset");
+        case MENU_PASSTHROUGH_COMMAND:
+            return F("Action:PassthroughCmd");
         case MENU_MAIN_LIST_HARDWARE:
             return F("Action:ListHardware");
         case MENU_MAIN_CONNECT_DRIVERS:
@@ -402,7 +407,9 @@ void TestMenu::connectDriver(String axisStr)
         || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                       \
         || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     uint16_t current = 0;
-    Serial.print("Connecting to " + axisStr + " driver....");
+    Serial.print(F("Connecting to "));
+    Serial.print(axisStr);
+    Serial.print(F(" driver...."));
     bool connected = mount.connectToDriver(axisStr, &current);
     Serial.println(connected ? "OK" : "FAIL");
     if (connected)
@@ -413,6 +420,24 @@ void TestMenu::connectDriver(String axisStr)
     #else
     Serial.print(F("ERROR: Can only connect to TMC2209 UART drivers."));
     #endif
+}
+
+void TestMenu::onCommandReceived(String s)
+{
+    Serial.println(s);
+    if (s.startsWith(":") && s.endsWith("#"))
+    {
+        s = s.substring(0, s.length() - 1);
+    }
+
+    String reply = MeadeCommandProcessor::instance()->processCommand(s);
+
+    if (reply.length() > 0)
+    {
+        Serial.println(F("-- Command Response --------"));
+        Serial.println(reply);
+        Serial.println(F("----------------------------"));
+    }
 }
 
 void TestMenu::onKeyPressed(int key)
@@ -448,7 +473,7 @@ void TestMenu::onKeyPressed(int key)
             }
             if (verb == "Action")
             {
-                if (action == "ListHardware")
+                if (action == F("ListHardware"))
                 {
                     listHardware();
                     _currentMenu->display();
@@ -457,12 +482,12 @@ void TestMenu::onKeyPressed(int key)
                 {
                     connectDriver(actionArg);
                 }
-                else if (action == "SetHome")
+                else if (action == F("SetHome"))
                 {
                     mount.setHome(false);
                     _currentMenu->display();
                 }
-                else if (action == "GoHome")
+                else if (action == F("GoHome"))
                 {
                     _startDEC  = mount.getCurrentStepperPosition(DEC_STEPS);
                     _startRA   = mount.getCurrentStepperPosition(RA_STEPS);
@@ -471,12 +496,12 @@ void TestMenu::onKeyPressed(int key)
                     mount.startSlewingToHome();
                     _internalState |= (DISPLAY_RA | DISPLAY_DEC);
                 }
-                else if (action == "SetSecDist")
+                else if (action == F("SetSecDist"))
                 {
                     _secondaryDistance = actionArg.toFloat();
                     _currentMenu->display();
                 }
-                else if (action == "MoveRAAxis")
+                else if (action == F("MoveRAAxis"))
                 {
                     long stepsPerDegree = mount.getStepsPerDegree(RA_STEPS);
                     String output       = F("Moving RA axis by 1hr (15 degrees, ");
@@ -489,7 +514,7 @@ void TestMenu::onKeyPressed(int key)
                     mount.moveStepperBy(RA_STEPS, steps);
                     _internalState |= DISPLAY_RA;
                 }
-                else if (action == "MoveDECAxis")
+                else if (action == F("MoveDECAxis"))
                 {
                     long stepsPerDegree = mount.getStepsPerDegree(DEC_STEPS);
                     String output       = F("Moving DEC axis by 15 degrees (");
@@ -502,7 +527,7 @@ void TestMenu::onKeyPressed(int key)
                     mount.moveStepperBy(DEC_STEPS, steps);
                     _internalState |= DISPLAY_DEC;
                 }
-                else if (action == "MoveAZAxis")
+                else if (action == F("MoveAZAxis"))
                 {
                     String output = String(F("Moving AZ axis by ")) + String(_secondaryDistance, 1) + String(F(" arcMins ("));
                     output += String(AZIMUTH_STEPS_PER_ARC_MINUTE * _secondaryDistance, 0) + " steps) " + actionArg;
@@ -513,7 +538,7 @@ void TestMenu::onKeyPressed(int key)
                     mount.moveBy(AZIMUTH_STEPS, arcmins);
                     _internalState |= DISPLAY_AZ;
                 }
-                else if (action == "MoveALTAxis")
+                else if (action == F("MoveALTAxis"))
                 {
                     String output = String(F("Moving ALT axis by ")) + String(_secondaryDistance, 1) + String(F(" arcMins ("));
                     output += String(ALTITUDE_STEPS_PER_ARC_MINUTE * _secondaryDistance, 0) + " steps) " + actionArg;
@@ -524,7 +549,7 @@ void TestMenu::onKeyPressed(int key)
                     mount.moveBy(ALTITUDE_STEPS, arcmins);
                     _internalState |= DISPLAY_ALT;
                 }
-                else if (action == "ToggleTRK")
+                else if (action == F("ToggleTRK"))
                 {
                     if (mount.isSlewingTRK())
                     {
@@ -538,11 +563,16 @@ void TestMenu::onKeyPressed(int key)
                     }
                     _currentMenu->display();
                 }
-                else if (action == "FactoryReset")
+                else if (action == F("FactoryReset"))
                 {
                     mount.clearConfiguration();
                     Serial.println(F("Mount reset, EEPROM erased."));
                     _currentMenu->display();
+                }
+                else if (action = F("PassthroughCmd"))
+                {
+                    Serial.print(F("Enter LX200-OAT command to send to mount: "));
+                    TestMenu::setMenuState(testMenuState_t::WAITING_ON_COMMAND);
                 }
             }
             if (TestMenu::getMenuState() == testMenuState_t::CLEAR)
@@ -604,11 +634,11 @@ void TestMenu::display() const
     }
     else
     {
-        Serial.print(F("------------------- "));
+        Serial.print(F("---------------- "));
         Serial.print(freeMemory());
-        Serial.println(F(" bytes -------------------"));
+        Serial.println(F(" bytes ------------"));
         displayStepperPos();
-        Serial.println(F("--------------------------------------------------"));
+        Serial.println(F("-----------------------------------------"));
         Serial.print("  ");
         Serial.print(_name);
         Serial.println(F(" Menu"));

@@ -1,6 +1,8 @@
 #pragma once
 #include <Arduino.h>
 
+#ifdef TEST_VERIFY_MODE
+
 enum menuText_t
 {
     MENU_BACK,
@@ -26,6 +28,7 @@ enum menuText_t
     MENU_SECONDARY_AZ_LEFT,
     MENU_SECONDARY_AZ_RIGHT,
     MENU_FACTORY_RESET,
+    MENU_PASSTHROUGH_COMMAND,
     MENU_MAIN_LIST_HARDWARE,
     MENU_MAIN_CONNECT_DRIVERS,
     MENU_MAIN_PRIMARY_AXIS_MOVES,
@@ -36,6 +39,7 @@ enum testMenuState_t
 {
     CLEAR,
     WAITING_ON_INPUT,
+    WAITING_ON_COMMAND,
 };
 
 // Flag as to what to display to terminal
@@ -95,6 +99,7 @@ class TestMenu
   public:
     TestMenu(int level, String name, String parent, TestMenuItem *choices, int numChoices, TestMenu *parentMenu = nullptr);
     void onKeyPressed(int key);
+    void onCommandReceived(String s);
     void display() const;
     void displayStepperPos() const;
     void setParentMenu(TestMenu *parentMenu);
@@ -106,3 +111,4 @@ class TestMenu
     void connectDriver(String axisStr);
     void tick();
 };
+#endif

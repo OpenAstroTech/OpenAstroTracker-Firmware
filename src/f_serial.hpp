@@ -45,7 +45,8 @@ void serialEvent()
 
 void processTestState()
 {
-    char buffer[2];
+    static char buffer[32];
+    static int index = 0;
     switch (TestMenu::getMenuState())
     {
         case testMenuState_t::CLEAR:
@@ -62,6 +63,37 @@ void processTestState()
                         Serial.println(buffer[0]);
                         int pressedKey = buffer[0] - '0';
                         TestMenu::getCurrentMenu()->onKeyPressed(pressedKey);
+                    }
+                }
+            }
+            break;
+
+        case testMenuState_t::WAITING_ON_COMMAND:
+            while (Serial.available() > 0)
+            {
+                char ch;
+                if (Serial.readBytes(&ch, 1) == 1)
+                {
+                    if (ch > 31)
+                    {
+                        buffer[index] = ch;
+                        if (ch == '#')
+                        {
+                            buffer[index + 1] = 0;
+                            TestMenu::getCurrentMenu()->onCommandReceived(buffer);
+                            TestMenu::setMenuState(testMenuState_t::WAITING_ON_INPUT);
+                            TestMenu::getCurrentMenu()->display();
+                            index = 0;
+                        }
+                        else
+                        {
+                            index++;
+                            if (index > 30)
+                            {
+                                Serial.println(F("Buffer overflow, too many chars received"));
+                                index = 0;
+                            }
+                        }
                     }
                 }
             }
