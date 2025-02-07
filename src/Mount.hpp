@@ -655,6 +655,8 @@ class Mount
 
     unsigned long _guideRaEndTime;
     unsigned long _guideDecEndTime;
+    long _stepperGuidePosAtGuideStart;
+    long _stepperTrkPosAtGuideStart;
     unsigned long _lastMountPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0

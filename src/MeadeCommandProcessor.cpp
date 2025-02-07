@@ -622,7 +622,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        This stops all motors, including tracking. Note that deceleration curves are still followed.
 //      Returns:
-//        "1" when all motors have stopped
+//        nothing
 //
 // :Qd#
 //      Description:
@@ -1517,6 +1517,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 {
+    LOG(DEBUG_MEADE, "[MEADE]: Process Move command: [%s]", inCmd.c_str());
     if (inCmd[0] == 'S')  // :MS#
     {
         _mount->startSlewingToTarget();
@@ -2199,7 +2200,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
 {
     if (inCmd[0] == ':')
     {
-        LOG(DEBUG_MEADE, "[MEADE]: Received command '%s'", inCmd.c_str());
+        LOG(DEBUG_MEADE, "[MEADE]: Received command   '%s'", inCmd.c_str());
 
         // Apparently some LX200 implementations put spaces in their commands..... remove them with impunity.
         int spacePos;
