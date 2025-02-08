@@ -89,7 +89,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     _loops = 0;
 #endif
-    _lcdMenu  = lcdMenu;
+    _lcdMenu = lcdMenu;
     initializeVariables();
 }
 

@@ -617,7 +617,7 @@ void TestMenu::displayStepperPos() const
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     String azSteps = "n/a";
     #else
-    String azSteps = String(mount.getCurrentStepperPosition(AZIMUTH_STEPS));
+    String azSteps  = String(mount.getCurrentStepperPosition(AZIMUTH_STEPS));
     #endif
     statusAltAz += rightJustify(azSteps, 8);
     statusAltAz += mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ";
