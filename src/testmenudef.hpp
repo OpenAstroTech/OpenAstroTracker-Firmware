@@ -1,4 +1,4 @@
-#ifdef TEST_VERIFY_MODE
+#if TEST_VERIFY_MODE == 1
     #include "testmenu.hpp"
 
 TestMenuItem connectMenuItems[] = {
@@ -38,10 +38,14 @@ TestMenuItem secondaryAxisMenuItems[] = {
     TestMenuItem(MENU_SECONDARY_RATE_3),
     TestMenuItem(MENU_SECONDARY_RATE_4),
     TestMenuItem(MENU_SECONDARY_RATE_5),
+    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
     TestMenuItem(MENU_SECONDARY_ALT_UP),
     TestMenuItem(MENU_SECONDARY_ALT_DOWN),
+    #endif
+    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
     TestMenuItem(MENU_SECONDARY_AZ_LEFT),
     TestMenuItem(MENU_SECONDARY_AZ_RIGHT),
+    #endif
 };
 TestMenu secondaryAxisMenu(1,
                            "SecondaryAxisMoves",
@@ -57,7 +61,9 @@ TestMenuItem menuItems[] = {
     TestMenuItem(MENU_MAIN_CONNECT_DRIVERS, &connectDriversMenu),
     #endif
     TestMenuItem(MENU_MAIN_PRIMARY_AXIS_MOVES, &primaryAxisMenu),
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     TestMenuItem(MENU_MAIN_SECONDARY_AXIS_MOVES, &secondaryAxisMenu),
+    #endif
     TestMenuItem(MENU_PASSTHROUGH_COMMAND),
     TestMenuItem(MENU_FACTORY_RESET),
 };

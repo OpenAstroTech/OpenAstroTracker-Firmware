@@ -66,8 +66,6 @@ const char *formatStringsRA[] = {
 
 const float siderealDegreesInHour = 14.95904348958;
 
-Mount *Mount::_instance = nullptr;
-
 /////////////////////////////////
 //
 // CTOR
@@ -92,7 +90,6 @@ Mount::Mount(LcdMenu *lcdMenu)
     _loops = 0;
 #endif
     _lcdMenu  = lcdMenu;
-    _instance = this;
     initializeVariables();
 }
 
@@ -419,37 +416,27 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
     #if UART_CONNECTION_TEST_TXRX == 1 || defined(TEST_VERIFY_MODE)
 bool Mount::connectToDriver(String driverKind, uint16_t *rmsCurrent)
 {
-    TMC2209Stepper *driver = nullptr;
-    if (driverKind == "RA")
-    {
+    MappedDict<String, TMC2209Stepper *>::DictEntry_t lookupTable[] = {
         #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        driver = _driverRA;
+        {"RA", _driverRA},
         #endif
-    }
-    else if (driverKind == "DEC")
-    {
         #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        driver = _driverDEC;
+        {"DEC", _driverDEC},
         #endif
-    }
-    else if (driverKind == "ALT")
-    {
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        driver = _driverALT;
+        {"ALT", _driverALT},
         #endif
-    }
-    else if (driverKind == "AZ")
-    {
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        driver = _driverAZ;
+        {"AZ", _driverAZ},
         #endif
-    }
-    else if (driverKind == "FOC")
-    {
         #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        driver = _driverFocus;
+        {"FOC", _driverFocus},
         #endif
-    }
+    };
+    auto driverLookup = MappedDict<String, TMC2209Stepper *>(lookupTable, ARRAY_SIZE(lookupTable));
+
+    TMC2209Stepper *driver = nullptr;
+    driverLookup.tryGet(driverKind, &driver);
 
     if (driver != nullptr)
     {

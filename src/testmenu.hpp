@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
 
-#ifdef TEST_VERIFY_MODE
+#if TEST_VERIFY_MODE == 1
 
 enum menuText_t
 {

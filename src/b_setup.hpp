@@ -12,8 +12,8 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 #endif
 
-#ifdef TEST_VERIFY_MODE
-    #include "TestMenu.hpp"
+#if TEST_VERIFY_MODE == 1
+    #include "testmenu.hpp"
 #endif
 
 #ifndef NEW_STEPPER_LIB
@@ -115,7 +115,7 @@ void setup()
     #endif
 #endif
 
-#ifdef TEST_VERIFY_MODE
+#if TEST_VERIFY_MODE == 1
     #ifdef OAM
     Serial.print(F("Booting OAM Firmware "));
     #else
@@ -540,7 +540,7 @@ void setup()
     delay(250);
     mount.getInfoDisplay()->setConsoleMode(false);
 #endif
-#ifdef TEST_VERIFY_MODE
+#if TEST_VERIFY_MODE == 1
     TestMenu::getCurrentMenu()->display();
 #endif
 }

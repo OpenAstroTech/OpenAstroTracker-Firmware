@@ -3,7 +3,7 @@
 #include "Mount.hpp"
 #include "MeadeCommandProcessor.hpp"
 
-#ifdef TEST_VERIFY_MODE
+#if TEST_VERIFY_MODE == 1
 
     #include "testmenu.hpp"
 
@@ -527,6 +527,7 @@ void TestMenu::onKeyPressed(int key)
                     mount.moveStepperBy(DEC_STEPS, steps);
                     _internalState |= DISPLAY_DEC;
                 }
+    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
                 else if (action == F("MoveAZAxis"))
                 {
                     String output = String(F("Moving AZ axis by ")) + String(_secondaryDistance, 1) + String(F(" arcMins ("));
@@ -538,6 +539,8 @@ void TestMenu::onKeyPressed(int key)
                     mount.moveBy(AZIMUTH_STEPS, arcmins);
                     _internalState |= DISPLAY_AZ;
                 }
+    #endif
+    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
                 else if (action == F("MoveALTAxis"))
                 {
                     String output = String(F("Moving ALT axis by ")) + String(_secondaryDistance, 1) + String(F(" arcMins ("));
@@ -549,6 +552,7 @@ void TestMenu::onKeyPressed(int key)
                     mount.moveBy(ALTITUDE_STEPS, arcmins);
                     _internalState |= DISPLAY_ALT;
                 }
+    #endif
                 else if (action == F("ToggleTRK"))
                 {
                     if (mount.isSlewingTRK())
@@ -594,7 +598,12 @@ void TestMenu::displayStepperPos() const
     statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(RA_STEPS)), 8);
     statusRaDec += mount.isAxisRunning(RA_STEPS) ? "^" : " ";
     statusRaDec += F("   ALT: ");
-    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(ALTITUDE_STEPS)), 8);
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    String altSteps = "n/a";
+    #else
+    String altSteps = String(mount.getCurrentStepperPosition(ALTITUDE_STEPS));
+    #endif
+    statusRaDec += rightJustify(altSteps, 8);
     statusRaDec += mount.isAxisRunning(ALTITUDE_STEPS) ? "^" : " ";
     statusRaDec += F("   TRK: ");
     statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(TRACKING)), 8);
@@ -605,10 +614,20 @@ void TestMenu::displayStepperPos() const
     statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(DEC_STEPS)), 8);
     statusAltAz += mount.isAxisRunning(DEC_STEPS) ? "^" : " ";
     statusAltAz += F("    AZ: ");
-    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(AZIMUTH_STEPS)), 8);
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    String azSteps = "n/a";
+    #else
+    String azSteps = String(mount.getCurrentStepperPosition(AZIMUTH_STEPS));
+    #endif
+    statusAltAz += rightJustify(azSteps, 8);
     statusAltAz += mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ";
     statusAltAz += F("   FOC: ");
-    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(FOCUS_STEPS)), 8);
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    String focSteps = "n/a";
+    #else
+    String focSteps = String(mount.getCurrentStepperPosition(FOCUS_STEPS));
+    #endif
+    statusAltAz += rightJustify(focSteps, 8);
     statusAltAz += mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ";
     Serial.println(statusRaDec);
     Serial.println(statusAltAz);
@@ -697,6 +716,7 @@ void TestMenu::tick()
                 }
             }
 
+    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
             if (_internalState & DISPLAY_AZ)
             {
                 Serial.print(F("AZ: "));
@@ -711,7 +731,9 @@ void TestMenu::tick()
                     _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_AZ));
                 }
             }
+    #endif
 
+    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
             if (_internalState & DISPLAY_ALT)
             {
                 Serial.print(F("ALT: "));
@@ -726,6 +748,7 @@ void TestMenu::tick()
                     _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_ALT));
                 }
             }
+    #endif
 
             Serial.println();
 

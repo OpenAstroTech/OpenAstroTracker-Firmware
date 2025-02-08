@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef TEST_VERIFY_MODE
+#if TEST_VERIFY_MODE == 1
     #include "testmenu.hpp"
     #include "testmenudef.hpp"
 #endif
@@ -27,7 +27,7 @@ void serialLoop()
     wifiControl.loop();
     #endif
 
-    #ifdef TEST_VERIFY_MODE
+    #if TEST_VERIFY_MODE == 1
     mainTestMenu.tick();
     #endif
 }
@@ -41,7 +41,7 @@ void serialEvent()
 }
     #endif
 
-    #ifdef TEST_VERIFY_MODE
+    #if TEST_VERIFY_MODE == 1
 
 void processTestState()
 {
