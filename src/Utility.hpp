@@ -180,6 +180,4 @@ int fsign(float num);
 // Return an array of String* with a nullptr sentinel
 String *splitStringBy(String str, char splitChar);
 
-String rightJustify(String str, int width);
-
 #endif

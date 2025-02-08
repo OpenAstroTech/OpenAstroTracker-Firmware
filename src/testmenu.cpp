@@ -5,6 +5,7 @@
 
 #if TEST_VERIFY_MODE == 1
 
+    #include "MappedDict.hpp"
     #include "testmenu.hpp"
 
 extern Mount mount;
@@ -176,75 +177,31 @@ TestMenu::TestMenu(int level, String name, String parent, TestMenuItem *choices,
 }
 String getComponent(const String &comp)
 {
-    if (comp == "AUTO_AZ_ALT")
-    {
-        return F("AZ and ALT steppers (AutoPA)");
-    }
-    if (comp == "AUTO_AZ")
-    {
-        return F("AZ stepper");
-    }
-    if (comp == "AUTO_ALT")
-    {
-        return F("ALT stepper");
-    }
-    if (comp == "GYRO")
-    {
-        return F("Digital Level");
-    }
-    if (comp == "LCD_KEYPAD")
-    {
-        return F("LCD display and keypad");
-    }
+    MappedDict<String, String>::DictEntry_t lookupTable[] = {
+        {F("AUTO_AZ_ALT"), F("AZ and ALT steppers (AutoPA)")},
+        {F("AUTO_AZ"), F("AZ stepper")},
+        {F("AUTO_ALT"), F("ALT stepper")},
+        {F("GYRO"), F("Digital Level")},
+        {F("LCD_KEYPAD"), F("LCD display and keypad")},
+        {F("LCD_I2C_MCP23008"), F("LCD display (MCP23008)")},
+        {F("LCD_I2C_MCP23017"), F("LCD display (MCP23017)")},
+        {F("LCD_JOY_I2C_SSD1306"), F("LCD display (SSD1306) with joystick")},
+        {F("INFO_I2C_SSD1306_128x64"), F("Info display (SSD1306)")},
+        {F("INFO_UNKNOWN"), F("Info display (unknown type)")},
+        {F("FOC"), F("Focuser stepper")},
+        {F("HSAH"), F("RA Hall Sensor Auto-Homing")},
+        {F("HSAV"), F("DEC Hall Sensor Auto-Homing")},
+        {F("ENDSW_RA"), F("End switches on RA")},
+        {F("ENDSW_DEC"), F("End switches on DEC")},
+        {F("ENDSW_RA_DEC"), F("End switches on RA and DEC")},
+    };
+    auto driverLookup = MappedDict<String, String>(lookupTable, ARRAY_SIZE(lookupTable));
 
-    if (comp == "LCD_I2C_MCP23008")
+    String rtn;
+    if (driverLookup.tryGet(comp, &rtn))
     {
-        return F("LCD display (MCP23008)");
+        return rtn;
     }
-    if (comp == "LCD_I2C_MCP23017")
-    {
-        return F("LCD display (MCP23017)");
-    };
-    if (comp == "LCD_JOY_I2C_SSD1306")
-    {
-        return F("LCD display (SSD1306) with joystick");
-    };
-
-    if (comp == "INFO_I2C_SSD1306_128x64")
-    {
-        return F("Info display (SSD1306)");
-    };
-    if (comp == "INFO_UNKNOWN")
-    {
-        return F("Info display (unknown type)");
-    };
-
-    if (comp == "FOC")
-    {
-        return F("Focuser stepper");
-    };
-
-    if (comp == "HSAH")
-    {
-        return F("RA Hall Sensor Auto-Homing");
-    };
-    if (comp == "HSAV")
-    {
-        return F("DEC Hall Sensor Auto-Homing");
-    };
-
-    if (comp == "ENDSW_RA")
-    {
-        return F("End switches on RA");
-    };
-    if (comp == "ENDSW_DEC")
-    {
-        return F("End switches on DEC");
-    };
-    if (comp == "ENDSW_RA_DEC")
-    {
-        return F("End switches on RA and DEC");
-    };
     return F("Unknown component");
 }
 
@@ -540,24 +497,24 @@ void TestMenu::displayStepperPos() const
     char buffer[64];
     snprintf_P(buffer,
                sizeof(buffer),
-               (const char *) F("  RA: %8ld%s   ALT: %8ld%s   TRK: %8ld%s"),
+               (const char *) F("  RA: %8ld%c   ALT: %8ld%c   TRK: %8ld%c"),
                mount.getCurrentStepperPosition(RA_STEPS),
-               mount.isAxisRunning(RA_STEPS) ? "^" : " ",
+               mount.isAxisRunning(RA_STEPS) ? '^' : ' ',
                mount.getCurrentStepperPosition(ALTITUDE_STEPS),
-               mount.isAxisRunning(ALTITUDE_STEPS) ? "^" : " ",
+               mount.isAxisRunning(ALTITUDE_STEPS) ? '^' : ' ',
                mount.getCurrentStepperPosition(TRACKING),
-               mount.isSlewingTRK() ? "^" : " ");
+               mount.isSlewingTRK() ? '^' : ' ');
     Serial.println(buffer);
 
     snprintf_P(buffer,
                sizeof(buffer),
-               (const char *) F(" DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s"),
+               (const char *) F(" DEC: %8ld%c    AZ: %8ld%c   FOC: %8ld%c"),
                mount.getCurrentStepperPosition(DEC_STEPS),
-               mount.isAxisRunning(DEC_STEPS) ? "^" : " ",
+               mount.isAxisRunning(DEC_STEPS) ? '^' : ' ',
                mount.getCurrentStepperPosition(AZIMUTH_STEPS),
-               mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ",
+               mount.isAxisRunning(AZIMUTH_STEPS) ? '^' : ' ',
                mount.getCurrentStepperPosition(FOCUS_STEPS),
-               mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ");
+               mount.isAxisRunning(FOCUS_STEPS) ? '^' : ' ');
     Serial.println(buffer);
 }
 

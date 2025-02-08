@@ -266,14 +266,6 @@ String *splitStringBy(String str, char splitChar)
     return array;
 }
 
-String rightJustify(String str, int width)
-{
-    while (str.length() < (unsigned int) width)
-    {
-        str = " " + str;  // Add spaces to the left
-    }
-    return str;
-}
 #if defined(ESP32)
 int freeMemory()
 {
