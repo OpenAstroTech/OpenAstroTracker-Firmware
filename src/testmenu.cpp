@@ -550,16 +550,15 @@ void TestMenu::displayStepperPos() const
     Serial.println(buffer);
 
     snprintf(buffer,
-        sizeof(buffer),
-        " DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s",
-        mount.getCurrentStepperPosition(DEC_STEPS),
-        mount.isAxisRunning(DEC_STEPS) ? "^" : " ",
-        mount.getCurrentStepperPosition(AZIMUTH_STEPS),
-        mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ",
-        mount.getCurrentStepperPosition(FOCUS_STEPS),
-        mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ");
-Serial.println(buffer);
-
+             sizeof(buffer),
+             " DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s",
+             mount.getCurrentStepperPosition(DEC_STEPS),
+             mount.isAxisRunning(DEC_STEPS) ? "^" : " ",
+             mount.getCurrentStepperPosition(AZIMUTH_STEPS),
+             mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ",
+             mount.getCurrentStepperPosition(FOCUS_STEPS),
+             mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ");
+    Serial.println(buffer);
 }
 
 void TestMenu::display() const
