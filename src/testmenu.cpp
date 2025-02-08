@@ -37,62 +37,34 @@ String getMenuLabel(menuText_t labelId)
 {
     switch (labelId)
     {
-        case MENU_BACK:
-            return F("Back");
-        case MENU_CONNECT_RA:
-            return F("Connect to RA Driver");
-        case MENU_CONNECT_DEC:
-            return F("Connect to DEC Driver");
-        case MENU_CONNECT_ALT:
-            return F("Connect to ALT Driver");
-        case MENU_CONNECT_AZ:
-            return F("Connect to AZ Driver");
-        case MENU_CONNECT_FOC:
-            return F("Connect to FOCUS Driver");
-        case MENU_PRIMARY_RA_CW:
-            return F("Move RA Axis 1h clockwise");
-        case MENU_PRIMARY_RA_CCW:
-            return F("Move RA Axis 1h counter-clockwise");
-        case MENU_PRIMARY_DEC_UP:
-            return F("Move DEC Axis 15deg up");
-        case MENU_PRIMARY_DEC_DOWN:
-            return F("Move DEC Axis 15deg down");
-        case MENU_TOGGLE_TRK:
-            return F("Stop/Start Tracking");
-        case MENU_SECONDARY_RATE_1:
-            return F("Set distance to 0.1 arcmin");
-        case MENU_SECONDARY_RATE_2:
-            return F("Set distance to 0.5 arcmin");
-        case MENU_SECONDARY_RATE_3:
-            return F("Set distance to 2 arcmin");
-        case MENU_SECONDARY_RATE_4:
-            return F("Set distance to 5 arcmin");
-        case MENU_SECONDARY_RATE_5:
-            return F("Set distance to 15 arcmin");
-        case MENU_SECONDARY_ALT_UP:
-            return F("Move ALT Axis Up");
-        case MENU_SECONDARY_ALT_DOWN:
-            return F("Move ALT Axis Down");
-        case MENU_SECONDARY_AZ_LEFT:
-            return F("Move AZ Axis Left");
-        case MENU_SECONDARY_AZ_RIGHT:
-            return F("Move AZ Axis Right");
-        case MENU_FACTORY_RESET:
-            return F("Factory Reset (Erase EEPROM)");
-        case MENU_PASSTHROUGH_COMMAND:
-            return F("Issue LX200 Command");
-        case MENU_MAIN_LIST_HARDWARE:
-            return F("List Hardware");
-        case MENU_MAIN_CONNECT_DRIVERS:
-            return F("Connect Drivers");
-        case MENU_MAIN_PRIMARY_AXIS_MOVES:
-            return F("Primary Axis Moves (RA/DEC)");
-        case MENU_MAIN_SECONDARY_AXIS_MOVES:
-            return F("Secondary Axis Moves (ALT/AZ)");
-        case MENU_PRIMARY_SET_HOME:
-            return F("Set current as Home");
-        case MENU_PRIMARY_GO_HOME:
-            return F("Go Home");
+        CASERETURN(MENU_BACK, F("Back"));
+        CASERETURN(MENU_CONNECT_RA, F("Connect to RA Driver"));
+        CASERETURN(MENU_CONNECT_DEC, F("Connect to DEC Driver"));
+        CASERETURN(MENU_CONNECT_ALT, F("Connect to ALT Driver"));
+        CASERETURN(MENU_CONNECT_AZ, F("Connect to AZ Driver"));
+        CASERETURN(MENU_CONNECT_FOC, F("Connect to FOCUS Driver"));
+        CASERETURN(MENU_PRIMARY_RA_CW, F("Move RA Axis 1h clockwise"));
+        CASERETURN(MENU_PRIMARY_RA_CCW, F("Move RA Axis 1h counter-clockwise"));
+        CASERETURN(MENU_PRIMARY_DEC_UP, F("Move DEC Axis 15deg up"));
+        CASERETURN(MENU_PRIMARY_DEC_DOWN, F("Move DEC Axis 15deg down"));
+        CASERETURN(MENU_TOGGLE_TRK, F("Stop/Start Tracking"));
+        CASERETURN(MENU_SECONDARY_RATE_1, F("Set distance to 0.1 arcmin"));
+        CASERETURN(MENU_SECONDARY_RATE_2, F("Set distance to 0.5 arcmin"));
+        CASERETURN(MENU_SECONDARY_RATE_3, F("Set distance to 2 arcmin"));
+        CASERETURN(MENU_SECONDARY_RATE_4, F("Set distance to 5 arcmin"));
+        CASERETURN(MENU_SECONDARY_RATE_5, F("Set distance to 15 arcmin"));
+        CASERETURN(MENU_SECONDARY_ALT_UP, F("Move ALT Axis Up"));
+        CASERETURN(MENU_SECONDARY_ALT_DOWN, F("Move ALT Axis Down"));
+        CASERETURN(MENU_SECONDARY_AZ_LEFT, F("Move AZ Axis Left"));
+        CASERETURN(MENU_SECONDARY_AZ_RIGHT, F("Move AZ Axis Right"));
+        CASERETURN(MENU_FACTORY_RESET, F("Factory Reset (Erase EEPROM)"));
+        CASERETURN(MENU_PASSTHROUGH_COMMAND, F("Issue LX200 Command"));
+        CASERETURN(MENU_MAIN_LIST_HARDWARE, F("List Hardware"));
+        CASERETURN(MENU_MAIN_CONNECT_DRIVERS, F("Connect Drivers"));
+        CASERETURN(MENU_MAIN_PRIMARY_AXIS_MOVES, F("Primary Axis Moves (RA/DEC)"));
+        CASERETURN(MENU_MAIN_SECONDARY_AXIS_MOVES, F("Secondary Axis Moves (ALT/AZ)"));
+        CASERETURN(MENU_PRIMARY_SET_HOME, F("Set current as Home"));
+        CASERETURN(MENU_PRIMARY_GO_HOME, F("Go Home"));
         default:
             return F("Unknown");
     }
@@ -102,64 +74,36 @@ String getMenuAction(menuText_t labelId)
 {
     switch (labelId)
     {
-        case MENU_BACK:
-            return F("Action:Back");
-        case MENU_CONNECT_RA:
-            return F("Action:Connect|RA");
-        case MENU_CONNECT_DEC:
-            return F("Action:Connect|DEC");
-        case MENU_CONNECT_ALT:
-            return F("Action:Connect|ALT");
-        case MENU_CONNECT_AZ:
-            return F("Action:Connect|AZ");
-        case MENU_CONNECT_FOC:
-            return F("Action:Connect|FOC");
-        case MENU_PRIMARY_RA_CW:
-            return F("Action:MoveRAAxis|CW");
-        case MENU_PRIMARY_RA_CCW:
-            return F("Action:MoveRAAxis|CCW");
-        case MENU_PRIMARY_SET_HOME:
-            return F("Action:SetHome");
-        case MENU_PRIMARY_GO_HOME:
-            return F("Action:GoHome");
-        case MENU_PRIMARY_DEC_UP:
-            return F("Action:MoveDECAxis|UP");
-        case MENU_PRIMARY_DEC_DOWN:
-            return F("Action:MoveDECAxis|DOWN");
-        case MENU_TOGGLE_TRK:
-            return F("Action:ToggleTRK");
+        CASERETURN(MENU_BACK, F("Action:Back"));
+        CASERETURN(MENU_CONNECT_RA, F("Action:Connect|RA"));
+        CASERETURN(MENU_CONNECT_DEC, F("Action:Connect|DEC"));
+        CASERETURN(MENU_CONNECT_ALT, F("Action:Connect|ALT"));
+        CASERETURN(MENU_CONNECT_AZ, F("Action:Connect|AZ"));
+        CASERETURN(MENU_CONNECT_FOC, F("Action:Connect|FOC"));
+        CASERETURN(MENU_PRIMARY_RA_CW, F("Action:MoveRAAxis|CW"));
+        CASERETURN(MENU_PRIMARY_RA_CCW, F("Action:MoveRAAxis|CCW"));
+        CASERETURN(MENU_PRIMARY_SET_HOME, F("Action:SetHome"));
+        CASERETURN(MENU_PRIMARY_GO_HOME, F("Action:GoHome"));
+        CASERETURN(MENU_PRIMARY_DEC_UP, F("Action:MoveDECAxis|UP"));
+        CASERETURN(MENU_PRIMARY_DEC_DOWN, F("Action:MoveDECAxis|DOWN"));
+        CASERETURN(MENU_TOGGLE_TRK, F("Action:ToggleTRK"));
 
-        case MENU_SECONDARY_RATE_1:
-            return F("Action:SetSecDist|0.1");
-        case MENU_SECONDARY_RATE_2:
-            return F("Action:SetSecDist|0.5");
-        case MENU_SECONDARY_RATE_3:
-            return F("Action:SetSecDist|2");
-        case MENU_SECONDARY_RATE_4:
-            return F("Action:SetSecDist|5");
-        case MENU_SECONDARY_RATE_5:
-            return F("Action:SetSecDist|15");
+        CASERETURN(MENU_SECONDARY_RATE_1, F("Action:SetSecDist|0.1"));
+        CASERETURN(MENU_SECONDARY_RATE_2, F("Action:SetSecDist|0.5"));
+        CASERETURN(MENU_SECONDARY_RATE_3, F("Action:SetSecDist|2"));
+        CASERETURN(MENU_SECONDARY_RATE_4, F("Action:SetSecDist|5"));
+        CASERETURN(MENU_SECONDARY_RATE_5, F("Action:SetSecDist|15"));
 
-        case MENU_SECONDARY_ALT_UP:
-            return F("Action:MoveALTAxis|UP");
-        case MENU_SECONDARY_ALT_DOWN:
-            return F("Action:MoveALTAxis|DOWN");
-        case MENU_SECONDARY_AZ_LEFT:
-            return F("Action:MoveAZAxis|LEFT");
-        case MENU_SECONDARY_AZ_RIGHT:
-            return F("Action:MoveAZAxis|RIGHT");
-        case MENU_FACTORY_RESET:
-            return F("Action:FactoryReset");
-        case MENU_PASSTHROUGH_COMMAND:
-            return F("Action:PassthroughCmd");
-        case MENU_MAIN_LIST_HARDWARE:
-            return F("Action:ListHardware");
-        case MENU_MAIN_CONNECT_DRIVERS:
-            return F("Submenu:ConnectDrivers");
-        case MENU_MAIN_PRIMARY_AXIS_MOVES:
-            return F("Submenu:PrimaryAxisMoves");
-        case MENU_MAIN_SECONDARY_AXIS_MOVES:
-            return F("Submenu:SecondaryAxisMoves");
+        CASERETURN(MENU_SECONDARY_ALT_UP, F("Action:MoveALTAxis|UP"));
+        CASERETURN(MENU_SECONDARY_ALT_DOWN, F("Action:MoveALTAxis|DOWN"));
+        CASERETURN(MENU_SECONDARY_AZ_LEFT, F("Action:MoveAZAxis|LEFT"));
+        CASERETURN(MENU_SECONDARY_AZ_RIGHT, F("Action:MoveAZAxis|RIGHT"));
+        CASERETURN(MENU_FACTORY_RESET, F("Action:FactoryReset"));
+        CASERETURN(MENU_PASSTHROUGH_COMMAND, F("Action:PassthroughCmd"));
+        CASERETURN(MENU_MAIN_LIST_HARDWARE, F("Action:ListHardware"));
+        CASERETURN(MENU_MAIN_CONNECT_DRIVERS, F("Submenu:ConnectDrivers"));
+        CASERETURN(MENU_MAIN_PRIMARY_AXIS_MOVES, F("Submenu:PrimaryAxisMoves"));
+        CASERETURN(MENU_MAIN_SECONDARY_AXIS_MOVES, F("Submenu:SecondaryAxisMoves"));
         default:
             return F("Unknown");
     }
@@ -230,7 +174,7 @@ TestMenu::TestMenu(int level, String name, String parent, TestMenuItem *choices,
         }
     }
 }
-String getComponent(String comp)
+String getComponent(const String &comp)
 {
     if (comp == "AUTO_AZ_ALT")
     {
@@ -256,7 +200,7 @@ String getComponent(String comp)
     if (comp == "LCD_I2C_MCP23008")
     {
         return F("LCD display (MCP23008)");
-    };
+    }
     if (comp == "LCD_I2C_MCP23017")
     {
         return F("LCD display (MCP23017)");
@@ -593,44 +537,29 @@ void TestMenu::onKeyPressed(int key)
 
 void TestMenu::displayStepperPos() const
 {
-    String statusRaDec;
-    statusRaDec = F("  RA: ");
-    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(RA_STEPS)), 8);
-    statusRaDec += mount.isAxisRunning(RA_STEPS) ? "^" : " ";
-    statusRaDec += F("   ALT: ");
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    String altSteps = "n/a";
-    #else
-    String altSteps = String(mount.getCurrentStepperPosition(ALTITUDE_STEPS));
-    #endif
-    statusRaDec += rightJustify(altSteps, 8);
-    statusRaDec += mount.isAxisRunning(ALTITUDE_STEPS) ? "^" : " ";
-    statusRaDec += F("   TRK: ");
-    statusRaDec += rightJustify(String(mount.getCurrentStepperPosition(TRACKING)), 8);
-    statusRaDec += mount.isSlewingTRK() ? "^" : " ";
+    char buffer[64];
+    snprintf(buffer,
+             sizeof(buffer),
+             "  RA: %8ld%s   ALT: %8ld%s   TRK: %8ld%s",
+             mount.getCurrentStepperPosition(RA_STEPS),
+             mount.isAxisRunning(RA_STEPS) ? "^" : " ",
+             mount.getCurrentStepperPosition(ALTITUDE_STEPS),
+             mount.isAxisRunning(ALTITUDE_STEPS) ? "^" : " ",
+             mount.getCurrentStepperPosition(TRACKING),
+             mount.isSlewingTRK() ? "^" : " ");
+    Serial.println(buffer);
 
-    String statusAltAz;
-    statusAltAz = F(" DEC: ");
-    statusAltAz += rightJustify(String(mount.getCurrentStepperPosition(DEC_STEPS)), 8);
-    statusAltAz += mount.isAxisRunning(DEC_STEPS) ? "^" : " ";
-    statusAltAz += F("    AZ: ");
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    String azSteps = "n/a";
-    #else
-    String azSteps  = String(mount.getCurrentStepperPosition(AZIMUTH_STEPS));
-    #endif
-    statusAltAz += rightJustify(azSteps, 8);
-    statusAltAz += mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ";
-    statusAltAz += F("   FOC: ");
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    String focSteps = "n/a";
-    #else
-    String focSteps = String(mount.getCurrentStepperPosition(FOCUS_STEPS));
-    #endif
-    statusAltAz += rightJustify(focSteps, 8);
-    statusAltAz += mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ";
-    Serial.println(statusRaDec);
-    Serial.println(statusAltAz);
+    snprintf(buffer,
+        sizeof(buffer),
+        " DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s",
+        mount.getCurrentStepperPosition(DEC_STEPS),
+        mount.isAxisRunning(DEC_STEPS) ? "^" : " ",
+        mount.getCurrentStepperPosition(AZIMUTH_STEPS),
+        mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ",
+        mount.getCurrentStepperPosition(FOCUS_STEPS),
+        mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ");
+Serial.println(buffer);
+
 }
 
 void TestMenu::display() const
@@ -655,7 +584,7 @@ void TestMenu::display() const
     {
         Serial.print(F("---------------- "));
         Serial.print(freeMemory());
-        Serial.println(F(" bytes ------------"));
+        Serial.println(F(" bytes -------------"));
         displayStepperPos();
         Serial.println(F("-----------------------------------------"));
         Serial.print("  ");
@@ -664,7 +593,6 @@ void TestMenu::display() const
         Serial.println(F("--------------------------"));
     }
 
-    //Serial.println(F("Please choose:"));
     for (int i = 0; i < _numChoices; i++)
     {
         _choices[i].setKey(i + 1);

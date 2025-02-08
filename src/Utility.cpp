@@ -260,7 +260,7 @@ String *splitStringBy(String str, char splitChar)
         array[t++] = str.substring(r);
     }
 
-    // Mark the end of the array with nullptr
+    // Mark the end of the array with ""
     array[t] = "";
 
     return array;

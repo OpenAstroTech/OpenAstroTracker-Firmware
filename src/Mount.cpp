@@ -414,7 +414,7 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if UART_CONNECTION_TEST_TXRX == 1 || defined(TEST_VERIFY_MODE)
-bool Mount::connectToDriver(String driverKind, uint16_t *rmsCurrent)
+bool Mount::connectToDriver(const String &driverKind, uint16_t *rmsCurrent)
 {
     MappedDict<String, TMC2209Stepper *>::DictEntry_t lookupTable[] = {
         #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
