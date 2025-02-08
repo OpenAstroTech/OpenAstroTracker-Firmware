@@ -538,9 +538,9 @@ void TestMenu::onKeyPressed(int key)
 void TestMenu::displayStepperPos() const
 {
     char buffer[64];
-    snprintf(buffer,
+    snprintf_P(buffer,
              sizeof(buffer),
-             "  RA: %8ld%s   ALT: %8ld%s   TRK: %8ld%s",
+             (const char *)F("  RA: %8ld%s   ALT: %8ld%s   TRK: %8ld%s"),
              mount.getCurrentStepperPosition(RA_STEPS),
              mount.isAxisRunning(RA_STEPS) ? "^" : " ",
              mount.getCurrentStepperPosition(ALTITUDE_STEPS),
@@ -549,9 +549,9 @@ void TestMenu::displayStepperPos() const
              mount.isSlewingTRK() ? "^" : " ");
     Serial.println(buffer);
 
-    snprintf(buffer,
+    snprintf_P(buffer,
              sizeof(buffer),
-             " DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s",
+             (const char *)F(" DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s"),
              mount.getCurrentStepperPosition(DEC_STEPS),
              mount.isAxisRunning(DEC_STEPS) ? "^" : " ",
              mount.getCurrentStepperPosition(AZIMUTH_STEPS),
