@@ -539,25 +539,25 @@ void TestMenu::displayStepperPos() const
 {
     char buffer[64];
     snprintf_P(buffer,
-             sizeof(buffer),
-             (const char *)F("  RA: %8ld%s   ALT: %8ld%s   TRK: %8ld%s"),
-             mount.getCurrentStepperPosition(RA_STEPS),
-             mount.isAxisRunning(RA_STEPS) ? "^" : " ",
-             mount.getCurrentStepperPosition(ALTITUDE_STEPS),
-             mount.isAxisRunning(ALTITUDE_STEPS) ? "^" : " ",
-             mount.getCurrentStepperPosition(TRACKING),
-             mount.isSlewingTRK() ? "^" : " ");
+               sizeof(buffer),
+               (const char *) F("  RA: %8ld%s   ALT: %8ld%s   TRK: %8ld%s"),
+               mount.getCurrentStepperPosition(RA_STEPS),
+               mount.isAxisRunning(RA_STEPS) ? "^" : " ",
+               mount.getCurrentStepperPosition(ALTITUDE_STEPS),
+               mount.isAxisRunning(ALTITUDE_STEPS) ? "^" : " ",
+               mount.getCurrentStepperPosition(TRACKING),
+               mount.isSlewingTRK() ? "^" : " ");
     Serial.println(buffer);
 
     snprintf_P(buffer,
-             sizeof(buffer),
-             (const char *)F(" DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s"),
-             mount.getCurrentStepperPosition(DEC_STEPS),
-             mount.isAxisRunning(DEC_STEPS) ? "^" : " ",
-             mount.getCurrentStepperPosition(AZIMUTH_STEPS),
-             mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ",
-             mount.getCurrentStepperPosition(FOCUS_STEPS),
-             mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ");
+               sizeof(buffer),
+               (const char *) F(" DEC: %8ld%s    AZ: %8ld%s   FOC: %8ld%s"),
+               mount.getCurrentStepperPosition(DEC_STEPS),
+               mount.isAxisRunning(DEC_STEPS) ? "^" : " ",
+               mount.getCurrentStepperPosition(AZIMUTH_STEPS),
+               mount.isAxisRunning(AZIMUTH_STEPS) ? "^" : " ",
+               mount.getCurrentStepperPosition(FOCUS_STEPS),
+               mount.isAxisRunning(FOCUS_STEPS) ? "^" : " ");
     Serial.println(buffer);
 }
 
