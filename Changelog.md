@@ -1,3 +1,13 @@
+**V1.13.12 - Updates**
+- Added basic test mode that can be run via terminal connection.
+
+**V1.13.11 - Updates**
+- Fixed DEBUG macro usage.
+- Clarified some Meade documentation.
+
+**V1.13.10 - Updates**
+- Fixed dependency specification for git tags
+
 **V1.13.9 - Updates**
 - Added guide logging support.
 - Fixed some Meade documentation errors.
