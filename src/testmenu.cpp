@@ -181,6 +181,7 @@ String getComponent(const String &comp)
         {F("AUTO_AZ_ALT"), F("AZ and ALT steppers (AutoPA)")},
         {F("AUTO_AZ"), F("AZ stepper")},
         {F("AUTO_ALT"), F("ALT stepper")},
+        {F("GPS"), F("GPS receiver")},
         {F("GYRO"), F("Digital Level")},
         {F("LCD_KEYPAD"), F("LCD display and keypad")},
         {F("LCD_I2C_MCP23008"), F("LCD display (MCP23008)")},
