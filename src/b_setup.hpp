@@ -12,6 +12,10 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 #endif
 
+#if TEST_VERIFY_MODE == 1
+    #include "testmenu.hpp"
+#endif
+
 #ifndef NEW_STEPPER_LIB
     #include "InterruptCallback.hpp"
 #endif
@@ -111,7 +115,21 @@ void setup()
     #endif
 #endif
 
-    LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT %s!", VERSION);
+#if TEST_VERIFY_MODE == 1
+    #ifdef OAM
+    Serial.print(F("Booting OAM Firmware "));
+    #else
+    Serial.print(F("Booting OAT Firmware "));
+    #endif
+    Serial.print(VERSION);
+    Serial.println(F(" ..."));
+#else
+    #ifdef OAM
+    LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAM Firmware %s!", VERSION);
+    #else
+    LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT Firmware %s!", VERSION);
+    #endif
+#endif
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
@@ -521,5 +539,8 @@ void setup()
     mount.getInfoDisplay()->addConsoleText(F("BOOT COMPLETE!"));
     delay(250);
     mount.getInfoDisplay()->setConsoleMode(false);
+#endif
+#if TEST_VERIFY_MODE == 1
+    TestMenu::getCurrentMenu()->display();
 #endif
 }
