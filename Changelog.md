@@ -1,4 +1,5 @@
 **V1.13.12 - Updates**
+- Parallelize matrix_build.py for faster CI builds
 - Added basic test mode that can be run via terminal connection.
 
 **V1.13.11 - Updates**
