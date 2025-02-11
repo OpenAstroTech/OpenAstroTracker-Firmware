@@ -282,7 +282,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        [4] The Tracking stepper position
 //        [5] The current RA coordinate
 //        [6] The current DEC coordinate
-//        [7] The FOC stepper position (if FOC enabled, else empty) 
+//        [7] The FOC stepper position (if FOC enabled, else empty)
 //      Remarks:
 //        The motion state consists of 6 characters. If the character is a '-', the corresponding axis is not moving.
 //        First character is RA slewing state ('R' is East, 'r' is West, '-' is stopped).
@@ -488,7 +488,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Start slewing
 //      Information:
-//        This starts slewing the mount in the given direction. You must issue a stop command (such as the corresponding ":Qc#", 
+//        This starts slewing the mount in the given direction. You must issue a stop command (such as the corresponding ":Qc#",
 //        where 'c' is the same direction as passed to this command) or ":Q#" (stops all steppers) to stop it.
 //      Parameters:
 //        "c" is one of 'n', 'e', 'w', or 's'
@@ -1038,7 +1038,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set DEC parking position offset
 //      Information:
 //        This stores the number of steps needed to move from home to the parking position.
-//      Returns: 
+//      Returns:
 //        nothing
 //
 // :XSSn.nnn#
