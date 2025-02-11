@@ -2,6 +2,7 @@ Import("env")
 
 import os
 import tempfile
+from pathlib import Path
 
 
 def cprint(*args, **kwargs):
@@ -31,7 +32,8 @@ def patch_function_factory(src_path, output_suffix, replacement_list):
     def out_func(node):
         # patch_path_key needs to be kept in sync with post_script_remove_patched_files.py
         # so that after a successful build the patched file can be removed
-        patch_path_key = '_patched_'
+        project_dir_name = Path.cwd().name  # See post_script_remove_patched_files.py on why this is needed
+        patch_path_key = f'_{project_dir_name}_patched_'
         with tempfile.NamedTemporaryFile(mode='w', suffix=f'{patch_path_key}{output_suffix}', delete=False) as tf:
             patched_filepath = tf.name
             cprint(f'Patching {src_path}')
