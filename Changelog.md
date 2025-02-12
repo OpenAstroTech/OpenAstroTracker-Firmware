@@ -1,3 +1,7 @@
+**V1.13.13 - Updates**
+- Improved Meade command documentation
+- Fixed a bug that was not correctly showing the stepper direction in the :GX# command reply./
+
 **V1.13.12 - Updates**
 - Parallelize matrix_build.py for faster CI builds
 - Added basic test mode that can be run via terminal connection.

@@ -28,21 +28,13 @@ PUSH_NO_WARNINGS
 #endif
 POP_NO_WARNINGS
 
-// slewingStatus()
+// slewStatus()
 #define SLEWING_DEC      B00000010
 #define SLEWING_RA       B00000001
 #define SLEWING_BOTH     B00000011
 #define SLEWING_TRACKING B00001000
 #define NOT_SLEWING      B00000000
-
-// slewStatus
-#define SLEW_MASK_DEC   B0011
-#define SLEW_MASK_NORTH B0001
-#define SLEW_MASK_SOUTH B0010
-#define SLEW_MASK_RA    B1100
-#define SLEW_MASK_EAST  B0100
-#define SLEW_MASK_WEST  B1000
-#define SLEW_MASK_ANY   B1111
+#define SLEW_MASK_ANY    B1111
 
 #define UART_CONNECTION_TEST_RETRIES 5
 
@@ -2278,11 +2270,17 @@ String Mount::getStatusString()
     {
         byte slew = slewStatus();
         if (slew & SLEWING_RA)
-            disp[0] = _stepperRA->speed() < 0 ? 'R' : 'r';
+        {
+            disp[0] = _stepperRA->targetPosition() < _stepperRA->currentPosition() ? 'R' : 'r';
+        }
         if (slew & SLEWING_DEC)
-            disp[1] = _stepperDEC->speed() < 0 ? 'D' : 'd';
+        {
+            disp[1] = _stepperDEC->targetPosition() < _stepperDEC->currentPosition() ? 'D' : 'd';
+        }
         if (slew & SLEWING_TRACKING)
+        {
             disp[2] = 'T';
+        }
     }
     else if (isSlewingTRK())
     {
@@ -2290,16 +2288,20 @@ String Mount::getStatusString()
     }
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperAZ->isRunning())
-        disp[3] = _stepperAZ->speed() < 0 ? 'Z' : 'z';
+    {
+        disp[3] = _stepperAZ->targetPosition() < _stepperAZ->currentPosition() ? 'Z' : 'z';
+    }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperALT->isRunning())
-        disp[4] = _stepperALT->speed() < 0 ? 'A' : 'a';
+    {
+        disp[4] = _stepperALT->targetPosition() < _stepperALT->currentPosition() ? 'A' : 'a';
+    }
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperFocus->isRunning())
-        disp[5] = _stepperFocus->speed() < 0 ? 'F' : 'f';
+        disp[5] = _stepperFocus->targetPosition() < _stepperFocus->currentPosition() ? 'F' : 'f';
 #endif
 
     status += disp;
@@ -2320,7 +2322,7 @@ String Mount::getStatusString()
 
 /////////////////////////////////
 //
-// slewingStatus
+// slewStatus
 //
 // Returns the current state of the motors and is a bitfield with these flags:
 // NOT_SLEWING is all zero. SLEWING_DEC, SLEWING_RA, SLEWING_BOTH, SLEWING_TRACKING are bits.
