@@ -210,7 +210,7 @@ for i in range(len(family_dividers) - 1):
                 m = l+1
                 while not check_command_sepparator(content[m]):
                     command.remarks = remove_line_prefix(content[m])
-                    m += 1
+                    m += 1 
                 l = m
 
             # Parameters
@@ -257,12 +257,13 @@ def output_wiki():
 
     f = open("./scripts/MeadeToWikiOutput.txt", "w")
     
-    for fam in all_commands:
-        f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
-        f.write("{.is-danger}\n\n")
+    f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
+    f.write("{.is-danger}\n\n")
 
-        f.write(f"> This documentation is current as of Firmware **{CURRENT_VERSION}**\n")
-        f.write("{.is-warning}\n\n")
+    f.write(f"> This documentation is current as of Firmware **{CURRENT_VERSION}**\n")
+    f.write("{.is-warning}\n\n")
+
+    for fam in all_commands:
         
         f.write(f"## {fam.name}\n")
         f.write("<br>\n\n")
@@ -273,7 +274,7 @@ def output_wiki():
             if cmd.information:
                 #f.write("**Information:**\n")
                 for line in cmd.information:
-                    f.write(f"{line}")
+                    f.write(f"{line} ")
                 f.write("\n\n")
 
             f.write(f"**Command:**\n")
@@ -308,6 +309,12 @@ def output_wiki():
             f.write("\n")
 
     f.write("\n\n")
+    
+    f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
+    f.write("{.is-danger}\n\n")
+
+    f.write(f"> This documentation is current as of Firmware **{CURRENT_VERSION}**\n")
+    f.write("{.is-warning}\n\n")
 
     f.close()
     print("File written to: ./scripts/MeadeToWikiOutput.txt")
