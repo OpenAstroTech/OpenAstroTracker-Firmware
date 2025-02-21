@@ -173,5 +173,11 @@ int sign(long num);
 int fsign(float num);
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
+#define CASERETURN(c, r)                                                                                                                   \
+    case c:                                                                                                                                \
+        return r
+
+// Return an array of String* with a nullptr sentinel
+String *splitStringBy(String str, char splitChar);
 
 #endif

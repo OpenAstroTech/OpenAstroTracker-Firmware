@@ -28,21 +28,13 @@ PUSH_NO_WARNINGS
 #endif
 POP_NO_WARNINGS
 
-// slewingStatus()
+// slewStatus()
 #define SLEWING_DEC      B00000010
 #define SLEWING_RA       B00000001
 #define SLEWING_BOTH     B00000011
 #define SLEWING_TRACKING B00001000
 #define NOT_SLEWING      B00000000
-
-// slewStatus
-#define SLEW_MASK_DEC   B0011
-#define SLEW_MASK_NORTH B0001
-#define SLEW_MASK_SOUTH B0010
-#define SLEW_MASK_RA    B1100
-#define SLEW_MASK_EAST  B0100
-#define SLEW_MASK_WEST  B1000
-#define SLEW_MASK_ANY   B1111
+#define SLEW_MASK_ANY    B1111
 
 #define UART_CONNECTION_TEST_RETRIES 5
 
@@ -413,23 +405,56 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    #if UART_CONNECTION_TEST_TXRX == 1
-bool Mount::connectToDriver(TMC2209Stepper *driver, const char *driverKind)
+    #if (UART_CONNECTION_TEST_TXRX == 1) || (TEST_VERIFY_MODE == 1)
+bool Mount::connectToDriver(const String &driverKind, uint16_t *rmsCurrent)
 {
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: Testing UART Connection to %s driver...", driverKind);
-    for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++)
+    MappedDict<String, TMC2209Stepper *>::DictEntry_t lookupTable[] = {
+        #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        {"RA", _driverRA},
+        #endif
+        #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        {"DEC", _driverDEC},
+        #endif
+        #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        {"ALT", _driverALT},
+        #endif
+        #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        {"AZ", _driverAZ},
+        #endif
+        #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        {"FOC", _driverFocus},
+        #endif
+    };
+    auto driverLookup = MappedDict<String, TMC2209Stepper *>(lookupTable, ARRAY_SIZE(lookupTable));
+
+    TMC2209Stepper *driver = nullptr;
+    driverLookup.tryGet(driverKind, &driver);
+
+    if (driver != nullptr)
     {
-        if (driver->test_connection() == 0)
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: Testing UART Connection to %s driver...", driverKind.c_str());
+        for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++)
         {
-            LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver successful.", driverKind);
-            return true;
+            if (driver->test_connection() == 0)
+            {
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver successful.", driverKind.c_str());
+                if (rmsCurrent != nullptr)
+                {
+                    *rmsCurrent = driver->rms_current();
+                }
+                return true;
+            }
+            else
+            {
+                delay(500);
+            }
         }
-        else
-        {
-            delay(500);
-        }
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver failed.", driverKind.c_str());
     }
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver failed.", driverKind);
+    if (rmsCurrent != nullptr)
+    {
+        *rmsCurrent = 0;
+    }
     return false;
 }
     #endif
@@ -448,7 +473,7 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverRA->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverRA, "RA");
+    UART_Rx_connected = connectToDriver("RA");
     if (!UART_Rx_connected)
     {
         digitalWrite(RA_EN_PIN,
@@ -487,7 +512,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverRA, "RA");
+    UART_Rx_connected = connectToDriver("RA");
     if (!UART_Rx_connected)
     {
         digitalWrite(RA_EN_PIN,
@@ -531,7 +556,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverDEC, "DEC");
+    UART_Rx_connected = connectToDriver("DEC");
     if (!UART_Rx_connected)
     {
         digitalWrite(DEC_EN_PIN,
@@ -570,7 +595,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverDEC, "DEC");
+    UART_Rx_connected = connectToDriver("DEC");
     if (!UART_Rx_connected)
     {
         digitalWrite(DEC_EN_PIN,
@@ -614,7 +639,7 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverAZ->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverAZ, "AZ");
+    UART_Rx_connected = connectToDriver("AZ");
     if (!UART_Rx_connected)
     {
         digitalWrite(AZ_EN_PIN,
@@ -652,7 +677,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
     _driverAZ->pdn_disable(true);
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverAZ, "AZ");
+    UART_Rx_connected = connectToDriver("AZ");
     if (!UART_Rx_connected)
     {
         digitalWrite(AZ_EN_PIN,
@@ -695,7 +720,7 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
     _driverALT->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
-    UART_Rx_connected = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -733,7 +758,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver("ALT");
+    UART_Rx_connected = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -778,10 +803,10 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
     _driverFocus->begin();
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
-        digitalWrite(ALT_EN_PIN,
+        digitalWrite(FOCUS_EN_PIN,
                      HIGH);  //Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
     }
         #endif
@@ -824,7 +849,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver("FOC");
+    UART_Rx_connected = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -2277,11 +2302,17 @@ String Mount::getStatusString()
     {
         byte slew = slewStatus();
         if (slew & SLEWING_RA)
-            disp[0] = _stepperRA->speed() < 0 ? 'R' : 'r';
+        {
+            disp[0] = _stepperRA->targetPosition() < _stepperRA->currentPosition() ? 'R' : 'r';
+        }
         if (slew & SLEWING_DEC)
-            disp[1] = _stepperDEC->speed() < 0 ? 'D' : 'd';
+        {
+            disp[1] = _stepperDEC->targetPosition() < _stepperDEC->currentPosition() ? 'D' : 'd';
+        }
         if (slew & SLEWING_TRACKING)
+        {
             disp[2] = 'T';
+        }
     }
     else if (isSlewingTRK())
     {
@@ -2289,16 +2320,20 @@ String Mount::getStatusString()
     }
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperAZ->isRunning())
-        disp[3] = _stepperAZ->speed() < 0 ? 'Z' : 'z';
+    {
+        disp[3] = _stepperAZ->targetPosition() < _stepperAZ->currentPosition() ? 'Z' : 'z';
+    }
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperALT->isRunning())
-        disp[4] = _stepperALT->speed() < 0 ? 'A' : 'a';
+    {
+        disp[4] = _stepperALT->targetPosition() < _stepperALT->currentPosition() ? 'A' : 'a';
+    }
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (_stepperFocus->isRunning())
-        disp[5] = _stepperFocus->speed() < 0 ? 'F' : 'f';
+        disp[5] = _stepperFocus->targetPosition() < _stepperFocus->currentPosition() ? 'F' : 'f';
 #endif
 
     status += disp;
@@ -2319,7 +2354,7 @@ String Mount::getStatusString()
 
 /////////////////////////////////
 //
-// slewingStatus
+// slewStatus
 //
 // Returns the current state of the motors and is a bitfield with these flags:
 // NOT_SLEWING is all zero. SLEWING_DEC, SLEWING_RA, SLEWING_BOTH, SLEWING_TRACKING are bits.

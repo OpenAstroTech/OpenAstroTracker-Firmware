@@ -154,8 +154,6 @@ class Mount
 
     void initializeVariables();
 
-    static Mount instance();
-
     // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
     void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 
@@ -182,7 +180,8 @@ class Mount
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    bool connectToDriver(TMC2209Stepper *driver, const char *driverKind);
+    bool connectToDriver(const String &driverKind, uint16_t *rmsCurrent = nullptr);
+
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // Configure the RA Driver (TMC2209 UART only)
