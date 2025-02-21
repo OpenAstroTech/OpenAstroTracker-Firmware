@@ -123,7 +123,7 @@ void processSerialData()
                     // When debugging, only print the result to Serial if we're on seperate ports.
         #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
                 Serial.print('P');
-    #endif
+        #endif
                 index = 0;
             }
             else
@@ -132,18 +132,18 @@ void processSerialData()
                 {
                     // Ignoring trailing hash
                     buffer[index] = 0;
-                    String inCmd      = String(buffer);
+                    String inCmd  = String(buffer);
                     LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
 
                     String retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
                     if (retVal != "")
                     {
                         LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal.c_str());
-                        // When not debugging, print the result to the serial port .
-                        // When debugging, only print the result to Serial if we're on seperate ports.
-    #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
+                            // When not debugging, print the result to the serial port .
+                            // When debugging, only print the result to Serial if we're on seperate ports.
+        #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
                         Serial.print(retVal);
-    #endif
+        #endif
                     }
                     // Wait for next command
                     index = 0;
