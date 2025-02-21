@@ -733,7 +733,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverALT, "ALT");
+    UART_Rx_connected      = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -824,7 +824,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver(_driverFocus, "Focus");
+    UART_Rx_connected      = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -1609,89 +1609,95 @@ void Mount::guidePulse(byte direction, int duration)
 #if (DEBUG_LEVEL != DEBUG_NONE)
     const char *directionName = "-NE-S---W";
 #endif
-    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms", directionName[direction], duration);
-    if ((direction == NORTH) || (direction == SOUTH))
+    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms requested", directionName[direction], duration);
+    if (!isSlewingTRK())
     {
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC current steps   : %l", _stepperGUIDE->currentPosition());
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC steps/deg       : %f", _stepsPerDECDegree);
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-            "[GUIDE]: guidePulse:   DEC Microstep ratio : %f",
-            (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING));
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: Not tracking (at limit?), ignoring guide pulse");
     }
     else
     {
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  current steps   : %l", _stepperTRK->currentPosition());
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  steps/deg       : %f", _stepsPerRADegree);
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-            "[GUIDE]: guidePulse:   RA  Microstep ratio : %f",
-            (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING));
-    }
-
-    // DEC stepper moves at sidereal rate in both directions
-    // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
-    // Also compensate for microstepping mode change between slew & guiding/tracking
-    float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                            / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-
-    // We recalculate tracking speed here...
-    float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f / SIDEREAL_SECONDS_PER_DAY;
-
-    // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
-    // If so, we need to remember where we were when we started the guide pulse. Then at the end,
-    // we can calculate the difference. Ignore DEC Guide for now.
-    // TODO: Take guide pulses on DEC into account
-
-    switch (direction)
-    {
-        case NORTH:
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC guide speed     : %f", DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _stepperGuidePosAtGuideStart = _stepperGUIDE->currentPosition();
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-            _guideDecEndTime = millis() + duration;
-            break;
-
-        case SOUTH:
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC guide speed     : %f", -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _stepperGuidePosAtGuideStart = _stepperGUIDE->currentPosition();
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-            _guideDecEndTime = millis() + duration;
-            break;
-
-        case WEST:
-            // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
-            raGuidingSpeed *= _trackingSpeedCalibration;
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+        if ((direction == NORTH) || (direction == SOUTH))
+        {
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC current steps   : %l", _stepperGUIDE->currentPosition());
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC steps/deg       : %f", _stepsPerDECDegree);
             LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
-                (RA_PULSE_MULTIPLIER * raGuidingSpeed),
-                RA_PULSE_MULTIPLIER);
-            _stepperTrkPosAtGuideStart = _stepperTRK->currentPosition();
-            _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);  // Faster than siderael
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
-            _guideRaEndTime = millis() + duration;
-            break;
-
-        case EAST:
-            // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
-            raGuidingSpeed *= _trackingSpeedCalibration;
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+                "[GUIDE]: guidePulse:   DEC Microstep ratio : %f",
+                (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING));
+        }
+        else
+        {
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  current steps   : %l", _stepperTRK->currentPosition());
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  steps/deg       : %f", _stepsPerRADegree);
             LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
-                (2.0 - RA_PULSE_MULTIPLIER) * raGuidingSpeed,
-                (2.0 - RA_PULSE_MULTIPLIER));
-            _stepperTrkPosAtGuideStart = _stepperTRK->currentPosition();
-            _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));  // Slower than siderael
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
-            _guideRaEndTime = millis() + duration;
-            break;
+                "[GUIDE]: guidePulse:   RA  Microstep ratio : %f",
+                (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING));
+        }
+
+        // DEC stepper moves at sidereal rate in both directions
+        // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
+        // Also compensate for microstepping mode change between slew & guiding/tracking
+        float decGuidingSpeed = _stepsPerDECDegree * (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
+                                / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+        float raGuidingSpeed = _stepsPerRADegree * (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
+                               / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+
+        // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
+        // If so, we need to remember where we were when we started the guide pulse. Then at the end,
+        // we can calculate the difference. Ignore DEC Guide for now.
+        // TODO: Take guide pulses on DEC into account
+
+        switch (direction)
+        {
+            case NORTH:
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                    DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                _guideDecEndTime = millis() + duration;
+                break;
+
+            case SOUTH:
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                    -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                _guideDecEndTime = millis() + duration;
+                break;
+
+            case WEST:
+                // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
+                raGuidingSpeed *= _trackingSpeedCalibration;
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                    (RA_PULSE_MULTIPLIER * raGuidingSpeed),
+                    RA_PULSE_MULTIPLIER);
+                _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);  // Faster than siderael
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+                _guideRaEndTime = millis() + duration;
+                break;
+
+            case EAST:
+                // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
+                raGuidingSpeed *= _trackingSpeedCalibration;
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                    (2.0 - RA_PULSE_MULTIPLIER * raGuidingSpeed),
+                    (2.0 - RA_PULSE_MULTIPLIER));
+                _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));  // Slower than siderael
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+                _guideRaEndTime = millis() + duration;
+                break;
+        }
     }
 // Since we will not be updating the display during a guide pulse, update the display here.
 #if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
