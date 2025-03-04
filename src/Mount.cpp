@@ -1572,12 +1572,12 @@ void Mount::stopGuiding(bool ra, bool dec)
         long extraSteps = 0;
         if (_stepperTRK->speed() < _trackingSpeed)
         {
-            // EAST (1.5x), faster so we need 1/3 of the steps
-            extraSteps = -((1.0 / (2.0 - RA_PULSE_MULTIPLIER)) - 1.0) * raStepsDuringGuide;
+            // EAST (0.5) - slower so we need all the steps (with a 1.5 multiplier)
+            extraSteps = (1.0 - (1.0 / (2.0 - RA_PULSE_MULTIPLIER))) * raStepsDuringGuide;
         }
         else
         {
-            // WEST (0.5)
+            // WEST (1.5x), faster so we need 1/3 of the steps (with a 1.5 multiplier)
             extraSteps = (1.0 - (1.0 / RA_PULSE_MULTIPLIER)) * raStepsDuringGuide;
         }
         _stepperTRK->setSpeed(_trackingSpeed);
