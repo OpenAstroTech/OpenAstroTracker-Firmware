@@ -432,7 +432,8 @@ class Mount
     // Support for moving the mount in azimuth and altitude (requires extra hardware)
     void moveBy(int direction, float arcMinutes);
     void disableAzAltMotors();
-    void enableAzAltMotors();
+    void enableAzMotor();
+    void enableAltMotor();
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)

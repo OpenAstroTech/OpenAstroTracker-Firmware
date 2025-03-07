@@ -1873,11 +1873,11 @@ void Mount::getAZALTPositions(long &azPos, long &altPos)
 void Mount::moveAZALTToHome()
 {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    enableAzAltMotors();
+    enableAzMotor();
     _stepperAZ->moveTo(0);
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    enableAzAltMotors();
+    enableAltMotor();
     _stepperALT->moveTo(0);
 #endif
 }
@@ -1972,7 +1972,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == AZIMUTH_STEPS)
     {
-        enableAzAltMotors();
+        enableAzMotor();
         long stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
         _stepperAZ->move(stepsToMove);
     }
@@ -1980,7 +1980,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == ALTITUDE_STEPS)
     {
-        enableAzAltMotors();
+        enableAltMotor();
         long stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
         _stepperALT->move(stepsToMove);
     }
@@ -2033,12 +2033,14 @@ void Mount::disableAzAltMotors()
 // enableAzAltMotors
 //
 /////////////////////////////////
-void Mount::enableAzAltMotors()
+void Mount::enableAzMotor()
 {
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(AZ_EN_PIN, LOW);  // Logic LOW to enable driver
     #endif
-
+}
+    void Mount::enableAltMotor()
+    {
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(ALT_EN_PIN, LOW);  // Logic LOW to enable driver
     #endif
@@ -3684,7 +3686,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
         case AZIMUTH_STEPS:
             {
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-                enableAzAltMotors();
+                enableAzMotor();
                 LOG(DEBUG_STEPPERS,
                     "[STEPPERS]: moveStepperBy: AZ from %l to %l",
                     _stepperAZ->currentPosition(),
@@ -3697,7 +3699,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
         case ALTITUDE_STEPS:
             {
 #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-                enableAzAltMotors();
+                enableAltMotor();
                 _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
 #endif
             }
