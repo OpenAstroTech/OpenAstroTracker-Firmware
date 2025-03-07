@@ -1,6 +1,5 @@
 **V1.13.14 - Updates**
 - Improved Serial command handling (made it less 'blocking'), which should improve general performance
-- Guiding now updates RA/DEC coordinates
 - Guide pulses are ignored when tracking is disabled (for example, when at the limits)
 
 **V1.13.13 - Updates**
