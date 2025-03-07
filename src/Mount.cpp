@@ -1566,28 +1566,9 @@ void Mount::stopGuiding(bool ra, bool dec)
     // Stop RA guide first, since it's just a speed change back to tracking speed
     if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
     {
-        long raStepsDuringGuide = _stepperTRK->currentPosition() - _stepperTrkPosAtGuideStart;
         LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK stop guide at  : %l", _stepperTRK->currentPosition());
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK steps moved    : %l", raStepsDuringGuide);
-        long extraSteps = 0;
-        if (_stepperTRK->speed() < _trackingSpeed)
-        {
-            // EAST (0.5) - slower so we need all the steps (with a 1.5 multiplier)
-            extraSteps = (1.0 - (1.0 / (2.0 - RA_PULSE_MULTIPLIER))) * raStepsDuringGuide;
-        }
-        else
-        {
-            // WEST (1.5x), faster so we need 1/3 of the steps (with a 1.5 multiplier)
-            extraSteps = (1.0 - (1.0 / RA_PULSE_MULTIPLIER)) * raStepsDuringGuide;
-        }
         _stepperTRK->setSpeed(_trackingSpeed);
-
-        // Calculate the extra steps moved during guiding on top of tracking and convert from TRK stepper to RA stepper
-        extraSteps *= RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING;
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    RA extra steps      : %l", extraSteps);
-        // Adjust RA coordinate by the amount of steps moved during guiding
-        _stepperRA->setCurrentPosition(_stepperRA->currentPosition() + extraSteps);
-
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK speed set to   : %f", _trackingSpeed);
         _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
     }
 
@@ -1603,12 +1584,6 @@ void Mount::stopGuiding(bool ra, bool dec)
             _stepperGUIDE->run();
             _stepperTRK->runSpeed();
         }
-        long decStepsDuringGuide = _stepperGUIDE->currentPosition() - _stepperGuidePosAtGuideStart;
-
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    DEC steps moved     : %l", decStepsDuringGuide);
-        // Adjust DEC coordinate by the amount of steps moved during guiding
-        _stepperDEC->setCurrentPosition(_stepperDEC->currentPosition()
-                                        + decStepsDuringGuide * DEC_SLEW_MICROSTEPPING / DEC_GUIDE_MICROSTEPPING);
         _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
     }
 
