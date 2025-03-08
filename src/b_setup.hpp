@@ -357,7 +357,6 @@ void setup()
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA.");
-    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
     LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps : %d", RA_SLEW_MICROSTEPPING);
     LOG(DEBUG_ANY, "[STEPPERS]: Trk Microsteps  : %d", RA_TRACKING_MICROSTEPPING);
     LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
@@ -381,17 +380,18 @@ void setup()
 
 #if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA.");
-    LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps : %d", DEC_SLEW_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", DEC_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", DEC_TRANSMISSION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps  : %d", DEC_SLEW_MICROSTEPPING);
+    LOG(DEBUG_ANY, "[STEPPERS]: Guide Microsteps : %d", DEC_GUIDE_MICROSTEPPING);
+    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR      : %d", DEC_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: Transmission     : %f", DEC_TRANSMISSION);
     #ifdef NEW_STEPPER_LIB
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Dec::DRIVER_SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Dec::DRIVER_SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Dec::SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk         : %f", config::Dec::SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Dec::SPEED_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew      : %f", config::Dec::ACCEL_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Dec::SPEED_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR  : %l", config::Dec::DRIVER_SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR   : %l", config::Dec::DRIVER_SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew         : %f", config::Dec::SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk          : %f", config::Dec::SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew       : %f", config::Dec::SPEED_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew       : %f", config::Dec::ACCEL_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk        : %f", config::Dec::SPEED_TRK);
     LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
     mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEW, config::Dec::ACCEL_SLEW);
     #else

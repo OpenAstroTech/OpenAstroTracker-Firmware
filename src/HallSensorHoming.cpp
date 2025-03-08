@@ -210,6 +210,7 @@ void HallSensorHoming::processHomingProgress()
                         {
                             // First time the pin has triggered, record that position
                             _homingData.position[HOMING_START_PIN_POSITION] = _pMount->getCurrentStepperPosition(_axis);
+
                             LOG(DEBUG_STEPPERS,
                                 "[HOMING]: Potentially found start of sensor at %l",
                                 _homingData.position[HOMING_START_PIN_POSITION]);
@@ -230,6 +231,10 @@ void HallSensorHoming::processHomingProgress()
                             // Make sure we continue moving far enough to reach end
                             long distance = _homingData.initialDir * _stepsPerDegree * _homingData.searchDistance;
                             _pMount->moveStepperBy(_axis, distance);
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Making sure stepper keeps going by another %l steps. New target is %l",
+                                distance,
+                                _pMount->getCurrentStepperPosition(_axis) + distance);
 
                             _homingData.lastPinState   = homingPinState;
                             _homingData.pinChangeCount = 0;
@@ -289,6 +294,10 @@ void HallSensorHoming::processHomingProgress()
                             // Make sure we continue moving far enough to reach end
                             long distance = -_homingData.initialDir * _stepsPerDegree * _homingData.searchDistance;
                             _pMount->moveStepperBy(_axis, distance);
+                            LOG(DEBUG_STEPPERS,
+                                "[HOMING]: Making sure stepper keeps going by another %l steps. New target is %l",
+                                distance,
+                                _pMount->getCurrentStepperPosition(_axis) + distance);
 
                             _homingData.lastPinState   = homingPinState;
                             _homingData.pinChangeCount = 0;
