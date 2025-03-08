@@ -1526,7 +1526,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         _mount->startSlewingToTarget();
         return "0";
     }
-    else if (inCmd[0] == 'T')  // :MT1
+    else if (inCmd[0] == 'T')  // :MT1 or :MTR0
     {
         if (inCmd.length() > 1)
         {
@@ -1539,6 +1539,23 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
             {
                 _mount->stopSlewing(TRACKING);
                 return "1";
+            }
+            else if (inCmd[1] == 'R')  // :MTR - Set tracking rate
+            {
+                if (inCmd.length() > 2)
+                {
+                    if (inCmd[2] == '0')  // :MTR0 - Sidereal rate
+                    {
+                        _mount->setTrackingMode(TRACKING_SIDEREAL);
+                        return "1";
+                    }
+                    else if (inCmd[2] == '1')  // :MTR1 - Lunar rate
+                    {
+                        _mount->setTrackingMode(TRACKING_LUNAR);
+                        return "1";
+                    }
+                }
+                return "0";
             }
         }
         else

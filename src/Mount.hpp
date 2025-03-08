@@ -142,6 +142,13 @@ enum FocuserDirection
     FOCUS_FORWARD  = 1
 };
 
+// Tracking rates
+enum TrackingMode
+{
+    TRACKING_SIDEREAL,
+    TRACKING_LUNAR
+};
+
 //////////////////////////////////////////////////////////////////
 //
 // Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
@@ -238,6 +245,12 @@ class Mount
 
     // Set the current RA tracking speed factor
     void setSpeedCalibration(float val, bool saveToStorage);
+
+    // Set the tracking mode (sidereal or lunar)
+    void setTrackingMode(TrackingMode mode);
+
+    // Get the current tracking mode
+    TrackingMode getTrackingMode() const;
 
 #if USE_GYRO_LEVEL == 1
     // Get the current pitch angle calibraton
@@ -673,6 +686,7 @@ class Mount
     LocalDate _localStartDate;
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
+    TrackingMode _trackingMode;
 };
 
 #endif

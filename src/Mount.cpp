@@ -57,6 +57,13 @@ const char *formatStringsRA[] = {
 };
 
 const float siderealDegreesInHour = 14.95904348958;
+const float lunarDegreesInHour = 14.6225; // Approximately 0.9775 times the sidereal rate
+
+// Tracking rates
+enum TrackingMode {
+    TRACKING_SIDEREAL,
+    TRACKING_LUNAR
+};
 
 /////////////////////////////////
 //
@@ -77,6 +84,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 #endif
 
 {
+    _trackingMode = TRACKING_SIDEREAL;
     _commandReceived = 0;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     _loops = 0;
@@ -113,6 +121,7 @@ void Mount::initializeVariables()
     _slewingToPark           = false;
     _decLowerLimit           = 0;
     _decUpperLimit           = 0;
+    _trackingMode            = TRACKING_SIDEREAL;
 
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = 0;
@@ -910,10 +919,14 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
-    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
-                     / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+    float degreesPerHour = (_trackingMode == TRACKING_SIDEREAL) ? siderealDegreesInHour : lunarDegreesInHour;
+    float secondsPerDay = (_trackingMode == TRACKING_SIDEREAL) ? SIDEREAL_SECONDS_PER_DAY : (SIDEREAL_SECONDS_PER_DAY / 0.9775f);
+    
+    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * degreesPerHour * 24.0f
+                     / secondsPerDay;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
+    LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", (_trackingMode == TRACKING_SIDEREAL) ? "Sidereal" : "Lunar");
 
     LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
 
@@ -926,6 +939,33 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
         LOG(DEBUG_STEPPERS, "[MOUNT]: SpeedCalibration TRK.setSpeed(%f)", _trackingSpeed);
         _stepperTRK->setSpeed(_trackingSpeed);
     }
+}
+
+/////////////////////////////////
+//
+// setTrackingMode
+//
+/////////////////////////////////
+void Mount::setTrackingMode(TrackingMode mode)
+{
+    if (_trackingMode != mode)
+    {
+        _trackingMode = mode;
+        LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode changed to %s", (_trackingMode == TRACKING_SIDEREAL) ? "Sidereal" : "Lunar");
+        
+        // Update the tracking speed with the new mode
+        setSpeedCalibration(_trackingSpeedCalibration, false);
+    }
+}
+
+/////////////////////////////////
+//
+// getTrackingMode
+//
+/////////////////////////////////
+TrackingMode Mount::getTrackingMode() const
+{
+    return _trackingMode;
 }
 
 #if USE_GYRO_LEVEL == 1
