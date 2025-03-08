@@ -16,7 +16,6 @@ void processSerialData();
 // The main loop when under serial control
 void serialLoop()
 {
-    //Serial.print('.');
     mount.loop();
     mount.displayStepperPositionThrottled();
 
@@ -126,36 +125,33 @@ void processSerialData()
         #endif
                 index = 0;
             }
-            else
+            else if (buffer[index] == '#')
             {
-                if (buffer[index] == '#')
-                {
-                    // Ignoring trailing hash
-                    buffer[index] = 0;
-                    String inCmd  = String(buffer);
-                    LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
+                // Ignoring trailing hash
+                buffer[index]      = '\0';
+                const String inCmd = String(buffer);
+                LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
 
-                    String retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
-                    if (retVal != "")
-                    {
-                        LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal.c_str());
-                            // When not debugging, print the result to the serial port .
-                            // When debugging, only print the result to Serial if we're on seperate ports.
-        #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
-                        Serial.print(retVal);
-        #endif
-                    }
-                    // Wait for next command
-                    index = 0;
-                }
-                else if (buffer[index] > 31)
+                const String retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
+                if (retVal != "")
                 {
-                    index++;
-                    if (index >= sizeof(buffer))
-                    {
-                        LOG(DEBUG_SERIAL, "[SERIAL]: Command buffer overflow! Ignoring received data.");
-                        index = 0;
-                    }
+                    LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal.c_str());
+                        // When not debugging, print the result to the serial port .
+                        // When debugging, only print the result to Serial if we're on seperate ports.
+        #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
+                    Serial.print(retVal);
+        #endif
+                }
+                // Wait for next command
+                index = 0;
+            }
+            else if (buffer[index] >= ' ')
+            {
+                index++;
+                if (index >= sizeof(buffer))
+                {
+                    LOG(DEBUG_SERIAL, "[SERIAL]: Command buffer overflow! Ignoring received data.");
+                    index = 0;
                 }
             }
         }
