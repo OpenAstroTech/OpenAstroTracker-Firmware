@@ -449,15 +449,15 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
-// :MTRs#
+// :Ts#
 //      Description:
 //        Set Tracking Rate
 //      Parameters:
 //        "s" is one of the following
-//        "0" Sidereal
-//        "1" Lunar
-//        "2" Solar
-//        "3" King
+//        "Q" Sidereal
+//        "L" Lunar
+//        "S" Solar
+//        "K" King
 //      Returns:
 //        1
 //
@@ -2170,7 +2170,7 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
 /////////////////////////////
 // Set Tracking Rates
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeSetTrackingRate(String inCmd)
+String MeadeCommandProcessor::handleMeadeTrackingRate(String inCmd)
 {
     switch (inCmd[0])
     {
@@ -2190,6 +2190,10 @@ String MeadeCommandProcessor::handleMeadeSetTrackingRate(String inCmd)
             LOG(DEBUG_MEADE, "[MEADE]: Tracking rate King");
             _mount->setTrackingMode(TRACKING_KING);
             break; // TK - King Tracking Rate
+        case 'M':
+            LOG(DEBUG_MEADE, "[MEADE]: Get tracking mode string");
+            return _mount->getTrackingModeString();
+            break; // TM - Get tracking mode as string
         default:
             _mount->setTrackingMode(TRACKING_SIDEREAL);
             break;
@@ -2310,7 +2314,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
             case 'R':
                 return handleMeadeSetSlewRate(inCmd);
             case 'T':
-                return handleMeadeSetTrackingRate(inCmd);
+                return handleMeadeTrackingRate(inCmd);
             case 'D':
                 return handleMeadeDistance(inCmd);
             case 'X':

@@ -525,6 +525,7 @@ class Mount
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
 
     double getTrackingRate();
+    String getTrackingModeString();
 
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -695,7 +696,5 @@ class Mount
     const char* modeName;
     
 };
-
-
 
 #endif

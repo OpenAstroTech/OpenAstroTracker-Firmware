@@ -1001,6 +1001,11 @@ TrackingMode Mount::getTrackingMode() const
     return _trackingMode;
 }
 
+String Mount::getTrackingModeString()
+{
+    return modeName;
+}
+
 #if USE_GYRO_LEVEL == 1
 /////////////////////////////////
 //
@@ -4278,5 +4283,4 @@ double Mount::getTrackingRate()
     else {
         return 60.0*siderealDegreesInHour/ 15.0;
     }
-    // 60 x 14.95904348958 / 15
 }
