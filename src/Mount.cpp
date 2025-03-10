@@ -967,8 +967,7 @@ void Mount::setTrackingMode(TrackingMode mode)
     if (_trackingMode != mode)
     {
         _trackingMode = mode;
-        
-        const char* modeName;
+
         switch (_trackingMode) {
             case TRACKING_LUNAR:
                 modeName = "Lunar";
@@ -4258,23 +4257,26 @@ float Mount::checkRALimit()
 // trackingRate
 //
 /////////////////////////////////
-float Mount::getTrackingRate()
+double Mount::getTrackingRate()
 {
     if(_trackingMode == TRACKING_SIDEREAL)
     {
-        return 60.0f*siderealDegreesInHour/ 15.0f;
+        return 60.0*siderealDegreesInHour/ 15.0;
     }
     else if(_trackingMode == TRACKING_LUNAR)
     {
-        return 60.0f*lunarDegreesInHour/ 15.0f;
+        return 60.0*lunarDegreesInHour/ 15.0;
     }
     else if(_trackingMode == TRACKING_SOLAR)
     {
-        return 60.0f*solarDegreesInHour/ 15.0f;
+        return 60.0*solarDegreesInHour/ 15.0;
     }
     else if(_trackingMode == TRACKING_KING)
     {
-        return 60.0f*kingDegreesInHour/ 15.0f;
+        return 60.0*kingDegreesInHour/ 15.0;
+    }
+    else {
+        return 60.0*siderealDegreesInHour/ 15.0;
     }
     // 60 x 14.95904348958 / 15
 }

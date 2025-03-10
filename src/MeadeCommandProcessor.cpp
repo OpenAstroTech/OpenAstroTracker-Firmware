@@ -1346,7 +1346,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
         case 'T':  // :GT
             {
                 char scratchBuffer[20];
-                sprintf(scratchBuffer, "%ld#", _mount->getTrackingRate());
+                sprintf(scratchBuffer, "%.02f#", _mount->getTrackingRate());
                 return String(achBuffer);
             }
     }

@@ -524,7 +524,7 @@ class Mount
     // Calculate the stepper positions for the current target coordinates
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
 
-    float getTrackingRate();
+    double getTrackingRate();
 
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -692,6 +692,7 @@ class Mount
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
     TrackingMode _trackingMode;
+    const char* modeName;
     
 };
 
