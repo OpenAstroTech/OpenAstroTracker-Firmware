@@ -693,7 +693,7 @@ class Mount
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
     TrackingMode _trackingMode;
-    const char* modeName;
+    const char* _trackingModeName;
     
 };
 

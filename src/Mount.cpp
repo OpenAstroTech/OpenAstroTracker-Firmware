@@ -118,6 +118,7 @@ void Mount::initializeVariables()
     _decLowerLimit           = 0;
     _decUpperLimit           = 0;
     _trackingMode            = TRACKING_SIDEREAL;
+    _trackingModeName        = "Sidereal";
 
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = 0;
@@ -942,7 +943,8 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
                      / secondsPerDay;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
-    LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", (_trackingMode == TRACKING_SIDEREAL) ? "Sidereal" : "Lunar");
+    //LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", (_trackingMode == TRACKING_SIDEREAL) ? "Sidereal" : "Lunar");
+    LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", _trackingModeName);
 
     LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
 
@@ -970,21 +972,21 @@ void Mount::setTrackingMode(TrackingMode mode)
 
         switch (_trackingMode) {
             case TRACKING_LUNAR:
-                modeName = "Lunar";
+                _trackingModeName = "Lunar";
                 break;
             case TRACKING_SOLAR:
-                modeName = "Solar";
+            _trackingModeName    = "Solar";
                 break;
             case TRACKING_KING:
-                modeName = "King";
+                _trackingModeName = "King";
                 break;
             case TRACKING_SIDEREAL:
             default:
-                modeName = "Sidereal";
+                _trackingModeName = "Sidereal";
                 break;
         }
         
-        LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode changed to %s", modeName);
+        LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode changed to %s", _trackingModeName);
         
         // Update the tracking speed with the new mode
         setSpeedCalibration(_trackingSpeedCalibration, false);
@@ -1003,7 +1005,8 @@ TrackingMode Mount::getTrackingMode() const
 
 String Mount::getTrackingModeString()
 {
-    return modeName;
+    LOG(DEBUG_MOUNT, "[MOUNT]: Rate Mode returning %s", _trackingModeName);
+    return _trackingModeName;
 }
 
 #if USE_GYRO_LEVEL == 1

@@ -2172,27 +2172,28 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeTrackingRate(String inCmd)
 {
+    LOG(DEBUG_MEADE, "[MEADE]: TRACKING MODE INCMD  -> %s", inCmd.c_str());
     switch (inCmd[0])
     {
         case 'Q':
-            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate Sidereal");
+            LOG(DEBUG_MEADE, "[MEADE]: Setting tracking mode Sidereal");
             _mount->setTrackingMode(TRACKING_SIDEREAL);
             break; //TQ - Sidereal Tracking Rate
         case 'L':
-            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate Lunar");
+            LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Lunar");
             _mount->setTrackingMode(TRACKING_LUNAR);
             break;// TL - Lunar Tracking Rate
         case 'S': 
-            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate Solar");
+            LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Solar");
             _mount->setTrackingMode(TRACKING_SOLAR);
             break; // TS - Solar Tracking Rate
         case 'K':
-            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate King");
+            LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate King");
             _mount->setTrackingMode(TRACKING_KING);
             break; // TK - King Tracking Rate
         case 'M':
             LOG(DEBUG_MEADE, "[MEADE]: Get tracking mode string");
-            return _mount->getTrackingModeString();
+            return _mount->getTrackingModeString()+"#";
             break; // TM - Get tracking mode as string
         default:
             _mount->setTrackingMode(TRACKING_SIDEREAL);
