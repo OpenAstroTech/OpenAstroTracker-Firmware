@@ -142,11 +142,13 @@ enum FocuserDirection
     FOCUS_FORWARD  = 1
 };
 
-// Tracking rates
+// Tracking Modes
 enum TrackingMode
 {
     TRACKING_SIDEREAL,
-    TRACKING_LUNAR
+    TRACKING_LUNAR,
+    TRACKING_SOLAR,
+    TRACKING_KING
 };
 
 //////////////////////////////////////////////////////////////////
@@ -522,6 +524,8 @@ class Mount
     // Calculate the stepper positions for the current target coordinates
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
 
+    float getTrackingRate();
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -682,11 +686,15 @@ class Mount
     bool _slewingToPark;
     bool _bootComplete;
 
+    // Tracking Rate
     int _localUtcOffset;
     LocalDate _localStartDate;
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
     TrackingMode _trackingMode;
+    
 };
+
+
 
 #endif

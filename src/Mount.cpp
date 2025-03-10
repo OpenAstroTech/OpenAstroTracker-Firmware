@@ -58,12 +58,8 @@ const char *formatStringsRA[] = {
 
 const float siderealDegreesInHour = 14.95904348958;
 const float lunarDegreesInHour = 14.6225; // Approximately 0.9775 times the sidereal rate
-
-// Tracking rates
-enum TrackingMode {
-    TRACKING_SIDEREAL,
-    TRACKING_LUNAR
-};
+const float solarDegreesInHour = 15.0; // Sun's apparent motion
+const float kingDegreesInHour = 15.0369; // King rate for better tracking during astrophotography
 
 /////////////////////////////////
 //
@@ -919,8 +915,28 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
-    float degreesPerHour = (_trackingMode == TRACKING_SIDEREAL) ? siderealDegreesInHour : lunarDegreesInHour;
-    float secondsPerDay = (_trackingMode == TRACKING_SIDEREAL) ? SIDEREAL_SECONDS_PER_DAY : (SIDEREAL_SECONDS_PER_DAY / 0.9775f);
+    float degreesPerHour;
+    float secondsPerDay;
+    
+    switch (_trackingMode) {
+        case TRACKING_LUNAR:
+            degreesPerHour = lunarDegreesInHour;
+            secondsPerDay = SIDEREAL_SECONDS_PER_DAY / 0.9775f;
+            break;
+        case TRACKING_SOLAR:
+            degreesPerHour = solarDegreesInHour;
+            secondsPerDay = 86400.0f; // 24 hours in seconds
+            break;
+        case TRACKING_KING:
+            degreesPerHour = kingDegreesInHour;
+            secondsPerDay = SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
+            break;
+        case TRACKING_SIDEREAL:
+        default:
+            degreesPerHour = siderealDegreesInHour;
+            secondsPerDay = SIDEREAL_SECONDS_PER_DAY;
+            break;
+    }
     
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * degreesPerHour * 24.0f
                      / secondsPerDay;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
@@ -951,7 +967,25 @@ void Mount::setTrackingMode(TrackingMode mode)
     if (_trackingMode != mode)
     {
         _trackingMode = mode;
-        LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode changed to %s", (_trackingMode == TRACKING_SIDEREAL) ? "Sidereal" : "Lunar");
+        
+        const char* modeName;
+        switch (_trackingMode) {
+            case TRACKING_LUNAR:
+                modeName = "Lunar";
+                break;
+            case TRACKING_SOLAR:
+                modeName = "Solar";
+                break;
+            case TRACKING_KING:
+                modeName = "King";
+                break;
+            case TRACKING_SIDEREAL:
+            default:
+                modeName = "Sidereal";
+                break;
+        }
+        
+        LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode changed to %s", modeName);
         
         // Update the tracking speed with the new mode
         setSpeedCalibration(_trackingSpeedCalibration, false);
@@ -4217,4 +4251,30 @@ float Mount::checkRALimit()
     _lastTRKCheck = millis();
 
     return RALimit - homeCurrentDeltaRA;
+}
+
+/////////////////////////////////
+//
+// trackingRate
+//
+/////////////////////////////////
+float Mount::getTrackingRate()
+{
+    if(_trackingMode == TRACKING_SIDEREAL)
+    {
+        return 60.0f*siderealDegreesInHour/ 15.0f;
+    }
+    else if(_trackingMode == TRACKING_LUNAR)
+    {
+        return 60.0f*lunarDegreesInHour/ 15.0f;
+    }
+    else if(_trackingMode == TRACKING_SOLAR)
+    {
+        return 60.0f*solarDegreesInHour/ 15.0f;
+    }
+    else if(_trackingMode == TRACKING_KING)
+    {
+        return 60.0f*kingDegreesInHour/ 15.0f;
+    }
+    // 60 x 14.95904348958 / 15
 }

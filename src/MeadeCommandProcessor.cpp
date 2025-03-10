@@ -449,6 +449,18 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        nothing
 //
+// :MTRs#
+//      Description:
+//        Set Tracking Rate
+//      Parameters:
+//        "s" is one of the following
+//        "0" Sidereal
+//        "1" Lunar
+//        "2" Solar
+//        "3" King
+//      Returns:
+//        1
+//
 //------------------------------------------------------------------
 // MOVEMENT FAMILY
 //
@@ -1333,7 +1345,9 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
         case 'T':  // :GT
             {
-                return "60.0#";  //default MEADE Tracking Frequency
+                char scratchBuffer[20];
+                sprintf(scratchBuffer, "%ld#", _mount->getTrackingRate());
+                return String(achBuffer);
             }
     }
 
@@ -1540,6 +1554,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
                 _mount->stopSlewing(TRACKING);
                 return "1";
             }
+            /*
             else if (inCmd[1] == 'R')  // :MTR - Set tracking rate
             {
                 if (inCmd.length() > 2)
@@ -1554,9 +1569,20 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
                         _mount->setTrackingMode(TRACKING_LUNAR);
                         return "1";
                     }
+                    else if (inCmd[2] == '2')  // :MTR2 - Solar rate
+                    {
+                        _mount->setTrackingMode(TRACKING_SOLAR);
+                        return "1";
+                    }
+                    else if (inCmd[2] == '3')  // :MTR3 - King rate
+                    {
+                        _mount->setTrackingMode(TRACKING_KING);
+                        return "1";
+                    }
                 }
                 return "0";
             }
+            */
         }
         else
         {
@@ -2142,6 +2168,36 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
 }
 
 /////////////////////////////
+// Set Tracking Rates
+/////////////////////////////
+String MeadeCommandProcessor::handleMeadeSetTrackingRate(String inCmd)
+{
+    switch (inCmd[0])
+    {
+        case 'Q':
+            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate Sidereal");
+            _mount->setTrackingMode(TRACKING_SIDEREAL);
+            break; //TQ - Sidereal Tracking Rate
+        case 'L':
+            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate Lunar");
+            _mount->setTrackingMode(TRACKING_LUNAR);
+            break;// TL - Lunar Tracking Rate
+        case 'S': 
+            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate Solar");
+            _mount->setTrackingMode(TRACKING_SOLAR);
+            break; // TS - Solar Tracking Rate
+        case 'K':
+            LOG(DEBUG_MEADE, "[MEADE]: Tracking rate King");
+            _mount->setTrackingMode(TRACKING_KING);
+            break; // TK - King Tracking Rate
+        default:
+            _mount->setTrackingMode(TRACKING_SIDEREAL);
+            break;
+    }
+    return "";
+}
+
+/////////////////////////////
 // FOCUS COMMANDS
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
@@ -2253,6 +2309,8 @@ String MeadeCommandProcessor::processCommand(String inCmd)
                 return handleMeadeQuit(inCmd);
             case 'R':
                 return handleMeadeSetSlewRate(inCmd);
+            case 'T':
+                return handleMeadeSetTrackingRate(inCmd);
             case 'D':
                 return handleMeadeDistance(inCmd);
             case 'X':
