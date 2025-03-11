@@ -459,7 +459,18 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "S" Solar
 //        "K" King
 //      Returns:
-//        1
+//        nothing
+//
+//------------------------------------------------------------------
+// RATE EXTENSIONS
+//
+// :TZ#
+//      Description:
+//        Return active tracking mode as string
+//      Information:
+//        Since Meade does not have a query fuction for active tracking mode this will return it as string
+//      Returns:
+//        "Sidereal|Lunar|Solar|Kig"
 //
 //------------------------------------------------------------------
 // MOVEMENT FAMILY
@@ -1345,9 +1356,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
         case 'T':  // :GT
             {
-                char scratchBuffer[20];
-                sprintf(scratchBuffer, "%.02f#", _mount->getTrackingRate());
-                return String(achBuffer);
+                return String(_mount->getTrackingRate()) + "#";
             }
     }
 
@@ -1554,35 +1563,6 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
                 _mount->stopSlewing(TRACKING);
                 return "1";
             }
-            /*
-            else if (inCmd[1] == 'R')  // :MTR - Set tracking rate
-            {
-                if (inCmd.length() > 2)
-                {
-                    if (inCmd[2] == '0')  // :MTR0 - Sidereal rate
-                    {
-                        _mount->setTrackingMode(TRACKING_SIDEREAL);
-                        return "1";
-                    }
-                    else if (inCmd[2] == '1')  // :MTR1 - Lunar rate
-                    {
-                        _mount->setTrackingMode(TRACKING_LUNAR);
-                        return "1";
-                    }
-                    else if (inCmd[2] == '2')  // :MTR2 - Solar rate
-                    {
-                        _mount->setTrackingMode(TRACKING_SOLAR);
-                        return "1";
-                    }
-                    else if (inCmd[2] == '3')  // :MTR3 - King rate
-                    {
-                        _mount->setTrackingMode(TRACKING_KING);
-                        return "1";
-                    }
-                }
-                return "0";
-            }
-            */
         }
         else
         {
@@ -2183,7 +2163,7 @@ String MeadeCommandProcessor::handleMeadeTrackingRate(String inCmd)
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Lunar");
             _mount->setTrackingMode(TRACKING_LUNAR);
             break;// TL - Lunar Tracking Rate
-        case 'S': 
+        case 'S':
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Solar");
             _mount->setTrackingMode(TRACKING_SOLAR);
             break; // TS - Solar Tracking Rate
@@ -2191,10 +2171,10 @@ String MeadeCommandProcessor::handleMeadeTrackingRate(String inCmd)
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate King");
             _mount->setTrackingMode(TRACKING_KING);
             break; // TK - King Tracking Rate
-        case 'M':
-            LOG(DEBUG_MEADE, "[MEADE]: Get tracking mode string");
+        case 'Z':
+            LOG(DEBUG_MEADE, "[MEADE]: Get tracking mode as string  -> %s", _mount->getTrackingModeString());
             return _mount->getTrackingModeString()+"#";
-            break; // TM - Get tracking mode as string
+            break; // TZ - Extension - Get tracking mode as string
         default:
             _mount->setTrackingMode(TRACKING_SIDEREAL);
             break;

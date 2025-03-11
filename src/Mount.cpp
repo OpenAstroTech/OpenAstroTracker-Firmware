@@ -941,6 +941,12 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * degreesPerHour * 24.0f
                      / secondsPerDay;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
+    
+    /*
+    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
+    / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+    */
+    
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
     //LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", (_trackingMode == TRACKING_SIDEREAL) ? "Sidereal" : "Lunar");
@@ -4269,21 +4275,21 @@ double Mount::getTrackingRate()
 {
     if(_trackingMode == TRACKING_SIDEREAL)
     {
-        return 60.0*siderealDegreesInHour/ 15.0;
+        return 60.0 * siderealDegreesInHour / 15.0;
     }
     else if(_trackingMode == TRACKING_LUNAR)
     {
-        return 60.0*lunarDegreesInHour/ 15.0;
+        return 60.0 * lunarDegreesInHour / 15.0;
     }
     else if(_trackingMode == TRACKING_SOLAR)
     {
-        return 60.0*solarDegreesInHour/ 15.0;
+        return 60.0 * solarDegreesInHour / 15.0;
     }
     else if(_trackingMode == TRACKING_KING)
     {
-        return 60.0*kingDegreesInHour/ 15.0;
+        return 60.0 * kingDegreesInHour / 15.0;
     }
     else {
-        return 60.0*siderealDegreesInHour/ 15.0;
+        return 60.0 * siderealDegreesInHour / 15.0;
     }
 }
