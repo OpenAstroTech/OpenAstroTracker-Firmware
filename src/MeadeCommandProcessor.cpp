@@ -1681,6 +1681,23 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 #endif
         return "0";
     }
+    else if ((inCmd[0] == 'P') && (inCmd.length() > 1))  // :MP
+    {
+        // Move to custom stepper position
+        // Format: :MPra_steps,dec_steps#
+        // Example: :MP12345,67890#
+        String posStr = inCmd.substring(1);
+        int commaPos = posStr.indexOf(',');
+        if (commaPos > 0)
+        {
+            long raSteps = posStr.substring(0, commaPos).toInt();
+            long decSteps = posStr.substring(commaPos + 1).toInt();
+            LOG(DEBUG_MEADE, "[MEADE]: Move to custom position RA: %l, DEC: %l", raSteps, decSteps);
+            _mount->moveToStepperPosition(raSteps, decSteps);
+            return "1";
+        }
+        return "0";
+    }
 
     return "0";
 }
