@@ -6,6 +6,17 @@
 #include "Mount.hpp"
 #include "InfoDisplayRender.hpp"
 
+#if defined(ESP32)
+    /*
+     * ESP32 PROGMEM is fake, and its pgm_read_byte macro makes a useless cast
+     * which errors out with Werror=useless-cast, which can't be suppressed by
+     * our PUSH/POP_NO_WARNINGS because the macro expands in OUR code, not their
+     * header :/
+     */
+    #undef pgm_read_byte
+    #define pgm_read_byte(addr) (*(addr))
+#endif
+
 const float sineSize              = 18.0;
 const uint8_t sineTable[] PROGMEM = {0, 22, 44, 66, 87, 108, 128, 146, 164, 180, 195, 209, 221, 231, 240, 246, 251, 254, 255, 255};
 
