@@ -470,7 +470,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Since Meade does not have a query fuction for active tracking mode this will return it as string
 //      Returns:
-//        "Sidereal|Lunar|Solar|Kig"
+//        "Sidereal|Lunar|Solar|King"
 //
 //------------------------------------------------------------------
 // MOVEMENT FAMILY
@@ -2155,6 +2155,19 @@ String MeadeCommandProcessor::handleMeadeTrackingRate(String inCmd)
     LOG(DEBUG_MEADE, "[MEADE]: TRACKING MODE INCMD  -> %s", inCmd.c_str());
     switch (inCmd[0])
     {
+        case '+':
+            LOG(DEBUG_MEADE, "[MEADE]: Incrementing manual tracking rate by 0.1");
+            _mount->modifyTrackingRate(0.1);
+            break; // Increase tracking rate by 0.1Hz
+        case '-':
+            LOG(DEBUG_MEADE, "[MEADE]: Decrement manual tracking rate by -0.1");
+            _mount->modifyTrackingRate(-0.1);
+            break; // Decrease tracking rate by 0.1Hz
+        case 'M':
+            LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Manual");
+            _mount->setManualTrackingRate(-1.0);
+            _mount->setTrackingMode(TRACKING_MANUAL);
+            break;
         case 'Q':
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking mode Sidereal");
             _mount->setTrackingMode(TRACKING_SIDEREAL);

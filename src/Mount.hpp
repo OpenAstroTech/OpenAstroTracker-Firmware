@@ -148,7 +148,8 @@ enum TrackingMode
     TRACKING_SIDEREAL,
     TRACKING_LUNAR,
     TRACKING_SOLAR,
-    TRACKING_KING
+    TRACKING_KING,
+    TRACKING_MANUAL
 };
 
 //////////////////////////////////////////////////////////////////
@@ -526,6 +527,10 @@ class Mount
 
     double getTrackingRate();
     String getTrackingModeString();
+    void setManualTrackingRate(double value);
+    void modifyTrackingRate(double value);
+    void degreesPerHour();
+
 
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -687,13 +692,16 @@ class Mount
     bool _slewingToPark;
     bool _bootComplete;
 
-    // Tracking Rate
     int _localUtcOffset;
     LocalDate _localStartDate;
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
+
+    // Tracking Rate
     TrackingMode _trackingMode;
     const char* _trackingModeName;
+    double _manualTrackingRate = -1.0;
+    float _degreesPerHour;
     
 };
 

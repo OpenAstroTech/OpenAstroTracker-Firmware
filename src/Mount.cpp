@@ -916,40 +916,41 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
-    float degreesPerHour;
+    degreesPerHour();
+    // float degreesPerHour;
     float secondsPerDay;
     
     switch (_trackingMode) {
         case TRACKING_LUNAR:
-            degreesPerHour = lunarDegreesInHour;
-            secondsPerDay = SIDEREAL_SECONDS_PER_DAY / 0.9775f;
+            // degreesPerHour = lunarDegreesInHour;
+            secondsPerDay = LUNAR_SECONDS_PER_DAY; // (SIDEREAL_SECONDS_PER_DAY / 0.9775f) equals to 0.9775 of sidereal rate
             break;
         case TRACKING_SOLAR:
-            degreesPerHour = solarDegreesInHour;
-            secondsPerDay = 86400.0f; // 24 hours in seconds
+            // degreesPerHour = solarDegreesInHour;
+            secondsPerDay =  SOLAR_SECONDS_PER_DAY; // 24 hours in seconds
             break;
         case TRACKING_KING:
-            degreesPerHour = kingDegreesInHour;
-            secondsPerDay = SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
+            // degreesPerHour = kingDegreesInHour;
+            secondsPerDay = KING_SECONDS_PER_DAY; // SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
+            break;
+        case TRACKING_MANUAL:
+            // degreesPerHour = kingDegreesInHour;
+            // secondsPerDay = KING_SECONDS_PER_DAY; // SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
             break;
         case TRACKING_SIDEREAL:
         default:
-            degreesPerHour = siderealDegreesInHour;
+            // degreesPerHour = siderealDegreesInHour;
             secondsPerDay = SIDEREAL_SECONDS_PER_DAY;
             break;
     }
+
+    ////  return 60.0 * siderealDegreesInHour / 15.0;
     
-    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * degreesPerHour * 24.0f
-                     / secondsPerDay;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
-    
-    /*
-    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
-    / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
-    */
+    // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
+    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * _degreesPerHour * 24.0f / secondsPerDay;
     
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
-    //LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", (_trackingMode == TRACKING_SIDEREAL) ? "Sidereal" : "Lunar");
     LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", _trackingModeName);
 
     LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
@@ -1415,7 +1416,7 @@ Declination &Mount::targetDEC()
 const DayTime Mount::currentRA() const
 {
     // How many steps moves the RA ring one sidereal hour along. One sidereal hour moves just shy of 15 degrees
-    float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
+    float stepsPerSiderealHour = _stepsPerRADegree * _degreesPerHour; //siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
     float hourPos              = -_stepperRA->currentPosition() / stepsPerSiderealHour;  // u-steps / u-steps/hr = hr
 
     hourPos += _zeroPosRA.getTotalHours();
@@ -1721,9 +1722,9 @@ void Mount::guidePulse(byte direction, int duration)
     // DEC stepper moves at sidereal rate in both directions
     // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
     // Also compensate for microstepping mode change between slew & guiding/tracking
-    float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
+    float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * _degreesPerHour /*siderealDegreesInHour */
                             / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-    float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
+    float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * _degreesPerHour /*siderealDegreesInHour */
                            / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
 
     // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
@@ -3562,7 +3563,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     }
 
     // How many u-steps moves the RA ring one sidereal hour along when slewing. One sidereal hour moves just shy of 15 degrees
-    float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
+    float stepsPerSiderealHour = _stepsPerRADegree * _degreesPerHour; //siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
 
     // Where do we want to move DEC to?
     float moveDEC = decTarget.getTotalDegrees();
@@ -4289,7 +4290,53 @@ double Mount::getTrackingRate()
     {
         return 60.0 * kingDegreesInHour / 15.0;
     }
-    else {
+    else
+    {
         return 60.0 * siderealDegreesInHour / 15.0;
+    }
+}
+
+void Mount::setManualTrackingRate(double value)
+{
+    // If we switch to manual tracking rate and the initial value is not set, default to previously used rate
+    if(_manualTrackingRate == -1.0 || value == -1.0)
+    {
+        _manualTrackingRate = getTrackingRate();
+    }
+    else
+    {
+        _manualTrackingRate = value;
+    }
+}
+
+void Mount::modifyTrackingRate(double value)
+{
+    if(_manualTrackingRate == -1.0)
+    {
+        _manualTrackingRate = getTrackingRate();
+    }
+    _manualTrackingRate += value;
+}
+
+void Mount::degreesPerHour()
+{
+    switch (_trackingMode) {
+        case TRACKING_LUNAR:
+            _degreesPerHour = lunarDegreesInHour;
+            break;
+        case TRACKING_SOLAR:
+            _degreesPerHour = solarDegreesInHour;
+            break;
+        case TRACKING_KING:
+            _degreesPerHour = kingDegreesInHour;
+            break;
+        case TRACKING_MANUAL:
+            // degreesPerHour = kingDegreesInHour;
+            // secondsPerDay = KING_SECONDS_PER_DAY; // SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
+            break;
+        case TRACKING_SIDEREAL:
+        default:
+            _degreesPerHour = siderealDegreesInHour;
+            break;
     }
 }

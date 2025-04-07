@@ -225,6 +225,18 @@
     #define SIDEREAL_SECONDS_PER_DAY 86164.0905f
 #endif
 
+#ifndef LUNAR_SECONDS_PER_DAY
+    #define LUNAR_SECONDS_PER_DAY 88147.40716f
+#endif
+
+#ifndef SOLAR_SECONDS_PER_DAY
+    #define SOLAR_SECONDS_PER_DAY 86400.0f
+#endif
+
+#ifndef KING_SECONDS_PER_DAY
+    #define KING_SECONDS_PER_DAY 85668.63079f
+#endif
+
 // These values are needed to calculate the current position during initial alignment.
 // Use something like Stellarium to look up the RA of Polaris in JNow (on date) variant.
 // This changes slightly over weeks, so adjust every couple of months.
