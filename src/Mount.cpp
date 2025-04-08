@@ -56,10 +56,10 @@ const char *formatStringsRA[] = {
     "%02d%02d%02d",        // Compact
 };
 
-const float siderealDegreesInHour = 14.95904348958;
-const float lunarDegreesInHour = 14.6225; // Approximately 0.9775 times the sidereal rate
-const float solarDegreesInHour = 15.0; // Sun's apparent motion
-const float kingDegreesInHour = 15.0369; // King rate for better tracking during astrophotography
+const float siderealDegreesInHour = 14.95904348958f;
+const float lunarDegreesInHour = 14.6225f; // Approximately 0.9775 times the sidereal rate
+const float solarDegreesInHour = 15.0f; // Sun's apparent motion
+const float kingDegreesInHour = 15.0369f; // King rate for better tracking during astrophotography
 
 /////////////////////////////////
 //
@@ -922,7 +922,7 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     
     switch (_trackingMode) {
         case TRACKING_LUNAR:
-            // degreesPerHour = lunarDegreesInHour;
+            //degreesPerHour = lunarDegreesInHour;
             secondsPerDay = LUNAR_SECONDS_PER_DAY; // (SIDEREAL_SECONDS_PER_DAY / 0.9775f) equals to 0.9775 of sidereal rate
             break;
         case TRACKING_SOLAR:
@@ -944,7 +944,9 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
             break;
     }
 
-    ////  return 60.0 * siderealDegreesInHour / 15.0;
+    ////  return 60.0 * _degreesPerHour / 15.0;
+    // SIDEREAL 14.95904348958 * 24 / 86164.0905
+    // LUNAR 14.6225 * 24 / 88147.40716
     
     // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * _degreesPerHour * 24.0f / secondsPerDay;
