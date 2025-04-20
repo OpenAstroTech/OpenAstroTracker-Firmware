@@ -79,7 +79,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 {
     _commandReceived = 0;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    _loops = 0;
+    _lastInfoUpdate = millis();
 #endif
     _lcdMenu = lcdMenu;
     initializeVariables();
@@ -349,7 +349,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef NEW_STEPPER_LIB
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -367,7 +367,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef NEW_STEPPER_LIB
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -758,7 +758,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver("ALT");
+    UART_Rx_connected      = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -849,7 +849,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver("FOC");
+    UART_Rx_connected      = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -1649,23 +1649,46 @@ void Mount::guidePulse(byte direction, int duration)
         switch (direction)
         {
             case NORTH:
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
-                    DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-                _guideDecEndTime = millis() + duration;
+                // If a upper limit is set, check we're not there. If we are, refuse the guide pulse.
+                if (_decUpperLimit != 0 && _stepperDEC->currentPosition() >= _decUpperLimit)
+                {
+                    // TODO: Make sure Southern hemisphere does not need a sign/direction inversion.
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC is at (%l) which is at or above upper limit (%l), ignoring guide pulse",
+                        _stepperDEC->currentPosition(),
+                        _decUpperLimit);
+                }
+                else
+                {
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                        DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                    _guideDecEndTime = millis() + duration;
+                }
                 break;
 
             case SOUTH:
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
-                    -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-                _guideDecEndTime = millis() + duration;
+                if (_decLowerLimit != 0 && _stepperDEC->currentPosition() <= _decLowerLimit)
+                {
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC is at (%l) which is at or below lower limit (%l), ignoring guide pulse",
+                        _stepperDEC->currentPosition(),
+                        _decLowerLimit);
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC is at lower limit, ignoring guide pulse");
+                }
+                else
+                {
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                        -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                    _guideDecEndTime = millis() + duration;
+                }
                 break;
 
             case WEST:
@@ -1868,7 +1891,7 @@ void Mount::getAZALTPositions(long &azPos, long &altPos)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     azPos = _stepperAZ->currentPosition();
 #else
-    azPos  = 0;
+    azPos = 0;
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     altPos = _stepperALT->currentPosition();
@@ -3225,13 +3248,22 @@ void Mount::setupInfoDisplay()
 void Mount::updateInfoDisplay()
 {
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    _loops++;
-    // Update display every 8 cycles
-    if (_loops % 8 == 0)
+        // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
+    // timeout, causing ASCOM errors. 
+    // We will update at 30Hz when idle, 5Hz when slewing one axis and 1Hz when slewing both.
+    int refreshRateHz = 30;
+    if (isSlewingRA() && isSlewingDEC()){
+        refreshRateHz = 1;
+    } else if (slewingRaOrDec()){
+        refreshRateHz = 5;
+    }
+
+    if (millis() - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
         infoDisplay->render(this);
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
+        _lastInfoUpdate = millis();
     }
     #endif
 }
@@ -3267,6 +3299,7 @@ bool Mount::isBootComplete()
 //
 // setDecLimitPosition
 //
+// If limitAngle is 0, no offset is given, so the current position is used.
 /////////////////////////////////
 void Mount::setDecLimitPosition(bool upper, float limitAngle)
 {
