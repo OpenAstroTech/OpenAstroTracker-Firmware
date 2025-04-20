@@ -1,3 +1,7 @@
+**V1.13.16 - Updates**
+- Throttled InfoDisplay updates. Turned off on two axis slew, limited to 5Hz on one-axis slew.
+- Guide pulses are now ignored for DEC as well when at the limits.
+
 **V1.13.15 - Updates**
 - Check `INFO_DISPLAY_TYPE` builds in CI
 - Fix `INFO_DISPLAY_TYPE_I2C_SSD1306_128x64` for esp32 builds
