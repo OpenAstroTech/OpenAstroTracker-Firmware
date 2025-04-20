@@ -3248,22 +3248,26 @@ void Mount::setupInfoDisplay()
 void Mount::updateInfoDisplay()
 {
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-        // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
+    // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
     // timeout, causing ASCOM errors. 
-    // We will update at 30Hz when idle, 5Hz when slewing one axis and 1Hz when slewing both.
+    // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
     int refreshRateHz = 30;
-    if (isSlewingRA() && isSlewingDEC()){
-        refreshRateHz = 1;
-    } else if (slewingRaOrDec()){
+    long now = millis();
+    if ((slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA)) 
+    {
+        return;
+    }
+     else if (isSlewingRAorDEC()) 
+    {
         refreshRateHz = 5;
     }
 
-    if (millis() - _lastInfoUpdate > (1000 / refreshRateHz))
+    if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
         infoDisplay->render(this);
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
-        _lastInfoUpdate = millis();
+        _lastInfoUpdate = now;
     }
     #endif
 }
