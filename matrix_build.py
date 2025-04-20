@@ -17,12 +17,16 @@ from matrix_build_parallel import Executor, execute, get_available_executor_idx,
 
 CONTINUE_ON_ERROR = False
 
-BOARDS = [
+MKS_GENL_BOARDS = [
     "mksgenlv21",
     "mksgenlv2",
     "mksgenlv1",
-    "esp32",
+]
+AVR_BOARDS = MKS_GENL_BOARDS + [
     "ramps",
+]
+BOARDS = AVR_BOARDS + [
+    "esp32",
 ]
 
 STEPPER_TYPES = [
@@ -47,6 +51,11 @@ DISPLAY_TYPES = [
     "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306",
 ]
 
+INFO_DISPLAY_TYPES = [
+    "INFO_DISPLAY_TYPE_NONE",
+    "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64",
+]
+
 BUILD_FLAGS = {
     "CONFIG_VERSION": "1",
     "RA_STEPPER_TYPE": [x for x in STEPPER_TYPES if x != "STEPPER_TYPE_NONE"],
@@ -62,6 +71,7 @@ BUILD_FLAGS = {
     "FOCUS_STEPPER_TYPE": STEPPER_TYPES,
     "FOCUS_DRIVER_TYPE": DRIVER_TYPES,
     "DISPLAY_TYPE": DISPLAY_TYPES,
+    "INFO_DISPLAY_TYPE": INFO_DISPLAY_TYPES,
     "TEST_VERIFY_MODE": BOOLEAN_VALUES,
     "DEBUG_LEVEL": ["DEBUG_NONE", "DEBUG_ANY"],
     "RA_MOTOR_CURRENT_RATING": "1",
@@ -236,6 +246,25 @@ def set_support_constraints(problem):
     problem.addConstraint(driver_supports_stepper, ["AZ_DRIVER_TYPE", "AZ_STEPPER_TYPE"])
     problem.addConstraint(driver_supports_stepper, ["FOCUS_DRIVER_TYPE", "FOCUS_STEPPER_TYPE"])
 
+    # AVR boards can't have both DISPLAY_TYPE and INFO_DISPLAY_TYPE enabled
+    def avr_display_exclusivity(board, display, info_display):
+        if board not in AVR_BOARDS:
+            return True
+        return (
+                display == "DISPLAY_TYPE_NONE" or
+                info_display == "INFO_DISPLAY_TYPE_NONE"
+        )
+    problem.addConstraint(avr_display_exclusivity, ["BOARD", "DISPLAY_TYPE", "INFO_DISPLAY_TYPE"])
+
+    # MKS GenL boards must not have a focus stepper when info display is enabled
+    def mksgenl_focus_exclusivity(board, info_display, focus_stepper):
+        if board not in MKS_GENL_BOARDS:
+            return True
+        if info_display != "INFO_DISPLAY_TYPE_NONE":
+            return focus_stepper == "STEPPER_TYPE_NONE"
+        return True
+    problem.addConstraint(mksgenl_focus_exclusivity, ["BOARD", "INFO_DISPLAY_TYPE", "FOCUS_STEPPER_TYPE"])
+
 
 # Define constraints for excluded tests
 def set_test_constraints(problem):
@@ -266,6 +295,14 @@ def set_test_constraints(problem):
 def set_ci_constraints(problem):
     problem.addConstraint(InSetConstraint({"DISPLAY_TYPE_NONE", "DISPLAY_TYPE_LCD_KEYPAD"}), ["DISPLAY_TYPE"])
     # problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
+
+    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21 and esp32 only
+    # (just to reduce compile times)
+    def info_display_constraint(board, info_display):
+        if info_display == "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64":
+            return board in ["mksgenlv21", "esp32"]
+        return True
+    problem.addConstraint(info_display_constraint, ["BOARD", "INFO_DISPLAY_TYPE"])
 
 
 def print_solutions_matrix(solutions, short_strings=False):

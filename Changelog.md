@@ -1,3 +1,7 @@
+**V1.13.15 - Updates**
+- Check `INFO_DISPLAY_TYPE` builds in CI
+- Fix `INFO_DISPLAY_TYPE_I2C_SSD1306_128x64` for esp32 builds
+
 **V1.13.14 - Updates**
 - Improved Serial command handling (made it less 'blocking'), which should improve general performance
 - Guide pulses are ignored when tracking is disabled (for example, when at the limits)
