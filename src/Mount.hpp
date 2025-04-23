@@ -345,6 +345,12 @@ class Mount
     // Set the tracking stepper position
     void setTrackingStepperPos(long stepPos);
 
+    // Save the current RA and DEC stepper positions to EPROM
+    void saveStepperPositions();
+
+    // Restore the RA and DEC stepper positions from EPROM
+    void restoreStepperPositions();
+
     // Process any stepper movement.
     void loop();
 
@@ -512,6 +518,9 @@ class Mount
     // Calculate the stepper positions for the current target coordinates
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
 
+    void setUseCustomParkPosition(bool value);
+    bool getUseCustomParkPosition();
+
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -671,6 +680,7 @@ class Mount
     bool _slewingToHome;
     bool _slewingToPark;
     bool _bootComplete;
+    bool _useCustomPark;
 
     int _localUtcOffset;
     LocalDate _localStartDate;

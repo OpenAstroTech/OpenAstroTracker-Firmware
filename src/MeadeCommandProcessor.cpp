@@ -616,7 +616,31 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        If the mount supports AZ and ALT axes, this call sets their positions to 0 and stores this in persistent storage.
 //      Returns:
 //        "1"
+// :hCs#
+//      Description:
+//        Set if we want to use a Custom Park Position
+//      Information:
+//        We can specify a custom park position for RA & DEC, this is different from the Home position
+//      Parameters:
+//        "s" is '1' for true or '0' for false
+//      Returns:
+//        "1"
 //
+// :hCq#
+//      Description:
+//        Query if we are using Custom Park Position
+//      Information:
+//        This value is stored on the EPROM
+//      Returns:
+//        "1" for true "0" for false
+//
+// :hS#
+//      Description:
+//        Save current stepper position for RA & DEC
+//      Information:
+//        These values are stored on the EPROM
+//      Returns:
+//        "1"
 //------------------------------------------------------------------
 // QUIT MOVEMENT FAMILY
 //
@@ -1723,6 +1747,41 @@ String MeadeCommandProcessor::handleMeadeHome(String inCmd)
     else if (inCmd[0] == 'Z')  // :hZ
     {                          // Set AZ/ALT home
         _mount->setAZALTHome();
+        return "1";
+    }
+    else if (inCmd[0] == 'C')  // :hC
+    {                          // Set useCustomPark flag
+        if (inCmd.length() > 1)
+        {
+            if(inCmd[1] == '1') // :hC1
+            {
+                _mount->setUseCustomParkPosition(true);
+                return "1";
+            }
+            else if(inCmd[1] == '0') // :hC0
+            {
+                _mount->setUseCustomParkPosition(false);
+                return "1";
+            }
+            else if(inCmd[1] == 'q') //:hCq
+            {                        // Get if custom park position is set or not
+                bool value = _mount->getUseCustomParkPosition();
+                if(value == true)
+                {
+                    return "1";
+                }
+                else
+                {
+                    return "0";
+                }
+            }
+            return "1";
+        }
+        return "0";
+    }
+    else if (inCmd[0] == 'S')  // :hS
+    {                          // Save current stepper positions RA & DEC
+        _mount->saveStepperPositions();
         return "1";
     }
     return "";

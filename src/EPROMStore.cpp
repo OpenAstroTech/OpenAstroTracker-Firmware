@@ -141,6 +141,8 @@ void EEPROMStore::displayContents()
     LOG(DEBUG_INFO, "[EEPROM]: Stored RA Homing Offset: %l", getRAHomingOffset());
     LOG(DEBUG_INFO, "[EEPROM]: Stored AZ Position: %l", getAZPosition());
     LOG(DEBUG_INFO, "[EEPROM]: Stored ALT Position: %l", getALTPosition());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored RA Stepper Position: %l", getRAStepperPosition());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Stepper Position: %l", getDECStepperPosition());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Homing Offset : %l", getDECHomingOffset());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Lower Limit: %l", getDECLowerLimit());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Upper Limit: %l", getDECUpperLimit());
@@ -850,5 +852,88 @@ void EEPROMStore::storeALTPosition(int32_t altPosition)
 
     updateInt32(ALT_POSITION_ADDR, altPosition);
     updateFlagsExtended(ALT_POSITION_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the current RA stepper position from home (in steps)
+int32_t EEPROMStore::getRAStepperPosition()
+{
+    int32_t raPosition(0);  // microsteps (slew)
+
+    if (isPresentExtended(RA_STEPPER_POS_MARKER_FLAG))
+    {
+        raPosition = readInt32(RA_STEPPER_POS_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: RA stepper position read as %l", raPosition);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for RA stepper position");
+    }
+
+    return raPosition;  // microsteps (slew)
+}
+
+// Store the current RA stepper position in steps
+void EEPROMStore::storeRAStepperPosition(int32_t raPosition)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating RA stepper position to %l", raPosition);
+
+    updateInt32(RA_STEPPER_POS_ADDR, raPosition);
+    updateFlagsExtended(RA_STEPPER_POS_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the current DEC stepper position from home (in steps)
+int32_t EEPROMStore::getDECStepperPosition()
+{
+    int32_t decPosition(0);  // microsteps (slew)
+
+    if (isPresentExtended(DEC_STEPPER_POS_MARKER_FLAG))
+    {
+        decPosition = readInt32(DEC_STEPPER_POS_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: DEC stepper position read as %l", decPosition);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC stepper position");
+    }
+
+    return decPosition;  // microsteps (slew)
+}
+
+// Store the current DEC stepper position in steps
+void EEPROMStore::storeDECStepperPosition(int32_t decPosition)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC stepper position to %l", decPosition);
+
+    updateInt32(DEC_STEPPER_POS_ADDR, decPosition);
+    updateFlagsExtended(DEC_STEPPER_POS_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the useCustomPark flag
+bool EEPROMStore::getUseCustomPark()
+{
+    bool useCustomPark = false;
+    if (isPresentExtended(USE_CUSTOM_PARK_MARKER_FLAG))
+    {
+        useCustomPark = readUint8(USE_CUSTOM_PARK_ADDR) == 1;
+        LOG(DEBUG_EEPROM, "[EEPROM]: Use Custom Park flag read as %d", useCustomPark);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Use Custom Park flag");
+    }
+
+    return useCustomPark;
+}
+
+// Store the useCustomPark flag
+void EEPROMStore::storeUseCustomPark(bool useCustomPark)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating Use Custom Park flag to %d", useCustomPark);
+
+    updateUint8(USE_CUSTOM_PARK_ADDR, useCustomPark ? 1 : 0);
+    updateFlagsExtended(USE_CUSTOM_PARK_MARKER_FLAG);
     commit();  // Complete the transaction
 }

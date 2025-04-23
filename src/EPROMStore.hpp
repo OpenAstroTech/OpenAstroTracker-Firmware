@@ -68,6 +68,21 @@ class EEPROMStore
     static int32_t getALTPosition();
     static void storeALTPosition(int32_t altPosition);
 
+    // Get the current RA stepper position from home (in steps)
+    static int32_t getRAStepperPosition();
+    // Store the current RA stepper position in steps
+    static void storeRAStepperPosition(int32_t raPosition);
+
+    // Get the current DEC stepper position from home (in steps)
+    static int32_t getDECStepperPosition();
+    // Store the current DEC stepper position in steps
+    static void storeDECStepperPosition(int32_t decPosition);
+
+    // Get the useCustomPark flag
+    static bool getUseCustomPark();
+    // Store the useCustomPark flag
+    static void storeUseCustomPark(bool useCustomPark);
+
   private:
     /////////////////////////////////
     //
@@ -137,6 +152,9 @@ class EEPROMStore
         LAST_FLASHED_MARKER_FLAG   = 0x0080,
         AZ_POSITION_MARKER_FLAG    = 0x0100,
         ALT_POSITION_MARKER_FLAG   = 0x0200,
+        RA_STEPPER_POS_MARKER_FLAG = 0x0400,
+        DEC_STEPPER_POS_MARKER_FLAG = 0x0800,
+        USE_CUSTOM_PARK_MARKER_FLAG = 0x1000,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -209,7 +227,16 @@ class EEPROMStore
         _ALT_POSITION_ADDR_1,
         _ALT_POSITION_ADDR_2,
         _ALT_POSITION_ADDR_3,
-        STORE_SIZE = 66
+        RA_STEPPER_POS_ADDR = 66,
+        _RA_STEPPER_POS_ADDR_1,
+        _RA_STEPPER_POS_ADDR_2,
+        _RA_STEPPER_POS_ADDR_3,
+        DEC_STEPPER_POS_ADDR = 70,
+        _DEC_STEPPER_POS_ADDR_1,
+        _DEC_STEPPER_POS_ADDR_2,
+        _DEC_STEPPER_POS_ADDR_3,
+        USE_CUSTOM_PARK_ADDR = 74,  // Uint8
+        STORE_SIZE = 75
     };
 
     // Helper functions

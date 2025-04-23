@@ -111,6 +111,7 @@ void Mount::initializeVariables()
     _correctForBacklash      = false;
     _slewingToHome           = false;
     _slewingToPark           = false;
+    _useCustomPark           = false;
     _decLowerLimit           = 0;
     _decUpperLimit           = 0;
 
@@ -228,6 +229,9 @@ void Mount::readPersistentData()
         _decUpperLimit = static_cast<long>(DEC_LIMIT_UP * _stepsPerDECDegree);
     }
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %l -> %l", _decLowerLimit, _decUpperLimit);
+    
+    _useCustomPark = EEPROMStore::getUseCustomPark();
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Use Custom Park flag read as %d", _useCustomPark);
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     long altPos = EEPROMStore::getALTPosition();
@@ -1913,7 +1917,18 @@ void Mount::park()
     stopGuiding();
     stopSlewing(ALL_DIRECTIONS | TRACKING);
     waitUntilStopped(ALL_DIRECTIONS);
-    startSlewingToHome();
+    
+    if(getUseCustomParkPosition())
+    {
+        long raPosition = EEPROMStore::getRAStepperPosition();
+        long decPosition = EEPROMStore::getDECStepperPosition();
+        moveToStepperPosition(raPosition, decPosition);
+    }
+    else
+    {
+        startSlewingToHome();
+    }
+    
     _mountStatus |= STATUS_PARKING;
 }
 
@@ -2263,6 +2278,38 @@ void Mount::focusStop()
 void Mount::setTrackingStepperPos(long stepPos)
 {
     _stepperTRK->setCurrentPosition(stepPos);
+}
+
+/////////////////////////////////
+//
+// saveStepperPositions
+//
+/////////////////////////////////
+void Mount::saveStepperPositions()
+{
+    long raPosition = _stepperRA->currentPosition();
+    long decPosition = _stepperDEC->currentPosition();
+    
+    LOG(DEBUG_MOUNT, "[MOUNT]: Saving stepper positions - RA: %l, DEC: %l", raPosition, decPosition);
+    
+    EEPROMStore::storeRAStepperPosition(raPosition);
+    EEPROMStore::storeDECStepperPosition(decPosition);
+}
+
+/////////////////////////////////
+//
+// restoreStepperPositions
+//
+/////////////////////////////////
+void Mount::restoreStepperPositions()
+{
+    long raPosition = EEPROMStore::getRAStepperPosition();
+    long decPosition = EEPROMStore::getDECStepperPosition();
+    
+    LOG(DEBUG_MOUNT, "[MOUNT]: Restoring stepper positions - RA: %l, DEC: %l", raPosition, decPosition);
+    
+    _stepperRA->setCurrentPosition(raPosition);
+    _stepperDEC->setCurrentPosition(decPosition);
 }
 
 void Mount::setStatusFlag(int flag)
@@ -3188,7 +3235,7 @@ void Mount::loop()
             }
 
             LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slew2Park:%d, Slew2Home:%d", _slewingToPark, _slewingToHome);
-            if (_slewingToHome)
+            if (_slewingToHome || isParking())
             {
                 LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Slewing home...");
                 _targetRA = currentRA();
@@ -3437,6 +3484,26 @@ void Mount::setHome(bool clearZeroPos)
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: currentRA is %s", currentRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: zeroPos is %s", _zeroPosRA.ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: targetRA is %s", targetRA().ToString());
+}
+
+/////////////////////////////////
+//
+// useCustomParkPosition
+//
+/////////////////////////////////
+void Mount::setUseCustomParkPosition(bool value)
+{
+    EEPROMStore::storeUseCustomPark(value);
+}
+
+/////////////////////////////////
+//
+// getUseCustomParkPosition
+//
+/////////////////////////////////
+bool Mount::getUseCustomParkPosition()
+{
+    return EEPROMStore::getUseCustomPark();
 }
 
 /////////////////////////////////
