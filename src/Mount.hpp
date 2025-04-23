@@ -376,9 +376,6 @@ class Mount
     // Asynchronously parks the mount. Moves to the home position and stops all motors.
     void park();
 
-    // Moves the RA and DEC steppers to the specified positions, taking tracking into account
-    void moveToStepperPosition(long raSteps, long decSteps);
-
     // Runs the RA motor at twice the speed (or stops it), or the DEC motor at tracking speed for the given duration in ms.
     void guidePulse(byte direction, int duration);
 

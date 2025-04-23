@@ -1922,7 +1922,13 @@ void Mount::park()
     {
         long raPosition = EEPROMStore::getRAStepperPosition();
         long decPosition = EEPROMStore::getDECStepperPosition();
-        moveToStepperPosition(raPosition, decPosition);
+        
+        // Take tracking into account
+        const long trackingOffset = _stepperTRK->currentPosition() * RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING;
+        long targetRAPosition = raPosition - trackingOffset;
+
+        moveStepperTo(StepperAxis::RA_STEPS, targetRAPosition);
+        moveStepperTo(StepperAxis::DEC_STEPS, decPosition);
     }
     else
     {
@@ -1930,67 +1936,6 @@ void Mount::park()
     }
     
     _mountStatus |= STATUS_PARKING;
-}
-
-/////////////////////////////////
-//
-// moveToStepperPosition
-//
-// Moves the RA and DEC steppers to the specified positions,
-// taking tracking into account
-/////////////////////////////////
-void Mount::moveToStepperPosition(long raSteps, long decSteps)
-{
-    stopGuiding();
-
-    // Make sure we're slewing at full speed
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: moveToStepperPosition: Set DEC to MaxSpeed(%l)", _maxDECSpeed);
-    _stepperDEC->setMaxSpeed(_maxDECSpeed);
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: moveToStepperPosition: Set RA to MaxSpeed(%l)", _maxRASpeed);
-    _stepperRA->setMaxSpeed(_maxRASpeed);
-
-    // Store current RA stepper position
-    _currentRAStepperPosition = _stepperRA->currentPosition();
-    
-    // Take tracking into account
-    const long trackingOffset = _stepperTRK->currentPosition() * RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING;
-    long targetRAPosition = raSteps - trackingOffset;
-    long targetDECPosition = decSteps;
-    
-    LOG(DEBUG_STEPPERS,
-        "[STEPPERS]: moveToStepperPosition: Adjusted with tracking offset: %l (adjusted for MS: %l), result: %l",
-        _stepperTRK->currentPosition(),
-        trackingOffset,
-        targetRAPosition);
-
-    long raStepsToGo = targetRAPosition - _stepperRA->currentPosition();
-    if (raStepsToGo != 0)
-    {
-        // Only stop tracking if we're actually going to slew somewhere else
-        LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
-        stopSlewing(TRACKING);
-        _trackerStoppedAt = millis();
-        _compensateForTrackerOff = true;
-
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: moveToStepperPosition: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
-
-        LOG(DEBUG_STEPPERS, "[STEPPERS]: moveToStepperPosition: TRK stopped at %lms", _trackerStoppedAt);
-    }
-
-    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-    LOG(DEBUG_STEPPERS, "[STEPPERS]: moveToStepperPosition: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-#endif
-    _stepperWasRunning = true;
-    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
-    _totalRAMove = static_cast<float>(_stepperRA->distanceToGo());
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA Dist: %l, DEC Dist: %l", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 }
 
 bool Mount::isAxisRunning(StepperAxis axis)
