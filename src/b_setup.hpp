@@ -175,7 +175,10 @@ void setup()
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // include TMC2209 UART pins
+    #if defined(RA_DIAG_PIN)
     pinMode(RA_DIAG_PIN, INPUT);
+    #endif
+
     #ifdef RA_SERIAL_PORT
     RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
@@ -195,7 +198,9 @@ void setup()
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // include TMC2209 UART pins
+    #if defined(DEC_DIAG_PIN)
     pinMode(DEC_DIAG_PIN, INPUT);
+    #endif
     #ifdef DEC_SERIAL_PORT
     DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif

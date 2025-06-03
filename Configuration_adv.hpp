@@ -341,7 +341,10 @@
             (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
              * AZ_MICROSTEPPING)  // Actually u-steps/rev
     #endif
-    #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    
+    #ifndef AZIMUTH_STEPS_PER_ARC_MINUTE
+        #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    #endif
 
     // AZ TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
@@ -618,22 +621,6 @@
 //                                  ////////
 ////////////////////////////////////////////
 
-// Stepper drivers
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if defined(ESP32)
-        #define RA_SERIAL_PORT Serial2  // Can be shared with DEC_SERIAL_PORT
-    #elif defined(__AVR_ATmega2560__)
-    // Uses SoftwareSerial
-    #endif
-#endif
-
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if defined(ESP32)
-        #define DEC_SERIAL_PORT Serial2  // Can be shared with RA_SERIAL_PORT
-    #elif defined(__AVR_ATmega2560__)
-    // Uses SoftwareSerial
-    #endif
-#endif
 
 // Focuser
 #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
