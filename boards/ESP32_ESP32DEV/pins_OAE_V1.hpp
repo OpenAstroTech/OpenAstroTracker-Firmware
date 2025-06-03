@@ -25,6 +25,12 @@
 #ifndef RA_SERIAL_PORT
     #define RA_SERIAL_PORT Serial1
 #endif
+#ifndef RA_TX_PIN
+    #define RA_TX_PIN 17
+#endif
+#ifndef RA_RX_PIN
+    #define RA_RX_PIN 16
+#endif
 #ifndef RA_DRIVER_ADDRESS
     #define RA_DRIVER_ADDRESS 0b00  // Set by MS1/MS2. LOW/LOW in this case
 #endif
@@ -42,6 +48,12 @@
 // DRIVER_TYPE_TMC2209_UART HardwareSerial port, can be shared across all drivers
 #ifndef DEC_SERIAL_PORT
     #define DEC_SERIAL_PORT Serial1  // SoftwareSerial TX port
+#endif
+#ifndef DEC_TX_PIN
+    #define DEC_TX_PIN 17
+#endif
+#ifndef DEC_RX_PIN
+    #define DEC_RX_PIN 16
 #endif
 #ifndef DEC_DRIVER_ADDRESS
     #define DEC_DRIVER_ADDRESS 0b01  // Set by MS1/MS2 (MS1 HIGH, MS2 LOW)
