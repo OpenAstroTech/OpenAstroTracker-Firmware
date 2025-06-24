@@ -56,10 +56,14 @@ const char *formatStringsRA[] = {
     "%02d%02d%02d",        // Compact
 };
 
-const float siderealDegreesInHour = 14.95904348958f;
-const float lunarDegreesInHour = 14.6225f; // Approximately 0.9775 times the sidereal rate
-const float solarDegreesInHour = 15.0f; // Sun's apparent motion
-const float kingDegreesInHour = 15.0369f; // King rate for better tracking during astrophotography
+const float siderealDegreesInHour = 14.95904348958;
+
+// Tracking rate multipliers based on LX200 protocol
+// These are relative to solar rate (1.0 = solar)
+const float TRACKING_RATE_SIDEREAL_MULTIPLIER = 1.00275f;   // Standard sidereal rate
+const float TRACKING_RATE_LUNAR_MULTIPLIER    = 0.96909f;   // Lunar rate (slower)
+const float TRACKING_RATE_SOLAR_MULTIPLIER    = 1.0f;       // Solar rate (slower)
+const float TRACKING_RATE_KING_MULTIPLIER     = 1.00548f;   // King rate (slightly faster)
 
 /////////////////////////////////
 //
@@ -80,7 +84,6 @@ Mount::Mount(LcdMenu *lcdMenu)
 #endif
 
 {
-    _trackingMode = TRACKING_SIDEREAL;
     _commandReceived = 0;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     _loops = 0;
@@ -117,8 +120,6 @@ void Mount::initializeVariables()
     _slewingToPark           = false;
     _decLowerLimit           = 0;
     _decUpperLimit           = 0;
-    _trackingMode            = TRACKING_SIDEREAL;
-    _trackingModeName        = "Sidereal";
 
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = 0;
@@ -131,6 +132,8 @@ void Mount::initializeVariables()
     _localStartDate.day      = 1;
     _localStartTimeSetMillis = -1;
     _lastTRKCheck            = 0;
+    _trackingRate            = TRACKING_SIDEREAL;  // Default to sidereal tracking
+    _manualTrackingRateHz    = 60.164f;            // Default to sidereal rate in Hz
 }
 
 /////////////////////////////////
@@ -916,44 +919,12 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
-    degreesPerHour();
-    // float degreesPerHour;
-    float secondsPerDay;
-    
-    switch (_trackingMode) {
-        case TRACKING_LUNAR:
-            //degreesPerHour = lunarDegreesInHour;
-            secondsPerDay = LUNAR_SECONDS_PER_DAY; // (SIDEREAL_SECONDS_PER_DAY / 0.9775f) equals to 0.9775 of sidereal rate
-            break;
-        case TRACKING_SOLAR:
-            // degreesPerHour = solarDegreesInHour;
-            secondsPerDay =  SOLAR_SECONDS_PER_DAY; // 24 hours in seconds
-            break;
-        case TRACKING_KING:
-            // degreesPerHour = kingDegreesInHour;
-            secondsPerDay = KING_SECONDS_PER_DAY; // SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
-            break;
-        case TRACKING_MANUAL:
-            // degreesPerHour = kingDegreesInHour;
-            // secondsPerDay = KING_SECONDS_PER_DAY; // SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
-            break;
-        case TRACKING_SIDEREAL:
-        default:
-            // degreesPerHour = siderealDegreesInHour;
-            secondsPerDay = SIDEREAL_SECONDS_PER_DAY;
-            break;
-    }
-
-    ////  return 60.0 * _degreesPerHour / 15.0;
-    // SIDEREAL 14.95904348958 * 24 / 86164.0905
-    // LUNAR 14.6225 * 24 / 88147.40716
-    
-    // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg/hr * hr/day / (sec/day) = u-steps / sec
-    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * _degreesPerHour * 24.0f / secondsPerDay;
-    
+    // Apply the tracking rate multiplier for different tracking rates (sidereal, lunar, solar, king)
+    float rateMultiplier = getTrackingRateMultiplier(_trackingRate);
+    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
+                     / SIDEREAL_SECONDS_PER_DAY * rateMultiplier;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) * rate = u-steps / sec
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
-    LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode is %s", _trackingModeName);
 
     LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
 
@@ -970,35 +941,18 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
 
 /////////////////////////////////
 //
-// setTrackingMode
+// getTrackingRate
 //
 /////////////////////////////////
-void Mount::setTrackingMode(TrackingMode mode)
+float Mount::getTrackingRate()
 {
-    if (_trackingMode != mode)
+    if(_trackingRate != TRACKING_MANUAL)
     {
-        _trackingMode = mode;
-
-        switch (_trackingMode) {
-            case TRACKING_LUNAR:
-                _trackingModeName = "Lunar";
-                break;
-            case TRACKING_SOLAR:
-            _trackingModeName    = "Solar";
-                break;
-            case TRACKING_KING:
-                _trackingModeName = "King";
-                break;
-            case TRACKING_SIDEREAL:
-            default:
-                _trackingModeName = "Sidereal";
-                break;
-        }
-        
-        LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode changed to %s", _trackingModeName);
-        
-        // Update the tracking speed with the new mode
-        setSpeedCalibration(_trackingSpeedCalibration, false);
+        float rateMultiplier = getTrackingRateMultiplier(_trackingRate);
+        return 60.0f * rateMultiplier;
+    }
+    else {
+        return _manualTrackingRateHz;
     }
 }
 
@@ -1007,16 +961,97 @@ void Mount::setTrackingMode(TrackingMode mode)
 // getTrackingMode
 //
 /////////////////////////////////
-TrackingMode Mount::getTrackingMode() const
+TrackingRate Mount::getTrackingMode()
 {
-    return _trackingMode;
+    return _trackingRate;
 }
 
-String Mount::getTrackingModeString()
+
+/////////////////////////////////
+//
+// setTrackingRate
+//
+/////////////////////////////////
+void Mount::setTrackingRate(TrackingRate rate)
 {
-    LOG(DEBUG_MOUNT, "[MOUNT]: Rate Mode returning %s", _trackingModeName);
-    return _trackingModeName;
+    LOG(DEBUG_MOUNT, "[MOUNT]: Setting tracking rate from %d to %d", _trackingRate, rate);
+    _trackingRate = rate;
+    
+    // Update the tracking speed with the new rate multiplier
+    float rateMultiplier = getTrackingRateMultiplier(rate);
+    LOG(DEBUG_MOUNT, "[MOUNT]: Tracking rate multiplier: %f", rateMultiplier);
+    
+    // Recalculate tracking speed with the new rate
+    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
+                     / SIDEREAL_SECONDS_PER_DAY * rateMultiplier;
+    
+    LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed: %f steps/sec", _trackingSpeed);
+    
+    // If we are currently tracking, update the speed
+    if (isSlewingTRK())
+    {
+        LOG(DEBUG_STEPPERS, "[MOUNT]: TrackingRate TRK.setSpeed(%f)", _trackingSpeed);
+        _stepperTRK->setSpeed(_trackingSpeed);
+    }
 }
+
+/////////////////////////////////
+//
+// getTrackingRateMultiplier
+//
+/////////////////////////////////
+float Mount::getTrackingRateMultiplier(TrackingRate rate)
+{
+    switch (rate)
+    {
+        case TRACKING_SIDEREAL:
+            return TRACKING_RATE_SIDEREAL_MULTIPLIER;
+        case TRACKING_LUNAR:
+            return TRACKING_RATE_LUNAR_MULTIPLIER;
+        case TRACKING_SOLAR:
+            return TRACKING_RATE_SOLAR_MULTIPLIER;
+        case TRACKING_KING:
+            return TRACKING_RATE_KING_MULTIPLIER;
+        default:
+            return TRACKING_RATE_SIDEREAL_MULTIPLIER;
+    }
+}
+
+
+/////////////////////////////////
+//
+// setManualTrackingRate
+//
+/////////////////////////////////
+void Mount::setManualTrackingRate(float rateHz)
+{
+    LOG(DEBUG_MOUNT, "[MOUNT]: Setting manual tracking rate from %f to %f Hz", _manualTrackingRateHz, rateHz);
+    _manualTrackingRateHz = rateHz;
+    
+    // Convert Hz to steps per second for the stepper
+    // The manual rate is specified in Hz (cycles per second)
+    // We need to convert this to steps per second based on our stepper configuration
+    float stepsPerSecond = rateHz * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) / 240.0f;
+    
+    LOG(DEBUG_MOUNT, "[MOUNT]: Manual tracking rate: %f Hz -> %f steps/sec", rateHz, stepsPerSecond);
+    
+    // Update tracking speed if we're currently tracking
+    if (isSlewingTRK())
+    {
+        LOG(DEBUG_STEPPERS, "[MOUNT]: ManualTrackingRate TRK.setSpeed(%f)", stepsPerSecond);
+        _stepperTRK->setSpeed(stepsPerSecond);
+    }
+}
+/////////////////////////////////
+//
+// modifyManualTrackingRate
+//
+/////////////////////////////////
+void Mount::modifyManualTrackingRate(float value)
+{
+    this->setManualTrackingRate(_manualTrackingRateHz += value);
+}
+
 
 #if USE_GYRO_LEVEL == 1
 /////////////////////////////////
@@ -1418,7 +1453,7 @@ Declination &Mount::targetDEC()
 const DayTime Mount::currentRA() const
 {
     // How many steps moves the RA ring one sidereal hour along. One sidereal hour moves just shy of 15 degrees
-    float stepsPerSiderealHour = _stepsPerRADegree * _degreesPerHour; //siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
+    float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
     float hourPos              = -_stepperRA->currentPosition() / stepsPerSiderealHour;  // u-steps / u-steps/hr = hr
 
     hourPos += _zeroPosRA.getTotalHours();
@@ -1656,11 +1691,9 @@ void Mount::stopGuiding(bool ra, bool dec)
     // Stop RA guide first, since it's just a speed change back to tracking speed
     if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
     {
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-            "[GUIDE]: stopGuide:    RA  set speed       : %f (at %l)",
-            _trackingSpeed,
-            _stepperTRK->currentPosition());
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK stop guide at  : %l", _stepperTRK->currentPosition());
         _stepperTRK->setSpeed(_trackingSpeed);
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK speed set to   : %f", _trackingSpeed);
         _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
     }
 
@@ -1676,8 +1709,6 @@ void Mount::stopGuiding(bool ra, bool dec)
             _stepperGUIDE->run();
             _stepperTRK->runSpeed();
         }
-
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    DEC stopped at      : %l", _stepperGUIDE->currentPosition());
         _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
     }
 
@@ -1703,84 +1734,95 @@ void Mount::guidePulse(byte direction, int duration)
 #if (DEBUG_LEVEL != DEBUG_NONE)
     const char *directionName = "-NE-S---W";
 #endif
-    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms", directionName[direction], duration);
-    if ((direction == NORTH) || (direction == SOUTH))
+    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms requested", directionName[direction], duration);
+    if (!isSlewingTRK())
     {
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC current steps   : %l", _stepperGUIDE->currentPosition());
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC steps/deg       : %f", _stepsPerDECDegree);
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-            "[GUIDE]: guidePulse:   DEC Microstep ratio : %f",
-            (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING));
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: Not tracking (at limit?), ignoring guide pulse");
     }
     else
     {
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  current steps   : %l", _stepperTRK->currentPosition());
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  steps/deg       : %f", _stepsPerRADegree);
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-            "[GUIDE]: guidePulse:   RA  Microstep ratio : %f",
-            (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING));
-    }
-
-    // DEC stepper moves at sidereal rate in both directions
-    // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
-    // Also compensate for microstepping mode change between slew & guiding/tracking
-    float decGuidingSpeed = _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * _degreesPerHour /*siderealDegreesInHour */
-                            / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-    float raGuidingSpeed = _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * _degreesPerHour /*siderealDegreesInHour */
-                           / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-
-    // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
-    // If so, we need to remember where we were when we started the guide pulse. Then at the end,
-    // we can calculate the difference. Ignore DEC Guide for now.
-    // TODO: Take guide pulses on DEC into account
-
-    switch (direction)
-    {
-        case NORTH:
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC guide speed     : %f", DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-            _guideDecEndTime = millis() + duration;
-            break;
-
-        case SOUTH:
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC guide speed     : %f", -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-            _guideDecEndTime = millis() + duration;
-            break;
-
-        case WEST:
-            // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
-            raGuidingSpeed *= _trackingSpeedCalibration;
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+        if ((direction == NORTH) || (direction == SOUTH))
+        {
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC current steps   : %l", _stepperGUIDE->currentPosition());
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC steps/deg       : %f", _stepsPerDECDegree);
             LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
-                (RA_PULSE_MULTIPLIER * raGuidingSpeed),
-                RA_PULSE_MULTIPLIER);
-            _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);  // Faster than siderael
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
-            _guideRaEndTime = millis() + duration;
-            break;
-
-        case EAST:
-            // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
-            raGuidingSpeed *= _trackingSpeedCalibration;
-            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+                "[GUIDE]: guidePulse:   DEC Microstep ratio : %f",
+                (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING));
+        }
+        else
+        {
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  current steps   : %l", _stepperTRK->currentPosition());
+            LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  steps/deg       : %f", _stepsPerRADegree);
             LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
-                (2.0 - RA_PULSE_MULTIPLIER * raGuidingSpeed),
-                (2.0 - RA_PULSE_MULTIPLIER));
-            _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));  // Slower than siderael
-            _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
-            _guideRaEndTime = millis() + duration;
-            break;
+                "[GUIDE]: guidePulse:   RA  Microstep ratio : %f",
+                (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING));
+        }
+
+        // DEC stepper moves at sidereal rate in both directions
+        // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
+        // Also compensate for microstepping mode change between slew & guiding/tracking
+        float decGuidingSpeed = _stepsPerDECDegree * (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
+                                / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+        float raGuidingSpeed = _stepsPerRADegree * (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
+                               / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+
+        // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
+        // If so, we need to remember where we were when we started the guide pulse. Then at the end,
+        // we can calculate the difference. Ignore DEC Guide for now.
+        // TODO: Take guide pulses on DEC into account
+
+        switch (direction)
+        {
+            case NORTH:
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                    DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                _guideDecEndTime = millis() + duration;
+                break;
+
+            case SOUTH:
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                    -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                _guideDecEndTime = millis() + duration;
+                break;
+
+            case WEST:
+                // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
+                raGuidingSpeed *= _trackingSpeedCalibration;
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                    (RA_PULSE_MULTIPLIER * raGuidingSpeed),
+                    RA_PULSE_MULTIPLIER);
+                _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);  // Faster than siderael
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+                _guideRaEndTime = millis() + duration;
+                break;
+
+            case EAST:
+                // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _trackingSpeedCalibration);
+                raGuidingSpeed *= _trackingSpeedCalibration;
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
+                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                    (2.0 - RA_PULSE_MULTIPLIER * raGuidingSpeed),
+                    (2.0 - RA_PULSE_MULTIPLIER));
+                _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));  // Slower than siderael
+                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+                _guideRaEndTime = millis() + duration;
+                break;
+        }
     }
 // Since we will not be updating the display during a guide pulse, update the display here.
 #if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
@@ -3082,6 +3124,7 @@ void Mount::loop()
         bool stopDecGuiding = (now > _guideDecEndTime) && (_mountStatus & STATUS_GUIDE_PULSE_DEC);
         if (stopRaGuiding || stopDecGuiding)
         {
+            LOG(DEBUG_GUIDE, "[MOUNT]: Loop: StopGuiding. Now: %l, RA End: %l, DEC End: %l", now, _guideRaEndTime, _guideDecEndTime);
             stopGuiding(stopRaGuiding, stopDecGuiding);
         }
         else
@@ -3565,7 +3608,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     }
 
     // How many u-steps moves the RA ring one sidereal hour along when slewing. One sidereal hour moves just shy of 15 degrees
-    float stepsPerSiderealHour = _stepsPerRADegree * _degreesPerHour; //siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
+    float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
 
     // Where do we want to move DEC to?
     float moveDEC = decTarget.getTotalDegrees();
@@ -4267,78 +4310,4 @@ float Mount::checkRALimit()
     _lastTRKCheck = millis();
 
     return RALimit - homeCurrentDeltaRA;
-}
-
-/////////////////////////////////
-//
-// trackingRate
-//
-/////////////////////////////////
-double Mount::getTrackingRate()
-{
-    if(_trackingMode == TRACKING_SIDEREAL)
-    {
-        return 60.0 * siderealDegreesInHour / 15.0;
-    }
-    else if(_trackingMode == TRACKING_LUNAR)
-    {
-        return 60.0 * lunarDegreesInHour / 15.0;
-    }
-    else if(_trackingMode == TRACKING_SOLAR)
-    {
-        return 60.0 * solarDegreesInHour / 15.0;
-    }
-    else if(_trackingMode == TRACKING_KING)
-    {
-        return 60.0 * kingDegreesInHour / 15.0;
-    }
-    else
-    {
-        return 60.0 * siderealDegreesInHour / 15.0;
-    }
-}
-
-void Mount::setManualTrackingRate(double value)
-{
-    // If we switch to manual tracking rate and the initial value is not set, default to previously used rate
-    if(_manualTrackingRate == -1.0 || value == -1.0)
-    {
-        _manualTrackingRate = getTrackingRate();
-    }
-    else
-    {
-        _manualTrackingRate = value;
-    }
-}
-
-void Mount::modifyTrackingRate(double value)
-{
-    if(_manualTrackingRate == -1.0)
-    {
-        _manualTrackingRate = getTrackingRate();
-    }
-    _manualTrackingRate += value;
-}
-
-void Mount::degreesPerHour()
-{
-    switch (_trackingMode) {
-        case TRACKING_LUNAR:
-            _degreesPerHour = lunarDegreesInHour;
-            break;
-        case TRACKING_SOLAR:
-            _degreesPerHour = solarDegreesInHour;
-            break;
-        case TRACKING_KING:
-            _degreesPerHour = kingDegreesInHour;
-            break;
-        case TRACKING_MANUAL:
-            // degreesPerHour = kingDegreesInHour;
-            // secondsPerDay = KING_SECONDS_PER_DAY; // SIDEREAL_SECONDS_PER_DAY * (siderealDegreesInHour / kingDegreesInHour);
-            break;
-        case TRACKING_SIDEREAL:
-        default:
-            _degreesPerHour = siderealDegreesInHour;
-            break;
-    }
 }

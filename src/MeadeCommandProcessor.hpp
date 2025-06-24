@@ -23,9 +23,9 @@ class MeadeCommandProcessor
     String handleMeadeQuit(String inCmd);
     String handleMeadeDistance(String inCmd);
     String handleMeadeSetSlewRate(String inCmd);
-    String handleMeadeTrackingRate(String inCmd);
     String handleMeadeExtraCommands(String inCmd);
     String handleMeadeFocusCommands(String inCmd);
+    String handleMeadeTrackingMode(String inCmd);
     Mount *_mount;
     LcdMenu *_lcdMenu;
     static MeadeCommandProcessor *_instance;

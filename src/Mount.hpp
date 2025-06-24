@@ -96,6 +96,16 @@ class EndSwitch;
 #define TRACKING       B00010000
 #define FOCUSING       B00100000
 
+// Tracking rates (based on LX200 protocol)
+enum TrackingRate
+{
+    TRACKING_SIDEREAL = 0,  // Default sidereal rate
+    TRACKING_LUNAR    = 1,  // Lunar rate (slower than sidereal)
+    TRACKING_SOLAR    = 2,  // Solar rate (slower than sidereal)
+    TRACKING_KING     = 3,  // King rate (slightly faster than sidereal)
+    TRACKING_MANUAL   = 4   // Manual rate (user-defined)
+};
+
 #define LCDMENU_STRING     B0001
 #define MEADE_STRING       B0010
 #define PRINT_STRING       B0011
@@ -140,16 +150,6 @@ enum FocuserDirection
 {
     FOCUS_BACKWARD = -1,
     FOCUS_FORWARD  = 1
-};
-
-// Tracking Modes
-enum TrackingMode
-{
-    TRACKING_SIDEREAL,
-    TRACKING_LUNAR,
-    TRACKING_SOLAR,
-    TRACKING_KING,
-    TRACKING_MANUAL
 };
 
 //////////////////////////////////////////////////////////////////
@@ -249,11 +249,26 @@ class Mount
     // Set the current RA tracking speed factor
     void setSpeedCalibration(float val, bool saveToStorage);
 
-    // Set the tracking mode (sidereal or lunar)
-    void setTrackingMode(TrackingMode mode);
+    // Get the current tracking rate
+    float getTrackingRate();
 
     // Get the current tracking mode
-    TrackingMode getTrackingMode() const;
+    TrackingRate getTrackingMode();
+
+    // Set the tracking rate (sidereal, lunar, solar, king)
+    void setTrackingRate(TrackingRate rate);
+
+    // Get the tracking rate multiplier for the given rate
+    float getTrackingRateMultiplier(TrackingRate rate);
+
+    // Set the manual tracking rate in Hz
+    void setManualTrackingRate(float rateHz);
+
+    // Increment manual tracking rate by 0.1 Hz
+    void modifyManualTrackingRate(float value);
+
+    // Decrement manual tracking rate by 0.1 Hz
+    void decrementManualTrackingRate();
 
 #if USE_GYRO_LEVEL == 1
     // Get the current pitch angle calibraton
@@ -525,13 +540,6 @@ class Mount
     // Calculate the stepper positions for the current target coordinates
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
 
-    double getTrackingRate();
-    String getTrackingModeString();
-    void setManualTrackingRate(double value);
-    void modifyTrackingRate(double value);
-    void degreesPerHour();
-
-
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     void testRA_UART_TX();
@@ -680,6 +688,8 @@ class Mount
     unsigned long _lastMountPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
+    TrackingRate _trackingRate;       // Current tracking rate (sidereal, lunar, solar, king)
+    float _manualTrackingRateHz;      // Manual tracking rate in Hz
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
@@ -696,13 +706,6 @@ class Mount
     LocalDate _localStartDate;
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
-
-    // Tracking Rate
-    TrackingMode _trackingMode;
-    const char* _trackingModeName;
-    double _manualTrackingRate = -1.0;
-    float _degreesPerHour;
-    
 };
 
 #endif
