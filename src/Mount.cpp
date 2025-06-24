@@ -132,7 +132,7 @@ void Mount::initializeVariables()
     _localStartDate.day      = 1;
     _localStartTimeSetMillis = -1;
     _lastTRKCheck            = 0;
-    _trackingRate            = TRACKING_SIDEREAL;  // Default to sidereal tracking
+    _trackingMode            = TRACKING_SIDEREAL;  // Default to sidereal tracking
     _manualTrackingRateHz    = 60.164f;            // Default to sidereal rate in Hz
 }
 
@@ -204,7 +204,12 @@ void Mount::readPersistentData()
 
     float speed = EEPROMStore::getSpeedFactor();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", speed);
-    setSpeedCalibration(speed, false);
+    
+    // Load tracking mode from EEPROM
+    _trackingMode = static_cast<TrackingMode>(EEPROMStore::getTrackingMode());
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Tracking mode is %d", _trackingMode);
+    
+    setSpeedCalibration(speed, _trackingMode, false);
 
     _backlashCorrectionSteps = EEPROMStore::getBacklashCorrectionSteps();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Backlash correction is %d", _backlashCorrectionSteps);
@@ -909,10 +914,15 @@ float Mount::getSpeedCalibration()
 // setSpeedCalibration
 //
 /////////////////////////////////
-void Mount::setSpeedCalibration(float val, bool saveToStorage)
+void Mount::setSpeedCalibration(float calVal, TrackingMode trkMode, bool saveToStorage)
 {
-    LOG(DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _trackingSpeedCalibration, val);
-    _trackingSpeedCalibration = val;
+    if(calVal != -1.0f)
+    {
+         LOG(DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _trackingSpeedCalibration, calVal);
+        _trackingSpeedCalibration = calVal;
+    }
+
+    _trackingMode = trkMode;
 
     LOG(DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _trackingSpeed);
 
@@ -920,17 +930,28 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
     // Apply the tracking rate multiplier for different tracking rates (sidereal, lunar, solar, king)
-    float rateMultiplier = getTrackingRateMultiplier(_trackingRate);
+    float rateMultiplier = getTrackingRateMultiplier(_trackingMode);
+    LOG(DEBUG_MOUNT, "[MOUNT]: Tracking rate multiplier: %f", rateMultiplier);
+
     _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
                      / SIDEREAL_SECONDS_PER_DAY * rateMultiplier;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) * rate = u-steps / sec
+    
+    
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
     LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
 
-    LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
+    if(calVal != -1.0f)
+    {
+        LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(calVal, 6).c_str(), String(_trackingSpeed, 6).c_str());
+    }
+    
 
     if (saveToStorage)
+    {
         EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
-
+        EEPROMStore::storeTrackingMode(static_cast<uint8_t>(_trackingMode));
+    }
+        
     // If we are currently tracking, update the speed. No need to update microstepping mode
     if (isSlewingTRK())
     {
@@ -946,9 +967,9 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
 /////////////////////////////////
 float Mount::getTrackingRate()
 {
-    if(_trackingRate != TRACKING_MANUAL)
+    if(_trackingMode != TRACKING_MANUAL)
     {
-        float rateMultiplier = getTrackingRateMultiplier(_trackingRate);
+        float rateMultiplier = getTrackingRateMultiplier(_trackingMode);
         return 60.0f * rateMultiplier;
     }
     else {
@@ -961,21 +982,47 @@ float Mount::getTrackingRate()
 // getTrackingMode
 //
 /////////////////////////////////
-TrackingRate Mount::getTrackingMode()
+TrackingMode Mount::getTrackingMode()
 {
-    return _trackingRate;
+    return _trackingMode;
 }
 
-
+/////////////////////////////////
+//
+// getTrackingModeString
+//
+/////////////////////////////////
+String Mount::getTrackingModeString()
+{
+    switch (_trackingMode)
+    {
+        case TRACKING_SIDEREAL:
+            return "Sidereal";
+        case TRACKING_LUNAR:
+            return "Lunar";
+        case TRACKING_SOLAR:
+            return "Solar";
+        case TRACKING_KING:
+            return "King";
+        case TRACKING_MANUAL:
+            return "Manual";
+        default:
+            return "Unknown";
+    }
+}
+/*
 /////////////////////////////////
 //
 // setTrackingRate
 //
 /////////////////////////////////
-void Mount::setTrackingRate(TrackingRate rate)
+void Mount::setTrackingRate(TrackingMode rate)
 {
-    LOG(DEBUG_MOUNT, "[MOUNT]: Setting tracking rate from %d to %d", _trackingRate, rate);
-    _trackingRate = rate;
+    LOG(DEBUG_MOUNT, "[MOUNT]: Setting tracking rate from %d to %d", _trackingMode, rate);
+    _trackingMode = rate;
+    
+    // Store the tracking mode to EEPROM
+    EEPROMStore::storeTrackingMode(static_cast<uint8_t>(_trackingMode));
     
     // Update the tracking speed with the new rate multiplier
     float rateMultiplier = getTrackingRateMultiplier(rate);
@@ -994,13 +1041,13 @@ void Mount::setTrackingRate(TrackingRate rate)
         _stepperTRK->setSpeed(_trackingSpeed);
     }
 }
-
+*/
 /////////////////////////////////
 //
 // getTrackingRateMultiplier
 //
 /////////////////////////////////
-float Mount::getTrackingRateMultiplier(TrackingRate rate)
+float Mount::getTrackingRateMultiplier(TrackingMode rate)
 {
     switch (rate)
     {
@@ -1135,7 +1182,7 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
     {
         _stepsPerRADegree = steps;
         EEPROMStore::storeRAStepsPerDegree(_stepsPerRADegree);
-        setSpeedCalibration(_trackingSpeedCalibration, false);
+        setSpeedCalibration(_trackingSpeedCalibration, _trackingMode, false);
     }
 }
 

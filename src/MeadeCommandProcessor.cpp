@@ -1217,6 +1217,12 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set tracking mode to King
 //      Returns:
 //        nothing
+//
+// :TDDD.DDD#
+//      Description:
+//        Set Manual rate do the ASCII expressed decimal DDD.DD
+//      Returns:
+//        "1"
 //------------------------------------------------------------------
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1387,8 +1393,8 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
         
         case 'k':  // :Gk - Get tracking Mode
             {
-                TrackingRate rate = _mount->getTrackingMode();
-                switch (rate)
+                TrackingMode mode = _mount->getTrackingMode();
+                switch (mode)
                 {
                     case TRACKING_SIDEREAL:
                         return "Sidereal#";  // Sidereal rate
@@ -1579,34 +1585,36 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
     */
         return F("1Updating Planetary Data#                              #");  //
     }
+    /*
     else if (inCmd[0] == 'k')  // :Skn# - Set tracking rate
     {
         if (inCmd.length() > 0)
         {
             int rate = inCmd[0] - '0';
-            TrackingRate trackingRate;
+            TrackingMode trackingMode;
             switch (rate)
             {
                 case 0:
-                    trackingRate = TRACKING_SIDEREAL;
+                    trackingMode = TRACKING_SIDEREAL;
                     break;
                 case 1:
-                    trackingRate = TRACKING_LUNAR;
+                    trackingMode = TRACKING_LUNAR;
                     break;
                 case 2:
-                    trackingRate = TRACKING_SOLAR;
+                    trackingMode = TRACKING_SOLAR;
                     break;
                 case 3:
-                    trackingRate = TRACKING_KING;
+                    trackingMode = TRACKING_KING;
                     break;
                 default:
                     return "0";  // Invalid rate
             }
-            _mount->setTrackingRate(trackingRate);
+            _mount->setSpeedCalibration(-1.0f, trackingMode, true);
             return "1";
         }
         return "0";
     }
+    */
     else if (inCmd[0] == 'T')  // :STn# - Set tracking on/off
     {
         if (inCmd.length() > 0)
@@ -1624,6 +1632,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         }
         return "0";
     }
+    /*
     else if (inCmd[0] == 'q')  // :Sqnnn.nnn# - Set manual tracking rate
     {
         if (inCmd.length() > 0)
@@ -1634,6 +1643,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
         }
         return "0";
     }
+    */
     else
     {
         return "0";
@@ -2114,7 +2124,8 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if (inCmd[1] == 'S')  // :XSS
         {
-            _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), true);
+            TrackingMode trackingMode = _mount->getTrackingMode();
+            _mount->setSpeedCalibration(inCmd.substring(2).toFloat(), trackingMode, true);
         }
         else if (inCmd[1] == 'T')  // :XST
         {
@@ -2357,54 +2368,64 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
 String MeadeCommandProcessor::handleMeadeTrackingMode(String inCmd)
 {
     LOG(DEBUG_MEADE, "[MEADE]: TRACKING MODE INCMD  -> %s", inCmd.c_str());
-    TrackingRate trackingRate;
+    
     switch (inCmd[0])
     {
-        
-        case '+':
+        case '+': // Increase tracking rate by 0.1Hz
             LOG(DEBUG_MEADE, "[MEADE]: Incrementing manual tracking rate by 0.1");
             _mount->modifyManualTrackingRate(0.1);
-            break; // Increase tracking rate by 0.1Hz
-        case '-':
+            return "";
+            
+        case '-': // Decrease tracking rate by 0.1Hz
             LOG(DEBUG_MEADE, "[MEADE]: Decrement manual tracking rate by -0.1");
             _mount->modifyManualTrackingRate(-0.1);
-            break; // Decrease tracking rate by 0.1Hz
+            return "";
         
-        case 'M':
+        case 'M': //TM - Manual Tracking Rate
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Manual");
-            _mount->setManualTrackingRate(60.0);
             _mount->modifyManualTrackingRate(TRACKING_MANUAL);
-            break;
+            return "";
         
-        case 'Q':
+        case 'Q': //TQ - Sidereal Tracking Rate
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking mode Sidereal");
-            trackingRate = TRACKING_SIDEREAL;
-            break; //TQ - Sidereal Tracking Rate
-        case 'L':
+            _mount->setSpeedCalibration(-1.0f, TRACKING_SIDEREAL, true);
+            _mount->startSlewing(TRACKING);
+            return "";
+            
+        case 'L': // TL - Lunar Tracking Rate
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Lunar");
-            trackingRate = TRACKING_LUNAR;
-            break;// TL - Lunar Tracking Rate
-        case 'S':
+            _mount->setSpeedCalibration(-1.0f, TRACKING_LUNAR, true);
+            _mount->startSlewing(TRACKING);
+            return "";
+            
+        case 'S': // TS - Solar Tracking Rate
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate Solar");
-            trackingRate = TRACKING_SOLAR;
-            break; // TS - Solar Tracking Rate
-        case 'K':
+            _mount->setSpeedCalibration(-1.0f, TRACKING_SOLAR, true);
+            _mount->startSlewing(TRACKING);
+            return "";
+            
+        case 'K': // TK - King Tracking Rate
             LOG(DEBUG_MEADE, "[MEADE]: Setting tracking rate King");
-            trackingRate = TRACKING_KING;
-            break; // TK - King Tracking Rate
-        /*
-        case 'Z':
-            LOG(DEBUG_MEADE, "[MEADE]: Get tracking mode as string  -> %s", _mount->getTrackingModeString());
-            return _mount->getTrackingModeString()+"#";
-            break; // TZ - Extension - Get tracking mode as string
-        */
+            _mount->setSpeedCalibration(-1.0f, TRACKING_KING, true);
+            _mount->startSlewing(TRACKING);
+            return "";
+            
+        case 'D': // TD - Set Manual rate do the ASCII expressed decimal DDD.DD
+            {
+                float rate = inCmd.substring(1).toFloat();
+                LOG(DEBUG_MEADE, "[MEADE]: Setting manual tracking rate to '%s'", inCmd.c_str());
+                LOG(DEBUG_MEADE, "[MEADE]: Rate '%f'", rate);
+                _mount->setManualTrackingRate(rate);
+                _mount->setSpeedCalibration(-1.0f, TRACKING_MANUAL, true);
+                _mount->startSlewing(TRACKING);
+                return "1";
+            }
+
         default:
-            trackingRate = TRACKING_SIDEREAL;
-            break;
+            _mount->setSpeedCalibration(-1.0f, TRACKING_SIDEREAL, true);
+            _mount->startSlewing(TRACKING);
+            return "";
     }
-    _mount->setTrackingRate(trackingRate);
-    _mount->startSlewing(TRACKING);
-    return "";
 }
 
 String MeadeCommandProcessor::processCommand(String inCmd)

@@ -97,7 +97,7 @@ class EndSwitch;
 #define FOCUSING       B00100000
 
 // Tracking rates (based on LX200 protocol)
-enum TrackingRate
+enum TrackingMode
 {
     TRACKING_SIDEREAL = 0,  // Default sidereal rate
     TRACKING_LUNAR    = 1,  // Lunar rate (slower than sidereal)
@@ -247,19 +247,22 @@ class Mount
     float getSpeedCalibration();
 
     // Set the current RA tracking speed factor
-    void setSpeedCalibration(float val, bool saveToStorage);
+    void setSpeedCalibration(float calVal, TrackingMode trkMode, bool saveToStorage);
 
     // Get the current tracking rate
     float getTrackingRate();
 
     // Get the current tracking mode
-    TrackingRate getTrackingMode();
+    TrackingMode getTrackingMode();
+
+    // Get the current tracking mode as a string
+    String getTrackingModeString();
 
     // Set the tracking rate (sidereal, lunar, solar, king)
-    void setTrackingRate(TrackingRate rate);
+    // void setTrackingRate(TrackingMode rate);
 
     // Get the tracking rate multiplier for the given rate
-    float getTrackingRateMultiplier(TrackingRate rate);
+    float getTrackingRateMultiplier(TrackingMode rate);
 
     // Set the manual tracking rate in Hz
     void setManualTrackingRate(float rateHz);
@@ -688,7 +691,7 @@ class Mount
     unsigned long _lastMountPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
-    TrackingRate _trackingRate;       // Current tracking rate (sidereal, lunar, solar, king)
+    TrackingMode _trackingMode;       // Current tracking rate (sidereal, lunar, solar, king)
     float _manualTrackingRateHz;      // Manual tracking rate in Hz
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;

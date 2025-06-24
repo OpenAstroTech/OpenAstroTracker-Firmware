@@ -145,6 +145,7 @@ void EEPROMStore::displayContents()
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Lower Limit: %l", getDECLowerLimit());
     LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Upper Limit: %l", getDECUpperLimit());
     LOG(DEBUG_INFO, "[EEPROM]: Stored Last Flashed Version: %d", getLastFlashedVersion());
+    LOG(DEBUG_INFO, "[EEPROM]: Stored Tracking Mode: %d", getTrackingMode());
 #endif
 }
 
@@ -850,5 +851,33 @@ void EEPROMStore::storeALTPosition(int32_t altPosition)
 
     updateInt32(ALT_POSITION_ADDR, altPosition);
     updateFlagsExtended(ALT_POSITION_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the stored tracking mode
+uint8_t EEPROMStore::getTrackingMode()
+{
+    uint8_t trackingMode = 0;  // Default to TRACKING_SIDEREAL
+
+    if (isPresentExtended(TRACKING_MODE_MARKER_FLAG))
+    {
+        trackingMode = readUint8(TRACKING_MODE_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: Tracking Mode Marker OK! Tracking mode is %d", trackingMode);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Tracking Mode");
+    }
+
+    return trackingMode;
+}
+
+// Store the tracking mode
+void EEPROMStore::storeTrackingMode(uint8_t trackingMode)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating Tracking Mode to %d", trackingMode);
+
+    updateUint8(TRACKING_MODE_ADDR, trackingMode);
+    updateFlagsExtended(TRACKING_MODE_MARKER_FLAG);
     commit();  // Complete the transaction
 }
