@@ -2069,7 +2069,10 @@ String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
     if (inCmd.length() == 0)
     {
         _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
-        _mount->waitUntilStopped(ALL_DIRECTIONS);
+        _mount->stopSlewing(AZIMUTH_STEPS);
+        _mount->stopSlewing(ALTITUDE_STEPS);
+        _mount->stopSlewing(FOCUS_STEPS);
+        _mount->waitUntilAllStopped();
         return "";
     }
 

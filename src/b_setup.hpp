@@ -433,6 +433,12 @@ void setup()
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ stepper...");
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ Microsteps    : %d", AZ_MICROSTEPPING);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ Stepper SPR   : %d", AZ_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ Circumference : %f", AZ_CIRCUMFERENCE);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/rev     : %f", AZIMUTH_STEPS_PER_REV);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/deg     : %f", _stepsPerAZDegree);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/minute  : %f", AZIMUTH_STEPS_PER_ARC_MINUTE);
     mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ driver...");
@@ -445,6 +451,12 @@ void setup()
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure Alt stepper...");
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT Microsteps    : %d", ALT_MICROSTEPPING);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT Stepper SPR   : %d", ALT__STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT Circumference : %f", ALT_CIRCUMFERENCE);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/rev     : %f", ALTITUDE_STEPS_PER_REV);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/deg     : %f", _stepsPerALTDegree);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/minute  : %f", ALTITUDE_STEPS_PER_ARC_MINUTE);    
     mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure ALT driver...");

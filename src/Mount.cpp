@@ -1245,7 +1245,7 @@ void Mount::setLST(const DayTime &lst)
 {
     _LST       = lst;
     _zeroPosRA = lst;
-#ifdef OAM
+#if defined(OAM) || defined(OAE)
     _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
 #endif
     LOG(DEBUG_MOUNT, "[MOUNT]: Set LST and ZeroPosRA to: %s", _LST.ToString());
@@ -2630,6 +2630,33 @@ void Mount::waitUntilStopped(byte direction)
 
 /////////////////////////////////
 //
+// waitUntilAllStopped
+//
+/////////////////////////////////
+// Block until all steppers are stopped
+void Mount::waitUntilAllStopped()
+{
+    while (_stepperRA->isRunning()
+           || _stepperDEC->isRunning()
+           || (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning())
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+           || _stepperFocus->isRunning()
+#endif
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+           || _stepperAZ->isRunning()
+#endif
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+           || _stepperALT->isRunning()
+#endif
+    )
+    {
+        loop();
+        yield();
+    }
+}
+
+/////////////////////////////////
+//
 // getCurrentStepperPosition
 //
 /////////////////////////////////
@@ -3365,7 +3392,7 @@ void Mount::setHome(bool clearZeroPos)
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: targetRA is %s", targetRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: zeroPos is %s", _zeroPosRA.ToString());
     _zeroPosRA = clearZeroPos ? DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst();
-#ifdef OAM
+#if defined(OAM) || defined(OAE)
     _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
 #endif
     _zeroPosDEC = 0.0f;

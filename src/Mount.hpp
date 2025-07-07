@@ -335,6 +335,9 @@ class Mount
     // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
     void waitUntilStopped(byte direction);
 
+    // Block until all motors are stopped
+    void waitUntilAllStopped();
+
     // Same as Arduino delay() but keeps the tracker going.
     void delay(int ms);
 

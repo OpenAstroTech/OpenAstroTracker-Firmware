@@ -232,14 +232,14 @@
 #endif
 
 #ifndef DEC_LIMIT_UP
-    #ifdef OAM
+    #if defined(OAM) || defined(OAE)
         #define DEC_LIMIT_UP 135.0f
     #else
         #define DEC_LIMIT_UP 0.0f
     #endif
 #endif
 #ifndef DEC_LIMIT_DOWN
-    #ifdef OAM
+    #if defined(OAM) || defined(OAE)
         #define DEC_LIMIT_DOWN 135.0f
     #else
         #define DEC_LIMIT_DOWN 0.0f
@@ -332,14 +332,28 @@
         #define AZ_STEPPER_ACCELERATION (100 * AZ_MICROSTEPPING)
     #endif
 
-    // the Circumference of the AZ rotation. 808mm dia.
+    // the Circumference of the AZ rotation. 808mm dia (OAT)
     #ifndef AZ_CIRCUMFERENCE
-        #define AZ_CIRCUMFERENCE 2538.4f
+        #ifdef OAE
+            // Roughly from the joint to the rod placement is 70mm
+            #define AZ_CIRCUMFERENCE 70.0f * 2 * PI
+        #else
+            #define AZ_CIRCUMFERENCE 2538.4f
+        #endif
     #endif
+    
+    #ifdef OAE
+        #ifndef AZ_WORMGEAR_RATIO 
+            #define AZ_WORMGEAR_RATIO (40.0f)
+        #endif
+    #else
+        #define AZ_WORMGEAR_RATIO 1.0f
+    #endif
+
     #ifndef AZIMUTH_STEPS_PER_REV
         #define AZIMUTH_STEPS_PER_REV                                                                                                      \
             (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
-             * AZ_MICROSTEPPING)  // Actually u-steps/rev
+             * AZ_MICROSTEPPING * AZ_WORMGEAR_RATIO)  // Actually u-steps/rev
     #endif
     
     #ifndef AZIMUTH_STEPS_PER_ARC_MINUTE
@@ -398,20 +412,33 @@
         #define ALTITUDE_STEPS_PER_REV                                                                                                     \
             (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING)  // Actually u-steps/rev
 
-    #else
-        // the Circumference of the AZ rotation. 770mm dia.
-        #define ALT_CIRCUMFERENCE 2419.0f
-        #if AUTOPA_VERSION == 1
-            // the ratio of the ALT gearbox for AutoPA V1 (40:3)
-            #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
+    #else 
+        #ifdef OAE
+            #ifndef ALT_ROD_PITCH
+                #define ALT_ROD_PITCH 1.25  // mm/rev
+            #endif
+            // the Circumference of the ALT rotation. Roughly 146mm radius.
+            #define ALT_CIRCUMFERENCE 146.0f * 2 * PI
+            #ifndef ALT_WORMGEAR_RATIO 
+                #define ALT_WORMGEAR_RATIO (40.0f)
+            #endif
+            #define ALTITUDE_STEPS_PER_REV   +                                                                                                  \
+                (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
         #else
-            // the ratio of the ALT gearbox for AutoPA V2 (40:1)
-            #define ALT_WORMGEAR_RATIO (40.0f)
-        #endif
-        #ifndef ALTITUDE_STEPS_PER_REV
-            #define ALTITUDE_STEPS_PER_REV                                                                                                 \
-                (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING   \
-                 * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+            // the Circumference of the AZ rotation. 770mm dia.
+            #define ALT_CIRCUMFERENCE 2419.0f
+            #if AUTOPA_VERSION == 1
+                // the ratio of the ALT gearbox for AutoPA V1 (40:3)
+                #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
+            #else
+                // the ratio of the ALT gearbox for AutoPA V2 (40:1)
+                #define ALT_WORMGEAR_RATIO (40.0f)
+            #endif
+            #ifndef ALTITUDE_STEPS_PER_REV
+                #define ALTITUDE_STEPS_PER_REV                                                                                                 \
+                    (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING   \
+                    * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+            #endif
         #endif
     #endif
 

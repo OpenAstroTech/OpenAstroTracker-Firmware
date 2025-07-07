@@ -1,7 +1,5 @@
 **V1.13.15 - Updates**
- - changes necessary for OAE, add OAE baord
-
-**V1.13.15 - Updates**
+- Changes necessary for OAE, add OAE baord
 - Check `INFO_DISPLAY_TYPE` builds in CI
 - Fix `INFO_DISPLAY_TYPE_I2C_SSD1306_128x64` for esp32 builds
 
