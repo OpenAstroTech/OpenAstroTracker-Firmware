@@ -3258,13 +3258,27 @@ void Mount::setupInfoDisplay()
 void Mount::updateInfoDisplay()
 {
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    _loops++;
-    // Update display every 8 cycles
-    if (_loops % 8 == 0)
+    // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
+    // timeout, causing ASCOM errors. 
+    // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
+    int refreshRateHz = 30;
+    long now = millis();
+    if ((slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA)) 
+    {
+        return;
+    }
+    
+    if (isSlewingRAorDEC()) 
+    {
+        refreshRateHz = 5;
+    }
+
+    if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
         infoDisplay->render(this);
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
+        _lastInfoUpdate = now;
     }
     #endif
 }
@@ -4087,14 +4101,14 @@ DayTime Mount::calculateLst()
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
     DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
-    LOG(DEBUG_INFO,
-        "[MOUNT]: Calculating LST. UTC time: %s. Date: %d-%d-%d. Longitude: %s",
-        timeUTC.ToString(),
-        localDate.year,
-        localDate.month,
-        localDate.day,
-        longitude().ToString());
-    LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
+    // LOG(DEBUG_INFO,
+    //     "[MOUNT]: Calculating LST. UTC time: %s. Date: %d-%d-%d. Longitude: %s",
+    //     timeUTC.ToString(),
+    //     localDate.year,
+    //     localDate.month,
+    //     localDate.day,
+    //     longitude().ToString());
+    // LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
     return lst;
 }
 
