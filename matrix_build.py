@@ -4,20 +4,29 @@ import copy
 import os
 import shutil
 import signal
-import subprocess
 import click
+import sys
+from pathlib import Path
+from typing import List
 
 import tabulate
 from constraint import *
 
+from matrix_build_parallel import Executor, execute, get_available_executor_idx, get_finished_executor_idx, \
+    cleanup_tempdirs, create_executors, get_source_files_to_link, wait_for_executor_to_finish, copy_caches_to_executors
+
 CONTINUE_ON_ERROR = False
 
-BOARDS = [
+MKS_GENL_BOARDS = [
     "mksgenlv21",
     "mksgenlv2",
     "mksgenlv1",
-    "esp32",
+]
+AVR_BOARDS = MKS_GENL_BOARDS + [
     "ramps",
+]
+BOARDS = AVR_BOARDS + [
+    "esp32",
 ]
 
 STEPPER_TYPES = [
@@ -42,6 +51,11 @@ DISPLAY_TYPES = [
     "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306",
 ]
 
+INFO_DISPLAY_TYPES = [
+    "INFO_DISPLAY_TYPE_NONE",
+    "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64",
+]
+
 BUILD_FLAGS = {
     "CONFIG_VERSION": "1",
     "RA_STEPPER_TYPE": [x for x in STEPPER_TYPES if x != "STEPPER_TYPE_NONE"],
@@ -57,6 +71,8 @@ BUILD_FLAGS = {
     "FOCUS_STEPPER_TYPE": STEPPER_TYPES,
     "FOCUS_DRIVER_TYPE": DRIVER_TYPES,
     "DISPLAY_TYPE": DISPLAY_TYPES,
+    "INFO_DISPLAY_TYPE": INFO_DISPLAY_TYPES,
+    "TEST_VERIFY_MODE": BOOLEAN_VALUES,
     "DEBUG_LEVEL": ["DEBUG_NONE", "DEBUG_ANY"],
     "RA_MOTOR_CURRENT_RATING": "1",
     "RA_OPERATING_CURRENT_SETTING": "1",
@@ -230,6 +246,25 @@ def set_support_constraints(problem):
     problem.addConstraint(driver_supports_stepper, ["AZ_DRIVER_TYPE", "AZ_STEPPER_TYPE"])
     problem.addConstraint(driver_supports_stepper, ["FOCUS_DRIVER_TYPE", "FOCUS_STEPPER_TYPE"])
 
+    # AVR boards can't have both DISPLAY_TYPE and INFO_DISPLAY_TYPE enabled
+    def avr_display_exclusivity(board, display, info_display):
+        if board not in AVR_BOARDS:
+            return True
+        return (
+                display == "DISPLAY_TYPE_NONE" or
+                info_display == "INFO_DISPLAY_TYPE_NONE"
+        )
+    problem.addConstraint(avr_display_exclusivity, ["BOARD", "DISPLAY_TYPE", "INFO_DISPLAY_TYPE"])
+
+    # MKS GenL boards must not have a focus stepper when info display is enabled
+    def mksgenl_focus_exclusivity(board, info_display, focus_stepper):
+        if board not in MKS_GENL_BOARDS:
+            return True
+        if info_display != "INFO_DISPLAY_TYPE_NONE":
+            return focus_stepper == "STEPPER_TYPE_NONE"
+        return True
+    problem.addConstraint(mksgenl_focus_exclusivity, ["BOARD", "INFO_DISPLAY_TYPE", "FOCUS_STEPPER_TYPE"])
+
 
 # Define constraints for excluded tests
 def set_test_constraints(problem):
@@ -261,6 +296,14 @@ def set_ci_constraints(problem):
     problem.addConstraint(InSetConstraint({"DISPLAY_TYPE_NONE", "DISPLAY_TYPE_LCD_KEYPAD"}), ["DISPLAY_TYPE"])
     # problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
 
+    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21 and esp32 only
+    # (just to reduce compile times)
+    def info_display_constraint(board, info_display):
+        if info_display == "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64":
+            return board in ["mksgenlv21", "esp32"]
+        return True
+    problem.addConstraint(info_display_constraint, ["BOARD", "INFO_DISPLAY_TYPE"])
+
 
 def print_solutions_matrix(solutions, short_strings=False):
     def get_value(vb, vk):
@@ -279,43 +322,28 @@ def print_solutions_matrix(solutions, short_strings=False):
     print(tabulate.tabulate(rows, tablefmt="grid", showindex=map(shorten, keys), colalign=("right",)))
 
 
-def generate_config_file(flag_values):
-    content = "#pragma once\n\n"
-    for key, value in flag_values.items():
-        content += "#define {} {}\n".format(key, value)
-
-    with open("Configuration_local_matrix.hpp", 'w') as f:
-        f.write(content)
-        print("Generated local config")
-        print("Path: {}".format(os.path.abspath(f.name)))
-        print("Content:")
-        print(content)
-
-
-def create_run_environment(flag_values):
-    build_env = dict(os.environ)
-    build_flags = " ".join(["-D{}={}".format(key, value) for key, value in flag_values.items()])
-    build_env["PLATFORMIO_BUILD_FLAGS"] = build_flags
-    return build_env
+def print_failed_executor(executor: Executor):
+    print(f'Error for the following configuration ({executor.proj_dir}):', file=sys.stderr)
+    print_solutions_matrix([executor.solution])
+    configuration_path = Path(executor.proj_dir, 'Configuration_local_matrix.hpp')
+    print(f'{configuration_path}:')
+    with open(configuration_path, 'r') as fp:
+        print(fp.read())
+    out_bytes, err_bytes = executor.proc.communicate()
+    if out_bytes:
+        print(out_bytes.decode())
+    if err_bytes:
+        print(err_bytes.decode(), file=sys.stderr)
 
 
-def execute(board, flag_values, use_config_file=True):
-    if use_config_file:
-        build_env = dict(os.environ)
-        build_env["PLATFORMIO_BUILD_FLAGS"] = "-DMATRIX_LOCAL_CONFIG=1"
-        generate_config_file(flag_values)
-    else:
-        build_env = create_run_environment(flag_values)
-
-    proc = subprocess.Popen(
-        "pio run -e {}".format(board),
-        # stdout=subprocess.PIPE,
-        # stderr=subprocess.PIPE,
-        shell=True,
-        env=build_env,
-    )
-    (stdout, stderr) = proc.communicate()
-    return stdout, stdout, proc.returncode
+def run_solution_blocking(executor: Executor, solution: dict) -> int:
+    executor.solution = copy.deepcopy(solution)
+    board = solution.pop("BOARD")
+    executor.proc = execute(executor.proj_dir, board, solution, jobs=os.cpu_count(), out_pipe=False)
+    executor.proc.wait()
+    if executor.proc.returncode != 0:
+        print_failed_executor(executor)
+    return executor.proc.returncode
 
 
 class GracefulKiller:
@@ -353,17 +381,60 @@ def solve(board):
     solutions = problem.getSolutions()
     print_solutions_matrix(solutions, short_strings=False)
 
-    print("Testing {} combinations".format(len(solutions)))
+    total_solutions = len(solutions)
+    print(f'Testing {total_solutions} combinations')
 
-    for num, solution in enumerate(solutions, start=1):
-        print("[{}/{}] Building ...".format(num, len(solutions)), flush=True)
-        print_solutions_matrix([solution])
+    nproc = min(os.cpu_count(), len(solutions))
 
-        board = solution.pop("BOARD")
-        (o, e, c) = execute(board, solution)
-        if c and not CONTINUE_ON_ERROR:
-            exit(c)
-        print(flush=True)
+    local_paths_to_link = get_source_files_to_link()
+    executor_list: List[Executor] = create_executors(nproc, local_paths_to_link)
+
+    print('First run to fill cache')
+    solution = solutions.pop()
+    retcode = run_solution_blocking(executor_list[0], solution)
+    if retcode != 0 and not CONTINUE_ON_ERROR:
+        exit(retcode)
+
+    copy_caches_to_executors(executor_list[0].proj_dir, executor_list[1:])
+
+    solutions_built = 2  # We've already built one solution, and we're 1-indexing
+    exit_early = False  # Exit trigger
+    while solutions:
+        # First fill any open execution slots
+        while get_available_executor_idx(executor_list) is not None:
+            available_executor_idx = get_available_executor_idx(executor_list)
+            executor = executor_list[available_executor_idx]
+            try:
+                solution = solutions.pop()
+            except IndexError:
+                # No more solutions to try!
+                break
+            print(f'[{solutions_built}/{total_solutions}] Building ...')
+            executor.solution = copy.deepcopy(solution)
+            board = solution.pop("BOARD")
+            executor.proc = execute(executor.proj_dir, board, solution)
+            solutions_built += 1
+
+        # Next wait for any processes to finish
+        wait_for_executor_to_finish(executor_list)
+
+        # Go through all the finished processes and check their status
+        while get_finished_executor_idx(executor_list) is not None:
+            finished_executor_idx = get_finished_executor_idx(executor_list)
+            executor = executor_list[finished_executor_idx]
+            if executor.proc.returncode != 0:
+                print_failed_executor(executor)
+                if not CONTINUE_ON_ERROR:
+                    exit_early = True
+            del executor.proc
+            executor.proc = None
+
+        if exit_early:
+            break
+    if exit_early:
+        exit(1)
+    print('Done!')
+    cleanup_tempdirs(executor_list)
 
 
 if __name__ == '__main__':

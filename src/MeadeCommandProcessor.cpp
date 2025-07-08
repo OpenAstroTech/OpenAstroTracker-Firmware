@@ -180,7 +180,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Parameters:
 //        "s" is the sign
 //        "HH" is the number of hours
-//      Remarks
+//      Remarks:
 //        Note that this is NOT simply the timezone offset you are in (like -8 for Pacific Standard Time), it is the negative of it. So how many hours need to be added to your local time to get to UTC.
 //
 // :Ga#
@@ -271,25 +271,28 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get Mount Status
 //      Information:
-//         String reflecting the mounts' status. The string is a comma-delimited list of statuses
+//         String reflecting the mounts' status. The string is a comma-delimited list of statuses.
 //      Returns:
-//        "Idle,--T--,11219,0,927,071906,+900000,#"
+//        "Idle,--T--,11219,0,927,071906,+900000,,#"
 //      Parameters:
 //        [0] The mount status. One of 'Idle', 'Parked', 'Parking', 'Guiding', 'SlewToTarget', 'FreeSlew', 'ManualSlew', 'Tracking', 'Homing'
-//        [1] The motion state.
+//        [1] The motion state (see Remarks below).
 //        [2] The RA stepper position
 //        [3] The DEC stepper position
 //        [4] The Tracking stepper position
-//        [5] The current RA position
-//        [6] The current DEC position
+//        [5] The current RA coordinate
+//        [6] The current DEC coordinate
+//        [7] The FOC stepper position (if FOC enabled, else empty)
 //      Remarks:
-//        The motion state
+//        The motion state consists of 6 characters. If the character is a '-', the corresponding axis is not moving.
 //        First character is RA slewing state ('R' is East, 'r' is West, '-' is stopped).
 //        Second character is DEC slewing state ('d' is North, 'D' is South, '-' is stopped).
 //        Third character is TRK slewing state ('T' is Tracking, '-' is stopped).
 //        Fourth character is AZ slewing state ('Z' and 'z' is adjusting, '-' is stopped).
 //        Fifth character is ALT slewing state ('A' and 'a' is adjusting, '-' is stopped).
-//        Az and Alt are optional. The string may only be 3 characters long
+//        Sixth character is FOC slewing state ('F' and 'f' is adjusting, '-' is stopped).
+//        AZ, ALT, and FOC are only set if the corresponding axis is enabled. If not, the character is always '-'.
+//        Since AZ/ALT rarely move, their positions are not returned here. To get the AZ and ALT stepper positions, use the ":XGAA#" command.
 //
 //------------------------------------------------------------------
 // SET FAMILY
@@ -424,7 +427,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Synchronize Declination and Right Ascension.
 //      Information:
-//        This tells the scope what it is currently pointing at.
+//        This tells the scope what exact coordinates it is currently pointing at. These coordinates become the new current RA/DEC coordinates of the mount.
 //      Returns:
 //        "1" if successfully set
 //        "0" otherwise
@@ -464,7 +467,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Run a Guide pulse
 //      Information:
-//        This runs the motors at increased speed for a short period of time.
+//        This runs the RA or DEC steppers at an increased or decreased speed (in the case of RA) or a constant speed (in the case of DEC) for a short period of time. It is used for guiding.
 //      Parameters:
 //        "d" is one of 'N', 'E', 'W', or 'S'
 //        "nnnn" is the duration in ms
@@ -485,7 +488,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Start slewing
 //      Information:
-//        This starts slewing the mount in the given direction.
+//        This starts slewing the mount in the given direction. You must issue a stop command (such as the corresponding ":Qc#",
+//        where 'c' is the same direction as passed to this command) or ":Q#" (stops all steppers) to stop it.
 //      Parameters:
 //        "c" is one of 'n', 'e', 'w', or 's'
 //      Returns:
@@ -495,7 +499,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Move stepper
 //      Information:
-//        This starts moving one of the steppers by the given amount of steps and returns immediately.
+//        This starts moving one of the steppers by the given amount of steps and returns immediately. Steps can be positive or negative.
 //      Parameters:
 //        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, t for ALT)
 //        "nnnn" is the number of steps
@@ -509,7 +513,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This attempts to find the hall sensor and to home the RA ring accordingly.
 //      Parameters:
 //        "x" is either 'R' or 'L' and determines the direction in which the search starts (L is CW, R is CCW).
-//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 5degs - 75degs.
 //      Remarks:
 //        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
 //        it will move twice the amount (60 degrees by default) in the opposite direction.
@@ -521,7 +525,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        specified direction.
 //      Returns:
 //        "1" if search is started
-//        "0" if homing has not been enabled in the local config
+//        "0" if homing has not been enabled in the local configuration file
 //
 // :MHDxn#
 //      Description:
@@ -530,7 +534,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This attempts to find the hall sensor and to home the DEC axis accordingly.
 //      Parameters:
 //        "x" is either 'U' or 'D' and determines the direction in which the search starts (U is up, D is down).
-//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 15degs - 75degs.
+//        "n" (Optional) is the maximum number of degrees to move while searching for the sensor location. Defaults to 30degs. Limited to the range 5degs - 75degs.
 //      Remarks:
 //        The ring is first moved 30 degrees (or the given amount) in the initial direction. If no hall sensor is encountered,
 //        it will move twice the amount (60 degrees by default) in the opposite direction.
@@ -542,13 +546,13 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        specified direction.
 //      Returns:
 //        "1" if search is started
-//        "0" if homing has not been enabled in the local config
+//        "0" if homing has not been enabled in the local configuration file
 //
 // :MAAH#
 //      Description:
 //        Move Azimuth and Altitude to home
 //      Information:
-//        If the scope supports automated azimuth and altitutde operations, move AZ and ALT axis to their zero positions.
+//        If the scope supports automated azimuth and altitude operations, move AZ and ALT axis to their zero positions.
 //      Returns:
 //        "1"
 //
@@ -622,7 +626,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        This stops all motors, including tracking. Note that deceleration curves are still followed.
 //      Returns:
-//        "1" when all motors have stopped
+//        nothing
 //
 // :Qd#
 //      Description:
@@ -644,7 +648,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        nothing
 //
 //------------------------------------------------------------------
-// EXTRA OAT FAMILY - These are meant for the PC control app
+// EXTRA OAT FAMILY - These are used by the PC control application OATControl
 //
 // :XFR#
 //      Description:
@@ -723,7 +727,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Sets the reference pitch value of the mount (Digital Level addon). This is the value
 //        at which the mount is level.
 //      Returns:
-//        "1#" if succsessful
+//        "1#" if successful
 //        "0#" if there is no Digital Level
 //
 // :XGAA#
@@ -895,12 +899,12 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "<Stepper Info>" is a pipe-delimited string of Motor type (NEMA or 28BYJ), Pulley Teeth, Steps per revolution)
 //        "<GPS info>" is either NO_GPS or GPS, depending on whether a GPS module is present
 //        "<AzAlt info>" is either NO_AZ_ALT, AUTO_AZ_ALT, AUTO_AZ, or AUTO_ALT, depending on which AutoPA stepper motors are present
-//        "<Gyro info>" is either NO_GYRO or GYRO depending on whether the Digial level is present
+//        "<Gyro info>" is either NO_GYRO or GYRO depending on whether the Digital level is present
 //        "<Display info>" is either NO_LCD or LCD_display_type depending on whether LCD is present and if so, which one
 //        "<Focuser info>" is either NO_FOC or FOC depending on whether the focuser motor is enabled
 //        "<RAHallSensor info>" is either NO_HSAH or HSAH depending on whether the Hall sensor based auto homing for RA is enabled
 //        "<Endswitch info>" is either NO_ENDSW or ENDS_RA, ENDSW_DEC, or ENDSW_RA_DEC depending on which axis have end switches installed
-//      Remarks
+//      Remarks:
 //        As OAT/OAM firmware supports more features, these may be appended, separated by a comma. Any further features will
 //        have a 'NO_xxxxx' if the feature is not supported.
 //        To differentiate between OAT and OAM, use the Get Product Name (#GVP) command.
@@ -952,7 +956,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This offset is added to the position of the RA ring when it is centered on the hall sensor triggered range after running.
 //        the RA homing command (:MHRx#)
 //      Parameters:
-//        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
+//        "n" is the (positive or negative) number of steps that are needed from the center of the Hall sensor trigger range to the actual home position.
 //      Returns:
 //        nothing
 //
@@ -963,7 +967,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        This offset is added to the position of the DEC ring when it is centered on the hall sensor triggered range after running.
 //        the DEC homing command (:MHDx#)
 //      Parameters:
-//        "n" is the number of steps that are needed from the center of the Hall senser trigger range to the actual home position.
+//        "n" is the (positive or negative) number of steps that are needed from the center of the Hall sensor trigger range to the actual home position.
 //      Returns:
 //        nothing
 //
@@ -973,7 +977,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Set the number of steps the RA stepper motor needs to take to rotate by one degree.
 //      Parameters:
-//        "n.n" is the number of steps (only one decimal point is supported)
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
 //      Returns:
 //        nothing
 //
@@ -983,7 +987,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        Set the number of steps the DEC stepper motor needs to take to rotate by one degree.
 //      Parameters:
-//        "n.n" is the number of steps (only one decimal point is supported)
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
 //      Returns:
 //        nothing
 //
@@ -995,7 +999,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
 //        "nnnnn" is the number of steps from home that the DEC ring can travel upwards. Passing 0 will reset it to the
-//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
+//                limits defined in your configuration file. Omitting this parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -1004,7 +1008,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Clear DEC upper limit
 //      Information:
 //        Resets the upper limit for the DEC axis to the configuration-defined position.
-//        If unconfigured, the limit is cleared.
+//        If not configured, the limit is cleared.
 //      Returns:
 //        nothing
 //
@@ -1016,7 +1020,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        otherwise to the given angle (in degrees from the home position).
 //      Parameters:
 //        "nnnnn" is the number of steps from home that the DEC ring can travel downwards. Passing 0 will reset it to the
-//                limits defined in your config file. Omitting this parameter sets it to the current DEC position.
+//                limits defined in your configuration file. Omitting this parameter sets it to the current DEC position.
 //      Returns:
 //        nothing
 //
@@ -1025,7 +1029,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Clear DEC lower limit
 //      Information:
 //        Resets the lower limit for the DEC axis to the configuration-defined position.
-//        If unconfigured, the limit is cleared.
+//        If not configured, the limit is cleared.
 //      Returns:
 //        nothing
 //
@@ -1034,7 +1038,8 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set DEC parking position offset
 //      Information:
 //        This stores the number of steps needed to move from home to the parking position.
-//      Returns: nothing
+//      Returns:
+//        nothing
 //
 // :XSSn.nnn#
 //      Description:
@@ -1109,7 +1114,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Set speed factor
 //      Information:
-//        Set focuser speed to <n> where <n> is an ASCII digit 1..4. 1 is slowest, 4 i fastest
+//        Set focuser speed to <n> where <n> is an ASCII digit 1..4. 1 is slowest, 4 is fastest
 //      Returns:
 //        nothing
 //
@@ -1136,7 +1141,6 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Get the current position of the focus stepper motor
 //      Returns:
 //        "nnn#" "nnn" is the current position of the stepper
-//
 //
 // :FPnnn#
 //      Description:
@@ -1517,6 +1521,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
 /////////////////////////////
 String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 {
+    LOG(DEBUG_MEADE, "[MEADE]: Process Move command: [%s]", inCmd.c_str());
     if (inCmd[0] == 'S')  // :MS#
     {
         _mount->startSlewingToTarget();
@@ -2199,7 +2204,7 @@ String MeadeCommandProcessor::processCommand(String inCmd)
 {
     if (inCmd[0] == ':')
     {
-        LOG(DEBUG_MEADE, "[MEADE]: Received command '%s'", inCmd.c_str());
+        LOG(DEBUG_MEADE, "[MEADE]: Received command   '%s'", inCmd.c_str());
 
         // Apparently some LX200 implementations put spaces in their commands..... remove them with impunity.
         int spacePos;

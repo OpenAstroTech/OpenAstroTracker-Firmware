@@ -11,7 +11,8 @@ USAGE:
 import os
 import re
 
-MEADE_HPP = "..\\src\\MeadeCommandProcessor.cpp"
+MEADE_CPP = "..\\src\\MeadeCommandProcessor.cpp"
+VERSION_FILE = "..\\Version.h"
 MODULE_PATH = os.path.dirname(os.path.realpath(__file__))
 START_LINE = 0
 END_LINE = 0
@@ -122,8 +123,13 @@ def check_command_sepparator(line):
     else:
         return False
 
-# Meade hpp File
-with open(os.path.join(MODULE_PATH, MEADE_HPP)) as f:
+
+# ***************************************************************
+# PARSE MEADE COMMANDS
+# ***************************************************************
+
+# Meade cpp File
+with open(os.path.join(MODULE_PATH, MEADE_CPP)) as f:
     content = f.readlines()
 content = [x.strip() for x in content]
 
@@ -204,7 +210,7 @@ for i in range(len(family_dividers) - 1):
                 m = l+1
                 while not check_command_sepparator(content[m]):
                     command.remarks = remove_line_prefix(content[m])
-                    m += 1
+                    m += 1 
                 l = m
 
             # Parameters
@@ -226,6 +232,24 @@ for i in range(len(family_dividers) - 1):
         new_family.commands.append(command)
     all_commands.append(new_family)
 
+# ***************************************************************
+# PARSE MEADE COMMANDS
+# ***************************************************************
+CURRENT_VERSION = "0.0"
+with open(os.path.join(MODULE_PATH, VERSION_FILE)) as f:
+    version_content = f.readlines()
+version_content = [x.strip() for x in version_content]
+
+for line in version_content:
+    if "#define VERSION" in line:
+        CURRENT_VERSION = line.replace("#define VERSION ", "")
+        CURRENT_VERSION = CURRENT_VERSION.replace("\"", "")
+        print(f"Found current version: {CURRENT_VERSION}")
+
+if CURRENT_VERSION == "0.0":
+    raise Exception("Could not find current version to parse from")
+
+
 def output_wiki():
     """
     Writes content to a MeadeToWikiOutput.txt file 
@@ -233,9 +257,13 @@ def output_wiki():
 
     f = open("./scripts/MeadeToWikiOutput.txt", "w")
     
+    f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
+    f.write("{.is-danger}\n\n")
+
+    f.write(f"> This documentation is current as of Firmware **{CURRENT_VERSION}**\n")
+    f.write("{.is-warning}\n\n")
+
     for fam in all_commands:
-        f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
-        f.write("{.is-danger}\n\n")
         
         f.write(f"## {fam.name}\n")
         f.write("<br>\n\n")
@@ -246,7 +274,7 @@ def output_wiki():
             if cmd.information:
                 #f.write("**Information:**\n")
                 for line in cmd.information:
-                    f.write(f"{line}")
+                    f.write(f"{line} ")
                 f.write("\n\n")
 
             f.write(f"**Command:**\n")
@@ -281,6 +309,12 @@ def output_wiki():
             f.write("\n")
 
     f.write("\n\n")
+    
+    f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
+    f.write("{.is-danger}\n\n")
+
+    f.write(f"> This documentation is current as of Firmware **{CURRENT_VERSION}**\n")
+    f.write("{.is-warning}\n\n")
 
     f.close()
     print("File written to: ./scripts/MeadeToWikiOutput.txt")

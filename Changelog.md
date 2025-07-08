@@ -1,3 +1,26 @@
+**V1.13.15 - Updates**
+- Check `INFO_DISPLAY_TYPE` builds in CI
+- Fix `INFO_DISPLAY_TYPE_I2C_SSD1306_128x64` for esp32 builds
+
+**V1.13.14 - Updates**
+- Improved Serial command handling (made it less 'blocking'), which should improve general performance
+- Guide pulses are ignored when tracking is disabled (for example, when at the limits)
+
+**V1.13.13 - Updates**
+- Improved Meade command documentation
+- Fixed a bug that was not correctly showing the stepper direction in the :GX# command reply./
+
+**V1.13.12 - Updates**
+- Parallelize matrix_build.py for faster CI builds
+- Added basic test mode that can be run via terminal connection.
+
+**V1.13.11 - Updates**
+- Fixed DEBUG macro usage.
+- Clarified some Meade documentation.
+
+**V1.13.10 - Updates**
+- Fixed dependency specification for git tags
+
 **V1.13.9 - Updates**
 - Added guide logging support.
 - Fixed some Meade documentation errors.
@@ -29,7 +52,6 @@ NOTE: Make sure to do a Factory Reset when using this version.
 - Lowered ESP32 second core priority
 - Added support for informational display
 - You must upgrade to OATControl V1.1.2.0 to use with this version (at least if you want to use teh DEC park/unpark feature)
-
 **V1.13.2 - Updates**
 - Fix for RA steps being incorrectly set on every boot.
 
