@@ -501,7 +501,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        This starts moving one of the steppers by the given amount of steps and returns immediately. Steps can be positive or negative.
 //      Parameters:
-//        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, t for ALT)
+//        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, l for ALT)
 //        "nnnn" is the number of steps
 //      Returns:
 //        "1" if successfully scheduled, else "0"

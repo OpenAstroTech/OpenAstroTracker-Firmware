@@ -390,7 +390,7 @@
         #define ALT_MICROSTEPPING 4
     #endif
     #ifndef ALT_STEPPER_SPR
-        #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+        #define ALT_STEPPER_SPR (400.0)  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef ALT_STEPPER_SPEED
         #define ALT_STEPPER_SPEED 2000
