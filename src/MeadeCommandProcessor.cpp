@@ -805,6 +805,24 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#"
 //
+// :XGZ#
+//      Description:
+//        Get AZ steps
+//      Information:
+//        Get the number of steps the AZ stepper motor needs to take to rotate AZ by one degree
+//      Returns:
+//        "float#" if AZ motor is present
+//        "0#"     if AZ is not configured
+//
+// :XGA#
+//      Description:
+//        Get ALT steps
+//      Information:
+//        Get the number of steps the ALT stepper motor needs to take to rotate ALT by one degree
+//      Returns:
+//        "float#" if ALT motor is present
+//        "0#"     if ALT is not configured
+//
 // :XGDLx#
 //      Description:
 //        Get DEC limits
@@ -841,7 +859,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "float#"
 //
 // :XGT#
-//      Description:
+//      Descrition:
 //        Get Tracking speed
 //      Information:
 //        Get the absolute tracking speed of the mount.
@@ -986,6 +1004,26 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set DEC steps
 //      Information:
 //        Set the number of steps the DEC stepper motor needs to take to rotate by one degree.
+//      Parameters:
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
+//      Returns:
+//        nothing
+//
+// :XSAn.n#
+//      Description:
+//        Set AZ steps
+//      Information:
+//        Set the number of steps the AZ stepper motor needs to take to rotate by one degree.
+//      Parameters:
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
+//      Returns:
+//        nothing
+//
+// :XSLn.n#
+//      Description:
+//        Set ALT steps
+//      Information:
+//        Set the number of steps the ALT stepper motor needs to take to rotate by one degree.
 //      Parameters:
 //        "n.n" is the number of steps (only one decimal point is supported, must be positive)
 //      Returns:
@@ -1818,6 +1856,14 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             return String(_mount->getBacklashCorrection()) + "#";
         }
+        else if ((inCmd[1] == 'A') && (inCmd.length() == 2))  // :XGA#
+        {
+            return String(_mount->getStepsPerDegree(ALTITUDE_STEPS),1) + "#";
+        }
+        else if ((inCmd[1] == 'Z') && (inCmd.length() == 2))  // :XGZ#
+        {
+            return String(_mount->getStepsPerDegree(AZIMUTH_STEPS),1) + "#";
+        }
         else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'H'))  // :XGAH#
         {
             return _mount->getAutoHomingStates() + "#";
@@ -1910,6 +1956,14 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         if (inCmd[1] == 'R')  // :XSR#
         {
             _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
+        }
+        else if (inCmd[1] == 'A')  // :XSA#
+        {
+            _mount->setStepsPerDegree(AZIMUTH_STEPS, inCmd.substring(2).toFloat());
+        }
+        else if (inCmd[1] == 'L')  // :XSL#
+        {
+            _mount->setStepsPerDegree(ALTITUDE_STEPS, inCmd.substring(2).toFloat());
         }
         else if (inCmd[1] == 'D')  // :XSD
         {

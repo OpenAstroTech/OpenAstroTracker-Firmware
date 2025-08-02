@@ -1,5 +1,8 @@
+**V1.13.17 - Updates**
+- Store AZ/ALT steps per degree and allow them to be set from Meade
+
 **V1.13.15 - Updates**
-- Changes necessary for OAE, add OAE baord
+- Changes necessary for OAE, add OAE board
 - Check `INFO_DISPLAY_TYPE` builds in CI
 - Fix `INFO_DISPLAY_TYPE_I2C_SSD1306_128x64` for esp32 builds
 

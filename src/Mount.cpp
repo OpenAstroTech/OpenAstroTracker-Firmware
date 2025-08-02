@@ -190,6 +190,15 @@ void Mount::readPersistentData()
     _stepsPerDECDegree = EEPROMStore::getDECStepsPerDegree();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC steps/deg is %f", _stepsPerDECDegree);
 
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _stepsPerAZDegree = EEPROMStore::getAZStepsPerDegree();
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _stepsPerAZDegree);
+    #endif
+
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _stepsPerALTDegree = EEPROMStore::getALTStepsPerDegree();
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _stepsPerALTDegree);
+    #endif
     float speed = EEPROMStore::getSpeedFactor();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", speed);
     setSpeedCalibration(speed, false);
@@ -986,6 +995,22 @@ float Mount::getStepsPerDegree(StepperAxis which)
     {
         return _stepsPerDECDegree;  // u-steps/degree
     }
+    if (which == AZIMUTH_STEPS)
+    {
+        #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        return _stepsPerAZDegree;  // u-steps/degree
+        #else
+        return 1;
+        #endif
+    }
+    if (which == ALTITUDE_STEPS)
+    {
+        #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        return _stepsPerALTDegree;  // u-steps/degree
+        #else
+        return 1;
+        #endif
+    }
 
     return 0;
 }
@@ -1009,6 +1034,20 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
         EEPROMStore::storeRAStepsPerDegree(_stepsPerRADegree);
         setSpeedCalibration(_trackingSpeedCalibration, false);
     }
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    else if (which == AZIMUTH_STEPS)
+    {
+        _stepsPerAZDegree = steps;
+        EEPROMStore::storeAZStepsPerDegree(_stepsPerAZDegree);
+    }
+    #endif
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    else if (which == ALTITUDE_STEPS)
+    {
+        _stepsPerALTDegree = steps;
+        EEPROMStore::storeALTStepsPerDegree(_stepsPerALTDegree);
+    }
+    #endif
 }
 
 /////////////////////////////////
@@ -2983,8 +3022,12 @@ void Mount::loop()
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
         _azAltWasRunning = false;
-        EEPROMStore::storeAZPosition(_stepperAZ->currentPosition());
-        EEPROMStore::storeALTPosition(_stepperALT->currentPosition());
+        #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+            EEPROMStore::storeAZPosition(_stepperAZ->currentPosition());
+        #endif
+        #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+            EEPROMStore::storeALTPosition(_stepperALT->currentPosition());
+        #endif
     }
 
     oneIsRunning = false;

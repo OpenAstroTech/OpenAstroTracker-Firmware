@@ -607,7 +607,7 @@ class Mount
         #else
     AccelStepper *_stepperAZ;
         #endif
-    const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
+    float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
@@ -618,7 +618,7 @@ class Mount
         #else
     AccelStepper *_stepperALT;
         #endif
-    const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
+    float _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;
         #endif
