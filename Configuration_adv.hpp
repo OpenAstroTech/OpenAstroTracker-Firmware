@@ -337,23 +337,25 @@
         #ifdef OAE
             // Roughly from the joint to the rod placement is 70mm
             #define AZ_CIRCUMFERENCE 70.0f * 2 * PI
+            #ifndef AZ_ROD_PITCH
+                #define AZ_ROD_PITCH 0.5
+            #endif
+            #define AZIMUTH_STEPS_PER_REV   +                                                                                                  \
+                (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / AZ_ROD_PITCH) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)  // Actually u-steps/rev
         #else
             #define AZ_CIRCUMFERENCE 2538.4f
         #endif
     #endif
     
-    #ifdef OAE
-        #ifndef AZ_WORMGEAR_RATIO 
-            #define AZ_WORMGEAR_RATIO (40.0f)
-        #endif
-    #else
+
+    #ifndef OAE
         #define AZ_WORMGEAR_RATIO 1.0f
     #endif
 
     #ifndef AZIMUTH_STEPS_PER_REV
         #define AZIMUTH_STEPS_PER_REV                                                                                                      \
             (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
-             * AZ_MICROSTEPPING * AZ_WORMGEAR_RATIO)  // Actually u-steps/rev
+             * AZ_MICROSTEPPING)  // Actually u-steps/rev
     #endif
     
     #ifndef AZIMUTH_STEPS_PER_ARC_MINUTE
@@ -420,12 +422,9 @@
                 #define ALT_ROD_PITCH 1.25  // mm/rev
             #endif
             // the Circumference of the ALT rotation. Roughly 146mm radius.
-            #define ALT_CIRCUMFERENCE 146.0f * 2 * PI
-            #ifndef ALT_WORMGEAR_RATIO 
-                #define ALT_WORMGEAR_RATIO (40.0f)
-            #endif
+            #define ALT_CIRCUMFERENCE 128.0f * 2 * PI
             #define ALTITUDE_STEPS_PER_REV   +                                                                                                  \
-                (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+                (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING)  // Actually u-steps/rev
         #else
             // the Circumference of the AZ rotation. 770mm dia.
             #define ALT_CIRCUMFERENCE 2419.0f

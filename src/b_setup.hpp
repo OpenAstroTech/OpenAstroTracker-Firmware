@@ -180,7 +180,7 @@ void setup()
     #endif
 
     #ifdef RA_SERIAL_PORT
-        #if defined(BOARD_OAE_V1)
+        #ifdef OAE
         RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_TX_PIN, RA_RX_PIN);
         #else
         RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
@@ -207,7 +207,7 @@ void setup()
         pinMode(DEC_DIAG_PIN, INPUT);
     #endif
     #ifdef DEC_SERIAL_PORT
-        #if defined(BOARD_OAE_V1)
+        #ifdef OAE
         DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_TX_PIN, DEC_RX_PIN);
         #else
         DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver

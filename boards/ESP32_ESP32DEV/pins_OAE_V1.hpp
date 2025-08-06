@@ -105,7 +105,6 @@
 
 
 // Defines for OAE ///////////////////////
-#define OAM //enable GEM Motion
 
 #ifndef RA_WHEEL_CIRCUMFERENCE
     #define RA_WHEEL_CIRCUMFERENCE 704.97f
