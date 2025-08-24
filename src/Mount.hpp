@@ -529,14 +529,14 @@ class Mount
 #endif
 
     // Tracking Mode variables
-    void setTrackingMode(TrackingMode mode);
-    double getTrackingSpeedHz() const;
-    String getTrackingModeString() const;
-    double kingCorrectionFactor(double altitude_deg);
-    void adjustTrackingRate(int direction);
-    void setTrackingRateHz(double targetHz);
-    double updateDECTrackingRate();
-    void updateKingTrackingRate();
+    void    setTrackingMode(TrackingMode mode);
+    double  getTrackingSpeedHz() const;
+    String  getTrackingModeString() const;
+    double  kingCorrectionFactor(double altitude_deg);
+    void    adjustTrackingRate(int direction);
+    void    setTrackingRateHz(double targetHz);
+    void    updateDECTrackingRate();
+    void    updateKingTrackingRate();
 
   private:
 #if UART_CONNECTION_TEST_TX == 1
@@ -701,11 +701,8 @@ class Mount
     double _customTrackingFactor;
     unsigned long _lastDECTrackingUpdate;
     EphemerisData _decTrackingData;
+    double _decTrackingSpeed;
 
-    //float _decTrackingSpeed;
-    //unsigned long _lastTrackingUpdate;
-    //EphemerisData _solarData;
-    //EphemerisData _lunarData;
 };
 
 #endif

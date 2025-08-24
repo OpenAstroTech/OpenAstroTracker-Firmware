@@ -2263,30 +2263,6 @@ String MeadeCommandProcessor::handleMeadeTrackingCommands(String inCmd)
         return _mount->getTrackingModeString() + "#";
     }
     
-    
-    /*
-    else if (inCmd[0] == 'C')  // :TCn.nnn# - Set custom tracking factor (extension)
-    {
-        float factor = inCmd.substring(1).toFloat();
-        LOG(DEBUG_MEADE, "[MEADE]: Set Custom tracking factor to %f", factor);
-        _mount->setCustomTrackingRate(factor);
-        _mount->setTrackingMode(TRACKING_CUSTOM);
-        return "";
-    }
-    else if (inCmd[0] == 'G')  // :TG# - Get tracking mode (extension)
-    {
-        return _mount->getTrackingModeString() + "#";
-    }
-    else if (inCmd[0] == 'R')  // :TR# - Get tracking rates (extension)
-    {
-        return _mount->getTrackingRatesString() + "#";
-    }
-    else if (inCmd[0] == 'D')  // :TD# - Get tracking details (extension)
-    {
-        return _mount->getTrackingDetailsString() + "#";
-    }
-    */
-    
     return "";
 }
 

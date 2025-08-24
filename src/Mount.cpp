@@ -130,6 +130,7 @@ void Mount::initializeVariables()
     _trackingMode            = TRACKING_SIDEREAL;
     _customTrackingFactor    = 1.0;
     _trackingRABase          = (RA_STEPS_PER_DEGREE * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0);
+    _decTrackingSpeed        = 0.0;
 }
 
 /////////////////////////////////
@@ -4199,11 +4200,11 @@ float Mount::getSpeedCalibration()
 /////////////////////////////////
 void Mount::setSpeedCalibration(float val, bool saveToStorage)
 {
+    LOG(DEBUG_MOUNT, "[MOUNT]: Current tracking mode is %s", getTrackingModeString().c_str());
     LOG(DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _trackingSpeedCalibration, val);
     _trackingSpeedCalibration = val;
     LOG(DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _trackingSpeed);
-
-
+    
     // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
     // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
     // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
@@ -4212,30 +4213,28 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     switch(_trackingMode)
     {
         case TRACKING_SIDEREAL:
-        _trackingSpeed = _trackingRABase / SIDEREAL_SECONDS_PER_DAY;
-        break;
-
+            _trackingSpeed = _trackingRABase / SIDEREAL_SECONDS_PER_DAY;
+            break;
+        
         case TRACKING_LUNAR:
-         _trackingSpeed = _trackingRABase / LUNAR_SECONDS_PER_DAY;
-        break;
+            _trackingSpeed = _trackingRABase / LUNAR_SECONDS_PER_DAY;
+            break;
 
         case TRACKING_SOLAR:
          _trackingSpeed = _trackingRABase / SOLAR_SECONDS_PER_DAY;
         break;
 
         case TRACKING_KING:
-        {
             _trackingSpeed = (_trackingRABase / SIDEREAL_SECONDS_PER_DAY) * this->kingCorrectionFactor(currentDEC().getTotalDegrees());
-        }
-        break;
+            break;
 
         case TRACKING_CUSTOM:
-        _trackingSpeed = (_trackingRABase / SOLAR_SECONDS_PER_DAY) * _customTrackingFactor;
-
-        break;
+            _trackingSpeed = (_trackingRABase / SOLAR_SECONDS_PER_DAY) * _customTrackingFactor;
+            break;
 
         default:
-        break;
+            _trackingSpeed = _trackingRABase / SIDEREAL_SECONDS_PER_DAY;
+            break;
     }
 
     LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
@@ -4243,15 +4242,29 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
 
     LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
 
-    if (saveToStorage)
-        EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
-
     // If we are currently tracking, update the speed. No need to update microstepping mode
     if (isSlewingTRK())
     {
         LOG(DEBUG_MOUNT, "[MOUNT]: SpeedCalibration TRK.setSpeed(%f)", _trackingSpeed);
         _stepperTRK->setSpeed(_trackingSpeed);
+
+        if (fabsf(_decTrackingSpeed) > 0.001)
+        {
+            // Start DEC tracking
+            _stepperGUIDE->setSpeed(-_decTrackingSpeed);
+        }
+        else
+        {
+            // Stop DEC tracking if it was running
+            if (_stepperGUIDE->isRunning())
+            {
+                _stepperGUIDE->stop();
+            }
+        }
     }
+
+    if (saveToStorage)
+        EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
 
     /*
     LOG(DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _trackingSpeedCalibration, val);
@@ -4296,6 +4309,12 @@ void Mount::setTrackingMode(TrackingMode mode)
     {
         updateDECTrackingRate();
     }
+    else
+    {
+        // Make sure the default tracking speed for DEC is 0.0
+        _decTrackingSpeed = 0.0;
+    }
+
     setSpeedCalibration(_trackingSpeedCalibration, true);
 }
 
@@ -4414,11 +4433,10 @@ void Mount::setTrackingRateHz(double targetHz)
 // updateDECTrackingRate
 //
 /////////////////////////////////
-double Mount::updateDECTrackingRate()
+void Mount::updateDECTrackingRate()
 {
     LocalDate date = getLocalDate();
     DayTime utcTime = getUtcTime();
-    double newDecSpeed = 0.0;
 
     if(_trackingMode == TRACKING_LUNAR)
     {
@@ -4432,11 +4450,10 @@ double Mount::updateDECTrackingRate()
     if(_trackingMode == TRACKING_LUNAR || _trackingMode == TRACKING_SOLAR)
     {
         // Convert degrees/hour to steps/sec
-        newDecSpeed = _decTrackingData.decRate * _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) / 360.0; //3600.0
+        _decTrackingSpeed = _decTrackingData.decRate * _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) / 3600.0;
         
-        LOG(DEBUG_MOUNT, "[MOUNT]: DEC Tracking speed set to %f steps/sec", newDecSpeed);
+        LOG(DEBUG_MOUNT, "[MOUNT]: DEC Tracking speed set to %f steps/sec", _decTrackingSpeed);
     }
-    return newDecSpeed;
 }
 
 void Mount::updateKingTrackingRate()
