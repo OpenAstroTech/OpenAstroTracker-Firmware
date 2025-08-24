@@ -5,6 +5,7 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "Ephemeris.hpp"
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 class InfoDisplayRender;
@@ -121,6 +122,15 @@ class EndSwitch;
 #define STATUS_GUIDE_PULSE_DEC   0B0000000000100000
 #define STATUS_GUIDE_PULSE_MASK  0B0000000011100000
 #define STATUS_FINDING_HOME      0B0010000000000000
+
+// Tracking modes
+enum TrackingMode {
+    TRACKING_SIDEREAL,  // Default stellar tracking
+    TRACKING_LUNAR,     // Moon tracking
+    TRACKING_SOLAR,     // Sun tracking  
+    TRACKING_KING,      // King rate tracking
+    TRACKING_CUSTOM     // User-defined custom rate
+};
 
 struct LocalDate {
     int year;
@@ -517,6 +527,17 @@ class Mount
     void testDEC_UART_TX();
     #endif
 #endif
+
+    // Tracking Mode variables
+    void setTrackingMode(TrackingMode mode);
+    double getTrackingSpeedHz() const;
+    String getTrackingModeString() const;
+    double kingCorrectionFactor(double altitude_deg);
+    void adjustTrackingRate(int direction);
+    void setTrackingRateHz(double targetHz);
+    double updateDECTrackingRate();
+    void updateKingTrackingRate();
+
   private:
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -673,6 +694,18 @@ class Mount
     LocalDate _localStartDate;
     DayTime _localStartTime;
     long _localStartTimeSetMillis;
+
+    // Tracking mode variables
+    double _trackingRABase;
+    TrackingMode _trackingMode;
+    double _customTrackingFactor;
+    unsigned long _lastDECTrackingUpdate;
+    EphemerisData _decTrackingData;
+
+    //float _decTrackingSpeed;
+    //unsigned long _lastTrackingUpdate;
+    //EphemerisData _solarData;
+    //EphemerisData _lunarData;
 };
 
 #endif

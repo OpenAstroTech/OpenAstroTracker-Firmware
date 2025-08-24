@@ -1333,7 +1333,12 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
         case 'T':  // :GT
             {
-                return "60.0#";  //default MEADE Tracking Frequency
+                // Return current tracking frequency in Hz (MEADE format)
+                float hz = _mount->getTrackingSpeedHz();
+                char buffer[20];
+                sprintf(buffer, "%s#", String(hz, 4).c_str());
+                return String(buffer);
+                // return "60.0#";  //default MEADE Tracking Frequency
             }
     }
 
@@ -1509,6 +1514,12 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
     The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
     */
         return F("1Updating Planetary Data#                              #");  //
+    }
+    else if(inCmd[0] == 'T') // :STdddd.ddddddd#
+    {
+        float trkSpeed = inCmd.substring(1).toFloat();
+        _mount->setTrackingRateHz(trkSpeed);
+        return "2";
     }
     else
     {
@@ -2200,6 +2211,85 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     return "";
 }
 
+/////////////////////////////
+// TRACKING COMMANDS
+/////////////////////////////
+String MeadeCommandProcessor::handleMeadeTrackingCommands(String inCmd)
+{
+    if (inCmd[0] == '+')  // :T+# - Increment tracking rate by 0.1 Hz
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Increment tracking rate by 0.1 Hz");
+        _mount->adjustTrackingRate(1);
+        return "";
+    }
+    else if (inCmd[0] == '-')  // :T-# - Decrement tracking rate by 0.1 Hz
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Decrement tracking rate by 0.1 Hz");
+        _mount->adjustTrackingRate(-1);
+        return "";
+    }
+    else if (inCmd[0] == 'Q')  // :TQ# - Select sidereal tracking rate
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Set Sidereal tracking rate");
+        _mount->setTrackingMode(TRACKING_SIDEREAL);
+        return "";
+    }
+    else if (inCmd[0] == 'L')  // :TL# - Set Lunar Tracking Rate
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Set Lunar tracking rate");
+        _mount->setTrackingMode(TRACKING_LUNAR);
+        return "";
+    }
+    else if (inCmd[0] == 'S')  // :TS# - Select Solar tracking rate
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Set Solar tracking rate");
+        _mount->setTrackingMode(TRACKING_SOLAR);
+        return "";
+    }
+    else if (inCmd[0] == 'K')  // :TK# - Select King tracking rate (extension)
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Set King tracking rate");
+        _mount->setTrackingMode(TRACKING_KING);
+        return "";
+    }
+    else if (inCmd[0] == 'M')  // :TM# - Select custom tracking rate
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Set Custom tracking rate");
+        _mount->setTrackingMode(TRACKING_CUSTOM);
+        return "";
+    }
+     else if (inCmd[0] == 'G')  // :TG# - Get tracking mode (extension)
+    {
+        return _mount->getTrackingModeString() + "#";
+    }
+    
+    
+    /*
+    else if (inCmd[0] == 'C')  // :TCn.nnn# - Set custom tracking factor (extension)
+    {
+        float factor = inCmd.substring(1).toFloat();
+        LOG(DEBUG_MEADE, "[MEADE]: Set Custom tracking factor to %f", factor);
+        _mount->setCustomTrackingRate(factor);
+        _mount->setTrackingMode(TRACKING_CUSTOM);
+        return "";
+    }
+    else if (inCmd[0] == 'G')  // :TG# - Get tracking mode (extension)
+    {
+        return _mount->getTrackingModeString() + "#";
+    }
+    else if (inCmd[0] == 'R')  // :TR# - Get tracking rates (extension)
+    {
+        return _mount->getTrackingRatesString() + "#";
+    }
+    else if (inCmd[0] == 'D')  // :TD# - Get tracking details (extension)
+    {
+        return _mount->getTrackingDetailsString() + "#";
+    }
+    */
+    
+    return "";
+}
+
 String MeadeCommandProcessor::processCommand(String inCmd)
 {
     if (inCmd[0] == ':')
@@ -2243,6 +2333,8 @@ String MeadeCommandProcessor::processCommand(String inCmd)
                 return handleMeadeExtraCommands(inCmd);
             case 'F':
                 return handleMeadeFocusCommands(inCmd);
+            case 'T':
+                return handleMeadeTrackingCommands(inCmd);
             default:
                 LOG(DEBUG_MEADE, "[MEADE]: Received unknown command '%s'", inCmd.c_str());
                 break;

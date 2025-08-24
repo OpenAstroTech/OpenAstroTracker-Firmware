@@ -125,6 +125,11 @@ void Mount::initializeVariables()
     _localStartDate.day      = 1;
     _localStartTimeSetMillis = -1;
     _lastTRKCheck            = 0;
+
+    // Initialize tracking mode variables
+    _trackingMode            = TRACKING_SIDEREAL;
+    _customTrackingFactor    = 1.0;
+    _trackingRABase          = (RA_STEPS_PER_DEGREE * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0);
 }
 
 /////////////////////////////////
@@ -884,49 +889,6 @@ void Mount::configureFocusDriver(
 }
     #endif
 #endif
-
-/////////////////////////////////
-//
-// getSpeedCalibration
-//
-/////////////////////////////////
-float Mount::getSpeedCalibration()
-{
-    return _trackingSpeedCalibration;
-}
-
-/////////////////////////////////
-//
-// setSpeedCalibration
-//
-/////////////////////////////////
-void Mount::setSpeedCalibration(float val, bool saveToStorage)
-{
-    LOG(DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _trackingSpeedCalibration, val);
-    _trackingSpeedCalibration = val;
-
-    LOG(DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _trackingSpeed);
-
-    // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
-    // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
-    // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
-    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
-                     / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
-    LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
-    LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
-
-    LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
-
-    if (saveToStorage)
-        EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
-
-    // If we are currently tracking, update the speed. No need to update microstepping mode
-    if (isSlewingTRK())
-    {
-        LOG(DEBUG_STEPPERS, "[MOUNT]: SpeedCalibration TRK.setSpeed(%f)", _trackingSpeed);
-        _stepperTRK->setSpeed(_trackingSpeed);
-    }
-}
 
 #if USE_GYRO_LEVEL == 1
 /////////////////////////////////
@@ -3011,6 +2973,14 @@ void Mount::loop()
         return;
     }
 
+    // Update DEC tracking for Solar and Lunar Rates
+    if (millis() - _lastDECTrackingUpdate > 60000)  // Update every minute
+    {
+        now                 = millis();
+        updateDECTrackingRate();
+        _lastDECTrackingUpdate = now;
+    }
+
     if (_stepperDEC->isRunning())
     {
         decStillRunning = true;
@@ -3045,6 +3015,10 @@ void Mount::loop()
                 _stepperRA->currentPosition(),
                 _stepperDEC->currentPosition());
             // Mount is at Target!
+            
+            
+
+
             // If we we're parking, we just reached home. Clear the flag, reset the motors and stop tracking.
             if (isParking())
             {
@@ -3098,6 +3072,13 @@ void Mount::loop()
                 if (!isFindingHome())  // If we're homing, RA must stay in Slew configuration
                 {
                     LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Not finding home, so start tracking");
+                    
+                    // If we are using King tracking rate and mount has slewd we need to calculate new tracking rate
+                    if(_trackingMode == TRACKING_KING)
+                    {
+                        updateKingTrackingRate();
+                    }
+                    
                     startSlewing(TRACKING);
                 }
             }
@@ -4199,4 +4180,269 @@ float Mount::checkRALimit()
     _lastTRKCheck = millis();
 
     return RALimit - homeCurrentDeltaRA;
+}
+
+/////////////////////////////////
+//
+// getSpeedCalibration
+//
+/////////////////////////////////
+float Mount::getSpeedCalibration()
+{
+    return _trackingSpeedCalibration;
+}
+
+/////////////////////////////////
+//
+// setSpeedCalibration
+//
+/////////////////////////////////
+void Mount::setSpeedCalibration(float val, bool saveToStorage)
+{
+    LOG(DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _trackingSpeedCalibration, val);
+    _trackingSpeedCalibration = val;
+    LOG(DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _trackingSpeed);
+
+
+    // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
+    // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
+    // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
+    // double base = (_trackingSpeedCalibration * RA_STEPS_PER_DEGREE * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0);
+    
+    switch(_trackingMode)
+    {
+        case TRACKING_SIDEREAL:
+        _trackingSpeed = _trackingRABase / SIDEREAL_SECONDS_PER_DAY;
+        break;
+
+        case TRACKING_LUNAR:
+         _trackingSpeed = _trackingRABase / LUNAR_SECONDS_PER_DAY;
+        break;
+
+        case TRACKING_SOLAR:
+         _trackingSpeed = _trackingRABase / SOLAR_SECONDS_PER_DAY;
+        break;
+
+        case TRACKING_KING:
+        {
+            _trackingSpeed = (_trackingRABase / SIDEREAL_SECONDS_PER_DAY) * this->kingCorrectionFactor(currentDEC().getTotalDegrees());
+        }
+        break;
+
+        case TRACKING_CUSTOM:
+        _trackingSpeed = (_trackingRABase / SOLAR_SECONDS_PER_DAY) * _customTrackingFactor;
+
+        break;
+
+        default:
+        break;
+    }
+
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
+    LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
+
+    LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
+
+    if (saveToStorage)
+        EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
+
+    // If we are currently tracking, update the speed. No need to update microstepping mode
+    if (isSlewingTRK())
+    {
+        LOG(DEBUG_MOUNT, "[MOUNT]: SpeedCalibration TRK.setSpeed(%f)", _trackingSpeed);
+        _stepperTRK->setSpeed(_trackingSpeed);
+    }
+
+    /*
+    LOG(DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _trackingSpeedCalibration, val);
+    _trackingSpeedCalibration = val;
+
+    LOG(DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _trackingSpeed);
+
+    // Tracking speed has to be exactly the rotation speed of the earth. The earth rotates 360° per astronomical day.
+    // This is 23h 56m 4.0905s, therefore the dimensionless _trackingSpeedCalibration = (23h 56m 4.0905s / 24 h) * mechanical calibration factor
+    // Also compensate for higher precision microstepping in tracking mode (_stepsPerRADegree uses slewing MS for calculations)
+    _trackingSpeed = _trackingSpeedCalibration * _stepsPerRADegree * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * 360.0f
+                     / SIDEREAL_SECONDS_PER_DAY;  // (fraction of day) * u-steps/deg * (u-steps/u-steps) * deg / (sec/day) = u-steps / sec
+    LOG(DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
+    LOG(DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _trackingSpeed);
+
+    LOG(DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_trackingSpeed, 6).c_str());
+
+    if (saveToStorage)
+        EEPROMStore::storeSpeedFactor(_trackingSpeedCalibration);
+
+    // If we are currently tracking, update the speed. No need to update microstepping mode
+    if (isSlewingTRK())
+    {
+        LOG(DEBUG_STEPPERS, "[MOUNT]: SpeedCalibration TRK.setSpeed(%f)", _trackingSpeed);
+        _stepperTRK->setSpeed(_trackingSpeed);
+    }
+
+    */
+}
+
+/////////////////////////////////
+//
+// setTrackingMode
+//
+/////////////////////////////////
+void Mount::setTrackingMode(TrackingMode mode)
+{
+    _trackingMode = mode;
+    LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode set to %s", getTrackingModeString().c_str());
+
+    if(_trackingMode == TRACKING_LUNAR || _trackingMode == TRACKING_SOLAR)
+    {
+        updateDECTrackingRate();
+    }
+    setSpeedCalibration(_trackingSpeedCalibration, true);
+}
+
+/////////////////////////////////
+//
+// getTrackingModeString
+//
+/////////////////////////////////
+String Mount::getTrackingModeString() const
+{
+    switch (_trackingMode)
+    {
+        case TRACKING_SIDEREAL:
+            return "Sidereal";
+        case TRACKING_LUNAR:
+            return "Lunar";
+        case TRACKING_SOLAR:
+            return "Solar";
+        case TRACKING_KING:
+            return "King";
+        case TRACKING_CUSTOM:
+            return "Custom";
+        default:
+            return "Unknown";
+    } 
+}
+
+/////////////////////////////////
+//
+// kingCorrectionFactor
+//
+/////////////////////////////////
+double Mount::kingCorrectionFactor(double altitude_deg)
+{
+    if(altitude_deg < 1.0)
+    {
+        altitude_deg = 1.0;
+    }
+
+    // 58.2 → This is the approximate refraction at the horizon in arcminutes under standard atmospheric conditions
+    // 7.31 → This is an empirical fitting constant used to improve accuracy at low altitudes (close to the horizon), where refraction deviates strongly
+    // 4.4 → Empirical fitting constant in degrees, also improving behavior near the horizon to prevent divergence as altitude approaches zero.
+    // 206265.0 arcseconds in one radian
+    double R = 58.2 / tan(radians(altitude_deg + 7.31 / (altitude_deg + 4.4)));
+    double correction = 1.0 + (R / 206265.0);
+    return correction;
+}
+
+/////////////////////////////////
+//
+// getTrackingSpeedHz
+//
+/////////////////////////////////
+double Mount::getTrackingSpeedHz() const
+{
+    // Calculate the theoretical steps for one sidereal day at current tracking speed
+    double stepsPerSolarDay = _trackingSpeed * SOLAR_SECONDS_PER_DAY;
+    
+    // Calculate how many revolutions this represents
+    double revolutionsPerDay = stepsPerSolarDay / (_stepsPerRADegree * 360.0f * (RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING));
+    
+    // Convert to Hz (60 Hz = 1 revolution per sidereal day in MEADE format)
+    float hz = revolutionsPerDay * 60.0f;
+    
+    return hz;
+}
+
+/////////////////////////////////
+//
+// adjustTrackingRate
+//
+/////////////////////////////////
+void Mount::adjustTrackingRate(int direction)
+{
+    // We need to be in custom tracking mode when adjusting the rate
+    if(_trackingMode != TRACKING_CUSTOM)
+    {
+        setTrackingMode(TRACKING_CUSTOM);
+    }
+
+    // Convert 0.1 Hz increment to tracking factor adjustment
+    // MEADE uses 60 Hz = 1 revolution/24 hours as baseline
+    // So 0.1 Hz = 0.1/60 = 0.00167 factor change
+    float adjustment = 0.1 / 60.0;
+    if(direction == 1)
+    {
+        _customTrackingFactor += adjustment;
+    }
+    else if(direction == -1)
+    {
+       _customTrackingFactor -= adjustment;
+    }
+
+    setSpeedCalibration(_trackingSpeedCalibration, true);
+}
+
+/////////////////////////////////
+//
+// setTrackingRateHz
+//
+/////////////////////////////////
+void Mount::setTrackingRateHz(double targetHz)
+{
+    // We need to be in custom tracking mode when setting a custom rate
+    if(_trackingMode != TRACKING_CUSTOM)
+    {
+        setTrackingMode(TRACKING_CUSTOM);
+    }
+    // Factor where 60 Hz = 1.0
+    _customTrackingFactor = targetHz / 60.0;
+    setSpeedCalibration(_trackingSpeedCalibration, true);
+}
+
+/////////////////////////////////
+//
+// updateDECTrackingRate
+//
+/////////////////////////////////
+double Mount::updateDECTrackingRate()
+{
+    LocalDate date = getLocalDate();
+    DayTime utcTime = getUtcTime();
+    double newDecSpeed = 0.0;
+
+    if(_trackingMode == TRACKING_LUNAR)
+    {
+        _decTrackingData = Ephemeris::calculateLunar(date.year, date.month, date.day, utcTime, _latitude, _longitude);
+    }
+    else if(_trackingMode == TRACKING_SOLAR)
+    {
+        _decTrackingData = Ephemeris::calculateSolar(date.year, date.month, date.day, utcTime, _latitude, _longitude);
+    }
+
+    if(_trackingMode == TRACKING_LUNAR || _trackingMode == TRACKING_SOLAR)
+    {
+        // Convert degrees/hour to steps/sec
+        newDecSpeed = _decTrackingData.decRate * _stepsPerDECDegree * (DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) / 360.0; //3600.0
+        
+        LOG(DEBUG_MOUNT, "[MOUNT]: DEC Tracking speed set to %f steps/sec", newDecSpeed);
+    }
+    return newDecSpeed;
+}
+
+void Mount::updateKingTrackingRate()
+{
+    _trackingSpeed = (_trackingRABase / SIDEREAL_SECONDS_PER_DAY) * this->kingCorrectionFactor(currentDEC().getTotalDegrees());
+    LOG(DEBUG_MOUNT, "[MOUNT]: King Tracking rate update TRK.setSpeed(%f)", _trackingSpeed);
+    _stepperTRK->setSpeed(_trackingSpeed);
+    
 }
