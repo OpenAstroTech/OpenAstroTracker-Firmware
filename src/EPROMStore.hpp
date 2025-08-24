@@ -68,6 +68,12 @@ class EEPROMStore
     static int32_t getALTPosition();
     static void storeALTPosition(int32_t altPosition);
 
+    static uint8_t getTrackingMode();
+    static void storeTrackingMode(uint8_t mode);
+
+    static float getCustomTrackingFactor();
+    static void storeCustomTrackingFactor(float factor);
+
   private:
     /////////////////////////////////
     //
@@ -137,6 +143,8 @@ class EEPROMStore
         LAST_FLASHED_MARKER_FLAG   = 0x0080,
         AZ_POSITION_MARKER_FLAG    = 0x0100,
         ALT_POSITION_MARKER_FLAG   = 0x0200,
+        TRACKING_MODE_MARKER_FLAG  = 0x0400,
+        CUSTOM_TRACKING_MARKER_FLAG = 0x0800,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -209,7 +217,12 @@ class EEPROMStore
         _ALT_POSITION_ADDR_1,
         _ALT_POSITION_ADDR_2,
         _ALT_POSITION_ADDR_3,
-        STORE_SIZE = 66
+        TRACKING_MODE_ADDR = 66,
+        CUSTOM_TRACKING_FACTOR_ADDR = 67,
+        _CUSTOM_TRACKING_FACTOR_ADDR_1,
+        _CUSTOM_TRACKING_FACTOR_ADDR_2,
+        _CUSTOM_TRACKING_FACTOR_ADDR_3,
+        STORE_SIZE = 71
     };
 
     // Helper functions

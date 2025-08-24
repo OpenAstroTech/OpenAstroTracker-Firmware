@@ -852,3 +852,61 @@ void EEPROMStore::storeALTPosition(int32_t altPosition)
     updateFlagsExtended(ALT_POSITION_MARKER_FLAG);
     commit();  // Complete the transaction
 }
+
+// Get the stored tracking mode
+uint8_t EEPROMStore::getTrackingMode()
+{
+    uint8_t trackingMode(0);  // Default to TRACKING_SIDEREAL
+
+    if (isPresentExtended(TRACKING_MODE_MARKER_FLAG))
+    {
+        trackingMode = readUint8(TRACKING_MODE_ADDR);
+        LOG(DEBUG_EEPROM, "[EEPROM]: Tracking mode read as %d", trackingMode);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for tracking mode");
+    }
+
+    return trackingMode;
+}
+
+// Store the tracking mode
+void EEPROMStore::storeTrackingMode(uint8_t mode)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating tracking mode to %d", mode);
+
+    updateUint8(TRACKING_MODE_ADDR, mode);
+    updateFlagsExtended(TRACKING_MODE_MARKER_FLAG);
+    commit();  // Complete the transaction
+}
+
+// Get the stored custom tracking factor
+float EEPROMStore::getCustomTrackingFactor()
+{
+    float customFactor(1.0);  // Default value
+
+    if (isPresentExtended(CUSTOM_TRACKING_MARKER_FLAG))
+    {
+        int32_t val = readInt32(CUSTOM_TRACKING_FACTOR_ADDR);
+        customFactor = val / 10000.0f;
+        LOG(DEBUG_EEPROM, "[EEPROM]: Custom tracking factor read as %f", customFactor);
+    }
+    else
+    {
+        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for custom tracking factor");
+    }
+
+    return customFactor;
+}
+
+// Store the custom tracking factor
+void EEPROMStore::storeCustomTrackingFactor(float factor)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating custom tracking factor to %f", factor);
+
+    int32_t val = static_cast<int32_t>(factor * 10000.0f);
+    updateInt32(CUSTOM_TRACKING_FACTOR_ADDR, val);
+    updateFlagsExtended(CUSTOM_TRACKING_MARKER_FLAG);
+    commit();  // Complete the transaction
+}

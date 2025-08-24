@@ -213,7 +213,26 @@ void Mount::readPersistentData()
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Longitude is %s", _longitude.ToString());
 
     _localUtcOffset = EEPROMStore::getUtcOffset();
-    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: UTC offset is %d", _localUtcOffset);
+    LOG(DEBUG_INFO, "[EEPROM]: UTC offset is %d", _localUtcOffset);
+
+    // Read tracking mode
+    uint8_t storedMode = EEPROMStore::getTrackingMode();
+    if (storedMode <= TRACKING_CUSTOM) {
+        _trackingMode = static_cast<TrackingMode>(storedMode);
+        LOG(DEBUG_INFO, "[EEPROM]: Tracking mode is %d (%s)", storedMode, getTrackingModeString().c_str());
+    } else {
+        _trackingMode = TRACKING_SIDEREAL; // Default
+        LOG(DEBUG_INFO, "[EEPROM]: Invalid tracking mode %d, defaulting to Sidereal", storedMode);
+    }
+
+    // Read custom tracking factor
+    _customTrackingFactor = EEPROMStore::getCustomTrackingFactor();
+    if (_customTrackingFactor <= 0.0 || _customTrackingFactor > 2.0) {
+        _customTrackingFactor = 1.0; // Default
+        LOG(DEBUG_INFO, "[EEPROM]: Invalid custom tracking factor, defaulting to 1.0");
+    } else {
+        LOG(DEBUG_INFO, "[EEPROM]: Custom tracking factor is %f", _customTrackingFactor);
+    }
 
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = EEPROMStore::getPitchCalibrationAngle();
@@ -4304,6 +4323,9 @@ void Mount::setTrackingMode(TrackingMode mode)
 {
     _trackingMode = mode;
     LOG(DEBUG_MOUNT, "[MOUNT]: Tracking mode set to %s", getTrackingModeString().c_str());
+
+    // Save tracking mode to EEPROM
+    EEPROMStore::storeTrackingMode(static_cast<uint8_t>(mode));
 
     if(_trackingMode == TRACKING_LUNAR || _trackingMode == TRACKING_SOLAR)
     {
