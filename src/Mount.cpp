@@ -96,6 +96,7 @@ void Mount::initializeVariables()
 
     _mountStatus       = 0;
     _lastDisplayUpdate = 0;
+    _lastInfoUpdate = 0;
     _stepperWasRunning = false;
     _latitude          = Latitude(inNorthernHemisphere ? 45.0f : -45.0f);
     _longitude         = Longitude(100.0);
