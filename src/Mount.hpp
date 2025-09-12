@@ -658,6 +658,7 @@ class Mount
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
     unsigned long _lastDisplayUpdate;
+    long _lastInfoUpdate;
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
     volatile int _mountStatus;
