@@ -1,4 +1,7 @@
 **V1.13.17 - Updates**
+- Final changes for OAE
+
+**V1.13.17 - Updates**
 - Store AZ/ALT steps per degree and allow them to be set from Meade
 
 **V1.13.15 - Updates**
