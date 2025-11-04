@@ -261,12 +261,12 @@ void TestMenu::listHardware() const
     int index  = 0;
     Serial.print(F("              Mount: "));
     #ifdef OAM
-        Serial.println(F("OpenAstroMount (OAM)"));
+    Serial.println(F("OpenAstroMount (OAM)"));
     #else
         #ifdef OAE
-            Serial.println(F("OpenAstroExplorer (OAE)"));
+    Serial.println(F("OpenAstroExplorer (OAE)"));
         #else
-            Serial.println(F("OpenAstroTracker (OAT)"));
+    Serial.println(F("OpenAstroTracker (OAT)"));
         #endif
     #endif
 
@@ -534,9 +534,9 @@ void TestMenu::display() const
         Serial.println(F("*** OpenAstroMount (OAM) Test Menu ***"));
     #else
         #ifdef OAE
-            Serial.println(F("*** OpenAstroTracker (OAE) Test Menu ***"));
+        Serial.println(F("*** OpenAstroTracker (OAE) Test Menu ***"));
         #else
-            Serial.println(F("** OpenAstroTracker (OAT) Test Menu **"));
+        Serial.println(F("** OpenAstroTracker (OAT) Test Menu **"));
         #endif
     #endif
         Serial.print(F("************* "));

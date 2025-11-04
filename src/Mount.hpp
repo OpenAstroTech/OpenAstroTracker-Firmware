@@ -406,7 +406,7 @@ class Mount
     void setupInfoDisplay();
     void updateInfoDisplay();
     InfoDisplayRender *getInfoDisplay();
-    long _lastInfoUpdate = 0; // Last time the info display was updated
+    long _lastInfoUpdate = 0;  // Last time the info display was updated
 #endif
 
     // Called by Meade processor every time a command is received.

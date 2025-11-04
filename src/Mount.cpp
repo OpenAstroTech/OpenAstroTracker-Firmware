@@ -78,7 +78,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 {
     _commandReceived = 0;
-    _lcdMenu = lcdMenu;
+    _lcdMenu         = lcdMenu;
     initializeVariables();
 }
 
@@ -190,15 +190,15 @@ void Mount::readPersistentData()
     _stepsPerDECDegree = EEPROMStore::getDECStepsPerDegree();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC steps/deg is %f", _stepsPerDECDegree);
 
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepsPerAZDegree = EEPROMStore::getAZStepsPerDegree();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _stepsPerAZDegree);
-    #endif
+#endif
 
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _stepsPerALTDegree = EEPROMStore::getALTStepsPerDegree();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _stepsPerALTDegree);
-    #endif
+#endif
     float speed = EEPROMStore::getSpeedFactor();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", speed);
     setSpeedCalibration(speed, false);
@@ -1003,19 +1003,19 @@ float Mount::getStepsPerDegree(StepperAxis which)
     }
     if (which == AZIMUTH_STEPS)
     {
-        #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         return _stepsPerAZDegree;  // u-steps/degree
-        #else
+#else
         return 1;
-        #endif
+#endif
     }
     if (which == ALTITUDE_STEPS)
     {
-        #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         return _stepsPerALTDegree;  // u-steps/degree
-        #else
+#else
         return 1;
-        #endif
+#endif
     }
 
     return 0;
@@ -1040,20 +1040,20 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
         EEPROMStore::storeRAStepsPerDegree(_stepsPerRADegree);
         setSpeedCalibration(_trackingSpeedCalibration, false);
     }
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (which == AZIMUTH_STEPS)
     {
         _stepsPerAZDegree = steps;
         EEPROMStore::storeAZStepsPerDegree(_stepsPerAZDegree);
     }
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (which == ALTITUDE_STEPS)
     {
         _stepsPerALTDegree = steps;
         EEPROMStore::storeALTStepsPerDegree(_stepsPerALTDegree);
     }
-    #endif
+#endif
 }
 
 /////////////////////////////////
@@ -1621,13 +1621,13 @@ void Mount::stopGuiding(bool ra, bool dec)
         // Stop DEC guiding and wait for it to stop.
         _stepperGUIDE->stop();
 
-    #if !defined(ESP32BOARD)
+#if !defined(ESP32BOARD)
         while (_stepperGUIDE->isRunning())
         {
             _stepperGUIDE->run();
             _stepperTRK->runSpeed();
         }
-    #endif
+#endif
 
         _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
     }
@@ -2678,9 +2678,7 @@ void Mount::waitUntilStopped(byte direction)
 // Block until all steppers are stopped
 void Mount::waitUntilAllStopped()
 {
-    while (_stepperRA->isRunning()
-           || _stepperDEC->isRunning()
-           || (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning())
+    while (_stepperRA->isRunning() || _stepperDEC->isRunning() || (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning())
 #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
            || _stepperFocus->isRunning()
 #endif
@@ -3028,12 +3026,12 @@ void Mount::loop()
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
         _azAltWasRunning = false;
-        #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-            EEPROMStore::storeAZPosition(_stepperAZ->currentPosition());
-        #endif
-        #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-            EEPROMStore::storeALTPosition(_stepperALT->currentPosition());
-        #endif
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        EEPROMStore::storeAZPosition(_stepperAZ->currentPosition());
+    #endif
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        EEPROMStore::storeALTPosition(_stepperALT->currentPosition());
+    #endif
     }
 
     oneIsRunning = false;
@@ -3305,16 +3303,16 @@ void Mount::updateInfoDisplay()
 {
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
-    // timeout, causing ASCOM errors. 
+    // timeout, causing ASCOM errors.
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
     int refreshRateHz = 30;
-    long now = millis();
-    if ((slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA)) 
+    long now          = millis();
+    if ((slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA))
     {
         return;
     }
-    
-    if (isSlewingRAorDEC()) 
+
+    if (isSlewingRAorDEC())
     {
         refreshRateHz = 5;
     }

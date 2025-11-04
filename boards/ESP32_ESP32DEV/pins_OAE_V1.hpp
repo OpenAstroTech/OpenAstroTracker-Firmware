@@ -83,13 +83,13 @@
 
 // DISPLAY_TYPE_LCD_JOY_I2C_SSD1306 requires 3 analog inputs in Arduino pin numbering
 #ifndef LCD_KEY_SENSE_X_PIN
-    //#define LCD_KEY_SENSE_X_PIN 34
+//#define LCD_KEY_SENSE_X_PIN 34
 #endif
 #ifndef LCD_KEY_SENSE_Y_PIN
-    //#define LCD_KEY_SENSE_Y_PIN 39
+//#define LCD_KEY_SENSE_Y_PIN 39
 #endif
 #ifndef LCD_KEY_SENSE_PUSH_PIN
-    //#define LCD_KEY_SENSE_PUSH_PIN 36
+//#define LCD_KEY_SENSE_PUSH_PIN 36
 #endif
 
 //Serial port for external debugging
@@ -102,7 +102,6 @@
         #define DEBUG_SERIAL_PORT Serial2
     #endif
 #endif
-
 
 // Defines for OAE ///////////////////////
 
@@ -125,7 +124,7 @@
     #define DEC_WHEEL_CIRCUMFERENCE 1.0f
 #endif
 #ifndef RA_STEPPER_SPR
-    #define RA_STEPPER_SPR (400 * 9)   // change to (200 * 9) for 1.8° stepper
+    #define RA_STEPPER_SPR (400 * 9)  // change to (200 * 9) for 1.8° stepper
 #endif
 #ifndef DEC_STEPPER_SPR
     #define DEC_STEPPER_SPR (200 * 50 * 4.5f)  // change to (200 * 9) for 1.8° stepper

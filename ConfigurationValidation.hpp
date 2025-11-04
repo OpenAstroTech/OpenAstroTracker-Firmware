@@ -90,8 +90,7 @@
         #endif
     #endif
 #elif defined(BOARD_OAE_V1)
-    // Valid 
-
+// Valid
 
 #else
     #error Configuration does not support AZ. Use at own risk.
@@ -114,7 +113,7 @@
     #endif
 
 #elif defined(BOARD_OAE_V1)
-    // Valid 
+// Valid
 
 #else
     #warning Configuration does not support ALT. Use at own risk.

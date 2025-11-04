@@ -1858,11 +1858,11 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         }
         else if ((inCmd[1] == 'A') && (inCmd.length() == 2))  // :XGA#
         {
-            return String(_mount->getStepsPerDegree(ALTITUDE_STEPS),1) + "#";
+            return String(_mount->getStepsPerDegree(ALTITUDE_STEPS), 1) + "#";
         }
         else if ((inCmd[1] == 'Z') && (inCmd.length() == 2))  // :XGZ#
         {
-            return String(_mount->getStepsPerDegree(AZIMUTH_STEPS),1) + "#";
+            return String(_mount->getStepsPerDegree(AZIMUTH_STEPS), 1) + "#";
         }
         else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'H'))  // :XGAH#
         {

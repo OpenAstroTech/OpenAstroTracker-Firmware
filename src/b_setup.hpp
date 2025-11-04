@@ -181,9 +181,9 @@ void setup()
 
     #ifdef RA_SERIAL_PORT
         #ifdef OAE
-        RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_TX_PIN, RA_RX_PIN);
+    RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_TX_PIN, RA_RX_PIN);
         #else
-        RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
         #endif
     //
     #endif
@@ -204,13 +204,13 @@ void setup()
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // include TMC2209 UART pins
     #if defined(DEC_DIAG_PIN)
-        pinMode(DEC_DIAG_PIN, INPUT);
+    pinMode(DEC_DIAG_PIN, INPUT);
     #endif
     #ifdef DEC_SERIAL_PORT
         #ifdef OAE
-        DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_TX_PIN, DEC_RX_PIN);
+    DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_TX_PIN, DEC_RX_PIN);
         #else
-        DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
     #endif
 #endif
@@ -456,7 +456,7 @@ void setup()
     LOG(DEBUG_ANY, "[STEPPERS]: ALT Circumference : %f", ALT_CIRCUMFERENCE);
     LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/rev     : %f", ALTITUDE_STEPS_PER_REV);
     LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/deg     : %f", mount.getStepsPerDegree(ALTITUDE_STEPS));
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/minute  : %f", ALTITUDE_STEPS_PER_ARC_MINUTE);    
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/minute  : %f", ALTITUDE_STEPS_PER_ARC_MINUTE);
     mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure ALT driver...");

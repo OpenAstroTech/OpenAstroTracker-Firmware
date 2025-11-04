@@ -469,11 +469,11 @@ void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
 // If it is not present then the default uncalibrated AZ_STEPS_PER_DEGREE value is returned.
 float EEPROMStore::getAZStepsPerDegree()
 {
-    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
     float azStepsPerDegree(AZIMUTH_STEPS_PER_REV / 360);  // Default value
-    #else
+#else
     float azStepsPerDegree(1);  // Default value
-    #endif
+#endif
 
     if (isPresentExtended(AZ_NORM_STEPS_MARKER_FLAG))
     {
@@ -503,16 +503,15 @@ void EEPROMStore::storeAZStepsPerDegree(float azStepsPerDegree)
     commit();  // Complete the transaction
 }
 
-
 // Return the ALT steps per degree (actually microsteps per degree).
 // If it is not present then the default uncalibrated ALT_STEPS_PER_DEGREE value is returned.
 float EEPROMStore::getALTStepsPerDegree()
 {
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     float azStepsPerDegree(ALTITUDE_STEPS_PER_REV / 360);  // Default value
-    #else
+#else
     float azStepsPerDegree(1);  // Default value
-    #endif
+#endif
 
     if (isPresentExtended(ALT_NORM_STEPS_MARKER_FLAG))
     {
@@ -541,7 +540,6 @@ void EEPROMStore::storeALTStepsPerDegree(float azStepsPerDegree)
     updateFlagsExtended(ALT_NORM_STEPS_MARKER_FLAG);
     commit();  // Complete the transaction
 }
-
 
 int16_t EEPROMStore::getLastFlashedVersion()
 {
