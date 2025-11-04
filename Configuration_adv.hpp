@@ -336,7 +336,7 @@
     #ifndef AZ_CIRCUMFERENCE
         #ifdef OAE
             // Roughly from the joint to the rod placement is 70mm
-            #define AZ_CIRCUMFERENCE 70.0f * 2 * PI
+            #define AZ_CIRCUMFERENCE 56.0f * 2 * PI
             #ifndef AZ_ROD_PITCH
                 #define AZ_ROD_PITCH 0.5
             #endif
@@ -422,7 +422,7 @@
                 #define ALT_ROD_PITCH 1.25  // mm/rev
             #endif
             // the Circumference of the ALT rotation. Roughly 146mm radius.
-            #define ALT_CIRCUMFERENCE 128.0f * 2 * PI
+            #define ALT_CIRCUMFERENCE 130.0f * 2 * PI
             #define ALTITUDE_STEPS_PER_REV   +                                                                                                  \
                 (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING)  // Actually u-steps/rev
         #else

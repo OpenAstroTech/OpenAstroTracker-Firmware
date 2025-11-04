@@ -492,6 +492,8 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested RA motor rms_current: %d mA", rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverRA->pdn_disable(1);
+    _driverRA->ihold(31);
     _driverRA->toff(1);
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
@@ -575,6 +577,10 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested DEC motor rms_current: %d mA", rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverDEC->pdn_disable(1);
+    _driverDEC->ihold(31);
+    _driverDEC->iholddelay(15);
+    _driverDEC->TPOWERDOWN(255);
     _driverDEC->toff(1);
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
