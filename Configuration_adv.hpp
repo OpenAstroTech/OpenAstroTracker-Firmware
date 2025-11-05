@@ -391,7 +391,9 @@
             #define ALT_ROD_PITCH 1.0  // mm/rev
         #endif
         // the Circumference of the AZ rotation. 209.1mm radius.
-        #define ALT_CIRCUMFERENCE 209.1 * 2 * PI
+        #ifndef ALT_CIRCUMFERENCE
+            #define ALT_CIRCUMFERENCE 209.1 * 2 * PI
+        #endif
         #define ALTITUDE_STEPS_PER_REV                                                                                                     \
             (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING)  // Actually u-steps/rev
 

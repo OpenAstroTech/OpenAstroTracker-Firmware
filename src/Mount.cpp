@@ -3261,8 +3261,8 @@ void Mount::updateInfoDisplay()
     {
         refreshRateHz = 5;  // Update the display slower
     }
-    const long now = millis();
 
+    const long now = millis();
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
@@ -4092,14 +4092,14 @@ DayTime Mount::calculateLst()
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
     DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
-    LOG(DEBUG_INFO,
-        "[MOUNT]: Calculating LST. UTC time: %s. Date: %d-%d-%d. Longitude: %s",
-        timeUTC.ToString(),
-        localDate.year,
-        localDate.month,
-        localDate.day,
-        longitude().ToString());
-    LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
+    // LOG(DEBUG_INFO,
+    //     "[MOUNT]: Calculating LST. UTC time: %s. Date: %d-%d-%d. Longitude: %s",
+    //     timeUTC.ToString(),
+    //     localDate.year,
+    //     localDate.month,
+    //     localDate.day,
+    //     longitude().ToString());
+    // LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
     return lst;
 }
 
