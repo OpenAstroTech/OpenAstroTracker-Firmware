@@ -3252,15 +3252,16 @@ void Mount::updateInfoDisplay()
     // timeout, causing ASCOM errors. 
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
     int refreshRateHz = 30;
-    long now = millis();
-    if ((slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA)) 
+    const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
+    if (isSlewingRAandDEC) 
     {
-        return;
+        return;  // Do not update the display
     }
      else if (isSlewingRAorDEC()) 
     {
-        refreshRateHz = 5;
+        refreshRateHz = 5;  // Update the display slower
     }
+    const long now = millis();
 
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
