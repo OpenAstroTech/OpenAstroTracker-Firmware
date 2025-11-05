@@ -282,6 +282,8 @@ void setup()
     lcdMenu.setCursor(0, 0);
     #ifdef OAM
     lcdMenu.printMenu(" OpenAstroMount");
+    #elif defined(OAE)
+    lcdMenu.printMenu(" OpenAstroExplorer");
     #else
     lcdMenu.printMenu("OpenAstroTracker");
     #endif

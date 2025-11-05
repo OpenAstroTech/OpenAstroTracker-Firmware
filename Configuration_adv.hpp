@@ -22,6 +22,15 @@
     #define BUFFER_LOGS false
 #endif
 
+#ifndef OAM
+    #ifndef OAE
+        #define OAT "OAT"
+    #endif
+#endif
+#if defined(OAE) && defined(OAM)
+    #error "OAE and OAM cannot be defined at the same time"
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                            ////////
 // MOTOR & DRIVER SETTINGS    ////////

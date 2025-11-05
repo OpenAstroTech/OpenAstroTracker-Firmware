@@ -1273,6 +1273,8 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             {
 #ifdef OAM
                 return "OpenAstroMount#";
+#elif defined(OAE)
+                return "OpenAstroExplorer#";
 #else
                 return "OpenAstroTracker#";
 #endif
