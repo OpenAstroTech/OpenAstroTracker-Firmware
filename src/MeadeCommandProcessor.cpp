@@ -859,7 +859,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "float#"
 //
 // :XGT#
-//      Descrition:
+//      Description:
 //        Get Tracking speed
 //      Information:
 //        Get the absolute tracking speed of the mount.
