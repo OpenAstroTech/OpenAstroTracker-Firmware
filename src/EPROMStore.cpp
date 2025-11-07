@@ -477,10 +477,14 @@ float EEPROMStore::getAZStepsPerDegree()
 
     if (isPresentExtended(AZ_NORM_STEPS_MARKER_FLAG))
     {
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         // Latest version stores 100x steps/deg for 256 MS
         const float factor = SteppingStorageNormalized / AZ_MICROSTEPPING;
         azStepsPerDegree   = readInt32(AZ_NORM_STEPS_DEGREE_ADDR) / factor;
         LOG(DEBUG_EEPROM, "[EEPROM]: AZ Normed Marker Present! AZ steps/deg is %f", azStepsPerDegree);
+#else
+        LOG(DEBUG_EEPROM, "[EEPROM]: AZ marker present but AZ axis disabled; ignoring stored value");
+#endif
     }
     else
     {
@@ -494,6 +498,7 @@ float EEPROMStore::getAZStepsPerDegree()
 void EEPROMStore::storeAZStepsPerDegree(float azStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     const float factor = SteppingStorageNormalized / AZ_MICROSTEPPING;
     int32_t val        = azStepsPerDegree * factor;
     LOG(DEBUG_EEPROM, "[EEPROM]: Storing AZ steps to %l (%f)", val, azStepsPerDegree);
@@ -501,6 +506,10 @@ void EEPROMStore::storeAZStepsPerDegree(float azStepsPerDegree)
     updateInt32(AZ_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(AZ_NORM_STEPS_MARKER_FLAG);
     commit();  // Complete the transaction
+#else
+    LOG(DEBUG_EEPROM, "[EEPROM]: Skipping AZ steps store; AZ axis disabled");
+    (void) azStepsPerDegree;
+#endif
 }
 
 // Return the ALT steps per degree (actually microsteps per degree).
@@ -515,10 +524,14 @@ float EEPROMStore::getALTStepsPerDegree()
 
     if (isPresentExtended(ALT_NORM_STEPS_MARKER_FLAG))
     {
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         // Latest version stores 100x steps/deg for 256 MS
         const float factor = SteppingStorageNormalized / ALT_MICROSTEPPING;
         azStepsPerDegree   = readInt32(ALT_NORM_STEPS_DEGREE_ADDR) / factor;
         LOG(DEBUG_EEPROM, "[EEPROM]: ALT Normed Marker Present! ALT steps/deg is %f", azStepsPerDegree);
+#else
+        LOG(DEBUG_EEPROM, "[EEPROM]: ALT marker present but ALT axis disabled; ignoring stored value");
+#endif
     }
     else
     {
@@ -532,6 +545,7 @@ float EEPROMStore::getALTStepsPerDegree()
 void EEPROMStore::storeALTStepsPerDegree(float azStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     const float factor = SteppingStorageNormalized / ALT_MICROSTEPPING;
     int32_t val        = azStepsPerDegree * factor;
     LOG(DEBUG_EEPROM, "[EEPROM]: Storing ALT steps to %l (%f)", val, azStepsPerDegree);
@@ -539,6 +553,10 @@ void EEPROMStore::storeALTStepsPerDegree(float azStepsPerDegree)
     updateInt32(ALT_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(ALT_NORM_STEPS_MARKER_FLAG);
     commit();  // Complete the transaction
+#else
+    LOG(DEBUG_EEPROM, "[EEPROM]: Skipping ALT steps store; ALT axis disabled");
+    (void) azStepsPerDegree;
+#endif
 }
 
 int16_t EEPROMStore::getLastFlashedVersion()
