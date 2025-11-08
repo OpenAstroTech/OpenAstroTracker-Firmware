@@ -78,7 +78,11 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 {
     _commandReceived = 0;
-    _lcdMenu         = lcdMenu;
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    _lastInfoUpdate = millis();
+#endif
+    _lcdMenu = lcdMenu;
     initializeVariables();
 }
 
@@ -1694,23 +1698,46 @@ void Mount::guidePulse(byte direction, int duration)
         switch (direction)
         {
             case NORTH:
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
-                    DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-                _guideDecEndTime = millis() + duration;
+                // If a upper limit is set, check we're not there. If we are, refuse the guide pulse.
+                if (_decUpperLimit != 0 && _stepperDEC->currentPosition() >= _decUpperLimit)
+                {
+                    // TODO: Make sure Southern hemisphere does not need a sign/direction inversion.
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC is at (%l) which is at or above upper limit (%l), ignoring guide pulse",
+                        _stepperDEC->currentPosition(),
+                        _decUpperLimit);
+                }
+                else
+                {
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                        DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                    _guideDecEndTime = millis() + duration;
+                }
                 break;
 
             case SOUTH:
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-                LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
-                    "[GUIDE]: guidePulse:   DEC guide speed     : %f",
-                    -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
-                _guideDecEndTime = millis() + duration;
+                if (_decLowerLimit != 0 && _stepperDEC->currentPosition() <= _decLowerLimit)
+                {
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC is at (%l) which is at or below lower limit (%l), ignoring guide pulse",
+                        _stepperDEC->currentPosition(),
+                        _decLowerLimit);
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC is at lower limit, ignoring guide pulse");
+                }
+                else
+                {
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
+                    LOG(DEBUG_STEPPERS | DEBUG_GUIDE,
+                        "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                        -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
+                    _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                    _guideDecEndTime = millis() + duration;
+                }
                 break;
 
             case WEST:
@@ -3305,18 +3332,19 @@ void Mount::updateInfoDisplay()
     // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
     // timeout, causing ASCOM errors.
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
-    int refreshRateHz = 30;
-    long now          = millis();
-    if ((slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA))
+
+    int refreshRateHz            = 30;
+    const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
+    if (isSlewingRAandDEC)
     {
-        return;
+        return;  // Do not update the display
+    }
+    else if (isSlewingRAorDEC())
+    {
+        refreshRateHz = 5;  // Update the display slower
     }
 
-    if (isSlewingRAorDEC())
-    {
-        refreshRateHz = 5;
-    }
-
+    const long now = millis();
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
@@ -3358,6 +3386,7 @@ bool Mount::isBootComplete()
 //
 // setDecLimitPosition
 //
+// If limitAngle is 0, no offset is given, so the current position is used.
 /////////////////////////////////
 void Mount::setDecLimitPosition(bool upper, float limitAngle)
 {

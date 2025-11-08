@@ -4,6 +4,10 @@
 **V1.13.17 - Updates**
 - Store AZ/ALT steps per degree and allow them to be set from Meade
 
+**V1.13.16 - Updates**
+- Throttled InfoDisplay updates. Turned off on two axis slew, limited to 5Hz on one-axis slew.
+- Guide pulses are now ignored for DEC as well when at the limits.
+
 **V1.13.15 - Updates**
 - Changes necessary for OAE, add OAE board
 - Check `INFO_DISPLAY_TYPE` builds in CI

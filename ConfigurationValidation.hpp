@@ -454,7 +454,7 @@
     #endif
 #endif
 
-// For OAT, we must have DEC limits defined, otherwise free slew does nto work.
+// For OAT, we must have DEC limits defined, otherwise free slew does not work.
 #ifndef OAM
     #ifndef DEC_LIMIT_UP
         #error "You must set DEC_LIMIT_UP to the number of degrees that your OAT can move upwards from the home position."
