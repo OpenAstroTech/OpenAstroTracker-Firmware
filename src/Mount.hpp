@@ -403,7 +403,7 @@ class Mount
     void setupInfoDisplay();
     void updateInfoDisplay();
     InfoDisplayRender *getInfoDisplay();
-    long _loops;
+    long _lastInfoUpdate;
 #endif
 
     // Called by Meade processor every time a command is received.
