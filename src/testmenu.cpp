@@ -534,7 +534,7 @@ void TestMenu::display() const
         Serial.println(F("*** OpenAstroMount (OAM) Test Menu ***"));
     #else
         #ifdef OAE
-        Serial.println(F("*** OpenAstroTracker (OAE) Test Menu ***"));
+        Serial.println(F("*** OpenAstroExplorer (OAE) Test Menu ***"));
         #else
         Serial.println(F("** OpenAstroTracker (OAT) Test Menu **"));
         #endif
