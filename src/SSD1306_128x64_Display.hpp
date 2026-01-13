@@ -42,9 +42,9 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     const int _decSize      = 43;
     const int _decScalePos  = 115;
 
-    const int yMaxStatus = 63 - 11;
-    const static int MAX_CONSOLE_LINES = 16;  // Maximum number of lines of text to buffer in console mode
-    const static int DISPLAY_CONSOLE_LINES = 6;  // Number of lines to display in console mode
+    const int yMaxStatus                   = 63 - 11;
+    const static int MAX_CONSOLE_LINES     = 16;  // Maximum number of lines of text to buffer in console mode
+    const static int DISPLAY_CONSOLE_LINES = 6;   // Number of lines to display in console mode
 
     SSD1306Wire *display;
     int _sizeMount;
@@ -108,7 +108,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             display->setFont(Bitmap3x5);
             // Start 6 lines back from current line and display next 6 lines
             int indexStart = max(0, _curLine - DISPLAY_CONSOLE_LINES);
-            int indexEnd = min(indexStart + DISPLAY_CONSOLE_LINES, MAX_CONSOLE_LINES);
+            int indexEnd   = min(indexStart + DISPLAY_CONSOLE_LINES, MAX_CONSOLE_LINES);
             for (int i = indexStart; i < indexEnd; i++)
             {
                 if (_textList[i].length() != 0)

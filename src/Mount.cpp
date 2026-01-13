@@ -349,7 +349,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef NEW_STEPPER_LIB
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ    = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -367,7 +367,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef NEW_STEPPER_LIB
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT   = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -758,7 +758,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver("ALT");
+    UART_Rx_connected = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         digitalWrite(ALT_EN_PIN,
@@ -849,7 +849,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver("FOC");
+    UART_Rx_connected = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
         digitalWrite(FOCUS_EN_PIN,
@@ -1891,7 +1891,7 @@ void Mount::getAZALTPositions(long &azPos, long &altPos)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     azPos = _stepperAZ->currentPosition();
 #else
-    azPos = 0;
+    azPos  = 0;
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     altPos = _stepperALT->currentPosition();
@@ -2896,10 +2896,10 @@ void Mount::interruptLoop()
         else if (!(_mountStatus & STATUS_TRACKING) && (_stepperTRK->isRunning()))
         {
             // If we are not tracking, but the tracking stepper is running, we need to let it move.
-            // This can happen when we need to compensate for a slew (during which the tracker is 
-            // stopped). After the slew, the tracker is advanced by the distance it would have 
+            // This can happen when we need to compensate for a slew (during which the tracker is
+            // stopped). After the slew, the tracker is advanced by the distance it would have
             // travelled during the slew if it had been tracking.
-            // That compensation uses goto mode (using runToNewPosition()), so we need to use run(), 
+            // That compensation uses goto mode (using runToNewPosition()), so we need to use run(),
             // since runSpeed() only advances the stepper when it is in constant speed mode.
             _stepperTRK->run();
         }
