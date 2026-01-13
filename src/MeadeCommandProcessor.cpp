@@ -501,7 +501,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Information:
 //        This starts moving one of the steppers by the given amount of steps and returns immediately. Steps can be positive or negative.
 //      Parameters:
-//        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, t for ALT)
+//        "x" is the stepper to move (r for RA, d for DEC, f for FOC, z for AZ, l for ALT)
 //        "nnnn" is the number of steps
 //      Returns:
 //        "1" if successfully scheduled, else "0"
@@ -805,6 +805,24 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Returns:
 //        "float#"
 //
+// :XGZ#
+//      Description:
+//        Get AZ steps
+//      Information:
+//        Get the number of steps the AZ stepper motor needs to take to rotate AZ by one degree
+//      Returns:
+//        "float#" if AZ motor is present
+//        "0#"     if AZ is not configured
+//
+// :XGA#
+//      Description:
+//        Get ALT steps
+//      Information:
+//        Get the number of steps the ALT stepper motor needs to take to rotate ALT by one degree
+//      Returns:
+//        "float#" if ALT motor is present
+//        "0#"     if ALT is not configured
+//
 // :XGDLx#
 //      Description:
 //        Get DEC limits
@@ -986,6 +1004,26 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set DEC steps
 //      Information:
 //        Set the number of steps the DEC stepper motor needs to take to rotate by one degree.
+//      Parameters:
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
+//      Returns:
+//        nothing
+//
+// :XSAn.n#
+//      Description:
+//        Set AZ steps
+//      Information:
+//        Set the number of steps the AZ stepper motor needs to take to rotate by one degree.
+//      Parameters:
+//        "n.n" is the number of steps (only one decimal point is supported, must be positive)
+//      Returns:
+//        nothing
+//
+// :XSLn.n#
+//      Description:
+//        Set ALT steps
+//      Information:
+//        Set the number of steps the ALT stepper motor needs to take to rotate by one degree.
 //      Parameters:
 //        "n.n" is the number of steps (only one decimal point is supported, must be positive)
 //      Returns:
@@ -1235,6 +1273,8 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             {
 #ifdef OAM
                 return "OpenAstroMount#";
+#elif defined(OAE)
+                return "OpenAstroExplorer#";
 #else
                 return "OpenAstroTracker#";
 #endif
@@ -1818,6 +1858,14 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {
             return String(_mount->getBacklashCorrection()) + "#";
         }
+        else if ((inCmd[1] == 'A') && (inCmd.length() == 2))  // :XGA#
+        {
+            return String(_mount->getStepsPerDegree(ALTITUDE_STEPS), 1) + "#";
+        }
+        else if ((inCmd[1] == 'Z') && (inCmd.length() == 2))  // :XGZ#
+        {
+            return String(_mount->getStepsPerDegree(AZIMUTH_STEPS), 1) + "#";
+        }
         else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'H'))  // :XGAH#
         {
             return _mount->getAutoHomingStates() + "#";
@@ -1910,6 +1958,14 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         if (inCmd[1] == 'R')  // :XSR#
         {
             _mount->setStepsPerDegree(RA_STEPS, inCmd.substring(2).toFloat());
+        }
+        else if (inCmd[1] == 'A')  // :XSA#
+        {
+            _mount->setStepsPerDegree(AZIMUTH_STEPS, inCmd.substring(2).toFloat());
+        }
+        else if (inCmd[1] == 'L')  // :XSL#
+        {
+            _mount->setStepsPerDegree(ALTITUDE_STEPS, inCmd.substring(2).toFloat());
         }
         else if (inCmd[1] == 'D')  // :XSD
         {
@@ -2069,7 +2125,10 @@ String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
     if (inCmd.length() == 0)
     {
         _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
-        _mount->waitUntilStopped(ALL_DIRECTIONS);
+        _mount->stopSlewing(AZIMUTH_STEPS);
+        _mount->stopSlewing(ALTITUDE_STEPS);
+        _mount->stopSlewing(FOCUS_STEPS);
+        _mount->waitUntilAllStopped();
         return "";
     }
 

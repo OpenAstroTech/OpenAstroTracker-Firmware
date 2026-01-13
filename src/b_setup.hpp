@@ -208,9 +208,17 @@ void setup()
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for RA...");
     // include TMC2209 UART pins
+    #if defined(RA_DIAG_PIN)
     pinMode(RA_DIAG_PIN, INPUT);
+    #endif
+
     #ifdef RA_SERIAL_PORT
-    RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+        #ifdef OAE
+    RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_TX_PIN, RA_RX_PIN);
+        #else
+    RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
+        #endif
+    //
     #endif
 #endif
     updateConsoleText(raLine, F("Init RA axis... OK"));
@@ -234,9 +242,15 @@ void setup()
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for DEC...");
     // include TMC2209 UART pins
+    #if defined(DEC_DIAG_PIN)
     pinMode(DEC_DIAG_PIN, INPUT);
+    #endif
     #ifdef DEC_SERIAL_PORT
+        #ifdef OAE
+    DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_TX_PIN, DEC_RX_PIN);
+        #else
     DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+        #endif
     #endif
 #endif
     updateConsoleText(decLine, F("Init DEC axis... OK"));
@@ -471,6 +485,12 @@ void setup()
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ stepper...");
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ Microsteps    : %d", AZ_MICROSTEPPING);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ Stepper SPR   : %d", AZ_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ Circumference : %f", AZ_CIRCUMFERENCE);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/rev     : %f", AZIMUTH_STEPS_PER_REV);
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/deg     : %f", mount.getStepsPerDegree(AZIMUTH_STEPS));
+    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/minute  : %f", AZIMUTH_STEPS_PER_ARC_MINUTE);
     mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ driver...");
@@ -483,6 +503,12 @@ void setup()
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure Alt stepper...");
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT Microsteps    : %d", ALT_MICROSTEPPING);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT Stepper SPR   : %d", ALT_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT Circumference : %f", ALT_CIRCUMFERENCE);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/rev     : %f", ALTITUDE_STEPS_PER_REV);
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/deg     : %f", mount.getStepsPerDegree(ALTITUDE_STEPS));
+    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/minute  : %f", ALTITUDE_STEPS_PER_ARC_MINUTE);
     mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure ALT driver...");

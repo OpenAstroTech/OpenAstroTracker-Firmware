@@ -22,6 +22,15 @@
     #define BUFFER_LOGS false
 #endif
 
+#ifndef OAM
+    #ifndef OAE
+        #define OAT "OAT"
+    #endif
+#endif
+#if defined(OAE) && defined(OAM)
+    #error "OAE and OAM cannot be defined at the same time"
+#endif
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //                            ////////
 // MOTOR & DRIVER SETTINGS    ////////
@@ -232,14 +241,14 @@
 #endif
 
 #ifndef DEC_LIMIT_UP
-    #ifdef OAM
+    #if defined(OAM) || defined(OAE)
         #define DEC_LIMIT_UP 135.0f
     #else
         #define DEC_LIMIT_UP 0.0f
     #endif
 #endif
 #ifndef DEC_LIMIT_DOWN
-    #ifdef OAM
+    #if defined(OAM) || defined(OAE)
         #define DEC_LIMIT_DOWN 135.0f
     #else
         #define DEC_LIMIT_DOWN 0.0f
@@ -332,16 +341,34 @@
         #define AZ_STEPPER_ACCELERATION (100 * AZ_MICROSTEPPING)
     #endif
 
-    // the Circumference of the AZ rotation. 808mm dia.
+    // the Circumference of the AZ rotation. 808mm dia (OAT)
     #ifndef AZ_CIRCUMFERENCE
-        #define AZ_CIRCUMFERENCE 2538.4f
+        #ifdef OAE
+            // Roughly from the joint to the rod placement is 70mm
+            #define AZ_CIRCUMFERENCE 56.0f * 2 * PI
+            #ifndef AZ_ROD_PITCH
+                #define AZ_ROD_PITCH 0.5
+            #endif
+            #define AZIMUTH_STEPS_PER_REV                                                                                                  \
+                +(AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / AZ_ROD_PITCH) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)  // Actually u-steps/rev
+        #else
+            #define AZ_CIRCUMFERENCE 2538.4f
+        #endif
     #endif
+
+    #ifndef OAE
+        #define AZ_WORMGEAR_RATIO 1.0f
+    #endif
+
     #ifndef AZIMUTH_STEPS_PER_REV
         #define AZIMUTH_STEPS_PER_REV                                                                                                      \
             (AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / (AZ_PULLEY_TEETH * GT2_BELT_PITCH)) * AZ_STEPPER_SPR                               \
              * AZ_MICROSTEPPING)  // Actually u-steps/rev
     #endif
-    #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+
+    #ifndef AZIMUTH_STEPS_PER_ARC_MINUTE
+        #define AZIMUTH_STEPS_PER_ARC_MINUTE (AZIMUTH_STEPS_PER_REV / (360 * 60.0f))  // Used to determine move distance in steps
+    #endif
 
     // AZ TMC2209 UART settings
     // These settings work only with TMC2209 in UART connection (single wire to TX)
@@ -373,7 +400,7 @@
         #define ALT_MICROSTEPPING 4
     #endif
     #ifndef ALT_STEPPER_SPR
-        #define ALT_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
+        #define ALT_STEPPER_SPR (400.0)  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
     #endif
     #ifndef ALT_STEPPER_SPEED
         #define ALT_STEPPER_SPEED 2000
@@ -398,21 +425,30 @@
             (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR * ALT_MICROSTEPPING)  // Actually u-steps/rev
 
     #else
-        // the Circumference of the AZ rotation. 770mm dia.
-        #ifndef ALT_CIRCUMFERENCE
-            #define ALT_CIRCUMFERENCE 2419.0f
-        #endif
-        #if AUTOPA_VERSION == 1
-            // the ratio of the ALT gearbox for AutoPA V1 (40:3)
-            #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
-        #else
-            // the ratio of the ALT gearbox for AutoPA V2 (40:1)
-            #define ALT_WORMGEAR_RATIO (40.0f)
-        #endif
-        #ifndef ALTITUDE_STEPS_PER_REV
+        #ifdef OAE
+            #ifndef ALT_ROD_PITCH
+                #define ALT_ROD_PITCH 1.25  // mm/rev
+            #endif
+            // the Circumference of the ALT rotation. Roughly 146mm radius.
+            #define ALT_CIRCUMFERENCE 130.0f * 2 * PI
             #define ALTITUDE_STEPS_PER_REV                                                                                                 \
-                (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR * ALT_MICROSTEPPING   \
-                 * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+                +(ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / ALT_ROD_PITCH) * ALT_STEPPER_SPR                                            \
+                  * ALT_MICROSTEPPING)  // Actually u-steps/rev
+        #else
+            // the Circumference of the AZ rotation. 770mm dia.
+            #define ALT_CIRCUMFERENCE 2419.0f
+            #if AUTOPA_VERSION == 1
+                // the ratio of the ALT gearbox for AutoPA V1 (40:3)
+                #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)
+            #else
+                // the ratio of the ALT gearbox for AutoPA V2 (40:1)
+                #define ALT_WORMGEAR_RATIO (40.0f)
+            #endif
+            #ifndef ALTITUDE_STEPS_PER_REV
+                #define ALTITUDE_STEPS_PER_REV                                                                                             \
+                    (ALT_CORRECTION_FACTOR * (ALT_CIRCUMFERENCE / (ALT_PULLEY_TEETH * GT2_BELT_PITCH)) * ALT_STEPPER_SPR                   \
+                     * ALT_MICROSTEPPING * ALT_WORMGEAR_RATIO)  // Actually u-steps/rev
+            #endif
         #endif
     #endif
 
@@ -621,23 +657,6 @@
 // OTHER HARDWARE CONFIGURATION     ////////
 //                                  ////////
 ////////////////////////////////////////////
-
-// Stepper drivers
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if defined(ESP32)
-        #define RA_SERIAL_PORT Serial2  // Can be shared with DEC_SERIAL_PORT
-    #elif defined(__AVR_ATmega2560__)
-    // Uses SoftwareSerial
-    #endif
-#endif
-
-#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if defined(ESP32)
-        #define DEC_SERIAL_PORT Serial2  // Can be shared with RA_SERIAL_PORT
-    #elif defined(__AVR_ATmega2560__)
-    // Uses SoftwareSerial
-    #endif
-#endif
 
 // Focuser
 #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)

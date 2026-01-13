@@ -24,7 +24,7 @@ const uint8_t sineTable[] PROGMEM = {0, 22, 44, 66, 87, 108, 128, 146, 164, 180,
 // This class renders the mount status to a 128x64 pixel display controlled by a SSD1306 chip.
 class SDD1306OLED128x64 : public InfoDisplayRender
 {
-#ifdef OAM
+#if defined(OAM) || defined(OAE)
     const float bottomDEC = -180.0f;
     const float rangeDEC  = 360.0;
 #else
@@ -95,7 +95,9 @@ class SDD1306OLED128x64 : public InfoDisplayRender
 
             // Name on the right
             display->setFont(Bitmap5x7);
-#ifdef OAM
+#ifdef OAE
+            display->drawString(32, 6, F("OpenAstroExplorer"));
+#elif defined(OAM)
             display->drawString(32, 6, F("OpenAstroMount"));
 #elif defined(OAE)
             display->drawString(32, 6, F("OpenAstroExplorer"));
@@ -385,7 +387,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         {
             display->setPixel(_decScalePos, p);
         }
-#ifdef OAM
+#if defined(OAM) || defined(OAE)
         display->drawHorizontalLine(_decScalePos - 1, yDECPixel(-180.0), 2);
 #endif
         display->drawHorizontalLine(_decScalePos - 1, yDECPixel(-90.0), 2);
@@ -393,7 +395,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         display->drawHorizontalLine(_decScalePos - 1, yDECPixel(90.0), 2);
         display->drawHorizontalLine(_decScalePos - 1, yDECPixel(180.0), 2);
 // DEC tickmark labels
-#ifdef OAM
+#if defined(OAM) || defined(OAE)
         display->drawString(_decScalePos + 6, yDECPixel(-180.0f) - 2, F("180"));
         display->drawHorizontalLine(_decScalePos + 3, yDECPixel(-180.0), 2);  // Smaller minus sign
 #endif

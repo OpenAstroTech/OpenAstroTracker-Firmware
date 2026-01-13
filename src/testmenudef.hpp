@@ -68,5 +68,5 @@ TestMenuItem menuItems[] = {
     TestMenuItem(MENU_FACTORY_RESET),
 };
 
-TestMenu mainTestMenu(0, "OAT/OAM Testing menu", "", menuItems, sizeof(menuItems) / sizeof(menuItems[0]));
+TestMenu mainTestMenu(0, "OAT/OAM/OAE Testing menu", "", menuItems, sizeof(menuItems) / sizeof(menuItems[0]));
 #endif
