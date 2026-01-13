@@ -399,7 +399,9 @@
 
     #else
         // the Circumference of the AZ rotation. 770mm dia.
-        #define ALT_CIRCUMFERENCE 2419.0f
+        #ifndef ALT_CIRCUMFERENCE
+            #define ALT_CIRCUMFERENCE 2419.0f
+        #endif
         #if AUTOPA_VERSION == 1
             // the ratio of the ALT gearbox for AutoPA V1 (40:3)
             #define ALT_WORMGEAR_RATIO (40.0f / 3.0f)

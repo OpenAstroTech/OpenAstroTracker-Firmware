@@ -94,6 +94,22 @@ void stepperControlTimerCallback(void *payload)
     #endif
 #endif
 
+int addConsoleText(String text)
+{
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    return mount.getInfoDisplay()->addConsoleText(text, false);
+#else
+    return -1;
+#endif
+}
+
+void updateConsoleText(int line, String newText)
+{
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(line, newText);
+#endif
+}
+
 /////////////////////////////////
 //
 // Main program setup
@@ -118,6 +134,8 @@ void setup()
 #if TEST_VERIFY_MODE == 1
     #ifdef OAM
     Serial.print(F("Booting OAM Firmware "));
+    #elif OAE
+    Serial.print(F("Booting OAE Firmware "));
     #else
     Serial.print(F("Booting OAT Firmware "));
     #endif
@@ -134,32 +152,46 @@ void setup()
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
     mount.setupInfoDisplay();
+    addConsoleText(F("BOOTING " VERSION));
     LOG(DEBUG_ANY, "[SYSTEM]: OLED info screen ready!");
-    mount.getInfoDisplay()->addConsoleText(F("BOOTING " VERSION), false);
 #endif
 
 #if USE_GPS == 1
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing GPS...");
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int gpsLine = addConsoleText(F("Initialize GPS..."), false);
+    #endif
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    updateConsoleText(gpsLine, F("Initialize GPS... OK"));
+    #endif
 #endif
 
 //Turn on dew heater
 #if DEW_HEATER == 1
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing dew heater...");
+    int dewHeaterLine = addConsoleText(F("Enable Dew Heater..."));
     #if defined(DEW_HEATER_1_PIN)
     digitalWrite(DEW_HEATER_1_PIN, HIGH);
     #endif
     #if defined(DEW_HEATER_2_PIN)
     digitalWrite(DEW_HEATER_2_PIN, HIGH);
     #endif
+    updateConsoleText(dewHeaterLine, F("Enable Dew Heater... OK"));
 #endif
 
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
+    int endSwitchesLine = addConsoleText(F("Init End Switches..."));
     LOG(DEBUG_ANY, "[SYSTEM]: Init EndSwitches...");
     mount.setupEndSwitches();
+    updateConsoleText(endSwitchesLine, F("Init End Switches... OK"));
 #endif
 
     /////////////////////////////////
     //   Microstepping/driver pins
     /////////////////////////////////
+    int raLine = addConsoleText(F("Init RA axis..."));
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing RA microstepping/driver pins...");
     pinMode(RA_EN_PIN, OUTPUT);
     digitalWrite(RA_EN_PIN, LOW);  // ENABLE, LOW to enable
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
@@ -174,12 +206,17 @@ void setup()
     #endif
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for RA...");
     // include TMC2209 UART pins
     pinMode(RA_DIAG_PIN, INPUT);
     #ifdef RA_SERIAL_PORT
     RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
 #endif
+    updateConsoleText(raLine, F("Init RA axis... OK"));
+
+    int decLine = addConsoleText(F("Init DEC axis..."));
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing DEC driver pin %s...", String(DEC_EN_PIN).c_str());
     pinMode(DEC_EN_PIN, OUTPUT);
     digitalWrite(DEC_EN_PIN, LOW);  // ENABLE, LOW to enable
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
@@ -193,15 +230,21 @@ void setup()
     digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
     #endif
 #endif
+
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for DEC...");
     // include TMC2209 UART pins
     pinMode(DEC_DIAG_PIN, INPUT);
     #ifdef DEC_SERIAL_PORT
     DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
     #endif
 #endif
+    updateConsoleText(decLine, F("Init DEC axis... OK"));
+    LOG(DEBUG_ANY, "[SYSTEM]: RA/DEC init complete...");
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    int azLine = addConsoleText(F("Init AZ axis..."));
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing AZ microstepping/driver pins...");
     pinMode(AZ_EN_PIN, OUTPUT);
     digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -211,9 +254,12 @@ void setup()
     AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
     #endif
+    updateConsoleText(azLine, F("Init AZ axis... OK"));
 #endif
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    int altLine = addConsoleText(F("Init ALT axis..."));
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing ALT microstepping/driver pins...");
     pinMode(ALT_EN_PIN, OUTPUT);
     digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -223,9 +269,11 @@ void setup()
     ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
     #endif
+    updateConsoleText(altLine, F("Init ALT axis... OK"));
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    int focusLine = addConsoleText(F("Init Focuser..."));
     LOG(DEBUG_FOCUS, "[FOCUS]: setup(): focus disabling enable pin");
     pinMode(FOCUS_EN_PIN, OUTPUT);
     digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -236,38 +284,41 @@ void setup()
     FOCUS_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
     #endif
+    updateConsoleText(focusLine, F("Init Focuser... OK"));
 #endif
     // end microstepping -------------------
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1 || USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    int homingLine = addConsoleText(F("Init homing sensors..."));
+    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     pinMode(RA_HOMING_SENSOR_PIN, INPUT);
-#endif
+    #endif
 
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
     pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
+    #endif
+    updateConsoleText(homingLine, F("Init homing sensors... OK"));
 #endif
 
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int eepromLine = mount.getInfoDisplay()->addConsoleText(F("INIT EEPROM..."));
-#endif
+    LOG(DEBUG_ANY, "[SYSTEM]: Initializing EEPROM store...");
+    int eepromLine = addConsoleText(F("INIT EEPROM..."));
 
-    LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
     EEPROMStore::initialize();
     LOG(DEBUG_ANY, "[SYSTEM]: EEPROM store ready!");
-
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(eepromLine, F("INIT EEPROM... OK"));
-#endif
+    updateConsoleText(eepromLine, F("INIT EEPROM... OK"));
 
 // Calling the LCD startup here, I2C can't be found if called earlier
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
     LOG(DEBUG_ANY, "[SYSTEM]: Get LCD ready...");
+    int lcdLine = addConsoleText(F("Init LCD..."));
     lcdMenu.startup();
 
     // Show a splash screen
     lcdMenu.setCursor(0, 0);
     #ifdef OAM
     lcdMenu.printMenu(" OpenAstroMount");
+    #elif defined(OAE)
+    lcdMenu.printMenu("OpenAstroExplorer");
     #else
     lcdMenu.printMenu("OpenAstroTracker");
     #endif
@@ -330,6 +381,7 @@ void setup()
     #if SUPPORT_INFO_DISPLAY == 1
     lcdMenu.addItem("INFO", Status_Menu);
     #endif
+    updateConsoleText(lcdLine, F("Init LCD... OK"));
 
 #endif  // DISPLAY_TYPE > 0
 
@@ -337,16 +389,16 @@ void setup()
 
     // Create the command processor singleton
     LOG(DEBUG_ANY, "[SYSTEM]: Initialize LX200 handler...");
+    int commandProcessorLine = addConsoleText(F("Init MEADE handler..."));
     MeadeCommandProcessor::createProcessor(&mount, &lcdMenu);
+    updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 
 #if (WIFI_ENABLED == 1)
     LOG(DEBUG_ANY, "[SYSTEM]: Setup Wifi...");
     wifiControl.setup();
 #endif
 
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int stepperLine = mount.getInfoDisplay()->addConsoleText(F("INIT STEPPERS..."));
-#endif
+    int stepperLine = addConsoleText(F("Energize Steppers..."));
 
     // Configure the mount
     // Delay for a while to get UARTs booted...
@@ -457,13 +509,10 @@ void setup()
     #endif
 #endif
 
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(stepperLine, F("INIT STEPPERS... OK"));
-#endif
+    LOG(DEBUG_ANY, "[SYSTEM]: Energize Steppers... OK");
+    updateConsoleText(stepperLine, F("Energize Steppers... OK"));
 
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->addConsoleText(F("CONFIGURING..."));
-#endif
+    int configureLine = addConsoleText(F("Configure Mount..."));
 
     LOG(DEBUG_ANY, "[SYSTEM]: Read Configuration...");
 
@@ -484,7 +533,7 @@ void setup()
 
 // Setup service to periodically service the steppers.
 #if defined(ESP32)
-
+    LOG(DEBUG_ANY, "[SYSTEM]: Setup StepperControlTask on Core 0...");
     disableCore0WDT();
     xTaskCreatePinnedToCore(stepperControlTask,  // Function to run on this core
                             "StepperControl",    // Name of this task
@@ -504,10 +553,10 @@ void setup()
     #endif
 #endif
 
+    updateConsoleText(configureLine, F("Configure Mount... OK"));
+
 #if UART_CONNECTION_TEST_TX == 1
-    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int testLine = mount.getInfoDisplay()->addConsoleText(F("TEST STEPPERS..."));
-    #endif
+    int testLine = addConsoleText(F("Test UARTs..."));
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Moving RA axis using UART commands...");
     mount.testRA_UART_TX();
@@ -519,9 +568,7 @@ void setup()
     mount.testDEC_UART_TX();
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Finished moving DEC axis using UART commands.");
     #endif
-    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(testLine, F("TEST STEPPERS... OK"));
-    #endif
+    updateConsoleText(testLine, F("Test UARTs... OK"));
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Setting %s hemisphere...", inNorthernHemisphere ? "northern" : "southern");
@@ -535,11 +582,12 @@ void setup()
 
     mount.bootComplete();
     LOG(DEBUG_ANY, "[SYSTEM]: Boot complete!");
+    addConsoleText(F("BOOT COMPLETE!"));
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->addConsoleText(F("BOOT COMPLETE!"));
-    delay(250);
+    delay(500);
     mount.getInfoDisplay()->setConsoleMode(false);
 #endif
+
 #if TEST_VERIFY_MODE == 1
     TestMenu::getCurrentMenu()->display();
 #endif

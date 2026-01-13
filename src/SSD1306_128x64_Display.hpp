@@ -1,4 +1,5 @@
 #pragma once
+#include <Arduino.h>
 #include "SSD1306Wire.h"
 #include "Utility.hpp"
 #include "Version.h"
@@ -42,6 +43,8 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     const int _decScalePos  = 115;
 
     const int yMaxStatus = 63 - 11;
+    const static int MAX_CONSOLE_LINES = 16;  // Maximum number of lines of text to buffer in console mode
+    const static int DISPLAY_CONSOLE_LINES = 6;  // Number of lines to display in console mode
 
     SSD1306Wire *display;
     int _sizeMount;
@@ -51,7 +54,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     long _lastNumCmds;
     long _lastUpdate;
     bool _consoleMode;
-    String _textList[6];  // At most 6 lines of text in console mode
+    String _textList[MAX_CONSOLE_LINES];  // Buffer for MAX_CONSOLE_LINES lines of text in console mode
     int _curLine;
 
   public:
@@ -64,7 +67,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
         _yStatus     = 0;
         _dirStatus   = 1;
         _commLetter  = ' ';
-        for (int i = 0; i < 6; i++)
+        for (int i = 0; i < MAX_CONSOLE_LINES; i++)
         {
             _textList[i] = "";
         }
@@ -94,6 +97,8 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             display->setFont(Bitmap5x7);
 #ifdef OAM
             display->drawString(32, 6, F("OpenAstroMount"));
+#elif defined(OAE)
+            display->drawString(32, 6, F("OpenAstroExplorer"));
 #else
             display->drawString(32, 6, F("OpenAstroTracker"));
 #endif
@@ -101,11 +106,16 @@ class SDD1306OLED128x64 : public InfoDisplayRender
             // Other lines
             int y = 21;
             display->setFont(Bitmap3x5);
-            for (int i = 0; i < 6; i++)
+            // Start 6 lines back from current line and display next 6 lines
+            int indexStart = max(0, _curLine - DISPLAY_CONSOLE_LINES);
+            int indexEnd = min(indexStart + DISPLAY_CONSOLE_LINES, MAX_CONSOLE_LINES);
+            for (int i = indexStart; i < indexEnd; i++)
             {
                 if (_textList[i].length() != 0)
                 {
-                    display->drawString(0, y, _textList[i]);
+                    String text = _textList[i];
+                    text.toUpperCase();
+                    display->drawString(0, y, text);
                 }
                 y += 7;
             }

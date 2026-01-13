@@ -1,3 +1,7 @@
+**V1.13.17 - Updates**
+- Added more output to the InfoDisplay during boot and fixed a bug in console mode.
+- Fixed a bug that was causing the firmware to hang after a slew, if a :Q# command was issued (thanks to user c3n for tracking it down, pun intended).
+
 **V1.13.16 - Updates**
 - Throttled InfoDisplay updates. Turned off on two axis slew, limited to 5Hz on one-axis slew.
 - Guide pulses are now ignored for DEC as well when at the limits.
