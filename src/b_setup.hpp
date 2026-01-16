@@ -134,7 +134,7 @@ void setup()
 #if TEST_VERIFY_MODE == 1
     #ifdef OAM
     Serial.print(F("Booting OAM Firmware "));
-    #elif OAE
+    #elif defined(OAE)
     Serial.print(F("Booting OAE Firmware "));
     #else
     Serial.print(F("Booting OAT Firmware "));
