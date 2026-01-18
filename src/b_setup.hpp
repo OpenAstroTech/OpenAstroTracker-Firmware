@@ -159,7 +159,7 @@ void setup()
 #if USE_GPS == 1
     LOG(DEBUG_ANY, "[SYSTEM]: Initializing GPS...");
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int gpsLine = addConsoleText(F("Initialize GPS..."), false);
+    int gpsLine = addConsoleText(F("Initialize GPS..."));
     #endif
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)

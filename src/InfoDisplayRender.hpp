@@ -1,6 +1,5 @@
 #pragma once
 #include <Arduino.h>
-#include <String.h>
 #include "OLEDDisplay.h"
 #include "fonts128x64.h"
 #include "../Configuration.hpp"
