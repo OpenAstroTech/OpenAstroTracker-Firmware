@@ -45,7 +45,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     const int _decSize      = 43;
     const int _decScalePos  = 115;
 
-    const int yMaxStatus                   = 63 - 11;
+    const int yMaxStatus = 63 - 11;
 
     char _commLetter;
     static Mount *_mount;
@@ -53,7 +53,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
   public:
     SDD1306OLED128x64(uint8_t addr, int sda, int scl);
     void static renderCallback(void *context);
-    void drawScreen() ;
+    void drawScreen();
 
     // Build the display from the mount
     void renderScreen(void *mount);

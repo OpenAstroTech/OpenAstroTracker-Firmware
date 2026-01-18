@@ -3359,7 +3359,7 @@ void Mount::updateInfoDisplay()
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
-        infoDisplay->renderScreen((void*)this);
+        infoDisplay->renderScreen((void *) this);
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
         _lastInfoUpdate = now;
     }

@@ -11,7 +11,7 @@ class InfoDisplayRender
     const static int MAX_CONSOLE_LINES     = 16;  // Maximum number of lines of text to buffer in console mode
     const static int DISPLAY_CONSOLE_LINES = 6;   // Number of lines to display in console mode
 
-protected:
+  protected:
     OLEDDisplay *_display;
     long _lastNumCmds;
     bool _consoleMode;
@@ -41,10 +41,10 @@ protected:
         return _display;
     };
 
-    virtual void renderScreen(void *context) =0;
+    virtual void renderScreen(void *context) = 0;
 
     // Build the display from the mount
-    virtual void render(void (*drawContentFunction)(void*))
+    virtual void render(void (*drawContentFunction)(void *))
     {
         _display->clear();
         if (drawContentFunction)
@@ -83,7 +83,7 @@ protected:
         _consoleMode = active;
     };
 
-    virtual int addConsoleText(const String& text, bool tinyFont = true)
+    virtual int addConsoleText(const String &text, bool tinyFont = true)
     {
         int returnIndex = 0;
         if (_curLine > MAX_CONSOLE_LINES - 1)
