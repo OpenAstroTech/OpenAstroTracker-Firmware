@@ -1,6 +1,8 @@
 .pio
 .vscode
 venv
+.venv
+__pycache__
 .idea
 cmake-*
 CMakeLists.txt

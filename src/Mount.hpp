@@ -335,6 +335,9 @@ class Mount
     // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
     void waitUntilStopped(byte direction);
 
+    // Block until all motors are stopped
+    void waitUntilAllStopped();
+
     // Same as Arduino delay() but keeps the tracker going.
     void delay(int ms);
 
@@ -403,7 +406,7 @@ class Mount
     void setupInfoDisplay();
     void updateInfoDisplay();
     InfoDisplayRender *getInfoDisplay();
-    long _lastInfoUpdate;
+    long _lastInfoUpdate = 0;  // Last time the info display was updated
 #endif
 
     // Called by Meade processor every time a command is received.
@@ -432,7 +435,8 @@ class Mount
     // Support for moving the mount in azimuth and altitude (requires extra hardware)
     void moveBy(int direction, float arcMinutes);
     void disableAzAltMotors();
-    void enableAzAltMotors();
+    void enableAzMotor();
+    void enableAltMotor();
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -603,7 +607,7 @@ class Mount
         #else
     AccelStepper *_stepperAZ;
         #endif
-    const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
+    float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
@@ -614,7 +618,7 @@ class Mount
         #else
     AccelStepper *_stepperALT;
         #endif
-    const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
+    float _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;
         #endif

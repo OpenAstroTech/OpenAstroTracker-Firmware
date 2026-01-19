@@ -78,6 +78,7 @@ Mount::Mount(LcdMenu *lcdMenu)
 
 {
     _commandReceived = 0;
+
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     _lastInfoUpdate = millis();
 #endif
@@ -193,6 +194,15 @@ void Mount::readPersistentData()
     _stepsPerDECDegree = EEPROMStore::getDECStepsPerDegree();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: DEC steps/deg is %f", _stepsPerDECDegree);
 
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _stepsPerAZDegree = EEPROMStore::getAZStepsPerDegree();
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _stepsPerAZDegree);
+#endif
+
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    _stepsPerALTDegree = EEPROMStore::getALTStepsPerDegree();
+    LOG(DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _stepsPerALTDegree);
+#endif
     float speed = EEPROMStore::getSpeedFactor();
     LOG(DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", speed);
     setSpeedCalibration(speed, false);
@@ -486,6 +496,8 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested RA motor rms_current: %d mA", rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverRA->pdn_disable(1);
+    _driverRA->ihold(31);
     _driverRA->toff(1);
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
@@ -569,6 +581,10 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested DEC motor rms_current: %d mA", rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+    _driverDEC->pdn_disable(1);
+    _driverDEC->ihold(31);
+    _driverDEC->iholddelay(15);
+    _driverDEC->TPOWERDOWN(255);
     _driverDEC->toff(1);
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
@@ -989,6 +1005,22 @@ float Mount::getStepsPerDegree(StepperAxis which)
     {
         return _stepsPerDECDegree;  // u-steps/degree
     }
+    if (which == AZIMUTH_STEPS)
+    {
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        return _stepsPerAZDegree;  // u-steps/degree
+#else
+        return 1;
+#endif
+    }
+    if (which == ALTITUDE_STEPS)
+    {
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+        return _stepsPerALTDegree;  // u-steps/degree
+#else
+        return 1;
+#endif
+    }
 
     return 0;
 }
@@ -1012,6 +1044,20 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
         EEPROMStore::storeRAStepsPerDegree(_stepsPerRADegree);
         setSpeedCalibration(_trackingSpeedCalibration, false);
     }
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    else if (which == AZIMUTH_STEPS)
+    {
+        _stepsPerAZDegree = steps;
+        EEPROMStore::storeAZStepsPerDegree(_stepsPerAZDegree);
+    }
+#endif
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    else if (which == ALTITUDE_STEPS)
+    {
+        _stepsPerALTDegree = steps;
+        EEPROMStore::storeALTStepsPerDegree(_stepsPerALTDegree);
+    }
+#endif
 }
 
 /////////////////////////////////
@@ -1245,7 +1291,7 @@ void Mount::setLST(const DayTime &lst)
 {
     _LST       = lst;
     _zeroPosRA = lst;
-#ifdef OAM
+#if defined(OAM) || defined(OAE)
     _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
 #endif
     LOG(DEBUG_MOUNT, "[MOUNT]: Set LST and ZeroPosRA to: %s", _LST.ToString());
@@ -1579,11 +1625,14 @@ void Mount::stopGuiding(bool ra, bool dec)
         // Stop DEC guiding and wait for it to stop.
         _stepperGUIDE->stop();
 
+#if !defined(ESP32BOARD)
         while (_stepperGUIDE->isRunning())
         {
             _stepperGUIDE->run();
             _stepperTRK->runSpeed();
         }
+#endif
+
         _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
     }
 
@@ -1903,11 +1952,11 @@ void Mount::getAZALTPositions(long &azPos, long &altPos)
 void Mount::moveAZALTToHome()
 {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    enableAzAltMotors();
+    enableAzMotor();
     _stepperAZ->moveTo(0);
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    enableAzAltMotors();
+    enableAltMotor();
     _stepperALT->moveTo(0);
 #endif
 }
@@ -2002,7 +2051,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == AZIMUTH_STEPS)
     {
-        enableAzAltMotors();
+        enableAzMotor();
         long stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
         _stepperAZ->move(stepsToMove);
     }
@@ -2010,7 +2059,7 @@ void Mount::moveBy(int direction, float arcMinutes)
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     if (direction == ALTITUDE_STEPS)
     {
-        enableAzAltMotors();
+        enableAltMotor();
         long stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
         _stepperALT->move(stepsToMove);
     }
@@ -2063,12 +2112,15 @@ void Mount::disableAzAltMotors()
 // enableAzAltMotors
 //
 /////////////////////////////////
-void Mount::enableAzAltMotors()
+void Mount::enableAzMotor()
 {
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(AZ_EN_PIN, LOW);  // Logic LOW to enable driver
     #endif
+}
 
+void Mount::enableAltMotor()
+{
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(ALT_EN_PIN, LOW);  // Logic LOW to enable driver
     #endif
@@ -2647,6 +2699,31 @@ void Mount::waitUntilStopped(byte direction)
 
 /////////////////////////////////
 //
+// waitUntilAllStopped
+//
+/////////////////////////////////
+// Block until all steppers are stopped
+void Mount::waitUntilAllStopped()
+{
+    while (_stepperRA->isRunning() || _stepperDEC->isRunning() || (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning())
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+           || _stepperFocus->isRunning()
+#endif
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+           || _stepperAZ->isRunning()
+#endif
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+           || _stepperALT->isRunning()
+#endif
+    )
+    {
+        loop();
+        yield();
+    }
+}
+
+/////////////////////////////////
+//
 // getCurrentStepperPosition
 //
 /////////////////////////////////
@@ -2894,6 +2971,16 @@ void Mount::interruptLoop()
             _stepperRA->run();
         }
     }
+    else if (!(_mountStatus & STATUS_TRACKING) && (_stepperTRK->isRunning()))
+    {
+        // If we are not tracking, but the tracking stepper is running, we need to let it move.
+        // This can happen when we need to compensate for a slew (during which the tracker is
+        // stopped). After the slew, the tracker is advanced by the distance it would have
+        // travelled during the slew if it had been tracking.
+        // That compensation uses goto mode (using runToNewPosition()), so we need to use run(),
+        // since runSpeed() only advances the stepper when it is in constant speed mode.
+        _stepperTRK->run();
+    }
 
     if (_mountStatus & STATUS_FINDING_HOME)
     {
@@ -2976,8 +3063,12 @@ void Mount::loop()
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
         _azAltWasRunning = false;
+    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         EEPROMStore::storeAZPosition(_stepperAZ->currentPosition());
+    #endif
+    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         EEPROMStore::storeALTPosition(_stepperALT->currentPosition());
+    #endif
     }
 
     oneIsRunning = false;
@@ -3241,6 +3332,7 @@ void Mount::setupInfoDisplay()
     infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
     LOG(DEBUG_ANY, "[SYSTEM]: SSD1306 OLED created... initializing");
     infoDisplay->init();
+    infoDisplay->setConsoleMode(true);
     LOG(DEBUG_DISPLAY, "[DISPLAY]: Created and initialized SSD1306 OLED class...");
     #endif
 }
@@ -3251,6 +3343,7 @@ void Mount::updateInfoDisplay()
     // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
     // timeout, causing ASCOM errors.
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
+
     int refreshRateHz            = 30;
     const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
     if (isSlewingRAandDEC)
@@ -3266,7 +3359,7 @@ void Mount::updateInfoDisplay()
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
-        infoDisplay->render(this);
+        infoDisplay->renderScreen((void *) this);
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
         _lastInfoUpdate = now;
     }
@@ -3397,7 +3490,7 @@ void Mount::setHome(bool clearZeroPos)
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: targetRA is %s", targetRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: zeroPos is %s", _zeroPosRA.ToString());
     _zeroPosRA = clearZeroPos ? DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst();
-#ifdef OAM
+#if defined(OAM) || defined(OAE)
     _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
 #endif
     _zeroPosDEC = 0.0f;
@@ -3730,7 +3823,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
         case AZIMUTH_STEPS:
             {
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-                enableAzAltMotors();
+                enableAzMotor();
                 LOG(DEBUG_STEPPERS,
                     "[STEPPERS]: moveStepperBy: AZ from %l to %l",
                     _stepperAZ->currentPosition(),
@@ -3743,7 +3836,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
         case ALTITUDE_STEPS:
             {
 #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-                enableAzAltMotors();
+                enableAltMotor();
                 _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
 #endif
             }

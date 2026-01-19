@@ -89,7 +89,8 @@
             #error AZ driver address for DRIVER_TYPE_TMC2209_UART not specified.
         #endif
     #endif
-
+#elif defined(OAE)
+// Valid OAE configuration
 #else
     #error Configuration does not support AZ. Use at own risk.
 #endif
@@ -109,6 +110,9 @@
             #error ALT driver address for DRIVER_TYPE_TMC2209_UART not specified.
         #endif
     #endif
+
+#elif defined(OAE)
+// Valid
 
 #else
     #warning Configuration does not support ALT. Use at own risk.
@@ -193,7 +197,7 @@
         #warning Missing pin assignments for MS pins
     #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN)
+    #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
     #endif
@@ -213,7 +217,7 @@
         #warning Missing pin assignments for MS pins
     #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN)
+    #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
     #endif
@@ -225,12 +229,12 @@
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)
+        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN)
             // Required pin assignments missing
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)
+        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
         #endif
@@ -243,12 +247,12 @@
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
+        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
             // Required pin assignments missing
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
+        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
         #endif

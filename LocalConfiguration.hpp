@@ -16,6 +16,8 @@
     #include "Configuration_local_mksgenlv1.hpp"
 #elif BOARD == BOARD_ESP32_ESP32DEV && __has_include("Configuration_local_esp32dev.hpp")
     #include "Configuration_local_esp32dev.hpp"
+#elif BOARD == BOARD_OAE_V1 && __has_include("Configuration_local_oae.hpp")
+    #include "Configuration_local_oae.hpp"
 #elif __has_include("Configuration_local.hpp")
     #include "Configuration_local.hpp"
 #endif
