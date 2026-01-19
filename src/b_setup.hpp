@@ -214,7 +214,7 @@ void setup()
 
     #ifdef RA_SERIAL_PORT
         #ifdef OAE
-    RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_TX_PIN, RA_RX_PIN);
+    RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
         #else
     RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
         #endif
@@ -247,7 +247,7 @@ void setup()
     #endif
     #ifdef DEC_SERIAL_PORT
         #ifdef OAE
-    DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_TX_PIN, DEC_RX_PIN);
+    DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_RX_PIN, DEC_TX_PIN);
         #else
     DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
