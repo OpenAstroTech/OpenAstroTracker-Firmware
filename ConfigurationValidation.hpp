@@ -89,9 +89,8 @@
             #error AZ driver address for DRIVER_TYPE_TMC2209_UART not specified.
         #endif
     #endif
-#elif defined(BOARD_OAE_V1)
-// Valid
-
+#elif defined(OAE)
+// Valid OAE configuration
 #else
     #error Configuration does not support AZ. Use at own risk.
 #endif
@@ -112,7 +111,7 @@
         #endif
     #endif
 
-#elif defined(BOARD_OAE_V1)
+#elif defined(OAE)
 // Valid
 
 #else

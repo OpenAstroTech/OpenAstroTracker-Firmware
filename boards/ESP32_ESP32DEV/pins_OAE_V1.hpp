@@ -4,12 +4,6 @@
 
 #pragma once
 
-/**
- * @brief a pins configuration file for an ESP32-based OAT.
- */
-
-#pragma once
-
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef RA_STEP_PIN
     #define RA_STEP_PIN 14  // STEP
@@ -131,4 +125,5 @@
 #endif
 #ifndef DEC_PULLEY_TEETH
     #define DEC_PULLEY_TEETH 1
+#endif
 #endif

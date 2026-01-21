@@ -3,6 +3,8 @@
 
 **V1.13.17 - Updates**
 - Store AZ/ALT steps per degree and allow them to be set from Meade
+- Added more output to the InfoDisplay during boot and fixed a bug in console mode.
+- Fixed a bug that was causing the firmware to hang after a slew, if a :Q# command was issued (thanks to user c3n for tracking it down, pun intended).
 
 **V1.13.16 - Updates**
 - Throttled InfoDisplay updates. Turned off on two axis slew, limited to 5Hz on one-axis slew.

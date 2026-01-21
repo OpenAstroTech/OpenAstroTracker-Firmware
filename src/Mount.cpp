@@ -2971,6 +2971,16 @@ void Mount::interruptLoop()
             _stepperRA->run();
         }
     }
+    else if (!(_mountStatus & STATUS_TRACKING) && (_stepperTRK->isRunning()))
+    {
+        // If we are not tracking, but the tracking stepper is running, we need to let it move.
+        // This can happen when we need to compensate for a slew (during which the tracker is
+        // stopped). After the slew, the tracker is advanced by the distance it would have
+        // travelled during the slew if it had been tracking.
+        // That compensation uses goto mode (using runToNewPosition()), so we need to use run(),
+        // since runSpeed() only advances the stepper when it is in constant speed mode.
+        _stepperTRK->run();
+    }
 
     if (_mountStatus & STATUS_FINDING_HOME)
     {
@@ -3322,6 +3332,7 @@ void Mount::setupInfoDisplay()
     infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
     LOG(DEBUG_ANY, "[SYSTEM]: SSD1306 OLED created... initializing");
     infoDisplay->init();
+    infoDisplay->setConsoleMode(true);
     LOG(DEBUG_DISPLAY, "[DISPLAY]: Created and initialized SSD1306 OLED class...");
     #endif
 }
@@ -3348,7 +3359,7 @@ void Mount::updateInfoDisplay()
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
-        infoDisplay->render(this);
+        infoDisplay->renderScreen((void *) this);
         LOG(DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
         _lastInfoUpdate = now;
     }
