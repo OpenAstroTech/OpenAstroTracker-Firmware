@@ -1,3 +1,6 @@
+**V1.13.19 - Updates**
+- Support inverting and mirroring InfoDisplays.
+
 **V1.13.18 - Updates**
 - Final changes for OAE
 
