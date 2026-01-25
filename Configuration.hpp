@@ -73,6 +73,12 @@
     #ifndef INFO_DISPLAY_I2C_SCL_PIN
         #define INFO_DISPLAY_I2C_SCL_PIN 4
     #endif
+    #ifndef INFO_DISPLAY_UPSIDE_DOWN
+        #define INFO_DISPLAY_UPSIDE_DOWN 0
+    #endif
+    #ifndef INFO_DISPLAY_MIRRORED
+        #define INFO_DISPLAY_MIRRORED 0
+    #endif
 #endif
 
 // Used RA wheel version. Unless you printed your OAT before March 2020, you're using

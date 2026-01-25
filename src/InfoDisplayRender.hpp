@@ -31,6 +31,12 @@ class InfoDisplayRender
     virtual void init()
     {
         _display->init();
+        #if (INFO_DISPLAY_UPSIDE_DOWN == 1)
+        _display->flipScreenVertically();
+        #endif
+        #if (INFO_DISPLAY_MIRRORED == 1)
+        _display->mirrorScreen();
+        #endif
         _display->clear();
         _display->displayOn();
     };
