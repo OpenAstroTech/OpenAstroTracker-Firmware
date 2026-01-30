@@ -51,7 +51,9 @@
     #define DEC_DRIVER_ADDRESS 0b00
 #endif
 
-#define SW_SERIAL_UART 1
+#ifndef SW_SERIAL_UART
+    #define SW_SERIAL_UART 1
+#endif
 
 // DRIVER_TYPE_TMC2209_UART requires 4 digital pins in Arduino pin numbering
 #ifndef AZ_STEP_PIN
