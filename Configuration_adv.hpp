@@ -1,9 +1,9 @@
 #pragma once
 
 /**
- * This file contains advanced configurations. Edit values here only if you know what you are doing. Invalid values
- * can lead to OAT misbehaving very bad and in worst case could even lead to hardware damage. The default values here
- * were chosen after many tests and can are currently concidered to work the best.
+ * This file contains advanced configurations. Edit values here only if you know what you are doing. Invalid values can
+ * lead to the OpenAstroTech mount misbehaving very bad and in worst case could even lead to hardware damage. The 
+ * default values here were chosen after many tests and are currently considered to work the best.
  * 
  * 
  *         YOU SHOULD NOT NEED TO EDIT THIS FILE!
@@ -690,9 +690,9 @@
 //  4  DEBUG_MOUNT_VERBOSE  Verbose mount processing (coordinates, etc)
 //  5  DEBUG_GENERAL        Other misc. output
 //  6  DEBUG_MEADE          Meade command handling output
-// Set this to specify the amount of debug output OAT should send to the serial port.
-// Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
-// Debug output is useful if you are using Wifi to control the OAT or if you are issuing
+// Set this to specify the amount of debug output the OpenAstroTech mount should send to the serial port.
+// Note that if you use an app to control the OpenAstroTech mount, ANY debug output will likely confuse that app.
+// Debug output is useful if you are using Wifi to control the OpenAstroTech mount or if you are issuing
 // manual commands via a terminal only.
 //
 #ifndef DEBUG_LEVEL
