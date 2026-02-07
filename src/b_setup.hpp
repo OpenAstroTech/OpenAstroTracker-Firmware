@@ -161,7 +161,11 @@ void setup()
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     int gpsLine = addConsoleText(F("Initialize GPS..."));
     #endif
+    #if defined(ESP32) && defined(GPS_RX_PIN) && defined(GPS_TX_PIN)
+    GPS_SERIAL_PORT.begin(GPS_BAUD_RATE, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+    #else
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
+    #endif
     #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     updateConsoleText(gpsLine, F("Initialize GPS... OK"));
     #endif
@@ -213,12 +217,11 @@ void setup()
     #endif
 
     #ifdef RA_SERIAL_PORT
-        #ifdef OAE
+        #if defined(ESP32) && defined(RA_RX_PIN) && defined(RA_TX_PIN)
     RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
         #else
     RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
         #endif
-    //
     #endif
 #endif
     updateConsoleText(raLine, F("Init RA axis... OK"));
@@ -246,7 +249,7 @@ void setup()
     pinMode(DEC_DIAG_PIN, INPUT);
     #endif
     #ifdef DEC_SERIAL_PORT
-        #ifdef OAE
+        #if defined(ESP32) && defined(DEC_RX_PIN) && defined(DEC_TX_PIN)
     DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_RX_PIN, DEC_TX_PIN);
         #else
     DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
