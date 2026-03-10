@@ -1,0 +1,5 @@
+# Same formatting as git's fsck.skipList, see git-blame --ignore-revs-file
+
+# Reformat codebase according to .clang-format
+a25945b9984f8ca2ac582ecc7d634635d7ce9134
+
