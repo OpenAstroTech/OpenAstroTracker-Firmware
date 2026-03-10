@@ -17,7 +17,7 @@
 #endif
 
 // Platform
-#if defined(ESP32) || defined(__AVR_ATmega2560__)
+#if defined(ESP32) || defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
 // Valid platform
 #else
     #error Unsupported platform configuration. Use at own risk.
@@ -30,6 +30,8 @@
     && ((DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD) || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008)         \
         || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017))
 // Valid display for ATmega
+#elif defined(ARDUINO_ARCH_RP2040) && (DISPLAY_TYPE == DISPLAY_TYPE_NONE)
+// Valid display for RP2040 (no display in Phase 1)
 #else
     #error Unsupported display configuration. Use at own risk.
 #endif
@@ -81,7 +83,7 @@
     #else
         #error Defined an AZ driver, but no AZ stepper.
     #endif
-#elif defined(__AVR_ATmega2560__)
+#elif defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
     // Azimuth configuration
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef AZ_DRIVER_ADDRESS
@@ -89,8 +91,7 @@
             #error AZ driver address for DRIVER_TYPE_TMC2209_UART not specified.
         #endif
     #endif
-#elif defined(OAE)
-// Valid OAE configuration
+
 #else
     #error Configuration does not support AZ. Use at own risk.
 #endif
@@ -102,7 +103,7 @@
     #else
         #error Defined an ALT driver, but no ALT stepper.
     #endif
-#elif defined(__AVR_ATmega2560__)
+#elif defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
     // Altitude configuration
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef ALT_DRIVER_ADDRESS
@@ -110,9 +111,6 @@
             #error ALT driver address for DRIVER_TYPE_TMC2209_UART not specified.
         #endif
     #endif
-
-#elif defined(OAE)
-// Valid
 
 #else
     #warning Configuration does not support ALT. Use at own risk.
@@ -166,8 +164,8 @@
 // External sensors
 #if (USE_GPS == 0)
 // Baseline configuration without GPS is valid
-#elif defined(ESP32) || defined(__AVR_ATmega2560__)
-// GPS is supported on ESP32 and ATmega
+#elif defined(ESP32) || defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
+// GPS is supported on ESP32, ATmega, and RP2040
 #else
     #error Unsupported GPS configuration. Use at own risk.
 #endif
@@ -197,7 +195,7 @@
         #warning Missing pin assignments for MS pins
     #endif
 #elif (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN)
+    #if !defined(DEC_STEP_PIN) || !defined(DEC_DIR_PIN) || !defined(DEC_EN_PIN) || !defined(DEC_DIAG_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured DEC DRIVER_TYPE_TMC2209_UART driver
     #endif
@@ -217,7 +215,7 @@
         #warning Missing pin assignments for MS pins
     #endif
 #elif (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN)
+    #if !defined(RA_STEP_PIN) || !defined(RA_DIR_PIN) || !defined(RA_EN_PIN) || !defined(RA_DIAG_PIN)
         // Required pin assignments missing
         #error Missing pin assignments for configured RA DRIVER_TYPE_TMC2209_UART driver
     #endif
@@ -229,14 +227,20 @@
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN)
+        #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN) || !defined(AZ_DIAG_PIN)
             // Required pin assignments missing
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN)
-            // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
+            // Required pin assignments missing
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
+        #endif
+        #if !defined(AZ_DIAG_PIN)
+            // AZ_DIAG_PIN (TMC2209 DIAG output) is used only for stallGuard-based homing.
+            // It is optional: omit it if your hardware does not wire the DIAG output to a GPIO.
+            // Without it, stallGuard homing is unavailable but all other AZ motion works normally.
+            #pragma message "AZ_DIAG_PIN not defined. StallGuard homing unavailable for AZ axis."
         #endif
         #if !((defined(AZ_SERIAL_PORT_TX) && defined(AZ_SERIAL_PORT_RX)) || defined(AZ_SERIAL_PORT))
             // Required pin assignments missing for UART serial
@@ -247,14 +251,20 @@
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE)
-        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
+        #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN) || !defined(ALT_DIAG_PIN)
             // Required pin assignments missing
             #error Missing pin assignments for configured AZ DRIVER_TYPE_A4988_GENERIC or DRIVER_TYPE_TMC2209_STANDALONE driver
         #endif
     #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
-            // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
+            // Required pin assignments missing
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
+        #endif
+        #if !defined(ALT_DIAG_PIN)
+            // ALT_DIAG_PIN (TMC2209 DIAG output) is used only for stallGuard-based homing.
+            // It is optional: omit it if your hardware does not wire the DIAG output to a GPIO.
+            // Without it, stallGuard homing is unavailable but all other ALT motion works normally.
+            #pragma message "ALT_DIAG_PIN not defined. StallGuard homing unavailable for ALT axis."
         #endif
         #if !((defined(ALT_SERIAL_PORT_TX) && defined(ALT_SERIAL_PORT_RX)) || defined(ALT_SERIAL_PORT))
             // Required pin assignments missing for UART serial
@@ -453,7 +463,7 @@
     #endif
 #endif
 
-// For OAT, we must have DEC limits defined, otherwise free slew does not work.
+// For OAT, we must have DEC limits defined, otherwise free slew does nto work.
 #ifndef OAM
     #ifndef DEC_LIMIT_UP
         #error "You must set DEC_LIMIT_UP to the number of degrees that your OAT can move upwards from the home position."

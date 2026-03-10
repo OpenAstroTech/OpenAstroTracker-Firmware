@@ -73,12 +73,6 @@
     #ifndef INFO_DISPLAY_I2C_SCL_PIN
         #define INFO_DISPLAY_I2C_SCL_PIN 4
     #endif
-    #ifndef INFO_DISPLAY_UPSIDE_DOWN
-        #define INFO_DISPLAY_UPSIDE_DOWN 0
-    #endif
-    #ifndef INFO_DISPLAY_MIRRORED
-        #define INFO_DISPLAY_MIRRORED 0
-    #endif
 #endif
 
 // Used RA wheel version. Unless you printed your OAT before March 2020, you're using
@@ -266,14 +260,18 @@
     #include "boards/RAMPS/pins_RAMPS.hpp"
 #elif (BOARD == BOARD_ESP32_ESP32DEV)
     #include "boards/ESP32_ESP32DEV/pins_ESP32DEV.hpp"
-#elif (BOARD == BOARD_OAE_V1)
-    #include "boards/ESP32_ESP32DEV/pins_OAE_V1.hpp"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V1)
     #include "boards/AVR_MKS_GEN_L_V1/pins_MKS_GEN_L_V1.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V2)
     #include "boards/AVR_MKS_GEN_L_V2/pins_MKS_GEN_L_V2.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
     #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
+#elif (BOARD == BOARD_RP2040_JACKW01) || (BOARD == BOARD_RP2350_JACKW01)
+    #include "boards/RP2040_JACKW01/pins_RP2040_JACKW01.hpp"
+#elif (BOARD == BOARD_RP2040_SKR_PICO)
+    #include "boards/RP2040_SKR_PICO/pins_RP2040_SKR_PICO.hpp"
+#elif (BOARD == BOARD_RP2040_PICO) || (BOARD == BOARD_RP2350_PICO2)
+    #include "boards/RP2040_PICO/pins_RP2040_PICO.hpp"
 #endif
 
 #include "Configuration_adv.hpp"
