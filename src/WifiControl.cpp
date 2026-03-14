@@ -129,10 +129,12 @@ void WifiControl::loop()
         LOG(DEBUG_WIFI, "[WIFI]: Connected status changed to %s", wifiStatus(_status).c_str());
         if (_status == WL_CONNECTED)
         {
+            delete _tcpServer;
             _tcpServer = new WiFiServer(WIFI_PORT);
             _tcpServer->begin();
             _tcpServer->setNoDelay(true);
 
+            delete _udp;
             _udp = new WiFiUDP();
             _udp->begin(4031);
 
@@ -226,8 +228,8 @@ void WifiControl::udpLoop()
             packetSize,
             _udp->remoteIP().toString().c_str(),
             _udp->remotePort());
-        char incomingPacket[255];
-        int len             = _udp->read(incomingPacket, 255);
+        char incomingPacket[256];
+        int len             = _udp->read(incomingPacket, sizeof(incomingPacket) - 1);
         incomingPacket[len] = 0;
         LOG(DEBUG_WIFI, "[WIFIUDP]: Received: %s", incomingPacket);
 

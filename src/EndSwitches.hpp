@@ -27,10 +27,10 @@ enum EndSwitchState
 class EndSwitch
 {
   private:
-    EndSwitchState _state;
+    volatile EndSwitchState _state;
     Mount *_pMount;
     StepperAxis _axis;
-    long _posWhenTriggered;
+    volatile long _posWhenTriggered;
     int _activeState;
     int _inactiveState;
     int _dir;

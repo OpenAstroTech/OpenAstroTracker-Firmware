@@ -1522,7 +1522,7 @@ void Mount::startSlewingToTarget()
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %lms", _trackerStoppedAt);
     }
 
-    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+    setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
@@ -1586,7 +1586,7 @@ void Mount::startSlewingToHome()
         LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %lms", _trackerStoppedAt);
     }
 
-    _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+    setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
@@ -1615,7 +1615,7 @@ void Mount::stopGuiding(bool ra, bool dec)
         LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK stop guide at  : %l", _stepperTRK->currentPosition());
         _stepperTRK->setSpeed(_trackingSpeed);
         LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK speed set to   : %f", _trackingSpeed);
-        _mountStatus &= ~STATUS_GUIDE_PULSE_RA;
+        clearStatusFlag(STATUS_GUIDE_PULSE_RA);
     }
 
     if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
@@ -1633,14 +1633,14 @@ void Mount::stopGuiding(bool ra, bool dec)
         }
 #endif
 
-        _mountStatus &= ~STATUS_GUIDE_PULSE_DEC;
+        clearStatusFlag(STATUS_GUIDE_PULSE_DEC);
     }
 
     //disable pulse state if no direction is active
     if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
     {
         LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: Clear guiding state");
-        _mountStatus &= ~STATUS_GUIDE_PULSE_MASK;
+        clearStatusFlag(STATUS_GUIDE_PULSE_MASK);
     }
     else
     {
@@ -1714,7 +1714,7 @@ void Mount::guidePulse(byte direction, int duration)
                         "[GUIDE]: guidePulse:   DEC guide speed     : %f",
                         DEC_PULSE_MULTIPLIER * decGuidingSpeed);
                     _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                    _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                    setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
                     _guideDecEndTime = millis() + duration;
                 }
                 break;
@@ -1735,7 +1735,7 @@ void Mount::guidePulse(byte direction, int duration)
                         "[GUIDE]: guidePulse:   DEC guide speed     : %f",
                         -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
                     _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                    _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC;
+                    setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
                     _guideDecEndTime = millis() + duration;
                 }
                 break;
@@ -1751,7 +1751,7 @@ void Mount::guidePulse(byte direction, int duration)
                     (RA_PULSE_MULTIPLIER * raGuidingSpeed),
                     RA_PULSE_MULTIPLIER);
                 _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);  // Faster than siderael
-                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+                setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
                 _guideRaEndTime = millis() + duration;
                 break;
 
@@ -1766,7 +1766,7 @@ void Mount::guidePulse(byte direction, int duration)
                     (2.0 - RA_PULSE_MULTIPLIER * raGuidingSpeed),
                     (2.0 - RA_PULSE_MULTIPLIER));
                 _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));  // Slower than siderael
-                _mountStatus |= STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA;
+                setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
                 _guideRaEndTime = millis() + duration;
                 break;
         }
@@ -1853,7 +1853,7 @@ void Mount::setManualSlewMode(bool state)
         stopSlewing(ALL_DIRECTIONS);
         stopSlewing(TRACKING);
         waitUntilStopped(ALL_DIRECTIONS);
-        _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_MANUAL;
+        setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_MANUAL);
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         LOG(DEBUG_STEPPERS, "[STEPPERS]: setManualSlewMode: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
         _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
@@ -1861,7 +1861,7 @@ void Mount::setManualSlewMode(bool state)
     }
     else
     {
-        _mountStatus &= ~STATUS_SLEWING_MANUAL;
+        clearStatusFlag(STATUS_SLEWING_MANUAL);
         stopSlewing(ALL_DIRECTIONS);
         waitUntilStopped(ALL_DIRECTIONS);
         LOG(DEBUG_STEPPERS, "[STEPPERS]: setManualSlewMode: Set RA  speed/accel:  %l  / %l", _maxRASpeed, _maxRAAcceleration);
@@ -1986,7 +1986,7 @@ void Mount::park()
     stopSlewing(ALL_DIRECTIONS | TRACKING);
     waitUntilStopped(ALL_DIRECTIONS);
     startSlewingToHome();
-    _mountStatus |= STATUS_PARKING;
+    setStatusFlag(STATUS_PARKING);
 }
 
 bool Mount::isAxisRunning(StepperAxis axis)
@@ -2281,12 +2281,16 @@ void Mount::setTrackingStepperPos(long stepPos)
 
 void Mount::setStatusFlag(int flag)
 {
+    noInterrupts();
     _mountStatus |= flag;
+    interrupts();
 }
 
 void Mount::clearStatusFlag(int flag)
 {
+    noInterrupts();
     _mountStatus &= ~flag;
+    interrupts();
 }
 
 /////////////////////////////////
@@ -2518,7 +2522,7 @@ void Mount::startSlewing(int direction)
             _stepperTRK->setSpeed(_trackingSpeed);
 
             // Turn on tracking
-            _mountStatus |= STATUS_TRACKING;
+            setStatusFlag(STATUS_TRACKING);
         }
         else
         {
@@ -2563,7 +2567,7 @@ void Mount::startSlewing(int direction)
                 }
 
                 _stepperDEC->moveTo(targetLocation);
-                _mountStatus |= STATUS_SLEWING;
+                setStatusFlag(STATUS_SLEWING);
             }
 
             if (direction & SOUTH)
@@ -2583,10 +2587,10 @@ void Mount::startSlewing(int direction)
                 }
 
                 _stepperDEC->moveTo(targetLocation);
-                _mountStatus |= STATUS_SLEWING;
+                setStatusFlag(STATUS_SLEWING);
             }
 
-            const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+            const float trackedHours = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
             if (direction & EAST)
             {
                 // We need to subtract the distance tracked from the physical RA home coordinate
@@ -2596,7 +2600,7 @@ void Mount::startSlewing(int direction)
                     -sign * targetEastPos,
                     trackedHours);
                 _stepperRA->moveTo(-sign * targetEastPos);
-                _mountStatus |= STATUS_SLEWING;
+                setStatusFlag(STATUS_SLEWING);
             }
             if (direction & WEST)
             {
@@ -2607,7 +2611,7 @@ void Mount::startSlewing(int direction)
                     sign * targetWestPos,
                     trackedHours);
                 _stepperRA->moveTo(sign * targetWestPos);
-                _mountStatus |= STATUS_SLEWING;
+                setStatusFlag(STATUS_SLEWING);
             }
         }
     }
@@ -2624,7 +2628,7 @@ void Mount::stopSlewing(int direction)
     if (direction & TRACKING)
     {
         // Turn off tracking
-        _mountStatus &= ~STATUS_TRACKING;
+        clearStatusFlag(STATUS_TRACKING);
 
         LOG(DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: TRK stepper stop()");
         _stepperTRK->stop();
@@ -2642,7 +2646,7 @@ void Mount::stopSlewing(int direction)
         _stepperRA->stop();
         if (isFindingHome())
         {
-            _mountStatus &= ~STATUS_FINDING_HOME;
+            clearStatusFlag(STATUS_FINDING_HOME);
         }
     }
 }
@@ -3150,7 +3154,7 @@ void Mount::loop()
         //
         // Arrived at target after Slew!
         //
-        _mountStatus &= ~(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET | STATUS_SLEWING_MANUAL);
+        clearStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET | STATUS_SLEWING_MANUAL);
 
         if (_stepperWasRunning)
         {
@@ -3253,7 +3257,7 @@ void Mount::loop()
                     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
-                    _mountStatus &= ~STATUS_PARKING;
+                    clearStatusFlag(STATUS_PARKING);
                     _slewingToPark = true;
                     _stepperRA->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
                     _stepperDEC->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
@@ -3268,12 +3272,14 @@ void Mount::loop()
                     if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
                     {
                         LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Distance to Parking is non-zero, slewing to park position...");
-                        _mountStatus |= STATUS_PARKING_POS | STATUS_SLEWING;
+                        setStatusFlag(STATUS_PARKING_POS | STATUS_SLEWING);
                     }
                     else
                     {
                         LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Already at Parking pos, so done.");
+                        noInterrupts();
                         _mountStatus = STATUS_PARKED;
+                        interrupts();
                     }
                 }
                 else
@@ -3291,7 +3297,9 @@ void Mount::loop()
             else if (_slewingToPark)
             {
                 LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
-                _mountStatus   = STATUS_PARKED;
+                noInterrupts();
+                _mountStatus = STATUS_PARKED;
+                interrupts();
                 _slewingToPark = false;
             }
             _totalDECMove = _totalRAMove = 0;
@@ -3581,7 +3589,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveRA (target) is %f", moveRA);
 
     // Total hours of tracking-to-date
-    float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+    float trackedHours = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Tracked time is %l steps (%f h).", _stepperTRK->currentPosition(), trackedHours);
 
     // The current RA of the home position, taking tracking-to-date into account
@@ -3792,7 +3800,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
             _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
 #endif
-            _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+            setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             _stepperWasRunning = true;
             moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
@@ -3800,7 +3808,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
 
         case DEC_STEPS:
             {
-                _mountStatus |= STATUS_SLEWING | STATUS_SLEWING_TO_TARGET;
+                setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
                 // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
@@ -4276,7 +4284,7 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 /////////////////////////////////
 float Mount::checkRALimit()
 {
-    const float trackedHours = (_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F;  // steps / steps/s / 3600 = hours
+    const float trackedHours = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
     const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
     const float RALimit      = RA_TRACKING_LIMIT;
     LOG(DEBUG_MOUNT_VERBOSE,

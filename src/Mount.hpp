@@ -656,14 +656,14 @@ class Mount
     EndSwitch *_decEndSwitch;
 #endif
 
-    unsigned long _guideRaEndTime;
-    unsigned long _guideDecEndTime;
+    volatile unsigned long _guideRaEndTime;
+    volatile unsigned long _guideDecEndTime;
     unsigned long _lastMountPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
     unsigned long _lastDisplayUpdate;
-    unsigned long _trackerStoppedAt;
-    bool _compensateForTrackerOff;
+    volatile unsigned long _trackerStoppedAt;
+    volatile bool _compensateForTrackerOff;
     volatile int _mountStatus;
 
     char scratchBuffer[24];

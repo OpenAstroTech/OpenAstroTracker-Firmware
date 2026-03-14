@@ -168,7 +168,7 @@ class EEPROMStore
         LATITUDE_ADDR               = 12,
         _LATITUDE_ADDR_1            = 13,  // Int16
         LONGITUDE_ADDR              = 14,
-        _LONGITUDE_ADDR_1           = 13,  // Int16
+        _LONGITUDE_ADDR_1           = 15,  // Int16
         LCD_BRIGHTNESS_ADDR         = 16,  // Uint8
         PITCH_OFFSET_ADDR           = 17,
         _PITCH_OFFSET_ADDR_1        = 18,  // Uint16

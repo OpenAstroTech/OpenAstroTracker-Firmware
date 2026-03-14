@@ -91,9 +91,17 @@ angle_t Gyro::getCurrentAngles()
         int16_t AcZ = Wire.read() << 8 | Wire.read();  // Z-axis value
 
         // Calculating the Pitch angle (rotation around Y-axis)
-        result.pitchAngle += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        float denomPitch = sqrtf((float) AcY * AcY + (float) AcZ * AcZ);
+        if (denomPitch > 0.0f)
+        {
+            result.pitchAngle += atanf(-1.0f * AcX / denomPitch) * 180.0f / static_cast<float>(PI);
+        }
         // Calculating the Roll angle (rotation around X-axis)
-        result.rollAngle += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+        float denomRoll = sqrtf((float) AcX * AcX + (float) AcZ * AcZ);
+        if (denomRoll > 0.0f)
+        {
+            result.rollAngle += atanf(-1.0f * AcY / denomRoll) * 180.0f / static_cast<float>(PI);
+        }
 
         delay(10);  // Decorrelate measurements
     }

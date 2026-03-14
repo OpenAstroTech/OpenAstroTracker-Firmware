@@ -84,14 +84,9 @@ const char *Declination::ToString() const
 {
     ToDisplayString('*', ':');
 
-    char *p = achBufDeg + strlen(achBufDeg);
-
-    *p++ = ' ';
-    *p++ = '(';
-    strcpy(p, String(inNorthernHemisphere ? 90 - fabsf(getTotalHours()) : -90 + fabsf(getTotalHours()), 4).c_str());
-    strcat(p, ", ");
-    strcat(p, String(getTotalHours(), 4).c_str());
-    strcat(p, ")");
+    size_t used = strlen(achBufDeg);
+    float displayVal = inNorthernHemisphere ? 90 - fabsf(getTotalHours()) : -90 + fabsf(getTotalHours());
+    snprintf(achBufDeg + used, sizeof(achBufDeg) - used, " (%.4f, %.4f)", displayVal, getTotalHours());
 
     return achBufDeg;
 }
