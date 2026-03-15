@@ -264,6 +264,9 @@ class Mount
     void setSlewRate(int rate);
     int getSlewRate();
 
+    // Get the number of hours we've been tracking
+    float getTrackedHours();
+    
     // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
     void setHA(const DayTime &haTime);
     const DayTime HA() const;
@@ -391,6 +394,7 @@ class Mount
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
 
+    void setStatus(int state);
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 
@@ -656,14 +660,14 @@ class Mount
     EndSwitch *_decEndSwitch;
 #endif
 
-    volatile unsigned long _guideRaEndTime;
-    volatile unsigned long _guideDecEndTime;
+    unsigned long _guideRaEndTime;
+    unsigned long _guideDecEndTime;
     unsigned long _lastMountPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
     unsigned long _lastDisplayUpdate;
-    volatile unsigned long _trackerStoppedAt;
-    volatile bool _compensateForTrackerOff;
+    unsigned long _trackerStoppedAt;
+    bool _compensateForTrackerOff;
     volatile int _mountStatus;
 
     char scratchBuffer[24];
