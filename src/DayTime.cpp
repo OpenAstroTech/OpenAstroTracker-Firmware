@@ -238,9 +238,11 @@ const char *DayTime::ToString() const
         *p++ = '0' + (secs / 10);
     }
 
-    *p++        = '0' + (secs % 10);
-    size_t used = p - achBuf;
-    snprintf(p, sizeof(achBuf) - used, " (%.5f)", this->getTotalHours());
+    *p++            = '0' + (secs % 10);
+    size_t used     = p - achBuf;
+    size_t remaining = sizeof(achBuf) - used;
+    String floatStr = String(this->getTotalHours(), 5);
+    snprintf(p, remaining, " (%s)", floatStr.c_str());
     return achBuf;
 }
 void DayTime::printTwoDigits(char *achDegs, int num) const
