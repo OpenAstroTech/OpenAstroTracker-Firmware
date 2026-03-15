@@ -2590,7 +2590,8 @@ void Mount::startSlewing(int direction)
                 setStatusFlag(STATUS_SLEWING);
             }
 
-            const float trackedHours = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
+            const float trackedHours = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F)
+                                                            : 0.0F;  // steps / steps/s / 3600 = hours
             if (direction & EAST)
             {
                 // We need to subtract the distance tracked from the physical RA home coordinate
@@ -3589,7 +3590,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveRA (target) is %f", moveRA);
 
     // Total hours of tracking-to-date
-    float trackedHours = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
+    float trackedHours
+        = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Tracked time is %l steps (%f h).", _stepperTRK->currentPosition(), trackedHours);
 
     // The current RA of the home position, taking tracking-to-date into account
@@ -4284,9 +4286,10 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
 /////////////////////////////////
 float Mount::checkRALimit()
 {
-    const float trackedHours = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
-    const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
-    const float RALimit      = RA_TRACKING_LIMIT;
+    const float trackedHours
+        = (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
+    const float homeRA  = _zeroPosRA.getTotalHours() + trackedHours;
+    const float RALimit = RA_TRACKING_LIMIT;
     LOG(DEBUG_MOUNT_VERBOSE,
         "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)",
         homeRA,

@@ -238,7 +238,7 @@ const char *DayTime::ToString() const
         *p++ = '0' + (secs / 10);
     }
 
-    *p++ = '0' + (secs % 10);
+    *p++        = '0' + (secs % 10);
     size_t used = p - achBuf;
     snprintf(p, sizeof(achBuf) - used, " (%.5f)", this->getTotalHours());
     return achBuf;

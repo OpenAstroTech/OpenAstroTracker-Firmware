@@ -84,7 +84,7 @@ const char *Declination::ToString() const
 {
     ToDisplayString('*', ':');
 
-    size_t used = strlen(achBufDeg);
+    size_t used      = strlen(achBufDeg);
     float displayVal = inNorthernHemisphere ? 90 - fabsf(getTotalHours()) : -90 + fabsf(getTotalHours());
     snprintf(achBufDeg + used, sizeof(achBufDeg) - used, " (%.4f, %.4f)", displayVal, getTotalHours());
 
