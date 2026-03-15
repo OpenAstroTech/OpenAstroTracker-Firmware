@@ -7,6 +7,9 @@
 #include "WifiControl.hpp"
 #include "Gyro.hpp"
 
+#include <stdarg.h>
+#include <string.h>
+
 #if USE_GPS == 1
 bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 #endif
@@ -1211,6 +1214,29 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 /////////////////////////////////////////////////////////////////////////////////////////
 
 MeadeCommandProcessor *MeadeCommandProcessor::_instance = nullptr;
+char MeadeCommandProcessor::_responseBuffer[200]         = {};
+
+const char *MeadeCommandProcessor::copyToResponse(const char *src)
+{
+    strlcpy(_responseBuffer, src, sizeof(_responseBuffer));
+    return _responseBuffer;
+}
+
+const char *MeadeCommandProcessor::formatResponse(const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(_responseBuffer, sizeof(_responseBuffer), fmt, args);
+    va_end(args);
+    return _responseBuffer;
+}
+
+const char *MeadeCommandProcessor::copyToResponse_P(const char *pgmSrc)
+{
+    strncpy_P(_responseBuffer, pgmSrc, sizeof(_responseBuffer) - 1);
+    _responseBuffer[sizeof(_responseBuffer) - 1] = '\0';
+    return _responseBuffer;
+}
 
 /////////////////////////////
 // Create the processor
@@ -1243,7 +1269,7 @@ MeadeCommandProcessor::MeadeCommandProcessor(Mount *mount, LcdMenu *lcdMenu)
 /////////////////////////////
 // INIT
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeInit(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeInit(const String &inCmd)
 {
     inSerialControl = true;
     _lcdMenu->setCursor(0, 0);
@@ -1256,7 +1282,7 @@ String MeadeCommandProcessor::handleMeadeInit(String inCmd)
 /////////////////////////////
 // GET INFO
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeGetInfo(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -1271,7 +1297,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
         case 'V':
             if (cmdTwo == 'N')  // :GVN
             {
-                return String(VERSION) + "#";
+                return formatResponse("%s#", VERSION);
             }
             else if (cmdTwo == 'P')  // :GVP
             {
@@ -1285,47 +1311,47 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
             break;
 
-        case 'r':                                                   // :Gr
-            return _mount->RAString(MEADE_STRING | TARGET_STRING);  // returns trailing #
+        case 'r':                                                                                  // :Gr
+            return copyToResponse(_mount->RAString(MEADE_STRING | TARGET_STRING).c_str());  // returns trailing #
 
-        case 'd':                                                    // :Gd
-            return _mount->DECString(MEADE_STRING | TARGET_STRING);  // returns trailing #
+        case 'd':                                                                                   // :Gd
+            return copyToResponse(_mount->DECString(MEADE_STRING | TARGET_STRING).c_str());  // returns trailing #
 
-        case 'R':                                                    // :GR
-            return _mount->RAString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
+        case 'R':                                                                                   // :GR
+            return copyToResponse(_mount->RAString(MEADE_STRING | CURRENT_STRING).c_str());  // returns trailing #
 
-        case 'D':                                                     // :GD
-            return _mount->DECString(MEADE_STRING | CURRENT_STRING);  // returns trailing #
+        case 'D':                                                                                    // :GD
+            return copyToResponse(_mount->DECString(MEADE_STRING | CURRENT_STRING).c_str());  // returns trailing #
 
         case 'X':  // :GX
-            return _mount->getStatusString() + "#";
+            return formatResponse("%s#", _mount->getStatusString().c_str());
 
         case 'I':
             {
-                String retVal = "";
+                const char *val = "";
                 if (cmdTwo == 'S')  // :GIS
                 {
-                    retVal = _mount->isSlewingRAorDEC() ? "1" : "0";
+                    val = _mount->isSlewingRAorDEC() ? "1" : "0";
                 }
                 else if (cmdTwo == 'T')  // :GIT
                 {
-                    retVal = _mount->isSlewingTRK() ? "1" : "0";
+                    val = _mount->isSlewingTRK() ? "1" : "0";
                 }
                 else if (cmdTwo == 'G')  // :GIG
                 {
-                    retVal = _mount->isGuiding() ? "1" : "0";
+                    val = _mount->isGuiding() ? "1" : "0";
                 }
-                return retVal + "#";
+                return formatResponse("%s#", val);
             }
         case 't':  // :Gt
             {
                 _mount->latitude().formatString(achBuffer, "{d}*{m}#");
-                return String(achBuffer);
+                return copyToResponse(achBuffer);
             }
         case 'g':  // :Gg
             {
                 _mount->longitude().formatStringForMeade(achBuffer);
-                return String(achBuffer) + "#";
+                return formatResponse("%s#", achBuffer);
             }
         case 'c':  // :Gc
             {
@@ -1335,7 +1361,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             {
                 int offset = _mount->getLocalUtcOffset();
                 snprintf(achBuffer, sizeof(achBuffer), "%+03d#", -offset);
-                return String(achBuffer);
+                return copyToResponse(achBuffer);
             }
         case 'a':  // :Ga
             {
@@ -1345,19 +1371,19 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
                     time.addHours(-12);
                 }
                 time.formatString(achBuffer, "{d}:{m}:{s}#");
-                return String(achBuffer + 1);
+                return copyToResponse(achBuffer + 1);
             }
         case 'L':  // :GL
             {
                 DayTime time = _mount->getLocalTime();
                 time.formatString(achBuffer, "{d}:{m}:{s}#");
-                return String(achBuffer + 1);
+                return copyToResponse(achBuffer + 1);
             }
         case 'C':  // :GC
             {
                 LocalDate date = _mount->getLocalDate();
                 snprintf(achBuffer, sizeof(achBuffer), "%02d/%02d/%02d#", date.month, date.day, date.year % 100);
-                return String(achBuffer);
+                return copyToResponse(achBuffer);
             }
         case 'M':  // :GM
             {
@@ -1387,7 +1413,7 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
 /////////////////////////////
 // GPS CONTROL
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeGPSCommands(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -1421,7 +1447,7 @@ String MeadeCommandProcessor::handleMeadeGPSCommands(String inCmd)
 /////////////////////////////
 // SYNC CONTROL
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeSyncControl(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -1439,7 +1465,7 @@ String MeadeCommandProcessor::handleMeadeSyncControl(String inCmd)
 /////////////////////////////
 // SET INFO
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -1561,10 +1587,10 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
 
         /*
     From https://www.astro.louisville.edu/software/xmtel/archive/xmtel-indi-6.0/xmtel-6.0l/support/lx200/CommandSet.html :
-    SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long. 
+    SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long.
     The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
     */
-        return F("1Updating Planetary Data#                              #");  //
+        return copyToResponse_P(PSTR("1Updating Planetary Data#                              #"));
     }
     else
     {
@@ -1575,7 +1601,7 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
 /////////////////////////////
 // MOVEMENT
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -1616,16 +1642,18 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
         if (inCmd.length() == 6)
         {
             byte direction = EAST;
-            inCmd.toLowerCase();
-            if (inCmd[1] == 'n')
+            // inCmd is const ref, so make a local copy for toLowerCase
+            String lowerCmd = inCmd;
+            lowerCmd.toLowerCase();
+            if (lowerCmd[1] == 'n')
                 direction = NORTH;
-            else if (inCmd[1] == 's')
+            else if (lowerCmd[1] == 's')
                 direction = SOUTH;
-            else if (inCmd[1] == 'e')
+            else if (lowerCmd[1] == 'e')
                 direction = EAST;
-            else if (inCmd[1] == 'w')
+            else if (lowerCmd[1] == 'w')
                 direction = WEST;
-            int duration = inCmd.substring(2, 6).toInt();
+            int duration = lowerCmd.substring(2, 6).toInt();
             _mount->guidePulse(direction, duration);
             return "";
         }
@@ -1748,7 +1776,7 @@ String MeadeCommandProcessor::handleMeadeMovement(String inCmd)
 /////////////////////////////
 // HOME
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeHome(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeHome(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -1775,7 +1803,7 @@ String MeadeCommandProcessor::handleMeadeHome(String inCmd)
     return "";
 }
 
-String MeadeCommandProcessor::handleMeadeDistance(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeDistance(const String &inCmd)
 {
     if (_mount->isSlewingRAorDEC())
     {
@@ -1787,7 +1815,7 @@ String MeadeCommandProcessor::handleMeadeDistance(String inCmd)
 /////////////////////////////
 // EXTRA COMMANDS
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -1827,7 +1855,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
     {                         // Get RA/DEC steps/deg, speedfactor
         if (inCmd[1] == 'R')  // :XGR#
         {
-            return String(_mount->getStepsPerDegree(RA_STEPS), 1) + "#";
+            return formatResponse("%s#", String(_mount->getStepsPerDegree(RA_STEPS), 1).c_str());
         }
         else if (inCmd[1] == 'D')
         {
@@ -1841,11 +1869,11 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                     {
                         if (inCmd[3] == 'L')  // :XGDLL#
                         {
-                            return String(loLimit, 1) + "#";
+                            return formatResponse("%s#", String(loLimit, 1).c_str());
                         }
                         else if (inCmd[3] == 'U')  // :XGDLU#
                         {
-                            return String(hiLimit, 1) + "#";
+                            return formatResponse("%s#", String(hiLimit, 1).c_str());
                         }
                         else
                         {
@@ -1854,7 +1882,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                     }
                     else  // :XGDL#
                     {
-                        return String(loLimit, 1) + "|" + String(hiLimit, 1) + "#";
+                        return formatResponse("%s|%s#", String(loLimit, 1).c_str(), String(hiLimit, 1).c_str());
                     }
                 }
                 if (inCmd[2] == 'P')  // :XGDP#
@@ -1864,47 +1892,45 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else  // :XGD#
             {
-                return String(_mount->getStepsPerDegree(DEC_STEPS), 1) + "#";
+                return formatResponse("%s#", String(_mount->getStepsPerDegree(DEC_STEPS), 1).c_str());
             }
         }
         else if (inCmd[1] == 'S')
         {
             if (inCmd.length() == 2)  // :XGS#
             {
-                return String(_mount->getSpeedCalibration(), 5) + "#";
+                return formatResponse("%s#", String(_mount->getSpeedCalibration(), 5).c_str());
             }
             else if ((inCmd.length() == 3) && (inCmd[2] == 'T'))  // :XGST#
             {
-                return String(_mount->checkRALimit(), 7) + "#";
+                return formatResponse("%s#", String(_mount->checkRALimit(), 7).c_str());
             }
         }
         else if (inCmd[1] == 'T')  // :XGT#
         {
-            return String(_mount->getSpeed(TRACKING), 7) + "#";
+            return formatResponse("%s#", String(_mount->getSpeed(TRACKING), 7).c_str());
         }
         else if (inCmd[1] == 'B')  // :XGB#
         {
-            return String(_mount->getBacklashCorrection()) + "#";
+            return formatResponse("%s#", String(_mount->getBacklashCorrection()).c_str());
         }
         else if ((inCmd[1] == 'A') && (inCmd.length() == 2))  // :XGA#
         {
-            return String(_mount->getStepsPerDegree(ALTITUDE_STEPS), 1) + "#";
+            return formatResponse("%s#", String(_mount->getStepsPerDegree(ALTITUDE_STEPS), 1).c_str());
         }
         else if ((inCmd[1] == 'Z') && (inCmd.length() == 2))  // :XGZ#
         {
-            return String(_mount->getStepsPerDegree(AZIMUTH_STEPS), 1) + "#";
+            return formatResponse("%s#", String(_mount->getStepsPerDegree(AZIMUTH_STEPS), 1).c_str());
         }
         else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'H'))  // :XGAH#
         {
-            return _mount->getAutoHomingStates() + "#";
+            return formatResponse("%s#", _mount->getAutoHomingStates().c_str());
         }
         else if ((inCmd[1] == 'A') && (inCmd.length() > 2) && (inCmd[2] == 'A'))  // :XGAA#
         {
             long azPos, altPos;
             _mount->getAZALTPositions(azPos, altPos);
-            char scratchBuffer[24];
-            snprintf(scratchBuffer, sizeof(scratchBuffer), "%ld|%ld#", azPos, altPos);
-            return String(scratchBuffer);
+            return formatResponse("%ld|%ld#", azPos, altPos);
         }
         else if (inCmd[1] == 'C')  // :XGCn.nn*m.mm#
         {
@@ -1916,22 +1942,20 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 float raCoord  = coords.substring(0, star).toFloat();
                 float decCoord = coords.substring(star + 1).toFloat();
                 _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
-                char scratchBuffer[24];
-                snprintf(scratchBuffer, sizeof(scratchBuffer), "%ld|%ld#", raPos, decPos);
-                return String(scratchBuffer);
+                return formatResponse("%ld|%ld#", raPos, decPos);
             }
         }
         else if (inCmd[1] == 'M')
         {
             if ((inCmd.length() > 2) && (inCmd[2] == 'S'))  // :XGMS#
             {
-                return _mount->getStepperInfo() + "#";
+                return formatResponse("%s#", _mount->getStepperInfo().c_str());
             }
-            return _mount->getMountHardwareInfo() + "#";  // :XGM#
+            return formatResponse("%s#", _mount->getMountHardwareInfo().c_str());  // :XGM#
         }
         else if (inCmd[1] == 'O')  // :XGO#
         {
-            return getLogBuffer();
+            return copyToResponse(getLogBuffer().c_str());
         }
         else if (inCmd[1] == 'H')  // :XGH#
         {
@@ -1941,17 +1965,17 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
                 if (inCmd[2] == 'R')  // :XGHR#
                 {
                     LOG(DEBUG_MEADE, "[MEADE]: XGHR  -> %s", inCmd.c_str());
-                    return String(_mount->getHomingOffset(StepperAxis::RA_STEPS)) + "#";
+                    return formatResponse("%ld#", _mount->getHomingOffset(StepperAxis::RA_STEPS));
                 }
                 else if (inCmd[2] == 'D')  // :XGHD#
                 {
                     LOG(DEBUG_MEADE, "[MEADE]: XGHD  -> %s", inCmd.c_str());
-                    return String(_mount->getHomingOffset(StepperAxis::DEC_STEPS)) + "#";
+                    return formatResponse("%ld#", _mount->getHomingOffset(StepperAxis::DEC_STEPS));
                 }
                 else if (inCmd[2] == 'S')  // :XGHS#
                 {
                     LOG(DEBUG_MEADE, "[MEADE]: XGHS  -> %s", inCmd.c_str());
-                    return String(inNorthernHemisphere ? "N#" : "S#");
+                    return inNorthernHemisphere ? "N#" : "S#";
                 }
                 LOG(DEBUG_MEADE, "[MEADE]: XGH?  -> %s", inCmd.c_str());
 
@@ -1959,23 +1983,19 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             }
             else
             {
-                char scratchBuffer[10];
                 DayTime ha = _mount->calculateHa();
-                snprintf(scratchBuffer, sizeof(scratchBuffer), "%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
-                return String(scratchBuffer);
+                return formatResponse("%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
             }
         }
         else if (inCmd[1] == 'L')  // :XGL#
         {
-            char scratchBuffer[10];
             DayTime lst = _mount->calculateLst();
-            snprintf(scratchBuffer, sizeof(scratchBuffer), "%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
-            return String(scratchBuffer);
+            return formatResponse("%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
         }
         else if (inCmd[1] == 'N')  // :XGN#
         {
 #if (WIFI_ENABLED == 1)
-            return wifiControl.getStatus() + "#";
+            return formatResponse("%s#", wifiControl.getStatus().c_str());
 #endif
 
             return "0,#";
@@ -2091,17 +2111,21 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
         {                         // get values
             if (inCmd[2] == 'R')  // :XLGR
             {                     // get Calibration/Reference values
-                return String(_mount->getPitchCalibrationAngle(), 4) + "," + String(_mount->getRollCalibrationAngle(), 4) + "#";
+                return formatResponse("%s,%s#",
+                                      String(_mount->getPitchCalibrationAngle(), 4).c_str(),
+                                      String(_mount->getRollCalibrationAngle(), 4).c_str());
             }
             else if (inCmd[2] == 'C')  // :XLGC
             {                          // Get current values
                 auto angles = Gyro::getCurrentAngles();
-                return String(angles.pitchAngle, 4) + "," + String(angles.rollAngle, 4) + "#";
+                return formatResponse("%s,%s#",
+                                      String(angles.pitchAngle, 4).c_str(),
+                                      String(angles.rollAngle, 4).c_str());
             }
             else if (inCmd[2] == 'T')  // :XLGT
             {                          // Get current temp
                 float temp = Gyro::getCurrentTemperature();
-                return String(temp, 1) + "#";
+                return formatResponse("%s#", String(temp, 1).c_str());
             }
         }
         else if (inCmd[1] == 'S')
@@ -2109,35 +2133,35 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
             if (inCmd[2] == 'P')  // :XLSP
             {                     // get Calibration/Reference values
                 _mount->setPitchCalibrationAngle(inCmd.substring(3).toFloat());
-                return String("1#");
+                return "1#";
             }
             else if (inCmd[2] == 'R')  // :XLSR
             {
                 _mount->setRollCalibrationAngle(inCmd.substring(3).toFloat());
-                return String("1#");
+                return "1#";
             }
         }
         else if (inCmd[1] == '1')  // :XL1
         {                          // Turn on Gyro
             Gyro::startup();
-            return String("1#");
+            return "1#";
         }
         else if (inCmd[1] == '0')  // :XL0
         {                          // Turn off Gyro
             Gyro::shutdown();
-            return String("1#");
+            return "1#";
         }
         else
         {
-            return "Unknown Level command: X" + inCmd;
+            return formatResponse("Unknown Level command: X%s", inCmd.c_str());
         }
 #endif
-        return String("0#");
+        return "0#";
     }
     else if ((inCmd[0] == 'F') && (inCmd[1] == 'R'))
     {
         _mount->clearConfiguration();  // :XFR
-        return String("1#");
+        return "1#";
     }
 
     return "";
@@ -2146,7 +2170,7 @@ String MeadeCommandProcessor::handleMeadeExtraCommands(String inCmd)
 /////////////////////////////
 // QUIT
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeQuit(const String &inCmd)
 {
     // :Q# stops a motors - remains in Control mode
     // :Qq# command does not stop motors, but quits Control mode
@@ -2190,7 +2214,7 @@ String MeadeCommandProcessor::handleMeadeQuit(String inCmd)
 /////////////////////////////
 // Set Slew Rates
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeSetSlewRate(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -2219,7 +2243,7 @@ String MeadeCommandProcessor::handleMeadeSetSlewRate(String inCmd)
 /////////////////////////////
 // FOCUS COMMANDS
 /////////////////////////////
-String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
+const char *MeadeCommandProcessor::handleMeadeFocusCommands(const String &inCmd)
 {
     if (inCmd.length() < 1)
     {
@@ -2262,7 +2286,7 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     {
         LOG(DEBUG_MEADE, "[MEADE]: Focus get stepperPosition");
         long focusPos = _mount->focusGetStepperPosition();
-        return String(focusPos) + "#";
+        return formatResponse("%ld#", focusPos);
     }
     else if (inCmd[0] == 'P')  // :FPnnn
     {
@@ -2295,7 +2319,7 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     return "";
 }
 
-String MeadeCommandProcessor::processCommand(String inCmd)
+const char *MeadeCommandProcessor::processCommand(String inCmd)
 {
     if (inCmd.length() < 2)
     {

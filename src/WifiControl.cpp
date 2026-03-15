@@ -191,12 +191,12 @@ void WifiControl::tcpLoop()
             {
                 String cmd = client.readStringUntil('#');
                 LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s#", cmd.c_str());
-                String retVal = _cmdProcessor->processCommand(cmd);
+                const char *retVal = _cmdProcessor->processCommand(cmd);
 
-                if (retVal != "")
+                if (retVal[0] != '\0')
                 {
-                    client.write(retVal.c_str());
-                    LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal.c_str());
+                    client.write(retVal);
+                    LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal);
                 }
                 else
                 {
