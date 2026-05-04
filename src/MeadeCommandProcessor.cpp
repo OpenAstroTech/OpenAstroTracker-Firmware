@@ -241,7 +241,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //      Description:
 //        Get tracking rate
 //      Returns:
-//        60.0#
+//        "TT.T#" - Current tracking frequency in Hz (60.0 = sidereal)
 //
 //------------------------------------------------------------------
 // GET EXTENSIONS
@@ -388,6 +388,19 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        "DD" is the day
 //        "YY" is the year since 2000
 //
+// :STddd.ddd#
+//      Description:
+//        Set Tracking Rate
+//      Information:
+//        Sets the tracking rate to the specified frequency in Hz. In the MEADE model,
+//        60.0 Hz corresponds to the sidereal rate (one revolution per 24h).
+//        Switches tracking to custom/manual mode.
+//      Parameters:
+//        "ddd.ddd" is the tracking frequency in Hz
+//      Returns:
+//        "2" if valid
+//        "0" if invalid
+//
 //------------------------------------------------------------------
 // SET Extensions
 //
@@ -446,6 +459,47 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 //        Set Slew rate
 //      Parameters:
 //        "s" is one of 'S', 'M', 'C', or 'G' in order of decreasing speed
+//      Returns:
+//        nothing
+//
+//------------------------------------------------------------------
+// TRACKING FAMILY
+//
+// :TQ#
+//      Description:
+//        Select Sidereal Tracking Rate (60.0 Hz)
+//      Returns:
+//        nothing
+//
+// :TL#
+//      Description:
+//        Select Lunar Tracking Rate (~57.9 Hz)
+//      Returns:
+//        nothing
+//
+// :TS#
+//      Description:
+//        Select Solar Tracking Rate (~59.8 Hz)
+//      Returns:
+//        nothing
+//
+// :TM#
+//      Description:
+//        Select Custom/Manual Tracking Rate
+//      Information:
+//        Switches to the custom tracking rate. Use :T+# and :T-# to adjust.
+//      Returns:
+//        nothing
+//
+// :T+#
+//      Description:
+//        Increment Manual Tracking Rate by 0.1 Hz
+//      Returns:
+//        nothing
+//
+// :T-#
+//      Description:
+//        Decrement Manual Tracking Rate by 0.1 Hz
 //      Returns:
 //        nothing
 //
@@ -1373,7 +1427,17 @@ String MeadeCommandProcessor::handleMeadeGetInfo(String inCmd)
             }
         case 'T':  // :GT
             {
-                return "60.0#";  //default MEADE Tracking Frequency
+                return String(_mount->getTrackingRateHz(), 1) + "#";
+            }
+        case 'k':  // :Gk — get tracking mode name
+            {
+                switch (_mount->getTrackingRate())
+                {
+                    case TRACKING_LUNAR:  return "Lunar#";
+                    case TRACKING_SOLAR:  return "Solar#";
+                    case TRACKING_CUSTOM: return "Manual#";
+                    default:              return "Sidereal#";
+                }
             }
     }
 
@@ -1549,6 +1613,16 @@ String MeadeCommandProcessor::handleMeadeSetInfo(String inCmd)
     The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
     */
         return F("1Updating Planetary Data#                              #");  //
+    }
+    else if (inCmd[0] == 'T')  // :STddd.ddd# - Set tracking rate to ddd.ddd Hz
+    {
+        float hz = inCmd.substring(1).toFloat();
+        if (hz > 0.0f)
+        {
+            _mount->setCustomTrackingRateHz(hz);
+            return "2";  // Valid per MEADE protocol spec
+        }
+        return "0";
     }
     else
     {
@@ -2259,6 +2333,47 @@ String MeadeCommandProcessor::handleMeadeFocusCommands(String inCmd)
     return "";
 }
 
+/////////////////////////////
+// TRACKING COMMANDS
+/////////////////////////////
+String MeadeCommandProcessor::handleMeadeTrackingCommands(String inCmd)
+{
+    LOG(DEBUG_MEADE, "[MEADE]: Process Tracking command: [%s]", inCmd.c_str());
+
+    if (inCmd[0] == 'Q')  // :TQ# - Sidereal tracking rate
+    {
+        _mount->setTrackingRate(TRACKING_SIDEREAL);
+        return "";
+    }
+    else if (inCmd[0] == 'L')  // :TL# - Lunar tracking rate
+    {
+        _mount->setTrackingRate(TRACKING_LUNAR);
+        return "";
+    }
+    else if (inCmd[0] == 'S')  // :TS# - Solar tracking rate
+    {
+        _mount->setTrackingRate(TRACKING_SOLAR);
+        return "";
+    }
+    else if (inCmd[0] == 'M')  // :TM# - Custom/Manual tracking rate
+    {
+        _mount->setTrackingRate(TRACKING_CUSTOM);
+        return "";
+    }
+    else if (inCmd[0] == '+')  // :T+# - Increment manual rate by 0.1 Hz
+    {
+        _mount->adjustCustomTrackingRate(0.1f);
+        return "";
+    }
+    else if (inCmd[0] == '-')  // :T-# - Decrement manual rate by 0.1 Hz
+    {
+        _mount->adjustCustomTrackingRate(-0.1f);
+        return "";
+    }
+
+    return "";
+}
+
 String MeadeCommandProcessor::processCommand(String inCmd)
 {
     if (inCmd[0] == ':')
@@ -2302,6 +2417,8 @@ String MeadeCommandProcessor::processCommand(String inCmd)
                 return handleMeadeExtraCommands(inCmd);
             case 'F':
                 return handleMeadeFocusCommands(inCmd);
+            case 'T':
+                return handleMeadeTrackingCommands(inCmd);
             default:
                 LOG(DEBUG_MEADE, "[MEADE]: Received unknown command '%s'", inCmd.c_str());
                 break;

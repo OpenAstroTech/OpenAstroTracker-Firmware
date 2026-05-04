@@ -6,6 +6,24 @@
 #include "Longitude.hpp"
 #include "Types.hpp"
 
+// Tracking rate modes (MEADE LX200 protocol)
+// In the MEADE model, 60.0 Hz = sidereal rate (one revolution in 24h with a synchronous motor)
+enum TrackingRate
+{
+    TRACKING_SIDEREAL,  // 60.0 Hz - default
+    TRACKING_LUNAR,     // ~57.9 Hz
+    TRACKING_SOLAR,     // ~59.836 Hz
+    TRACKING_CUSTOM,    // User-defined Hz (adjustable via T+/T-)
+};
+
+// MEADE tracking rate constants in Hz (60.0 Hz = sidereal)
+// Derived from the ratio of the sidereal day (86164.0905s) to the respective day lengths.
+// Lunar day = synodic month / (synodic month - 1) sidereal days, approx 89428.3s mean lunar transit interval.
+// Solar day = 86400.0s
+#define MEADE_SIDEREAL_HZ 60.0f
+#define MEADE_LUNAR_HZ    (60.0f * 86164.0905f / 89428.3f)   // ~57.900 Hz
+#define MEADE_SOLAR_HZ    (60.0f * 86164.0905f / 86400.0f)   // ~59.836 Hz
+
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 class InfoDisplayRender;
 #endif
@@ -238,6 +256,21 @@ class Mount
 
     // Set the current RA tracking speed factor
     void setSpeedCalibration(float val, bool saveToStorage);
+
+    // Set the tracking rate mode and recalculate tracking speed
+    void setTrackingRate(TrackingRate rate);
+
+    // Get the current tracking rate mode
+    TrackingRate getTrackingRate() const;
+
+    // Get the current tracking rate in MEADE Hz (60.0 = sidereal)
+    float getTrackingRateHz() const;
+
+    // Set a custom tracking rate in MEADE Hz and switch to TRACKING_CUSTOM mode
+    void setCustomTrackingRateHz(float hz);
+
+    // Adjust the custom tracking rate by deltaHz (for :T+# / :T-# commands)
+    void adjustCustomTrackingRate(float deltaHz);
 
 #if USE_GYRO_LEVEL == 1
     // Get the current pitch angle calibraton
@@ -661,6 +694,8 @@ class Mount
     unsigned long _lastMountPrint = 0;
     float _trackingSpeed;             // RA u-steps/sec when in tracking mode
     float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
+    TrackingRate _trackingRate;        // Current tracking rate mode (default: TRACKING_SIDEREAL)
+    float _customTrackingRateHz;       // Custom tracking rate in MEADE Hz (default: 60.0)
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
