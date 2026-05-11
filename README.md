@@ -28,6 +28,44 @@ This is an open source project and everyone is welcome to contribute. We will be
 
 Even if Arduino IDE is supported, we highly recommend using VSCode with [PlatformIO](https://platformio.org/) for development. It allows automatic dependency management, powerful IDE, debugging, automatic build flags definition and more.
 
+### Native unit tests
+
+Run the host-based unit tests with PlatformIO:
+
+```shell
+pio test -e native -v
+```
+
+This executes the tests under `unit_tests/test_common` without requiring any target hardware.
+
+### Coverage
+
+The native test environment is instrumented for coverage reporting.
+
+Install `gcovr` locally if needed:
+
+```shell
+python -m pip install --user gcovr
+```
+
+Generate the text coverage summary for code under `src` only:
+
+```shell
+pio test -e native -v
+gcovr
+```
+
+The text report is written to `.pio/coverage.txt` and also printed to stdout.
+
+Generate the HTML coverage report:
+
+```shell
+pio test -e native -v
+./scripts/coverage_html.sh
+```
+
+The HTML report is written to `.pio/coverage.html`.
+
 ### Debugging
 
 #### ATmega2560-based

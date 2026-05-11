@@ -11,3 +11,6 @@ build_cache
 
 Configuration_local*
 MeadeToWikiOutput.txt
+
+# macOS
+**/.DS_Store
