@@ -184,16 +184,16 @@ Each step: extract → add focused unit tests with FFF-faked ports → remove th
 
 ## Relevant files (initial focus)
 
-- [src/Mount.cpp](src/Mount.cpp), [src/Mount.hpp](src/Mount.hpp) — the god-object being decomposed; `loop()`, `calculateRAandDECSteppers()`, `guidePulse()`, `startSlewing()`, `readPersistentData()` are the biggest extraction targets.
-- [src/MeadeCommandProcessor.cpp](src/MeadeCommandProcessor.cpp), [src/MeadeCommandProcessor.hpp](src/MeadeCommandProcessor.hpp) — split into parser (`core/`) + executor (Phase 6).
-- [src/EPROMStore.cpp](src/EPROMStore.cpp), [src/EPROMStore.hpp](src/EPROMStore.hpp) — already a good seam; becomes `IPersistentStore` + adapter.
-- [src/Sidereal.cpp](src/Sidereal.cpp), [src/DayTime.cpp](src/DayTime.cpp), [src/Declination.cpp](src/Declination.cpp), [src/Latitude.cpp](src/Latitude.cpp), [src/Longitude.cpp](src/Longitude.cpp) — already pure; move into `core/` in Phase 2.
-- [src/HallSensorHoming.cpp](src/HallSensorHoming.cpp), [src/EndSwitches.cpp](src/EndSwitches.cpp), [src/Gyro.cpp](src/Gyro.cpp), [src/LcdMenu.cpp](src/LcdMenu.cpp), [src/SSD1306_128x64_Display.cpp](src/SSD1306_128x64_Display.cpp), [src/WifiControl.cpp](src/WifiControl.cpp), [src/LcdButtons.cpp](src/LcdButtons.cpp) — become adapters behind ports.
-- [src/Core.cpp](src/Core.cpp), [src/a_inits.hpp](src/a_inits.hpp), [src/b_setup.hpp](src/b_setup.hpp), [src/f_serial.hpp](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
-- [platformio.ini](platformio.ini) — add `native_core` env, coverage flags, FFF include path.
-- [.github/workflows/platformio_unit_tests.yml](.github/workflows/platformio_unit_tests.yml) — coverage gating, ratchet.
-- [unit_tests/test_common/](unit_tests/test_common/test_MappedDict.cpp), [unit_tests/test_embedded/](unit_tests/test_embedded/main.cpp) — expand with FFF-based ports tests.
-- [Configuration.hpp](Configuration.hpp), [Configuration_adv.hpp](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 5.
+- [src/Mount.cpp](../src/Mount.cpp), [src/Mount.hpp](../src/Mount.hpp) — the god-object being decomposed; `loop()`, `calculateRAandDECSteppers()`, `guidePulse()`, `startSlewing()`, `readPersistentData()` are the biggest extraction targets.
+- [src/MeadeCommandProcessor.cpp](../src/MeadeCommandProcessor.cpp), [src/MeadeCommandProcessor.hpp](../src/MeadeCommandProcessor.hpp) — split into parser (`core/`) + executor (Phase 6).
+- [src/EPROMStore.cpp](../src/EPROMStore.cpp), [src/EPROMStore.hpp](../src/EPROMStore.hpp) — already a good seam; becomes `IPersistentStore` + adapter.
+- [src/Sidereal.cpp](../src/Sidereal.cpp), [src/DayTime.cpp](../src/DayTime.cpp), [src/Declination.cpp](../src/Declination.cpp), [src/Latitude.cpp](../src/Latitude.cpp), [src/Longitude.cpp](../src/Longitude.cpp) — already pure; move into `core/` in Phase 2.
+- [src/HallSensorHoming.cpp](../src/HallSensorHoming.cpp), [src/EndSwitches.cpp](../src/EndSwitches.cpp), [src/Gyro.cpp](../src/Gyro.cpp), [src/LcdMenu.cpp](../src/LcdMenu.cpp), [src/SSD1306_128x64_Display.cpp](../src/SSD1306_128x64_Display.cpp), [src/WifiControl.cpp](../src/WifiControl.cpp), [src/LcdButtons.cpp](../src/LcdButtons.cpp) — become adapters behind ports.
+- [src/Core.cpp](../src/Core.cpp), [src/a_inits.hpp](../src/a_inits.hpp), [src/b_setup.hpp](../src/b_setup.hpp), [src/f_serial.hpp](../src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
+- [platformio.ini](../platformio.ini) — add `native_core` env, coverage flags, FFF include path.
+- [.github/workflows/platformio_unit_tests.yml](../.github/workflows/platformio_unit_tests.yml) — coverage gating, ratchet.
+- [unit_tests/test_common/](../unit_tests/test_common/test_MappedDict.cpp), [unit_tests/test_embedded/](../unit_tests/test_embedded/main.cpp) — expand with FFF-based ports tests.
+- [Configuration.hpp](../Configuration.hpp), [Configuration_adv.hpp](../Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 5.
 
 ---
 
