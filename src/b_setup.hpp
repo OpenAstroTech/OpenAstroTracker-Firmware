@@ -216,7 +216,7 @@ void setup()
         #ifdef OAE
     RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
         #else
-    RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
+    RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
     //
     #endif
