@@ -2,6 +2,9 @@
 
 #include "MappedDict.hpp"
 
+void setUp(void) {}
+void tearDown(void) {}
+
 void test_function_mapped_dict_simple_lookups(void)
 {
     MappedDict<char, int>::DictEntry_t lookupTable[] = {
