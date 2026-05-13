@@ -19,7 +19,7 @@ jobs:
       - uses: DoozyX/clang-format-lint-action@v0.18.1
         with:
           extensions: 'c,cpp,h,hpp'
-          clangFormatVersion: 22
+          clangFormatVersion: 18
           inplace: True
       - name: Detect formatting changes
         id: changes
