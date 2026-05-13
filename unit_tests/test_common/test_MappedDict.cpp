@@ -2,8 +2,12 @@
 
 #include "MappedDict.hpp"
 
-void setUp(void) {}
-void tearDown(void) {}
+void setUp(void)
+{
+}
+void tearDown(void)
+{
+}
 
 void test_function_mapped_dict_simple_lookups(void)
 {
