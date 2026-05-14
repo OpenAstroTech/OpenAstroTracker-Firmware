@@ -1,0 +1,27 @@
+name: 'Setup PlatformIO'
+description: 'Sets up Python and PlatformIO for build and test jobs'
+
+inputs:
+  install-matrix-deps:
+    description: 'Install matrix build dependencies from requirements_matrix_build.txt'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install PlatformIO
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install wheel platformio
+    - name: Install matrix build dependencies
+      if: inputs.install-matrix-deps == 'true'
+      shell: bash
+      run: pip install -r requirements_matrix_build.txt
+    - name: Install unit test dependencies
+      shell: bash
+      run: pip install gcovr

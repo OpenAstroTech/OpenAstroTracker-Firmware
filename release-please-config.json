@@ -1,0 +1,16 @@
+{
+    "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+    "release-type": "simple",
+    "tag-prefix": "V",
+    "packages": {
+        ".": {
+            "release-type": "simple",
+            "extra-files": [
+                {
+                    "type": "generic",
+                    "path": "Version.h"
+                }
+            ]
+        }
+    }
+}
