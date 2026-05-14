@@ -2,6 +2,13 @@
 
 #include "MappedDict.hpp"
 
+void setUp(void)
+{
+}
+void tearDown(void)
+{
+}
+
 void test_function_mapped_dict_simple_lookups(void)
 {
     MappedDict<char, int>::DictEntry_t lookupTable[] = {
@@ -87,7 +94,7 @@ void loop()
     delay(500);
 }
 #else
-int main(int argc, char **argv)
+int main()
 {
     process();
     return 0;

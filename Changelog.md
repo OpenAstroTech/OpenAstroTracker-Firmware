@@ -1,3 +1,8 @@
+**V1.13.20 - Updates**
+- CI adjustments
+- Dependency updates
+- Unit testing improvements
+
 **V1.13.19 - Updates**
 - Support inverting and mirroring InfoDisplays.
 
