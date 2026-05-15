@@ -1687,8 +1687,8 @@ void Mount::guidePulse(byte direction, int duration)
         // Also compensate for microstepping mode change between slew & guiding/tracking
         float decGuidingSpeed = _stepsPerDECDegree * (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
                                 / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-        float raGuidingSpeed = _stepsPerRADegree * (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                               / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+        float raGuidingSpeed  = _stepsPerRADegree * (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
+                                / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
 
         // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
         // If so, we need to remember where we were when we started the guide pulse. Then at the end,
@@ -4284,7 +4284,7 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
     #endif
 #endif
 
-float Mount::getTrackedHours()
+float Mount::getTrackedHours() const
 {
     return (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
 }
