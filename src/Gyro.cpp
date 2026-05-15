@@ -58,10 +58,10 @@ void Gyro::startup()
     Wire.write(6);  // 5Hz bandwidth (lowest) for smoothing
     Wire.endTransmission(true);
 
-    _initialized     = false;
-    _pitchEma        = 0;
-    _rollEma         = 0;
-    _lastSampleTime  = 0;
+    _initialized    = false;
+    _pitchEma       = 0;
+    _rollEma        = 0;
+    _lastSampleTime = 0;
 
     LOG(DEBUG_INFO, "[GYRO]:: Started");
 }
@@ -95,8 +95,8 @@ void Gyro::collectSample()
 
     if (!_initialized)
     {
-        _pitchEma   = pitch;
-        _rollEma    = roll;
+        _pitchEma    = pitch;
+        _rollEma     = roll;
         _initialized = true;
     }
     else

@@ -30,7 +30,7 @@ class Gyro
         MPU6050_REG_WHO_AM_I     = 0x75
     };
 
-    static constexpr float EMA_ALPHA          = 0.1f;  // Smoothing factor for exponential moving average
+    static constexpr float EMA_ALPHA           = 0.1f;  // Smoothing factor for exponential moving average
     static const unsigned long SAMPLE_INTERVAL = 5;     // ms between samples
 
     static bool isPresent;

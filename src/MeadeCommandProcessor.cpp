@@ -1214,7 +1214,7 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 /////////////////////////////////////////////////////////////////////////////////////////
 
 MeadeCommandProcessor *MeadeCommandProcessor::_instance = nullptr;
-char MeadeCommandProcessor::_responseBuffer[200]         = {};
+char MeadeCommandProcessor::_responseBuffer[200]        = {};
 
 const char *MeadeCommandProcessor::copyToResponse(const char *src)
 {
@@ -1311,16 +1311,16 @@ const char *MeadeCommandProcessor::handleMeadeGetInfo(const String &inCmd)
             }
             break;
 
-        case 'r':                                                                                  // :Gr
+        case 'r':                                                                           // :Gr
             return copyToResponse(_mount->RAString(MEADE_STRING | TARGET_STRING).c_str());  // returns trailing #
 
-        case 'd':                                                                                   // :Gd
+        case 'd':                                                                            // :Gd
             return copyToResponse(_mount->DECString(MEADE_STRING | TARGET_STRING).c_str());  // returns trailing #
 
-        case 'R':                                                                                   // :GR
+        case 'R':                                                                            // :GR
             return copyToResponse(_mount->RAString(MEADE_STRING | CURRENT_STRING).c_str());  // returns trailing #
 
-        case 'D':                                                                                    // :GD
+        case 'D':                                                                             // :GD
             return copyToResponse(_mount->DECString(MEADE_STRING | CURRENT_STRING).c_str());  // returns trailing #
 
         case 'X':  // :GX
@@ -1642,7 +1642,7 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
         if (inCmd.length() == 6 && isdigit(inCmd[2]) && isdigit(inCmd[3]) && isdigit(inCmd[4]) && isdigit(inCmd[5]))
         {
             byte direction = EAST;
-            char dirChar = tolower(inCmd[1]);
+            char dirChar   = tolower(inCmd[1]);
             if (dirChar == 'n')
                 direction = NORTH;
             else if (dirChar == 's')
@@ -2109,16 +2109,13 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
         {                         // get values
             if (inCmd[2] == 'R')  // :XLGR
             {                     // get Calibration/Reference values
-                return formatResponse("%s,%s#",
-                                      String(_mount->getPitchCalibrationAngle(), 4).c_str(),
-                                      String(_mount->getRollCalibrationAngle(), 4).c_str());
+                return formatResponse(
+                    "%s,%s#", String(_mount->getPitchCalibrationAngle(), 4).c_str(), String(_mount->getRollCalibrationAngle(), 4).c_str());
             }
             else if (inCmd[2] == 'C')  // :XLGC
             {                          // Get current values
                 auto angles = Gyro::getCurrentAngles();
-                return formatResponse("%s,%s#",
-                                      String(angles.pitchAngle, 4).c_str(),
-                                      String(angles.rollAngle, 4).c_str());
+                return formatResponse("%s,%s#", String(angles.pitchAngle, 4).c_str(), String(angles.rollAngle, 4).c_str());
             }
             else if (inCmd[2] == 'T')  // :XLGT
             {                          // Get current temp
