@@ -1,3 +1,12 @@
+# Changelog
+
+## [1.13.21](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/compare/v1.13.20...v1.13.21) (2026-05-15)
+
+
+### Bug Fixes
+
+* **stability:** resolve buffer overflows, EEPROM address collision, ISR races, and memory leaks ([#281](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/281)) ([4b6ff1a](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/4b6ff1ac923d1984cd45402f46c176bd294244d7))
+
 **V1.13.20 - Updates**
 - CI adjustments
 - Dependency updates
@@ -644,4 +653,4 @@ NOTE: Make sure to do a Factory Reset when using this version.
  - Added extensions to the Meade protocol (:MAZn.n# and :MALn.n#) to move the aziumth and altitude motors.
  - Added Az and ALt motor status to :GX# command output
  - Added GPS and AzAlt features to hardware info query (:XGM#)
- - New CAL menu items to adjust Azimuth and Altitude in arcminutes. 
+ - New CAL menu items to adjust Azimuth and Altitude in arcminutes.
