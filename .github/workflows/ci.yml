@@ -6,16 +6,6 @@ on:
       - '*'
 
 jobs:
-  pr-title-lint:
-    name: PR Title (Conventional Commits)
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: read
-    steps:
-      - uses: amannn/action-semantic-pull-request@v6
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
