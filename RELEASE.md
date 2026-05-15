@@ -50,7 +50,7 @@ The Release PR stays open and self-updates as more PRs are merged. When you are 
 1. Review the open Release PR (titled `chore(main): release V<version>`) — check the proposed version and changelog entries.
 2. Merge it into `develop`.
 3. `release-please` automatically:
-   - Creates a git tag `V<version>` (e.g. `V1.14.0`)
+   - Creates a git tag `v<version>` (e.g. `v1.14.0`)
    - Publishes a GitHub Release with the generated changelog
 
 No manual tag pushing, no manual `Version.h` edits.
