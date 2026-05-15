@@ -26,8 +26,9 @@ Five layers, dependencies point inward only. The **HAL** sits between domain por
 |   |            IEeprom, IStepperMotor, ITmcDriver, IOledPanel,|
 |   |            ICharLcd, IButtonMatrix, ITimerService,        |
 |   |            ISystemClock, IWifiStack.                      |
-|   |          Backends: hal/arduino/, hal/esp32/, hal/avr/,    |
-|   |                    hal/host/ (for native tests).          |
+|   |          Backends: hal/arduino/, hal/esp32/, hal/avr/.    |
+|   |          Host-side fakes for unit tests live under        |
+|   |          unit_tests/test_common/ (test code, not src/).   |
 |   v                                                            |
 |  ports/      domain-level interfaces consumed by core:        |
 |   |          IClock, ILogger, IPersistentStore, IStepperAxis, |
@@ -68,8 +69,8 @@ Cross-cutting:
 4. Extend `.github/workflows/platformio_unit_tests.yml`:
    - Run `pio test -e native -v`.
    - Run coverage and fail if `core/` coverage drops below configured threshold (start at 0, ratchet upward).
-5. Add a tiny **Arduino host shim** under `unit_tests/test_common/arduino_shim/` providing minimal stubs (`millis`, `String`, `pinMode`, `digitalWrite`, fake `EEPROM`, fake `Serial`) for files that include `<Arduino.h>` but whose logic we want to test on host. This shim will later be replaced by the proper `hal/host/` backend (Phase 3).
-6. Establish folders: `src/core/`, `src/ports/`, `src/hal/`, `src/hal/host/`, `src/adapters/`, `src/app/` (empty + READMEs); leave existing files in place.
+5. Add a tiny **Arduino host shim** under `unit_tests/test_common/arduino_shim/` providing minimal stubs (`millis`, `String`, `pinMode`, `digitalWrite`, fake `EEPROM`, fake `Serial`) for files that include `<Arduino.h>` but whose logic we want to test on host. This shim will later be replaced by proper HAL fakes under `unit_tests/test_common/hal_fakes/` (Phase 3).
+6. Establish folders: `src/core/`, `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` (empty + READMEs); leave existing files in place. Host-side HAL fakes will land under `unit_tests/test_common/hal_fakes/` when Phase 3 begins.
 
 **Verify:** `pio test -e native -v` green; coverage report artifact produced in CI; build for all existing boards still green via `matrix_build.py`.
 
@@ -114,7 +115,7 @@ Steps (parallel after Phase 0):
    - `hal/arduino/` — generic Arduino implementation (`ArduinoGpioPin`, `ArduinoSerialPort`, `ArduinoEeprom`, `ArduinoSystemClock`, …).
    - `hal/avr/` — AVR-specific bits (Timer1/Timer3 interrupt service, fast pin IO).
    - `hal/esp32/` — ESP32-specific (hardware timers, Wi-Fi stack glue).
-   - `hal/host/` — pure C++ test backend (in-memory EEPROM, virtual GPIO, controllable clock); replaces and absorbs the Phase 0 ad-hoc shim.
+   - `unit_tests/test_common/hal_fakes/` — pure C++ test fakes (in-memory EEPROM, virtual GPIO, controllable clock, fake serial). Lives in test code, **not** in `src/`. Replaces and absorbs the Phase 0 ad-hoc shim.
 3. Define domain **ports** in `src/ports/`:
    - `IClock`, `ILogger`, `IPersistentStore`,
    - `IStepperAxis` (position, target, speed, accel, run, stop, isRunning, `Snapshot()` for ISR safety),
@@ -131,7 +132,7 @@ Steps (parallel after Phase 0):
 5. Refactor `Mount` to **hold port pointers** (`IStepperAxis* _ra; IClock* _clock; ...`) injected at construction instead of owning concrete types. Composition happens in `app/` (currently `b_setup.hpp`).
 6. Replace direct `millis()`, `digitalWrite()`, `EEPROMStore::` calls inside `Mount` with port calls; replace `LOG()` macro with `_logger->log(...)`.
 
-**Verify:** All Phase 1/2 tests still green; new contract tests for each port using `hal::host` backends (e.g., `EepromPersistentStore` round-trips via in-memory `hal::host::HostEeprom`); golden-master tests on `Mount` still pass; firmware builds identical-sized binaries on at least one board (other variants ±1%).
+**Verify:** All Phase 1/2 tests still green; new contract tests for each port using HAL fakes from `unit_tests/test_common/hal_fakes/` (e.g., `EepromPersistentStore` round-trips via an in-memory `FakeEeprom`); golden-master tests on `Mount` still pass; firmware builds identical-sized binaries on at least one board (other variants ±1%).
 
 ### Phase 4 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
