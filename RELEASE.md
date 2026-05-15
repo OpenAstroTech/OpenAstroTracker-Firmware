@@ -40,7 +40,7 @@ After each PR is merged into `develop`, the `release-please` GitHub Action updat
 
 - Accumulates all `feat`, `fix`, and other notable commits since the last release
 - Proposes the next semantic version (patch / minor / major based on commit types)
-- Updates `Changelog.md` with categorised entries linked to PRs
+- Updates `CHANGELOG.md` with categorised entries linked to PRs
 - Updates `Version.h` with the new version string
 
 The Release PR stays open and self-updates as more PRs are merged. When you are ready to cut a release, simply **merge the Release PR**.
