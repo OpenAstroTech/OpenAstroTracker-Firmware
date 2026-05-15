@@ -6,6 +6,8 @@ on:
       - opened
       - edited
       - reopened
+    branches:
+      - 'develop'
 
 jobs:
   pr-title-lint:
