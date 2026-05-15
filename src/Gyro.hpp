@@ -30,15 +30,13 @@ class Gyro
         MPU6050_REG_WHO_AM_I     = 0x75
     };
 
-    // Use about 72 bytes of RAM for the moving average buffer
-    static const int WINDOW_SIZE              = 8;  // Number of samples to keep for moving average
-    static const unsigned long SAMPLE_INTERVAL = 5;  // ms between samples
+    static constexpr float EMA_ALPHA          = 0.1f;  // Smoothing factor for exponential moving average
+    static const unsigned long SAMPLE_INTERVAL = 5;     // ms between samples
 
     static bool isPresent;
-    static float _pitchSamples[WINDOW_SIZE];
-    static float _rollSamples[WINDOW_SIZE];
-    static int _ringIndex;
-    static int _samplesCollected;  // Counts up to WINDOW_SIZE, then stays there
+    static float _pitchEma;
+    static float _rollEma;
+    static bool _initialized;
     static unsigned long _lastSampleTime;
 };
 #endif

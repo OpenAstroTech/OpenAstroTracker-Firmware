@@ -1639,21 +1639,19 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
         // Guide pulse
         //   012345678901
         // :MGd0403
-        if (inCmd.length() == 6)
+        if (inCmd.length() == 6 && isdigit(inCmd[2]) && isdigit(inCmd[3]) && isdigit(inCmd[4]) && isdigit(inCmd[5]))
         {
             byte direction = EAST;
-            // inCmd is const ref, so make a local copy for toLowerCase
-            String lowerCmd = inCmd;
-            lowerCmd.toLowerCase();
-            if (lowerCmd[1] == 'n')
+            char dirChar = tolower(inCmd[1]);
+            if (dirChar == 'n')
                 direction = NORTH;
-            else if (lowerCmd[1] == 's')
+            else if (dirChar == 's')
                 direction = SOUTH;
-            else if (lowerCmd[1] == 'e')
+            else if (dirChar == 'e')
                 direction = EAST;
-            else if (lowerCmd[1] == 'w')
+            else if (dirChar == 'w')
                 direction = WEST;
-            int duration = lowerCmd.substring(2, 6).toInt();
+            int duration = (inCmd[2] - '0') * 1000 + (inCmd[3] - '0') * 100 + (inCmd[4] - '0') * 10 + (inCmd[5] - '0');
             _mount->guidePulse(direction, duration);
             return "";
         }

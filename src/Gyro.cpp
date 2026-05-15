@@ -16,10 +16,9 @@ POP_NO_WARNINGS
  * */
 
 bool Gyro::isPresent(false);
-float Gyro::_pitchSamples[WINDOW_SIZE] = {};
-float Gyro::_rollSamples[WINDOW_SIZE]  = {};
-int Gyro::_ringIndex(0);
-int Gyro::_samplesCollected(0);
+float Gyro::_pitchEma(0);
+float Gyro::_rollEma(0);
+bool Gyro::_initialized(false);
 unsigned long Gyro::_lastSampleTime(0);
 
 void Gyro::startup()
@@ -53,21 +52,16 @@ void Gyro::startup()
     Wire.write(0);  // Disable sleep, 8 MHz clock
     Wire.endTransmission(true);
 
-    // Execute 1 byte write to MPU6050_REG_PWR_MGMT_1
+    // Execute 1 byte write to MPU6050_REG_CONFIG
     Wire.beginTransmission(MPU6050_I2C_ADDR);
     Wire.write(MPU6050_REG_CONFIG);
     Wire.write(6);  // 5Hz bandwidth (lowest) for smoothing
     Wire.endTransmission(true);
 
-    // Reset moving average state
-    for (int i = 0; i < WINDOW_SIZE; i++)
-    {
-        _pitchSamples[i] = 0;
-        _rollSamples[i]  = 0;
-    }
-    _ringIndex        = 0;
-    _samplesCollected = 0;
-    _lastSampleTime   = 0;
+    _initialized     = false;
+    _pitchEma        = 0;
+    _rollEma         = 0;
+    _lastSampleTime  = 0;
 
     LOG(DEBUG_INFO, "[GYRO]:: Started");
 }
@@ -82,7 +76,7 @@ void Gyro::shutdown()
 }
 
 void Gyro::collectSample()
-/* Reads one accelerometer sample and stores it in the circular buffer.
+/* Reads one accelerometer sample and updates the EMA state.
 */
 {
     // Execute 6 byte read from MPU6050_REG_ACCEL_XOUT_H
@@ -95,22 +89,27 @@ void Gyro::collectSample()
     int16_t AcZ = Wire.read() << 8 | Wire.read();  // Z-axis value
 
     // Calculating the Pitch angle (rotation around Y-axis)
-    _pitchSamples[_ringIndex] = atan2f(-1.0f * AcX, sqrtf((float) AcY * AcY + (float) AcZ * AcZ)) * 180.0f / static_cast<float>(PI);
+    float pitch = atan2f(-1.0f * AcX, sqrtf((float) AcY * AcY + (float) AcZ * AcZ)) * 180.0f / static_cast<float>(PI);
     // Calculating the Roll angle (rotation around X-axis)
-    _rollSamples[_ringIndex] = atan2f(-1.0f * AcY, sqrtf((float) AcX * AcX + (float) AcZ * AcZ)) * 180.0f / static_cast<float>(PI);
+    float roll = atan2f(-1.0f * AcY, sqrtf((float) AcX * AcX + (float) AcZ * AcZ)) * 180.0f / static_cast<float>(PI);
 
-    _ringIndex = (_ringIndex + 1) % WINDOW_SIZE;
-    if (_samplesCollected < WINDOW_SIZE)
+    if (!_initialized)
     {
-        _samplesCollected++;
+        _pitchEma   = pitch;
+        _rollEma    = roll;
+        _initialized = true;
+    }
+    else
+    {
+        _pitchEma = ((1.0f - EMA_ALPHA) * _pitchEma) + (EMA_ALPHA * pitch);
+        _rollEma  = ((1.0f - EMA_ALPHA) * _rollEma) + (EMA_ALPHA * roll);
     }
 }
 
 angle_t Gyro::getCurrentAngles()
 /* Returns roll & tilt angles from MPU-6050 device in angle_t object in degrees.
    Non-blocking: collects one sample per call if at least SAMPLE_INTERVAL ms
-   have elapsed since the last sample. Returns the moving average over the
-   last WINDOW_SIZE samples.
+   have elapsed since the last sample. Returns the EMA-filtered angles.
 */
 {
     angle_t result;
@@ -125,18 +124,11 @@ angle_t Gyro::getCurrentAngles()
         collectSample();
     }
 
-    if (_samplesCollected == 0)
+    if (!_initialized)
         return result;
 
-    float pitchSum = 0;
-    float rollSum  = 0;
-    for (int i = 0; i < _samplesCollected; i++)
-    {
-        pitchSum += _pitchSamples[i];
-        rollSum += _rollSamples[i];
-    }
-    result.pitchAngle = pitchSum / _samplesCollected;
-    result.rollAngle  = rollSum / _samplesCollected;
+    result.pitchAngle = _pitchEma;
+    result.rollAngle  = _rollEma;
 
     #if GYRO_AXIS_SWAP == 1
     float temp        = result.pitchAngle;

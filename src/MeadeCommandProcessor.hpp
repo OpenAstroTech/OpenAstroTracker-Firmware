@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdarg.h>
-
 // Forward declarations
 class Mount;
 class LcdMenu;
