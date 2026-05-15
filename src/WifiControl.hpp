@@ -34,8 +34,8 @@ class WifiControl
     LcdMenu *_lcdMenu;
     MeadeCommandProcessor *_cmdProcessor;
 
-    WiFiServer *_tcpServer;
-    WiFiUDP *_udp;
+    WiFiServer *_tcpServer = nullptr;
+    WiFiUDP *_udp          = nullptr;
     WiFiClient client;
 
     unsigned long _infraStart = 0;

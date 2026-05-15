@@ -16,6 +16,10 @@ POP_NO_WARNINGS
  * */
 
 bool Gyro::isPresent(false);
+float Gyro::_pitchEma(0);
+float Gyro::_rollEma(0);
+bool Gyro::_initialized(false);
+unsigned long Gyro::_lastSampleTime(0);
 
 void Gyro::startup()
 /* Starts up the MPU-6050 device.
@@ -48,11 +52,16 @@ void Gyro::startup()
     Wire.write(0);  // Disable sleep, 8 MHz clock
     Wire.endTransmission(true);
 
-    // Execute 1 byte write to MPU6050_REG_PWR_MGMT_1
+    // Execute 1 byte write to MPU6050_REG_CONFIG
     Wire.beginTransmission(MPU6050_I2C_ADDR);
     Wire.write(MPU6050_REG_CONFIG);
     Wire.write(6);  // 5Hz bandwidth (lowest) for smoothing
     Wire.endTransmission(true);
+
+    _initialized    = false;
+    _pitchEma       = 0;
+    _rollEma        = 0;
+    _lastSampleTime = 0;
 
     LOG(DEBUG_INFO, "[GYRO]:: Started");
 }
@@ -66,45 +75,67 @@ void Gyro::shutdown()
     // Nothing to do
 }
 
-angle_t Gyro::getCurrentAngles()
-/* Returns roll & tilt angles from MPU-6050 device in angle_t object in degrees.
-   If MPU-6050 is not found then returns {0,0}.
+void Gyro::collectSample()
+/* Reads one accelerometer sample and updates the EMA state.
 */
 {
-    const int windowSize = 16;
-    // Read the accelerometer data
-    struct angle_t result;
-    result.pitchAngle = 0;
-    result.rollAngle  = 0;
-    if (!isPresent)
-        return result;  // Gyro is not available
+    // Execute 6 byte read from MPU6050_REG_ACCEL_XOUT_H
+    Wire.beginTransmission(MPU6050_I2C_ADDR);
+    Wire.write(MPU6050_REG_ACCEL_XOUT_H);
+    Wire.endTransmission(false);
+    Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);      // Read 6 registers total, each axis value is stored in 2 registers
+    int16_t AcX = Wire.read() << 8 | Wire.read();  // X-axis value
+    int16_t AcY = Wire.read() << 8 | Wire.read();  // Y-axis value
+    int16_t AcZ = Wire.read() << 8 | Wire.read();  // Z-axis value
 
-    for (int i = 0; i < windowSize; i++)
+    // Calculating the Pitch angle (rotation around Y-axis)
+    float pitch = atan2f(-1.0f * AcX, sqrtf((float) AcY * AcY + (float) AcZ * AcZ)) * 180.0f / static_cast<float>(PI);
+    // Calculating the Roll angle (rotation around X-axis)
+    float roll = atan2f(-1.0f * AcY, sqrtf((float) AcX * AcX + (float) AcZ * AcZ)) * 180.0f / static_cast<float>(PI);
+
+    if (!_initialized)
     {
-        // Execute 6 byte read from MPU6050_REG_WHO_AM_I
-        Wire.beginTransmission(MPU6050_I2C_ADDR);
-        Wire.write(MPU6050_REG_ACCEL_XOUT_H);
-        Wire.endTransmission(false);
-        Wire.requestFrom(MPU6050_I2C_ADDR, 6, 1);      // Read 6 registers total, each axis value is stored in 2 registers
-        int16_t AcX = Wire.read() << 8 | Wire.read();  // X-axis value
-        int16_t AcY = Wire.read() << 8 | Wire.read();  // Y-axis value
-        int16_t AcZ = Wire.read() << 8 | Wire.read();  // Z-axis value
+        _pitchEma    = pitch;
+        _rollEma     = roll;
+        _initialized = true;
+    }
+    else
+    {
+        _pitchEma = ((1.0f - EMA_ALPHA) * _pitchEma) + (EMA_ALPHA * pitch);
+        _rollEma  = ((1.0f - EMA_ALPHA) * _rollEma) + (EMA_ALPHA * roll);
+    }
+}
 
-        // Calculating the Pitch angle (rotation around Y-axis)
-        result.pitchAngle += ((atanf(-1 * AcX / sqrtf(powf(AcY, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
-        // Calculating the Roll angle (rotation around X-axis)
-        result.rollAngle += ((atanf(-1 * AcY / sqrtf(powf(AcX, 2) + powf(AcZ, 2))) * 180.0f / static_cast<float>(PI)) * 2.0f) / 2.0f;
+angle_t Gyro::getCurrentAngles()
+/* Returns roll & tilt angles from MPU-6050 device in angle_t object in degrees.
+   Non-blocking: collects one sample per call if at least SAMPLE_INTERVAL ms
+   have elapsed since the last sample. Returns the EMA-filtered angles.
+*/
+{
+    angle_t result;
 
-        delay(10);  // Decorrelate measurements
+    if (!isPresent)
+        return result;
+
+    unsigned long now = millis();
+    if (now - _lastSampleTime >= SAMPLE_INTERVAL)
+    {
+        _lastSampleTime = now;
+        collectSample();
     }
 
-    result.pitchAngle /= windowSize;
-    result.rollAngle /= windowSize;
+    if (!_initialized)
+        return result;
+
+    result.pitchAngle = _pitchEma;
+    result.rollAngle  = _rollEma;
+
     #if GYRO_AXIS_SWAP == 1
     float temp        = result.pitchAngle;
     result.pitchAngle = result.rollAngle;
     result.rollAngle  = temp;
     #endif
+
     return result;
 }
 

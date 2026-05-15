@@ -132,10 +132,10 @@ void processSerialData()
                 const String inCmd = String(buffer);
                 LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
 
-                const String retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
-                if (retVal != "")
+                const char *retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
+                if (retVal[0] != '\0')
                 {
-                    LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal.c_str());
+                    LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal);
                         // When not debugging, print the result to the serial port .
                         // When debugging, only print the result to Serial if we're on seperate ports.
         #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)

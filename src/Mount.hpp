@@ -264,6 +264,9 @@ class Mount
     void setSlewRate(int rate);
     int getSlewRate();
 
+    // Get the number of hours we've been tracking
+    float getTrackedHours() const;
+
     // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
     void setHA(const DayTime &haTime);
     const DayTime HA() const;
@@ -391,6 +394,7 @@ class Mount
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
 
+    void setStatus(int state);
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 

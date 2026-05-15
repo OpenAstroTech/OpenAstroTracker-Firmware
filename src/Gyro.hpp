@@ -15,6 +15,8 @@ class Gyro
     static float getCurrentTemperature();
 
   private:
+    static void collectSample();
+
     // MPU6050 constants
     enum
     {
@@ -28,6 +30,13 @@ class Gyro
         MPU6050_REG_WHO_AM_I     = 0x75
     };
 
-    static bool isPresent;  // True if gyro correctly detected on startup
+    static constexpr float EMA_ALPHA           = 0.1f;  // Smoothing factor for exponential moving average
+    static const unsigned long SAMPLE_INTERVAL = 5;     // ms between samples
+
+    static bool isPresent;
+    static float _pitchEma;
+    static float _rollEma;
+    static bool _initialized;
+    static unsigned long _lastSampleTime;
 };
 #endif

@@ -336,9 +336,9 @@ void TestMenu::onCommandReceived(String s)
         s = s.substring(0, s.length() - 1);
     }
 
-    String reply = MeadeCommandProcessor::instance()->processCommand(s);
+    const char *reply = MeadeCommandProcessor::instance()->processCommand(s);
 
-    if (reply.length() > 0)
+    if (reply[0] != '\0')
     {
         Serial.println(F("-- Command Response --------"));
         Serial.println(reply);
