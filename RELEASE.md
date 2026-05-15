@@ -22,15 +22,15 @@ CI will reject PR titles that do not conform.
 
 | Type | Triggers | Example |
 |------|----------|---------|
+| `feat!` or `BREAKING CHANGE:` footer | major version bump | `feat!: remove legacy serial protocol` |
 | `feat` | minor version bump | `feat: add AZ/ALT steps-per-degree Meade command` |
 | `fix` | patch version bump | `fix: correct sidereal rate after meridian flip` |
-| `feat!` or `BREAKING CHANGE:` footer | major version bump | `feat!: remove legacy serial protocol` |
+| `perf` | patch version bump | `perf: reduce interrupt latency in stepper ISR` |
 | `chore` | no version bump | `chore: update platformio dependencies` |
 | `docs` | no version bump | `docs: clarify wiring diagram for RAMPS` |
 | `refactor` | no version bump | `refactor: extract stepper configuration logic` |
 | `test` | no version bump | `test: add unit tests for DayTime rollover` |
 | `ci` | no version bump | `ci: update clang-format action version` |
-| `perf` | no version bump | `perf: reduce interrupt latency in stepper ISR` |
 
 The description becomes the changelog entry, so write it as a user-facing statement of what changed — not what you did internally.
 
@@ -63,8 +63,8 @@ Versions follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`)
 |--------|------|
 | Breaking change in Meade protocol or configuration | **Major** |
 | New feature, new board support, new Meade command | **Minor** |
-| Bug fix, performance improvement, documentation | **Patch** |
-| Chore, CI, refactor, test | **None** |
+| Bug fix, performance improvement | **Patch** |
+| Chore, CI, refactor, test, docs | **None** |
 
 ## CI Checks on Every PR
 
