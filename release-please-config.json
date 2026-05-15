@@ -1,7 +1,8 @@
 {
     "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
     "release-type": "simple",
-    "tag-prefix": "V",
+    "tag-prefix": "v",
+    "bootstrap-sha: "54c752ea440b3fa50096120cbcf0ad985301a322",
     "packages": {
         ".": {
             "release-type": "simple",
