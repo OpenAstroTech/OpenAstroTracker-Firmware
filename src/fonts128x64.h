@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 
+// clang-format off
 // Font generated or edited with the glyphEditor
 const uint8_t Bitmap3x5[] PROGMEM = {
     0x03,  // Width: 3
@@ -1886,3 +1887,4 @@ const uint8_t OATLogo[] PROGMEM = {
     0xC0,
     0x01,  // 33
 };
+// clang-format on

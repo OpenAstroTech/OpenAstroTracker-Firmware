@@ -9,9 +9,9 @@ See the [Changelog](Changelog.md) for details about what versions made what chan
 See `.clang-format` file. A GitHub action is run on every PR to make sure that the code complies with the formatting guidelines.
 
 ### Run clang-format locally
-* Install `clang-format` version 12. _Note: not all distributions default to version 12_
+* Install `clang-format` version 18. _Note: not all distributions default to version 18_
   * Windows: Installers available from [LLVM Website](https://llvm.org/builds/)
-  * Ubuntu: `sudo apt install clang-format-12`
+  * Ubuntu: `sudo apt install clang-format-18`
   * ArchLinux: `sudo pacman -S clang`
 * Run the formatter: 
   * VSCode Extension: [https://marketplace.visualstudio.com/items?itemName=xaver.clang-format](https://marketplace.visualstudio.com/items?itemName=xaver.clang-format)
@@ -27,6 +27,16 @@ This is an open source project and everyone is welcome to contribute. We will be
 ## Development
 
 Even if Arduino IDE is supported, we highly recommend using VSCode with [PlatformIO](https://platformio.org/) for development. It allows automatic dependency management, powerful IDE, debugging, automatic build flags definition and more.
+
+### Native unit tests
+
+Run the host-based unit tests with PlatformIO:
+
+```shell
+pio test -e native -v
+```
+
+This executes the tests under `unit_tests/test_common` without requiring any target hardware.
 
 ### Debugging
 

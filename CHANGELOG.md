@@ -1,3 +1,8 @@
+**V1.13.21 - Updates**
+- CI adjustments
+- Dependency updates
+- Unit testing improvements
+
 **V1.13.20 - Updates**
 - Code improvement to stability, multithreading, memory usage, user input, etc.
 - Fixed a bug that caused Latitude to overwrite Longitude in the EEPROM code.

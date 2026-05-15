@@ -1,0 +1,8 @@
+**/*.md
+
+.github
+.pio
+.vscode
+build_cache
+
+scripts
