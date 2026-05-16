@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/MeadeResponse.hpp"
+
 // Forward declarations
 class Mount;
 class LcdMenu;
@@ -13,6 +15,10 @@ class MeadeCommandProcessor
 
   private:
     MeadeCommandProcessor(Mount *mount, LcdMenu *lcdMenu);
+
+    // Persist a freshly-built response across the handler return.
+    // The returned pointer is valid until the next call to `store`.
+    const char *store(oat::core::meade::MeadeResponse response);
     const char *handleMeadeSetInfo(const String &inCmd);
     const char *handleMeadeMovement(const String &inCmd);
     const char *handleMeadeGetInfo(const String &inCmd);
@@ -26,12 +32,8 @@ class MeadeCommandProcessor
     const char *handleMeadeExtraCommands(const String &inCmd);
     const char *handleMeadeFocusCommands(const String &inCmd);
 
-    static const char *copyToResponse(const char *src);
-    static const char *formatResponse(const char *fmt, ...);
-    static const char *copyToResponse_P(const char *pgmSrc);
-
     Mount *_mount;
     LcdMenu *_lcdMenu;
     static MeadeCommandProcessor *_instance;
-    static char _responseBuffer[200];
+    oat::core::meade::MeadeResponse _response;
 };

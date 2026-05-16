@@ -1,3 +1,13 @@
+/**
+ * @file MeadeParser.cpp
+ * @brief Implementation of the Meade LX200 command parser.
+ *
+ * Parsing is table-driven via `ExactEntry` (full-string match) and
+ * `PrefixEntry` (prefix match with optional payload capture). Each
+ * `parseMeade*Command` function scans a small static table for its
+ * family and falls back to an `Unknown` result otherwise.
+ */
+
 #include "core/MeadeParser.hpp"
 
 #include <cstddef>

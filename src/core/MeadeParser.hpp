@@ -1,5 +1,27 @@
 #pragma once
 
+/**
+ * @file MeadeParser.hpp
+ * @brief Pure parser for the Meade LX200 command protocol used by
+ *        OpenAstroTracker.
+ *
+ * The parser is allocation-light (only the captured payload uses
+ * `std::string`) and has no side effects on the mount: it inspects the
+ * raw command bytes, classifies them into a `Meade*CommandKind` enum,
+ * and returns a `Meade*ParseResult` describing the dispatch.
+ *
+ * The framing characters (`:` prefix and `#` terminator) are handled by
+ * the caller and are not part of the inputs to these functions.
+ *
+ * ### Hierarchy
+ * - `parseMeadeCommand` classifies the top-level command family.
+ * - Per-family parsers (`parseMeadeGetCommand`, ...) decode the family
+ *   payload into a fine-grained kind.
+ * - `parseMeadeExtraLeafCommand` is dispatched separately because the
+ *   `Extra` family has nested sub-commands keyed by
+ *   `MeadeExtraCommandKind`.
+ */
+
 #include <string>
 
 namespace oat
@@ -9,6 +31,7 @@ namespace core
 namespace meade
 {
 
+/** @brief Top-level Meade command families (first parser pass). */
 enum class MeadeCommandKind
 {
     Unknown,
@@ -26,6 +49,10 @@ enum class MeadeCommandKind
     Focus,
 };
 
+/**
+ * @brief Dispatch label corresponding to a `MeadeCommandKind`, matching the
+ * handler-naming used by `MeadeCommandProcessor`.
+ */
 enum class MeadeCommandDispatchTarget
 {
     Unknown,
@@ -43,13 +70,19 @@ enum class MeadeCommandDispatchTarget
     FocusCommands,
 };
 
+/** @brief Result of `parseMeadeCommand`. */
 struct MeadeParseResult {
-    bool valid                                = false;
-    MeadeCommandKind kind                     = MeadeCommandKind::Unknown;
+    /** @brief `true` if the input was recognised. */
+    bool valid = false;
+    /** @brief Family classification. */
+    MeadeCommandKind kind = MeadeCommandKind::Unknown;
+    /** @brief Handler dispatch label. */
     MeadeCommandDispatchTarget dispatchTarget = MeadeCommandDispatchTarget::Unknown;
+    /** @brief Remaining bytes after the family prefix. */
     std::string payload;
 };
 
+/** @brief Sub-commands of the `:X...` extra family. */
 enum class MeadeExtraCommandKind
 {
     Unknown,
@@ -60,12 +93,17 @@ enum class MeadeExtraCommandKind
     FactoryReset,
 };
 
+/** @brief Result of `parseMeadeExtraCommand`. */
 struct MeadeExtraParseResult {
-    bool valid                 = false;
+    /** @brief `true` if the extra sub-command was recognised. */
+    bool valid = false;
+    /** @brief Extra sub-command classification. */
     MeadeExtraCommandKind kind = MeadeExtraCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief Leaf sub-commands of the `:X` extra family (one enum spans Get/Set/Level). */
 enum class MeadeExtraLeafCommandKind
 {
     Unknown,
@@ -124,12 +162,17 @@ enum class MeadeExtraLeafCommandKind
     LevelUnknownVariant,
 };
 
+/** @brief Result of `parseMeadeExtraLeafCommand`. */
 struct MeadeExtraLeafParseResult {
-    bool valid                     = false;
+    /** @brief `true` if the leaf was recognised. */
+    bool valid = false;
+    /** @brief Leaf classification. */
     MeadeExtraLeafCommandKind kind = MeadeExtraLeafCommandKind::Unknown;
+    /** @brief Remaining bytes after the leaf prefix. */
     std::string payload;
 };
 
+/** @brief `:G...` Get sub-commands. */
 enum class MeadeGetCommandKind
 {
     Unknown,
@@ -157,24 +200,34 @@ enum class MeadeGetCommandKind
     TrackingRate,
 };
 
+/** @brief Result of `parseMeadeGetCommand`. */
 struct MeadeGetParseResult {
-    bool valid               = false;
+    /** @brief `true` if the get sub-command was recognised. */
+    bool valid = false;
+    /** @brief Get sub-command classification. */
     MeadeGetCommandKind kind = MeadeGetCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:gps...` GPS sub-commands. */
 enum class MeadeGpsCommandKind
 {
     Unknown,
     StartAcquisition,
 };
 
+/** @brief Result of `parseMeadeGpsCommand`. */
 struct MeadeGpsParseResult {
-    bool valid               = false;
+    /** @brief `true` if the GPS sub-command was recognised. */
+    bool valid = false;
+    /** @brief GPS sub-command classification. */
     MeadeGpsCommandKind kind = MeadeGpsCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:S...` Set sub-commands. */
 enum class MeadeSetCommandKind
 {
     Unknown,
@@ -191,24 +244,34 @@ enum class MeadeSetCommandKind
     LocalDate,
 };
 
+/** @brief Result of `parseMeadeSetCommand`. */
 struct MeadeSetParseResult {
-    bool valid               = false;
+    /** @brief `true` if the set sub-command was recognised. */
+    bool valid = false;
+    /** @brief Set sub-command classification. */
     MeadeSetCommandKind kind = MeadeSetCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:CM...` Sync sub-commands. */
 enum class MeadeSyncCommandKind
 {
     Unknown,
     SyncToTarget,
 };
 
+/** @brief Result of `parseMeadeSyncCommand`. */
 struct MeadeSyncParseResult {
-    bool valid                = false;
+    /** @brief `true` if the sync sub-command was recognised. */
+    bool valid = false;
+    /** @brief Sync sub-command classification. */
     MeadeSyncCommandKind kind = MeadeSyncCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:M...` Movement sub-commands. */
 enum class MeadeMovementCommandKind
 {
     Unknown,
@@ -227,12 +290,17 @@ enum class MeadeMovementCommandKind
     HomeDec,
 };
 
+/** @brief Result of `parseMeadeMovementCommand`. */
 struct MeadeMovementParseResult {
-    bool valid                    = false;
+    /** @brief `true` if the movement sub-command was recognised. */
+    bool valid = false;
+    /** @brief Movement sub-command classification. */
     MeadeMovementCommandKind kind = MeadeMovementCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:h...` Home / park sub-commands. */
 enum class MeadeHomeCommandKind
 {
     Unknown,
@@ -242,12 +310,17 @@ enum class MeadeHomeCommandKind
     SetAzAltHome,
 };
 
+/** @brief Result of `parseMeadeHomeCommand`. */
 struct MeadeHomeParseResult {
-    bool valid                = false;
+    /** @brief `true` if the home sub-command was recognised. */
+    bool valid = false;
+    /** @brief Home sub-command classification. */
     MeadeHomeCommandKind kind = MeadeHomeCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:Q...` Quit / stop sub-commands. */
 enum class MeadeQuitCommandKind
 {
     Unknown,
@@ -260,12 +333,17 @@ enum class MeadeQuitCommandKind
     QuitControlMode,
 };
 
+/** @brief Result of `parseMeadeQuitCommand`. */
 struct MeadeQuitParseResult {
-    bool valid                = false;
+    /** @brief `true` if the quit sub-command was recognised. */
+    bool valid = false;
+    /** @brief Quit sub-command classification. */
     MeadeQuitCommandKind kind = MeadeQuitCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:R...` Slew-rate sub-commands. */
 enum class MeadeSlewRateCommandKind
 {
     Unknown,
@@ -275,12 +353,17 @@ enum class MeadeSlewRateCommandKind
     Guide,
 };
 
+/** @brief Result of `parseMeadeSlewRateCommand`. */
 struct MeadeSlewRateParseResult {
-    bool valid                    = false;
+    /** @brief `true` if the slew-rate sub-command was recognised. */
+    bool valid = false;
+    /** @brief Slew-rate sub-command classification. */
     MeadeSlewRateCommandKind kind = MeadeSlewRateCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/** @brief `:F...` Focus sub-commands. */
 enum class MeadeFocusCommandKind
 {
     Unknown,
@@ -296,23 +379,94 @@ enum class MeadeFocusCommandKind
     Stop,
 };
 
+/** @brief Result of `parseMeadeFocusCommand`. */
 struct MeadeFocusParseResult {
-    bool valid                 = false;
+    /** @brief `true` if the focus sub-command was recognised. */
+    bool valid = false;
+    /** @brief Focus sub-command classification. */
     MeadeFocusCommandKind kind = MeadeFocusCommandKind::Unknown;
+    /** @brief Remaining bytes after the sub-command prefix. */
     std::string payload;
 };
 
+/**
+ * @brief Parse functions consume the bytes between the framing `:` prefix
+ * and the `#` terminator (neither is part of the input) and return a result
+ * whose `valid` flag indicates whether the command was recognised.
+ */
+
+/**
+ * @brief Classify a top-level Meade command.
+ * @param input NUL-terminated bytes after the leading `:`.
+ */
 MeadeParseResult parseMeadeCommand(const char *input);
+
+/**
+ * @brief Parse a `:G...` Get sub-command.
+ * @param input NUL-terminated bytes after the `G` prefix.
+ */
 MeadeGetParseResult parseMeadeGetCommand(const char *input);
+
+/**
+ * @brief Parse a `:gps...` GPS sub-command.
+ * @param input NUL-terminated bytes after the `gps` prefix.
+ */
 MeadeGpsParseResult parseMeadeGpsCommand(const char *input);
+
+/**
+ * @brief Parse a `:S...` Set sub-command.
+ * @param input NUL-terminated bytes after the `S` prefix.
+ */
 MeadeSetParseResult parseMeadeSetCommand(const char *input);
+
+/**
+ * @brief Parse a `:CM...` Sync sub-command.
+ * @param input NUL-terminated bytes after the `CM` prefix.
+ */
 MeadeSyncParseResult parseMeadeSyncCommand(const char *input);
+
+/**
+ * @brief Parse a `:M...` Movement sub-command.
+ * @param input NUL-terminated bytes after the `M` prefix.
+ */
 MeadeMovementParseResult parseMeadeMovementCommand(const char *input);
+
+/**
+ * @brief Parse a `:h...` Home / park sub-command.
+ * @param input NUL-terminated bytes after the `h` prefix.
+ */
 MeadeHomeParseResult parseMeadeHomeCommand(const char *input);
+
+/**
+ * @brief Parse a `:Q...` Quit / stop sub-command.
+ * @param input NUL-terminated bytes after the `Q` prefix.
+ */
 MeadeQuitParseResult parseMeadeQuitCommand(const char *input);
+
+/**
+ * @brief Parse a `:R...` Slew-rate sub-command.
+ * @param input NUL-terminated bytes after the `R` prefix.
+ */
 MeadeSlewRateParseResult parseMeadeSlewRateCommand(const char *input);
+
+/**
+ * @brief Parse a `:F...` Focus sub-command.
+ * @param input NUL-terminated bytes after the `F` prefix.
+ */
 MeadeFocusParseResult parseMeadeFocusCommand(const char *input);
+
+/**
+ * @brief Parse a `:X...` Extra sub-command at the first level.
+ * @param input NUL-terminated bytes after the `X` prefix.
+ */
 MeadeExtraParseResult parseMeadeExtraCommand(const char *input);
+
+/**
+ * @brief Parse a leaf sub-command beneath the `:X...` Extra family.
+ * @param kind  Result of a prior call to `parseMeadeExtraCommand`; selects
+ *              the appropriate leaf grammar.
+ * @param input NUL-terminated bytes after the Extra sub-command prefix.
+ */
 MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind, const char *input);
 
 }  // namespace meade

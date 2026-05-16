@@ -1218,28 +1218,11 @@ namespace meade = oat::core::meade;
 /////////////////////////////////////////////////////////////////////////////////////////
 
 MeadeCommandProcessor *MeadeCommandProcessor::_instance = nullptr;
-char MeadeCommandProcessor::_responseBuffer[200]        = {};
 
-const char *MeadeCommandProcessor::copyToResponse(const char *src)
+const char *MeadeCommandProcessor::store(oat::core::meade::MeadeResponse response)
 {
-    strlcpy(_responseBuffer, src, sizeof(_responseBuffer));
-    return _responseBuffer;
-}
-
-const char *MeadeCommandProcessor::formatResponse(const char *fmt, ...)
-{
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(_responseBuffer, sizeof(_responseBuffer), fmt, args);
-    va_end(args);
-    return _responseBuffer;
-}
-
-const char *MeadeCommandProcessor::copyToResponse_P(const char *pgmSrc)
-{
-    strncpy_P(_responseBuffer, pgmSrc, sizeof(_responseBuffer) - 1);
-    _responseBuffer[sizeof(_responseBuffer) - 1] = '\0';
-    return _responseBuffer;
+    _response = response;
+    return _response.c_str();
 }
 
 /////////////////////////////
@@ -1288,6 +1271,9 @@ const char *MeadeCommandProcessor::handleMeadeInit(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeGetInfo(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeGetCommandKind;
+
     meade::MeadeGetParseResult parsed = meade::parseMeadeGetCommand(inCmd.c_str());
     if (!parsed.valid)
     {
@@ -1298,65 +1284,69 @@ const char *MeadeCommandProcessor::handleMeadeGetInfo(const String &inCmd)
 
     switch (parsed.kind)
     {
-        case meade::MeadeGetCommandKind::FirmwareVersion:
-            return formatResponse("%s#", VERSION);
+        case MeadeGetCommandKind::FirmwareVersion:
+            return store(respondGet<MeadeGetCommandKind::FirmwareVersion>(VERSION));
 
-        case meade::MeadeGetCommandKind::ProductName:
+        case MeadeGetCommandKind::ProductName:
 #ifdef OAM
-            return "OpenAstroMount#";
+            return store(respondGet<MeadeGetCommandKind::ProductName>("OpenAstroMount"));
 #elif defined(OAE)
-            return "OpenAstroExplorer#";
+            return store(respondGet<MeadeGetCommandKind::ProductName>("OpenAstroExplorer"));
 #else
-            return "OpenAstroTracker#";
+            return store(respondGet<MeadeGetCommandKind::ProductName>("OpenAstroTracker"));
 #endif
 
-        case meade::MeadeGetCommandKind::TargetRa:
-            return copyToResponse(_mount->RAString(MEADE_STRING | TARGET_STRING).c_str());  // returns trailing #
+        case MeadeGetCommandKind::TargetRa:
+            return store(respondGet<MeadeGetCommandKind::TargetRa>(_mount->RAString(MEADE_STRING | TARGET_STRING).c_str()));
 
-        case meade::MeadeGetCommandKind::TargetDec:
-            return copyToResponse(_mount->DECString(MEADE_STRING | TARGET_STRING).c_str());  // returns trailing #
+        case MeadeGetCommandKind::TargetDec:
+            return store(respondGet<MeadeGetCommandKind::TargetDec>(_mount->DECString(MEADE_STRING | TARGET_STRING).c_str()));
 
-        case meade::MeadeGetCommandKind::CurrentRa:
-            return copyToResponse(_mount->RAString(MEADE_STRING | CURRENT_STRING).c_str());  // returns trailing #
+        case MeadeGetCommandKind::CurrentRa:
+            return store(respondGet<MeadeGetCommandKind::CurrentRa>(_mount->RAString(MEADE_STRING | CURRENT_STRING).c_str()));
 
-        case meade::MeadeGetCommandKind::CurrentDec:
-            return copyToResponse(_mount->DECString(MEADE_STRING | CURRENT_STRING).c_str());  // returns trailing #
+        case MeadeGetCommandKind::CurrentDec:
+            return store(respondGet<MeadeGetCommandKind::CurrentDec>(_mount->DECString(MEADE_STRING | CURRENT_STRING).c_str()));
 
-        case meade::MeadeGetCommandKind::MountStatus:
-            return formatResponse("%s#", _mount->getStatusString().c_str());
+        case MeadeGetCommandKind::MountStatus:
+            return store(respondGet<MeadeGetCommandKind::MountStatus>(_mount->getStatusString().c_str()));
 
-        case meade::MeadeGetCommandKind::IsSlewing:
-            return formatResponse("%s#", _mount->isSlewingRAorDEC() ? "1" : "0");
+        case MeadeGetCommandKind::IsSlewing:
+            return store(respondGet<MeadeGetCommandKind::IsSlewing>(_mount->isSlewingRAorDEC()));
 
-        case meade::MeadeGetCommandKind::IsTracking:
-            return formatResponse("%s#", _mount->isSlewingTRK() ? "1" : "0");
+        case MeadeGetCommandKind::IsTracking:
+            return store(respondGet<MeadeGetCommandKind::IsTracking>(_mount->isSlewingTRK()));
 
-        case meade::MeadeGetCommandKind::IsGuiding:
-            return formatResponse("%s#", _mount->isGuiding() ? "1" : "0");
+        case MeadeGetCommandKind::IsGuiding:
+            return store(respondGet<MeadeGetCommandKind::IsGuiding>(_mount->isGuiding()));
 
-        case meade::MeadeGetCommandKind::SiteLatitude:
+        case MeadeGetCommandKind::SiteLatitude:
             {
                 _mount->latitude().formatString(achBuffer, "{d}*{m}#");
-                return copyToResponse(achBuffer);
+                return store(respondGet<MeadeGetCommandKind::SiteLatitude>(achBuffer));
             }
 
-        case meade::MeadeGetCommandKind::SiteLongitude:
+        case MeadeGetCommandKind::SiteLongitude:
             {
                 _mount->longitude().formatStringForMeade(achBuffer);
-                return formatResponse("%s#", achBuffer);
+                // formatStringForMeade does not append `#`; the Text-like overload
+                // here would need it, so build the preformatted string explicitly.
+                const size_t n = strlen(achBuffer);
+                if (n + 1 < sizeof(achBuffer))
+                {
+                    achBuffer[n]     = '#';
+                    achBuffer[n + 1] = '\0';
+                }
+                return store(respondGet<MeadeGetCommandKind::SiteLongitude>(achBuffer));
             }
 
-        case meade::MeadeGetCommandKind::ClockFormat:
-            return "24#";
+        case MeadeGetCommandKind::ClockFormat:
+            return store(respondGet<MeadeGetCommandKind::ClockFormat>());
 
-        case meade::MeadeGetCommandKind::UtcOffset:
-            {
-                int offset = _mount->getLocalUtcOffset();
-                snprintf(achBuffer, sizeof(achBuffer), "%+03d#", -offset);
-                return copyToResponse(achBuffer);
-            }
+        case MeadeGetCommandKind::UtcOffset:
+            return store(respondGet<MeadeGetCommandKind::UtcOffset>(-_mount->getLocalUtcOffset()));
 
-        case meade::MeadeGetCommandKind::LocalTime12h:
+        case MeadeGetCommandKind::LocalTime12h:
             {
                 DayTime time = _mount->getLocalTime();
                 if (time.getHours() > 12)
@@ -1364,39 +1354,38 @@ const char *MeadeCommandProcessor::handleMeadeGetInfo(const String &inCmd)
                     time.addHours(-12);
                 }
                 time.formatString(achBuffer, "{d}:{m}:{s}#");
-                return copyToResponse(achBuffer + 1);
+                return store(respondGet<MeadeGetCommandKind::LocalTime12h>(achBuffer + 1));
             }
 
-        case meade::MeadeGetCommandKind::LocalTime24h:
+        case MeadeGetCommandKind::LocalTime24h:
             {
                 DayTime time = _mount->getLocalTime();
                 time.formatString(achBuffer, "{d}:{m}:{s}#");
-                return copyToResponse(achBuffer + 1);
+                return store(respondGet<MeadeGetCommandKind::LocalTime24h>(achBuffer + 1));
             }
 
-        case meade::MeadeGetCommandKind::LocalDate:
+        case MeadeGetCommandKind::LocalDate:
             {
                 LocalDate date = _mount->getLocalDate();
-                snprintf(achBuffer, sizeof(achBuffer), "%02d/%02d/%02d#", date.month, date.day, date.year % 100);
-                return copyToResponse(achBuffer);
+                return store(respondGet<MeadeGetCommandKind::LocalDate>(date.month, date.day, date.year));
             }
 
-        case meade::MeadeGetCommandKind::SiteName1:
-            return "OAT1#";
+        case MeadeGetCommandKind::SiteName1:
+            return store(respondGet<MeadeGetCommandKind::SiteName1>());
 
-        case meade::MeadeGetCommandKind::SiteName2:
-            return "OAT2#";
+        case MeadeGetCommandKind::SiteName2:
+            return store(respondGet<MeadeGetCommandKind::SiteName2>());
 
-        case meade::MeadeGetCommandKind::SiteName3:
-            return "OAT3#";
+        case MeadeGetCommandKind::SiteName3:
+            return store(respondGet<MeadeGetCommandKind::SiteName3>());
 
-        case meade::MeadeGetCommandKind::SiteName4:
-            return "OAT4#";
+        case MeadeGetCommandKind::SiteName4:
+            return store(respondGet<MeadeGetCommandKind::SiteName4>());
 
-        case meade::MeadeGetCommandKind::TrackingRate:
-            return "60.0#";  //default MEADE Tracking Frequency
+        case MeadeGetCommandKind::TrackingRate:
+            return store(respondGet<MeadeGetCommandKind::TrackingRate>());
 
-        case meade::MeadeGetCommandKind::Unknown:
+        case MeadeGetCommandKind::Unknown:
             break;
     }
 
@@ -1408,15 +1397,18 @@ const char *MeadeCommandProcessor::handleMeadeGetInfo(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeGPSCommands(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeGpsCommandKind;
+
     meade::MeadeGpsParseResult parsed = meade::parseMeadeGpsCommand(inCmd.c_str());
     if (!parsed.valid)
     {
-        return "0";
+        return store(respondGps<MeadeGpsCommandKind::StartAcquisition>(false));
     }
 #if USE_GPS == 1
     switch (parsed.kind)
     {
-        case meade::MeadeGpsCommandKind::StartAcquisition:
+        case MeadeGpsCommandKind::StartAcquisition:
             {
                 unsigned long timeoutLen = 2UL * 60UL * 1000UL;
                 if (!parsed.payload.empty())
@@ -1431,19 +1423,19 @@ const char *MeadeCommandProcessor::handleMeadeGPSCommands(const String &inCmd)
                     if (gpsAqcuisitionComplete(indicator))
                     {
                         LOG(DEBUG_MEADE, "[MEADE]: GPS startup, GPS acquired");
-                        return "1";
+                        return store(respondGps<MeadeGpsCommandKind::StartAcquisition>(true));
                     }
                 }
             }
 
             break;
 
-        case meade::MeadeGpsCommandKind::Unknown:
-            return "0";
+        case MeadeGpsCommandKind::Unknown:
+            return store(respondGps<MeadeGpsCommandKind::StartAcquisition>(false));
     }
 #endif
     LOG(DEBUG_MEADE, "[MEADE]: GPS startup, no GPS signal");
-    return "0";
+    return store(respondGps<MeadeGpsCommandKind::StartAcquisition>(false));
 }
 
 /////////////////////////////
@@ -1451,22 +1443,25 @@ const char *MeadeCommandProcessor::handleMeadeGPSCommands(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeSyncControl(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeSyncCommandKind;
+
     meade::MeadeSyncParseResult parsed = meade::parseMeadeSyncCommand(inCmd.c_str());
     if (!parsed.valid)
     {
-        return "FAIL#";
+        return store(makeResponse(tag::Text {}, "FAIL"));
     }
 
     switch (parsed.kind)
     {
-        case meade::MeadeSyncCommandKind::SyncToTarget:
+        case MeadeSyncCommandKind::SyncToTarget:
             _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
-            return "NONE#";
+            return store(respondSync<MeadeSyncCommandKind::SyncToTarget>());
 
-        case meade::MeadeSyncCommandKind::Unknown:
-            return "FAIL#";
+        case MeadeSyncCommandKind::Unknown:
+            return store(makeResponse(tag::Text {}, "FAIL"));
     }
-    return "FAIL#";
+    return store(makeResponse(tag::Text {}, "FAIL"));
 }
 
 /////////////////////////////
@@ -1474,15 +1469,18 @@ const char *MeadeCommandProcessor::handleMeadeSyncControl(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeSetCommandKind;
+
     meade::MeadeSetParseResult parsed = meade::parseMeadeSetCommand(inCmd.c_str());
     if (!parsed.valid)
     {
-        return "0";
+        return store(respondSet<MeadeSetCommandKind::TargetDec>(false));
     }
 
     switch (parsed.kind)
     {
-        case meade::MeadeSetCommandKind::TargetDec:
+        case MeadeSetCommandKind::TargetDec:
             if (inCmd.length() == 10)
             {
                 // Set DEC
@@ -1493,12 +1491,12 @@ const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
                     Declination dec     = Declination::ParseFromMeade(inCmd.substring(1));
                     _mount->targetDEC() = dec;
                     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
-                    return "1";
+                    return store(respondSet<MeadeSetCommandKind::TargetDec>(true));
                 }
             }
-            return "0";
+            return store(respondSet<MeadeSetCommandKind::TargetDec>(false));
 
-        case meade::MeadeSetCommandKind::TargetRa:
+        case MeadeSetCommandKind::TargetRa:
             // :Sr11:04:57#
             // Set RA
             //   012345678
@@ -1507,11 +1505,11 @@ const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
             {
                 _mount->targetRA().set(inCmd.substring(1, 3).toInt(), inCmd.substring(4, 6).toInt(), inCmd.substring(7, 9).toInt());
                 LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", _mount->targetRA().ToString());
-                return "1";
+                return store(respondSet<MeadeSetCommandKind::TargetRa>(true));
             }
-            return "0";
+            return store(respondSet<MeadeSetCommandKind::TargetRa>(false));
 
-        case meade::MeadeSetCommandKind::LocalSiderealTime:
+        case MeadeSetCommandKind::LocalSiderealTime:
             {
                 int hLST   = inCmd.substring(2, 4).toInt();
                 int minLST = inCmd.substring(4, 6).toInt();
@@ -1524,23 +1522,23 @@ const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
                 DayTime lst(hLST, minLST, secLST);
                 LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received LST: %d:%d:%d", hLST, minLST, secLST);
                 _mount->setLST(lst);
-                return "1";
+                return store(respondSet<MeadeSetCommandKind::LocalSiderealTime>(true));
             }
 
-        case meade::MeadeSetCommandKind::HomePoint:
+        case MeadeSetCommandKind::HomePoint:
             _mount->setHome(false);
-            return "1";
+            return store(respondSet<MeadeSetCommandKind::HomePoint>(true));
 
-        case meade::MeadeSetCommandKind::HourAngle:
+        case MeadeSetCommandKind::HourAngle:
             {
                 int hHA   = inCmd.substring(1, 3).toInt();
                 int minHA = inCmd.substring(4, 6).toInt();
                 LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received HA: %d:%d:%d", hHA, minHA, 0);
                 _mount->setHA(DayTime(hHA, minHA, 0));
-                return "1";
+                return store(respondSet<MeadeSetCommandKind::HourAngle>(true));
             }
 
-        case meade::MeadeSetCommandKind::SyncCoordinates:
+        case MeadeSetCommandKind::SyncCoordinates:
             // Sync RA, DEC - current position is the given coordinate
             //   0123456789012345678
             // :SY+84*03:02.18:34:12
@@ -1552,36 +1550,36 @@ const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
                 DayTime ra      = DayTime::ParseFromMeade(inCmd.substring(11));
 
                 _mount->syncPosition(ra, dec);
-                return "1";
+                return store(respondSet<MeadeSetCommandKind::SyncCoordinates>(true));
             }
-            return "0";
+            return store(respondSet<MeadeSetCommandKind::SyncCoordinates>(false));
 
-        case meade::MeadeSetCommandKind::SiteLatitude:
+        case MeadeSetCommandKind::SiteLatitude:
             {
                 Latitude lat = Latitude::ParseFromMeade(inCmd.substring(1));
                 _mount->setLatitude(lat);
-                return "1";
+                return store(respondSet<MeadeSetCommandKind::SiteLatitude>(true));
             }
 
-        case meade::MeadeSetCommandKind::SiteLongitude:
+        case MeadeSetCommandKind::SiteLongitude:
             {
                 Longitude lon = Longitude::ParseFromMeade(inCmd.substring(1));
                 _mount->setLongitude(lon);
-                return "1";
+                return store(respondSet<MeadeSetCommandKind::SiteLongitude>(true));
             }
 
-        case meade::MeadeSetCommandKind::UtcOffset:
+        case MeadeSetCommandKind::UtcOffset:
             {
                 int offset = inCmd.substring(1, 4).toInt();
                 _mount->setLocalUtcOffset(-offset);
-                return "1";
+                return store(respondSet<MeadeSetCommandKind::UtcOffset>(true));
             }
 
-        case meade::MeadeSetCommandKind::LocalTime:
+        case MeadeSetCommandKind::LocalTime:
             _mount->setLocalStartTime(DayTime::ParseFromMeade(inCmd.substring(1)));
-            return "1";
+            return store(respondSet<MeadeSetCommandKind::LocalTime>(true));
 
-        case meade::MeadeSetCommandKind::LocalDate:
+        case MeadeSetCommandKind::LocalDate:
             {
                 int month = inCmd.substring(1, 3).toInt();
                 int day   = inCmd.substring(4, 6).toInt();
@@ -1593,13 +1591,13 @@ const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
             SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long.
             The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
             */
-                return copyToResponse_P(PSTR("1Updating Planetary Data#                              #"));
+                return store(respondSet<MeadeSetCommandKind::LocalDate>(true));
             }
 
-        case meade::MeadeSetCommandKind::Unknown:
-            return "0";
+        case MeadeSetCommandKind::Unknown:
+            return store(respondSet<MeadeSetCommandKind::TargetDec>(false));
     }
-    return "0";
+    return store(respondSet<MeadeSetCommandKind::TargetDec>(false));
 }
 
 /////////////////////////////
@@ -1615,29 +1613,32 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
 
     LOG(DEBUG_MEADE, "[MEADE]: Process Move command: [%s]", inCmd.c_str());
 
+    using namespace oat::core::meade::response;
+    using meade::MeadeMovementCommandKind;
+
     switch (parsed.kind)
     {
-        case meade::MeadeMovementCommandKind::SlewToTarget:
+        case MeadeMovementCommandKind::SlewToTarget:
             _mount->startSlewingToTarget();
-            return "0";
+            return store(respondMovement<MeadeMovementCommandKind::SlewToTarget>());
 
-        case meade::MeadeMovementCommandKind::TrackingToggle:
+        case MeadeMovementCommandKind::TrackingToggle:
             if (inCmd.length() > 1)
             {
                 if (inCmd[1] == '1')
                 {
                     _mount->startSlewing(TRACKING);
-                    return "1";
+                    return store(respondMovement<MeadeMovementCommandKind::TrackingToggle>(true));
                 }
                 else if (inCmd[1] == '0')
                 {
                     _mount->stopSlewing(TRACKING);
-                    return "1";
+                    return store(respondMovement<MeadeMovementCommandKind::TrackingToggle>(true));
                 }
             }
-            return "0";
+            return store(respondMovement<MeadeMovementCommandKind::TrackingToggle>(false));
 
-        case meade::MeadeMovementCommandKind::GuidePulse:
+        case MeadeMovementCommandKind::GuidePulse:
             // The spec calls for lowercase, but ASCOM Drivers prior to 0.3.1.0 sends uppercase, so we allow both for now.
             // Guide pulse
             //   012345678901
@@ -1656,17 +1657,17 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
                     direction = WEST;
                 int duration = (inCmd[2] - '0') * 1000 + (inCmd[3] - '0') * 100 + (inCmd[4] - '0') * 10 + (inCmd[5] - '0');
                 _mount->guidePulse(direction, duration);
-                return "";
+                return store(respondMovement<MeadeMovementCommandKind::GuidePulse>(""));
             }
-            return "0";
+            return store(respondMovement<MeadeMovementCommandKind::GuidePulse>("0"));
 
-        case meade::MeadeMovementCommandKind::MoveAzAltHome:
+        case MeadeMovementCommandKind::MoveAzAltHome:
             LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
             LOG(DEBUG_MEADE, "[MEADE]: Move AZ and ALT to home");
             _mount->moveAZALTToHome();
-            return "1";
+            return store(respondMovement<MeadeMovementCommandKind::MoveAzAltHome>(true));
 
-        case meade::MeadeMovementCommandKind::MoveAzimuth:
+        case MeadeMovementCommandKind::MoveAzimuth:
             {
                 LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -1674,10 +1675,10 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
                 LOG(DEBUG_MEADE, "[MEADE]: Move AZ by %f arcmins", arcMinute);
                 _mount->moveBy(AZIMUTH_STEPS, arcMinute);
 #endif
-                return "";
+                return store(respondMovement<MeadeMovementCommandKind::MoveAzimuth>());
             }
 
-        case meade::MeadeMovementCommandKind::MoveAltitude:
+        case MeadeMovementCommandKind::MoveAltitude:
             {
                 LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -1685,26 +1686,26 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
                 LOG(DEBUG_MEADE, "[MEADE]: Move ALT by %f arcmins", arcMinute);
                 _mount->moveBy(ALTITUDE_STEPS, arcMinute);
 #endif
-                return "";
+                return store(respondMovement<MeadeMovementCommandKind::MoveAltitude>());
             }
 
-        case meade::MeadeMovementCommandKind::SlewEast:
+        case MeadeMovementCommandKind::SlewEast:
             _mount->startSlewing(EAST);
-            return "";
+            return store(respondMovement<MeadeMovementCommandKind::SlewEast>());
 
-        case meade::MeadeMovementCommandKind::SlewWest:
+        case MeadeMovementCommandKind::SlewWest:
             _mount->startSlewing(WEST);
-            return "";
+            return store(respondMovement<MeadeMovementCommandKind::SlewWest>());
 
-        case meade::MeadeMovementCommandKind::SlewNorth:
+        case MeadeMovementCommandKind::SlewNorth:
             _mount->startSlewing(NORTH);
-            return "";
+            return store(respondMovement<MeadeMovementCommandKind::SlewNorth>());
 
-        case meade::MeadeMovementCommandKind::SlewSouth:
+        case MeadeMovementCommandKind::SlewSouth:
             _mount->startSlewing(SOUTH);
-            return "";
+            return store(respondMovement<MeadeMovementCommandKind::SlewSouth>());
 
-        case meade::MeadeMovementCommandKind::MoveStepper:
+        case MeadeMovementCommandKind::MoveStepper:
             {
                 long steps = inCmd.substring(2).toInt();
                 LOG(DEBUG_MEADE, "[MEADE]: Move: %l in %c", steps, inCmd[1]);
@@ -1719,11 +1720,11 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
                 else if (inCmd[1] == 'f')
                     _mount->moveStepperBy(FOCUS_STEPS, steps);
                 else
-                    return "0";
-                return "1";
+                    return store(respondMovement<MeadeMovementCommandKind::MoveStepper>(false));
+                return store(respondMovement<MeadeMovementCommandKind::MoveStepper>(true));
             }
 
-        case meade::MeadeMovementCommandKind::HomeRa:
+        case MeadeMovementCommandKind::HomeRa:
             {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
                 int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
@@ -1735,17 +1736,19 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
 
                 if (inCmd[2] == 'R')  // :MHRR
                 {
-                    return _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, -1, distance) ? "1" : "0";
+                    return store(respondMovement<MeadeMovementCommandKind::HomeRa>(
+                        _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, -1, distance)));
                 }
                 else if (inCmd[2] == 'L')  // :MHRL
                 {
-                    return _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, 1, distance) ? "1" : "0";
+                    return store(respondMovement<MeadeMovementCommandKind::HomeRa>(
+                        _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, 1, distance)));
                 }
 #endif
-                return "0";
+                return store(respondMovement<MeadeMovementCommandKind::HomeRa>(false));
             }
 
-        case meade::MeadeMovementCommandKind::HomeDec:
+        case MeadeMovementCommandKind::HomeDec:
             {
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
                 int decDistance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
@@ -1757,17 +1760,19 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
 
                 if (inCmd[2] == 'U')  // :MHDU
                 {
-                    return _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, 1, decDistance) ? "1" : "0";
+                    return store(respondMovement<MeadeMovementCommandKind::HomeDec>(
+                        _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, 1, decDistance)));
                 }
                 else if (inCmd[2] == 'D')  // :MHDD
                 {
-                    return _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, -1, decDistance) ? "1" : "0";
+                    return store(respondMovement<MeadeMovementCommandKind::HomeDec>(
+                        _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, -1, decDistance)));
                 }
 #endif
-                return "0";
+                return store(respondMovement<MeadeMovementCommandKind::HomeDec>(false));
             }
 
-        case meade::MeadeMovementCommandKind::Unknown:
+        case MeadeMovementCommandKind::Unknown:
             return "0";
     }
     return "0";
@@ -1784,25 +1789,28 @@ const char *MeadeCommandProcessor::handleMeadeHome(const String &inCmd)
         return "";
     }
 
+    using namespace oat::core::meade::response;
+    using meade::MeadeHomeCommandKind;
+
     switch (parsed.kind)
     {
-        case meade::MeadeHomeCommandKind::Park:
+        case MeadeHomeCommandKind::Park:
             _mount->park();
-            return "";
+            return store(respondHome<MeadeHomeCommandKind::Park>());
 
-        case meade::MeadeHomeCommandKind::Home:
+        case MeadeHomeCommandKind::Home:
             _mount->startSlewingToHome();
-            return "";
+            return store(respondHome<MeadeHomeCommandKind::Home>());
 
-        case meade::MeadeHomeCommandKind::Unpark:
+        case MeadeHomeCommandKind::Unpark:
             _mount->startSlewing(TRACKING);
-            return "1";
+            return store(respondHome<MeadeHomeCommandKind::Unpark>(true));
 
-        case meade::MeadeHomeCommandKind::SetAzAltHome:
+        case MeadeHomeCommandKind::SetAzAltHome:
             _mount->setAZALTHome();
-            return "1";
+            return store(respondHome<MeadeHomeCommandKind::SetAzAltHome>(true));
 
-        case meade::MeadeHomeCommandKind::Unknown:
+        case MeadeHomeCommandKind::Unknown:
             return "";
     }
     return "";
@@ -1810,11 +1818,12 @@ const char *MeadeCommandProcessor::handleMeadeHome(const String &inCmd)
 
 const char *MeadeCommandProcessor::handleMeadeDistance(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
     if (_mount->isSlewingRAorDEC())
     {
-        return "|#";
+        return store(makeResponse(tag::Text {}, "|"));
     }
-    return " #";
+    return store(makeResponse(tag::Text {}, " "));
 }
 
 /////////////////////////////
@@ -1822,6 +1831,10 @@ const char *MeadeCommandProcessor::handleMeadeDistance(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeExtraCommandKind;
+    using meade::MeadeExtraLeafCommandKind;
+
     if (inCmd.length() < 1)
     {
         return "";
@@ -1834,7 +1847,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
 
     switch (parsed.kind)
     {
-        case meade::MeadeExtraCommandKind::DriftAlignment:
+        case MeadeExtraCommandKind::DriftAlignment:
             {
 #if SUPPORT_DRIFT_ALIGNMENT == 1
                 int duration = String(parsed.payload.c_str()).toInt() - 3;
@@ -1861,42 +1874,44 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                 _lcdMenu->setCursor(0, 1);
                 _mount->startSlewing(TRACKING);
 #endif
-                return "";
+                return store(respondExtra<MeadeExtraCommandKind::DriftAlignment>());
             }
 
-        case meade::MeadeExtraCommandKind::Get:
+        case MeadeExtraCommandKind::Get:
             {
                 meade::MeadeExtraLeafParseResult getParsed = meade::parseMeadeExtraLeafCommand(parsed.kind, parsed.payload.c_str());
                 String subCmd                              = String("G") + parsed.payload.c_str();
 
                 switch (getParsed.kind)
                 {
-                    case meade::MeadeExtraLeafCommandKind::GetRaStepsPerDegree:
-                        return formatResponse("%s#", String(_mount->getStepsPerDegree(RA_STEPS), 1).c_str());
+                    case MeadeExtraLeafCommandKind::GetRaStepsPerDegree:
+                        return store(
+                            respondExtraLeaf<MeadeExtraLeafCommandKind::GetRaStepsPerDegree>(_mount->getStepsPerDegree(RA_STEPS), 1));
 
-                    case meade::MeadeExtraLeafCommandKind::GetDecStepsPerDegree:
-                        return formatResponse("%s#", String(_mount->getStepsPerDegree(DEC_STEPS), 1).c_str());
+                    case MeadeExtraLeafCommandKind::GetDecStepsPerDegree:
+                        return store(
+                            respondExtraLeaf<MeadeExtraLeafCommandKind::GetDecStepsPerDegree>(_mount->getStepsPerDegree(DEC_STEPS), 1));
 
-                    case meade::MeadeExtraLeafCommandKind::GetDecLimitBoth:
-                    case meade::MeadeExtraLeafCommandKind::GetDecLimitLowerOnly:
-                    case meade::MeadeExtraLeafCommandKind::GetDecLimitUpperOnly:
-                    case meade::MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant:
+                    case MeadeExtraLeafCommandKind::GetDecLimitBoth:
+                    case MeadeExtraLeafCommandKind::GetDecLimitLowerOnly:
+                    case MeadeExtraLeafCommandKind::GetDecLimitUpperOnly:
+                    case MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant:
                         {
                             float loLimit, hiLimit;
                             _mount->getDecLimitPositions(loLimit, hiLimit);
                             switch (getParsed.kind)
                             {
-                                case meade::MeadeExtraLeafCommandKind::GetDecLimitLowerOnly:
-                                    return formatResponse("%s#", String(loLimit, 1).c_str());
+                                case MeadeExtraLeafCommandKind::GetDecLimitLowerOnly:
+                                    return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetDecLimitLowerOnly>(loLimit, 1));
 
-                                case meade::MeadeExtraLeafCommandKind::GetDecLimitUpperOnly:
-                                    return formatResponse("%s#", String(hiLimit, 1).c_str());
+                                case MeadeExtraLeafCommandKind::GetDecLimitUpperOnly:
+                                    return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetDecLimitUpperOnly>(hiLimit, 1));
 
-                                case meade::MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant:
-                                    return "0#";
+                                case MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant:
+                                    return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant>());
 
-                                case meade::MeadeExtraLeafCommandKind::GetDecLimitBoth:
-                                    return formatResponse("%s|%s#", String(loLimit, 1).c_str(), String(hiLimit, 1).c_str());
+                                case MeadeExtraLeafCommandKind::GetDecLimitBoth:
+                                    return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetDecLimitBoth>(loLimit, hiLimit));
 
                                 default:
                                     break;
@@ -1904,38 +1919,42 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                         }
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::GetDecParking:
-                        return "0#";
+                    case MeadeExtraLeafCommandKind::GetDecParking:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetDecParking>());
 
-                    case meade::MeadeExtraLeafCommandKind::GetTrackingSpeedCalibration:
-                        return formatResponse("%s#", String(_mount->getSpeedCalibration(), 5).c_str());
+                    case MeadeExtraLeafCommandKind::GetTrackingSpeedCalibration:
+                        return store(
+                            respondExtraLeaf<MeadeExtraLeafCommandKind::GetTrackingSpeedCalibration>(_mount->getSpeedCalibration(), 5));
 
-                    case meade::MeadeExtraLeafCommandKind::GetRemainingSafeTime:
-                        return formatResponse("%s#", String(_mount->checkRALimit(), 7).c_str());
+                    case MeadeExtraLeafCommandKind::GetRemainingSafeTime:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetRemainingSafeTime>(_mount->checkRALimit(), 7));
 
-                    case meade::MeadeExtraLeafCommandKind::GetTrackingSpeed:
-                        return formatResponse("%s#", String(_mount->getSpeed(TRACKING), 7).c_str());
+                    case MeadeExtraLeafCommandKind::GetTrackingSpeed:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetTrackingSpeed>(_mount->getSpeed(TRACKING), 7));
 
-                    case meade::MeadeExtraLeafCommandKind::GetBacklashSteps:
-                        return formatResponse("%s#", String(_mount->getBacklashCorrection()).c_str());
+                    case MeadeExtraLeafCommandKind::GetBacklashSteps:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetBacklashSteps>(_mount->getBacklashCorrection()));
 
-                    case meade::MeadeExtraLeafCommandKind::GetAltStepsPerDegree:
-                        return formatResponse("%s#", String(_mount->getStepsPerDegree(ALTITUDE_STEPS), 1).c_str());
+                    case MeadeExtraLeafCommandKind::GetAltStepsPerDegree:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetAltStepsPerDegree>(
+                            _mount->getStepsPerDegree(ALTITUDE_STEPS), 1));
 
-                    case meade::MeadeExtraLeafCommandKind::GetAzStepsPerDegree:
-                        return formatResponse("%s#", String(_mount->getStepsPerDegree(AZIMUTH_STEPS), 1).c_str());
+                    case MeadeExtraLeafCommandKind::GetAzStepsPerDegree:
+                        return store(
+                            respondExtraLeaf<MeadeExtraLeafCommandKind::GetAzStepsPerDegree>(_mount->getStepsPerDegree(AZIMUTH_STEPS), 1));
 
-                    case meade::MeadeExtraLeafCommandKind::GetAutoHomingStates:
-                        return formatResponse("%s#", _mount->getAutoHomingStates().c_str());
+                    case MeadeExtraLeafCommandKind::GetAutoHomingStates:
+                        return store(
+                            respondExtraLeaf<MeadeExtraLeafCommandKind::GetAutoHomingStates>(_mount->getAutoHomingStates().c_str()));
 
-                    case meade::MeadeExtraLeafCommandKind::GetAzAltPositions:
+                    case MeadeExtraLeafCommandKind::GetAzAltPositions:
                         {
                             long azPos, altPos;
                             _mount->getAZALTPositions(azPos, altPos);
-                            return formatResponse("%ld|%ld#", azPos, altPos);
+                            return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetAzAltPositions>(azPos, altPos));
                         }
 
-                    case meade::MeadeExtraLeafCommandKind::GetTargetCoordinatePositions:
+                    case MeadeExtraLeafCommandKind::GetTargetCoordinatePositions:
                         {
                             String coords = String(getParsed.payload.c_str());
                             int star      = coords.indexOf('*');
@@ -1945,57 +1964,62 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                                 float raCoord  = coords.substring(0, star).toFloat();
                                 float decCoord = coords.substring(star + 1).toFloat();
                                 _mount->calculateStepperPositions(raCoord, decCoord, raPos, decPos);
-                                return formatResponse("%ld|%ld#", raPos, decPos);
+                                return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetTargetCoordinatePositions>(raPos, decPos));
                             }
                             return "";
                         }
 
-                    case meade::MeadeExtraLeafCommandKind::GetStepperInfo:
-                        return formatResponse("%s#", _mount->getStepperInfo().c_str());
+                    case MeadeExtraLeafCommandKind::GetStepperInfo:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetStepperInfo>(_mount->getStepperInfo().c_str()));
 
-                    case meade::MeadeExtraLeafCommandKind::GetMountHardwareInfo:
-                        return formatResponse("%s#", _mount->getMountHardwareInfo().c_str());
+                    case MeadeExtraLeafCommandKind::GetMountHardwareInfo:
+                        return store(
+                            respondExtraLeaf<MeadeExtraLeafCommandKind::GetMountHardwareInfo>(_mount->getMountHardwareInfo().c_str()));
 
-                    case meade::MeadeExtraLeafCommandKind::GetLogBuffer:
-                        return copyToResponse(getLogBuffer().c_str());
+                    case MeadeExtraLeafCommandKind::GetLogBuffer:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetLogBuffer>(getLogBuffer().c_str()));
 
-                    case meade::MeadeExtraLeafCommandKind::GetRaHomingOffset:
+                    case MeadeExtraLeafCommandKind::GetRaHomingOffset:
                         LOG(DEBUG_MEADE, "[MEADE]: XGHR  -> %s", subCmd.c_str());
-                        return formatResponse("%ld#", _mount->getHomingOffset(StepperAxis::RA_STEPS));
+                        return store(
+                            respondExtraLeaf<MeadeExtraLeafCommandKind::GetRaHomingOffset>(_mount->getHomingOffset(StepperAxis::RA_STEPS)));
 
-                    case meade::MeadeExtraLeafCommandKind::GetDecHomingOffset:
+                    case MeadeExtraLeafCommandKind::GetDecHomingOffset:
                         LOG(DEBUG_MEADE, "[MEADE]: XGHD  -> %s", subCmd.c_str());
-                        return formatResponse("%ld#", _mount->getHomingOffset(StepperAxis::DEC_STEPS));
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetDecHomingOffset>(
+                            _mount->getHomingOffset(StepperAxis::DEC_STEPS)));
 
-                    case meade::MeadeExtraLeafCommandKind::GetHemisphere:
+                    case MeadeExtraLeafCommandKind::GetHemisphere:
                         LOG(DEBUG_MEADE, "[MEADE]: XGHS  -> %s", subCmd.c_str());
-                        return inNorthernHemisphere ? "N#" : "S#";
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetHemisphere>(inNorthernHemisphere));
 
-                    case meade::MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant:
+                    case MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant:
                         LOG(DEBUG_MEADE, "[MEADE]: XGH?  -> %s", subCmd.c_str());
-                        return "0#";
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant>());
 
-                    case meade::MeadeExtraLeafCommandKind::GetHourAngle:
+                    case MeadeExtraLeafCommandKind::GetHourAngle:
                         {
                             DayTime ha = _mount->calculateHa();
-                            return formatResponse("%02d%02d%02d#", ha.getHours(), ha.getMinutes(), ha.getSeconds());
+                            return store(
+                                respondExtraLeaf<MeadeExtraLeafCommandKind::GetHourAngle>(ha.getHours(), ha.getMinutes(), ha.getSeconds()));
                         }
-                    case meade::MeadeExtraLeafCommandKind::GetLocalSiderealTime:
+                    case MeadeExtraLeafCommandKind::GetLocalSiderealTime:
                         {
                             DayTime lst = _mount->calculateLst();
-                            return formatResponse("%02d%02d%02d#", lst.getHours(), lst.getMinutes(), lst.getSeconds());
+                            return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetLocalSiderealTime>(
+                                lst.getHours(), lst.getMinutes(), lst.getSeconds()));
                         }
 
-                    case meade::MeadeExtraLeafCommandKind::GetNetworkStatus:
+                    case MeadeExtraLeafCommandKind::GetNetworkStatus:
                         {
 #if (WIFI_ENABLED == 1)
-                            return formatResponse("%s#", wifiControl.getStatus().c_str());
+                            return store(respondExtraLeaf<MeadeExtraLeafCommandKind::GetNetworkStatus>(wifiControl.getStatus().c_str()));
 #endif
 
-                            return "0,#";
+                            return store(makeResponse(tag::Text {}, "0,"));
                         }
 
-                    case meade::MeadeExtraLeafCommandKind::Unknown:
+                    case MeadeExtraLeafCommandKind::Unknown:
                         return "";
 
                     default:
@@ -2004,25 +2028,25 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                 return "";
             }
 
-        case meade::MeadeExtraCommandKind::Set:
+        case MeadeExtraCommandKind::Set:
             {
                 meade::MeadeExtraLeafParseResult setParsed = meade::parseMeadeExtraLeafCommand(parsed.kind, parsed.payload.c_str());
 
                 switch (setParsed.kind)
                 {
-                    case meade::MeadeExtraLeafCommandKind::SetRaStepsPerDegree:
+                    case MeadeExtraLeafCommandKind::SetRaStepsPerDegree:
                         _mount->setStepsPerDegree(RA_STEPS, String(setParsed.payload.c_str()).toFloat());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetAzStepsPerDegree:
+                    case MeadeExtraLeafCommandKind::SetAzStepsPerDegree:
                         _mount->setStepsPerDegree(AZIMUTH_STEPS, String(setParsed.payload.c_str()).toFloat());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetAltStepsPerDegree:
+                    case MeadeExtraLeafCommandKind::SetAltStepsPerDegree:
                         _mount->setStepsPerDegree(ALTITUDE_STEPS, String(setParsed.payload.c_str()).toFloat());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecStepsPerDegree:
+                    case MeadeExtraLeafCommandKind::SetDecStepsPerDegree:
                         {
                             float stepsPerDegree = String(setParsed.payload.c_str()).toFloat();
                             if (stepsPerDegree > 0)
@@ -2032,7 +2056,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                         }
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecLimitLowerSet:
+                    case MeadeExtraLeafCommandKind::SetDecLimitLowerSet:
                         if (setParsed.payload.empty())
                         {
                             _mount->setDecLimitPosition(false);
@@ -2043,7 +2067,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                         }
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecLimitUpperSet:
+                    case MeadeExtraLeafCommandKind::SetDecLimitUpperSet:
                         if (setParsed.payload.empty())
                         {
                             _mount->setDecLimitPosition(true);
@@ -2054,50 +2078,50 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                         }
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecLimitLowerClear:
+                    case MeadeExtraLeafCommandKind::SetDecLimitLowerClear:
                         _mount->clearDecLimitPosition(false);
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecLimitUpperClear:
+                    case MeadeExtraLeafCommandKind::SetDecLimitUpperClear:
                         _mount->clearDecLimitPosition(true);
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecParking:
+                    case MeadeExtraLeafCommandKind::SetDecParking:
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetTrackingSpeedCalibration:
+                    case MeadeExtraLeafCommandKind::SetTrackingSpeedCalibration:
                         _mount->setSpeedCalibration(String(setParsed.payload.c_str()).toFloat(), true);
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetTrackingStepperPosition:
+                    case MeadeExtraLeafCommandKind::SetTrackingStepperPosition:
                         _mount->setTrackingStepperPos(String(setParsed.payload.c_str()).toInt());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetManualSlewMode:
+                    case MeadeExtraLeafCommandKind::SetManualSlewMode:
                         _mount->setManualSlewMode(!setParsed.payload.empty() && (setParsed.payload[0] == '1'));
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetRaManualSpeed:
+                    case MeadeExtraLeafCommandKind::SetRaManualSpeed:
                         _mount->setSpeed(RA_STEPS, String(setParsed.payload.c_str()).toFloat());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecManualSpeed:
+                    case MeadeExtraLeafCommandKind::SetDecManualSpeed:
                         _mount->setSpeed(DEC_STEPS, String(setParsed.payload.c_str()).toFloat());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetBacklashCorrection:
+                    case MeadeExtraLeafCommandKind::SetBacklashCorrection:
                         _mount->setBacklashCorrection(String(setParsed.payload.c_str()).toInt());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetRaHomingOffset:
+                    case MeadeExtraLeafCommandKind::SetRaHomingOffset:
                         _mount->setHomingOffset(StepperAxis::RA_STEPS, String(setParsed.payload.c_str()).toInt());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::SetDecHomingOffset:
+                    case MeadeExtraLeafCommandKind::SetDecHomingOffset:
                         _mount->setHomingOffset(StepperAxis::DEC_STEPS, String(setParsed.payload.c_str()).toInt());
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::Unknown:
+                    case MeadeExtraLeafCommandKind::Unknown:
                         break;
 
                     default:
@@ -2106,7 +2130,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                 return "";
             }
 
-        case meade::MeadeExtraCommandKind::Level:
+        case MeadeExtraCommandKind::Level:
             {
                 meade::MeadeExtraLeafParseResult levelParsed = meade::parseMeadeExtraLeafCommand(parsed.kind, parsed.payload.c_str());
                 String subCmd                                = String("L") + parsed.payload.c_str();
@@ -2114,63 +2138,63 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
 #if USE_GYRO_LEVEL == 1
                 switch (levelParsed.kind)
                 {
-                    case meade::MeadeExtraLeafCommandKind::LevelGetReferenceAngles:
-                        return formatResponse("%s,%s#",
-                                              String(_mount->getPitchCalibrationAngle(), 4).c_str(),
-                                              String(_mount->getRollCalibrationAngle(), 4).c_str());
+                    case MeadeExtraLeafCommandKind::LevelGetReferenceAngles:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::LevelGetReferenceAngles>(
+                            _mount->getPitchCalibrationAngle(), _mount->getRollCalibrationAngle()));
 
-                    case meade::MeadeExtraLeafCommandKind::LevelGetCurrentAngles:
+                    case MeadeExtraLeafCommandKind::LevelGetCurrentAngles:
                         {
                             auto angles = Gyro::getCurrentAngles();
-                            return formatResponse("%s,%s#", String(angles.pitchAngle, 4).c_str(), String(angles.rollAngle, 4).c_str());
+                            return store(
+                                respondExtraLeaf<MeadeExtraLeafCommandKind::LevelGetCurrentAngles>(angles.pitchAngle, angles.rollAngle));
                         }
 
-                    case meade::MeadeExtraLeafCommandKind::LevelGetTemperature:
+                    case MeadeExtraLeafCommandKind::LevelGetTemperature:
                         {
                             float temp = Gyro::getCurrentTemperature();
-                            return formatResponse("%s#", String(temp, 1).c_str());
+                            return store(respondExtraLeaf<MeadeExtraLeafCommandKind::LevelGetTemperature>(temp, 1));
                         }
 
-                    case meade::MeadeExtraLeafCommandKind::LevelGetInvalidVariant:
+                    case MeadeExtraLeafCommandKind::LevelGetInvalidVariant:
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::LevelSetReferencePitch:
+                    case MeadeExtraLeafCommandKind::LevelSetReferencePitch:
                         _mount->setPitchCalibrationAngle(String(levelParsed.payload.c_str()).toFloat());
-                        return "1#";
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::LevelSetReferencePitch>(true));
 
-                    case meade::MeadeExtraLeafCommandKind::LevelSetReferenceRoll:
+                    case MeadeExtraLeafCommandKind::LevelSetReferenceRoll:
                         _mount->setRollCalibrationAngle(String(levelParsed.payload.c_str()).toFloat());
-                        return "1#";
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::LevelSetReferenceRoll>(true));
 
-                    case meade::MeadeExtraLeafCommandKind::LevelSetInvalidVariant:
+                    case MeadeExtraLeafCommandKind::LevelSetInvalidVariant:
                         break;
 
-                    case meade::MeadeExtraLeafCommandKind::LevelStartup:
+                    case MeadeExtraLeafCommandKind::LevelStartup:
                         Gyro::startup();
-                        return "1#";
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::LevelStartup>(true));
 
-                    case meade::MeadeExtraLeafCommandKind::LevelShutdown:
+                    case MeadeExtraLeafCommandKind::LevelShutdown:
                         Gyro::shutdown();
-                        return "1#";
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::LevelShutdown>(true));
 
-                    case meade::MeadeExtraLeafCommandKind::LevelUnknownVariant:
-                        return formatResponse("Unknown Level command: X%s", subCmd.c_str());
+                    case MeadeExtraLeafCommandKind::LevelUnknownVariant:
+                        return store(respondExtraLeaf<MeadeExtraLeafCommandKind::LevelUnknownVariant>(subCmd.c_str()));
 
-                    case meade::MeadeExtraLeafCommandKind::Unknown:
+                    case MeadeExtraLeafCommandKind::Unknown:
                         break;
 
                     default:
                         break;
                 }
 #endif
-                return "0#";
+                return store(makeResponse(tag::Boolean {}, false));
             }
 
-        case meade::MeadeExtraCommandKind::FactoryReset:
+        case MeadeExtraCommandKind::FactoryReset:
             _mount->clearConfiguration();  // :XFR
-            return "1#";
+            return store(respondExtra<MeadeExtraCommandKind::FactoryReset>(true));
 
-        case meade::MeadeExtraCommandKind::Unknown:
+        case MeadeExtraCommandKind::Unknown:
             return "";
     }
 
@@ -2182,6 +2206,9 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeQuit(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeQuitCommandKind;
+
     meade::MeadeQuitParseResult parsed = meade::parseMeadeQuitCommand(inCmd.c_str());
     if (!parsed.valid)
     {
@@ -2190,43 +2217,43 @@ const char *MeadeCommandProcessor::handleMeadeQuit(const String &inCmd)
 
     switch (parsed.kind)
     {
-        case meade::MeadeQuitCommandKind::StopAll:
+        case MeadeQuitCommandKind::StopAll:
             // :Q# stops a motors - remains in Control mode
             _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
             _mount->stopSlewing(AZIMUTH_STEPS);
             _mount->stopSlewing(ALTITUDE_STEPS);
             _mount->stopSlewing(FOCUS_STEPS);
             _mount->waitUntilAllStopped();
-            return "";
+            return store(respondQuit<MeadeQuitCommandKind::StopAll>());
 
-        case meade::MeadeQuitCommandKind::StopDirectionalAll:
+        case MeadeQuitCommandKind::StopDirectionalAll:
             _mount->stopSlewing(ALL_DIRECTIONS);
-            break;
+            return store(respondQuit<MeadeQuitCommandKind::StopDirectionalAll>());
 
-        case meade::MeadeQuitCommandKind::StopEast:
+        case MeadeQuitCommandKind::StopEast:
             _mount->stopSlewing(EAST);
-            break;
+            return store(respondQuit<MeadeQuitCommandKind::StopEast>());
 
-        case meade::MeadeQuitCommandKind::StopWest:
+        case MeadeQuitCommandKind::StopWest:
             _mount->stopSlewing(WEST);
-            break;
+            return store(respondQuit<MeadeQuitCommandKind::StopWest>());
 
-        case meade::MeadeQuitCommandKind::StopNorth:
+        case MeadeQuitCommandKind::StopNorth:
             _mount->stopSlewing(NORTH);
-            break;
+            return store(respondQuit<MeadeQuitCommandKind::StopNorth>());
 
-        case meade::MeadeQuitCommandKind::StopSouth:
+        case MeadeQuitCommandKind::StopSouth:
             _mount->stopSlewing(SOUTH);
-            break;
+            return store(respondQuit<MeadeQuitCommandKind::StopSouth>());
 
-        case meade::MeadeQuitCommandKind::QuitControlMode:
+        case MeadeQuitCommandKind::QuitControlMode:
             // :Qq# command does not stop motors, but quits Control mode
             inSerialControl = false;
             _lcdMenu->setCursor(0, 0);
             _lcdMenu->updateDisplay();
-            break;
+            return store(respondQuit<MeadeQuitCommandKind::QuitControlMode>());
 
-        case meade::MeadeQuitCommandKind::Unknown:
+        case MeadeQuitCommandKind::Unknown:
             return "";
     }
 
@@ -2238,6 +2265,9 @@ const char *MeadeCommandProcessor::handleMeadeQuit(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeSetSlewRate(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeSlewRateCommandKind;
+
     meade::MeadeSlewRateParseResult parsed = meade::parseMeadeSlewRateCommand(inCmd.c_str());
     if (!parsed.valid)
     {
@@ -2246,23 +2276,23 @@ const char *MeadeCommandProcessor::handleMeadeSetSlewRate(const String &inCmd)
 
     switch (parsed.kind)
     {
-        case meade::MeadeSlewRateCommandKind::Slew:
+        case MeadeSlewRateCommandKind::Slew:
             _mount->setSlewRate(4);
-            break;  // Slew   - Fastest
+            return store(respondSlewRate<MeadeSlewRateCommandKind::Slew>());
 
-        case meade::MeadeSlewRateCommandKind::Find:
+        case MeadeSlewRateCommandKind::Find:
             _mount->setSlewRate(3);
-            break;  // Find   - 2nd Fastest
+            return store(respondSlewRate<MeadeSlewRateCommandKind::Find>());
 
-        case meade::MeadeSlewRateCommandKind::Center:
+        case MeadeSlewRateCommandKind::Center:
             _mount->setSlewRate(2);
-            break;  // Center - 2nd Slowest
+            return store(respondSlewRate<MeadeSlewRateCommandKind::Center>());
 
-        case meade::MeadeSlewRateCommandKind::Guide:
+        case MeadeSlewRateCommandKind::Guide:
             _mount->setSlewRate(1);
-            break;  // Guide  - Slowest
+            return store(respondSlewRate<MeadeSlewRateCommandKind::Guide>());
 
-        case meade::MeadeSlewRateCommandKind::Unknown:
+        case MeadeSlewRateCommandKind::Unknown:
             break;
     }
     return "";
@@ -2273,6 +2303,9 @@ const char *MeadeCommandProcessor::handleMeadeSetSlewRate(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeFocusCommands(const String &inCmd)
 {
+    using namespace oat::core::meade::response;
+    using meade::MeadeFocusCommandKind;
+
     meade::MeadeFocusParseResult parsed = meade::parseMeadeFocusCommand(inCmd.c_str());
     if (!parsed.valid)
     {
@@ -2281,77 +2314,77 @@ const char *MeadeCommandProcessor::handleMeadeFocusCommands(const String &inCmd)
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     switch (parsed.kind)
     {
-        case meade::MeadeFocusCommandKind::ContinuousIn:
+        case MeadeFocusCommandKind::ContinuousIn:
             LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove IN");
             _mount->focusContinuousMove(FOCUS_BACKWARD);
-            break;
+            return store(respondFocus<MeadeFocusCommandKind::ContinuousIn>());
 
-        case meade::MeadeFocusCommandKind::ContinuousOut:
+        case MeadeFocusCommandKind::ContinuousOut:
             LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove OUT");
             _mount->focusContinuousMove(FOCUS_FORWARD);
-            break;
+            return store(respondFocus<MeadeFocusCommandKind::ContinuousOut>());
 
-        case meade::MeadeFocusCommandKind::MoveBy:
+        case MeadeFocusCommandKind::MoveBy:
             {
                 long steps = String(parsed.payload.c_str()).toInt();
                 LOG(DEBUG_MEADE, "[MEADE]: Focus move by %l steps", steps);
                 _mount->focusMoveBy(steps);
             }
-            break;
+            return store(respondFocus<MeadeFocusCommandKind::MoveBy>());
 
-        case meade::MeadeFocusCommandKind::SetSpeedByRate:
+        case MeadeFocusCommandKind::SetSpeedByRate:
             {
                 int speed = parsed.payload.empty() ? 0 : (parsed.payload[0] - '0');
                 LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed %d", speed);
                 _mount->focusSetSpeedByRate(speed);
             }
-            break;
+            return store(respondFocus<MeadeFocusCommandKind::SetSpeedByRate>());
 
-        case meade::MeadeFocusCommandKind::SetFastestRate:
+        case MeadeFocusCommandKind::SetFastestRate:
             LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed fastest");
             _mount->focusSetSpeedByRate(4);
-            break;
+            return store(respondFocus<MeadeFocusCommandKind::SetFastestRate>());
 
-        case meade::MeadeFocusCommandKind::SetSlowestRate:
+        case MeadeFocusCommandKind::SetSlowestRate:
             LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed slowest");
             _mount->focusSetSpeedByRate(1);
-            break;
+            return store(respondFocus<MeadeFocusCommandKind::SetSlowestRate>());
 
-        case meade::MeadeFocusCommandKind::GetPosition:
+        case MeadeFocusCommandKind::GetPosition:
             {
                 LOG(DEBUG_MEADE, "[MEADE]: Focus get stepperPosition");
                 long focusPos = _mount->focusGetStepperPosition();
-                return formatResponse("%ld#", focusPos);
+                return store(respondFocus<MeadeFocusCommandKind::GetPosition>(focusPos));
             }
 
-        case meade::MeadeFocusCommandKind::SetPosition:
+        case MeadeFocusCommandKind::SetPosition:
             {
                 long steps = String(parsed.payload.c_str()).toInt();
                 LOG(DEBUG_MEADE, "[MEADE]: Focus set stepperPosition %d", steps);
                 _mount->focusSetStepperPosition(steps);
-                return "1";
+                return store(respondFocus<MeadeFocusCommandKind::SetPosition>(true));
             }
 
-        case meade::MeadeFocusCommandKind::GetState:
+        case MeadeFocusCommandKind::GetState:
             LOG(DEBUG_MEADE, "[MEADE]: Focus isRunningFocus");
-            return _mount->isRunningFocus() ? "1" : "0";
+            return store(respondFocus<MeadeFocusCommandKind::GetState>(_mount->isRunningFocus()));
 
-        case meade::MeadeFocusCommandKind::Stop:
+        case MeadeFocusCommandKind::Stop:
             LOG(DEBUG_MEADE, "[MEADE]: Focus stop");
             _mount->focusStop();
-            break;
+            return store(respondFocus<MeadeFocusCommandKind::Stop>());
 
-        case meade::MeadeFocusCommandKind::Unknown:
+        case MeadeFocusCommandKind::Unknown:
             break;
     }
 #else
     switch (parsed.kind)
     {
-        case meade::MeadeFocusCommandKind::GetPosition:
-            return "0#";
+        case MeadeFocusCommandKind::GetPosition:
+            return store(respondFocus<MeadeFocusCommandKind::GetPosition>(0L));
 
-        case meade::MeadeFocusCommandKind::GetState:
-            return "0";
+        case MeadeFocusCommandKind::GetState:
+            return store(respondFocus<MeadeFocusCommandKind::GetState>(false));
 
         default:
             break;
