@@ -27,6 +27,7 @@ def generate_coverage(*args, **kwargs):
         "--root", ".",                   # Ensure paths are evaluated relative to the project root
         "--gcov-executable", gcov_tool,
         "--html-details", os.path.join(output_dir, "index.html"),
+        "--markdown", os.path.join(output_dir, "coverage.md"),
         
         # Explicitly INCLUDE your actual source code directories
         # Add "--filter", r"lib/.*" or others if you have code there too
