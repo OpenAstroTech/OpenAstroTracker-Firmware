@@ -4,6 +4,8 @@ namespace oat
 {
 namespace core
 {
+namespace meade
+{
 
 namespace
 {
@@ -1188,5 +1190,6 @@ MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind,
     }
 }
 
+}  // namespace meade
 }  // namespace core
 }  // namespace oat

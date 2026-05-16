@@ -6,6 +6,8 @@ namespace oat
 {
 namespace core
 {
+namespace meade
+{
 
 enum class MeadeCommandKind
 {
@@ -313,5 +315,6 @@ MeadeFocusParseResult parseMeadeFocusCommand(const char *input);
 MeadeExtraParseResult parseMeadeExtraCommand(const char *input);
 MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind, const char *input);
 
+}  // namespace meade
 }  // namespace core
 }  // namespace oat
