@@ -1466,6 +1466,7 @@ const char *MeadeCommandProcessor::handleMeadeSyncControl(const String &inCmd)
         case meade::MeadeSyncCommandKind::Unknown:
             return "FAIL#";
     }
+    return "FAIL#";
 }
 
 /////////////////////////////
@@ -1598,6 +1599,7 @@ const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
         case meade::MeadeSetCommandKind::Unknown:
             return "0";
     }
+    return "0";
 }
 
 /////////////////////////////
@@ -1665,22 +1667,26 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
             return "1";
 
         case meade::MeadeMovementCommandKind::MoveAzimuth:
-            LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
+            {
+                LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-            float arcMinute = inCmd.substring(2).toFloat();
-            LOG(DEBUG_MEADE, "[MEADE]: Move AZ by %f arcmins", arcMinute);
-            _mount->moveBy(AZIMUTH_STEPS, arcMinute);
+                float arcMinute = inCmd.substring(2).toFloat();
+                LOG(DEBUG_MEADE, "[MEADE]: Move AZ by %f arcmins", arcMinute);
+                _mount->moveBy(AZIMUTH_STEPS, arcMinute);
 #endif
-            return "";
+                return "";
+            }
 
         case meade::MeadeMovementCommandKind::MoveAltitude:
-            LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
+            {
+                LOG(DEBUG_MEADE, "[MEADE]: Move Az/Alt");
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-            float arcMinute = inCmd.substring(2).toFloat();
-            LOG(DEBUG_MEADE, "[MEADE]: Move ALT by %f arcmins", arcMinute);
-            _mount->moveBy(ALTITUDE_STEPS, arcMinute);
+                float arcMinute = inCmd.substring(2).toFloat();
+                LOG(DEBUG_MEADE, "[MEADE]: Move ALT by %f arcmins", arcMinute);
+                _mount->moveBy(ALTITUDE_STEPS, arcMinute);
 #endif
-            return "";
+                return "";
+            }
 
         case meade::MeadeMovementCommandKind::SlewEast:
             _mount->startSlewing(EAST);
@@ -1764,6 +1770,7 @@ const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
         case meade::MeadeMovementCommandKind::Unknown:
             return "0";
     }
+    return "0";
 }
 
 /////////////////////////////
@@ -1798,6 +1805,7 @@ const char *MeadeCommandProcessor::handleMeadeHome(const String &inCmd)
         case meade::MeadeHomeCommandKind::Unknown:
             return "";
     }
+    return "";
 }
 
 const char *MeadeCommandProcessor::handleMeadeDistance(const String &inCmd)
@@ -1859,7 +1867,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
         case meade::MeadeExtraCommandKind::Get:
             {
                 meade::MeadeExtraLeafParseResult getParsed = meade::parseMeadeExtraLeafCommand(parsed.kind, parsed.payload.c_str());
-                String inCmd                               = String("G") + parsed.payload.c_str();
+                String subCmd                              = String("G") + parsed.payload.c_str();
 
                 switch (getParsed.kind)
                 {
@@ -1894,6 +1902,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                                     break;
                             }
                         }
+                        break;
 
                     case meade::MeadeExtraLeafCommandKind::GetDecParking:
                         return "0#";
@@ -1951,19 +1960,19 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                         return copyToResponse(getLogBuffer().c_str());
 
                     case meade::MeadeExtraLeafCommandKind::GetRaHomingOffset:
-                        LOG(DEBUG_MEADE, "[MEADE]: XGHR  -> %s", inCmd.c_str());
+                        LOG(DEBUG_MEADE, "[MEADE]: XGHR  -> %s", subCmd.c_str());
                         return formatResponse("%ld#", _mount->getHomingOffset(StepperAxis::RA_STEPS));
 
                     case meade::MeadeExtraLeafCommandKind::GetDecHomingOffset:
-                        LOG(DEBUG_MEADE, "[MEADE]: XGHD  -> %s", inCmd.c_str());
+                        LOG(DEBUG_MEADE, "[MEADE]: XGHD  -> %s", subCmd.c_str());
                         return formatResponse("%ld#", _mount->getHomingOffset(StepperAxis::DEC_STEPS));
 
                     case meade::MeadeExtraLeafCommandKind::GetHemisphere:
-                        LOG(DEBUG_MEADE, "[MEADE]: XGHS  -> %s", inCmd.c_str());
+                        LOG(DEBUG_MEADE, "[MEADE]: XGHS  -> %s", subCmd.c_str());
                         return inNorthernHemisphere ? "N#" : "S#";
 
                     case meade::MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant:
-                        LOG(DEBUG_MEADE, "[MEADE]: XGH?  -> %s", inCmd.c_str());
+                        LOG(DEBUG_MEADE, "[MEADE]: XGH?  -> %s", subCmd.c_str());
                         return "0#";
 
                     case meade::MeadeExtraLeafCommandKind::GetHourAngle:
@@ -1992,6 +2001,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                     default:
                         return "";
                 }
+                return "";
             }
 
         case meade::MeadeExtraCommandKind::Set:
@@ -2099,7 +2109,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
         case meade::MeadeExtraCommandKind::Level:
             {
                 meade::MeadeExtraLeafParseResult levelParsed = meade::parseMeadeExtraLeafCommand(parsed.kind, parsed.payload.c_str());
-                String inCmd                                 = String("L") + parsed.payload.c_str();
+                String subCmd                                = String("L") + parsed.payload.c_str();
 
 #if USE_GYRO_LEVEL == 1
                 switch (levelParsed.kind)
@@ -2144,7 +2154,7 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
                         return "1#";
 
                     case meade::MeadeExtraLeafCommandKind::LevelUnknownVariant:
-                        return formatResponse("Unknown Level command: X%s", inCmd.c_str());
+                        return formatResponse("Unknown Level command: X%s", subCmd.c_str());
 
                     case meade::MeadeExtraLeafCommandKind::Unknown:
                         break;

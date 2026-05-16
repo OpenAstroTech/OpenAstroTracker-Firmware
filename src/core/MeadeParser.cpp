@@ -1,5 +1,8 @@
 #include "core/MeadeParser.hpp"
 
+#include <cstddef>
+#include <cstring>
+
 namespace oat
 {
 namespace core
@@ -9,74 +12,284 @@ namespace meade
 
 namespace
 {
-MeadeCommandKind classifyMeadeCommandKind(char family)
+
+// Lookup-table entry used for keys that must match the input exactly
+// (entire remaining input string, terminator included).
+template <typename Kind> struct ExactEntry {
+    const char *key;
+    Kind kind;
+};
+
+// Lookup-table entry used for keys that match the input as a prefix.
+// `capturePayload`        -> if true, the text after the key is copied into result.payload.
+// `requireNonEmptyTail`   -> if true, the match only succeeds when at least one char
+//                            follows the key (used by ExtraSet's "D" entry).
+template <typename Kind> struct PrefixEntry {
+    const char *key;
+    Kind kind;
+    bool capturePayload;
+    bool requireNonEmptyTail;
+};
+
+template <typename Kind, std::size_t N> bool lookupExact(const ExactEntry<Kind> (&table)[N], const char *input, Kind &out)
 {
-    switch (family)
+    for (std::size_t i = 0; i < N; ++i)
     {
-        case 'S':
-            return MeadeCommandKind::Set;
-        case 'M':
-            return MeadeCommandKind::Move;
-        case 'G':
-            return MeadeCommandKind::Get;
-        case 'g':
-            return MeadeCommandKind::Gps;
-        case 'C':
-            return MeadeCommandKind::Sync;
-        case 'h':
-            return MeadeCommandKind::Home;
-        case 'I':
-            return MeadeCommandKind::Init;
-        case 'Q':
-            return MeadeCommandKind::Quit;
-        case 'R':
-            return MeadeCommandKind::SlewRate;
-        case 'D':
-            return MeadeCommandKind::Distance;
-        case 'X':
-            return MeadeCommandKind::Extra;
-        case 'F':
-            return MeadeCommandKind::Focus;
-        default:
-            return MeadeCommandKind::Unknown;
+        if (std::strcmp(table[i].key, input) == 0)
+        {
+            out = table[i].kind;
+            return true;
+        }
     }
+    return false;
 }
 
-MeadeCommandDispatchTarget dispatchTargetForCommandKind(MeadeCommandKind kind)
+// First-match-wins prefix lookup. Tables must list longer/more specific keys
+// before shorter ones that share a prefix.
+template <typename Kind, std::size_t N>
+bool lookupPrefix(const PrefixEntry<Kind> (&table)[N], const char *input, Kind &out, const char *&tail, bool &capturesPayload)
 {
-    switch (kind)
+    for (std::size_t i = 0; i < N; ++i)
     {
-        case MeadeCommandKind::Set:
-            return MeadeCommandDispatchTarget::SetInfo;
-        case MeadeCommandKind::Move:
-            return MeadeCommandDispatchTarget::Movement;
-        case MeadeCommandKind::Get:
-            return MeadeCommandDispatchTarget::GetInfo;
-        case MeadeCommandKind::Gps:
-            return MeadeCommandDispatchTarget::GpsCommands;
-        case MeadeCommandKind::Sync:
-            return MeadeCommandDispatchTarget::SyncControl;
-        case MeadeCommandKind::Home:
-            return MeadeCommandDispatchTarget::Home;
-        case MeadeCommandKind::Init:
-            return MeadeCommandDispatchTarget::Init;
-        case MeadeCommandKind::Quit:
-            return MeadeCommandDispatchTarget::Quit;
-        case MeadeCommandKind::SlewRate:
-            return MeadeCommandDispatchTarget::SetSlewRate;
-        case MeadeCommandKind::Distance:
-            return MeadeCommandDispatchTarget::Distance;
-        case MeadeCommandKind::Extra:
-            return MeadeCommandDispatchTarget::ExtraCommands;
-        case MeadeCommandKind::Focus:
-            return MeadeCommandDispatchTarget::FocusCommands;
-        case MeadeCommandKind::Unknown:
-        default:
-            return MeadeCommandDispatchTarget::Unknown;
+        const char *k = table[i].key;
+        const char *p = input;
+        while ((*k != '\0') && (*k == *p))
+        {
+            ++k;
+            ++p;
+        }
+        if (*k != '\0')
+        {
+            continue;
+        }
+        if (table[i].requireNonEmptyTail && (*p == '\0'))
+        {
+            continue;
+        }
+        out             = table[i].kind;
+        tail            = p;
+        capturesPayload = table[i].capturePayload;
+        return true;
     }
+    return false;
 }
+
+// ---------------------------------------------------------------------------
+// Top-level family classifier
+// ---------------------------------------------------------------------------
+struct FamilyEntry {
+    char family;
+    MeadeCommandKind kind;
+    MeadeCommandDispatchTarget target;
+};
+
+constexpr FamilyEntry kFamilyTable[] = {
+    {'S', MeadeCommandKind::Set, MeadeCommandDispatchTarget::SetInfo},
+    {'M', MeadeCommandKind::Move, MeadeCommandDispatchTarget::Movement},
+    {'G', MeadeCommandKind::Get, MeadeCommandDispatchTarget::GetInfo},
+    {'g', MeadeCommandKind::Gps, MeadeCommandDispatchTarget::GpsCommands},
+    {'C', MeadeCommandKind::Sync, MeadeCommandDispatchTarget::SyncControl},
+    {'h', MeadeCommandKind::Home, MeadeCommandDispatchTarget::Home},
+    {'I', MeadeCommandKind::Init, MeadeCommandDispatchTarget::Init},
+    {'Q', MeadeCommandKind::Quit, MeadeCommandDispatchTarget::Quit},
+    {'R', MeadeCommandKind::SlewRate, MeadeCommandDispatchTarget::SetSlewRate},
+    {'D', MeadeCommandKind::Distance, MeadeCommandDispatchTarget::Distance},
+    {'X', MeadeCommandKind::Extra, MeadeCommandDispatchTarget::ExtraCommands},
+    {'F', MeadeCommandKind::Focus, MeadeCommandDispatchTarget::FocusCommands},
+};
+
+// ---------------------------------------------------------------------------
+// Per-family tables
+// ---------------------------------------------------------------------------
+constexpr ExactEntry<MeadeGetCommandKind> kGetTable[] = {
+    {"VN", MeadeGetCommandKind::FirmwareVersion}, {"VP", MeadeGetCommandKind::ProductName}, {"r", MeadeGetCommandKind::TargetRa},
+    {"d", MeadeGetCommandKind::TargetDec},        {"R", MeadeGetCommandKind::CurrentRa},    {"D", MeadeGetCommandKind::CurrentDec},
+    {"X", MeadeGetCommandKind::MountStatus},      {"IS", MeadeGetCommandKind::IsSlewing},   {"IT", MeadeGetCommandKind::IsTracking},
+    {"IG", MeadeGetCommandKind::IsGuiding},       {"t", MeadeGetCommandKind::SiteLatitude}, {"g", MeadeGetCommandKind::SiteLongitude},
+    {"c", MeadeGetCommandKind::ClockFormat},      {"G", MeadeGetCommandKind::UtcOffset},    {"a", MeadeGetCommandKind::LocalTime12h},
+    {"L", MeadeGetCommandKind::LocalTime24h},     {"C", MeadeGetCommandKind::LocalDate},    {"M", MeadeGetCommandKind::SiteName1},
+    {"N", MeadeGetCommandKind::SiteName2},        {"O", MeadeGetCommandKind::SiteName3},    {"P", MeadeGetCommandKind::SiteName4},
+    {"T", MeadeGetCommandKind::TrackingRate},
+};
+
+constexpr PrefixEntry<MeadeGpsCommandKind> kGpsTable[] = {
+    {"T", MeadeGpsCommandKind::StartAcquisition, true, false},
+};
+
+// Set: every entry takes a payload. HL/HP must come before bare H.
+constexpr PrefixEntry<MeadeSetCommandKind> kSetTable[] = {
+    {"HL", MeadeSetCommandKind::LocalSiderealTime, true, false},
+    {"HP", MeadeSetCommandKind::HomePoint, true, false},
+    {"H", MeadeSetCommandKind::HourAngle, true, false},
+    {"d", MeadeSetCommandKind::TargetDec, true, false},
+    {"r", MeadeSetCommandKind::TargetRa, true, false},
+    {"Y", MeadeSetCommandKind::SyncCoordinates, true, false},
+    {"t", MeadeSetCommandKind::SiteLatitude, true, false},
+    {"g", MeadeSetCommandKind::SiteLongitude, true, false},
+    {"G", MeadeSetCommandKind::UtcOffset, true, false},
+    {"L", MeadeSetCommandKind::LocalTime, true, false},
+    {"C", MeadeSetCommandKind::LocalDate, true, false},
+};
+
+constexpr ExactEntry<MeadeSyncCommandKind> kSyncTable[] = {
+    {"M", MeadeSyncCommandKind::SyncToTarget},
+};
+
+// Movement: S requires exact match. The directional shortcuts e/w/n/s accept
+// any trailing characters but never produce a payload (preserves original
+// behavior where "e123" matched SlewEast with empty payload).
+constexpr ExactEntry<MeadeMovementCommandKind> kMoveExactTable[] = {
+    {"S", MeadeMovementCommandKind::SlewToTarget},
+};
+
+constexpr PrefixEntry<MeadeMovementCommandKind> kMovePrefixTable[] = {
+    {"AA", MeadeMovementCommandKind::MoveAzAltHome, true, false},
+    {"AZ", MeadeMovementCommandKind::MoveAzimuth, true, false},
+    {"AL", MeadeMovementCommandKind::MoveAltitude, true, false},
+    {"HR", MeadeMovementCommandKind::HomeRa, true, false},
+    {"HD", MeadeMovementCommandKind::HomeDec, true, false},
+    {"T", MeadeMovementCommandKind::TrackingToggle, true, false},
+    {"G", MeadeMovementCommandKind::GuidePulse, true, false},
+    {"g", MeadeMovementCommandKind::GuidePulse, true, false},
+    {"X", MeadeMovementCommandKind::MoveStepper, true, false},
+    {"e", MeadeMovementCommandKind::SlewEast, false, false},
+    {"w", MeadeMovementCommandKind::SlewWest, false, false},
+    {"n", MeadeMovementCommandKind::SlewNorth, false, false},
+    {"s", MeadeMovementCommandKind::SlewSouth, false, false},
+};
+
+constexpr ExactEntry<MeadeHomeCommandKind> kHomeTable[] = {
+    {"P", MeadeHomeCommandKind::Park},
+    {"F", MeadeHomeCommandKind::Home},
+    {"U", MeadeHomeCommandKind::Unpark},
+    {"Z", MeadeHomeCommandKind::SetAzAltHome},
+};
+
+// Quit: empty input is the special StopAll case, handled in the parser body.
+constexpr ExactEntry<MeadeQuitCommandKind> kQuitTable[] = {
+    {"a", MeadeQuitCommandKind::StopDirectionalAll},
+    {"e", MeadeQuitCommandKind::StopEast},
+    {"w", MeadeQuitCommandKind::StopWest},
+    {"n", MeadeQuitCommandKind::StopNorth},
+    {"s", MeadeQuitCommandKind::StopSouth},
+    {"q", MeadeQuitCommandKind::QuitControlMode},
+};
+
+constexpr ExactEntry<MeadeSlewRateCommandKind> kSlewRateTable[] = {
+    {"S", MeadeSlewRateCommandKind::Slew},
+    {"M", MeadeSlewRateCommandKind::Find},
+    {"C", MeadeSlewRateCommandKind::Center},
+    {"G", MeadeSlewRateCommandKind::Guide},
+};
+
+// Focus: digits '1'-'4' map to SetSpeedByRate with payload == full input, handled
+// specially in the parser body. The remaining entries are prefix matches; only
+// M and P carry a payload.
+constexpr PrefixEntry<MeadeFocusCommandKind> kFocusTable[] = {
+    {"+", MeadeFocusCommandKind::ContinuousIn, false, false},
+    {"-", MeadeFocusCommandKind::ContinuousOut, false, false},
+    {"M", MeadeFocusCommandKind::MoveBy, true, false},
+    {"F", MeadeFocusCommandKind::SetFastestRate, false, false},
+    {"S", MeadeFocusCommandKind::SetSlowestRate, false, false},
+    {"p", MeadeFocusCommandKind::GetPosition, false, false},
+    {"P", MeadeFocusCommandKind::SetPosition, true, false},
+    {"B", MeadeFocusCommandKind::GetState, false, false},
+    {"Q", MeadeFocusCommandKind::Stop, false, false},
+};
+
+// Extra: bare 'F' is invalid; only 'FR' is, so FR must come before any future
+// 'F' prefix would (none exists today, but ordering documents the intent).
+constexpr PrefixEntry<MeadeExtraCommandKind> kExtraTable[] = {
+    {"FR", MeadeExtraCommandKind::FactoryReset, true, false},
+    {"D", MeadeExtraCommandKind::DriftAlignment, true, false},
+    {"G", MeadeExtraCommandKind::Get, true, false},
+    {"S", MeadeExtraCommandKind::Set, true, false},
+    {"L", MeadeExtraCommandKind::Level, true, false},
+};
+
+// ExtraGet leaf: tries exact match first, then prefix fallback.
+// Prefix entries handle the "invalid sub-variant" carve-outs (DL.../H...) and
+// the always-prefix entries C... and M... (MountHardwareInfo as default).
+constexpr ExactEntry<MeadeExtraLeafCommandKind> kExtraGetExactTable[] = {
+    {"R", MeadeExtraLeafCommandKind::GetRaStepsPerDegree},
+    {"D", MeadeExtraLeafCommandKind::GetDecStepsPerDegree},
+    {"DL", MeadeExtraLeafCommandKind::GetDecLimitBoth},
+    {"DLL", MeadeExtraLeafCommandKind::GetDecLimitLowerOnly},
+    {"DLU", MeadeExtraLeafCommandKind::GetDecLimitUpperOnly},
+    {"DP", MeadeExtraLeafCommandKind::GetDecParking},
+    {"S", MeadeExtraLeafCommandKind::GetTrackingSpeedCalibration},
+    {"ST", MeadeExtraLeafCommandKind::GetRemainingSafeTime},
+    {"T", MeadeExtraLeafCommandKind::GetTrackingSpeed},
+    {"B", MeadeExtraLeafCommandKind::GetBacklashSteps},
+    {"A", MeadeExtraLeafCommandKind::GetAltStepsPerDegree},
+    {"AH", MeadeExtraLeafCommandKind::GetAutoHomingStates},
+    {"AA", MeadeExtraLeafCommandKind::GetAzAltPositions},
+    {"Z", MeadeExtraLeafCommandKind::GetAzStepsPerDegree},
+    {"MS", MeadeExtraLeafCommandKind::GetStepperInfo},
+    {"O", MeadeExtraLeafCommandKind::GetLogBuffer},
+    {"H", MeadeExtraLeafCommandKind::GetHourAngle},
+    {"HR", MeadeExtraLeafCommandKind::GetRaHomingOffset},
+    {"HD", MeadeExtraLeafCommandKind::GetDecHomingOffset},
+    {"HS", MeadeExtraLeafCommandKind::GetHemisphere},
+    {"L", MeadeExtraLeafCommandKind::GetLocalSiderealTime},
+    {"N", MeadeExtraLeafCommandKind::GetNetworkStatus},
+};
+
+constexpr PrefixEntry<MeadeExtraLeafCommandKind> kExtraGetPrefixTable[] = {
+    {"DL", MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant, true, false},
+    {"C", MeadeExtraLeafCommandKind::GetTargetCoordinatePositions, true, false},
+    {"H", MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant, true, false},
+    {"M", MeadeExtraLeafCommandKind::GetMountHardwareInfo, false, false},
+};
+
+// ExtraSet leaf: exact match for the two "clear" DL variants, then prefix
+// fallback. The "D" prefix requires a non-empty tail so bare "D" stays invalid,
+// matching original behavior.
+constexpr ExactEntry<MeadeExtraLeafCommandKind> kExtraSetExactTable[] = {
+    {"DLl", MeadeExtraLeafCommandKind::SetDecLimitLowerClear},
+    {"DLu", MeadeExtraLeafCommandKind::SetDecLimitUpperClear},
+};
+
+constexpr PrefixEntry<MeadeExtraLeafCommandKind> kExtraSetPrefixTable[] = {
+    {"DLL", MeadeExtraLeafCommandKind::SetDecLimitLowerSet, true, false},
+    {"DLU", MeadeExtraLeafCommandKind::SetDecLimitUpperSet, true, false},
+    {"DP", MeadeExtraLeafCommandKind::SetDecParking, true, false},
+    {"HR", MeadeExtraLeafCommandKind::SetRaHomingOffset, true, false},
+    {"HD", MeadeExtraLeafCommandKind::SetDecHomingOffset, true, false},
+    {"D", MeadeExtraLeafCommandKind::SetDecStepsPerDegree, true, true},
+    {"R", MeadeExtraLeafCommandKind::SetRaStepsPerDegree, true, false},
+    {"A", MeadeExtraLeafCommandKind::SetAzStepsPerDegree, true, false},
+    {"L", MeadeExtraLeafCommandKind::SetAltStepsPerDegree, true, false},
+    {"S", MeadeExtraLeafCommandKind::SetTrackingSpeedCalibration, true, false},
+    {"T", MeadeExtraLeafCommandKind::SetTrackingStepperPosition, true, false},
+    {"M", MeadeExtraLeafCommandKind::SetManualSlewMode, true, false},
+    {"X", MeadeExtraLeafCommandKind::SetRaManualSpeed, true, false},
+    {"Y", MeadeExtraLeafCommandKind::SetDecManualSpeed, true, false},
+    {"B", MeadeExtraLeafCommandKind::SetBacklashCorrection, true, false},
+};
+
+// ExtraLevel leaf: pure prefix table. GR/GC/GT never carry a payload (the
+// original accepted "GRabc" as LevelGetReferenceAngles too). G/S act as
+// catch-alls for their respective families, and the final "" entry catches
+// anything else as LevelUnknownVariant with the full input as payload.
+constexpr PrefixEntry<MeadeExtraLeafCommandKind> kExtraLevelTable[] = {
+    {"GR", MeadeExtraLeafCommandKind::LevelGetReferenceAngles, false, false},
+    {"GC", MeadeExtraLeafCommandKind::LevelGetCurrentAngles, false, false},
+    {"GT", MeadeExtraLeafCommandKind::LevelGetTemperature, false, false},
+    {"G", MeadeExtraLeafCommandKind::LevelGetInvalidVariant, true, false},
+    {"SP", MeadeExtraLeafCommandKind::LevelSetReferencePitch, true, false},
+    {"SR", MeadeExtraLeafCommandKind::LevelSetReferenceRoll, true, false},
+    {"S", MeadeExtraLeafCommandKind::LevelSetInvalidVariant, true, false},
+    {"1", MeadeExtraLeafCommandKind::LevelStartup, false, false},
+    {"0", MeadeExtraLeafCommandKind::LevelShutdown, false, false},
+    {"", MeadeExtraLeafCommandKind::LevelUnknownVariant, true, false},
+};
+
 }  // namespace
 
+// ---------------------------------------------------------------------------
+// Top-level parser
+// ---------------------------------------------------------------------------
 MeadeParseResult parseMeadeCommand(const char *input)
 {
     MeadeParseResult result;
@@ -109,215 +322,59 @@ MeadeParseResult parseMeadeCommand(const char *input)
         return result;
     }
 
-    result.kind = classifyMeadeCommandKind(normalized[1]);
-    if (result.kind == MeadeCommandKind::Unknown)
+    const char family = normalized[1];
+    for (std::size_t i = 0; i < (sizeof(kFamilyTable) / sizeof(kFamilyTable[0])); ++i)
     {
-        return result;
+        if (kFamilyTable[i].family == family)
+        {
+            result.valid          = true;
+            result.kind           = kFamilyTable[i].kind;
+            result.dispatchTarget = kFamilyTable[i].target;
+            result.payload        = normalized.substr(2);
+            return result;
+        }
     }
-
-    result.valid          = true;
-    result.dispatchTarget = dispatchTargetForCommandKind(result.kind);
-    result.payload        = normalized.substr(2);
     return result;
 }
 
+// ---------------------------------------------------------------------------
+// Subcommand parsers
+// ---------------------------------------------------------------------------
 MeadeGetParseResult parseMeadeGetCommand(const char *input)
 {
     MeadeGetParseResult result;
-    if (input == nullptr || input[0] == '\0')
+    if (input == nullptr)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeGetCommandKind kind;
+    if (lookupExact(kGetTable, input, kind))
     {
-        case 'V':
-            if (input[1] == 'N' && input[2] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::FirmwareVersion;
-            }
-            else if (input[1] == 'P' && input[2] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::ProductName;
-            }
-            return result;
-
-        case 'r':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::TargetRa;
-            }
-            return result;
-
-        case 'd':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::TargetDec;
-            }
-            return result;
-
-        case 'R':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::CurrentRa;
-            }
-            return result;
-
-        case 'D':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::CurrentDec;
-            }
-            return result;
-
-        case 'X':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::MountStatus;
-            }
-            return result;
-
-        case 'I':
-            if (input[1] == 'S' && input[2] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::IsSlewing;
-            }
-            else if (input[1] == 'T' && input[2] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::IsTracking;
-            }
-            else if (input[1] == 'G' && input[2] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::IsGuiding;
-            }
-            return result;
-
-        case 't':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::SiteLatitude;
-            }
-            return result;
-
-        case 'g':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::SiteLongitude;
-            }
-            return result;
-
-        case 'c':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::ClockFormat;
-            }
-            return result;
-
-        case 'G':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::UtcOffset;
-            }
-            return result;
-
-        case 'a':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::LocalTime12h;
-            }
-            return result;
-
-        case 'L':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::LocalTime24h;
-            }
-            return result;
-
-        case 'C':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::LocalDate;
-            }
-            return result;
-
-        case 'M':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::SiteName1;
-            }
-            return result;
-
-        case 'N':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::SiteName2;
-            }
-            return result;
-
-        case 'O':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::SiteName3;
-            }
-            return result;
-
-        case 'P':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::SiteName4;
-            }
-            return result;
-
-        case 'T':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeGetCommandKind::TrackingRate;
-            }
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
     }
+    return result;
 }
 
 MeadeGpsParseResult parseMeadeGpsCommand(const char *input)
 {
     MeadeGpsParseResult result;
-    if (input == nullptr || input[0] == '\0')
+    if (input == nullptr)
     {
         return result;
     }
-
-    if (input[0] == 'T')
+    MeadeGpsCommandKind kind;
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kGpsTable, input, kind, tail, capture))
     {
-        result.valid   = true;
-        result.kind    = MeadeGpsCommandKind::StartAcquisition;
-        result.payload = input + 1;
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
     }
-
     return result;
 }
 
@@ -328,95 +385,34 @@ MeadeSetParseResult parseMeadeSetCommand(const char *input)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeSetCommandKind kind;
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kSetTable, input, kind, tail, capture))
     {
-        case 'd':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::TargetDec;
-            result.payload = input + 1;
-            return result;
-
-        case 'r':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::TargetRa;
-            result.payload = input + 1;
-            return result;
-
-        case 'H':
-            result.valid = true;
-            if (input[1] == 'L')
-            {
-                result.kind    = MeadeSetCommandKind::LocalSiderealTime;
-                result.payload = input + 2;
-            }
-            else if (input[1] == 'P')
-            {
-                result.kind    = MeadeSetCommandKind::HomePoint;
-                result.payload = input + 2;
-            }
-            else
-            {
-                result.kind    = MeadeSetCommandKind::HourAngle;
-                result.payload = input + 1;
-            }
-            return result;
-
-        case 'Y':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::SyncCoordinates;
-            result.payload = input + 1;
-            return result;
-
-        case 't':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::SiteLatitude;
-            result.payload = input + 1;
-            return result;
-
-        case 'g':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::SiteLongitude;
-            result.payload = input + 1;
-            return result;
-
-        case 'G':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::UtcOffset;
-            result.payload = input + 1;
-            return result;
-
-        case 'L':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::LocalTime;
-            result.payload = input + 1;
-            return result;
-
-        case 'C':
-            result.valid   = true;
-            result.kind    = MeadeSetCommandKind::LocalDate;
-            result.payload = input + 1;
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
     }
+    return result;
 }
 
 MeadeSyncParseResult parseMeadeSyncCommand(const char *input)
 {
     MeadeSyncParseResult result;
-    if (input == nullptr || input[0] == '\0')
+    if (input == nullptr)
     {
         return result;
     }
-
-    if (input[0] == 'M' && input[1] == '\0')
+    MeadeSyncCommandKind kind;
+    if (lookupExact(kSyncTable, input, kind))
     {
         result.valid = true;
-        result.kind  = MeadeSyncCommandKind::SyncToTarget;
+        result.kind  = kind;
     }
-
     return result;
 }
 
@@ -427,142 +423,41 @@ MeadeMovementParseResult parseMeadeMovementCommand(const char *input)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeMovementCommandKind kind;
+    if (lookupExact(kMoveExactTable, input, kind))
     {
-        case 'S':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeMovementCommandKind::SlewToTarget;
-            }
-            return result;
-
-        case 'T':
-            result.valid   = true;
-            result.kind    = MeadeMovementCommandKind::TrackingToggle;
-            result.payload = input + 1;
-            return result;
-
-        case 'G':
-        case 'g':
-            result.valid   = true;
-            result.kind    = MeadeMovementCommandKind::GuidePulse;
-            result.payload = input + 1;
-            return result;
-
-        case 'A':
-            if (input[1] == 'A')
-            {
-                result.valid   = true;
-                result.kind    = MeadeMovementCommandKind::MoveAzAltHome;
-                result.payload = input + 2;
-            }
-            else if (input[1] == 'Z')
-            {
-                result.valid   = true;
-                result.kind    = MeadeMovementCommandKind::MoveAzimuth;
-                result.payload = input + 2;
-            }
-            else if (input[1] == 'L')
-            {
-                result.valid   = true;
-                result.kind    = MeadeMovementCommandKind::MoveAltitude;
-                result.payload = input + 2;
-            }
-            return result;
-
-        case 'e':
-            result.valid = true;
-            result.kind  = MeadeMovementCommandKind::SlewEast;
-            return result;
-
-        case 'w':
-            result.valid = true;
-            result.kind  = MeadeMovementCommandKind::SlewWest;
-            return result;
-
-        case 'n':
-            result.valid = true;
-            result.kind  = MeadeMovementCommandKind::SlewNorth;
-            return result;
-
-        case 's':
-            result.valid = true;
-            result.kind  = MeadeMovementCommandKind::SlewSouth;
-            return result;
-
-        case 'X':
-            result.valid   = true;
-            result.kind    = MeadeMovementCommandKind::MoveStepper;
-            result.payload = input + 1;
-            return result;
-
-        case 'H':
-            if (input[1] == 'R')
-            {
-                result.valid   = true;
-                result.kind    = MeadeMovementCommandKind::HomeRa;
-                result.payload = input + 2;
-            }
-            else if (input[1] == 'D')
-            {
-                result.valid   = true;
-                result.kind    = MeadeMovementCommandKind::HomeDec;
-                result.payload = input + 2;
-            }
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
+        return result;
     }
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kMovePrefixTable, input, kind, tail, capture))
+    {
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
+    }
+    return result;
 }
 
 MeadeHomeParseResult parseMeadeHomeCommand(const char *input)
 {
     MeadeHomeParseResult result;
-    if (input == nullptr || input[0] == '\0')
+    if (input == nullptr)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeHomeCommandKind kind;
+    if (lookupExact(kHomeTable, input, kind))
     {
-        case 'P':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeHomeCommandKind::Park;
-            }
-            return result;
-
-        case 'F':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeHomeCommandKind::Home;
-            }
-            return result;
-
-        case 'U':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeHomeCommandKind::Unpark;
-            }
-            return result;
-
-        case 'Z':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeHomeCommandKind::SetAzAltHome;
-            }
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
     }
+    return result;
 }
 
 MeadeQuitParseResult parseMeadeQuitCommand(const char *input)
@@ -572,114 +467,35 @@ MeadeQuitParseResult parseMeadeQuitCommand(const char *input)
     {
         return result;
     }
-
     if (input[0] == '\0')
     {
         result.valid = true;
         result.kind  = MeadeQuitCommandKind::StopAll;
         return result;
     }
-
-    switch (input[0])
+    MeadeQuitCommandKind kind;
+    if (lookupExact(kQuitTable, input, kind))
     {
-        case 'a':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeQuitCommandKind::StopDirectionalAll;
-            }
-            return result;
-
-        case 'e':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeQuitCommandKind::StopEast;
-            }
-            return result;
-
-        case 'w':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeQuitCommandKind::StopWest;
-            }
-            return result;
-
-        case 'n':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeQuitCommandKind::StopNorth;
-            }
-            return result;
-
-        case 's':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeQuitCommandKind::StopSouth;
-            }
-            return result;
-
-        case 'q':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeQuitCommandKind::QuitControlMode;
-            }
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
     }
+    return result;
 }
 
 MeadeSlewRateParseResult parseMeadeSlewRateCommand(const char *input)
 {
     MeadeSlewRateParseResult result;
-    if (input == nullptr || input[0] == '\0')
+    if (input == nullptr)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeSlewRateCommandKind kind;
+    if (lookupExact(kSlewRateTable, input, kind))
     {
-        case 'S':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeSlewRateCommandKind::Slew;
-            }
-            return result;
-
-        case 'M':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeSlewRateCommandKind::Find;
-            }
-            return result;
-
-        case 'C':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeSlewRateCommandKind::Center;
-            }
-            return result;
-
-        case 'G':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeSlewRateCommandKind::Guide;
-            }
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
     }
+    return result;
 }
 
 MeadeFocusParseResult parseMeadeFocusCommand(const char *input)
@@ -689,68 +505,26 @@ MeadeFocusParseResult parseMeadeFocusCommand(const char *input)
     {
         return result;
     }
-
-    switch (input[0])
+    if ((input[0] >= '1') && (input[0] <= '4'))
     {
-        case '+':
-            result.valid = true;
-            result.kind  = MeadeFocusCommandKind::ContinuousIn;
-            return result;
-
-        case '-':
-            result.valid = true;
-            result.kind  = MeadeFocusCommandKind::ContinuousOut;
-            return result;
-
-        case 'M':
-            result.valid   = true;
-            result.kind    = MeadeFocusCommandKind::MoveBy;
-            result.payload = input + 1;
-            return result;
-
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-            result.valid   = true;
-            result.kind    = MeadeFocusCommandKind::SetSpeedByRate;
-            result.payload = input;
-            return result;
-
-        case 'F':
-            result.valid = true;
-            result.kind  = MeadeFocusCommandKind::SetFastestRate;
-            return result;
-
-        case 'S':
-            result.valid = true;
-            result.kind  = MeadeFocusCommandKind::SetSlowestRate;
-            return result;
-
-        case 'p':
-            result.valid = true;
-            result.kind  = MeadeFocusCommandKind::GetPosition;
-            return result;
-
-        case 'P':
-            result.valid   = true;
-            result.kind    = MeadeFocusCommandKind::SetPosition;
-            result.payload = input + 1;
-            return result;
-
-        case 'B':
-            result.valid = true;
-            result.kind  = MeadeFocusCommandKind::GetState;
-            return result;
-
-        case 'Q':
-            result.valid = true;
-            result.kind  = MeadeFocusCommandKind::Stop;
-            return result;
-
-        default:
-            return result;
+        result.valid   = true;
+        result.kind    = MeadeFocusCommandKind::SetSpeedByRate;
+        result.payload = input;
+        return result;
     }
+    MeadeFocusCommandKind kind;
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kFocusTable, input, kind, tail, capture))
+    {
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
+    }
+    return result;
 }
 
 MeadeExtraParseResult parseMeadeExtraCommand(const char *input)
@@ -760,44 +534,24 @@ MeadeExtraParseResult parseMeadeExtraCommand(const char *input)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeExtraCommandKind kind;
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kExtraTable, input, kind, tail, capture))
     {
-        case 'D':
-            result.valid   = true;
-            result.kind    = MeadeExtraCommandKind::DriftAlignment;
-            result.payload = input + 1;
-            return result;
-        case 'G':
-            result.valid   = true;
-            result.kind    = MeadeExtraCommandKind::Get;
-            result.payload = input + 1;
-            return result;
-        case 'S':
-            result.valid   = true;
-            result.kind    = MeadeExtraCommandKind::Set;
-            result.payload = input + 1;
-            return result;
-        case 'L':
-            result.valid   = true;
-            result.kind    = MeadeExtraCommandKind::Level;
-            result.payload = input + 1;
-            return result;
-        case 'F':
-            if (input[1] == 'R')
-            {
-                result.valid   = true;
-                result.kind    = MeadeExtraCommandKind::FactoryReset;
-                result.payload = input + 2;
-            }
-            return result;
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
     }
+    return result;
 }
 
 namespace
 {
+
 MeadeExtraLeafParseResult parseMeadeExtraGetLeafCommand(const char *input)
 {
     MeadeExtraLeafParseResult result;
@@ -805,176 +559,25 @@ MeadeExtraLeafParseResult parseMeadeExtraGetLeafCommand(const char *input)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeExtraLeafCommandKind kind;
+    if (lookupExact(kExtraGetExactTable, input, kind))
     {
-        case 'R':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetRaStepsPerDegree;
-            }
-            return result;
-
-        case 'D':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetDecStepsPerDegree;
-            }
-            else if (input[1] == 'L')
-            {
-                result.valid = true;
-                if (input[2] == '\0')
-                {
-                    result.kind = MeadeExtraLeafCommandKind::GetDecLimitBoth;
-                }
-                else if ((input[2] == 'L') && (input[3] == '\0'))
-                {
-                    result.kind = MeadeExtraLeafCommandKind::GetDecLimitLowerOnly;
-                }
-                else if ((input[2] == 'U') && (input[3] == '\0'))
-                {
-                    result.kind = MeadeExtraLeafCommandKind::GetDecLimitUpperOnly;
-                }
-                else
-                {
-                    result.kind    = MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant;
-                    result.payload = input + 2;
-                }
-            }
-            else if ((input[1] == 'P') && (input[2] == '\0'))
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetDecParking;
-            }
-            return result;
-
-        case 'S':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetTrackingSpeedCalibration;
-            }
-            else if ((input[1] == 'T') && (input[2] == '\0'))
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetRemainingSafeTime;
-            }
-            return result;
-
-        case 'T':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetTrackingSpeed;
-            }
-            return result;
-
-        case 'B':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetBacklashSteps;
-            }
-            return result;
-
-        case 'A':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetAltStepsPerDegree;
-            }
-            else if ((input[1] == 'H') && (input[2] == '\0'))
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetAutoHomingStates;
-            }
-            else if ((input[1] == 'A') && (input[2] == '\0'))
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetAzAltPositions;
-            }
-            return result;
-
-        case 'Z':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetAzStepsPerDegree;
-            }
-            return result;
-
-        case 'C':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::GetTargetCoordinatePositions;
-            result.payload = input + 1;
-            return result;
-
-        case 'M':
-            result.valid = true;
-            if ((input[1] == 'S') && (input[2] == '\0'))
-            {
-                result.kind = MeadeExtraLeafCommandKind::GetStepperInfo;
-            }
-            else
-            {
-                result.kind = MeadeExtraLeafCommandKind::GetMountHardwareInfo;
-            }
-            return result;
-
-        case 'O':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetLogBuffer;
-            }
-            return result;
-
-        case 'H':
-            result.valid = true;
-            if (input[1] == '\0')
-            {
-                result.kind = MeadeExtraLeafCommandKind::GetHourAngle;
-            }
-            else if ((input[1] == 'R') && (input[2] == '\0'))
-            {
-                result.kind = MeadeExtraLeafCommandKind::GetRaHomingOffset;
-            }
-            else if ((input[1] == 'D') && (input[2] == '\0'))
-            {
-                result.kind = MeadeExtraLeafCommandKind::GetDecHomingOffset;
-            }
-            else if ((input[1] == 'S') && (input[2] == '\0'))
-            {
-                result.kind = MeadeExtraLeafCommandKind::GetHemisphere;
-            }
-            else
-            {
-                result.kind    = MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant;
-                result.payload = input + 1;
-            }
-            return result;
-
-        case 'L':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetLocalSiderealTime;
-            }
-            return result;
-
-        case 'N':
-            if (input[1] == '\0')
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::GetNetworkStatus;
-            }
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
+        return result;
     }
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kExtraGetPrefixTable, input, kind, tail, capture))
+    {
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
+    }
+    return result;
 }
 
 MeadeExtraLeafParseResult parseMeadeExtraSetLeafCommand(const char *input)
@@ -984,125 +587,25 @@ MeadeExtraLeafParseResult parseMeadeExtraSetLeafCommand(const char *input)
     {
         return result;
     }
-
-    switch (input[0])
+    MeadeExtraLeafCommandKind kind;
+    if (lookupExact(kExtraSetExactTable, input, kind))
     {
-        case 'R':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetRaStepsPerDegree;
-            result.payload = input + 1;
-            return result;
-
-        case 'A':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetAzStepsPerDegree;
-            result.payload = input + 1;
-            return result;
-
-        case 'L':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetAltStepsPerDegree;
-            result.payload = input + 1;
-            return result;
-
-        case 'D':
-            if ((input[1] == 'L') && (input[2] == 'L'))
-            {
-                result.valid   = true;
-                result.kind    = MeadeExtraLeafCommandKind::SetDecLimitLowerSet;
-                result.payload = input + 3;
-                return result;
-            }
-            if ((input[1] == 'L') && (input[2] == 'U'))
-            {
-                result.valid   = true;
-                result.kind    = MeadeExtraLeafCommandKind::SetDecLimitUpperSet;
-                result.payload = input + 3;
-                return result;
-            }
-            if ((input[1] == 'L') && (input[2] == 'l') && (input[3] == '\0'))
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::SetDecLimitLowerClear;
-                return result;
-            }
-            if ((input[1] == 'L') && (input[2] == 'u') && (input[3] == '\0'))
-            {
-                result.valid = true;
-                result.kind  = MeadeExtraLeafCommandKind::SetDecLimitUpperClear;
-                return result;
-            }
-            if (input[1] == 'P')
-            {
-                result.valid   = true;
-                result.kind    = MeadeExtraLeafCommandKind::SetDecParking;
-                result.payload = input + 2;
-                return result;
-            }
-            if (input[1] != '\0')
-            {
-                result.valid   = true;
-                result.kind    = MeadeExtraLeafCommandKind::SetDecStepsPerDegree;
-                result.payload = input + 1;
-            }
-            return result;
-
-        case 'S':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetTrackingSpeedCalibration;
-            result.payload = input + 1;
-            return result;
-
-        case 'T':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetTrackingStepperPosition;
-            result.payload = input + 1;
-            return result;
-
-        case 'M':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetManualSlewMode;
-            result.payload = input + 1;
-            return result;
-
-        case 'X':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetRaManualSpeed;
-            result.payload = input + 1;
-            return result;
-
-        case 'Y':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetDecManualSpeed;
-            result.payload = input + 1;
-            return result;
-
-        case 'B':
-            result.valid   = true;
-            result.kind    = MeadeExtraLeafCommandKind::SetBacklashCorrection;
-            result.payload = input + 1;
-            return result;
-
-        case 'H':
-            if (input[1] == 'R')
-            {
-                result.valid   = true;
-                result.kind    = MeadeExtraLeafCommandKind::SetRaHomingOffset;
-                result.payload = input + 2;
-                return result;
-            }
-            if (input[1] == 'D')
-            {
-                result.valid   = true;
-                result.kind    = MeadeExtraLeafCommandKind::SetDecHomingOffset;
-                result.payload = input + 2;
-                return result;
-            }
-            return result;
-
-        default:
-            return result;
+        result.valid = true;
+        result.kind  = kind;
+        return result;
     }
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kExtraSetPrefixTable, input, kind, tail, capture))
+    {
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
+    }
+    return result;
 }
 
 MeadeExtraLeafParseResult parseMeadeExtraLevelLeafCommand(const char *input)
@@ -1112,62 +615,21 @@ MeadeExtraLeafParseResult parseMeadeExtraLevelLeafCommand(const char *input)
     {
         return result;
     }
-
-    result.valid = true;
-
-    switch (input[0])
+    MeadeExtraLeafCommandKind kind;
+    const char *tail = nullptr;
+    bool capture     = false;
+    if (lookupPrefix(kExtraLevelTable, input, kind, tail, capture))
     {
-        case 'G':
-            if (input[1] == 'R')
-            {
-                result.kind = MeadeExtraLeafCommandKind::LevelGetReferenceAngles;
-                return result;
-            }
-            if (input[1] == 'C')
-            {
-                result.kind = MeadeExtraLeafCommandKind::LevelGetCurrentAngles;
-                return result;
-            }
-            if (input[1] == 'T')
-            {
-                result.kind = MeadeExtraLeafCommandKind::LevelGetTemperature;
-                return result;
-            }
-            result.kind    = MeadeExtraLeafCommandKind::LevelGetInvalidVariant;
-            result.payload = input + 1;
-            return result;
-
-        case 'S':
-            if (input[1] == 'P')
-            {
-                result.kind    = MeadeExtraLeafCommandKind::LevelSetReferencePitch;
-                result.payload = input + 2;
-                return result;
-            }
-            if (input[1] == 'R')
-            {
-                result.kind    = MeadeExtraLeafCommandKind::LevelSetReferenceRoll;
-                result.payload = input + 2;
-                return result;
-            }
-            result.kind    = MeadeExtraLeafCommandKind::LevelSetInvalidVariant;
-            result.payload = input + 1;
-            return result;
-
-        case '1':
-            result.kind = MeadeExtraLeafCommandKind::LevelStartup;
-            return result;
-
-        case '0':
-            result.kind = MeadeExtraLeafCommandKind::LevelShutdown;
-            return result;
-
-        default:
-            result.kind    = MeadeExtraLeafCommandKind::LevelUnknownVariant;
-            result.payload = input;
-            return result;
+        result.valid = true;
+        result.kind  = kind;
+        if (capture)
+        {
+            result.payload = tail;
+        }
     }
+    return result;
 }
+
 }  // namespace
 
 MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind, const char *input)
@@ -1188,6 +650,7 @@ MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind,
         case MeadeExtraCommandKind::FactoryReset:
             return MeadeExtraLeafParseResult();
     }
+    return MeadeExtraLeafParseResult();
 }
 
 }  // namespace meade
