@@ -25,9 +25,8 @@
  * formatters only write payload bytes.
  */
 
-#include <cstddef>
-#include <cstdint>
-#include <utility>
+#include <stddef.h>
+#include <stdint.h>
 
 #include "core/MeadeParser.hpp"
 
@@ -53,7 +52,7 @@ class MeadeResponse
      * @brief Maximum payload length, including the framing terminator and
      * the trailing NUL byte.
      */
-    static constexpr std::size_t Capacity = 200;
+    static constexpr size_t Capacity = 200;
 
     /**
      * @brief Construct an empty (zero-length) response.
@@ -70,7 +69,7 @@ class MeadeResponse
     /**
      * @return Length of the reply in bytes, excluding the trailing NUL.
      */
-    std::size_t length() const
+    size_t length() const
     {
         return _length;
     }
@@ -106,7 +105,7 @@ class MeadeResponse
      * Used only by `makeResponse` overloads in `MeadeResponse.cpp`. Not
      * intended for direct caller use.
      */
-    static constexpr std::size_t capacity()
+    static constexpr size_t capacity()
     {
         return Capacity;
     }
@@ -116,14 +115,14 @@ class MeadeResponse
      * Used only by `makeResponse` overloads in `MeadeResponse.cpp`. Not
      * intended for direct caller use.
      */
-    void setLength(std::size_t n)
+    void setLength(size_t n)
     {
         _length = n;
     }
 
   private:
     char _data[Capacity];
-    std::size_t _length;
+    size_t _length;
 };
 
 namespace response
@@ -337,77 +336,77 @@ template <MeadeSyncCommandKind K> struct SyncResponse;
  */
 template <MeadeGetCommandKind K, typename... Args> MeadeResponse respondGet(Args &&...args)
 {
-    return GetResponse<K>::make(std::forward<Args>(args)...);
+    return GetResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a Set-family kind.
  */
 template <MeadeSetCommandKind K, typename... Args> MeadeResponse respondSet(Args &&...args)
 {
-    return SetResponse<K>::make(std::forward<Args>(args)...);
+    return SetResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a Movement-family kind.
  */
 template <MeadeMovementCommandKind K, typename... Args> MeadeResponse respondMovement(Args &&...args)
 {
-    return MovementResponse<K>::make(std::forward<Args>(args)...);
+    return MovementResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a Home-family kind.
  */
 template <MeadeHomeCommandKind K, typename... Args> MeadeResponse respondHome(Args &&...args)
 {
-    return HomeResponse<K>::make(std::forward<Args>(args)...);
+    return HomeResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a Quit-family kind.
  */
 template <MeadeQuitCommandKind K, typename... Args> MeadeResponse respondQuit(Args &&...args)
 {
-    return QuitResponse<K>::make(std::forward<Args>(args)...);
+    return QuitResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a SlewRate-family kind.
  */
 template <MeadeSlewRateCommandKind K, typename... Args> MeadeResponse respondSlewRate(Args &&...args)
 {
-    return SlewRateResponse<K>::make(std::forward<Args>(args)...);
+    return SlewRateResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for an Extra-family kind.
  */
 template <MeadeExtraCommandKind K, typename... Args> MeadeResponse respondExtra(Args &&...args)
 {
-    return ExtraResponse<K>::make(std::forward<Args>(args)...);
+    return ExtraResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for an ExtraLeaf kind.
  */
 template <MeadeExtraLeafCommandKind K, typename... Args> MeadeResponse respondExtraLeaf(Args &&...args)
 {
-    return ExtraLeafResponse<K>::make(std::forward<Args>(args)...);
+    return ExtraLeafResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a Focus-family kind.
  */
 template <MeadeFocusCommandKind K, typename... Args> MeadeResponse respondFocus(Args &&...args)
 {
-    return FocusResponse<K>::make(std::forward<Args>(args)...);
+    return FocusResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a Gps-family kind.
  */
 template <MeadeGpsCommandKind K, typename... Args> MeadeResponse respondGps(Args &&...args)
 {
-    return GpsResponse<K>::make(std::forward<Args>(args)...);
+    return GpsResponse<K>::make(args...);
 }
 /**
  * @brief Per-family entry point: build the response for a Sync-family kind.
  */
 template <MeadeSyncCommandKind K, typename... Args> MeadeResponse respondSync(Args &&...args)
 {
-    return SyncResponse<K>::make(std::forward<Args>(args)...);
+    return SyncResponse<K>::make(args...);
 }
 
 /**
@@ -425,7 +424,7 @@ template <MeadeSyncCommandKind K, typename... Args> MeadeResponse respondSync(Ar
         using type = response::tag::Tag;                                                                                                   \
         template <typename... Args> static MeadeResponse make(Args &&...args)                                                              \
         {                                                                                                                                  \
-            return makeResponse(type {}, std::forward<Args>(args)...);                                                                     \
+            return makeResponse(type {}, args...);                                                                     \
         }                                                                                                                                  \
     }
 
@@ -443,7 +442,7 @@ template <MeadeSyncCommandKind K, typename... Args> MeadeResponse respondSync(Ar
         using type = response::tag::Tag;                                                                                                   \
         template <typename... Args> static MeadeResponse make(Args &&...args)                                                              \
         {                                                                                                                                  \
-            return makeResponse(type {}, FixedArg, std::forward<Args>(args)...);                                                           \
+            return makeResponse(type {}, FixedArg, args...);                                                           \
         }                                                                                                                                  \
     }
 

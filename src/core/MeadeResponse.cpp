@@ -11,10 +11,10 @@
 
 #include "core/MeadeResponse.hpp"
 
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 namespace oat
 {
@@ -43,8 +43,8 @@ void writeText(MeadeResponse &r, const char *text)
         r.setLength(0);
         return;
     }
-    const std::size_t cap = MeadeResponse::capacity();
-    std::size_t i         = 0;
+    const size_t cap = MeadeResponse::capacity();
+    size_t i         = 0;
     while (i + 1 < cap && text[i] != '\0')
     {
         r.buffer()[i] = text[i];
@@ -59,7 +59,7 @@ void writeFormatted(MeadeResponse &r, const char *fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
-    int n = std::vsnprintf(r.buffer(), MeadeResponse::capacity(), fmt, args);
+    int n = vsnprintf(r.buffer(), MeadeResponse::capacity(), fmt, args);
     va_end(args);
     if (n < 0)
     {
@@ -67,8 +67,8 @@ void writeFormatted(MeadeResponse &r, const char *fmt, ...)
         r.setLength(0);
         return;
     }
-    const std::size_t cap = MeadeResponse::capacity();
-    std::size_t len       = static_cast<std::size_t>(n);
+    const size_t cap = MeadeResponse::capacity();
+    size_t len       = static_cast<size_t>(n);
     if (len >= cap)
     {
         len = cap - 1;
@@ -83,8 +83,8 @@ constexpr char kResponseTerminator = '#';
 // Append the framing terminator to `r`, clamping to capacity.
 void appendTerminator(MeadeResponse &r)
 {
-    const std::size_t cap = MeadeResponse::capacity();
-    std::size_t len       = r.length();
+    const size_t cap = MeadeResponse::capacity();
+    size_t len       = r.length();
     if (len + 1 >= cap)
     {
         return;
@@ -212,7 +212,7 @@ MeadeResponse makeResponse(tag::DecCoordinate, char sign, int degrees, int minut
 {
     MeadeResponse r;
     const char s = (sign == '-') ? '-' : '+';
-    writeFormatted(r, "%c%02d*%02d'%02d", s, std::abs(degrees), std::abs(minutes), std::abs(seconds));
+    writeFormatted(r, "%c%02d*%02d'%02d", s, abs(degrees), abs(minutes), abs(seconds));
     appendTerminator(r);
     return r;
 }
@@ -229,7 +229,7 @@ MeadeResponse makeResponse(tag::SiteLatitude, char sign, int degrees, int minute
 {
     MeadeResponse r;
     const char s = (sign == '-') ? '-' : '+';
-    writeFormatted(r, "%c%02d*%02d", s, std::abs(degrees), std::abs(minutes));
+    writeFormatted(r, "%c%02d*%02d", s, abs(degrees), abs(minutes));
     appendTerminator(r);
     return r;
 }
@@ -246,7 +246,7 @@ MeadeResponse makeResponse(tag::SiteLongitude, char sign, int degrees, int minut
 {
     MeadeResponse r;
     const char s = (sign == '-') ? '-' : '+';
-    writeFormatted(r, "%c%03d*%02d", s, std::abs(degrees), std::abs(minutes));
+    writeFormatted(r, "%c%03d*%02d", s, abs(degrees), abs(minutes));
     appendTerminator(r);
     return r;
 }
@@ -318,9 +318,9 @@ MeadeResponse makeResponse(tag::SetLocalDateAck, bool ok)
         appendTerminator(r);
         // Append 30 spaces and a framing terminator.
         const char *padding   = "                              ";  // 30 spaces
-        const std::size_t cap = MeadeResponse::capacity();
-        std::size_t len       = r.length();
-        std::size_t i         = 0;
+        const size_t cap = MeadeResponse::capacity();
+        size_t len       = r.length();
+        size_t i         = 0;
         while (padding[i] != '\0' && len + 1 < cap)
         {
             r.buffer()[len++] = padding[i++];

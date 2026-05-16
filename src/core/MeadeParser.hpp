@@ -5,10 +5,10 @@
  * @brief Pure parser for the Meade LX200 command protocol used by
  *        OpenAstroTracker.
  *
- * The parser is allocation-light (only the captured payload uses
- * `std::string`) and has no side effects on the mount: it inspects the
- * raw command bytes, classifies them into a `Meade*CommandKind` enum,
- * and returns a `Meade*ParseResult` describing the dispatch.
+ * The parser is allocation-light (the captured payload is held in a small
+ * fixed-capacity inline buffer) and has no side effects on the mount: it
+ * inspects the raw command bytes, classifies them into a `Meade*CommandKind`
+ * enum, and returns a `Meade*ParseResult` describing the dispatch.
  *
  * The framing characters (`:` prefix and `#` terminator) are handled by
  * the caller and are not part of the inputs to these functions.
@@ -22,7 +22,8 @@
  *   `MeadeExtraCommandKind`.
  */
 
-#include <string>
+#include <stddef.h>
+#include <string.h>
 
 namespace oat
 {
@@ -30,6 +31,73 @@ namespace core
 {
 namespace meade
 {
+
+/**
+ * @brief Small fixed-capacity owning payload buffer.
+ *
+ * Replaces `std::string` so the parser is usable on bare AVR builds that
+ * ship without libstdc++. Mimics the subset of the `std::string` interface
+ * the codebase relies on (`empty()`, `c_str()`, `operator[]`, `length()`).
+ */
+class MeadePayload
+{
+  public:
+    static constexpr size_t Capacity = 200;
+
+    MeadePayload()
+    {
+        _data[0] = '\0';
+    }
+
+    /** @brief `true` if no payload bytes have been captured. */
+    bool empty() const
+    {
+        return _data[0] == '\0';
+    }
+
+    /** @brief NUL-terminated pointer to the captured bytes. */
+    const char *c_str() const
+    {
+        return _data;
+    }
+
+    /** @brief Length of the captured bytes, excluding the trailing NUL. */
+    size_t length() const
+    {
+        size_t n = 0;
+        while (_data[n] != '\0')
+        {
+            ++n;
+        }
+        return n;
+    }
+
+    /** @brief Byte access. Behaviour is undefined if `i >= length()`. */
+    char operator[](size_t i) const
+    {
+        return _data[i];
+    }
+
+    /** @brief Copy a NUL-terminated source into the buffer (truncating if needed). */
+    void assign(const char *s)
+    {
+        if (s == nullptr)
+        {
+            _data[0] = '\0';
+            return;
+        }
+        size_t i = 0;
+        while ((s[i] != '\0') && (i + 1 < Capacity))
+        {
+            _data[i] = s[i];
+            ++i;
+        }
+        _data[i] = '\0';
+    }
+
+  private:
+    char _data[Capacity];
+};
 
 /** @brief Top-level Meade command families (first parser pass). */
 enum class MeadeCommandKind
@@ -79,7 +147,7 @@ struct MeadeParseResult {
     /** @brief Handler dispatch label. */
     MeadeCommandDispatchTarget dispatchTarget = MeadeCommandDispatchTarget::Unknown;
     /** @brief Remaining bytes after the family prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief Sub-commands of the `:X...` extra family. */
@@ -100,7 +168,7 @@ struct MeadeExtraParseResult {
     /** @brief Extra sub-command classification. */
     MeadeExtraCommandKind kind = MeadeExtraCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief Leaf sub-commands of the `:X` extra family (one enum spans Get/Set/Level). */
@@ -169,7 +237,7 @@ struct MeadeExtraLeafParseResult {
     /** @brief Leaf classification. */
     MeadeExtraLeafCommandKind kind = MeadeExtraLeafCommandKind::Unknown;
     /** @brief Remaining bytes after the leaf prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:G...` Get sub-commands. */
@@ -207,7 +275,7 @@ struct MeadeGetParseResult {
     /** @brief Get sub-command classification. */
     MeadeGetCommandKind kind = MeadeGetCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:gps...` GPS sub-commands. */
@@ -224,7 +292,7 @@ struct MeadeGpsParseResult {
     /** @brief GPS sub-command classification. */
     MeadeGpsCommandKind kind = MeadeGpsCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:S...` Set sub-commands. */
@@ -251,7 +319,7 @@ struct MeadeSetParseResult {
     /** @brief Set sub-command classification. */
     MeadeSetCommandKind kind = MeadeSetCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:CM...` Sync sub-commands. */
@@ -268,7 +336,7 @@ struct MeadeSyncParseResult {
     /** @brief Sync sub-command classification. */
     MeadeSyncCommandKind kind = MeadeSyncCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:M...` Movement sub-commands. */
@@ -297,7 +365,7 @@ struct MeadeMovementParseResult {
     /** @brief Movement sub-command classification. */
     MeadeMovementCommandKind kind = MeadeMovementCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:h...` Home / park sub-commands. */
@@ -317,7 +385,7 @@ struct MeadeHomeParseResult {
     /** @brief Home sub-command classification. */
     MeadeHomeCommandKind kind = MeadeHomeCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:Q...` Quit / stop sub-commands. */
@@ -340,7 +408,7 @@ struct MeadeQuitParseResult {
     /** @brief Quit sub-command classification. */
     MeadeQuitCommandKind kind = MeadeQuitCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:R...` Slew-rate sub-commands. */
@@ -360,7 +428,7 @@ struct MeadeSlewRateParseResult {
     /** @brief Slew-rate sub-command classification. */
     MeadeSlewRateCommandKind kind = MeadeSlewRateCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /** @brief `:F...` Focus sub-commands. */
@@ -386,7 +454,7 @@ struct MeadeFocusParseResult {
     /** @brief Focus sub-command classification. */
     MeadeFocusCommandKind kind = MeadeFocusCommandKind::Unknown;
     /** @brief Remaining bytes after the sub-command prefix. */
-    std::string payload;
+    MeadePayload payload;
 };
 
 /**

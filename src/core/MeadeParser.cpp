@@ -10,8 +10,8 @@
 
 #include "core/MeadeParser.hpp"
 
-#include <cstddef>
-#include <cstring>
+#include <stddef.h>
+#include <string.h>
 
 namespace oat
 {
@@ -41,11 +41,11 @@ template <typename Kind> struct PrefixEntry {
     bool requireNonEmptyTail;
 };
 
-template <typename Kind, std::size_t N> bool lookupExact(const ExactEntry<Kind> (&table)[N], const char *input, Kind &out)
+template <typename Kind, size_t N> bool lookupExact(const ExactEntry<Kind> (&table)[N], const char *input, Kind &out)
 {
-    for (std::size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < N; ++i)
     {
-        if (std::strcmp(table[i].key, input) == 0)
+        if (strcmp(table[i].key, input) == 0)
         {
             out = table[i].kind;
             return true;
@@ -56,10 +56,10 @@ template <typename Kind, std::size_t N> bool lookupExact(const ExactEntry<Kind> 
 
 // First-match-wins prefix lookup. Tables must list longer/more specific keys
 // before shorter ones that share a prefix.
-template <typename Kind, std::size_t N>
+template <typename Kind, size_t N>
 bool lookupPrefix(const PrefixEntry<Kind> (&table)[N], const char *input, Kind &out, const char *&tail, bool &capturesPayload)
 {
-    for (std::size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < N; ++i)
     {
         const char *k = table[i].key;
         const char *p = input;
@@ -308,39 +308,45 @@ MeadeParseResult parseMeadeCommand(const char *input)
         return result;
     }
 
-    std::string normalized;
-    for (const char *cursor = input; *cursor != '\0'; ++cursor)
+    // Copy the input into a stack buffer with whitespace stripped and the
+    // optional trailing `#` removed. Using a fixed-capacity char buffer keeps
+    // the parser usable on bare AVR builds that lack libstdc++ (`std::string`).
+    char normalized[MeadePayload::Capacity];
+    size_t nlen = 0;
+    for (const char *cursor = input; *cursor != '\0' && nlen + 1 < sizeof(normalized); ++cursor)
     {
         if (*cursor != ' ')
         {
-            normalized.push_back(*cursor);
+            normalized[nlen++] = *cursor;
         }
     }
+    normalized[nlen] = '\0';
 
-    if (normalized.length() < 2)
+    if (nlen < 2)
     {
         return result;
     }
 
-    if (!normalized.empty() && normalized.back() == '#')
+    if (normalized[nlen - 1] == '#')
     {
-        normalized.pop_back();
+        --nlen;
+        normalized[nlen] = '\0';
     }
 
-    if (normalized.length() < 2)
+    if (nlen < 2)
     {
         return result;
     }
 
     const char family = normalized[1];
-    for (std::size_t i = 0; i < (sizeof(kFamilyTable) / sizeof(kFamilyTable[0])); ++i)
+    for (size_t i = 0; i < (sizeof(kFamilyTable) / sizeof(kFamilyTable[0])); ++i)
     {
         if (kFamilyTable[i].family == family)
         {
             result.valid          = true;
             result.kind           = kFamilyTable[i].kind;
             result.dispatchTarget = kFamilyTable[i].target;
-            result.payload        = normalized.substr(2);
+            result.payload.assign(normalized + 2);
             return result;
         }
     }
@@ -382,7 +388,7 @@ MeadeGpsParseResult parseMeadeGpsCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
@@ -404,7 +410,7 @@ MeadeSetParseResult parseMeadeSetCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
@@ -448,7 +454,7 @@ MeadeMovementParseResult parseMeadeMovementCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
@@ -517,9 +523,9 @@ MeadeFocusParseResult parseMeadeFocusCommand(const char *input)
     }
     if ((input[0] >= '1') && (input[0] <= '4'))
     {
-        result.valid   = true;
-        result.kind    = MeadeFocusCommandKind::SetSpeedByRate;
-        result.payload = input;
+        result.valid = true;
+        result.kind  = MeadeFocusCommandKind::SetSpeedByRate;
+        result.payload.assign(input);
         return result;
     }
     MeadeFocusCommandKind kind;
@@ -531,7 +537,7 @@ MeadeFocusParseResult parseMeadeFocusCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
@@ -553,7 +559,7 @@ MeadeExtraParseResult parseMeadeExtraCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
@@ -584,7 +590,7 @@ MeadeExtraLeafParseResult parseMeadeExtraGetLeafCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
@@ -612,7 +618,7 @@ MeadeExtraLeafParseResult parseMeadeExtraSetLeafCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
@@ -634,7 +640,7 @@ MeadeExtraLeafParseResult parseMeadeExtraLevelLeafCommand(const char *input)
         result.kind  = kind;
         if (capture)
         {
-            result.payload = tail;
+            result.payload.assign(tail);
         }
     }
     return result;
