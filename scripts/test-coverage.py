@@ -36,7 +36,13 @@ def generateCoverageInfo():
         return
 
     print("Generating code coverage report...")
-    gcovr_cmd = ["gcovr"]
+    gcovr_cmd = [
+        "gcovr",
+        "--gcov-ignore-errors",
+        "source_not_found",
+        "--gcov-ignore-errors",
+        "no_working_dir_found",
+    ]
     report_dir = _project_root()
     # Adjust this path if you are testing multiple specific folders
     subprocess.run(gcovr_cmd + ["--html-details", ".pio/coverage.html", "--filter", "src/"], check=True, cwd=report_dir)
