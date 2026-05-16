@@ -5,20 +5,21 @@
  * @brief Type-safe Meade response API.
  *
  * The orchestrator (`MeadeCommandProcessor`) builds a response by selecting a
- * command kind at compile time; the trait layer (`GetResponse<K>` etc.) maps
- * that kind to a response *shape* (tag) and ultimately to a `makeResponse`
+ * command kind at compile time; the trait layer (`Response<K>`) maps that
+ * kind to a response *shape* (tag) and ultimately to a `makeResponse`
  * overload that owns the wire formatting for that shape. Passing the wrong
- * argument types is rejected at compile time; forgetting to specialise a
+ * argument types is rejected at compile time; forgetting to specialise the
  * trait surfaces as an incomplete-type error at the call site.
  *
  * ### Layers
  * - **Tags** (`response::tag::*`): zero-size types identifying a wire shape.
  * - **Factories** (`makeResponse(tag::X, args...)`): exactly one overload per
  *   shape; owns the printf/format logic for that shape.
- * - **Traits** (`GetResponse<K>` etc.): compile-time kind -> tag mapping,
- *   producing a `make(args...)` shim that forwards to `makeResponse`.
- * - **Entry points** (`respondGet<K>(args...)` etc.): user-facing helpers
- *   that bind a kind to its trait.
+ * - **Trait** (`Response<K>`): compile-time kind -> tag mapping, producing a
+ *   `make(args...)` shim that forwards to `makeResponse`. A single primary
+ *   template using `template <auto>` handles every command family.
+ * - **Entry point** (`respond<K>(args...)`): user-facing helper that binds
+ *   any kind enumerator to its trait.
  *
  * Framing (the trailing `#` byte that terminates each Meade reply) is
  * centralised in `MeadeResponse.cpp` via `appendTerminator`; per-shape
@@ -256,175 +257,48 @@ MeadeResponse makeResponse(tag::LongPairPipe, long a, long b);
 MeadeResponse makeResponse(tag::CompactHms, int hours, int minutes, int seconds);
 
 /**
- * @brief Primary template for the Get family kind -> tag mapping.
+ * @brief Primary template mapping any Meade kind enumerator to its response.
  *
- * Each specialisation exposes a `make(args...)` that forwards to the
- * matching `makeResponse` overload. C++11/14 has no `template <auto>`, so
- * one primary template exists per command-kind enum. Missing
- * specialisations instantiate the (undefined) primary template, producing
- * a compile error that points at the call site.
- */
-template <MeadeGetCommandKind K> struct GetResponse;
-/**
- * @brief Primary template for the Set family kind -> tag mapping.
+ * A single primary template handles every command family because C++17's
+ * `template <auto>` accepts any non-type template argument; each strong-enum
+ * value carries its own type, so specialisations across families remain
+ * mutually distinct. The primary template is intentionally undefined so a
+ * missing binding surfaces as a readable diagnostic at the call site.
  *
- * See `GetResponse` for details.
+ * Bind a kind to a wire-shape tag with `OAT_MEADE_BIND_RESPONSE`.
  */
-template <MeadeSetCommandKind K> struct SetResponse;
-/**
- * @brief Primary template for the Movement family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeMovementCommandKind K> struct MovementResponse;
-/**
- * @brief Primary template for the Home family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeHomeCommandKind K> struct HomeResponse;
-/**
- * @brief Primary template for the Quit family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeQuitCommandKind K> struct QuitResponse;
-/**
- * @brief Primary template for the SlewRate family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeSlewRateCommandKind K> struct SlewRateResponse;
-/**
- * @brief Primary template for the Extra family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeExtraCommandKind K> struct ExtraResponse;
-/**
- * @brief Primary template for the ExtraLeaf family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeExtraLeafCommandKind K> struct ExtraLeafResponse;
-/**
- * @brief Primary template for the Focus family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeFocusCommandKind K> struct FocusResponse;
-/**
- * @brief Primary template for the Gps family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeGpsCommandKind K> struct GpsResponse;
-/**
- * @brief Primary template for the Sync family kind -> tag mapping.
- *
- * See `GetResponse` for details.
- */
-template <MeadeSyncCommandKind K> struct SyncResponse;
+template <typename E, E K> struct Response;
 
 /**
- * @brief Per-family entry point: build the response for a Get-family kind.
+ * @brief Entry point: build the response for any Meade command kind.
  *
  * Example:
  * @code
- * return respondGet<MeadeGetCommandKind::FirmwareVersion>(versionString).c_str();
+ * return respond<MeadeGetCommandKind::FirmwareVersion>(versionString).c_str();
  * @endcode
+ *
+ * @tparam K    A `Meade<Family>CommandKind` enumerator.
+ * @tparam Args Argument pack forwarded to `makeResponse` for the bound tag.
  */
-template <MeadeGetCommandKind K, typename... Args> MeadeResponse respondGet(Args &&...args)
+template <auto K, typename... Args> MeadeResponse respond(Args &&...args)
 {
-    return GetResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a Set-family kind.
- */
-template <MeadeSetCommandKind K, typename... Args> MeadeResponse respondSet(Args &&...args)
-{
-    return SetResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a Movement-family kind.
- */
-template <MeadeMovementCommandKind K, typename... Args> MeadeResponse respondMovement(Args &&...args)
-{
-    return MovementResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a Home-family kind.
- */
-template <MeadeHomeCommandKind K, typename... Args> MeadeResponse respondHome(Args &&...args)
-{
-    return HomeResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a Quit-family kind.
- */
-template <MeadeQuitCommandKind K, typename... Args> MeadeResponse respondQuit(Args &&...args)
-{
-    return QuitResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a SlewRate-family kind.
- */
-template <MeadeSlewRateCommandKind K, typename... Args> MeadeResponse respondSlewRate(Args &&...args)
-{
-    return SlewRateResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for an Extra-family kind.
- */
-template <MeadeExtraCommandKind K, typename... Args> MeadeResponse respondExtra(Args &&...args)
-{
-    return ExtraResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for an ExtraLeaf kind.
- */
-template <MeadeExtraLeafCommandKind K, typename... Args> MeadeResponse respondExtraLeaf(Args &&...args)
-{
-    return ExtraLeafResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a Focus-family kind.
- */
-template <MeadeFocusCommandKind K, typename... Args> MeadeResponse respondFocus(Args &&...args)
-{
-    return FocusResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a Gps-family kind.
- */
-template <MeadeGpsCommandKind K, typename... Args> MeadeResponse respondGps(Args &&...args)
-{
-    return GpsResponse<K>::make(args...);
-}
-/**
- * @brief Per-family entry point: build the response for a Sync-family kind.
- */
-template <MeadeSyncCommandKind K, typename... Args> MeadeResponse respondSync(Args &&...args)
-{
-    return SyncResponse<K>::make(args...);
+    return Response<decltype(K), K>::make(args...);
 }
 
 /**
- * @brief Bind a `(Family, Kind)` pair to a response `Tag`.
+ * @brief Bind a command-kind enumerator to a response wire-shape `Tag`.
  *
  * Forwards all caller arguments to `makeResponse(Tag{}, args...)`.
  *
- * @param Family One of `Get`, `Set`, `Movement`, `Home`, `Quit`, `SlewRate`,
- *               `Extra`, `ExtraLeaf`, `Focus`, `Gps`, `Sync`.
- * @param Kind   An enumerator of `Meade<Family>CommandKind`.
- * @param Tag    A tag type in `response::tag`.
+ * @param KindExpr A fully-qualified enumerator, e.g. `MeadeGetCommandKind::FirmwareVersion`.
+ * @param Tag      A tag type in `response::tag`.
  */
-#define OAT_MEADE_BIND_RESPONSE(Family, Kind, Tag)                                                                                         \
-    template <> struct Family##Response<Meade##Family##CommandKind::Kind> {                                                                \
+#define OAT_MEADE_BIND_RESPONSE(KindExpr, Tag)                                                                                             \
+    template <> struct Response<decltype(KindExpr), KindExpr> {                                                                            \
         using type = response::tag::Tag;                                                                                                   \
         template <typename... Args> static MeadeResponse make(Args &&...args)                                                              \
         {                                                                                                                                  \
-            return makeResponse(type {}, args...);                                                                     \
+            return makeResponse(type {}, args...);                                                                                         \
         }                                                                                                                                  \
     }
 
@@ -437,164 +311,164 @@ template <MeadeSyncCommandKind K, typename... Args> MeadeResponse respondSync(Ar
  * @param FixedArg A constant expression injected as the first argument to
  *                 `makeResponse(Tag{}, FixedArg, args...)`.
  */
-#define OAT_MEADE_BIND_RESPONSE_FIXED(Family, Kind, Tag, FixedArg)                                                                         \
-    template <> struct Family##Response<Meade##Family##CommandKind::Kind> {                                                                \
+#define OAT_MEADE_BIND_RESPONSE_FIXED(KindExpr, Tag, FixedArg)                                                                             \
+    template <> struct Response<decltype(KindExpr), KindExpr> {                                                                            \
         using type = response::tag::Tag;                                                                                                   \
         template <typename... Args> static MeadeResponse make(Args &&...args)                                                              \
         {                                                                                                                                  \
-            return makeResponse(type {}, FixedArg, args...);                                                           \
+            return makeResponse(type {}, FixedArg, args...);                                                                               \
         }                                                                                                                                  \
     }
 
 // ---- Get family bindings ------------------------------------------------
-OAT_MEADE_BIND_RESPONSE(Get, FirmwareVersion, Text);
-OAT_MEADE_BIND_RESPONSE(Get, ProductName, Text);
-OAT_MEADE_BIND_RESPONSE(Get, MountStatus, Text);
-OAT_MEADE_BIND_RESPONSE(Get, TargetRa, RaCoordinate);
-OAT_MEADE_BIND_RESPONSE(Get, CurrentRa, RaCoordinate);
-OAT_MEADE_BIND_RESPONSE(Get, TargetDec, DecCoordinate);
-OAT_MEADE_BIND_RESPONSE(Get, CurrentDec, DecCoordinate);
-OAT_MEADE_BIND_RESPONSE(Get, IsSlewing, Boolean);
-OAT_MEADE_BIND_RESPONSE(Get, IsTracking, Boolean);
-OAT_MEADE_BIND_RESPONSE(Get, IsGuiding, Boolean);
-OAT_MEADE_BIND_RESPONSE(Get, SiteLatitude, SiteLatitude);
-OAT_MEADE_BIND_RESPONSE(Get, SiteLongitude, SiteLongitude);
-OAT_MEADE_BIND_RESPONSE(Get, ClockFormat, ClockFormat24);
-OAT_MEADE_BIND_RESPONSE(Get, UtcOffset, UtcOffset);
-OAT_MEADE_BIND_RESPONSE(Get, LocalTime12h, LocalTime);
-OAT_MEADE_BIND_RESPONSE(Get, LocalTime24h, LocalTime);
-OAT_MEADE_BIND_RESPONSE(Get, LocalDate, LocalDate);
-OAT_MEADE_BIND_RESPONSE_FIXED(Get, SiteName1, SiteNameSlot, 1);
-OAT_MEADE_BIND_RESPONSE_FIXED(Get, SiteName2, SiteNameSlot, 2);
-OAT_MEADE_BIND_RESPONSE_FIXED(Get, SiteName3, SiteNameSlot, 3);
-OAT_MEADE_BIND_RESPONSE_FIXED(Get, SiteName4, SiteNameSlot, 4);
-OAT_MEADE_BIND_RESPONSE(Get, TrackingRate, TrackingRate);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentDec, DecCoordinate);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffset, UtcOffset);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName3, SiteNameSlot, 3);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName4, SiteNameSlot, 4);
+OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TrackingRate, TrackingRate);
 
 // ---- Set family bindings ------------------------------------------------
-OAT_MEADE_BIND_RESPONSE(Set, TargetDec, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, TargetRa, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, LocalSiderealTime, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, HomePoint, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, HourAngle, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, SyncCoordinates, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, SiteLatitude, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, SiteLongitude, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, UtcOffset, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, LocalTime, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Set, LocalDate, SetLocalDateAck);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::TargetDec, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::TargetRa, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::LocalSiderealTime, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::HomePoint, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::HourAngle, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::SyncCoordinates, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::SiteLatitude, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::SiteLongitude, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::UtcOffset, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::LocalTime, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::LocalDate, SetLocalDateAck);
 
 // ---- Movement family bindings -------------------------------------------
-OAT_MEADE_BIND_RESPONSE_FIXED(Movement, SlewToTarget, SetSuccess, false);
-OAT_MEADE_BIND_RESPONSE(Movement, TrackingToggle, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Movement, GuidePulse, Literal);
-OAT_MEADE_BIND_RESPONSE(Movement, MoveAzAltHome, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Movement, MoveAzimuth, Empty);
-OAT_MEADE_BIND_RESPONSE(Movement, MoveAltitude, Empty);
-OAT_MEADE_BIND_RESPONSE(Movement, SlewEast, Empty);
-OAT_MEADE_BIND_RESPONSE(Movement, SlewWest, Empty);
-OAT_MEADE_BIND_RESPONSE(Movement, SlewNorth, Empty);
-OAT_MEADE_BIND_RESPONSE(Movement, SlewSouth, Empty);
-OAT_MEADE_BIND_RESPONSE(Movement, MoveStepper, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Movement, HomeRa, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Movement, HomeDec, SetSuccess);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeMovementCommandKind::SlewToTarget, SetSuccess, false);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::TrackingToggle, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::GuidePulse, Literal);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::MoveAzAltHome, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::MoveAzimuth, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::MoveAltitude, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::SlewEast, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::SlewWest, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::SlewNorth, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::SlewSouth, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::MoveStepper, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::HomeRa, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeMovementCommandKind::HomeDec, SetSuccess);
 
 // ---- Home family bindings -----------------------------------------------
-OAT_MEADE_BIND_RESPONSE(Home, Park, Empty);
-OAT_MEADE_BIND_RESPONSE(Home, Home, Empty);
-OAT_MEADE_BIND_RESPONSE(Home, Unpark, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Home, SetAzAltHome, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeHomeCommandKind::Park, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeHomeCommandKind::Home, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeHomeCommandKind::Unpark, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeHomeCommandKind::SetAzAltHome, SetSuccess);
 
 // ---- Quit family bindings -----------------------------------------------
-OAT_MEADE_BIND_RESPONSE(Quit, StopAll, Empty);
-OAT_MEADE_BIND_RESPONSE(Quit, StopDirectionalAll, Empty);
-OAT_MEADE_BIND_RESPONSE(Quit, StopEast, Empty);
-OAT_MEADE_BIND_RESPONSE(Quit, StopWest, Empty);
-OAT_MEADE_BIND_RESPONSE(Quit, StopNorth, Empty);
-OAT_MEADE_BIND_RESPONSE(Quit, StopSouth, Empty);
-OAT_MEADE_BIND_RESPONSE(Quit, QuitControlMode, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopAll, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopDirectionalAll, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopEast, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopWest, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopNorth, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopSouth, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::QuitControlMode, Empty);
 
 // ---- SlewRate family bindings -------------------------------------------
-OAT_MEADE_BIND_RESPONSE(SlewRate, Slew, Empty);
-OAT_MEADE_BIND_RESPONSE(SlewRate, Find, Empty);
-OAT_MEADE_BIND_RESPONSE(SlewRate, Center, Empty);
-OAT_MEADE_BIND_RESPONSE(SlewRate, Guide, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeSlewRateCommandKind::Slew, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeSlewRateCommandKind::Find, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeSlewRateCommandKind::Center, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeSlewRateCommandKind::Guide, Empty);
 
 // ---- GPS family bindings ------------------------------------------------
-OAT_MEADE_BIND_RESPONSE(Gps, StartAcquisition, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeGpsCommandKind::StartAcquisition, SetSuccess);
 
 // ---- Sync family bindings -----------------------------------------------
-OAT_MEADE_BIND_RESPONSE_FIXED(Sync, SyncToTarget, Text, "NONE");
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeSyncCommandKind::SyncToTarget, Text, "NONE");
 
 // ---- Focus family bindings ----------------------------------------------
-OAT_MEADE_BIND_RESPONSE(Focus, ContinuousIn, Empty);
-OAT_MEADE_BIND_RESPONSE(Focus, ContinuousOut, Empty);
-OAT_MEADE_BIND_RESPONSE(Focus, MoveBy, Empty);
-OAT_MEADE_BIND_RESPONSE(Focus, SetSpeedByRate, Empty);
-OAT_MEADE_BIND_RESPONSE(Focus, SetFastestRate, Empty);
-OAT_MEADE_BIND_RESPONSE(Focus, SetSlowestRate, Empty);
-OAT_MEADE_BIND_RESPONSE(Focus, Stop, Empty);
-OAT_MEADE_BIND_RESPONSE(Focus, GetPosition, Long);
-OAT_MEADE_BIND_RESPONSE(Focus, SetPosition, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(Focus, GetState, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::ContinuousIn, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::ContinuousOut, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::MoveBy, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::SetSpeedByRate, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::SetFastestRate, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::SetSlowestRate, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::Stop, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::GetPosition, Long);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::SetPosition, SetSuccess);
+OAT_MEADE_BIND_RESPONSE(MeadeFocusCommandKind::GetState, SetSuccess);
 
 // ---- Extra (top-level) family bindings ----------------------------------
-OAT_MEADE_BIND_RESPONSE(Extra, DriftAlignment, Empty);
-OAT_MEADE_BIND_RESPONSE(Extra, FactoryReset, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraCommandKind::DriftAlignment, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraCommandKind::FactoryReset, Boolean);
 
 // ---- ExtraLeaf family bindings ------------------------------------------
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetRaStepsPerDegree, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetDecStepsPerDegree, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetDecLimitBoth, DecLimitsPair);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetDecLimitLowerOnly, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetDecLimitUpperOnly, NumericFloat);
-OAT_MEADE_BIND_RESPONSE_FIXED(ExtraLeaf, GetDecLimitInvalidVariant, Boolean, false);
-OAT_MEADE_BIND_RESPONSE_FIXED(ExtraLeaf, GetDecParking, Boolean, false);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetTrackingSpeedCalibration, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetRemainingSafeTime, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetTrackingSpeed, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetBacklashSteps, Int);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetAltStepsPerDegree, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetAzStepsPerDegree, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetAutoHomingStates, Text);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetAzAltPositions, LongPairPipe);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetTargetCoordinatePositions, LongPairPipe);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetMountHardwareInfo, Text);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetStepperInfo, Text);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetLogBuffer, Literal);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetHourAngle, CompactHms);
-OAT_MEADE_BIND_RESPONSE_FIXED(ExtraLeaf, GetHourAngleInvalidVariant, Boolean, false);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetRaHomingOffset, Long);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetDecHomingOffset, Long);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetHemisphere, Hemisphere);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetLocalSiderealTime, CompactHms);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, GetNetworkStatus, Text);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetRaStepsPerDegree, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetDecStepsPerDegree, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetDecLimitBoth, DecLimitsPair);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetDecLimitLowerOnly, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetDecLimitUpperOnly, NumericFloat);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant, Boolean, false);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeExtraLeafCommandKind::GetDecParking, Boolean, false);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetTrackingSpeedCalibration, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetRemainingSafeTime, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetTrackingSpeed, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetBacklashSteps, Int);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetAltStepsPerDegree, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetAzStepsPerDegree, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetAutoHomingStates, Text);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetAzAltPositions, LongPairPipe);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetTargetCoordinatePositions, LongPairPipe);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetMountHardwareInfo, Text);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetStepperInfo, Text);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetLogBuffer, Literal);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetHourAngle, CompactHms);
+OAT_MEADE_BIND_RESPONSE_FIXED(MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant, Boolean, false);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetRaHomingOffset, Long);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetDecHomingOffset, Long);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetHemisphere, Hemisphere);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetLocalSiderealTime, CompactHms);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::GetNetworkStatus, Text);
 // All Set* sub-leaves return "" after dispatch.
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetRaStepsPerDegree, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetAzStepsPerDegree, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetAltStepsPerDegree, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecStepsPerDegree, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecLimitLowerSet, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecLimitUpperSet, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecLimitLowerClear, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecLimitUpperClear, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecParking, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetTrackingSpeedCalibration, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetTrackingStepperPosition, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetManualSlewMode, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetRaManualSpeed, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecManualSpeed, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetBacklashCorrection, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetRaHomingOffset, Empty);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, SetDecHomingOffset, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetRaStepsPerDegree, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetAzStepsPerDegree, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetAltStepsPerDegree, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecStepsPerDegree, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecLimitLowerSet, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecLimitUpperSet, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecLimitLowerClear, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecLimitUpperClear, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecParking, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetTrackingSpeedCalibration, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetTrackingStepperPosition, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetManualSlewMode, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetRaManualSpeed, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecManualSpeed, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetBacklashCorrection, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetRaHomingOffset, Empty);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::SetDecHomingOffset, Empty);
 // Level commands.
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelGetReferenceAngles, AnglePair4);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelGetCurrentAngles, AnglePair4);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelGetTemperature, NumericFloat);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelSetReferencePitch, Boolean);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelSetReferenceRoll, Boolean);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelStartup, Boolean);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelShutdown, Boolean);
-OAT_MEADE_BIND_RESPONSE(ExtraLeaf, LevelUnknownVariant, LevelUnknown);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelGetReferenceAngles, AnglePair4);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelGetCurrentAngles, AnglePair4);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelGetTemperature, NumericFloat);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelSetReferencePitch, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelSetReferenceRoll, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelStartup, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelShutdown, Boolean);
+OAT_MEADE_BIND_RESPONSE(MeadeExtraLeafCommandKind::LevelUnknownVariant, LevelUnknown);
 
 }  // namespace response
 
