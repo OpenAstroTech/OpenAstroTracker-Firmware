@@ -350,14 +350,10 @@ OAT_MEADE_BIND_RESPONSE(MeadeHomeCommandKind::Home, Empty);
 OAT_MEADE_BIND_RESPONSE(MeadeHomeCommandKind::Unpark, SetSuccess);
 OAT_MEADE_BIND_RESPONSE(MeadeHomeCommandKind::SetAzAltHome, SetSuccess);
 
-// ---- Quit family bindings -----------------------------------------------
-OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopAll, Empty);
-OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopDirectionalAll, Empty);
-OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopEast, Empty);
-OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopWest, Empty);
-OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopNorth, Empty);
-OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::StopSouth, Empty);
-OAT_MEADE_BIND_RESPONSE(MeadeQuitCommandKind::QuitControlMode, Empty);
+// ---- Quit family --------------------------------------------------------
+// The Quit family does not use the kind->tag binding layer. Quit commands
+// are dispatched directly by `handleMeadeQuit` (see MeadeParser.hpp) and
+// always emit an empty wire response.
 
 // ---- SlewRate family bindings -------------------------------------------
 OAT_MEADE_BIND_RESPONSE(MeadeSlewRateCommandKind::Slew, Empty);

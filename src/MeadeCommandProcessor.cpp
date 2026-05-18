@@ -2169,58 +2169,50 @@ const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeQuit(const String &inCmd)
 {
-    using namespace oat::core::meade::response;
-    using meade::MeadeQuitCommandKind;
+    return store(meade::handleMeadeQuit(inCmd.c_str(), *this));
+}
 
-    meade::MeadeQuitParseResult parsed = meade::parseMeadeQuitCommand(inCmd.c_str());
-    if (!parsed.valid)
-    {
-        return "";
-    }
+void MeadeCommandProcessor::onStopAll()
+{
+    // :Q# stops all motors but remains in Control mode.
+    _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
+    _mount->stopSlewing(AZIMUTH_STEPS);
+    _mount->stopSlewing(ALTITUDE_STEPS);
+    _mount->stopSlewing(FOCUS_STEPS);
+    _mount->waitUntilAllStopped();
+}
 
-    switch (parsed.kind)
-    {
-        case MeadeQuitCommandKind::StopAll:
-            // :Q# stops a motors - remains in Control mode
-            _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
-            _mount->stopSlewing(AZIMUTH_STEPS);
-            _mount->stopSlewing(ALTITUDE_STEPS);
-            _mount->stopSlewing(FOCUS_STEPS);
-            _mount->waitUntilAllStopped();
-            return store(respond<MeadeQuitCommandKind::StopAll>());
+void MeadeCommandProcessor::onStopDirectionalAll()
+{
+    _mount->stopSlewing(ALL_DIRECTIONS);
+}
 
-        case MeadeQuitCommandKind::StopDirectionalAll:
-            _mount->stopSlewing(ALL_DIRECTIONS);
-            return store(respond<MeadeQuitCommandKind::StopDirectionalAll>());
+void MeadeCommandProcessor::onStopEast()
+{
+    _mount->stopSlewing(EAST);
+}
 
-        case MeadeQuitCommandKind::StopEast:
-            _mount->stopSlewing(EAST);
-            return store(respond<MeadeQuitCommandKind::StopEast>());
+void MeadeCommandProcessor::onStopWest()
+{
+    _mount->stopSlewing(WEST);
+}
 
-        case MeadeQuitCommandKind::StopWest:
-            _mount->stopSlewing(WEST);
-            return store(respond<MeadeQuitCommandKind::StopWest>());
+void MeadeCommandProcessor::onStopNorth()
+{
+    _mount->stopSlewing(NORTH);
+}
 
-        case MeadeQuitCommandKind::StopNorth:
-            _mount->stopSlewing(NORTH);
-            return store(respond<MeadeQuitCommandKind::StopNorth>());
+void MeadeCommandProcessor::onStopSouth()
+{
+    _mount->stopSlewing(SOUTH);
+}
 
-        case MeadeQuitCommandKind::StopSouth:
-            _mount->stopSlewing(SOUTH);
-            return store(respond<MeadeQuitCommandKind::StopSouth>());
-
-        case MeadeQuitCommandKind::QuitControlMode:
-            // :Qq# command does not stop motors, but quits Control mode
-            inSerialControl = false;
-            _lcdMenu->setCursor(0, 0);
-            _lcdMenu->updateDisplay();
-            return store(respond<MeadeQuitCommandKind::QuitControlMode>());
-
-        case MeadeQuitCommandKind::Unknown:
-            return "";
-    }
-
-    return "";
+void MeadeCommandProcessor::onQuitControlMode()
+{
+    // :Qq# does not stop motors, just leaves Control mode.
+    inSerialControl = false;
+    _lcdMenu->setCursor(0, 0);
+    _lcdMenu->updateDisplay();
 }
 
 /////////////////////////////

@@ -19,8 +19,6 @@ using meade::MeadeHomeParseResult;
 using meade::MeadeMovementCommandKind;
 using meade::MeadeMovementParseResult;
 using meade::MeadeParseResult;
-using meade::MeadeQuitCommandKind;
-using meade::MeadeQuitParseResult;
 using meade::MeadeSlewRateCommandKind;
 using meade::MeadeSlewRateParseResult;
 using meade::MeadeSyncCommandKind;
@@ -32,7 +30,6 @@ using meade::parseMeadeFocusCommand;
 using meade::parseMeadeGpsCommand;
 using meade::parseMeadeHomeCommand;
 using meade::parseMeadeMovementCommand;
-using meade::parseMeadeQuitCommand;
 using meade::parseMeadeSlewRateCommand;
 using meade::parseMeadeSyncCommand;
 
@@ -100,14 +97,6 @@ void assert_valid_movement_parse(const char *input, MeadeMovementCommandKind exp
 void assert_valid_home_parse(const char *input, MeadeHomeCommandKind expected_kind)
 {
     MeadeHomeParseResult result = parseMeadeHomeCommand(input);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(expected_kind), static_cast<int>(result.kind));
-    TEST_ASSERT_TRUE(result.payload.empty());
-}
-
-void assert_valid_quit_parse(const char *input, MeadeQuitCommandKind expected_kind)
-{
-    MeadeQuitParseResult result = parseMeadeQuitCommand(input);
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_INT(static_cast<int>(expected_kind), static_cast<int>(result.kind));
     TEST_ASSERT_TRUE(result.payload.empty());
@@ -296,25 +285,6 @@ void test_meade_parser_rejects_unknown_home_family_commands(void)
     TEST_ASSERT_TRUE(result.payload.empty());
 }
 
-void test_meade_parser_classifies_quit_family_commands(void)
-{
-    assert_valid_quit_parse("", MeadeQuitCommandKind::StopAll);
-    assert_valid_quit_parse("a", MeadeQuitCommandKind::StopDirectionalAll);
-    assert_valid_quit_parse("e", MeadeQuitCommandKind::StopEast);
-    assert_valid_quit_parse("w", MeadeQuitCommandKind::StopWest);
-    assert_valid_quit_parse("n", MeadeQuitCommandKind::StopNorth);
-    assert_valid_quit_parse("s", MeadeQuitCommandKind::StopSouth);
-    assert_valid_quit_parse("q", MeadeQuitCommandKind::QuitControlMode);
-}
-
-void test_meade_parser_rejects_unknown_quit_family_commands(void)
-{
-    MeadeQuitParseResult result = parseMeadeQuitCommand("z");
-    TEST_ASSERT_FALSE(result.valid);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(MeadeQuitCommandKind::Unknown), static_cast<int>(result.kind));
-    TEST_ASSERT_TRUE(result.payload.empty());
-}
-
 void test_meade_parser_classifies_slew_rate_family_commands(void)
 {
     assert_valid_slew_rate_parse("S", MeadeSlewRateCommandKind::Slew);
@@ -483,8 +453,6 @@ void process()
     RUN_TEST(test_meade_parser_rejects_unknown_movement_family_commands);
     RUN_TEST(test_meade_parser_classifies_home_family_commands);
     RUN_TEST(test_meade_parser_rejects_unknown_home_family_commands);
-    RUN_TEST(test_meade_parser_classifies_quit_family_commands);
-    RUN_TEST(test_meade_parser_rejects_unknown_quit_family_commands);
     RUN_TEST(test_meade_parser_classifies_slew_rate_family_commands);
     RUN_TEST(test_meade_parser_rejects_unknown_slew_rate_family_commands);
     RUN_TEST(test_meade_parser_classifies_focus_family_commands);

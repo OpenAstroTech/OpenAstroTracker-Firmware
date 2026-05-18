@@ -151,16 +151,6 @@ constexpr ExactEntry<MeadeHomeCommandKind> kHomeTable[] = {
     {"Z", MeadeHomeCommandKind::SetAzAltHome},
 };
 
-// Quit: empty input is the special StopAll case, handled in the parser body.
-constexpr ExactEntry<MeadeQuitCommandKind> kQuitTable[] = {
-    {"a", MeadeQuitCommandKind::StopDirectionalAll},
-    {"e", MeadeQuitCommandKind::StopEast},
-    {"w", MeadeQuitCommandKind::StopWest},
-    {"n", MeadeQuitCommandKind::StopNorth},
-    {"s", MeadeQuitCommandKind::StopSouth},
-    {"q", MeadeQuitCommandKind::QuitControlMode},
-};
-
 constexpr ExactEntry<MeadeSlewRateCommandKind> kSlewRateTable[] = {
     {"S", MeadeSlewRateCommandKind::Slew},
     {"M", MeadeSlewRateCommandKind::Find},
@@ -407,28 +397,6 @@ MeadeHomeParseResult parseMeadeHomeCommand(const char *input)
     }
     MeadeHomeCommandKind kind;
     if (lookupExact(kHomeTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-    }
-    return result;
-}
-
-MeadeQuitParseResult parseMeadeQuitCommand(const char *input)
-{
-    MeadeQuitParseResult result;
-    if (input == nullptr)
-    {
-        return result;
-    }
-    if (input[0] == '\0')
-    {
-        result.valid = true;
-        result.kind  = MeadeQuitCommandKind::StopAll;
-        return result;
-    }
-    MeadeQuitCommandKind kind;
-    if (lookupExact(kQuitTable, input, kind))
     {
         result.valid = true;
         result.kind  = kind;
@@ -1281,6 +1249,57 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
             writeChar(r, '0');
             return r;
     }
+}
+
+// ---------------------------------------------------------------------------
+// Quit-family dispatcher
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeQuit(const char *suffix, IMeadeQuitHandlers &h)
+{
+    MeadeResponse r;
+    if (suffix == nullptr)
+    {
+        return r;
+    }
+
+    // Empty suffix == :Q# == StopAll.
+    if (suffix[0] == '\0')
+    {
+        h.onStopAll();
+        return r;
+    }
+
+    // All remaining variants are a single character.
+    if (suffix[1] != '\0')
+    {
+        return r;
+    }
+
+    switch (suffix[0])
+    {
+        case 'a':
+            h.onStopDirectionalAll();
+            break;
+        case 'e':
+            h.onStopEast();
+            break;
+        case 'w':
+            h.onStopWest();
+            break;
+        case 'n':
+            h.onStopNorth();
+            break;
+        case 's':
+            h.onStopSouth();
+            break;
+        case 'q':
+            h.onQuitControlMode();
+            break;
+        default:
+            break;
+    }
+    return r;
 }
 
 }  // namespace meade

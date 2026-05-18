@@ -7,7 +7,9 @@
 class Mount;
 class LcdMenu;
 
-class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers, private oat::core::meade::IMeadeSetHandlers
+class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers,
+                              private oat::core::meade::IMeadeSetHandlers,
+                              private oat::core::meade::IMeadeQuitHandlers
 {
   public:
     static MeadeCommandProcessor *createProcessor(Mount *mount, LcdMenu *lcdMenu);
@@ -67,6 +69,16 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers, priva
     bool onSetUtcOffset(int hours) override;
     bool onSetLocalTime(oat::core::meade::MeadeLocalTime t) override;
     bool onSetLocalDate(oat::core::meade::MeadeLocalDate d) override;
+
+    // IMeadeQuitHandlers overrides. All callbacks are side-effect only; the
+    // dispatcher emits an empty wire response regardless.
+    void onStopAll() override;
+    void onStopDirectionalAll() override;
+    void onStopEast() override;
+    void onStopWest() override;
+    void onStopNorth() override;
+    void onStopSouth() override;
+    void onQuitControlMode() override;
 
     Mount *_mount;
     LcdMenu *_lcdMenu;

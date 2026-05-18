@@ -326,29 +326,6 @@ struct MeadeHomeParseResult {
     MeadePayload payload;
 };
 
-/** @brief `:Q...` Quit / stop sub-commands. */
-enum class MeadeQuitCommandKind
-{
-    Unknown,
-    StopAll,
-    StopDirectionalAll,
-    StopEast,
-    StopWest,
-    StopNorth,
-    StopSouth,
-    QuitControlMode,
-};
-
-/** @brief Result of `parseMeadeQuitCommand`. */
-struct MeadeQuitParseResult {
-    /** @brief `true` if the quit sub-command was recognised. */
-    bool valid = false;
-    /** @brief Quit sub-command classification. */
-    MeadeQuitCommandKind kind = MeadeQuitCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
 /** @brief `:R...` Slew-rate sub-commands. */
 enum class MeadeSlewRateCommandKind
 {
@@ -430,12 +407,6 @@ MeadeMovementParseResult parseMeadeMovementCommand(const char *input);
  * @param input NUL-terminated bytes after the `h` prefix.
  */
 MeadeHomeParseResult parseMeadeHomeCommand(const char *input);
-
-/**
- * @brief Parse a `:Q...` Quit / stop sub-command.
- * @param input NUL-terminated bytes after the `Q` prefix.
- */
-MeadeQuitParseResult parseMeadeQuitCommand(const char *input);
 
 /**
  * @brief Parse a `:R...` Slew-rate sub-command.
@@ -638,6 +609,52 @@ class IMeadeSetHandlers
  * @return Framed wire response, or `"0"` for unknown / malformed input.
  */
 MeadeResponse handleMeadeSet(const char *suffix, IMeadeSetHandlers &handlers);
+
+// ---------------------------------------------------------------------------
+// Quit-family dispatch
+// ---------------------------------------------------------------------------
+// Mirrors the Get/Set pipelines for the `:Q...` family. All quit commands
+// emit an empty wire response on the protocol; the handler interface only
+// reports side effects.
+
+/**
+ * @brief Pure callback interface for the Meade `:Q...` (Quit / stop) family.
+ *
+ * Every callback is a side-effect-only operation; the wire response is
+ * always empty regardless of which callback fires. Unknown sub-commands
+ * produce an empty response without invoking any handler.
+ */
+class IMeadeQuitHandlers
+{
+  public:
+    virtual ~IMeadeQuitHandlers() = default;
+
+    /** @brief `:Q#` — stop all axes (slew, tracking, az/alt, focus). */
+    virtual void onStopAll() = 0;
+    /** @brief `:Qa#` — stop slew on all directional axes; leaves tracking on. */
+    virtual void onStopDirectionalAll() = 0;
+    /** @brief `:Qe#` — stop eastward slew. */
+    virtual void onStopEast() = 0;
+    /** @brief `:Qw#` — stop westward slew. */
+    virtual void onStopWest() = 0;
+    /** @brief `:Qn#` — stop northward slew. */
+    virtual void onStopNorth() = 0;
+    /** @brief `:Qs#` — stop southward slew. */
+    virtual void onStopSouth() = 0;
+    /** @brief `:Qq#` — leave serial control mode without stopping motors. */
+    virtual void onQuitControlMode() = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade Quit sub-command in one step.
+ *
+ * @param suffix The bytes that follow the family `:Q` prefix, with the
+ *               trailing `#` already stripped. The empty string is the
+ *               StopAll variant.
+ * @param handlers Implementation providing the mount-side side effects.
+ * @return Empty wire response (`""`) for every outcome including unknown.
+ */
+MeadeResponse handleMeadeQuit(const char *suffix, IMeadeQuitHandlers &handlers);
 
 }  // namespace meade
 }  // namespace core
