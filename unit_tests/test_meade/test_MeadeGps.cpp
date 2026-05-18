@@ -9,7 +9,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -40,12 +39,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_gps_t_success_emits_one()
 {
@@ -87,13 +82,13 @@ void test_gps_empty_suffix_emits_zero_no_call()
     TEST_ASSERT_FALSE(h.called);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_gps_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_gps_t_success_emits_one);
     RUN_TEST(test_gps_t_failure_emits_zero);
     RUN_TEST(test_gps_t_with_payload_forwards_payload);
     RUN_TEST(test_gps_unknown_suffix_emits_zero_no_call);
     RUN_TEST(test_gps_empty_suffix_emits_zero_no_call);
-    return UNITY_END();
 }

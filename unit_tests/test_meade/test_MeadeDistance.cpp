@@ -7,7 +7,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -36,12 +35,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_distance_idle_emits_space()
 {
@@ -67,11 +62,11 @@ void test_distance_ignores_suffix_bytes()
     TEST_ASSERT_EQUAL_INT(1, h.callCount);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_distance_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_distance_idle_emits_space);
     RUN_TEST(test_distance_slewing_emits_pipe);
     RUN_TEST(test_distance_ignores_suffix_bytes);
-    return UNITY_END();
 }

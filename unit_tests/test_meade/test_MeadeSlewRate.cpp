@@ -6,7 +6,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -35,12 +34,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_slew_rate_s_sets_4()
 {
@@ -91,9 +86,10 @@ void test_slew_rate_empty_suffix_no_call()
     TEST_ASSERT_EQUAL_INT(0, h.callCount);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_slew_rate_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_slew_rate_s_sets_4);
     RUN_TEST(test_slew_rate_m_sets_3);
     RUN_TEST(test_slew_rate_c_sets_2);
@@ -101,5 +97,4 @@ int main(int, char **)
     RUN_TEST(test_slew_rate_unknown_suffix_no_call);
     RUN_TEST(test_slew_rate_multi_char_suffix_no_call);
     RUN_TEST(test_slew_rate_empty_suffix_no_call);
-    return UNITY_END();
 }

@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -60,12 +59,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_empty_suffix_stops_all()
 {
@@ -131,9 +126,10 @@ void test_multi_char_suffix_does_not_call_handler()
     TEST_ASSERT_NULL(h.lastCall);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_quit_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_empty_suffix_stops_all);
     RUN_TEST(test_a_suffix_stops_directional_all);
     RUN_TEST(test_e_suffix_stops_east);
@@ -143,5 +139,4 @@ int main(int, char **)
     RUN_TEST(test_q_suffix_quits_control_mode);
     RUN_TEST(test_unknown_suffix_does_not_call_handler);
     RUN_TEST(test_multi_char_suffix_does_not_call_handler);
-    return UNITY_END();
 }

@@ -6,7 +6,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -32,12 +31,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_sync_to_target_emits_none()
 {
@@ -67,12 +62,12 @@ void test_sync_trailing_bytes_emit_fail()
     TEST_ASSERT_EQUAL_INT(0, h.callCount);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_sync_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_sync_to_target_emits_none);
     RUN_TEST(test_sync_unknown_suffix_emits_fail);
     RUN_TEST(test_sync_empty_suffix_emits_fail);
     RUN_TEST(test_sync_trailing_bytes_emit_fail);
-    return UNITY_END();
 }

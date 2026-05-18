@@ -13,7 +13,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -265,12 +264,8 @@ const char *dispatch(const char *suffix, FakeExtra &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 // ---- Family-level -----------------------------------------------------------
 
@@ -509,9 +504,10 @@ void test_extra_level_get_temperature_numeric_float_when_available()
     TEST_ASSERT_EQUAL_STRING("23.5#", dispatch("LGT", h));
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_extra_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_extra_factory_reset_emits_one_terminator_and_calls_handler);
     RUN_TEST(test_extra_drift_alignment_emits_empty_and_passes_duration_minus_three);
     RUN_TEST(test_extra_unknown_family_emits_empty);
@@ -546,5 +542,4 @@ int main(int, char **)
     RUN_TEST(test_extra_level_startup_returns_one_terminator_when_available);
     RUN_TEST(test_extra_level_shutdown_returns_one_terminator_when_available);
     RUN_TEST(test_extra_level_get_temperature_numeric_float_when_available);
-    return UNITY_END();
 }

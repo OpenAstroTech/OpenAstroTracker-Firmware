@@ -7,7 +7,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -80,12 +79,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_focus_continuous_in_empty_response()
 {
@@ -211,9 +206,10 @@ void test_focus_unknown_suffix_emits_empty_no_call()
     TEST_ASSERT_FALSE(h.setSpeedCalled);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_focus_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_focus_continuous_in_empty_response);
     RUN_TEST(test_focus_continuous_out_empty_response);
     RUN_TEST(test_focus_move_by_parses_signed_long);
@@ -230,5 +226,4 @@ int main(int, char **)
     RUN_TEST(test_focus_stop_emits_empty);
     RUN_TEST(test_focus_empty_suffix_emits_empty_no_call);
     RUN_TEST(test_focus_unknown_suffix_emits_empty_no_call);
-    return UNITY_END();
 }

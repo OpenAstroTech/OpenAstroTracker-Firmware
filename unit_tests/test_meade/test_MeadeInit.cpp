@@ -5,7 +5,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -31,12 +30,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_init_empty_response()
 {
@@ -52,10 +47,10 @@ void test_init_ignores_suffix()
     TEST_ASSERT_EQUAL_INT(1, h.callCount);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_init_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_init_empty_response);
     RUN_TEST(test_init_ignores_suffix);
-    return UNITY_END();
 }

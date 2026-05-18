@@ -11,7 +11,6 @@
 #include <string.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -118,12 +117,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 // ---- Target DEC (d) ----------------------------------------------------
 
@@ -393,10 +388,10 @@ void test_empty_suffix_returns_zero()
     TEST_ASSERT_NULL(h.lastCall);
 }
 
-int main(int, char **)
-{
-    UNITY_BEGIN();
+}  // namespace
 
+void register_meade_set_tests()
+{
     RUN_TEST(test_set_target_dec_happy_path);
     RUN_TEST(test_set_target_dec_negative_with_colon_separator);
     RUN_TEST(test_set_target_dec_handler_failure_returns_zero);
@@ -438,6 +433,4 @@ int main(int, char **)
 
     RUN_TEST(test_unknown_set_subcommand_returns_zero);
     RUN_TEST(test_empty_suffix_returns_zero);
-
-    return UNITY_END();
 }

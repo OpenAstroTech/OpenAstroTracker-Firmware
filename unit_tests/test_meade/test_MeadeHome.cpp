@@ -7,7 +7,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -46,12 +45,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_home_p_parks_and_emits_empty()
 {
@@ -102,9 +97,10 @@ void test_home_trailing_bytes_do_not_call_handler()
     TEST_ASSERT_EQUAL_STRING("", h.lastCall);
 }
 
-int main(int, char **)
+}  // namespace
+
+void register_meade_home_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_home_p_parks_and_emits_empty);
     RUN_TEST(test_home_f_slews_home_and_emits_empty);
     RUN_TEST(test_home_u_unparks_and_emits_one);
@@ -112,5 +108,4 @@ int main(int, char **)
     RUN_TEST(test_home_unknown_suffix_emits_empty);
     RUN_TEST(test_home_empty_suffix_emits_empty);
     RUN_TEST(test_home_trailing_bytes_do_not_call_handler);
-    return UNITY_END();
 }

@@ -9,13 +9,8 @@ using meade::MeadeCommandKind;
 using meade::MeadeParseResult;
 using meade::parseMeadeCommand;
 
-void setUp(void)
+namespace
 {
-}
-
-void tearDown(void)
-{
-}
 
 void assert_invalid_parse(const char *input)
 {
@@ -125,9 +120,10 @@ void test_meade_parser_rejects_unknown_top_level_family(void)
     TEST_ASSERT_TRUE(result.payload.empty());
 }
 
-void process()
+}  // namespace
+
+void register_meade_parser_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_meade_parser_rejects_empty_and_too_short_inputs);
     RUN_TEST(test_meade_parser_rejects_missing_colon);
     RUN_TEST(test_meade_parser_returns_family_and_payload_for_get_ra);
@@ -136,24 +132,4 @@ void process()
     RUN_TEST(test_meade_parser_accepts_command_without_trailing_hash);
     RUN_TEST(test_meade_parser_classifies_all_top_level_families);
     RUN_TEST(test_meade_parser_rejects_unknown_top_level_family);
-    UNITY_END();
 }
-
-#if defined(ARDUINO)
-    #include <Arduino.h>
-void setup()
-{
-    delay(2000);
-    process();
-}
-
-void loop()
-{
-}
-#else
-int main()
-{
-    process();
-    return 0;
-}
-#endif

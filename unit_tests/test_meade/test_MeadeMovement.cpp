@@ -7,7 +7,6 @@
 #include <unity.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -123,12 +122,8 @@ meade::MeadeResponse run(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_empty_or_null_suffix_returns_empty(void)
 {
@@ -338,9 +333,10 @@ void test_unknown_suffix_returns_empty(void)
     TEST_ASSERT_EQUAL_STRING("", run("Z123", h).c_str());
 }
 
-void process(void)
+}  // namespace
+
+void register_meade_movement_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_empty_or_null_suffix_returns_empty);
     RUN_TEST(test_slew_to_target_emits_zero_and_calls_handler);
     RUN_TEST(test_slew_with_trailing_bytes_is_unknown);
@@ -362,23 +358,4 @@ void process(void)
     RUN_TEST(test_home_dec_directions);
     RUN_TEST(test_home_dec_handler_failure_propagates);
     RUN_TEST(test_unknown_suffix_returns_empty);
-    UNITY_END();
 }
-
-#ifdef ARDUINO
-    #include <Arduino.h>
-void setup()
-{
-    delay(2000);
-    process();
-}
-void loop()
-{
-}
-#else
-int main()
-{
-    process();
-    return 0;
-}
-#endif

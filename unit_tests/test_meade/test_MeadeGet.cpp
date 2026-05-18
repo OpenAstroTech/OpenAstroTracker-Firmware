@@ -10,7 +10,6 @@
 #include <string.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
@@ -155,12 +154,8 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-void setUp(void)
+namespace
 {
-}
-void tearDown(void)
-{
-}
 
 void test_firmware_version_two_char_command()
 {
@@ -331,9 +326,10 @@ void test_unknown_suffix_returns_empty()
     TEST_ASSERT_NULL(h.lastCall);
 }
 
-void process()
+}  // namespace
+
+void register_meade_get_tests()
 {
-    UNITY_BEGIN();
     RUN_TEST(test_firmware_version_two_char_command);
     RUN_TEST(test_product_name_two_char_command);
     RUN_TEST(test_current_ra_formats_hh_mm_ss);
@@ -354,24 +350,4 @@ void process()
     RUN_TEST(test_tracking_rate_sidereal);
     RUN_TEST(test_site_name_slots_invoke_handler_with_index);
     RUN_TEST(test_unknown_suffix_returns_empty);
-    UNITY_END();
 }
-
-#if defined(ARDUINO)
-    #include <Arduino.h>
-void setup()
-{
-    delay(2000);
-    process();
-}
-
-void loop()
-{
-}
-#else
-int main()
-{
-    process();
-    return 0;
-}
-#endif
