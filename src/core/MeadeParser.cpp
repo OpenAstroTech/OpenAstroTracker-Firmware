@@ -215,27 +215,6 @@ constexpr FamilyEntry kFamilyTable[] = {
     {'F', MeadeCommandKind::Focus, MeadeCommandDispatchTarget::FocusCommands},
 };
 
-// ---------------------------------------------------------------------------
-// Per-family tables
-// ---------------------------------------------------------------------------
-
-// kGpsTable was removed alongside parseMeadeGpsCommand; GPSCommands is
-// now dispatched directly by `handleMeadeGps`.
-
-// kSyncTable was removed alongside parseMeadeSyncCommand; SyncControl is
-// now dispatched directly by `handleMeadeSyncControl`.
-
-// Movement sub-commands are dispatched directly by `handleMeadeMovement`;
-// the legacy lookup tables and parser were removed.
-
-// kHomeTable was removed alongside parseMeadeHomeCommand; Home is now
-// dispatched directly by `handleMeadeHome`.
-
-// SlewRate sub-commands are dispatched directly by `handleMeadeSetSlewRate`.
-
-// Focus sub-commands are dispatched directly by `handleMeadeFocus`;
-// the legacy table and parser were removed.
-
 }  // namespace
 
 // ---------------------------------------------------------------------------
