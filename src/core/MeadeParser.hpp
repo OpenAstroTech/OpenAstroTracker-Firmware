@@ -110,53 +110,12 @@ class MeadeResponse
     size_t _length;
 };
 
-/** @brief Top-level Meade command families (first parser pass). */
-enum class MeadeCommandKind
-{
-    Unknown,
-    Set,
-    Move,
-    Get,
-    Gps,
-    Sync,
-    Home,
-    Init,
-    Quit,
-    SlewRate,
-    Distance,
-    Extra,
-    Focus,
-};
-
-/**
- * @brief Dispatch label corresponding to a `MeadeCommandKind`, matching the
- * handler-naming used by `MeadeCommandProcessor`.
- */
-enum class MeadeCommandDispatchTarget
-{
-    Unknown,
-    SetInfo,
-    Movement,
-    GetInfo,
-    GpsCommands,
-    SyncControl,
-    Home,
-    Init,
-    Quit,
-    SetSlewRate,
-    Distance,
-    ExtraCommands,
-    FocusCommands,
-};
-
 /** @brief Result of `parseMeadeCommand`. */
 struct MeadeParseResult {
     /** @brief `true` if the input was recognised. */
     bool valid = false;
-    /** @brief Family classification. */
-    MeadeCommandKind kind = MeadeCommandKind::Unknown;
-    /** @brief Handler dispatch label. */
-    MeadeCommandDispatchTarget dispatchTarget = MeadeCommandDispatchTarget::Unknown;
+    /** @brief The family character (e.g. 'G', 'M', 'X'); '\0' for unrecognised. */
+    char family = '\0';
     /** @brief Remaining bytes after the family prefix. */
     MeadeResponse payload;
 };

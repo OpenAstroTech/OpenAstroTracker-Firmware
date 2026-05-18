@@ -2212,23 +2212,6 @@ bool MeadeCommandProcessor::onHomeDec(int direction, const char *distancePayload
 
 const char *MeadeCommandProcessor::processCommand(String inCmd)
 {
-    using TopLevelHandler                       = const char *(MeadeCommandProcessor::*) (const String &);
-    static constexpr TopLevelHandler handlers[] = {
-        nullptr,
-        &MeadeCommandProcessor::handleMeadeSetInfo,
-        &MeadeCommandProcessor::handleMeadeMovement,
-        &MeadeCommandProcessor::handleMeadeGetInfo,
-        &MeadeCommandProcessor::handleMeadeGPSCommands,
-        &MeadeCommandProcessor::handleMeadeSyncControl,
-        &MeadeCommandProcessor::handleMeadeHome,
-        &MeadeCommandProcessor::handleMeadeInit,
-        &MeadeCommandProcessor::handleMeadeQuit,
-        &MeadeCommandProcessor::handleMeadeSetSlewRate,
-        &MeadeCommandProcessor::handleMeadeDistance,
-        &MeadeCommandProcessor::handleMeadeExtraCommands,
-        &MeadeCommandProcessor::handleMeadeFocusCommands,
-    };
-
     meade::MeadeParseResult parsed = meade::parseMeadeCommand(inCmd.c_str());
     if (!parsed.valid)
     {
@@ -2241,12 +2224,22 @@ const char *MeadeCommandProcessor::processCommand(String inCmd)
     String payload(parsed.payload.c_str());
     _mount->commandReceived();
 
-    size_t targetIndex = static_cast<size_t>(parsed.dispatchTarget);
-    if (targetIndex >= (sizeof(handlers) / sizeof(handlers[0])) || handlers[targetIndex] == nullptr)
+    switch (parsed.family)
     {
-        LOG(DEBUG_MEADE, "[MEADE]: Received unknown command '%s'", inCmd.c_str());
-        return "";
+        case 'S': return handleMeadeSetInfo(payload);
+        case 'M': return handleMeadeMovement(payload);
+        case 'G': return handleMeadeGetInfo(payload);
+        case 'g': return handleMeadeGPSCommands(payload);
+        case 'C': return handleMeadeSyncControl(payload);
+        case 'h': return handleMeadeHome(payload);
+        case 'I': return handleMeadeInit(payload);
+        case 'Q': return handleMeadeQuit(payload);
+        case 'R': return handleMeadeSetSlewRate(payload);
+        case 'D': return handleMeadeDistance(payload);
+        case 'X': return handleMeadeExtraCommands(payload);
+        case 'F': return handleMeadeFocusCommands(payload);
+        default:
+            LOG(DEBUG_MEADE, "[MEADE]: Received unknown command '%s'", inCmd.c_str());
+            return "";
     }
-
-    return (this->*handlers[targetIndex])(payload);
 }

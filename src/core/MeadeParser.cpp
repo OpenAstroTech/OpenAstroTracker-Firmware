@@ -181,30 +181,6 @@ MeadeResponse makeLevelUnknownResponse(const char *echoedCmd)
     return r;
 }
 
-// ---------------------------------------------------------------------------
-// Top-level family classifier
-// ---------------------------------------------------------------------------
-struct FamilyEntry {
-    char family;
-    MeadeCommandKind kind;
-    MeadeCommandDispatchTarget target;
-};
-
-constexpr FamilyEntry kFamilyTable[] = {
-    {'S', MeadeCommandKind::Set, MeadeCommandDispatchTarget::SetInfo},
-    {'M', MeadeCommandKind::Move, MeadeCommandDispatchTarget::Movement},
-    {'G', MeadeCommandKind::Get, MeadeCommandDispatchTarget::GetInfo},
-    {'g', MeadeCommandKind::Gps, MeadeCommandDispatchTarget::GpsCommands},
-    {'C', MeadeCommandKind::Sync, MeadeCommandDispatchTarget::SyncControl},
-    {'h', MeadeCommandKind::Home, MeadeCommandDispatchTarget::Home},
-    {'I', MeadeCommandKind::Init, MeadeCommandDispatchTarget::Init},
-    {'Q', MeadeCommandKind::Quit, MeadeCommandDispatchTarget::Quit},
-    {'R', MeadeCommandKind::SlewRate, MeadeCommandDispatchTarget::SetSlewRate},
-    {'D', MeadeCommandKind::Distance, MeadeCommandDispatchTarget::Distance},
-    {'X', MeadeCommandKind::Extra, MeadeCommandDispatchTarget::ExtraCommands},
-    {'F', MeadeCommandKind::Focus, MeadeCommandDispatchTarget::FocusCommands},
-};
-
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -249,18 +225,18 @@ MeadeParseResult parseMeadeCommand(const char *input)
     }
 
     const char family = normalized[1];
-    for (size_t i = 0; i < (sizeof(kFamilyTable) / sizeof(kFamilyTable[0])); ++i)
+    switch (family)
     {
-        if (kFamilyTable[i].family == family)
-        {
-            result.valid          = true;
-            result.kind           = kFamilyTable[i].kind;
-            result.dispatchTarget = kFamilyTable[i].target;
+        case 'S': case 'M': case 'G': case 'g': case 'C':
+        case 'h': case 'I': case 'Q': case 'R': case 'D':
+        case 'X': case 'F':
+            result.valid   = true;
+            result.family  = family;
             result.payload.assign(normalized + 2);
             return result;
-        }
+        default:
+            return result;
     }
-    return result;
 }
 
 // ---------------------------------------------------------------------------
