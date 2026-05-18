@@ -24,14 +24,91 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "core/MeadeResponse.hpp"
-
 namespace oat
 {
 namespace core
 {
 namespace meade
 {
+
+/**
+ * @brief Fixed-capacity NUL-terminated Meade buffer value type.
+ *
+ * Used for both parser payload capture and final wire responses.
+ */
+class MeadeResponse
+{
+  public:
+    static constexpr size_t Capacity = 200;
+
+    MeadeResponse() : _length(0)
+    {
+        _data[0] = '\0';
+    }
+
+    const char *c_str() const
+    {
+        return _data;
+    }
+
+    size_t length() const
+    {
+        return _length;
+    }
+
+    bool empty() const
+    {
+        return _length == 0;
+    }
+
+    char operator[](size_t i) const
+    {
+        return _data[i];
+    }
+
+    operator const char *() const
+    {
+        return _data;
+    }
+
+    void assign(const char *s)
+    {
+        if (s == nullptr)
+        {
+            _data[0] = '\0';
+            _length  = 0;
+            return;
+        }
+
+        size_t i = 0;
+        while ((s[i] != '\0') && (i + 1 < Capacity))
+        {
+            _data[i] = s[i];
+            ++i;
+        }
+        _data[i] = '\0';
+        _length  = i;
+    }
+
+    char *buffer()
+    {
+        return _data;
+    }
+
+    static constexpr size_t capacity()
+    {
+        return Capacity;
+    }
+
+    void setLength(size_t n)
+    {
+        _length = n;
+    }
+
+  private:
+    char _data[Capacity];
+    size_t _length;
+};
 
 /** @brief Top-level Meade command families (first parser pass). */
 enum class MeadeCommandKind
@@ -81,7 +158,7 @@ struct MeadeParseResult {
     /** @brief Handler dispatch label. */
     MeadeCommandDispatchTarget dispatchTarget = MeadeCommandDispatchTarget::Unknown;
     /** @brief Remaining bytes after the family prefix. */
-    MeadePayload payload;
+    MeadeResponse payload;
 };
 
 /**

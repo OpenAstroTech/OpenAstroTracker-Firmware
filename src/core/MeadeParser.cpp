@@ -9,7 +9,6 @@
  */
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeResponse.hpp"
 
 #include <ctype.h>
 #include <stddef.h>
@@ -253,7 +252,7 @@ MeadeParseResult parseMeadeCommand(const char *input)
     // Copy the input into a stack buffer with whitespace stripped and the
     // optional trailing `#` removed. Using a fixed-capacity char buffer keeps
     // the parser usable on bare AVR builds that lack libstdc++ (`std::string`).
-    char normalized[MeadePayload::Capacity];
+    char normalized[MeadeResponse::Capacity];
     size_t nlen = 0;
     for (const char *cursor = input; *cursor != '\0' && nlen + 1 < sizeof(normalized); ++cursor)
     {
@@ -294,21 +293,6 @@ MeadeParseResult parseMeadeCommand(const char *input)
     }
     return result;
 }
-
-// ---------------------------------------------------------------------------
-// Subcommand parsers
-// ---------------------------------------------------------------------------
-// parseMeadeGpsCommand was removed; see `handleMeadeGps`.
-
-// parseMeadeSyncCommand was removed; see `handleMeadeSyncControl`.
-
-// parseMeadeMovementCommand was removed; see `handleMeadeMovement`.
-
-// parseMeadeHomeCommand was removed; see `handleMeadeHome`.
-
-// parseMeadeSlewRateCommand was removed; see `handleMeadeSetSlewRate`.
-
-// parseMeadeFocusCommand was removed; see `handleMeadeFocus`.
 
 // ---------------------------------------------------------------------------
 // Get-family dispatch
@@ -1688,7 +1672,7 @@ MeadeResponse handleExtraLevelLeaf(const char *leafInput, IMeadeExtraHandlers &h
     }
 
     // Echo "L" + the original leaf input, matching legacy behavior.
-    char echoed[MeadePayload::Capacity];
+    char echoed[MeadeResponse::Capacity];
     echoed[0] = 'L';
     size_t i  = 0;
     for (; leafInput[i] != '\0' && (i + 2) < sizeof(echoed); ++i)

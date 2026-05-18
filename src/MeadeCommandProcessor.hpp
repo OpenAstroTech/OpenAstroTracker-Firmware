@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeResponse.hpp"
 
 // Forward declarations
 class Mount;

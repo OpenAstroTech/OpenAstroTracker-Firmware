@@ -10,7 +10,7 @@
 #include <string.h>
 
 #include "core/MeadeParser.hpp"
-#include "core/MeadeResponse.hpp"
+#include "core/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 
