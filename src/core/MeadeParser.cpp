@@ -12,8 +12,6 @@
 
 #include <ctype.h>
 #include <stddef.h>
-#include <stdarg.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -51,144 +49,136 @@ bool startsWith(const char *input, const char *prefix)
     return true;
 }
 
+// Forward declarations for write* primitives (defined later in this namespace).
+void writeChar(MeadeResponse &r, char c);
+void writeText(MeadeResponse &r, const char *s);
+void writeTerminator(MeadeResponse &r);
+void writeUnsignedPadded(MeadeResponse &r, unsigned value, int width);
+void writeInt(MeadeResponse &r, int value);
+void writeSignedInt(MeadeResponse &r, int value);
+void writeLong(MeadeResponse &r, long value);
+void writeFloat(MeadeResponse &r, float value, int precision);
+
+// ---------------------------------------------------------------------------
+// Response-building primitives
+//
+// Low-level `write*` functions mutate a `MeadeResponse&` incrementally.
+// They never append the `#` terminator — the caller adds it via
+// `writeTerminator` when needed.
+//
+// High-level `make*Response` functions are thin wrappers: create a response,
+// delegate to `write*`, append `#`, return.
+// ---------------------------------------------------------------------------
+
 MeadeResponse makeLiteralResponse(const char *text)
 {
     MeadeResponse r;
-    if (text == nullptr)
-    {
-        return r;
-    }
-
-    const size_t cap = MeadeResponse::capacity();
-    size_t i         = 0;
-    while ((i + 1) < cap && text[i] != '\0')
-    {
-        r.buffer()[i] = text[i];
-        ++i;
-    }
-    r.buffer()[i] = '\0';
-    r.setLength(i);
+    writeText(r, text != nullptr ? text : "");
     return r;
 }
 
 MeadeResponse makeSetSuccessResponse(bool ok)
 {
-    return makeLiteralResponse(ok ? "1" : "0");
-}
-
-void appendResponseTerminator(MeadeResponse &r)
-{
-    const size_t len = r.length();
-    if ((len + 1) >= MeadeResponse::capacity())
-    {
-        return;
-    }
-
-    r.buffer()[len]     = '#';
-    r.buffer()[len + 1] = '\0';
-    r.setLength(len + 1);
-}
-
-MeadeResponse makeFormattedResponse(const char *fmt, ...)
-{
     MeadeResponse r;
-    va_list args;
-    va_start(args, fmt);
-    const int written = vsnprintf(r.buffer(), MeadeResponse::capacity(), fmt, args);
-    va_end(args);
-    if (written < 0)
-    {
-        r.buffer()[0] = '\0';
-        r.setLength(0);
-        return r;
-    }
-
-    size_t len = static_cast<size_t>(written);
-    if (len >= MeadeResponse::capacity())
-    {
-        len = MeadeResponse::capacity() - 1;
-    }
-    r.setLength(len);
+    writeChar(r, ok ? '1' : '0');
     return r;
 }
 
 MeadeResponse makeFramedTextResponse(const char *text)
 {
-    MeadeResponse r = makeLiteralResponse(text != nullptr ? text : "");
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeText(r, text != nullptr ? text : "");
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeLongResponse(long value)
 {
-    MeadeResponse r = makeFormattedResponse("%ld", value);
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeLong(r, value);
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeBooleanResponse(bool flag)
 {
-    return makeFramedTextResponse(flag ? "1" : "0");
+    MeadeResponse r;
+    writeChar(r, flag ? '1' : '0');
+    writeTerminator(r);
+    return r;
 }
 
 MeadeResponse makeNumericFloatResponse(float value, int precision)
 {
-    if (precision < 0)
-    {
-        precision = 0;
-    }
-    if (precision > 9)
-    {
-        precision = 9;
-    }
-    MeadeResponse r = makeFormattedResponse("%.*f", precision, static_cast<double>(value));
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeFloat(r, value, precision);
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeIntResponse(int value)
 {
-    MeadeResponse r = makeFormattedResponse("%d", value);
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeSignedInt(r, value);
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeLongPairPipeResponse(long a, long b)
 {
-    MeadeResponse r = makeFormattedResponse("%ld|%ld", a, b);
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeLong(r, a);
+    writeChar(r, '|');
+    writeLong(r, b);
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeDecLimitsPairResponse(float lo, float hi)
 {
-    MeadeResponse r = makeFormattedResponse("%.1f|%.1f", static_cast<double>(lo), static_cast<double>(hi));
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeFloat(r, lo, 1);
+    writeChar(r, '|');
+    writeFloat(r, hi, 1);
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeHemisphereResponse(bool north)
 {
-    return makeFramedTextResponse(north ? "N" : "S");
+    MeadeResponse r;
+    writeChar(r, north ? 'N' : 'S');
+    writeTerminator(r);
+    return r;
 }
 
 MeadeResponse makeCompactHmsResponse(int hours, int minutes, int seconds)
 {
-    MeadeResponse r = makeFormattedResponse("%02d%02d%02d", hours, minutes, seconds);
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeUnsignedPadded(r, static_cast<unsigned>(hours), 2);
+    writeUnsignedPadded(r, static_cast<unsigned>(minutes), 2);
+    writeUnsignedPadded(r, static_cast<unsigned>(seconds), 2);
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeAnglePair4Response(float a, float b)
 {
-    MeadeResponse r = makeFormattedResponse("%.4f,%.4f", static_cast<double>(a), static_cast<double>(b));
-    appendResponseTerminator(r);
+    MeadeResponse r;
+    writeFloat(r, a, 4);
+    writeChar(r, ',');
+    writeFloat(r, b, 4);
+    writeTerminator(r);
     return r;
 }
 
 MeadeResponse makeLevelUnknownResponse(const char *echoedCmd)
 {
-    return makeFormattedResponse("Unknown Level command: X%s", echoedCmd != nullptr ? echoedCmd : "");
+    MeadeResponse r;
+    writeText(r, "Unknown Level command: X");
+    writeText(r, echoedCmd != nullptr ? echoedCmd : "");
+    writeTerminator(r);
+    return r;
 }
 
 // ---------------------------------------------------------------------------
@@ -480,6 +470,111 @@ void writeTrackingRate(MeadeResponse &r, MeadeTrackingRate t)
     }
     writeText(r, s);
     writeTerminator(r);
+}
+
+// Write a positive int without padding or sign.
+void writeInt(MeadeResponse &r, int value)
+{
+    if (value == 0)
+    {
+        writeChar(r, '0');
+        return;
+    }
+    char buf[12];
+    int n = 0;
+    while (value > 0 && n < 11)
+    {
+        buf[n++] = static_cast<char>('0' + (value % 10));
+        value /= 10;
+    }
+    while (n > 0)
+    {
+        writeChar(r, buf[--n]);
+    }
+}
+
+// Write a signed int without padding.
+void writeSignedInt(MeadeResponse &r, int value)
+{
+    if (value < 0)
+    {
+        writeChar(r, '-');
+        value = -value;
+    }
+    writeInt(r, value);
+}
+
+// Write a long (signed) without padding.
+void writeLong(MeadeResponse &r, long value)
+{
+    if (value < 0)
+    {
+        writeChar(r, '-');
+        value = -value;
+    }
+    if (value == 0)
+    {
+        writeChar(r, '0');
+        return;
+    }
+    char buf[22];
+    int n = 0;
+    while (value > 0 && n < 20)
+    {
+        buf[n++] = static_cast<char>('0' + (value % 10));
+        value /= 10;
+    }
+    while (n > 0)
+    {
+        writeChar(r, buf[--n]);
+    }
+}
+
+// Write a float with the given decimal precision (0..9).
+// No terminator appended.
+void writeFloat(MeadeResponse &r, float value, int precision)
+{
+    if (precision < 0)
+    {
+        precision = 0;
+    }
+    if (precision > 9)
+    {
+        precision = 9;
+    }
+
+    double v = static_cast<double>(value);
+    bool negative = v < 0;
+    if (negative)
+    {
+        v = -v;
+    }
+
+    // Separate integer and fractional parts.
+    int intVal = static_cast<int>(v);
+    double frac = v - static_cast<double>(intVal);
+
+    if (negative)
+    {
+        writeChar(r, '-');
+    }
+    writeInt(r, intVal);
+
+    if (precision > 0)
+    {
+        writeChar(r, '.');
+        for (int i = 0; i < precision; ++i)
+        {
+            frac *= 10.0;
+            int digit = static_cast<int>(frac);
+            if (digit > 9)
+            {
+                digit = 9;  // guard against floating-point rounding
+            }
+            writeUnsignedPadded(r, static_cast<unsigned>(digit), 1);
+            frac -= static_cast<double>(digit);
+        }
+    }
 }
 
 }  // namespace
