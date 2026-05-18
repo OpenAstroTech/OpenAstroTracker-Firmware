@@ -765,6 +765,47 @@ class IMeadeExtraHandlers
  */
 MeadeResponse handleMeadeExtra(const char *suffix, IMeadeExtraHandlers &handlers);
 
+// ---------------------------------------------------------------------------
+// Aggregate handler interface
+//
+// Unifies all 12 family-specific handler interfaces into a single type.
+// `dispatchMeadeCommand` takes this aggregate and handles the top-level
+// family switch internally — callers pass the raw command (after `:`, before
+// `#`) and receive a complete `MeadeResponse`.
+// ---------------------------------------------------------------------------
+
+class IMeadeHandlers
+    : public IMeadeGetHandlers,
+      public IMeadeSetHandlers,
+      public IMeadeQuitHandlers,
+      public IMeadeDistanceHandlers,
+      public IMeadeInitHandlers,
+      public IMeadeSyncControlHandlers,
+      public IMeadeHomeHandlers,
+      public IMeadeSlewRateHandlers,
+      public IMeadeGpsHandlers,
+      public IMeadeFocusHandlers,
+      public IMeadeMovementHandlers,
+      public IMeadeExtraHandlers
+{
+  public:
+    virtual ~IMeadeHandlers() = default;
+};
+
+/**
+ * @brief Parse + classify + dispatch a complete Meade command in one call.
+ *
+ * Accepts the raw bytes between the framing `:` prefix and `#` terminator.
+ * Strips whitespace, validates the family character, and dispatches to the
+ * correct family handler. Returns a fully-formed `MeadeResponse` ready for
+ * transmission.
+ *
+ * @param input NUL-terminated bytes (may include leading `:` and trailing `#`).
+ * @param handlers Implementation of all family callback interfaces.
+ * @return Wire response (may be empty for unknown or unrecognised commands).
+ */
+MeadeResponse dispatchMeadeCommand(const char *input, IMeadeHandlers &handlers);
+
 }  // namespace meade
 }  // namespace core
 }  // namespace oat

@@ -240,6 +240,35 @@ MeadeParseResult parseMeadeCommand(const char *input)
 }
 
 // ---------------------------------------------------------------------------
+// Unified dispatch — parse + classify + dispatch in one call
+// ---------------------------------------------------------------------------
+MeadeResponse dispatchMeadeCommand(const char *input, IMeadeHandlers &h)
+{
+    MeadeParseResult parsed = parseMeadeCommand(input);
+    if (!parsed.valid)
+    {
+        return MeadeResponse {};
+    }
+
+    switch (parsed.family)
+    {
+        case 'S': return handleMeadeSet(parsed.payload.c_str(), h);
+        case 'M': return handleMeadeMovement(parsed.payload.c_str(), h);
+        case 'G': return handleMeadeGet(parsed.payload.c_str(), h);
+        case 'g': return handleMeadeGps(parsed.payload.c_str(), h);
+        case 'C': return handleMeadeSyncControl(parsed.payload.c_str(), h);
+        case 'h': return handleMeadeHome(parsed.payload.c_str(), h);
+        case 'I': return handleMeadeInit(parsed.payload.c_str(), h);
+        case 'Q': return handleMeadeQuit(parsed.payload.c_str(), h);
+        case 'R': return handleMeadeSetSlewRate(parsed.payload.c_str(), h);
+        case 'D': return handleMeadeDistance(parsed.payload.c_str(), h);
+        case 'X': return handleMeadeExtra(parsed.payload.c_str(), h);
+        case 'F': return handleMeadeFocus(parsed.payload.c_str(), h);
+        default:  return MeadeResponse {};
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Get-family dispatch
 //
 // Single entry point: parse the suffix, call the typed handler, serialise the

@@ -56,11 +56,6 @@ MeadeCommandProcessor::MeadeCommandProcessor(Mount *mount, LcdMenu *lcdMenu)
 /////////////////////////////
 // INIT
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeInit(const String &inCmd)
-{
-    return store(meade::handleMeadeInit(inCmd.c_str(), *this));
-}
-
 void MeadeCommandProcessor::onEnterSerialControl()
 {
     inSerialControl = true;
@@ -73,11 +68,6 @@ void MeadeCommandProcessor::onEnterSerialControl()
 /////////////////////////////
 // GET INFO
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeGetInfo(const String &inCmd)
-{
-    return store(meade::handleMeadeGet(inCmd.c_str(), *this));
-}
-
 // ---- IMeadeGetHandlers callbacks ---------------------------------------
 
 const char *MeadeCommandProcessor::onFirmwareVersion()
@@ -220,11 +210,6 @@ const char *MeadeCommandProcessor::onSiteName(uint8_t index)
 /////////////////////////////
 // GPS CONTROL
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeGPSCommands(const String &inCmd)
-{
-    return store(meade::handleMeadeGps(inCmd.c_str(), *this));
-}
-
 bool MeadeCommandProcessor::onStartGpsAcquisition(const char *timeoutPayload)
 {
 #if USE_GPS == 1
@@ -253,11 +238,6 @@ bool MeadeCommandProcessor::onStartGpsAcquisition(const char *timeoutPayload)
 /////////////////////////////
 // SYNC CONTROL
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeSyncControl(const String &inCmd)
-{
-    return store(meade::handleMeadeSyncControl(inCmd.c_str(), *this));
-}
-
 void MeadeCommandProcessor::onSyncToTarget()
 {
     _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
@@ -266,11 +246,6 @@ void MeadeCommandProcessor::onSyncToTarget()
 /////////////////////////////
 // SET INFO
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
-{
-    return store(meade::handleMeadeSet(inCmd.c_str(), *this));
-}
-
 bool MeadeCommandProcessor::onSetTargetDec(meade::DecCoordinate dec)
 {
     _mount->targetDEC() = Declination(static_cast<int>(dec.degrees), static_cast<int>(dec.minutes), static_cast<int>(dec.seconds));
@@ -353,19 +328,9 @@ bool MeadeCommandProcessor::onSetLocalDate(meade::MeadeLocalDate d)
 /////////////////////////////
 // MOVEMENT
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeMovement(const String &inCmd)
-{
-    return store(meade::handleMeadeMovement(inCmd.c_str(), *this));
-}
-
 /////////////////////////////
 // HOME
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeHome(const String &inCmd)
-{
-    return store(meade::handleMeadeHome(inCmd.c_str(), *this));
-}
-
 void MeadeCommandProcessor::onPark()
 {
     _mount->park();
@@ -391,11 +356,6 @@ void MeadeCommandProcessor::onSetSlewRate(uint8_t rate)
     _mount->setSlewRate(static_cast<int>(rate));
 }
 
-const char *MeadeCommandProcessor::handleMeadeDistance(const String &inCmd)
-{
-    return store(meade::handleMeadeDistance(inCmd.c_str(), *this));
-}
-
 bool MeadeCommandProcessor::onIsSlewingRaOrDec()
 {
     return _mount->isSlewingRAorDEC();
@@ -404,11 +364,6 @@ bool MeadeCommandProcessor::onIsSlewingRaOrDec()
 /////////////////////////////
 // EXTRA COMMANDS
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeExtraCommands(const String &inCmd)
-{
-    return store(meade::handleMeadeExtra(inCmd.c_str(), *this));
-}
-
 // ---- IMeadeExtraHandlers overrides ----------------------------------------
 
 void MeadeCommandProcessor::onFactoryReset()
@@ -715,11 +670,6 @@ void MeadeCommandProcessor::onLevelShutdown()
 /////////////////////////////
 // QUIT
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeQuit(const String &inCmd)
-{
-    return store(meade::handleMeadeQuit(inCmd.c_str(), *this));
-}
-
 void MeadeCommandProcessor::onStopAll()
 {
     // :Q# stops all motors but remains in Control mode.
@@ -766,19 +716,9 @@ void MeadeCommandProcessor::onQuitControlMode()
 /////////////////////////////
 // Set Slew Rates
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeSetSlewRate(const String &inCmd)
-{
-    return store(meade::handleMeadeSetSlewRate(inCmd.c_str(), *this));
-}
-
 /////////////////////////////
 // FOCUS COMMANDS
 /////////////////////////////
-const char *MeadeCommandProcessor::handleMeadeFocusCommands(const String &inCmd)
-{
-    return store(meade::handleMeadeFocus(inCmd.c_str(), *this));
-}
-
 void MeadeCommandProcessor::onFocusContinuousIn()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -1012,46 +952,7 @@ bool MeadeCommandProcessor::onHomeDec(int direction, const char *distancePayload
 
 const char *MeadeCommandProcessor::processCommand(String inCmd)
 {
-    meade::MeadeParseResult parsed = meade::parseMeadeCommand(inCmd.c_str());
-    if (!parsed.valid)
-    {
-        return "";
-    }
-
     LOG(DEBUG_MEADE, "[MEADE]: Received command   '%s'", inCmd.c_str());
-    LOG(DEBUG_MEADE, "[MEADE]: Processing command '%s'", inCmd.c_str());
-
-    String payload(parsed.payload.c_str());
     _mount->commandReceived();
-
-    switch (parsed.family)
-    {
-        case 'S':
-            return handleMeadeSetInfo(payload);
-        case 'M':
-            return handleMeadeMovement(payload);
-        case 'G':
-            return handleMeadeGetInfo(payload);
-        case 'g':
-            return handleMeadeGPSCommands(payload);
-        case 'C':
-            return handleMeadeSyncControl(payload);
-        case 'h':
-            return handleMeadeHome(payload);
-        case 'I':
-            return handleMeadeInit(payload);
-        case 'Q':
-            return handleMeadeQuit(payload);
-        case 'R':
-            return handleMeadeSetSlewRate(payload);
-        case 'D':
-            return handleMeadeDistance(payload);
-        case 'X':
-            return handleMeadeExtraCommands(payload);
-        case 'F':
-            return handleMeadeFocusCommands(payload);
-        default:
-            LOG(DEBUG_MEADE, "[MEADE]: Received unknown command '%s'", inCmd.c_str());
-            return "";
-    }
+    return store(meade::dispatchMeadeCommand(inCmd.c_str(), *this));
 }

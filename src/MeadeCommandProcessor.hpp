@@ -6,18 +6,7 @@
 class Mount;
 class LcdMenu;
 
-class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers,
-                              private oat::core::meade::IMeadeSetHandlers,
-                              private oat::core::meade::IMeadeQuitHandlers,
-                              private oat::core::meade::IMeadeDistanceHandlers,
-                              private oat::core::meade::IMeadeInitHandlers,
-                              private oat::core::meade::IMeadeSyncControlHandlers,
-                              private oat::core::meade::IMeadeHomeHandlers,
-                              private oat::core::meade::IMeadeSlewRateHandlers,
-                              private oat::core::meade::IMeadeGpsHandlers,
-                              private oat::core::meade::IMeadeFocusHandlers,
-                              private oat::core::meade::IMeadeMovementHandlers,
-                              private oat::core::meade::IMeadeExtraHandlers
+class MeadeCommandProcessor : private oat::core::meade::IMeadeHandlers
 {
   public:
     static MeadeCommandProcessor *createProcessor(Mount *mount, LcdMenu *lcdMenu);
@@ -30,18 +19,6 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers,
     // Persist a freshly-built response across the handler return.
     // The returned pointer is valid until the next call to `store`.
     const char *store(oat::core::meade::MeadeResponse response);
-    const char *handleMeadeSetInfo(const String &inCmd);
-    const char *handleMeadeMovement(const String &inCmd);
-    const char *handleMeadeGetInfo(const String &inCmd);
-    const char *handleMeadeGPSCommands(const String &inCmd);
-    const char *handleMeadeSyncControl(const String &inCmd);
-    const char *handleMeadeHome(const String &inCmd);
-    const char *handleMeadeInit(const String &inCmd);
-    const char *handleMeadeQuit(const String &inCmd);
-    const char *handleMeadeDistance(const String &inCmd);
-    const char *handleMeadeSetSlewRate(const String &inCmd);
-    const char *handleMeadeExtraCommands(const String &inCmd);
-    const char *handleMeadeFocusCommands(const String &inCmd);
 
     // IMeadeGetHandlers overrides. Each method returns a typed domain value;
     // the parser layer handles all Meade wire formatting.
