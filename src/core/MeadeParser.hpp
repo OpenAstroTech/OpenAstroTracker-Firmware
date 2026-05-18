@@ -23,7 +23,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
+
+#include "core/MeadeResponse.hpp"
 
 namespace oat
 {
@@ -31,75 +32,6 @@ namespace core
 {
 namespace meade
 {
-
-class MeadeResponse;  // defined in MeadeResponse.hpp; full type needed only at dispatcher call sites
-
-/**
- * @brief Small fixed-capacity owning payload buffer.
- *
- * Replaces `std::string` so the parser is usable on bare AVR builds that
- * ship without libstdc++. Mimics the subset of the `std::string` interface
- * the codebase relies on (`empty()`, `c_str()`, `operator[]`, `length()`).
- */
-class MeadePayload
-{
-  public:
-    static constexpr size_t Capacity = 200;
-
-    MeadePayload()
-    {
-        _data[0] = '\0';
-    }
-
-    /** @brief `true` if no payload bytes have been captured. */
-    bool empty() const
-    {
-        return _data[0] == '\0';
-    }
-
-    /** @brief NUL-terminated pointer to the captured bytes. */
-    const char *c_str() const
-    {
-        return _data;
-    }
-
-    /** @brief Length of the captured bytes, excluding the trailing NUL. */
-    size_t length() const
-    {
-        size_t n = 0;
-        while (_data[n] != '\0')
-        {
-            ++n;
-        }
-        return n;
-    }
-
-    /** @brief Byte access. Behaviour is undefined if `i >= length()`. */
-    char operator[](size_t i) const
-    {
-        return _data[i];
-    }
-
-    /** @brief Copy a NUL-terminated source into the buffer (truncating if needed). */
-    void assign(const char *s)
-    {
-        if (s == nullptr)
-        {
-            _data[0] = '\0';
-            return;
-        }
-        size_t i = 0;
-        while ((s[i] != '\0') && (i + 1 < Capacity))
-        {
-            _data[i] = s[i];
-            ++i;
-        }
-        _data[i] = '\0';
-    }
-
-  private:
-    char _data[Capacity];
-};
 
 /** @brief Top-level Meade command families (first parser pass). */
 enum class MeadeCommandKind

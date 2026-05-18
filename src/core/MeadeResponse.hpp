@@ -36,9 +36,33 @@ class MeadeResponse
         return _length == 0;
     }
 
+    char operator[](size_t i) const
+    {
+        return _data[i];
+    }
+
     operator const char *() const
     {
         return _data;
+    }
+
+    void assign(const char *s)
+    {
+        if (s == nullptr)
+        {
+            _data[0] = '\0';
+            _length  = 0;
+            return;
+        }
+
+        size_t i = 0;
+        while ((s[i] != '\0') && (i + 1 < Capacity))
+        {
+            _data[i] = s[i];
+            ++i;
+        }
+        _data[i] = '\0';
+        _length  = i;
     }
 
     // Internal mutators used by parser-local response builders.
@@ -61,6 +85,8 @@ class MeadeResponse
     char _data[Capacity];
     size_t _length;
 };
+
+using MeadePayload = MeadeResponse;
 
 }  // namespace meade
 }  // namespace core
