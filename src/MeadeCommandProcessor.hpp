@@ -9,7 +9,8 @@ class LcdMenu;
 
 class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers,
                               private oat::core::meade::IMeadeSetHandlers,
-                              private oat::core::meade::IMeadeQuitHandlers
+                              private oat::core::meade::IMeadeQuitHandlers,
+                              private oat::core::meade::IMeadeDistanceHandlers
 {
   public:
     static MeadeCommandProcessor *createProcessor(Mount *mount, LcdMenu *lcdMenu);
@@ -79,6 +80,9 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers,
     void onStopNorth() override;
     void onStopSouth() override;
     void onQuitControlMode() override;
+
+    // IMeadeDistanceHandlers overrides.
+    bool onIsSlewingRaOrDec() override;
 
     Mount *_mount;
     LcdMenu *_lcdMenu;

@@ -656,6 +656,36 @@ class IMeadeQuitHandlers
  */
 MeadeResponse handleMeadeQuit(const char *suffix, IMeadeQuitHandlers &handlers);
 
+// ---------------------------------------------------------------------------
+// Distance family dispatch (:D...)
+// ---------------------------------------------------------------------------
+// The `:D#` distance bars command reports motion status as a single wire byte
+// ('|' while slewing, ' ' when idle) followed by the standard terminator.
+// All sub-commands (including the bare `:D#`) collapse to one boolean query.
+
+/**
+ * @brief Pure callback interface for the Meade `:D...` (Distance bars) family.
+ */
+class IMeadeDistanceHandlers
+{
+  public:
+    virtual ~IMeadeDistanceHandlers() = default;
+
+    /** @brief True while either RA or DEC is actively slewing toward target. */
+    virtual bool onIsSlewingRaOrDec() = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade Distance sub-command in one step.
+ *
+ * @param suffix Bytes following `:D`, trailing `#` already stripped. The
+ *               classic command is the empty suffix; any suffix is treated
+ *               as the same query (legacy lenient behaviour).
+ * @param handlers Implementation providing the slewing-state query.
+ * @return Wire bytes: `"|#"` while slewing, `" #"` otherwise.
+ */
+MeadeResponse handleMeadeDistance(const char *suffix, IMeadeDistanceHandlers &handlers);
+
 }  // namespace meade
 }  // namespace core
 }  // namespace oat

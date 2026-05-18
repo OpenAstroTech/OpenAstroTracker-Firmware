@@ -1302,6 +1302,18 @@ MeadeResponse handleMeadeQuit(const char *suffix, IMeadeQuitHandlers &h)
     return r;
 }
 
+// ---------------------------------------------------------------------------
+// Distance family
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeDistance(const char *, IMeadeDistanceHandlers &h)
+{
+    MeadeResponse r;
+    writeChar(r, h.onIsSlewingRaOrDec() ? '|' : ' ');
+    writeTerminator(r);
+    return r;
+}
+
 }  // namespace meade
 }  // namespace core
 }  // namespace oat

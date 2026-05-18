@@ -1790,12 +1790,12 @@ const char *MeadeCommandProcessor::handleMeadeHome(const String &inCmd)
 
 const char *MeadeCommandProcessor::handleMeadeDistance(const String &inCmd)
 {
-    using namespace oat::core::meade::response;
-    if (_mount->isSlewingRAorDEC())
-    {
-        return store(makeResponse(tag::Text {}, "|"));
-    }
-    return store(makeResponse(tag::Text {}, " "));
+    return store(meade::handleMeadeDistance(inCmd.c_str(), *this));
+}
+
+bool MeadeCommandProcessor::onIsSlewingRaOrDec()
+{
+    return _mount->isSlewingRAorDEC();
 }
 
 /////////////////////////////
