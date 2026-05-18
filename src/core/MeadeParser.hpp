@@ -6,20 +6,19 @@
  *        OpenAstroTracker.
  *
  * The parser is allocation-light (the captured payload is held in a small
- * fixed-capacity inline buffer) and has no side effects on the mount: it
- * inspects the raw command bytes, classifies them into a `Meade*CommandKind`
- * enum, and returns a `Meade*ParseResult` describing the dispatch.
+ * fixed-capacity inline buffer) and has no side effects on the mount. It
+ * classifies the top-level family, retains the remaining payload bytes, and
+ * either exposes a small parse result or dispatches the family directly via
+ * typed handler interfaces that return a `MeadeResponse`.
  *
  * The framing characters (`:` prefix and `#` terminator) are handled by
  * the caller and are not part of the inputs to these functions.
  *
  * ### Hierarchy
  * - `parseMeadeCommand` classifies the top-level command family.
- * - Per-family parsers (`parseMeadeGetCommand`, ...) decode the family
- *   payload into a fine-grained kind.
- * - `parseMeadeExtraLeafCommand` is dispatched separately because the
- *   `Extra` family has nested sub-commands keyed by
- *   `MeadeExtraCommandKind`.
+ * - Most families then dispatch directly via `handleMeade*` entry points.
+ * - The `Extra` family also dispatches directly, but still parses nested
+ *   leaf keys inside its `handleMeadeExtra` implementation.
  */
 
 #include <stddef.h>
@@ -33,7 +32,7 @@ namespace core
 namespace meade
 {
 
-class MeadeResponse;  // defined in MeadeResponse.hpp; full type needed only at call sites of dispatchGet
+class MeadeResponse;  // defined in MeadeResponse.hpp; full type needed only at dispatcher call sites
 
 /**
  * @brief Small fixed-capacity owning payload buffer.
@@ -153,225 +152,6 @@ struct MeadeParseResult {
     MeadePayload payload;
 };
 
-/** @brief Sub-commands of the `:X...` extra family. */
-enum class MeadeExtraCommandKind
-{
-    Unknown,
-    DriftAlignment,
-    Get,
-    Set,
-    Level,
-    FactoryReset,
-};
-
-/** @brief Result of `parseMeadeExtraCommand`. */
-struct MeadeExtraParseResult {
-    /** @brief `true` if the extra sub-command was recognised. */
-    bool valid = false;
-    /** @brief Extra sub-command classification. */
-    MeadeExtraCommandKind kind = MeadeExtraCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
-/** @brief Leaf sub-commands of the `:X` extra family (one enum spans Get/Set/Level). */
-enum class MeadeExtraLeafCommandKind
-{
-    Unknown,
-    GetRaStepsPerDegree,
-    GetDecStepsPerDegree,
-    GetDecLimitBoth,
-    GetDecLimitLowerOnly,
-    GetDecLimitUpperOnly,
-    GetDecLimitInvalidVariant,
-    GetDecParking,
-    GetTrackingSpeedCalibration,
-    GetRemainingSafeTime,
-    GetTrackingSpeed,
-    GetBacklashSteps,
-    GetAltStepsPerDegree,
-    GetAzStepsPerDegree,
-    GetAutoHomingStates,
-    GetAzAltPositions,
-    GetTargetCoordinatePositions,
-    GetMountHardwareInfo,
-    GetStepperInfo,
-    GetLogBuffer,
-    GetHourAngle,
-    GetHourAngleInvalidVariant,
-    GetRaHomingOffset,
-    GetDecHomingOffset,
-    GetHemisphere,
-    GetLocalSiderealTime,
-    GetNetworkStatus,
-    SetRaStepsPerDegree,
-    SetAzStepsPerDegree,
-    SetAltStepsPerDegree,
-    SetDecStepsPerDegree,
-    SetDecLimitLowerSet,
-    SetDecLimitUpperSet,
-    SetDecLimitLowerClear,
-    SetDecLimitUpperClear,
-    SetDecParking,
-    SetTrackingSpeedCalibration,
-    SetTrackingStepperPosition,
-    SetManualSlewMode,
-    SetRaManualSpeed,
-    SetDecManualSpeed,
-    SetBacklashCorrection,
-    SetRaHomingOffset,
-    SetDecHomingOffset,
-    LevelGetReferenceAngles,
-    LevelGetCurrentAngles,
-    LevelGetTemperature,
-    LevelGetInvalidVariant,
-    LevelSetReferencePitch,
-    LevelSetReferenceRoll,
-    LevelSetInvalidVariant,
-    LevelStartup,
-    LevelShutdown,
-    LevelUnknownVariant,
-};
-
-/** @brief Result of `parseMeadeExtraLeafCommand`. */
-struct MeadeExtraLeafParseResult {
-    /** @brief `true` if the leaf was recognised. */
-    bool valid = false;
-    /** @brief Leaf classification. */
-    MeadeExtraLeafCommandKind kind = MeadeExtraLeafCommandKind::Unknown;
-    /** @brief Remaining bytes after the leaf prefix. */
-    MeadePayload payload;
-};
-
-/** @brief `:gps...` GPS sub-commands. */
-enum class MeadeGpsCommandKind
-{
-    Unknown,
-    StartAcquisition,
-};
-
-/** @brief Result of `parseMeadeGpsCommand`. */
-struct MeadeGpsParseResult {
-    /** @brief `true` if the GPS sub-command was recognised. */
-    bool valid = false;
-    /** @brief GPS sub-command classification. */
-    MeadeGpsCommandKind kind = MeadeGpsCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
-/** @brief `:CM...` Sync sub-commands. */
-enum class MeadeSyncCommandKind
-{
-    Unknown,
-    SyncToTarget,
-};
-
-/** @brief Result of `parseMeadeSyncCommand`. */
-struct MeadeSyncParseResult {
-    /** @brief `true` if the sync sub-command was recognised. */
-    bool valid = false;
-    /** @brief Sync sub-command classification. */
-    MeadeSyncCommandKind kind = MeadeSyncCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
-/** @brief `:M...` Movement sub-commands. */
-enum class MeadeMovementCommandKind
-{
-    Unknown,
-    SlewToTarget,
-    TrackingToggle,
-    GuidePulse,
-    MoveAzAltHome,
-    MoveAzimuth,
-    MoveAltitude,
-    SlewEast,
-    SlewWest,
-    SlewNorth,
-    SlewSouth,
-    MoveStepper,
-    HomeRa,
-    HomeDec,
-};
-
-/** @brief Result of `parseMeadeMovementCommand`. */
-struct MeadeMovementParseResult {
-    /** @brief `true` if the movement sub-command was recognised. */
-    bool valid = false;
-    /** @brief Movement sub-command classification. */
-    MeadeMovementCommandKind kind = MeadeMovementCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
-/** @brief `:h...` Home / park sub-commands. */
-enum class MeadeHomeCommandKind
-{
-    Unknown,
-    Park,
-    Home,
-    Unpark,
-    SetAzAltHome,
-};
-
-/** @brief Result of `parseMeadeHomeCommand`. */
-struct MeadeHomeParseResult {
-    /** @brief `true` if the home sub-command was recognised. */
-    bool valid = false;
-    /** @brief Home sub-command classification. */
-    MeadeHomeCommandKind kind = MeadeHomeCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
-/** @brief `:R...` Slew-rate sub-commands. */
-enum class MeadeSlewRateCommandKind
-{
-    Unknown,
-    Slew,
-    Find,
-    Center,
-    Guide,
-};
-
-/** @brief Result of `parseMeadeSlewRateCommand`. */
-struct MeadeSlewRateParseResult {
-    /** @brief `true` if the slew-rate sub-command was recognised. */
-    bool valid = false;
-    /** @brief Slew-rate sub-command classification. */
-    MeadeSlewRateCommandKind kind = MeadeSlewRateCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
-/** @brief `:F...` Focus sub-commands. */
-enum class MeadeFocusCommandKind
-{
-    Unknown,
-    ContinuousIn,
-    ContinuousOut,
-    MoveBy,
-    SetSpeedByRate,
-    SetFastestRate,
-    SetSlowestRate,
-    GetPosition,
-    SetPosition,
-    GetState,
-    Stop,
-};
-
-/** @brief Result of `parseMeadeFocusCommand`. */
-struct MeadeFocusParseResult {
-    /** @brief `true` if the focus sub-command was recognised. */
-    bool valid = false;
-    /** @brief Focus sub-command classification. */
-    MeadeFocusCommandKind kind = MeadeFocusCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
 /**
  * @brief Parse functions consume the bytes between the framing `:` prefix
  * and the `#` terminator (neither is part of the input) and return a result
@@ -383,56 +163,6 @@ struct MeadeFocusParseResult {
  * @param input NUL-terminated bytes after the leading `:`.
  */
 MeadeParseResult parseMeadeCommand(const char *input);
-
-/**
- * @brief Parse a `:gps...` GPS sub-command.
- * @param input NUL-terminated bytes after the `gps` prefix.
- */
-MeadeGpsParseResult parseMeadeGpsCommand(const char *input);
-
-/**
- * @brief Parse a `:CM...` Sync sub-command.
- * @param input NUL-terminated bytes after the `CM` prefix.
- */
-MeadeSyncParseResult parseMeadeSyncCommand(const char *input);
-
-/**
- * @brief Parse a `:M...` Movement sub-command.
- * @param input NUL-terminated bytes after the `M` prefix.
- */
-MeadeMovementParseResult parseMeadeMovementCommand(const char *input);
-
-/**
- * @brief Parse a `:h...` Home / park sub-command.
- * @param input NUL-terminated bytes after the `h` prefix.
- */
-MeadeHomeParseResult parseMeadeHomeCommand(const char *input);
-
-/**
- * @brief Parse a `:R...` Slew-rate sub-command.
- * @param input NUL-terminated bytes after the `R` prefix.
- */
-MeadeSlewRateParseResult parseMeadeSlewRateCommand(const char *input);
-
-/**
- * @brief Parse a `:F...` Focus sub-command.
- * @param input NUL-terminated bytes after the `F` prefix.
- */
-MeadeFocusParseResult parseMeadeFocusCommand(const char *input);
-
-/**
- * @brief Parse a `:X...` Extra sub-command at the first level.
- * @param input NUL-terminated bytes after the `X` prefix.
- */
-MeadeExtraParseResult parseMeadeExtraCommand(const char *input);
-
-/**
- * @brief Parse a leaf sub-command beneath the `:X...` Extra family.
- * @param kind  Result of a prior call to `parseMeadeExtraCommand`; selects
- *              the appropriate leaf grammar.
- * @param input NUL-terminated bytes after the Extra sub-command prefix.
- */
-MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind, const char *input);
 
 // ---------------------------------------------------------------------------
 // Get-family dispatch
@@ -685,6 +415,387 @@ class IMeadeDistanceHandlers
  * @return Wire bytes: `"|#"` while slewing, `" #"` otherwise.
  */
 MeadeResponse handleMeadeDistance(const char *suffix, IMeadeDistanceHandlers &handlers);
+
+// ---- Init family dispatch (:I...) -------------------------------------
+//
+// The `:I#` command hands the mount UI over to serial control. It emits
+// an empty response on the wire; the only behaviour is the side effect.
+
+class IMeadeInitHandlers
+{
+  public:
+    virtual ~IMeadeInitHandlers() = default;
+
+    /** @brief Enter serial-control mode (suppress LCD menu, show banner). */
+    virtual void onEnterSerialControl() = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade Init sub-command in one step.
+ *
+ * @param suffix Bytes following `:I`, trailing `#` already stripped. Any
+ *               suffix is accepted (legacy lenient behaviour).
+ * @param handlers Implementation performing the mode switch.
+ * @return Empty wire response.
+ */
+MeadeResponse handleMeadeInit(const char *suffix, IMeadeInitHandlers &handlers);
+
+// ---- SyncControl family dispatch (:C...) ------------------------------
+//
+// The only currently supported variant is `:CM#` (sync to target). All
+// other suffixes elicit `"FAIL#"`. Successful sync emits `"NONE#"`
+// (preserved legacy wire byte).
+
+class IMeadeSyncControlHandlers
+{
+  public:
+    virtual ~IMeadeSyncControlHandlers() = default;
+
+    /** @brief Sync current mount position to the previously-set target. */
+    virtual void onSyncToTarget() = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade SyncControl sub-command in one step.
+ *
+ * @param suffix Bytes following `:C`, trailing `#` already stripped.
+ * @param handlers Implementation performing the sync.
+ * @return Wire bytes: `"NONE#"` on success, `"FAIL#"` on unknown suffix.
+ */
+MeadeResponse handleMeadeSyncControl(const char *suffix, IMeadeSyncControlHandlers &handlers);
+
+// ---- Home family dispatch (:h...) -------------------------------------
+//
+// Supported suffixes:
+//   "P" - park       (side effect, empty response)
+//   "F" - slew home  (side effect, empty response)
+//   "U" - unpark     (side effect, "1" response)
+//   "Z" - set Az/Alt home (side effect, "1" response)
+// All other suffixes elicit an empty response.
+
+class IMeadeHomeHandlers
+{
+  public:
+    virtual ~IMeadeHomeHandlers() = default;
+
+    /** @brief Park the mount. */
+    virtual void onPark() = 0;
+    /** @brief Slew to the home position. */
+    virtual void onSlewToHome() = 0;
+    /** @brief Resume tracking after unparking. */
+    virtual void onUnpark() = 0;
+    /** @brief Persist the current Az/Alt position as the home reference. */
+    virtual void onSetAzAltHome() = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade Home sub-command in one step.
+ *
+ * @param suffix Bytes following `:h`, trailing `#` already stripped.
+ * @param handlers Implementation of the four home operations.
+ * @return Wire bytes per suffix table above; empty for unknown suffix.
+ */
+MeadeResponse handleMeadeHome(const char *suffix, IMeadeHomeHandlers &handlers);
+
+// ---------------------------------------------------------------------------
+// SetSlewRate-family dispatch
+//
+// `:R...` selects one of four mount slew rates. Each suffix sets a numeric
+// rate value (1..4) and produces an empty wire response:
+//   "G" -> 1 (guide)
+//   "C" -> 2 (center)
+//   "M" -> 3 (find)
+//   "S" -> 4 (slew)
+// All other suffixes elicit an empty response.
+
+class IMeadeSlewRateHandlers
+{
+  public:
+    virtual ~IMeadeSlewRateHandlers() = default;
+
+    /** @brief Apply the given mount slew rate (1..4). */
+    virtual void onSetSlewRate(uint8_t rate) = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade SetSlewRate sub-command in one step.
+ *
+ * @param suffix Bytes following `:R`, trailing `#` already stripped.
+ * @param handlers Slew-rate setter callback.
+ * @return Empty response on success or unknown suffix.
+ */
+MeadeResponse handleMeadeSetSlewRate(const char *suffix, IMeadeSlewRateHandlers &handlers);
+
+// ---------------------------------------------------------------------------
+// GPSCommands-family dispatch
+//
+// `:gT<timeout>` initiates a blocking GPS acquisition attempt. The handler is
+// responsible for the millis()-based wait loop. Returns SetSuccess("1")/("0").
+// All other suffixes return SetSuccess("0") without invoking the handler.
+
+class IMeadeGpsHandlers
+{
+  public:
+    virtual ~IMeadeGpsHandlers() = default;
+
+    /**
+     * @brief Attempt a GPS acquisition.
+     * @param timeoutPayload Bytes after `T` (NUL-terminated). May be empty
+     *                       (the handler decides the default).
+     * @return `true` on successful fix within the timeout, `false` otherwise.
+     */
+    virtual bool onStartGpsAcquisition(const char *timeoutPayload) = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade GPS sub-command in one step.
+ *
+ * @param suffix Bytes following `:g`, trailing `#` already stripped.
+ * @param handlers GPS acquisition callback.
+ * @return SetSuccess wire bytes ("1" or "0").
+ */
+MeadeResponse handleMeadeGps(const char *suffix, IMeadeGpsHandlers &handlers);
+
+// ---------------------------------------------------------------------------
+// Focus-family dispatch
+//
+// `:F...` sub-commands control an optional focus stepper. When the hardware is
+// not available, handler overrides should be no-ops; `onFocusGetPosition`
+// returns 0 and `onFocusGetState` returns false. `onFocusIsAvailable` gates
+// the `:FP<n>` SetPosition response: when false the dispatcher emits empty
+// wire bytes (preserving legacy behaviour) instead of `SetSuccess("1")`.
+
+class IMeadeFocusHandlers
+{
+  public:
+    virtual ~IMeadeFocusHandlers() = default;
+
+    /** @brief `:F+#` — start continuous focus-in. */
+    virtual void onFocusContinuousIn() = 0;
+    /** @brief `:F-#` — start continuous focus-out. */
+    virtual void onFocusContinuousOut() = 0;
+    /** @brief `:FM<steps>#` — move focus by `steps` (signed). */
+    virtual void onFocusMoveBy(long steps) = 0;
+    /** @brief `:F<1..4>#`, `:FS#` (rate=1), `:FF#` (rate=4) — set focus speed. */
+    virtual void onFocusSetSpeedByRate(int rate) = 0;
+    /** @brief `:FQ#` — stop focus motion. */
+    virtual void onFocusStop() = 0;
+    /** @brief `:Fp#` — return current focus stepper position (0 when disabled). */
+    virtual long onFocusGetPosition() = 0;
+    /** @brief Whether the focus stepper is compiled in / available. */
+    virtual bool onFocusIsAvailable() = 0;
+    /** @brief `:FP<steps>#` — set the focus stepper position. */
+    virtual void onFocusSetPosition(long steps) = 0;
+    /** @brief `:FB#` — return `true` if focus is running, `false` otherwise (or when disabled). */
+    virtual bool onFocusGetState() = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade `:F...` Focus sub-command in one step.
+ *
+ * @param suffix Bytes following `:F`, trailing `#` already stripped.
+ * @param handlers Focus stepper callbacks.
+ * @return Wire bytes per sub-command (Empty, Long, or SetSuccess).
+ */
+MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &handlers);
+
+// ---------------------------------------------------------------------------
+// Movement-family dispatch
+//
+// `:M...` sub-commands cover slewing, tracking toggle, guide pulses, direct
+// axis nudges, stepper-by-steps movement, and Hall-sensor auto-homing. The
+// dispatcher classifies the suffix shape, parses payload bytes, and invokes
+// the matching handler. Compile-time hardware guards (e.g. AZ_STEPPER_TYPE,
+// USE_HALL_SENSOR_RA_AUTOHOME) live in the override implementations; the
+// dispatcher remains hardware-agnostic.
+
+/** @brief Movement axes addressable via `:MX<axis><steps>#`. */
+enum class MovementAxis
+{
+    Ra,
+    Dec,
+    Azimuth,
+    Altitude,
+    Focus,
+};
+
+/** @brief Guide pulse / direct slew directions. */
+enum class MoveDirection
+{
+    North,
+    South,
+    East,
+    West,
+};
+
+class IMeadeMovementHandlers
+{
+  public:
+    virtual ~IMeadeMovementHandlers() = default;
+
+    /** @brief `:MS#` — start slew to current target coordinates. */
+    virtual void onStartSlewToTarget() = 0;
+    /** @brief `:MT1#` — engage sidereal tracking. */
+    virtual void onTrackingOn() = 0;
+    /** @brief `:MT0#` — disengage sidereal tracking. */
+    virtual void onTrackingOff() = 0;
+    /** @brief `:MG<dir><DDDD>#` — fire a guide pulse for `durationMs` milliseconds. */
+    virtual void onGuidePulse(MoveDirection dir, int durationMs) = 0;
+    /** @brief `:MAA#` — move AZ/ALT axes back to their home positions. */
+    virtual void onMoveAzAltHome() = 0;
+    /** @brief `:MAZ<f>#` — nudge the azimuth axis by `arcMinutes`. */
+    virtual void onMoveAzimuth(float arcMinutes) = 0;
+    /** @brief `:MAL<f>#` — nudge the altitude axis by `arcMinutes`. */
+    virtual void onMoveAltitude(float arcMinutes) = 0;
+    /** @brief `:Me#` — begin continuous slew east. */
+    virtual void onSlewEast() = 0;
+    /** @brief `:Mw#` — begin continuous slew west. */
+    virtual void onSlewWest() = 0;
+    /** @brief `:Mn#` — begin continuous slew north. */
+    virtual void onSlewNorth() = 0;
+    /** @brief `:Ms#` — begin continuous slew south. */
+    virtual void onSlewSouth() = 0;
+    /** @brief `:MX<axis><steps>#` — move a stepper by raw step count. */
+    virtual void onMoveStepper(MovementAxis axis, long steps) = 0;
+    /**
+     * @brief `:MHR<R|L>[degrees]#` — search for the RA Hall-sensor home.
+     * @param direction `+1` for L, `-1` for R.
+     * @param distancePayload Bytes after the direction char (may be empty;
+     *        the handler decides the default and clamping policy).
+     * @return `true` on success, `false` otherwise (incl. when feature is disabled).
+     */
+    virtual bool onHomeRa(int direction, const char *distancePayload) = 0;
+    /**
+     * @brief `:MHD<U|D>[degrees]#` — search for the DEC Hall-sensor home.
+     * @param direction `+1` for U, `-1` for D.
+     * @param distancePayload Bytes after the direction char.
+     */
+    virtual bool onHomeDec(int direction, const char *distancePayload) = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade `:M...` Movement sub-command in one step.
+ *
+ * @param suffix Bytes following `:M`, trailing `#` already stripped.
+ * @param handlers Movement callbacks.
+ * @return Wire bytes per sub-command.
+ */
+MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &handlers);
+
+// ---------------------------------------------------------------------------
+// Extra-family (`:X...`) dispatch
+//
+// The Extra family is a two-level tree: `:X<family><leaf-payload>` where
+// `<family>` is one of FR (factory reset), D (drift alignment), G (Get-leaves),
+// S (Set-leaves), or L (Level-leaves). `handleMeadeExtra` parses both levels
+// directly and dispatches every leaf via a small but wide handler interface.
+// Compile-time guards for `USE_GYRO_LEVEL`, `WIFI_ENABLED`, etc. live in the
+// override impls.
+
+/** @brief Output of `IMeadeExtraHandlers::onGetTargetCoordinatePositions`. */
+struct ExtraStepperCoords {
+    long raPos  = 0;
+    long decPos = 0;
+};
+
+/** @brief Output of the Level-family angle queries. */
+struct ExtraPitchRoll {
+    float pitch = 0.0f;
+    float roll  = 0.0f;
+};
+
+/** @brief Output of `IMeadeExtraHandlers::onGetHourAngle` / `onGetLocalSiderealTime`. */
+struct ExtraHms {
+    int hours   = 0;
+    int minutes = 0;
+    int seconds = 0;
+};
+
+/** @brief Output of `IMeadeExtraHandlers::onGetAzAltPositions`. */
+struct ExtraAzAltPositions {
+    long az  = 0;
+    long alt = 0;
+};
+
+/** @brief Output of `IMeadeExtraHandlers::onGetDecLimits` (both lo & hi). */
+struct ExtraDecLimits {
+    float lo = 0.0f;
+    float hi = 0.0f;
+};
+
+class IMeadeExtraHandlers
+{
+  public:
+    virtual ~IMeadeExtraHandlers() = default;
+
+    /** @brief `:XFR#` — full configuration wipe. */
+    virtual void onFactoryReset() = 0;
+
+    /** @brief `:XD<duration>#` — drift-alignment sequence (duration in seconds). */
+    virtual void onDriftAlignment(int duration) = 0;
+
+    // ---- Get-leaves -----------------------------------------------------
+    virtual float onGetRaStepsPerDegree()                                                    = 0;
+    virtual float onGetDecStepsPerDegree()                                                   = 0;
+    virtual float onGetAltStepsPerDegree()                                                   = 0;
+    virtual float onGetAzStepsPerDegree()                                                    = 0;
+    virtual ExtraDecLimits onGetDecLimits()                                                  = 0;
+    virtual float onGetTrackingSpeedCalibration()                                            = 0;
+    virtual float onGetRemainingSafeTime()                                                   = 0;
+    virtual float onGetTrackingSpeed()                                                       = 0;
+    virtual int onGetBacklashSteps()                                                         = 0;
+    virtual const char *onGetAutoHomingStates()                                              = 0;
+    virtual ExtraAzAltPositions onGetAzAltPositions()                                        = 0;
+    virtual ExtraStepperCoords onGetTargetCoordinatePositions(float raCoord, float decCoord) = 0;
+    virtual const char *onGetStepperInfo()                                                   = 0;
+    virtual const char *onGetMountHardwareInfo()                                             = 0;
+    virtual const char *onGetLogBuffer()                                                     = 0;
+    virtual long onGetRaHomingOffset()                                                       = 0;
+    virtual long onGetDecHomingOffset()                                                      = 0;
+    virtual bool onGetHemisphere()                                                           = 0;
+    virtual ExtraHms onGetHourAngle()                                                        = 0;
+    virtual ExtraHms onGetLocalSiderealTime()                                                = 0;
+    virtual const char *onGetNetworkStatus()                                                 = 0;
+
+    // ---- Set-leaves -----------------------------------------------------
+    virtual void onSetRaStepsPerDegree(float v)  = 0;
+    virtual void onSetDecStepsPerDegree(float v) = 0;
+    virtual void onSetAzStepsPerDegree(float v)  = 0;
+    virtual void onSetAltStepsPerDegree(float v) = 0;
+    /** @brief `:XSDLL[<value>]#` — set lower DEC limit; payload may be empty. */
+    virtual void onSetDecLimitLower(bool havePayload, float value) = 0;
+    virtual void onSetDecLimitUpper(bool havePayload, float value) = 0;
+    virtual void onClearDecLimitLower()                            = 0;
+    virtual void onClearDecLimitUpper()                            = 0;
+    virtual void onSetTrackingSpeedCalibration(float v)            = 0;
+    virtual void onSetTrackingStepperPosition(long v)              = 0;
+    virtual void onSetManualSlewMode(bool enable)                  = 0;
+    virtual void onSetRaManualSpeed(float v)                       = 0;
+    virtual void onSetDecManualSpeed(float v)                      = 0;
+    virtual void onSetBacklashCorrection(int v)                    = 0;
+    virtual void onSetRaHomingOffset(long v)                       = 0;
+    virtual void onSetDecHomingOffset(long v)                      = 0;
+
+    // ---- Level-leaves ---------------------------------------------------
+    /** @brief Whether USE_GYRO_LEVEL is compiled in. */
+    virtual bool onLevelIsAvailable()                  = 0;
+    virtual ExtraPitchRoll onLevelGetReferenceAngles() = 0;
+    virtual ExtraPitchRoll onLevelGetCurrentAngles()   = 0;
+    virtual float onLevelGetTemperature()              = 0;
+    virtual void onLevelSetReferencePitch(float v)     = 0;
+    virtual void onLevelSetReferenceRoll(float v)      = 0;
+    virtual void onLevelStartup()                      = 0;
+    virtual void onLevelShutdown()                     = 0;
+};
+
+/**
+ * @brief Parse + dispatch a Meade `:X...` Extra sub-command in one step.
+ *
+ * @param suffix Bytes following `:X`, trailing `#` already stripped.
+ * @param handlers Extra-family callbacks.
+ * @return Wire bytes per sub-command.
+ */
+MeadeResponse handleMeadeExtra(const char *suffix, IMeadeExtraHandlers &handlers);
 
 }  // namespace meade
 }  // namespace core

@@ -10,7 +10,15 @@ class LcdMenu;
 class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers,
                               private oat::core::meade::IMeadeSetHandlers,
                               private oat::core::meade::IMeadeQuitHandlers,
-                              private oat::core::meade::IMeadeDistanceHandlers
+                              private oat::core::meade::IMeadeDistanceHandlers,
+                              private oat::core::meade::IMeadeInitHandlers,
+                              private oat::core::meade::IMeadeSyncControlHandlers,
+                              private oat::core::meade::IMeadeHomeHandlers,
+                              private oat::core::meade::IMeadeSlewRateHandlers,
+                              private oat::core::meade::IMeadeGpsHandlers,
+                              private oat::core::meade::IMeadeFocusHandlers,
+                              private oat::core::meade::IMeadeMovementHandlers,
+                              private oat::core::meade::IMeadeExtraHandlers
 {
   public:
     static MeadeCommandProcessor *createProcessor(Mount *mount, LcdMenu *lcdMenu);
@@ -83,6 +91,100 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers,
 
     // IMeadeDistanceHandlers overrides.
     bool onIsSlewingRaOrDec() override;
+
+    // IMeadeInitHandlers overrides.
+    void onEnterSerialControl() override;
+
+    // IMeadeSyncControlHandlers overrides.
+    void onSyncToTarget() override;
+
+    // IMeadeHomeHandlers overrides.
+    void onPark() override;
+    void onSlewToHome() override;
+    void onUnpark() override;
+    void onSetAzAltHome() override;
+
+    // IMeadeSlewRateHandlers overrides.
+    void onSetSlewRate(uint8_t rate) override;
+
+    // IMeadeGpsHandlers overrides.
+    bool onStartGpsAcquisition(const char *timeoutPayload) override;
+
+    // IMeadeFocusHandlers overrides.
+    void onFocusContinuousIn() override;
+    void onFocusContinuousOut() override;
+    void onFocusMoveBy(long steps) override;
+    void onFocusSetSpeedByRate(int rate) override;
+    void onFocusStop() override;
+    long onFocusGetPosition() override;
+    bool onFocusIsAvailable() override;
+    void onFocusSetPosition(long steps) override;
+    bool onFocusGetState() override;
+
+    // IMeadeMovementHandlers overrides.
+    void onStartSlewToTarget() override;
+    void onTrackingOn() override;
+    void onTrackingOff() override;
+    void onGuidePulse(oat::core::meade::MoveDirection dir, int durationMs) override;
+    void onMoveAzAltHome() override;
+    void onMoveAzimuth(float arcMinutes) override;
+    void onMoveAltitude(float arcMinutes) override;
+    void onSlewEast() override;
+    void onSlewWest() override;
+    void onSlewNorth() override;
+    void onSlewSouth() override;
+    void onMoveStepper(oat::core::meade::MovementAxis axis, long steps) override;
+    bool onHomeRa(int direction, const char *distancePayload) override;
+    bool onHomeDec(int direction, const char *distancePayload) override;
+
+    // IMeadeExtraHandlers overrides.
+    void onFactoryReset() override;
+    void onDriftAlignment(int duration) override;
+    float onGetRaStepsPerDegree() override;
+    float onGetDecStepsPerDegree() override;
+    float onGetAltStepsPerDegree() override;
+    float onGetAzStepsPerDegree() override;
+    oat::core::meade::ExtraDecLimits onGetDecLimits() override;
+    float onGetTrackingSpeedCalibration() override;
+    float onGetRemainingSafeTime() override;
+    float onGetTrackingSpeed() override;
+    int onGetBacklashSteps() override;
+    const char *onGetAutoHomingStates() override;
+    oat::core::meade::ExtraAzAltPositions onGetAzAltPositions() override;
+    oat::core::meade::ExtraStepperCoords onGetTargetCoordinatePositions(float raCoord, float decCoord) override;
+    const char *onGetStepperInfo() override;
+    const char *onGetMountHardwareInfo() override;
+    const char *onGetLogBuffer() override;
+    long onGetRaHomingOffset() override;
+    long onGetDecHomingOffset() override;
+    bool onGetHemisphere() override;
+    oat::core::meade::ExtraHms onGetHourAngle() override;
+    oat::core::meade::ExtraHms onGetLocalSiderealTime() override;
+    const char *onGetNetworkStatus() override;
+    void onSetRaStepsPerDegree(float v) override;
+    void onSetDecStepsPerDegree(float v) override;
+    void onSetAzStepsPerDegree(float v) override;
+    void onSetAltStepsPerDegree(float v) override;
+    void onSetDecLimitLower(bool havePayload, float value) override;
+    void onSetDecLimitUpper(bool havePayload, float value) override;
+    void onClearDecLimitLower() override;
+    void onClearDecLimitUpper() override;
+    void onSetTrackingSpeedCalibration(float v) override;
+    void onSetTrackingStepperPosition(long v) override;
+    void onSetManualSlewMode(bool enable) override;
+    void onSetRaManualSpeed(float v) override;
+    void onSetDecManualSpeed(float v) override;
+    void onSetBacklashCorrection(int v) override;
+    void onSetRaHomingOffset(long v) override;
+    void onSetDecHomingOffset(long v) override;
+    bool onLevelIsAvailable() override;
+    oat::core::meade::ExtraPitchRoll onLevelGetReferenceAngles() override;
+    oat::core::meade::ExtraPitchRoll onLevelGetCurrentAngles() override;
+    float onLevelGetTemperature() override;
+    void onLevelSetReferencePitch(float v) override;
+    void onLevelSetReferenceRoll(float v) override;
+    void onLevelStartup() override;
+    void onLevelShutdown() override;
 
     Mount *_mount;
     LcdMenu *_lcdMenu;

@@ -11,7 +11,11 @@
 #include "core/MeadeParser.hpp"
 #include "core/MeadeResponse.hpp"
 
+#include <ctype.h>
 #include <stddef.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 namespace oat
@@ -24,65 +28,168 @@ namespace meade
 namespace
 {
 
-// Lookup-table entry used for keys that must match the input exactly
-// (entire remaining input string, terminator included).
-template <typename Kind> struct ExactEntry {
-    const char *key;
-    Kind kind;
-};
-
-// Lookup-table entry used for keys that match the input as a prefix.
-// `capturePayload`        -> if true, the text after the key is copied into result.payload.
-// `requireNonEmptyTail`   -> if true, the match only succeeds when at least one char
-//                            follows the key (used by ExtraSet's "D" entry).
-template <typename Kind> struct PrefixEntry {
-    const char *key;
-    Kind kind;
-    bool capturePayload;
-    bool requireNonEmptyTail;
-};
-
-template <typename Kind, size_t N> bool lookupExact(const ExactEntry<Kind> (&table)[N], const char *input, Kind &out)
+bool isExact(const char *input, const char *key)
 {
-    for (size_t i = 0; i < N; ++i)
-    {
-        if (strcmp(table[i].key, input) == 0)
-        {
-            out = table[i].kind;
-            return true;
-        }
-    }
-    return false;
+    return strcmp(input != nullptr ? input : "", key) == 0;
 }
 
-// First-match-wins prefix lookup. Tables must list longer/more specific keys
-// before shorter ones that share a prefix.
-template <typename Kind, size_t N>
-bool lookupPrefix(const PrefixEntry<Kind> (&table)[N], const char *input, Kind &out, const char *&tail, bool &capturesPayload)
+bool startsWith(const char *input, const char *prefix)
 {
-    for (size_t i = 0; i < N; ++i)
+    if (input == nullptr || prefix == nullptr)
     {
-        const char *k = table[i].key;
-        const char *p = input;
-        while ((*k != '\0') && (*k == *p))
-        {
-            ++k;
-            ++p;
-        }
-        if (*k != '\0')
-        {
-            continue;
-        }
-        if (table[i].requireNonEmptyTail && (*p == '\0'))
-        {
-            continue;
-        }
-        out             = table[i].kind;
-        tail            = p;
-        capturesPayload = table[i].capturePayload;
-        return true;
+        return false;
     }
-    return false;
+
+    while (*prefix != '\0')
+    {
+        if (*input == '\0' || *input != *prefix)
+        {
+            return false;
+        }
+        ++input;
+        ++prefix;
+    }
+    return true;
+}
+
+MeadeResponse makeLiteralResponse(const char *text)
+{
+    MeadeResponse r;
+    if (text == nullptr)
+    {
+        return r;
+    }
+
+    const size_t cap = MeadeResponse::capacity();
+    size_t i         = 0;
+    while ((i + 1) < cap && text[i] != '\0')
+    {
+        r.buffer()[i] = text[i];
+        ++i;
+    }
+    r.buffer()[i] = '\0';
+    r.setLength(i);
+    return r;
+}
+
+MeadeResponse makeSetSuccessResponse(bool ok)
+{
+    return makeLiteralResponse(ok ? "1" : "0");
+}
+
+void appendResponseTerminator(MeadeResponse &r)
+{
+    const size_t len = r.length();
+    if ((len + 1) >= MeadeResponse::capacity())
+    {
+        return;
+    }
+
+    r.buffer()[len]     = '#';
+    r.buffer()[len + 1] = '\0';
+    r.setLength(len + 1);
+}
+
+MeadeResponse makeFormattedResponse(const char *fmt, ...)
+{
+    MeadeResponse r;
+    va_list args;
+    va_start(args, fmt);
+    const int written = vsnprintf(r.buffer(), MeadeResponse::capacity(), fmt, args);
+    va_end(args);
+    if (written < 0)
+    {
+        r.buffer()[0] = '\0';
+        r.setLength(0);
+        return r;
+    }
+
+    size_t len = static_cast<size_t>(written);
+    if (len >= MeadeResponse::capacity())
+    {
+        len = MeadeResponse::capacity() - 1;
+    }
+    r.setLength(len);
+    return r;
+}
+
+MeadeResponse makeFramedTextResponse(const char *text)
+{
+    MeadeResponse r = makeLiteralResponse(text != nullptr ? text : "");
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeLongResponse(long value)
+{
+    MeadeResponse r = makeFormattedResponse("%ld", value);
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeBooleanResponse(bool flag)
+{
+    return makeFramedTextResponse(flag ? "1" : "0");
+}
+
+MeadeResponse makeNumericFloatResponse(float value, int precision)
+{
+    if (precision < 0)
+    {
+        precision = 0;
+    }
+    if (precision > 9)
+    {
+        precision = 9;
+    }
+    MeadeResponse r = makeFormattedResponse("%.*f", precision, static_cast<double>(value));
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeIntResponse(int value)
+{
+    MeadeResponse r = makeFormattedResponse("%d", value);
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeLongPairPipeResponse(long a, long b)
+{
+    MeadeResponse r = makeFormattedResponse("%ld|%ld", a, b);
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeDecLimitsPairResponse(float lo, float hi)
+{
+    MeadeResponse r = makeFormattedResponse("%.1f|%.1f", static_cast<double>(lo), static_cast<double>(hi));
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeHemisphereResponse(bool north)
+{
+    return makeFramedTextResponse(north ? "N" : "S");
+}
+
+MeadeResponse makeCompactHmsResponse(int hours, int minutes, int seconds)
+{
+    MeadeResponse r = makeFormattedResponse("%02d%02d%02d", hours, minutes, seconds);
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeAnglePair4Response(float a, float b)
+{
+    MeadeResponse r = makeFormattedResponse("%.4f,%.4f", static_cast<double>(a), static_cast<double>(b));
+    appendResponseTerminator(r);
+    return r;
+}
+
+MeadeResponse makeLevelUnknownResponse(const char *echoedCmd)
+{
+    return makeFormattedResponse("Unknown Level command: X%s", echoedCmd != nullptr ? echoedCmd : "");
 }
 
 // ---------------------------------------------------------------------------
@@ -113,153 +220,22 @@ constexpr FamilyEntry kFamilyTable[] = {
 // Per-family tables
 // ---------------------------------------------------------------------------
 
-constexpr PrefixEntry<MeadeGpsCommandKind> kGpsTable[] = {
-    {"T", MeadeGpsCommandKind::StartAcquisition, true, false},
-};
+// kGpsTable was removed alongside parseMeadeGpsCommand; GPSCommands is
+// now dispatched directly by `handleMeadeGps`.
 
-constexpr ExactEntry<MeadeSyncCommandKind> kSyncTable[] = {
-    {"M", MeadeSyncCommandKind::SyncToTarget},
-};
+// kSyncTable was removed alongside parseMeadeSyncCommand; SyncControl is
+// now dispatched directly by `handleMeadeSyncControl`.
 
-// Movement: S requires exact match. The directional shortcuts e/w/n/s accept
-// any trailing characters but never produce a payload (preserves original
-// behavior where "e123" matched SlewEast with empty payload).
-constexpr ExactEntry<MeadeMovementCommandKind> kMoveExactTable[] = {
-    {"S", MeadeMovementCommandKind::SlewToTarget},
-};
+// Movement sub-commands are dispatched directly by `handleMeadeMovement`;
+// the legacy lookup tables and parser were removed.
 
-constexpr PrefixEntry<MeadeMovementCommandKind> kMovePrefixTable[] = {
-    {"AA", MeadeMovementCommandKind::MoveAzAltHome, true, false},
-    {"AZ", MeadeMovementCommandKind::MoveAzimuth, true, false},
-    {"AL", MeadeMovementCommandKind::MoveAltitude, true, false},
-    {"HR", MeadeMovementCommandKind::HomeRa, true, false},
-    {"HD", MeadeMovementCommandKind::HomeDec, true, false},
-    {"T", MeadeMovementCommandKind::TrackingToggle, true, false},
-    {"G", MeadeMovementCommandKind::GuidePulse, true, false},
-    {"g", MeadeMovementCommandKind::GuidePulse, true, false},
-    {"X", MeadeMovementCommandKind::MoveStepper, true, false},
-    {"e", MeadeMovementCommandKind::SlewEast, false, false},
-    {"w", MeadeMovementCommandKind::SlewWest, false, false},
-    {"n", MeadeMovementCommandKind::SlewNorth, false, false},
-    {"s", MeadeMovementCommandKind::SlewSouth, false, false},
-};
+// kHomeTable was removed alongside parseMeadeHomeCommand; Home is now
+// dispatched directly by `handleMeadeHome`.
 
-constexpr ExactEntry<MeadeHomeCommandKind> kHomeTable[] = {
-    {"P", MeadeHomeCommandKind::Park},
-    {"F", MeadeHomeCommandKind::Home},
-    {"U", MeadeHomeCommandKind::Unpark},
-    {"Z", MeadeHomeCommandKind::SetAzAltHome},
-};
+// SlewRate sub-commands are dispatched directly by `handleMeadeSetSlewRate`.
 
-constexpr ExactEntry<MeadeSlewRateCommandKind> kSlewRateTable[] = {
-    {"S", MeadeSlewRateCommandKind::Slew},
-    {"M", MeadeSlewRateCommandKind::Find},
-    {"C", MeadeSlewRateCommandKind::Center},
-    {"G", MeadeSlewRateCommandKind::Guide},
-};
-
-// Focus: digits '1'-'4' map to SetSpeedByRate with payload == full input, handled
-// specially in the parser body. The remaining entries are prefix matches; only
-// M and P carry a payload.
-constexpr PrefixEntry<MeadeFocusCommandKind> kFocusTable[] = {
-    {"+", MeadeFocusCommandKind::ContinuousIn, false, false},
-    {"-", MeadeFocusCommandKind::ContinuousOut, false, false},
-    {"M", MeadeFocusCommandKind::MoveBy, true, false},
-    {"F", MeadeFocusCommandKind::SetFastestRate, false, false},
-    {"S", MeadeFocusCommandKind::SetSlowestRate, false, false},
-    {"p", MeadeFocusCommandKind::GetPosition, false, false},
-    {"P", MeadeFocusCommandKind::SetPosition, true, false},
-    {"B", MeadeFocusCommandKind::GetState, false, false},
-    {"Q", MeadeFocusCommandKind::Stop, false, false},
-};
-
-// Extra: bare 'F' is invalid; only 'FR' is, so FR must come before any future
-// 'F' prefix would (none exists today, but ordering documents the intent).
-constexpr PrefixEntry<MeadeExtraCommandKind> kExtraTable[] = {
-    {"FR", MeadeExtraCommandKind::FactoryReset, true, false},
-    {"D", MeadeExtraCommandKind::DriftAlignment, true, false},
-    {"G", MeadeExtraCommandKind::Get, true, false},
-    {"S", MeadeExtraCommandKind::Set, true, false},
-    {"L", MeadeExtraCommandKind::Level, true, false},
-};
-
-// ExtraGet leaf: tries exact match first, then prefix fallback.
-// Prefix entries handle the "invalid sub-variant" carve-outs (DL.../H...) and
-// the always-prefix entries C... and M... (MountHardwareInfo as default).
-constexpr ExactEntry<MeadeExtraLeafCommandKind> kExtraGetExactTable[] = {
-    {"R", MeadeExtraLeafCommandKind::GetRaStepsPerDegree},
-    {"D", MeadeExtraLeafCommandKind::GetDecStepsPerDegree},
-    {"DL", MeadeExtraLeafCommandKind::GetDecLimitBoth},
-    {"DLL", MeadeExtraLeafCommandKind::GetDecLimitLowerOnly},
-    {"DLU", MeadeExtraLeafCommandKind::GetDecLimitUpperOnly},
-    {"DP", MeadeExtraLeafCommandKind::GetDecParking},
-    {"S", MeadeExtraLeafCommandKind::GetTrackingSpeedCalibration},
-    {"ST", MeadeExtraLeafCommandKind::GetRemainingSafeTime},
-    {"T", MeadeExtraLeafCommandKind::GetTrackingSpeed},
-    {"B", MeadeExtraLeafCommandKind::GetBacklashSteps},
-    {"A", MeadeExtraLeafCommandKind::GetAltStepsPerDegree},
-    {"AH", MeadeExtraLeafCommandKind::GetAutoHomingStates},
-    {"AA", MeadeExtraLeafCommandKind::GetAzAltPositions},
-    {"Z", MeadeExtraLeafCommandKind::GetAzStepsPerDegree},
-    {"MS", MeadeExtraLeafCommandKind::GetStepperInfo},
-    {"O", MeadeExtraLeafCommandKind::GetLogBuffer},
-    {"H", MeadeExtraLeafCommandKind::GetHourAngle},
-    {"HR", MeadeExtraLeafCommandKind::GetRaHomingOffset},
-    {"HD", MeadeExtraLeafCommandKind::GetDecHomingOffset},
-    {"HS", MeadeExtraLeafCommandKind::GetHemisphere},
-    {"L", MeadeExtraLeafCommandKind::GetLocalSiderealTime},
-    {"N", MeadeExtraLeafCommandKind::GetNetworkStatus},
-};
-
-constexpr PrefixEntry<MeadeExtraLeafCommandKind> kExtraGetPrefixTable[] = {
-    {"DL", MeadeExtraLeafCommandKind::GetDecLimitInvalidVariant, true, false},
-    {"C", MeadeExtraLeafCommandKind::GetTargetCoordinatePositions, true, false},
-    {"H", MeadeExtraLeafCommandKind::GetHourAngleInvalidVariant, true, false},
-    {"M", MeadeExtraLeafCommandKind::GetMountHardwareInfo, false, false},
-};
-
-// ExtraSet leaf: exact match for the two "clear" DL variants, then prefix
-// fallback. The "D" prefix requires a non-empty tail so bare "D" stays invalid,
-// matching original behavior.
-constexpr ExactEntry<MeadeExtraLeafCommandKind> kExtraSetExactTable[] = {
-    {"DLl", MeadeExtraLeafCommandKind::SetDecLimitLowerClear},
-    {"DLu", MeadeExtraLeafCommandKind::SetDecLimitUpperClear},
-};
-
-constexpr PrefixEntry<MeadeExtraLeafCommandKind> kExtraSetPrefixTable[] = {
-    {"DLL", MeadeExtraLeafCommandKind::SetDecLimitLowerSet, true, false},
-    {"DLU", MeadeExtraLeafCommandKind::SetDecLimitUpperSet, true, false},
-    {"DP", MeadeExtraLeafCommandKind::SetDecParking, true, false},
-    {"HR", MeadeExtraLeafCommandKind::SetRaHomingOffset, true, false},
-    {"HD", MeadeExtraLeafCommandKind::SetDecHomingOffset, true, false},
-    {"D", MeadeExtraLeafCommandKind::SetDecStepsPerDegree, true, true},
-    {"R", MeadeExtraLeafCommandKind::SetRaStepsPerDegree, true, false},
-    {"A", MeadeExtraLeafCommandKind::SetAzStepsPerDegree, true, false},
-    {"L", MeadeExtraLeafCommandKind::SetAltStepsPerDegree, true, false},
-    {"S", MeadeExtraLeafCommandKind::SetTrackingSpeedCalibration, true, false},
-    {"T", MeadeExtraLeafCommandKind::SetTrackingStepperPosition, true, false},
-    {"M", MeadeExtraLeafCommandKind::SetManualSlewMode, true, false},
-    {"X", MeadeExtraLeafCommandKind::SetRaManualSpeed, true, false},
-    {"Y", MeadeExtraLeafCommandKind::SetDecManualSpeed, true, false},
-    {"B", MeadeExtraLeafCommandKind::SetBacklashCorrection, true, false},
-};
-
-// ExtraLevel leaf: pure prefix table. GR/GC/GT never carry a payload (the
-// original accepted "GRabc" as LevelGetReferenceAngles too). G/S act as
-// catch-alls for their respective families, and the final "" entry catches
-// anything else as LevelUnknownVariant with the full input as payload.
-constexpr PrefixEntry<MeadeExtraLeafCommandKind> kExtraLevelTable[] = {
-    {"GR", MeadeExtraLeafCommandKind::LevelGetReferenceAngles, false, false},
-    {"GC", MeadeExtraLeafCommandKind::LevelGetCurrentAngles, false, false},
-    {"GT", MeadeExtraLeafCommandKind::LevelGetTemperature, false, false},
-    {"G", MeadeExtraLeafCommandKind::LevelGetInvalidVariant, true, false},
-    {"SP", MeadeExtraLeafCommandKind::LevelSetReferencePitch, true, false},
-    {"SR", MeadeExtraLeafCommandKind::LevelSetReferenceRoll, true, false},
-    {"S", MeadeExtraLeafCommandKind::LevelSetInvalidVariant, true, false},
-    {"1", MeadeExtraLeafCommandKind::LevelStartup, false, false},
-    {"0", MeadeExtraLeafCommandKind::LevelShutdown, false, false},
-    {"", MeadeExtraLeafCommandKind::LevelUnknownVariant, true, false},
-};
+// Focus sub-commands are dispatched directly by `handleMeadeFocus`;
+// the legacy table and parser were removed.
 
 }  // namespace
 
@@ -322,258 +298,17 @@ MeadeParseResult parseMeadeCommand(const char *input)
 // ---------------------------------------------------------------------------
 // Subcommand parsers
 // ---------------------------------------------------------------------------
-MeadeGpsParseResult parseMeadeGpsCommand(const char *input)
-{
-    MeadeGpsParseResult result;
-    if (input == nullptr)
-    {
-        return result;
-    }
-    MeadeGpsCommandKind kind;
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kGpsTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
+// parseMeadeGpsCommand was removed; see `handleMeadeGps`.
 
-MeadeSyncParseResult parseMeadeSyncCommand(const char *input)
-{
-    MeadeSyncParseResult result;
-    if (input == nullptr)
-    {
-        return result;
-    }
-    MeadeSyncCommandKind kind;
-    if (lookupExact(kSyncTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-    }
-    return result;
-}
+// parseMeadeSyncCommand was removed; see `handleMeadeSyncControl`.
 
-MeadeMovementParseResult parseMeadeMovementCommand(const char *input)
-{
-    MeadeMovementParseResult result;
-    if (input == nullptr || input[0] == '\0')
-    {
-        return result;
-    }
-    MeadeMovementCommandKind kind;
-    if (lookupExact(kMoveExactTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        return result;
-    }
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kMovePrefixTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
+// parseMeadeMovementCommand was removed; see `handleMeadeMovement`.
 
-MeadeHomeParseResult parseMeadeHomeCommand(const char *input)
-{
-    MeadeHomeParseResult result;
-    if (input == nullptr)
-    {
-        return result;
-    }
-    MeadeHomeCommandKind kind;
-    if (lookupExact(kHomeTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-    }
-    return result;
-}
+// parseMeadeHomeCommand was removed; see `handleMeadeHome`.
 
-MeadeSlewRateParseResult parseMeadeSlewRateCommand(const char *input)
-{
-    MeadeSlewRateParseResult result;
-    if (input == nullptr)
-    {
-        return result;
-    }
-    MeadeSlewRateCommandKind kind;
-    if (lookupExact(kSlewRateTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-    }
-    return result;
-}
+// parseMeadeSlewRateCommand was removed; see `handleMeadeSetSlewRate`.
 
-MeadeFocusParseResult parseMeadeFocusCommand(const char *input)
-{
-    MeadeFocusParseResult result;
-    if (input == nullptr || input[0] == '\0')
-    {
-        return result;
-    }
-    if ((input[0] >= '1') && (input[0] <= '4'))
-    {
-        result.valid = true;
-        result.kind  = MeadeFocusCommandKind::SetSpeedByRate;
-        result.payload.assign(input);
-        return result;
-    }
-    MeadeFocusCommandKind kind;
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kFocusTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
-
-MeadeExtraParseResult parseMeadeExtraCommand(const char *input)
-{
-    MeadeExtraParseResult result;
-    if (input == nullptr || input[0] == '\0')
-    {
-        return result;
-    }
-    MeadeExtraCommandKind kind;
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kExtraTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
-
-namespace
-{
-
-MeadeExtraLeafParseResult parseMeadeExtraGetLeafCommand(const char *input)
-{
-    MeadeExtraLeafParseResult result;
-    if (input == nullptr || input[0] == '\0')
-    {
-        return result;
-    }
-    MeadeExtraLeafCommandKind kind;
-    if (lookupExact(kExtraGetExactTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        return result;
-    }
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kExtraGetPrefixTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
-
-MeadeExtraLeafParseResult parseMeadeExtraSetLeafCommand(const char *input)
-{
-    MeadeExtraLeafParseResult result;
-    if (input == nullptr || input[0] == '\0')
-    {
-        return result;
-    }
-    MeadeExtraLeafCommandKind kind;
-    if (lookupExact(kExtraSetExactTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        return result;
-    }
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kExtraSetPrefixTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
-
-MeadeExtraLeafParseResult parseMeadeExtraLevelLeafCommand(const char *input)
-{
-    MeadeExtraLeafParseResult result;
-    if (input == nullptr || input[0] == '\0')
-    {
-        return result;
-    }
-    MeadeExtraLeafCommandKind kind;
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kExtraLevelTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
-
-}  // namespace
-
-MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind, const char *input)
-{
-    switch (kind)
-    {
-        case MeadeExtraCommandKind::Get:
-            return parseMeadeExtraGetLeafCommand(input);
-
-        case MeadeExtraCommandKind::Set:
-            return parseMeadeExtraSetLeafCommand(input);
-
-        case MeadeExtraCommandKind::Level:
-            return parseMeadeExtraLevelLeafCommand(input);
-
-        case MeadeExtraCommandKind::Unknown:
-        case MeadeExtraCommandKind::DriftAlignment:
-        case MeadeExtraCommandKind::FactoryReset:
-            return MeadeExtraLeafParseResult();
-    }
-    return MeadeExtraLeafParseResult();
-}
+// parseMeadeFocusCommand was removed; see `handleMeadeFocus`.
 
 // ---------------------------------------------------------------------------
 // Get-family dispatch
@@ -1311,6 +1046,698 @@ MeadeResponse handleMeadeDistance(const char *, IMeadeDistanceHandlers &h)
     MeadeResponse r;
     writeChar(r, h.onIsSlewingRaOrDec() ? '|' : ' ');
     writeTerminator(r);
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// Init family
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeInit(const char *, IMeadeInitHandlers &h)
+{
+    h.onEnterSerialControl();
+    return MeadeResponse {};
+}
+
+// ---------------------------------------------------------------------------
+// SyncControl family
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeSyncControl(const char *suffix, IMeadeSyncControlHandlers &h)
+{
+    MeadeResponse r;
+    if (suffix != nullptr && suffix[0] == 'M' && suffix[1] == '\0')
+    {
+        h.onSyncToTarget();
+        writeCString(r, "NONE");
+    }
+    else
+    {
+        writeCString(r, "FAIL");
+    }
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// Home family
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeHome(const char *suffix, IMeadeHomeHandlers &h)
+{
+    MeadeResponse r;
+    if (suffix == nullptr || suffix[0] == '\0' || suffix[1] != '\0')
+    {
+        return r;
+    }
+    switch (suffix[0])
+    {
+        case 'P':
+            h.onPark();
+            break;
+        case 'F':
+            h.onSlewToHome();
+            break;
+        case 'U':
+            h.onUnpark();
+            writeChar(r, '1');
+            break;
+        case 'Z':
+            h.onSetAzAltHome();
+            writeChar(r, '1');
+            break;
+        default:
+            break;
+    }
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// SetSlewRate family
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeSetSlewRate(const char *suffix, IMeadeSlewRateHandlers &h)
+{
+    MeadeResponse r;
+    if (suffix == nullptr || suffix[0] == '\0' || suffix[1] != '\0')
+    {
+        return r;
+    }
+    switch (suffix[0])
+    {
+        case 'S':
+            h.onSetSlewRate(4);
+            break;
+        case 'M':
+            h.onSetSlewRate(3);
+            break;
+        case 'C':
+            h.onSetSlewRate(2);
+            break;
+        case 'G':
+            h.onSetSlewRate(1);
+            break;
+        default:
+            break;
+    }
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// GPSCommands family
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeGps(const char *suffix, IMeadeGpsHandlers &h)
+{
+    MeadeResponse r;
+    if (suffix == nullptr || suffix[0] != 'T')
+    {
+        writeChar(r, '0');
+        return r;
+    }
+    const bool acquired = h.onStartGpsAcquisition(suffix + 1);
+    writeChar(r, acquired ? '1' : '0');
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// Focus family
+// ---------------------------------------------------------------------------
+
+MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &h)
+{
+    MeadeResponse r;
+    if (suffix == nullptr || suffix[0] == '\0')
+    {
+        return r;
+    }
+    // `:F1#` .. `:F4#` — speed-by-rate digits act as the whole input.
+    if ((suffix[0] >= '1') && (suffix[0] <= '4') && suffix[1] == '\0')
+    {
+        h.onFocusSetSpeedByRate(suffix[0] - '0');
+        return r;
+    }
+    switch (suffix[0])
+    {
+        case '+':
+            h.onFocusContinuousIn();
+            break;
+        case '-':
+            h.onFocusContinuousOut();
+            break;
+        case 'M':
+            h.onFocusMoveBy(strtol(suffix + 1, nullptr, 10));
+            break;
+        case 'F':
+            h.onFocusSetSpeedByRate(4);
+            break;
+        case 'S':
+            h.onFocusSetSpeedByRate(1);
+            break;
+        case 'p':
+            return makeLongResponse(h.onFocusGetPosition());
+        case 'P':
+            if (h.onFocusIsAvailable())
+            {
+                h.onFocusSetPosition(strtol(suffix + 1, nullptr, 10));
+                return makeSetSuccessResponse(true);
+            }
+            break;
+        case 'B':
+            return makeSetSuccessResponse(h.onFocusGetState());
+        case 'Q':
+            h.onFocusStop();
+            break;
+        default:
+            break;
+    }
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// Movement family — dispatched directly (no separate parse step).
+// ---------------------------------------------------------------------------
+MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &h)
+{
+    MeadeResponse r;
+    if (suffix == nullptr || suffix[0] == '\0')
+    {
+        return r;
+    }
+
+    // `:MS#` — exact match only ("S123" is not a slew-to-target).
+    if (suffix[0] == 'S' && suffix[1] == '\0')
+    {
+        h.onStartSlewToTarget();
+        return makeSetSuccessResponse(false);
+    }
+
+    // `:MAA...#` — any input starting with "AA" requests a home move; the
+    // historical parser captures (but ignores) any trailing payload, so we
+    // accept "AA<anything>" too. AZ/AL nudge by an arc-minute float.
+    if (suffix[0] == 'A' && suffix[1] == 'A')
+    {
+        h.onMoveAzAltHome();
+        return makeSetSuccessResponse(true);
+    }
+    if (suffix[0] == 'A' && suffix[1] == 'Z')
+    {
+        const float arcMinutes = static_cast<float>(strtod(suffix + 2, nullptr));
+        h.onMoveAzimuth(arcMinutes);
+        return r;
+    }
+    if (suffix[0] == 'A' && suffix[1] == 'L')
+    {
+        const float arcMinutes = static_cast<float>(strtod(suffix + 2, nullptr));
+        h.onMoveAltitude(arcMinutes);
+        return r;
+    }
+
+    // `:MHR<R|L>[distance]#` / `:MHD<U|D>[distance]#` — Hall-sensor auto-home.
+    // Direction byte chooses sign; distance bytes (if any) are passed through
+    // to the handler which applies the hardware default + clamp policy.
+    if (suffix[0] == 'H' && suffix[1] == 'R')
+    {
+        int direction = 0;
+        if (suffix[2] == 'R')
+        {
+            direction = -1;
+        }
+        else if (suffix[2] == 'L')
+        {
+            direction = 1;
+        }
+        if (direction == 0)
+        {
+            return makeSetSuccessResponse(false);
+        }
+        return makeSetSuccessResponse(h.onHomeRa(direction, suffix + 3));
+    }
+    if (suffix[0] == 'H' && suffix[1] == 'D')
+    {
+        int direction = 0;
+        if (suffix[2] == 'U')
+        {
+            direction = 1;
+        }
+        else if (suffix[2] == 'D')
+        {
+            direction = -1;
+        }
+        if (direction == 0)
+        {
+            return makeSetSuccessResponse(false);
+        }
+        return makeSetSuccessResponse(h.onHomeDec(direction, suffix + 3));
+    }
+
+    // `:MT1#` / `:MT0#` — tracking toggle. Anything else under 'T' fails.
+    if (suffix[0] == 'T')
+    {
+        if (suffix[1] == '1')
+        {
+            h.onTrackingOn();
+            return makeSetSuccessResponse(true);
+        }
+        if (suffix[1] == '0')
+        {
+            h.onTrackingOff();
+            return makeSetSuccessResponse(true);
+        }
+        return makeSetSuccessResponse(false);
+    }
+
+    // `:MG<dir><DDDD>#` / `:Mg<dir><DDDD>#` — guide pulse. Spec is lowercase
+    // but ASCOM pre-0.3.1 used uppercase, so both are accepted. Success emits
+    // the empty literal (no `#` terminator); a malformed pulse emits "0".
+    if (suffix[0] == 'G' || suffix[0] == 'g')
+    {
+        if ((strlen(suffix) == 6) && isdigit(static_cast<unsigned char>(suffix[2])) && isdigit(static_cast<unsigned char>(suffix[3]))
+            && isdigit(static_cast<unsigned char>(suffix[4])) && isdigit(static_cast<unsigned char>(suffix[5])))
+        {
+            MoveDirection dir = MoveDirection::East;
+            const char dc     = static_cast<char>(tolower(static_cast<unsigned char>(suffix[1])));
+            if (dc == 'n')
+            {
+                dir = MoveDirection::North;
+            }
+            else if (dc == 's')
+            {
+                dir = MoveDirection::South;
+            }
+            else if (dc == 'w')
+            {
+                dir = MoveDirection::West;
+            }
+            const int duration = (suffix[2] - '0') * 1000 + (suffix[3] - '0') * 100 + (suffix[4] - '0') * 10 + (suffix[5] - '0');
+            h.onGuidePulse(dir, duration);
+            return makeLiteralResponse("");
+        }
+        return makeLiteralResponse("0");
+    }
+
+    // `:MX<axis><steps>#` — move a single stepper by raw step count.
+    if (suffix[0] == 'X')
+    {
+        MovementAxis axis;
+        switch (suffix[1])
+        {
+            case 'r':
+                axis = MovementAxis::Ra;
+                break;
+            case 'd':
+                axis = MovementAxis::Dec;
+                break;
+            case 'z':
+                axis = MovementAxis::Azimuth;
+                break;
+            case 'l':
+                axis = MovementAxis::Altitude;
+                break;
+            case 'f':
+                axis = MovementAxis::Focus;
+                break;
+            default:
+                return makeSetSuccessResponse(false);
+        }
+        const long steps = strtol(suffix + 2, nullptr, 10);
+        h.onMoveStepper(axis, steps);
+        return makeSetSuccessResponse(true);
+    }
+
+    // Continuous slew shortcuts. A single direction letter — anything after it
+    // is ignored to match the legacy prefix-matching behavior.
+    if (suffix[0] == 'e')
+    {
+        h.onSlewEast();
+        return r;
+    }
+    if (suffix[0] == 'w')
+    {
+        h.onSlewWest();
+        return r;
+    }
+    if (suffix[0] == 'n')
+    {
+        h.onSlewNorth();
+        return r;
+    }
+    if (suffix[0] == 's')
+    {
+        h.onSlewSouth();
+        return r;
+    }
+    return r;
+}
+
+// ---------------------------------------------------------------------------
+// Extra family — `:X...` two-level dispatch.
+// ---------------------------------------------------------------------------
+namespace
+{
+
+MeadeResponse handleExtraGetLeaf(const char *leafInput, IMeadeExtraHandlers &h)
+{
+    MeadeResponse r;
+
+    if (leafInput == nullptr || leafInput[0] == '\0')
+    {
+        return r;
+    }
+
+    if (isExact(leafInput, "R"))
+    {
+        return makeNumericFloatResponse(h.onGetRaStepsPerDegree(), 1);
+    }
+    if (isExact(leafInput, "D"))
+    {
+        return makeNumericFloatResponse(h.onGetDecStepsPerDegree(), 1);
+    }
+    if (isExact(leafInput, "DL"))
+    {
+        ExtraDecLimits lim = h.onGetDecLimits();
+        return makeDecLimitsPairResponse(lim.lo, lim.hi);
+    }
+    if (isExact(leafInput, "DLL"))
+    {
+        return makeNumericFloatResponse(h.onGetDecLimits().lo, 1);
+    }
+    if (isExact(leafInput, "DLU"))
+    {
+        return makeNumericFloatResponse(h.onGetDecLimits().hi, 1);
+    }
+    if (startsWith(leafInput, "DL"))
+    {
+        return makeBooleanResponse(false);
+    }
+    if (isExact(leafInput, "DP"))
+    {
+        return makeBooleanResponse(false);
+    }
+    if (isExact(leafInput, "S"))
+    {
+        return makeNumericFloatResponse(h.onGetTrackingSpeedCalibration(), 5);
+    }
+    if (isExact(leafInput, "ST"))
+    {
+        return makeNumericFloatResponse(h.onGetRemainingSafeTime(), 7);
+    }
+    if (isExact(leafInput, "T"))
+    {
+        return makeNumericFloatResponse(h.onGetTrackingSpeed(), 7);
+    }
+    if (isExact(leafInput, "B"))
+    {
+        return makeIntResponse(h.onGetBacklashSteps());
+    }
+    if (isExact(leafInput, "A"))
+    {
+        return makeNumericFloatResponse(h.onGetAltStepsPerDegree(), 1);
+    }
+    if (isExact(leafInput, "AH"))
+    {
+        return makeFramedTextResponse(h.onGetAutoHomingStates());
+    }
+    if (isExact(leafInput, "AA"))
+    {
+        ExtraAzAltPositions p = h.onGetAzAltPositions();
+        return makeLongPairPipeResponse(p.az, p.alt);
+    }
+    if (isExact(leafInput, "Z"))
+    {
+        return makeNumericFloatResponse(h.onGetAzStepsPerDegree(), 1);
+    }
+    if (startsWith(leafInput, "C"))
+    {
+        // Payload format: "<ra>*<dec>" — float pair separated by '*'.
+        const char *payload = leafInput + 1;
+        const char *star    = strchr(payload, '*');
+        if (star == nullptr || star == payload)
+        {
+            return r;
+        }
+        const float raCoord    = static_cast<float>(strtod(payload, nullptr));
+        const float decCoord   = static_cast<float>(strtod(star + 1, nullptr));
+        ExtraStepperCoords pos = h.onGetTargetCoordinatePositions(raCoord, decCoord);
+        return makeLongPairPipeResponse(pos.raPos, pos.decPos);
+    }
+    if (isExact(leafInput, "MS"))
+    {
+        return makeFramedTextResponse(h.onGetStepperInfo());
+    }
+    if (startsWith(leafInput, "M"))
+    {
+        return makeFramedTextResponse(h.onGetMountHardwareInfo());
+    }
+    if (isExact(leafInput, "O"))
+    {
+        return makeLiteralResponse(h.onGetLogBuffer());
+    }
+    if (isExact(leafInput, "HR"))
+    {
+        return makeLongResponse(h.onGetRaHomingOffset());
+    }
+    if (isExact(leafInput, "HD"))
+    {
+        return makeLongResponse(h.onGetDecHomingOffset());
+    }
+    if (isExact(leafInput, "HS"))
+    {
+        return makeHemisphereResponse(h.onGetHemisphere());
+    }
+    if (isExact(leafInput, "H"))
+    {
+        ExtraHms t = h.onGetHourAngle();
+        return makeCompactHmsResponse(t.hours, t.minutes, t.seconds);
+    }
+    if (startsWith(leafInput, "H"))
+    {
+        return makeBooleanResponse(false);
+    }
+    if (isExact(leafInput, "L"))
+    {
+        ExtraHms t = h.onGetLocalSiderealTime();
+        return makeCompactHmsResponse(t.hours, t.minutes, t.seconds);
+    }
+    if (isExact(leafInput, "N"))
+    {
+        return makeFramedTextResponse(h.onGetNetworkStatus());
+    }
+    return r;
+}
+
+MeadeResponse handleExtraSetLeaf(const char *leafInput, IMeadeExtraHandlers &h)
+{
+    MeadeResponse r;
+    if (leafInput == nullptr || leafInput[0] == '\0')
+    {
+        return r;
+    }
+
+    if (isExact(leafInput, "DLl"))
+    {
+        h.onClearDecLimitLower();
+        return r;
+    }
+    if (isExact(leafInput, "DLu"))
+    {
+        h.onClearDecLimitUpper();
+        return r;
+    }
+    if (startsWith(leafInput, "DLL"))
+    {
+        const char *payload    = leafInput + 3;
+        const bool havePayload = payload[0] != '\0';
+        const float value      = havePayload ? static_cast<float>(strtod(payload, nullptr)) : 0.0f;
+        h.onSetDecLimitLower(havePayload, value);
+        return r;
+    }
+    if (startsWith(leafInput, "DLU"))
+    {
+        const char *payload    = leafInput + 3;
+        const bool havePayload = payload[0] != '\0';
+        const float value      = havePayload ? static_cast<float>(strtod(payload, nullptr)) : 0.0f;
+        h.onSetDecLimitUpper(havePayload, value);
+        return r;
+    }
+    if (startsWith(leafInput, "DP"))
+    {
+        return r;
+    }
+    if (startsWith(leafInput, "HR"))
+    {
+        h.onSetRaHomingOffset(strtol(leafInput + 2, nullptr, 10));
+        return r;
+    }
+    if (startsWith(leafInput, "HD"))
+    {
+        h.onSetDecHomingOffset(strtol(leafInput + 2, nullptr, 10));
+        return r;
+    }
+    if (startsWith(leafInput, "D") && leafInput[1] != '\0')
+    {
+        const float v = static_cast<float>(strtod(leafInput + 1, nullptr));
+        if (v > 0.0f)
+        {
+            h.onSetDecStepsPerDegree(v);
+        }
+        return r;
+    }
+    if (startsWith(leafInput, "R"))
+    {
+        h.onSetRaStepsPerDegree(static_cast<float>(strtod(leafInput + 1, nullptr)));
+        return r;
+    }
+    if (startsWith(leafInput, "A"))
+    {
+        h.onSetAzStepsPerDegree(static_cast<float>(strtod(leafInput + 1, nullptr)));
+        return r;
+    }
+    if (startsWith(leafInput, "L"))
+    {
+        h.onSetAltStepsPerDegree(static_cast<float>(strtod(leafInput + 1, nullptr)));
+        return r;
+    }
+    if (startsWith(leafInput, "S"))
+    {
+        h.onSetTrackingSpeedCalibration(static_cast<float>(strtod(leafInput + 1, nullptr)));
+        return r;
+    }
+    if (startsWith(leafInput, "T"))
+    {
+        h.onSetTrackingStepperPosition(strtol(leafInput + 1, nullptr, 10));
+        return r;
+    }
+    if (startsWith(leafInput, "M"))
+    {
+        h.onSetManualSlewMode(leafInput[1] == '1');
+        return r;
+    }
+    if (startsWith(leafInput, "X"))
+    {
+        h.onSetRaManualSpeed(static_cast<float>(strtod(leafInput + 1, nullptr)));
+        return r;
+    }
+    if (startsWith(leafInput, "Y"))
+    {
+        h.onSetDecManualSpeed(static_cast<float>(strtod(leafInput + 1, nullptr)));
+        return r;
+    }
+    if (startsWith(leafInput, "B"))
+    {
+        h.onSetBacklashCorrection(static_cast<int>(strtol(leafInput + 1, nullptr, 10)));
+        return r;
+    }
+    return r;
+}
+
+MeadeResponse handleExtraLevelLeaf(const char *leafInput, IMeadeExtraHandlers &h)
+{
+    MeadeResponse r;
+
+    if (!h.onLevelIsAvailable())
+    {
+        return makeBooleanResponse(false);
+    }
+
+    if (leafInput == nullptr || leafInput[0] == '\0')
+    {
+        return r;
+    }
+
+    if (startsWith(leafInput, "GR"))
+    {
+        ExtraPitchRoll pr = h.onLevelGetReferenceAngles();
+        return makeAnglePair4Response(pr.pitch, pr.roll);
+    }
+    if (startsWith(leafInput, "GC"))
+    {
+        ExtraPitchRoll pr = h.onLevelGetCurrentAngles();
+        return makeAnglePair4Response(pr.pitch, pr.roll);
+    }
+    if (startsWith(leafInput, "GT"))
+    {
+        return makeNumericFloatResponse(h.onLevelGetTemperature(), 1);
+    }
+    if (startsWith(leafInput, "G"))
+    {
+        return r;
+    }
+    if (startsWith(leafInput, "SP"))
+    {
+        h.onLevelSetReferencePitch(static_cast<float>(strtod(leafInput + 2, nullptr)));
+        return makeBooleanResponse(true);
+    }
+    if (startsWith(leafInput, "SR"))
+    {
+        h.onLevelSetReferenceRoll(static_cast<float>(strtod(leafInput + 2, nullptr)));
+        return makeBooleanResponse(true);
+    }
+    if (startsWith(leafInput, "S"))
+    {
+        return r;
+    }
+    if (startsWith(leafInput, "1"))
+    {
+        h.onLevelStartup();
+        return makeBooleanResponse(true);
+    }
+    if (startsWith(leafInput, "0"))
+    {
+        h.onLevelShutdown();
+        return makeBooleanResponse(true);
+    }
+
+    // Echo "L" + the original leaf input, matching legacy behavior.
+    char echoed[MeadePayload::Capacity];
+    echoed[0] = 'L';
+    size_t i  = 0;
+    for (; leafInput[i] != '\0' && (i + 2) < sizeof(echoed); ++i)
+    {
+        echoed[i + 1] = leafInput[i];
+    }
+    echoed[i + 1] = '\0';
+    return makeLevelUnknownResponse(echoed);
+}
+
+}  // namespace
+
+MeadeResponse handleMeadeExtra(const char *suffix, IMeadeExtraHandlers &h)
+{
+    MeadeResponse r;
+
+    if (suffix == nullptr || suffix[0] == '\0')
+    {
+        return r;
+    }
+
+    if (startsWith(suffix, "FR"))
+    {
+        h.onFactoryReset();
+        return makeBooleanResponse(true);
+    }
+
+    if (startsWith(suffix, "D"))
+    {
+        const int duration = static_cast<int>(strtol(suffix + 1, nullptr, 10)) - 3;
+        h.onDriftAlignment(duration);
+        return r;
+    }
+
+    if (startsWith(suffix, "G"))
+    {
+        return handleExtraGetLeaf(suffix + 1, h);
+    }
+
+    if (startsWith(suffix, "S"))
+    {
+        return handleExtraSetLeaf(suffix + 1, h);
+    }
+
+    if (startsWith(suffix, "L"))
+    {
+        return handleExtraLevelLeaf(suffix + 1, h);
+    }
+
     return r;
 }
 
