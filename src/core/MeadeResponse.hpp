@@ -324,18 +324,10 @@ template <auto K, typename... Args> MeadeResponse respond(Args &&...args)
 // The Get family does not use the kind->tag binding layer. Get commands are
 // dispatched and serialised directly by `handleMeadeGet` (see MeadeParser.hpp).
 
-// ---- Set family bindings ------------------------------------------------
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::TargetDec, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::TargetRa, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::LocalSiderealTime, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::HomePoint, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::HourAngle, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::SyncCoordinates, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::SiteLatitude, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::SiteLongitude, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::UtcOffset, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::LocalTime, SetSuccess);
-OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::LocalDate, SetLocalDateAck);
+// ---- Set family ---------------------------------------------------------
+// The Set family does not use the kind->tag binding layer. Set commands are
+// dispatched, parsed and serialised directly by `handleMeadeSet` (see
+// MeadeParser.hpp).
 
 // ---- Movement family bindings -------------------------------------------
 OAT_MEADE_BIND_RESPONSE_FIXED(MeadeMovementCommandKind::SlewToTarget, SetSuccess, false);

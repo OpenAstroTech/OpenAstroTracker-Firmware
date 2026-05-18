@@ -21,8 +21,6 @@ using meade::MeadeMovementParseResult;
 using meade::MeadeParseResult;
 using meade::MeadeQuitCommandKind;
 using meade::MeadeQuitParseResult;
-using meade::MeadeSetCommandKind;
-using meade::MeadeSetParseResult;
 using meade::MeadeSlewRateCommandKind;
 using meade::MeadeSlewRateParseResult;
 using meade::MeadeSyncCommandKind;
@@ -35,7 +33,6 @@ using meade::parseMeadeGpsCommand;
 using meade::parseMeadeHomeCommand;
 using meade::parseMeadeMovementCommand;
 using meade::parseMeadeQuitCommand;
-using meade::parseMeadeSetCommand;
 using meade::parseMeadeSlewRateCommand;
 using meade::parseMeadeSyncCommand;
 
@@ -79,14 +76,6 @@ void assert_valid_extra_parse(const char *input, MeadeExtraCommandKind expected_
 void assert_valid_gps_parse(const char *input, MeadeGpsCommandKind expected_kind, const char *expected_payload)
 {
     MeadeGpsParseResult result = parseMeadeGpsCommand(input);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(expected_kind), static_cast<int>(result.kind));
-    TEST_ASSERT_EQUAL_STRING(expected_payload, result.payload.c_str());
-}
-
-void assert_valid_set_parse(const char *input, MeadeSetCommandKind expected_kind, const char *expected_payload)
-{
-    MeadeSetParseResult result = parseMeadeSetCommand(input);
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_INT(static_cast<int>(expected_kind), static_cast<int>(result.kind));
     TEST_ASSERT_EQUAL_STRING(expected_payload, result.payload.c_str());
@@ -249,29 +238,6 @@ void test_meade_parser_rejects_unknown_gps_family_commands(void)
     MeadeGpsParseResult result = parseMeadeGpsCommand("Q");
     TEST_ASSERT_FALSE(result.valid);
     TEST_ASSERT_EQUAL_INT(static_cast<int>(MeadeGpsCommandKind::Unknown), static_cast<int>(result.kind));
-    TEST_ASSERT_TRUE(result.payload.empty());
-}
-
-void test_meade_parser_classifies_set_family_commands(void)
-{
-    assert_valid_set_parse("d+84*03:02", MeadeSetCommandKind::TargetDec, "+84*03:02");
-    assert_valid_set_parse("r04:03:02", MeadeSetCommandKind::TargetRa, "04:03:02");
-    assert_valid_set_parse("HL123456", MeadeSetCommandKind::LocalSiderealTime, "123456");
-    assert_valid_set_parse("HP", MeadeSetCommandKind::HomePoint, "");
-    assert_valid_set_parse("H12:34", MeadeSetCommandKind::HourAngle, "12:34");
-    assert_valid_set_parse("Y+84*03:02.18:34:12", MeadeSetCommandKind::SyncCoordinates, "+84*03:02.18:34:12");
-    assert_valid_set_parse("t+30*29", MeadeSetCommandKind::SiteLatitude, "+30*29");
-    assert_valid_set_parse("g097*34", MeadeSetCommandKind::SiteLongitude, "097*34");
-    assert_valid_set_parse("G+05", MeadeSetCommandKind::UtcOffset, "+05");
-    assert_valid_set_parse("L19:33:03", MeadeSetCommandKind::LocalTime, "19:33:03");
-    assert_valid_set_parse("C04/30/20", MeadeSetCommandKind::LocalDate, "04/30/20");
-}
-
-void test_meade_parser_rejects_unknown_set_family_commands(void)
-{
-    MeadeSetParseResult result = parseMeadeSetCommand("Z42");
-    TEST_ASSERT_FALSE(result.valid);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(MeadeSetCommandKind::Unknown), static_cast<int>(result.kind));
     TEST_ASSERT_TRUE(result.payload.empty());
 }
 
@@ -511,8 +477,6 @@ void process()
     RUN_TEST(test_meade_parser_rejects_unknown_top_level_family);
     RUN_TEST(test_meade_parser_classifies_gps_family_commands);
     RUN_TEST(test_meade_parser_rejects_unknown_gps_family_commands);
-    RUN_TEST(test_meade_parser_classifies_set_family_commands);
-    RUN_TEST(test_meade_parser_rejects_unknown_set_family_commands);
     RUN_TEST(test_meade_parser_classifies_sync_family_commands);
     RUN_TEST(test_meade_parser_rejects_unknown_sync_family_commands);
     RUN_TEST(test_meade_parser_classifies_movement_family_commands);

@@ -117,21 +117,6 @@ constexpr PrefixEntry<MeadeGpsCommandKind> kGpsTable[] = {
     {"T", MeadeGpsCommandKind::StartAcquisition, true, false},
 };
 
-// Set: every entry takes a payload. HL/HP must come before bare H.
-constexpr PrefixEntry<MeadeSetCommandKind> kSetTable[] = {
-    {"HL", MeadeSetCommandKind::LocalSiderealTime, true, false},
-    {"HP", MeadeSetCommandKind::HomePoint, true, false},
-    {"H", MeadeSetCommandKind::HourAngle, true, false},
-    {"d", MeadeSetCommandKind::TargetDec, true, false},
-    {"r", MeadeSetCommandKind::TargetRa, true, false},
-    {"Y", MeadeSetCommandKind::SyncCoordinates, true, false},
-    {"t", MeadeSetCommandKind::SiteLatitude, true, false},
-    {"g", MeadeSetCommandKind::SiteLongitude, true, false},
-    {"G", MeadeSetCommandKind::UtcOffset, true, false},
-    {"L", MeadeSetCommandKind::LocalTime, true, false},
-    {"C", MeadeSetCommandKind::LocalDate, true, false},
-};
-
 constexpr ExactEntry<MeadeSyncCommandKind> kSyncTable[] = {
     {"M", MeadeSyncCommandKind::SyncToTarget},
 };
@@ -358,28 +343,6 @@ MeadeGpsParseResult parseMeadeGpsCommand(const char *input)
     const char *tail = nullptr;
     bool capture     = false;
     if (lookupPrefix(kGpsTable, input, kind, tail, capture))
-    {
-        result.valid = true;
-        result.kind  = kind;
-        if (capture)
-        {
-            result.payload.assign(tail);
-        }
-    }
-    return result;
-}
-
-MeadeSetParseResult parseMeadeSetCommand(const char *input)
-{
-    MeadeSetParseResult result;
-    if (input == nullptr || input[0] == '\0')
-    {
-        return result;
-    }
-    MeadeSetCommandKind kind;
-    const char *tail = nullptr;
-    bool capture     = false;
-    if (lookupPrefix(kSetTable, input, kind, tail, capture))
     {
         result.valid = true;
         result.kind  = kind;
@@ -960,6 +923,362 @@ MeadeResponse handleMeadeGet(const char *s, IMeadeGetHandlers &h)
             writeCString(r, h.onSiteName(4));
             return r;
         default:
+            return r;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Set-family dispatch
+// ---------------------------------------------------------------------------
+
+namespace
+{
+
+inline bool isDecimalDigit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+template <int N> bool readFixedDigits(const char *p, unsigned &out)
+{
+    unsigned v = 0;
+    for (int i = 0; i < N; ++i)
+    {
+        if (!isDecimalDigit(p[i]))
+        {
+            return false;
+        }
+        v = v * 10 + static_cast<unsigned>(p[i] - '0');
+    }
+    out = v;
+    return true;
+}
+
+// Parse "+DD" / "-DD" into a signed int.
+bool readSignedFixed2(const char *p, int &out)
+{
+    if ((p[0] != '+' && p[0] != '-') || !isDecimalDigit(p[1]) || !isDecimalDigit(p[2]))
+    {
+        return false;
+    }
+    int v = (p[1] - '0') * 10 + (p[2] - '0');
+    out   = (p[0] == '-') ? -v : v;
+    return true;
+}
+
+// Parse "+DDD" / "-DDD" into a signed int.
+bool readSignedFixed3(const char *p, int &out)
+{
+    if ((p[0] != '+' && p[0] != '-') || !isDecimalDigit(p[1]) || !isDecimalDigit(p[2]) || !isDecimalDigit(p[3]))
+    {
+        return false;
+    }
+    int v = (p[1] - '0') * 100 + (p[2] - '0') * 10 + (p[3] - '0');
+    out   = (p[0] == '-') ? -v : v;
+    return true;
+}
+
+// Format: "[+-]DD<sep>MM:SS" where sep in {'*', ':'}. 9 chars.
+bool readDecCoordinate(const char *p, size_t len, DecCoordinate &out)
+{
+    if (len != 9)
+    {
+        return false;
+    }
+    int deg;
+    unsigned mm, ss;
+    if (!readSignedFixed2(p, deg))
+    {
+        return false;
+    }
+    if (p[3] != '*' && p[3] != ':')
+    {
+        return false;
+    }
+    if (!readFixedDigits<2>(p + 4, mm))
+    {
+        return false;
+    }
+    if (p[6] != ':')
+    {
+        return false;
+    }
+    if (!readFixedDigits<2>(p + 7, ss))
+    {
+        return false;
+    }
+    out.degrees = static_cast<int16_t>(deg);
+    out.minutes = static_cast<uint8_t>(mm);
+    out.seconds = static_cast<uint8_t>(ss);
+    return true;
+}
+
+// Format: "HH:MM:SS". 8 chars.
+bool readRaCoordinate(const char *p, size_t len, RaCoordinate &out)
+{
+    if (len != 8)
+    {
+        return false;
+    }
+    unsigned hh, mm, ss;
+    if (!readFixedDigits<2>(p, hh) || p[2] != ':' || !readFixedDigits<2>(p + 3, mm) || p[5] != ':' || !readFixedDigits<2>(p + 6, ss))
+    {
+        return false;
+    }
+    out.hours   = static_cast<uint8_t>(hh);
+    out.minutes = static_cast<uint8_t>(mm);
+    out.seconds = static_cast<uint8_t>(ss);
+    return true;
+}
+
+// Format: "[+-]DD<sep>MM" where sep in {'*', ':'}. 6 chars.
+bool readLatitude(const char *p, size_t len, MeadeLatitude &out)
+{
+    if (len != 6)
+    {
+        return false;
+    }
+    int deg;
+    unsigned mm;
+    if (!readSignedFixed2(p, deg) || (p[3] != '*' && p[3] != ':') || !readFixedDigits<2>(p + 4, mm))
+    {
+        return false;
+    }
+    out.degrees = static_cast<int16_t>(deg);
+    out.minutes = static_cast<uint8_t>(mm);
+    return true;
+}
+
+// Format: "[+-]DDD<sep>MM" where sep in {'*', ':'}. 7 chars.
+bool readLongitude(const char *p, size_t len, MeadeLongitude &out)
+{
+    if (len != 7)
+    {
+        return false;
+    }
+    int deg;
+    unsigned mm;
+    if (!readSignedFixed3(p, deg) || (p[4] != '*' && p[4] != ':') || !readFixedDigits<2>(p + 5, mm))
+    {
+        return false;
+    }
+    out.degrees = static_cast<int16_t>(deg);
+    out.minutes = static_cast<uint8_t>(mm);
+    return true;
+}
+
+// Set ack: "1" on success, "0" on failure. No framing terminator.
+void writeSetAck(MeadeResponse &r, bool ok)
+{
+    writeChar(r, ok ? '1' : '0');
+}
+
+// :SC# success ack: "1Updating Planetary Data#<30 spaces>#". "0" on failure.
+void writeSetLocalDateAck(MeadeResponse &r, bool ok)
+{
+    if (!ok)
+    {
+        writeChar(r, '0');
+        return;
+    }
+    writeText(r, "1Updating Planetary Data");
+    writeTerminator(r);
+    for (int i = 0; i < 30; ++i)
+    {
+        writeChar(r, ' ');
+    }
+    writeTerminator(r);
+}
+
+}  // namespace
+
+MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
+{
+    MeadeResponse r;
+    if (!s || s[0] == '\0')
+    {
+        writeChar(r, '0');
+        return r;
+    }
+
+    const size_t len = strlen(s);
+
+    switch (s[0])
+    {
+        case 'd':
+            {
+                DecCoordinate dec;
+                if (!readDecCoordinate(s + 1, len - 1, dec))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                writeSetAck(r, h.onSetTargetDec(dec));
+                return r;
+            }
+
+        case 'r':
+            {
+                RaCoordinate ra;
+                if (!readRaCoordinate(s + 1, len - 1, ra))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                writeSetAck(r, h.onSetTargetRa(ra));
+                return r;
+            }
+
+        case 'H':
+            if (len >= 2 && s[1] == 'L')
+            {
+                // HLhhmmss (8 chars) or HLhhmm (6 chars) — no separators on the wire.
+                unsigned hh = 0, mm = 0, ss = 0;
+                bool ok = false;
+                if (len == 8)
+                {
+                    ok = readFixedDigits<2>(s + 2, hh) && readFixedDigits<2>(s + 4, mm) && readFixedDigits<2>(s + 6, ss);
+                }
+                else if (len == 6)
+                {
+                    ok = readFixedDigits<2>(s + 2, hh) && readFixedDigits<2>(s + 4, mm);
+                }
+                if (!ok)
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                MeadeLocalTime t {static_cast<uint8_t>(hh), static_cast<uint8_t>(mm), static_cast<uint8_t>(ss)};
+                writeSetAck(r, h.onSetLocalSiderealTime(t));
+                return r;
+            }
+            if (len == 2 && s[1] == 'P')
+            {
+                writeSetAck(r, h.onSetHomePoint());
+                return r;
+            }
+            // Bare H = HourAngle: H<hh><sep><mm>. Total 6 chars. Separator at s[3] is not validated
+            // (legacy behaviour: any single char accepted).
+            if (len == 6)
+            {
+                unsigned hh, mm;
+                if (!readFixedDigits<2>(s + 1, hh) || !readFixedDigits<2>(s + 4, mm))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                writeSetAck(r, h.onSetHourAngle(static_cast<uint8_t>(hh), static_cast<uint8_t>(mm)));
+                return r;
+            }
+            writeChar(r, '0');
+            return r;
+
+        case 'Y':
+            {
+                // Y<dec(9)>.<ra(8)>  total 19 chars including 'Y'.
+                if (len != 19 || s[10] != '.')
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                DecCoordinate dec;
+                RaCoordinate ra;
+                if (!readDecCoordinate(s + 1, 9, dec) || !readRaCoordinate(s + 11, 8, ra))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                writeSetAck(r, h.onSyncCoordinates(dec, ra));
+                return r;
+            }
+
+        case 't':
+            {
+                MeadeLatitude lat;
+                if (!readLatitude(s + 1, len - 1, lat))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                writeSetAck(r, h.onSetSiteLatitude(lat));
+                return r;
+            }
+
+        case 'g':
+            {
+                MeadeLongitude lon;
+                if (!readLongitude(s + 1, len - 1, lon))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                writeSetAck(r, h.onSetSiteLongitude(lon));
+                return r;
+            }
+
+        case 'G':
+            {
+                // G<sign><DD>  4 chars total.
+                if (len != 4)
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                int hours;
+                if (!readSignedFixed2(s + 1, hours))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                writeSetAck(r, h.onSetUtcOffset(hours));
+                return r;
+            }
+
+        case 'L':
+            {
+                // L<HH>:<MM>:<SS>  9 chars total.
+                if (len != 9)
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                unsigned hh, mm, ss;
+                if (!readFixedDigits<2>(s + 1, hh) || s[3] != ':' || !readFixedDigits<2>(s + 4, mm) || s[6] != ':'
+                    || !readFixedDigits<2>(s + 7, ss))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                MeadeLocalTime t {static_cast<uint8_t>(hh), static_cast<uint8_t>(mm), static_cast<uint8_t>(ss)};
+                writeSetAck(r, h.onSetLocalTime(t));
+                return r;
+            }
+
+        case 'C':
+            {
+                // C<MM>/<DD>/<YY>  9 chars total.
+                if (len != 9)
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                unsigned mo, dd, yy;
+                if (!readFixedDigits<2>(s + 1, mo) || s[3] != '/' || !readFixedDigits<2>(s + 4, dd) || s[6] != '/'
+                    || !readFixedDigits<2>(s + 7, yy))
+                {
+                    writeChar(r, '0');
+                    return r;
+                }
+                MeadeLocalDate d;
+                d.month = static_cast<uint8_t>(mo);
+                d.day   = static_cast<uint8_t>(dd);
+                d.year  = static_cast<uint16_t>(2000 + yy);
+                writeSetLocalDateAck(r, h.onSetLocalDate(d));
+                return r;
+            }
+
+        default:
+            writeChar(r, '0');
             return r;
     }
 }

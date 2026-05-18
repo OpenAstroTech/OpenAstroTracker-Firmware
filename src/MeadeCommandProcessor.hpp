@@ -7,7 +7,7 @@
 class Mount;
 class LcdMenu;
 
-class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers
+class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers, private oat::core::meade::IMeadeSetHandlers
 {
   public:
     static MeadeCommandProcessor *createProcessor(Mount *mount, LcdMenu *lcdMenu);
@@ -53,6 +53,20 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers
     oat::core::meade::MeadeClockFormat onClockFormat() override;
     oat::core::meade::MeadeTrackingRate onTrackingRate() override;
     const char *onSiteName(uint8_t index) override;
+
+    // IMeadeSetHandlers overrides. Each method receives a parser-validated
+    // typed value and returns whether the mount accepted it.
+    bool onSetTargetDec(oat::core::meade::DecCoordinate dec) override;
+    bool onSetTargetRa(oat::core::meade::RaCoordinate ra) override;
+    bool onSetLocalSiderealTime(oat::core::meade::MeadeLocalTime lst) override;
+    bool onSetHomePoint() override;
+    bool onSetHourAngle(uint8_t hours, uint8_t minutes) override;
+    bool onSyncCoordinates(oat::core::meade::DecCoordinate dec, oat::core::meade::RaCoordinate ra) override;
+    bool onSetSiteLatitude(oat::core::meade::MeadeLatitude lat) override;
+    bool onSetSiteLongitude(oat::core::meade::MeadeLongitude lon) override;
+    bool onSetUtcOffset(int hours) override;
+    bool onSetLocalTime(oat::core::meade::MeadeLocalTime t) override;
+    bool onSetLocalDate(oat::core::meade::MeadeLocalDate d) override;
 
     Mount *_mount;
     LcdMenu *_lcdMenu;

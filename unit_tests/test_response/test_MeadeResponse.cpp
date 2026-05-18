@@ -9,7 +9,6 @@
 namespace meade = oat::core::meade;
 
 using meade::MeadeResponse;
-using meade::MeadeSetCommandKind;
 
 namespace tag = meade::response::tag;
 using meade::response::makeResponse;
@@ -148,20 +147,6 @@ void test_level_unknown_echoes_command_letter()
     TEST_ASSERT_EQUAL_STRING("Unknown Level command: XB", makeResponse(tag::LevelUnknown {}, "B").c_str());
 }
 
-// ---- Kind -> tag binding tests -----------------------------------------
-
-void test_set_target_ra_binds_to_set_success()
-{
-    TEST_ASSERT_EQUAL_STRING("1", respond<MeadeSetCommandKind::TargetRa>(true).c_str());
-    TEST_ASSERT_EQUAL_STRING("0", respond<MeadeSetCommandKind::TargetDec>(false).c_str());
-}
-
-void test_set_local_date_uses_dedicated_ack()
-{
-    MeadeResponse r = respond<MeadeSetCommandKind::LocalDate>(true);
-    TEST_ASSERT_EQUAL_STRING("1Updating Planetary Data#                              #", r.c_str());
-}
-
 // ---- Behavioural tests --------------------------------------------------
 
 void test_meade_response_is_implicitly_convertible_to_c_string()
@@ -258,9 +243,6 @@ void process()
     RUN_TEST(test_compact_hms_zero_pads);
     RUN_TEST(test_compact_hms_handles_two_digit);
     RUN_TEST(test_angle_pair4_uses_four_decimal_precision);
-
-    RUN_TEST(test_set_target_ra_binds_to_set_success);
-    RUN_TEST(test_set_local_date_uses_dedicated_ack);
 
     RUN_TEST(test_meade_response_is_implicitly_convertible_to_c_string);
     RUN_TEST(test_truncates_at_capacity_minus_one_for_nul);

@@ -260,33 +260,6 @@ struct MeadeGpsParseResult {
     MeadePayload payload;
 };
 
-/** @brief `:S...` Set sub-commands. */
-enum class MeadeSetCommandKind
-{
-    Unknown,
-    TargetDec,
-    TargetRa,
-    LocalSiderealTime,
-    HomePoint,
-    HourAngle,
-    SyncCoordinates,
-    SiteLatitude,
-    SiteLongitude,
-    UtcOffset,
-    LocalTime,
-    LocalDate,
-};
-
-/** @brief Result of `parseMeadeSetCommand`. */
-struct MeadeSetParseResult {
-    /** @brief `true` if the set sub-command was recognised. */
-    bool valid = false;
-    /** @brief Set sub-command classification. */
-    MeadeSetCommandKind kind = MeadeSetCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
 /** @brief `:CM...` Sync sub-commands. */
 enum class MeadeSyncCommandKind
 {
@@ -439,12 +412,6 @@ MeadeParseResult parseMeadeCommand(const char *input);
  * @param input NUL-terminated bytes after the `gps` prefix.
  */
 MeadeGpsParseResult parseMeadeGpsCommand(const char *input);
-
-/**
- * @brief Parse a `:S...` Set sub-command.
- * @param input NUL-terminated bytes after the `S` prefix.
- */
-MeadeSetParseResult parseMeadeSetCommand(const char *input);
 
 /**
  * @brief Parse a `:CM...` Sync sub-command.
@@ -615,6 +582,62 @@ class IMeadeGetHandlers
  * @return Framed wire response, or an empty response for unknown sub-commands.
  */
 MeadeResponse handleMeadeGet(const char *suffix, IMeadeGetHandlers &handlers);
+
+// ---------------------------------------------------------------------------
+// Set-family dispatch
+//
+// Mirrors the Get pipeline: `handleMeadeSet` parses the sub-command key and
+// its payload, invokes the matching typed callback on `IMeadeSetHandlers`,
+// and serialises the boolean acknowledgement (`"1"`/`"0"`, or the special
+// `:SC#` planetary-data ack) into a `MeadeResponse`.
+//
+// All wire-format parsing lives in the parser; handlers receive validated
+// typed values and report success/failure as a bool. Unrecognised or
+// malformed sub-commands produce `"0"` without invoking a handler.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Pure callback interface for the Meade `:S...` (Set) command family.
+ *
+ * Each method returns a bool indicating whether the mount accepted the
+ * value. The parser maps this to the wire bytes `"1"` (success) / `"0"`
+ * (failure). `:SC#` uses a dedicated ack format implemented by the parser.
+ */
+class IMeadeSetHandlers
+{
+  public:
+    virtual ~IMeadeSetHandlers() = default;
+
+    virtual bool onSetTargetDec(DecCoordinate dec) = 0;
+    virtual bool onSetTargetRa(RaCoordinate ra)    = 0;
+
+    virtual bool onSetLocalSiderealTime(MeadeLocalTime lst) = 0;
+    virtual bool onSetHomePoint()                           = 0;
+
+    /** @param hours 0..23 @param minutes 0..59 */
+    virtual bool onSetHourAngle(uint8_t hours, uint8_t minutes) = 0;
+
+    virtual bool onSyncCoordinates(DecCoordinate dec, RaCoordinate ra) = 0;
+
+    virtual bool onSetSiteLatitude(MeadeLatitude lat)   = 0;
+    virtual bool onSetSiteLongitude(MeadeLongitude lon) = 0;
+
+    /** @param hours Signed wire value (-12..+14). */
+    virtual bool onSetUtcOffset(int hours) = 0;
+
+    virtual bool onSetLocalTime(MeadeLocalTime t) = 0;
+    virtual bool onSetLocalDate(MeadeLocalDate d) = 0;
+};
+
+/**
+ * @brief Parse + dispatch + serialise a Meade Set sub-command in one step.
+ *
+ * @param suffix The bytes that follow the family `:S` prefix, with the
+ *               trailing `#` already stripped (e.g. `"d+12*34:56"`).
+ * @param handlers Implementation providing the mount-side side effects.
+ * @return Framed wire response, or `"0"` for unknown / malformed input.
+ */
+MeadeResponse handleMeadeSet(const char *suffix, IMeadeSetHandlers &handlers);
 
 }  // namespace meade
 }  // namespace core

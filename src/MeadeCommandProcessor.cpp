@@ -1490,135 +1490,86 @@ const char *MeadeCommandProcessor::handleMeadeSyncControl(const String &inCmd)
 /////////////////////////////
 const char *MeadeCommandProcessor::handleMeadeSetInfo(const String &inCmd)
 {
-    using namespace oat::core::meade::response;
-    using meade::MeadeSetCommandKind;
+    return store(meade::handleMeadeSet(inCmd.c_str(), *this));
+}
 
-    meade::MeadeSetParseResult parsed = meade::parseMeadeSetCommand(inCmd.c_str());
-    if (!parsed.valid)
-    {
-        return store(respond<MeadeSetCommandKind::TargetDec>(false));
-    }
+bool MeadeCommandProcessor::onSetTargetDec(meade::DecCoordinate dec)
+{
+    _mount->targetDEC() = Declination(static_cast<int>(dec.degrees), static_cast<int>(dec.minutes), static_cast<int>(dec.seconds));
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
+    return true;
+}
 
-    switch (parsed.kind)
-    {
-        case MeadeSetCommandKind::TargetDec:
-            if (inCmd.length() == 10)
-            {
-                // Set DEC
-                //   0123456789
-                // :Sd+84*03:02
-                if (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':'))
-                {
-                    Declination dec     = Declination::ParseFromMeade(inCmd.substring(1));
-                    _mount->targetDEC() = dec;
-                    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
-                    return store(respond<MeadeSetCommandKind::TargetDec>(true));
-                }
-            }
-            return store(respond<MeadeSetCommandKind::TargetDec>(false));
+bool MeadeCommandProcessor::onSetTargetRa(meade::RaCoordinate ra)
+{
+    _mount->targetRA().set(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", _mount->targetRA().ToString());
+    return true;
+}
 
-        case MeadeSetCommandKind::TargetRa:
-            // :Sr11:04:57#
-            // Set RA
-            //   012345678
-            // :Sr04:03:02
-            if (inCmd.length() == 9 && (inCmd[3] == ':') && (inCmd[6] == ':'))
-            {
-                _mount->targetRA().set(inCmd.substring(1, 3).toInt(), inCmd.substring(4, 6).toInt(), inCmd.substring(7, 9).toInt());
-                LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", _mount->targetRA().ToString());
-                return store(respond<MeadeSetCommandKind::TargetRa>(true));
-            }
-            return store(respond<MeadeSetCommandKind::TargetRa>(false));
+bool MeadeCommandProcessor::onSetLocalSiderealTime(meade::MeadeLocalTime lst)
+{
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received LST: %u:%u:%u", lst.hours, lst.minutes, lst.seconds);
+    _mount->setLST(DayTime(static_cast<int>(lst.hours), static_cast<int>(lst.minutes), static_cast<int>(lst.seconds)));
+    return true;
+}
 
-        case MeadeSetCommandKind::LocalSiderealTime:
-            {
-                int hLST   = inCmd.substring(2, 4).toInt();
-                int minLST = inCmd.substring(4, 6).toInt();
-                int secLST = 0;
-                if (inCmd.length() > 7)
-                {
-                    secLST = inCmd.substring(6, 8).toInt();
-                }
+bool MeadeCommandProcessor::onSetHomePoint()
+{
+    _mount->setHome(false);
+    return true;
+}
 
-                DayTime lst(hLST, minLST, secLST);
-                LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received LST: %d:%d:%d", hLST, minLST, secLST);
-                _mount->setLST(lst);
-                return store(respond<MeadeSetCommandKind::LocalSiderealTime>(true));
-            }
+bool MeadeCommandProcessor::onSetHourAngle(uint8_t hours, uint8_t minutes)
+{
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received HA: %u:%u:0", hours, minutes);
+    _mount->setHA(DayTime(static_cast<int>(hours), static_cast<int>(minutes), 0));
+    return true;
+}
 
-        case MeadeSetCommandKind::HomePoint:
-            _mount->setHome(false);
-            return store(respond<MeadeSetCommandKind::HomePoint>(true));
+bool MeadeCommandProcessor::onSyncCoordinates(meade::DecCoordinate dec, meade::RaCoordinate ra)
+{
+    Declination decValue(static_cast<int>(dec.degrees), static_cast<int>(dec.minutes), static_cast<int>(dec.seconds));
+    DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
+    _mount->syncPosition(raValue, decValue);
+    return true;
+}
 
-        case MeadeSetCommandKind::HourAngle:
-            {
-                int hHA   = inCmd.substring(1, 3).toInt();
-                int minHA = inCmd.substring(4, 6).toInt();
-                LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received HA: %d:%d:%d", hHA, minHA, 0);
-                _mount->setHA(DayTime(hHA, minHA, 0));
-                return store(respond<MeadeSetCommandKind::HourAngle>(true));
-            }
+bool MeadeCommandProcessor::onSetSiteLatitude(meade::MeadeLatitude lat)
+{
+    _mount->setLatitude(Latitude(static_cast<int>(lat.degrees), static_cast<int>(lat.minutes), 0));
+    return true;
+}
 
-        case MeadeSetCommandKind::SyncCoordinates:
-            // Sync RA, DEC - current position is the given coordinate
-            //   0123456789012345678
-            // :SY+84*03:02.18:34:12
-            if (inCmd.length() == 19
-                && (((inCmd[4] == '*') || (inCmd[4] == ':')) && (inCmd[7] == ':') && (inCmd[10] == '.') && (inCmd[13] == ':')
-                    && (inCmd[16] == ':')))
-            {
-                Declination dec = Declination::ParseFromMeade(inCmd.substring(1, 9));
-                DayTime ra      = DayTime::ParseFromMeade(inCmd.substring(11));
+bool MeadeCommandProcessor::onSetSiteLongitude(meade::MeadeLongitude lon)
+{
+    _mount->setLongitude(Longitude(static_cast<int>(lon.degrees), static_cast<int>(lon.minutes), 0));
+    return true;
+}
 
-                _mount->syncPosition(ra, dec);
-                return store(respond<MeadeSetCommandKind::SyncCoordinates>(true));
-            }
-            return store(respond<MeadeSetCommandKind::SyncCoordinates>(false));
+bool MeadeCommandProcessor::onSetUtcOffset(int hours)
+{
+    // Wire value is the local-time offset from UTC; the mount stores the
+    // inverse so that "local + offset = UTC".
+    _mount->setLocalUtcOffset(-hours);
+    return true;
+}
 
-        case MeadeSetCommandKind::SiteLatitude:
-            {
-                Latitude lat = Latitude::ParseFromMeade(inCmd.substring(1));
-                _mount->setLatitude(lat);
-                return store(respond<MeadeSetCommandKind::SiteLatitude>(true));
-            }
+bool MeadeCommandProcessor::onSetLocalTime(meade::MeadeLocalTime t)
+{
+    _mount->setLocalStartTime(DayTime(static_cast<int>(t.hours), static_cast<int>(t.minutes), static_cast<int>(t.seconds)));
+    return true;
+}
 
-        case MeadeSetCommandKind::SiteLongitude:
-            {
-                Longitude lon = Longitude::ParseFromMeade(inCmd.substring(1));
-                _mount->setLongitude(lon);
-                return store(respond<MeadeSetCommandKind::SiteLongitude>(true));
-            }
-
-        case MeadeSetCommandKind::UtcOffset:
-            {
-                int offset = inCmd.substring(1, 4).toInt();
-                _mount->setLocalUtcOffset(-offset);
-                return store(respond<MeadeSetCommandKind::UtcOffset>(true));
-            }
-
-        case MeadeSetCommandKind::LocalTime:
-            _mount->setLocalStartTime(DayTime::ParseFromMeade(inCmd.substring(1)));
-            return store(respond<MeadeSetCommandKind::LocalTime>(true));
-
-        case MeadeSetCommandKind::LocalDate:
-            {
-                int month = inCmd.substring(1, 3).toInt();
-                int day   = inCmd.substring(4, 6).toInt();
-                int year  = 2000 + inCmd.substring(7, 9).toInt();
-                _mount->setLocalStartDate(year, month, day);
-
-                /*
-            From https://www.astro.louisville.edu/software/xmtel/archive/xmtel-indi-6.0/xmtel-6.0l/support/lx200/CommandSet.html :
-            SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long.
-            The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
-            */
-                return store(respond<MeadeSetCommandKind::LocalDate>(true));
-            }
-
-        case MeadeSetCommandKind::Unknown:
-            return store(respond<MeadeSetCommandKind::TargetDec>(false));
-    }
-    return store(respond<MeadeSetCommandKind::TargetDec>(false));
+bool MeadeCommandProcessor::onSetLocalDate(meade::MeadeLocalDate d)
+{
+    _mount->setLocalStartDate(static_cast<int>(d.year), static_cast<int>(d.month), static_cast<int>(d.day));
+    /*
+    From https://www.astro.louisville.edu/software/xmtel/archive/xmtel-indi-6.0/xmtel-6.0l/support/lx200/CommandSet.html :
+    SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long.
+    The first is: "Updating planetary data#" followed by a second string of 30 spaces terminated by '#'
+    */
+    return true;
 }
 
 /////////////////////////////
