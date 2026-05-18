@@ -8,13 +8,11 @@
 
 namespace meade = oat::core::meade;
 
-using meade::MeadeGetCommandKind;
 using meade::MeadeResponse;
 using meade::MeadeSetCommandKind;
 
 namespace tag = meade::response::tag;
 using meade::response::makeResponse;
-using meade::response::respond;
 using meade::response::respond;
 
 void setUp(void)
@@ -152,64 +150,6 @@ void test_level_unknown_echoes_command_letter()
 
 // ---- Kind -> tag binding tests -----------------------------------------
 
-void test_get_firmware_version_binds_to_text()
-{
-    MeadeResponse r = respond<MeadeGetCommandKind::FirmwareVersion>("V1.2.3");
-    TEST_ASSERT_EQUAL_STRING("V1.2.3#", r.c_str());
-}
-
-void test_get_product_name_binds_to_text()
-{
-    MeadeResponse r = respond<MeadeGetCommandKind::ProductName>("OpenAstroTracker");
-    TEST_ASSERT_EQUAL_STRING("OpenAstroTracker#", r.c_str());
-}
-
-void test_get_is_slewing_binds_to_boolean()
-{
-    TEST_ASSERT_EQUAL_STRING("1#", respond<MeadeGetCommandKind::IsSlewing>(true).c_str());
-    TEST_ASSERT_EQUAL_STRING("0#", respond<MeadeGetCommandKind::IsTracking>(false).c_str());
-    TEST_ASSERT_EQUAL_STRING("1#", respond<MeadeGetCommandKind::IsGuiding>(true).c_str());
-}
-
-void test_get_clock_format_takes_no_args()
-{
-    TEST_ASSERT_EQUAL_STRING("24#", respond<MeadeGetCommandKind::ClockFormat>().c_str());
-}
-
-void test_get_tracking_rate_takes_no_args()
-{
-    TEST_ASSERT_EQUAL_STRING("60.0#", respond<MeadeGetCommandKind::TrackingRate>().c_str());
-}
-
-void test_get_site_name_slots_carry_fixed_arg()
-{
-    // The slot number is fixed at the trait layer; the caller passes no args.
-    TEST_ASSERT_EQUAL_STRING("OAT1#", respond<MeadeGetCommandKind::SiteName1>().c_str());
-    TEST_ASSERT_EQUAL_STRING("OAT2#", respond<MeadeGetCommandKind::SiteName2>().c_str());
-    TEST_ASSERT_EQUAL_STRING("OAT3#", respond<MeadeGetCommandKind::SiteName3>().c_str());
-    TEST_ASSERT_EQUAL_STRING("OAT4#", respond<MeadeGetCommandKind::SiteName4>().c_str());
-}
-
-void test_get_current_ra_binds_to_ra_coordinate()
-{
-    TEST_ASSERT_EQUAL_STRING("14:45:06#", respond<MeadeGetCommandKind::CurrentRa>(14, 45, 6).c_str());
-}
-
-void test_get_current_dec_binds_to_dec_coordinate()
-{
-    TEST_ASSERT_EQUAL_STRING("+47*30'15#", respond<MeadeGetCommandKind::CurrentDec>('+', 47, 30, 15).c_str());
-}
-
-void test_get_utc_offset_binds()
-{
-    TEST_ASSERT_EQUAL_STRING("-05#", respond<MeadeGetCommandKind::UtcOffset>(-5).c_str());
-}
-
-void test_get_local_date_binds()
-{
-    TEST_ASSERT_EQUAL_STRING("03/07/24#", respond<MeadeGetCommandKind::LocalDate>(3, 7, 2024).c_str());
-}
-
 void test_set_target_ra_binds_to_set_success()
 {
     TEST_ASSERT_EQUAL_STRING("1", respond<MeadeSetCommandKind::TargetRa>(true).c_str());
@@ -319,16 +259,6 @@ void process()
     RUN_TEST(test_compact_hms_handles_two_digit);
     RUN_TEST(test_angle_pair4_uses_four_decimal_precision);
 
-    RUN_TEST(test_get_firmware_version_binds_to_text);
-    RUN_TEST(test_get_product_name_binds_to_text);
-    RUN_TEST(test_get_is_slewing_binds_to_boolean);
-    RUN_TEST(test_get_clock_format_takes_no_args);
-    RUN_TEST(test_get_tracking_rate_takes_no_args);
-    RUN_TEST(test_get_site_name_slots_carry_fixed_arg);
-    RUN_TEST(test_get_current_ra_binds_to_ra_coordinate);
-    RUN_TEST(test_get_current_dec_binds_to_dec_coordinate);
-    RUN_TEST(test_get_utc_offset_binds);
-    RUN_TEST(test_get_local_date_binds);
     RUN_TEST(test_set_target_ra_binds_to_set_success);
     RUN_TEST(test_set_local_date_uses_dedicated_ack);
 

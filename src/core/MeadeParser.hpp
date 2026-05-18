@@ -23,6 +23,7 @@
  */
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 namespace oat
@@ -31,6 +32,8 @@ namespace core
 {
 namespace meade
 {
+
+class MeadeResponse;  // defined in MeadeResponse.hpp; full type needed only at call sites of dispatchGet
 
 /**
  * @brief Small fixed-capacity owning payload buffer.
@@ -240,44 +243,6 @@ struct MeadeExtraLeafParseResult {
     MeadePayload payload;
 };
 
-/** @brief `:G...` Get sub-commands. */
-enum class MeadeGetCommandKind
-{
-    Unknown,
-    FirmwareVersion,
-    ProductName,
-    TargetRa,
-    TargetDec,
-    CurrentRa,
-    CurrentDec,
-    MountStatus,
-    IsSlewing,
-    IsTracking,
-    IsGuiding,
-    SiteLatitude,
-    SiteLongitude,
-    ClockFormat,
-    UtcOffset,
-    LocalTime12h,
-    LocalTime24h,
-    LocalDate,
-    SiteName1,
-    SiteName2,
-    SiteName3,
-    SiteName4,
-    TrackingRate,
-};
-
-/** @brief Result of `parseMeadeGetCommand`. */
-struct MeadeGetParseResult {
-    /** @brief `true` if the get sub-command was recognised. */
-    bool valid = false;
-    /** @brief Get sub-command classification. */
-    MeadeGetCommandKind kind = MeadeGetCommandKind::Unknown;
-    /** @brief Remaining bytes after the sub-command prefix. */
-    MeadePayload payload;
-};
-
 /** @brief `:gps...` GPS sub-commands. */
 enum class MeadeGpsCommandKind
 {
@@ -470,12 +435,6 @@ struct MeadeFocusParseResult {
 MeadeParseResult parseMeadeCommand(const char *input);
 
 /**
- * @brief Parse a `:G...` Get sub-command.
- * @param input NUL-terminated bytes after the `G` prefix.
- */
-MeadeGetParseResult parseMeadeGetCommand(const char *input);
-
-/**
  * @brief Parse a `:gps...` GPS sub-command.
  * @param input NUL-terminated bytes after the `gps` prefix.
  */
@@ -536,6 +495,126 @@ MeadeExtraParseResult parseMeadeExtraCommand(const char *input);
  * @param input NUL-terminated bytes after the Extra sub-command prefix.
  */
 MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind, const char *input);
+
+// ---------------------------------------------------------------------------
+// Get-family dispatch
+//
+// The Get pipeline is collapsed into a single entry point: `handleMeadeGet`
+// parses the sub-command character(s), invokes the matching typed callback
+// on `IMeadeGetHandlers`, and serialises the returned value directly into a
+// `MeadeResponse`. There is no intermediate kind enum, parse-result, or
+// tag-binding indirection for the Get family.
+//
+// All Meade reply formatting (zero-padding, sign rules, terminator) lives on
+// the parser side; handlers return plain typed values.
+// ---------------------------------------------------------------------------
+
+/** @brief Right-ascension coordinate (hours/minutes/seconds, all non-negative). */
+struct RaCoordinate {
+    uint8_t hours;
+    uint8_t minutes;
+    uint8_t seconds;
+};
+
+/** @brief Declination coordinate; `degrees` carries the sign (-180..180). */
+struct DecCoordinate {
+    int16_t degrees;
+    uint8_t minutes;
+    uint8_t seconds;
+};
+
+/** @brief Site latitude; `degrees` is signed (-90..90). */
+struct MeadeLatitude {
+    int16_t degrees;
+    uint8_t minutes;
+};
+
+/** @brief Site longitude; `degrees` is signed (-180..180). */
+struct MeadeLongitude {
+    int16_t degrees;
+    uint8_t minutes;
+};
+
+/** @brief Wall-clock time (24h). The parser handles 12h conversion for `:Ga#`. */
+struct MeadeLocalTime {
+    uint8_t hours;
+    uint8_t minutes;
+    uint8_t seconds;
+};
+
+/** @brief Calendar date. `year` is the full 4-digit year; parser truncates to 2 digits. */
+struct MeadeLocalDate {
+    uint8_t month;
+    uint8_t day;
+    uint16_t year;
+};
+
+/** @brief Clock-format selector; controls wire bytes for `:Gc#`. */
+enum class MeadeClockFormat
+{
+    Hours12,
+    Hours24,
+};
+
+/** @brief Tracking rate selector; controls wire bytes for `:GT#`. */
+enum class MeadeTrackingRate
+{
+    Sidereal,
+    Lunar,
+    Solar,
+};
+
+/**
+ * @brief Pure callback interface for the Meade `:G...` (Get) command family.
+ *
+ * Each method returns a typed value or pointer to static storage. Returned
+ * `const char *` values must outlive the call (use `static const char[]` or
+ * compile-time literals).
+ */
+class IMeadeGetHandlers
+{
+  public:
+    virtual ~IMeadeGetHandlers() = default;
+
+    virtual const char *onFirmwareVersion() = 0;
+    virtual const char *onProductName()     = 0;
+
+    virtual RaCoordinate onCurrentRa() = 0;
+    virtual RaCoordinate onTargetRa()  = 0;
+
+    virtual DecCoordinate onCurrentDec() = 0;
+    virtual DecCoordinate onTargetDec()  = 0;
+
+    virtual const char *onMountStatus() = 0;
+
+    virtual bool onIsSlewing()  = 0;
+    virtual bool onIsTracking() = 0;
+    virtual bool onIsGuiding()  = 0;
+
+    virtual MeadeLatitude onSiteLatitude()   = 0;
+    virtual MeadeLongitude onSiteLongitude() = 0;
+
+    virtual int onUtcOffset() = 0;
+
+    virtual MeadeLocalTime onLocalTime() = 0;
+    virtual MeadeLocalDate onLocalDate() = 0;
+
+    virtual MeadeClockFormat onClockFormat()   = 0;
+    virtual MeadeTrackingRate onTrackingRate() = 0;
+
+    /** @param index Site name slot, 1..4. */
+    virtual const char *onSiteName(uint8_t index) = 0;
+};
+
+/**
+ * @brief Parse + dispatch + serialise a Meade Get sub-command in one step.
+ *
+ * @param suffix The bytes that follow the family `:G` prefix, with the
+ *               trailing `#` already stripped (e.g. `"R"`, `"VN"`, `"IS"`).
+ * @param handlers Implementation providing the runtime values.
+ * @return Framed wire response, or an empty response for unknown sub-commands.
+ */
+MeadeResponse handleMeadeGet(const char *suffix, IMeadeGetHandlers &handlers);
 
 }  // namespace meade
 }  // namespace core

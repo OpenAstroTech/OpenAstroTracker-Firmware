@@ -317,10 +317,10 @@ MeadeResponse makeResponse(tag::SetLocalDateAck, bool ok)
         writeText(r, "1Updating Planetary Data");
         appendTerminator(r);
         // Append 30 spaces and a framing terminator.
-        const char *padding   = "                              ";  // 30 spaces
-        const size_t cap = MeadeResponse::capacity();
-        size_t len       = r.length();
-        size_t i         = 0;
+        const char *padding = "                              ";  // 30 spaces
+        const size_t cap    = MeadeResponse::capacity();
+        size_t len          = r.length();
+        size_t i            = 0;
         while (padding[i] != '\0' && len + 1 < cap)
         {
             r.buffer()[len++] = padding[i++];

@@ -320,29 +320,9 @@ template <auto K, typename... Args> MeadeResponse respond(Args &&...args)
         }                                                                                                                                  \
     }
 
-// ---- Get family bindings ------------------------------------------------
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentDec, DecCoordinate);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffset, UtcOffset);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
-OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
-OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
-OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName3, SiteNameSlot, 3);
-OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName4, SiteNameSlot, 4);
-OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TrackingRate, TrackingRate);
+// ---- Get family ---------------------------------------------------------
+// The Get family does not use the kind->tag binding layer. Get commands are
+// dispatched and serialised directly by `handleMeadeGet` (see MeadeParser.hpp).
 
 // ---- Set family bindings ------------------------------------------------
 OAT_MEADE_BIND_RESPONSE(MeadeSetCommandKind::TargetDec, SetSuccess);

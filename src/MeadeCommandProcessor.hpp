@@ -1,12 +1,13 @@
 #pragma once
 
+#include "core/MeadeParser.hpp"
 #include "core/MeadeResponse.hpp"
 
 // Forward declarations
 class Mount;
 class LcdMenu;
 
-class MeadeCommandProcessor
+class MeadeCommandProcessor : private oat::core::meade::IMeadeGetHandlers
 {
   public:
     static MeadeCommandProcessor *createProcessor(Mount *mount, LcdMenu *lcdMenu);
@@ -32,8 +33,34 @@ class MeadeCommandProcessor
     const char *handleMeadeExtraCommands(const String &inCmd);
     const char *handleMeadeFocusCommands(const String &inCmd);
 
+    // IMeadeGetHandlers overrides. Each method returns a typed domain value;
+    // the parser layer handles all Meade wire formatting.
+    const char *onFirmwareVersion() override;
+    const char *onProductName() override;
+    oat::core::meade::RaCoordinate onCurrentRa() override;
+    oat::core::meade::RaCoordinate onTargetRa() override;
+    oat::core::meade::DecCoordinate onCurrentDec() override;
+    oat::core::meade::DecCoordinate onTargetDec() override;
+    const char *onMountStatus() override;
+    bool onIsSlewing() override;
+    bool onIsTracking() override;
+    bool onIsGuiding() override;
+    oat::core::meade::MeadeLatitude onSiteLatitude() override;
+    oat::core::meade::MeadeLongitude onSiteLongitude() override;
+    int onUtcOffset() override;
+    oat::core::meade::MeadeLocalTime onLocalTime() override;
+    oat::core::meade::MeadeLocalDate onLocalDate() override;
+    oat::core::meade::MeadeClockFormat onClockFormat() override;
+    oat::core::meade::MeadeTrackingRate onTrackingRate() override;
+    const char *onSiteName(uint8_t index) override;
+
     Mount *_mount;
     LcdMenu *_lcdMenu;
     static MeadeCommandProcessor *_instance;
     oat::core::meade::MeadeResponse _response;
+
+    // Storage backing the pointer-returning Get callbacks (firmware/product
+    // names use string literals; mount status / site name use these buffers).
+    String _mountStatusScratch;
+    char _siteNameScratch[8];
 };

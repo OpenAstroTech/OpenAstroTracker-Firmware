@@ -9,6 +9,7 @@
  */
 
 #include "core/MeadeParser.hpp"
+#include "core/MeadeResponse.hpp"
 
 #include <stddef.h>
 #include <string.h>
@@ -111,16 +112,6 @@ constexpr FamilyEntry kFamilyTable[] = {
 // ---------------------------------------------------------------------------
 // Per-family tables
 // ---------------------------------------------------------------------------
-constexpr ExactEntry<MeadeGetCommandKind> kGetTable[] = {
-    {"VN", MeadeGetCommandKind::FirmwareVersion}, {"VP", MeadeGetCommandKind::ProductName}, {"r", MeadeGetCommandKind::TargetRa},
-    {"d", MeadeGetCommandKind::TargetDec},        {"R", MeadeGetCommandKind::CurrentRa},    {"D", MeadeGetCommandKind::CurrentDec},
-    {"X", MeadeGetCommandKind::MountStatus},      {"IS", MeadeGetCommandKind::IsSlewing},   {"IT", MeadeGetCommandKind::IsTracking},
-    {"IG", MeadeGetCommandKind::IsGuiding},       {"t", MeadeGetCommandKind::SiteLatitude}, {"g", MeadeGetCommandKind::SiteLongitude},
-    {"c", MeadeGetCommandKind::ClockFormat},      {"G", MeadeGetCommandKind::UtcOffset},    {"a", MeadeGetCommandKind::LocalTime12h},
-    {"L", MeadeGetCommandKind::LocalTime24h},     {"C", MeadeGetCommandKind::LocalDate},    {"M", MeadeGetCommandKind::SiteName1},
-    {"N", MeadeGetCommandKind::SiteName2},        {"O", MeadeGetCommandKind::SiteName3},    {"P", MeadeGetCommandKind::SiteName4},
-    {"T", MeadeGetCommandKind::TrackingRate},
-};
 
 constexpr PrefixEntry<MeadeGpsCommandKind> kGpsTable[] = {
     {"T", MeadeGpsCommandKind::StartAcquisition, true, false},
@@ -356,22 +347,6 @@ MeadeParseResult parseMeadeCommand(const char *input)
 // ---------------------------------------------------------------------------
 // Subcommand parsers
 // ---------------------------------------------------------------------------
-MeadeGetParseResult parseMeadeGetCommand(const char *input)
-{
-    MeadeGetParseResult result;
-    if (input == nullptr)
-    {
-        return result;
-    }
-    MeadeGetCommandKind kind;
-    if (lookupExact(kGetTable, input, kind))
-    {
-        result.valid = true;
-        result.kind  = kind;
-    }
-    return result;
-}
-
 MeadeGpsParseResult parseMeadeGpsCommand(const char *input)
 {
     MeadeGpsParseResult result;
@@ -667,6 +642,326 @@ MeadeExtraLeafParseResult parseMeadeExtraLeafCommand(MeadeExtraCommandKind kind,
             return MeadeExtraLeafParseResult();
     }
     return MeadeExtraLeafParseResult();
+}
+
+// ---------------------------------------------------------------------------
+// Get-family dispatch
+//
+// Single entry point: parse the suffix, call the typed handler, serialise the
+// result. No intermediate enum, lookup table, or tag binding.
+// ---------------------------------------------------------------------------
+
+namespace
+{
+
+void writeChar(MeadeResponse &r, char c)
+{
+    const size_t n = r.length();
+    if (n + 1 >= r.capacity())
+    {
+        return;
+    }
+    r.buffer()[n]     = c;
+    r.buffer()[n + 1] = '\0';
+    r.setLength(n + 1);
+}
+
+void writeText(MeadeResponse &r, const char *s)
+{
+    if (!s)
+    {
+        return;
+    }
+    while (*s)
+    {
+        writeChar(r, *s++);
+    }
+}
+
+void writeTerminator(MeadeResponse &r)
+{
+    writeChar(r, '#');
+}
+
+void writeUnsignedPadded(MeadeResponse &r, unsigned value, int width)
+{
+    char buf[12];
+    int n = 0;
+    if (value == 0)
+    {
+        buf[n++] = '0';
+    }
+    else
+    {
+        while (value > 0 && n < 11)
+        {
+            buf[n++] = static_cast<char>('0' + (value % 10));
+            value /= 10;
+        }
+    }
+    while (n < width && n < 11)
+    {
+        buf[n++] = '0';
+    }
+    while (n > 0)
+    {
+        writeChar(r, buf[--n]);
+    }
+}
+
+void writeSignedPadded(MeadeResponse &r, int value, int digits)
+{
+    writeChar(r, value < 0 ? '-' : '+');
+    if (value < 0)
+    {
+        value = -value;
+    }
+    writeUnsignedPadded(r, static_cast<unsigned>(value), digits);
+}
+
+void writeBool01(MeadeResponse &r, bool b)
+{
+    writeChar(r, b ? '1' : '0');
+    writeTerminator(r);
+}
+
+void writeCString(MeadeResponse &r, const char *s)
+{
+    writeText(r, s);
+    writeTerminator(r);
+}
+
+void writeRa(MeadeResponse &r, const RaCoordinate &ra)
+{
+    writeUnsignedPadded(r, ra.hours, 2);
+    writeChar(r, ':');
+    writeUnsignedPadded(r, ra.minutes, 2);
+    writeChar(r, ':');
+    writeUnsignedPadded(r, ra.seconds, 2);
+    writeTerminator(r);
+}
+
+void writeDec(MeadeResponse &r, const DecCoordinate &d)
+{
+    int deg = d.degrees;
+    writeChar(r, deg < 0 ? '-' : '+');
+    if (deg < 0)
+    {
+        deg = -deg;
+    }
+    writeUnsignedPadded(r, static_cast<unsigned>(deg), 2);
+    writeChar(r, '*');
+    writeUnsignedPadded(r, d.minutes, 2);
+    writeChar(r, '\'');
+    writeUnsignedPadded(r, d.seconds, 2);
+    writeTerminator(r);
+}
+
+void writeLatitude(MeadeResponse &r, const MeadeLatitude &l)
+{
+    int deg = l.degrees;
+    writeChar(r, deg < 0 ? '-' : '+');
+    if (deg < 0)
+    {
+        deg = -deg;
+    }
+    writeUnsignedPadded(r, static_cast<unsigned>(deg), 2);
+    writeChar(r, '*');
+    writeUnsignedPadded(r, l.minutes, 2);
+    writeTerminator(r);
+}
+
+void writeLongitude(MeadeResponse &r, const MeadeLongitude &l)
+{
+    int deg = l.degrees;
+    writeChar(r, deg < 0 ? '-' : '+');
+    if (deg < 0)
+    {
+        deg = -deg;
+    }
+    writeUnsignedPadded(r, static_cast<unsigned>(deg), 3);
+    writeChar(r, '*');
+    writeUnsignedPadded(r, l.minutes, 2);
+    writeTerminator(r);
+}
+
+void writeTime24h(MeadeResponse &r, const MeadeLocalTime &t)
+{
+    writeUnsignedPadded(r, t.hours, 2);
+    writeChar(r, ':');
+    writeUnsignedPadded(r, t.minutes, 2);
+    writeChar(r, ':');
+    writeUnsignedPadded(r, t.seconds, 2);
+    writeTerminator(r);
+}
+
+void writeTime12h(MeadeResponse &r, const MeadeLocalTime &t)
+{
+    // The :Ga# Meade command returns 12h wall-clock time. Conversion: 0 -> 12,
+    // 13..23 -> 1..11 (PM); 1..12 unchanged. The wire format omits AM/PM markers.
+    uint8_t h = t.hours;
+    if (h == 0)
+    {
+        h = 12;
+    }
+    else if (h > 12)
+    {
+        h = static_cast<uint8_t>(h - 12);
+    }
+    MeadeLocalTime t12 = {h, t.minutes, t.seconds};
+    writeTime24h(r, t12);
+}
+
+void writeLocalDate(MeadeResponse &r, const MeadeLocalDate &d)
+{
+    writeUnsignedPadded(r, d.month, 2);
+    writeChar(r, '/');
+    writeUnsignedPadded(r, d.day, 2);
+    writeChar(r, '/');
+    writeUnsignedPadded(r, static_cast<unsigned>(d.year % 100), 2);
+    writeTerminator(r);
+}
+
+void writeUtcOffset(MeadeResponse &r, int hours)
+{
+    writeSignedPadded(r, hours, 2);
+    writeTerminator(r);
+}
+
+void writeClockFormat(MeadeResponse &r, MeadeClockFormat f)
+{
+    writeText(r, f == MeadeClockFormat::Hours24 ? "24" : "12");
+    writeTerminator(r);
+}
+
+void writeTrackingRate(MeadeResponse &r, MeadeTrackingRate t)
+{
+    const char *s = "60.0";
+    switch (t)
+    {
+        case MeadeTrackingRate::Sidereal:
+            s = "60.0";
+            break;
+        case MeadeTrackingRate::Lunar:
+            s = "57.9";
+            break;
+        case MeadeTrackingRate::Solar:
+            s = "60.1";
+            break;
+    }
+    writeText(r, s);
+    writeTerminator(r);
+}
+
+}  // namespace
+
+MeadeResponse handleMeadeGet(const char *s, IMeadeGetHandlers &h)
+{
+    MeadeResponse r;
+    if (!s || s[0] == '\0')
+    {
+        return r;
+    }
+
+    // Two-character commands.
+    if (s[1] != '\0' && s[2] == '\0')
+    {
+        if (s[0] == 'V')
+        {
+            switch (s[1])
+            {
+                case 'N':
+                    writeCString(r, h.onFirmwareVersion());
+                    return r;
+                case 'P':
+                    writeCString(r, h.onProductName());
+                    return r;
+                default:
+                    return r;
+            }
+        }
+        if (s[0] == 'I')
+        {
+            switch (s[1])
+            {
+                case 'S':
+                    writeBool01(r, h.onIsSlewing());
+                    return r;
+                case 'T':
+                    writeBool01(r, h.onIsTracking());
+                    return r;
+                case 'G':
+                    writeBool01(r, h.onIsGuiding());
+                    return r;
+                default:
+                    return r;
+            }
+        }
+        return r;
+    }
+
+    // Single-character commands.
+    if (s[1] != '\0')
+    {
+        return r;
+    }
+
+    switch (s[0])
+    {
+        case 'R':
+            writeRa(r, h.onCurrentRa());
+            return r;
+        case 'r':
+            writeRa(r, h.onTargetRa());
+            return r;
+        case 'D':
+            writeDec(r, h.onCurrentDec());
+            return r;
+        case 'd':
+            writeDec(r, h.onTargetDec());
+            return r;
+        case 'X':
+            writeCString(r, h.onMountStatus());
+            return r;
+        case 't':
+            writeLatitude(r, h.onSiteLatitude());
+            return r;
+        case 'g':
+            writeLongitude(r, h.onSiteLongitude());
+            return r;
+        case 'G':
+            writeUtcOffset(r, h.onUtcOffset());
+            return r;
+        case 'a':
+            writeTime12h(r, h.onLocalTime());
+            return r;
+        case 'L':
+            writeTime24h(r, h.onLocalTime());
+            return r;
+        case 'C':
+            writeLocalDate(r, h.onLocalDate());
+            return r;
+        case 'c':
+            writeClockFormat(r, h.onClockFormat());
+            return r;
+        case 'T':
+            writeTrackingRate(r, h.onTrackingRate());
+            return r;
+        case 'M':
+            writeCString(r, h.onSiteName(1));
+            return r;
+        case 'N':
+            writeCString(r, h.onSiteName(2));
+            return r;
+        case 'O':
+            writeCString(r, h.onSiteName(3));
+            return r;
+        case 'P':
+            writeCString(r, h.onSiteName(4));
+            return r;
+        default:
+            return r;
+    }
 }
 
 }  // namespace meade

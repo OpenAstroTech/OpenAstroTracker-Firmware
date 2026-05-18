@@ -12,8 +12,6 @@ using meade::MeadeExtraLeafParseResult;
 using meade::MeadeExtraParseResult;
 using meade::MeadeFocusCommandKind;
 using meade::MeadeFocusParseResult;
-using meade::MeadeGetCommandKind;
-using meade::MeadeGetParseResult;
 using meade::MeadeGpsCommandKind;
 using meade::MeadeGpsParseResult;
 using meade::MeadeHomeCommandKind;
@@ -33,7 +31,6 @@ using meade::parseMeadeCommand;
 using meade::parseMeadeExtraCommand;
 using meade::parseMeadeExtraLeafCommand;
 using meade::parseMeadeFocusCommand;
-using meade::parseMeadeGetCommand;
 using meade::parseMeadeGpsCommand;
 using meade::parseMeadeHomeCommand;
 using meade::parseMeadeMovementCommand;
@@ -77,14 +74,6 @@ void assert_valid_extra_parse(const char *input, MeadeExtraCommandKind expected_
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_INT(static_cast<int>(expected_kind), static_cast<int>(result.kind));
     TEST_ASSERT_EQUAL_STRING(expected_payload, result.payload.c_str());
-}
-
-void assert_valid_get_parse(const char *input, MeadeGetCommandKind expected_kind)
-{
-    MeadeGetParseResult result = parseMeadeGetCommand(input);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(expected_kind), static_cast<int>(result.kind));
-    TEST_ASSERT_TRUE(result.payload.empty());
 }
 
 void assert_valid_gps_parse(const char *input, MeadeGpsCommandKind expected_kind, const char *expected_payload)
@@ -246,40 +235,6 @@ void test_meade_parser_rejects_unknown_top_level_family(void)
     TEST_ASSERT_FALSE(result.valid);
     TEST_ASSERT_EQUAL_INT(static_cast<int>(MeadeCommandKind::Unknown), static_cast<int>(result.kind));
     TEST_ASSERT_EQUAL_INT(static_cast<int>(MeadeCommandDispatchTarget::Unknown), static_cast<int>(result.dispatchTarget));
-    TEST_ASSERT_TRUE(result.payload.empty());
-}
-
-void test_meade_parser_classifies_get_family_commands(void)
-{
-    assert_valid_get_parse("VN", MeadeGetCommandKind::FirmwareVersion);
-    assert_valid_get_parse("VP", MeadeGetCommandKind::ProductName);
-    assert_valid_get_parse("r", MeadeGetCommandKind::TargetRa);
-    assert_valid_get_parse("d", MeadeGetCommandKind::TargetDec);
-    assert_valid_get_parse("R", MeadeGetCommandKind::CurrentRa);
-    assert_valid_get_parse("D", MeadeGetCommandKind::CurrentDec);
-    assert_valid_get_parse("X", MeadeGetCommandKind::MountStatus);
-    assert_valid_get_parse("IS", MeadeGetCommandKind::IsSlewing);
-    assert_valid_get_parse("IT", MeadeGetCommandKind::IsTracking);
-    assert_valid_get_parse("IG", MeadeGetCommandKind::IsGuiding);
-    assert_valid_get_parse("t", MeadeGetCommandKind::SiteLatitude);
-    assert_valid_get_parse("g", MeadeGetCommandKind::SiteLongitude);
-    assert_valid_get_parse("c", MeadeGetCommandKind::ClockFormat);
-    assert_valid_get_parse("G", MeadeGetCommandKind::UtcOffset);
-    assert_valid_get_parse("a", MeadeGetCommandKind::LocalTime12h);
-    assert_valid_get_parse("L", MeadeGetCommandKind::LocalTime24h);
-    assert_valid_get_parse("C", MeadeGetCommandKind::LocalDate);
-    assert_valid_get_parse("M", MeadeGetCommandKind::SiteName1);
-    assert_valid_get_parse("N", MeadeGetCommandKind::SiteName2);
-    assert_valid_get_parse("O", MeadeGetCommandKind::SiteName3);
-    assert_valid_get_parse("P", MeadeGetCommandKind::SiteName4);
-    assert_valid_get_parse("T", MeadeGetCommandKind::TrackingRate);
-}
-
-void test_meade_parser_rejects_unknown_get_family_commands(void)
-{
-    MeadeGetParseResult result = parseMeadeGetCommand("VQ");
-    TEST_ASSERT_FALSE(result.valid);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(MeadeGetCommandKind::Unknown), static_cast<int>(result.kind));
     TEST_ASSERT_TRUE(result.payload.empty());
 }
 
@@ -554,8 +509,6 @@ void process()
     RUN_TEST(test_meade_parser_accepts_command_without_trailing_hash);
     RUN_TEST(test_meade_parser_classifies_all_top_level_families);
     RUN_TEST(test_meade_parser_rejects_unknown_top_level_family);
-    RUN_TEST(test_meade_parser_classifies_get_family_commands);
-    RUN_TEST(test_meade_parser_rejects_unknown_get_family_commands);
     RUN_TEST(test_meade_parser_classifies_gps_family_commands);
     RUN_TEST(test_meade_parser_rejects_unknown_gps_family_commands);
     RUN_TEST(test_meade_parser_classifies_set_family_commands);

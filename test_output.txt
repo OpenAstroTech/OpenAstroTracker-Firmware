@@ -1,0 +1,442 @@
+Verbosity level can be increased via `-v, -vv, or -vvv` option
+Collected 5 tests
+
+Processing test_core in native environment
+--------------------------------------------------------------------------------
+Building...
+In file included from src/core/MeadeResponse.cpp:12:
+In file included from src/core/MeadeResponse.hpp:32:
+src/core/MeadeParser.hpp:603:1: error: unknown type name 'MeadeResponse'
+  603 | MeadeResponse dispatchGet(MeadeGetCommandKind kind, const MeadePayload &payload, IMeadeGetHandlers &handlers);
+      | ^
+In file included from src/core/MeadeParser.cpp:11:
+In file included from src/core/MeadeParser.hpp:28:
+src/core/MeadeResponse.hpp:324:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  324 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:325:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  325 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:326:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  326 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:327:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  327 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
+      |                         ^
+1 error generated.
+src/core/MeadeResponse.hpp:328:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  328 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
+      |                         ^
+*** [.pio/build/native/src/core/MeadeResponse.o] Error 1
+src/core/MeadeResponse.hpp:329:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  329 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:330:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  330 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentDec, DecCoordinate);
+      |                         ^
+In file included from unit_tests/test_core/test_MeadeParser.cpp:3:
+In file included from src/core/MeadeParser.hpp:28:
+src/core/MeadeResponse.hpp:324:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  324 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:331:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  331 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:325:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  325 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:332:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  332 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:326:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  326 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:333:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  333 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:327:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  327 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:334:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  334 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
+      |                         ^
+src/core/MeadeResponse.hpp:328:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  328 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:335:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  335 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
+      |                         ^
+src/core/MeadeResponse.hpp:329:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  329 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:336:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  336 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
+      |                         ^
+src/core/MeadeResponse.hpp:337:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  337 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffset, UtcOffset);
+      |                         ^
+src/core/MeadeResponse.hpp:330:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  330 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentDec, DecCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:338:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  338 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:331:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  331 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:339:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  339 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:332:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  332 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:340:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  340 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
+      |                         ^
+src/core/MeadeResponse.hpp:333:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  333 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:341:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  341 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
+      |                               ^
+src/core/MeadeResponse.hpp:334:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  334 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
+      |                         ^
+src/core/MeadeResponse.hpp:342:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  342 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
+      |                               ^
+src/core/MeadeResponse.hpp:335:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  335 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
+      |                         ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+src/core/MeadeResponse.hpp:336:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  336 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
+      |                         ^
+20 errors generated.
+src/core/MeadeResponse.hpp:337:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  337 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffset, UtcOffset);
+      |                         ^
+*** [.pio/build/native/src/core/MeadeParser.o] Error 1
+src/core/MeadeResponse.hpp:338:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  338 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:339:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  339 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:340:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  340 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
+      |                         ^
+src/core/MeadeResponse.hpp:341:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  341 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
+      |                               ^
+src/core/MeadeResponse.hpp:342:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  342 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
+      |                               ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+*** [.pio/build/native/test/test_core/test_MeadeParser.o] Error 1
+Building stage has failed, see errors above. Use `pio test -vvv` option to enable verbose output.
+----------------- native:test_core [ERRORED] Took 0.36 seconds -----------------
+
+Processing test_response in native environment
+--------------------------------------------------------------------------------
+Building...
+In file included from src/core/MeadeParser.cpp:11:
+In file included from src/core/MeadeParser.hpp:28:
+src/core/MeadeResponse.hpp:324:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  324 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
+      |                         ^
+In file included from src/core/MeadeResponse.cpp:12:
+In file included from src/core/MeadeResponse.hpp:32:
+src/core/MeadeParser.hpp:603:1: error: unknown type name 'MeadeResponse'
+  603 | MeadeResponse dispatchGet(MeadeGetCommandKind kind, const MeadePayload &payload, IMeadeGetHandlers &handlers);
+      | ^
+src/core/MeadeResponse.hpp:325:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  325 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:326:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  326 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:327:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  327 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:328:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  328 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
+      |                         ^
+1 error generated.
+src/core/MeadeResponse.hpp:329:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  329 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
+      |                         ^
+*** [.pio/build/native/src/core/MeadeResponse.o] Error 1
+In file included from unit_tests/test_response/test_MeadeResponse.cpp:7:
+In file included from src/core/MeadeResponse.hpp:32:
+src/core/MeadeParser.hpp:603:1: error: unknown type name 'MeadeResponse'
+  603 | MeadeResponse dispatchGet(MeadeGetCommandKind kind, csrc/core/MeadeResponse.hppo:n330s:t25 :M eerror: ause of undeclared identifier 'MeadeGetCommandKind'd
+ePayl  o330a | dO A&Tp_aMyElAoDaEd_,B IINMeadeGeD_RESPONSE(MeadeGettCHandlers &handlers);
+      | omman^d
+Kind::CurrentDec, DecCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:331:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  331 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:332:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  332 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
+      |                         ^
+1 error generated.
+src/core/MeadeResponse.hpp:333:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  333 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
+      |                         ^
+*** [.pio/build/native/test/test_response/test_MeadeResponse.o] Error 1
+src/core/MeadeResponse.hpp:334:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  334 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
+      |                         ^
+src/core/MeadeResponse.hpp:335:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  335 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
+      |                         ^
+src/core/MeadeResponse.hpp:336:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  336 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
+      |                         ^
+src/core/MeadeResponse.hpp:337:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  337 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffset, UtcOffset);
+      |                         ^
+src/core/MeadeResponse.hpp:338:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  338 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:339:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  339 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:340:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  340 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
+      |                         ^
+src/core/MeadeResponse.hpp:341:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  341 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
+      |                               ^
+src/core/MeadeResponse.hpp:342:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  342 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
+      |                               ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+*** [.pio/build/native/src/core/MeadeParser.o] Error 1
+Building stage has failed, see errors above. Use `pio test -vvv` option to enable verbose output.
+--------------- native:test_response [ERRORED] Took 0.35 seconds ---------------
+
+Processing test_get_dispatcher in native environment
+--------------------------------------------------------------------------------
+Building...
+In file included from src/core/MeadeParser.cpp:11:
+In file included from src/core/MeadeParser.hpp:28:
+src/core/MeadeResponse.hpp:324:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  324 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:325:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  325 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
+      |                         ^
+In file included from src/core/MeadeResponse.cpp:12:
+In file included from src/core/MeadeResponse.hpp:32:
+src/core/MeadeParser.hpp:603:1: error: unknown type name 'MeadeResponse'
+  603 | MeadeResponse dispatchGet(MeadeGetCommandKind kind, const MeadePayload &payload, IMeadeGetHandlers &handlers);
+      | ^
+src/core/MeadeResponse.hpp:326:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  326 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:327:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  327 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:328:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  328 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:329:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  329 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
+      |                         ^
+1 error generated.
+src/core/MeadeResponse.hpp:330:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  330 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentDec, DecCoordinate);
+      |                         ^
+*** [.pio/build/native/src/core/MeadeResponse.o] Error 1
+src/core/MeadeResponse.hpp:331:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  331 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
+      |                         ^
+In file included from unit_tests/test_get_dispatcher/test_MeadeGetDispatcher.cpp:9:
+In file included from src/core/MeadeParser.hpp:28:
+src/core/MeadeResponse.hpp:324:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  324 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:332:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  332 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:325:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  325 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:333:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  333 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:326:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  326 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:334:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  334 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
+      |                         ^
+src/core/MeadeResponse.hpp:327:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  327 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:335:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  335 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
+      |                         ^
+src/core/MeadeResponse.hpp:328:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  328 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:336:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  336 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
+      |                         ^
+src/core/MeadeResponse.hpp:337:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  337 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffsetsrc/core/MeadeResponse.hpp:329:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+,  329 |  OUtcOffset);
+      |                         ^
+AT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:338:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  338 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:330:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  330 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentDec, DecCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:339:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  339 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:331:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  331 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:340:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  340 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
+      |                         ^
+src/core/MeadeResponse.hpp:332:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  332 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:341:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  341 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
+      |                               ^
+src/core/MeadeResponse.hpp:333:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  333 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:342:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  342 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
+      |                               ^
+src/core/MeadeResponse.hpp:334:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  334 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
+      |                         ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+src/core/MeadeResponse.hpp:335:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  335 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
+      |                         ^
+20 errors generated.
+src/core/MeadeResponse.hpp:336:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  336 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
+      |                         ^
+*** [.pio/build/native/src/core/MeadeParser.o] Error 1
+src/core/MeadeResponse.hpp:337:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  337 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffset, UtcOffset);
+      |                         ^
+src/core/MeadeResponse.hpp:338:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  338 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:339:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  339 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:340:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  340 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
+      |                         ^
+src/core/MeadeResponse.hpp:341:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  341 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
+      |                               ^
+src/core/MeadeResponse.hpp:342:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  342 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
+      |                               ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+*** [.pio/build/native/test/test_get_dispatcher/test_MeadeGetDispatcher.o] Error 1
+Building stage has failed, see errors above. Use `pio test -vvv` option to enable verbose output.
+------------ native:test_get_dispatcher [ERRORED] Took 0.36 seconds ------------
+
+Processing test_common in native environment
+--------------------------------------------------------------------------------
+Building...
+In file included from src/core/MeadeResponse.cpp:12:
+In file included from src/core/MeadeResponse.hpp:32:
+src/core/MeadeParser.hpp:603:1: error: unknown type name 'MeadeResponse'
+  603 | MeadeResponse dispatchGet(MeadeGetCommandKind kind, const MeadePayload &payload, IMeadeGetHandlers &handlers);
+      | ^
+In file included from src/core/MeadeParser.cpp:11:
+In file included from src/core/MeadeParser.hpp:28:
+src/core/MeadeResponse.hpp:324:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  324 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::FirmwareVersion, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:325:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  325 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ProductName, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:326:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  326 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::MountStatus, Text);
+      |                         ^
+src/core/MeadeResponse.hpp:327:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  327 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetRa, RaCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:328:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  328 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentRa, RaCoordinate);
+      |                         ^
+1 error generated.
+src/core/MeadeResponse.hpp:329:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  329 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::TargetDec, DecCoordinate);
+      |                         ^
+*** [.pio/build/native/src/core/MeadeResponse.o] Error 1
+src/core/MeadeResponse.hpp:330:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  330 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::CurrentDec, DecCoordinate);
+      |                         ^
+src/core/MeadeResponse.hpp:331:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  331 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsSlewing, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:332:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  332 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsTracking, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:333:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  333 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::IsGuiding, Boolean);
+      |                         ^
+src/core/MeadeResponse.hpp:334:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  334 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLatitude, SiteLatitude);
+      |                         ^
+src/core/MeadeResponse.hpp:335:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  335 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::SiteLongitude, SiteLongitude);
+      |                         ^
+src/core/MeadeResponse.hpp:336:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  336 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::ClockFormat, ClockFormat24);
+      |                         ^
+src/core/MeadeResponse.hpp:337:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  337 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::UtcOffset, UtcOffset);
+      |                         ^
+src/core/MeadeResponse.hpp:338:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  338 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime12h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:339:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  339 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalTime24h, LocalTime);
+      |                         ^
+src/core/MeadeResponse.hpp:340:25: error: use of undeclared identifier 'MeadeGetCommandKind'
+  340 | OAT_MEADE_BIND_RESPONSE(MeadeGetCommandKind::LocalDate, LocalDate);
+      |                         ^
+src/core/MeadeResponse.hpp:341:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  341 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName1, SiteNameSlot, 1);
+      |                               ^
+src/core/MeadeResponse.hpp:342:31: error: use of undeclared identifier 'MeadeGetCommandKind'
+  342 | OAT_MEADE_BIND_RESPONSE_FIXED(MeadeGetCommandKind::SiteName2, SiteNameSlot, 2);
+      |                               ^
+fatal error: too many errors emitted, stopping now [-ferror-limit=]
+20 errors generated.
+*** [.pio/build/native/src/core/MeadeParser.o] Error 1
+Building stage has failed, see errors above. Use `pio test -vvv` option to enable verbose output.
+---------------- native:test_common [ERRORED] Took 0.37 seconds ----------------
+
+=================================== SUMMARY ===================================
+Environment    Test                 Status    Duration
+-------------  -------------------  --------  ------------
+native         test_core            ERRORED   00:00:00.361
+native         test_response        ERRORED   00:00:00.346
+native         test_get_dispatcher  ERRORED   00:00:00.358
+native         test_common          ERRORED   00:00:00.368
+================== 4 test cases: 0 succeeded in 00:00:01.433 ==================
