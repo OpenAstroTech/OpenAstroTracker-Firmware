@@ -8,8 +8,11 @@ env.Append(LINKFLAGS=["--coverage"])
 
 def generate_coverage(*args, **kwargs):
     print("Running tests to generate coverage data...")
-    # Run PlatformIO tests natively
-    subprocess.run(["pio", "test", "-e", "native", "-vvv"])
+    # Run PlatformIO tests natively; exit(1) if any test fails
+    result = subprocess.run(["pio", "test", "-e", "native", "-vvv"])
+    if result.returncode != 0:
+        print("\n❌ Tests failed — aborting coverage generation.")
+        sys.exit(1)
 
     print("\nGenerating coverage report...")
     # macOS Clang uses llvm-cov, Windows/Linux use standard gcov
