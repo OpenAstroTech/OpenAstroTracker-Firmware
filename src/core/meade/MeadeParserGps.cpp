@@ -3,8 +3,8 @@
  * @brief GPS-family (`:g...`) dispatcher for the Meade LX200 parser.
  */
 
-#include "core/MeadeParser.hpp"
-#include "core/MeadeParserHelpers.hpp"
+#include "MeadeParser.hpp"
+#include "MeadeParserHelpers.hpp"
 
 namespace oat
 {

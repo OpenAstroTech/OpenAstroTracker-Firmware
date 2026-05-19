@@ -7,8 +7,8 @@
  * or L (Level-leaves).
  */
 
-#include "core/MeadeParser.hpp"
-#include "core/MeadeParserHelpers.hpp"
+#include "MeadeParser.hpp"
+#include "MeadeParserHelpers.hpp"
 
 #include <stdlib.h>
 #include <string.h>

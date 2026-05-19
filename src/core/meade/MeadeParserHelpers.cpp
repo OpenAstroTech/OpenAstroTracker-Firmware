@@ -6,7 +6,7 @@
  * the public API (see MeadeParserHelpers.hpp for declarations).
  */
 
-#include "core/MeadeParserHelpers.hpp"
+#include "MeadeParserHelpers.hpp"
 
 #include <ctype.h>
 #include <stddef.h>

@@ -6,7 +6,7 @@
 #include "MeadeCommandProcessor.hpp"
 #include "WifiControl.hpp"
 #include "Gyro.hpp"
-#include "core/MeadeParser.hpp"
+#include "core/meade/MeadeParser.hpp"
 
 #include <stdarg.h>
 #include <string.h>

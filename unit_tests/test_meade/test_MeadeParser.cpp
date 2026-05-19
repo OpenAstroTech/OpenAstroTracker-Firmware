@@ -1,6 +1,6 @@
 #include <unity.h>
 
-#include "core/MeadeParser.hpp"
+#include "core/meade/MeadeParser.hpp"
 
 namespace meade = oat::core::meade;
 

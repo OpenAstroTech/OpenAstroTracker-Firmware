@@ -3,8 +3,8 @@
  * @brief Movement-family (`:M...`) dispatcher for the Meade LX200 parser.
  */
 
-#include "core/MeadeParser.hpp"
-#include "core/MeadeParserHelpers.hpp"
+#include "MeadeParser.hpp"
+#include "MeadeParserHelpers.hpp"
 
 #include <ctype.h>
 #include <stdlib.h>

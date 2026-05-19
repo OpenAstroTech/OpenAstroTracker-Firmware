@@ -8,7 +8,7 @@
  * All symbols live in oat::core::meade.
  */
 
-#include "core/MeadeParser.hpp"
+#include "MeadeParser.hpp"
 
 #include <stddef.h>
 #include <stdint.h>

@@ -3,8 +3,8 @@
  * @brief Focus-family (`:F...`) dispatcher for the Meade LX200 parser.
  */
 
-#include "core/MeadeParser.hpp"
-#include "core/MeadeParserHelpers.hpp"
+#include "MeadeParser.hpp"
+#include "MeadeParserHelpers.hpp"
 
 #include <stdlib.h>
 

@@ -7,8 +7,8 @@
  * files (MeadeParserGet.cpp, MeadeParserSet.cpp, etc.).
  */
 
-#include "core/MeadeParser.hpp"
-#include "core/MeadeParserHelpers.hpp"
+#include "MeadeParser.hpp"
+#include "MeadeParserHelpers.hpp"
 
 #include <stddef.h>
 

@@ -3,7 +3,7 @@
  * @brief Quit-family (`:Q...`) dispatcher for the Meade LX200 parser.
  */
 
-#include "core/MeadeParser.hpp"
+#include "MeadeParser.hpp"
 
 namespace oat
 {
