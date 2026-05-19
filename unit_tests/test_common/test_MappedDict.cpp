@@ -44,7 +44,7 @@ void test_function_mapped_dict_bounds(void)
 
 void test_function_mapped_dict_zero_size(void)
 {
-    MappedDict<char, int>::DictEntry_t lookupTable[] = {};
+    MappedDict<char, int>::DictEntry_t lookupTable[] = {{'\0', 0}};
 
     auto idxLookup = MappedDict<char, int>(lookupTable, 0);
     int intIdx;

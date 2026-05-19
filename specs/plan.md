@@ -103,7 +103,7 @@ The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adap
 4. Extend `.github/workflows/platformio_unit_tests.yml`:
    - Run `pio test -e native -v`.
    - Run coverage and fail if `core/` coverage drops below configured threshold (start at 0, ratchet upward).
-5. Add a tiny **Arduino host shim** under `unit_tests/test_common/arduino_shim/` providing minimal stubs (`millis`, `String`, `pinMode`, `digitalWrite`, fake `EEPROM`, fake `Serial`) for files that include `<Arduino.h>` but whose logic we want to test on host. This shim will later be replaced by proper HAL fakes under `unit_tests/test_common/hal_fakes/` (Phase 3).
+5. Add **ArduinoFake** as a `lib_deps` dependency (PlatformIO package `ArduinoFake@^0.4.0`) for Arduino API mocking (`millis`, `String`, `pinMode`, `digitalWrite`, fake `EEPROM`, fake `Serial`, fake `Wire`, fake `SPI`). Provides stubbing/verification via FakeIt-based API. Complements FFF (function-level fakes in `unit_tests/test_common/fakes/`) — ArduinoFake handles the Arduino API layer, FFF handles custom port/adapter function mocking. Replaces the Phase 0 original plan of a custom shim; ArduinoFake was chosen for its richer mocking capabilities (stub, verify, reset).
 6. Establish folders: `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` (READMEs already exist); leave existing files in place. Host-side HAL fakes will land under `unit_tests/test_common/hal_fakes/` when Phase 3 begins.
 
 **Verify:** `pio test -e native -v` green; coverage report artifact produced in CI; build for all existing boards still green via `matrix_build.py`.
@@ -120,7 +120,7 @@ Steps (parallel after Phase 0):
    - `Mount::syncPosition` math.
    - `Mount::getLocalDate` calendar increment (leap years, year/month wrap).
    - `Mount::DECString` / `Mount::RAString` formatting.
-   These tests link against a stripped-down `Mount` compiled with the host shim — they fail the moment behavior shifts during extraction.
+   These tests link against a stripped-down `Mount` compiled with ArduinoFake — they fail the moment behavior shifts during extraction.
 
 **Verify:** All new tests green; coverage report shows non-trivial line coverage on the listed methods; CI threshold ratcheted up.
 
@@ -149,7 +149,7 @@ Steps (parallel after Phase 0):
    - `hal/arduino/` — generic Arduino implementation (`ArduinoGpioPin`, `ArduinoSerialPort`, `ArduinoEeprom`, `ArduinoSystemClock`, …).
    - `hal/avr/` — AVR-specific bits (Timer1/Timer3 interrupt service, fast pin IO).
    - `hal/esp32/` — ESP32-specific (hardware timers, Wi-Fi stack glue).
-   - `unit_tests/test_common/hal_fakes/` — pure C++ test fakes (in-memory EEPROM, virtual GPIO, controllable clock, fake serial). Lives in test code, **not** in `src/`. Replaces and absorbs the Phase 0 ad-hoc shim.
+   - `unit_tests/test_common/hal_fakes/` — pure C++ test fakes (in-memory EEPROM, virtual GPIO, controllable clock, fake serial). Lives in test code, **not** in `src/`. Complements ArduinoFake (ArduinoFake handles the Arduino API layer; hal_fakes handles custom HAL interfaces).
 3. Define domain **ports** in `src/ports/`:
    - `IClock`, `ILogger`, `IPersistentStore`,
    - `IStepperAxis` (position, target, speed, accel, run, stop, isRunning, `Snapshot()` for ISR safety),
