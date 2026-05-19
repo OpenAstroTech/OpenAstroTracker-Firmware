@@ -49,6 +49,83 @@ bool startsWith(const char *input, const char *prefix)
     return true;
 }
 
+// ---------------------------------------------------------------------------
+// Cursor — single-pass input cursor with small grammar primitives
+//
+// Forward-only; never backtracks. Each primitive returns `false` on mismatch
+// (cursor is advanced on success). Ideal for fixed-format Meade sub-commands
+// like coordinates, times, and dates.
+// ---------------------------------------------------------------------------
+
+class Cursor
+{
+  public:
+    explicit Cursor(const char *p) : _p(p ? p : "") {}
+
+    bool atEnd() const { return *_p == '\0'; }
+    char peek()   const { return *_p; }
+    const char *remaining() const { return _p; }
+
+    /// Consume one character if it matches `c`; advance on success.
+    bool match(char c)
+    {
+        if (*_p != c) return false;
+        ++_p; return true;
+    }
+
+    /// Consume one character if it is any of the chars in `set`.
+    bool matchIn(const char *set)
+    {
+        if (*_p == '\0') return false;
+        for (const char *s = set; *s; ++s)
+        {
+            if (*_p == *s) { ++_p; return true; }
+        }
+        return false;
+    }
+
+    /// Read exactly `n` decimal digits into `out` (big-endian, no separators).
+    bool digits(int n, unsigned &out)
+    {
+        unsigned v = 0;
+        for (int i = 0; i < n; ++i)
+        {
+            char c = *_p;
+            if (c < '0' || c > '9') return false;
+            v = v * 10 + static_cast<unsigned>(c - '0');
+            ++_p;
+        }
+        out = v; return true;
+    }
+
+    /// Read "+DD" or "-DD" into a signed int.
+    bool signed2(int &out)
+    {
+        char sign = peek();
+        if (sign != '+' && sign != '-') return false;
+        ++_p;
+        unsigned v = 0;
+        if (!digits(2, v)) return false;
+        out = (sign == '-') ? -static_cast<int>(v) : static_cast<int>(v);
+        return true;
+    }
+
+    /// Read "+DDD" or "-DDD" into a signed int.
+    bool signed3(int &out)
+    {
+        char sign = peek();
+        if (sign != '+' && sign != '-') return false;
+        ++_p;
+        unsigned v = 0;
+        if (!digits(3, v)) return false;
+        out = (sign == '-') ? -static_cast<int>(v) : static_cast<int>(v);
+        return true;
+    }
+
+  private:
+    const char *_p;
+};
+
 // Forward declarations for write* primitives (defined later in this namespace).
 void writeChar(MeadeResponse &r, char c);
 void writeText(MeadeResponse &r, const char *s);
@@ -705,71 +782,12 @@ inline bool isDecimalDigit(char c)
     return c >= '0' && c <= '9';
 }
 
-template <int N> bool readFixedDigits(const char *p, unsigned &out)
+// Format: "[+-]DD<sep>MM:SS" where sep in {'*', ':'}.
+bool readDecCoordinate(Cursor &c, DecCoordinate &out)
 {
-    unsigned v = 0;
-    for (int i = 0; i < N; ++i)
-    {
-        if (!isDecimalDigit(p[i]))
-        {
-            return false;
-        }
-        v = v * 10 + static_cast<unsigned>(p[i] - '0');
-    }
-    out = v;
-    return true;
-}
-
-// Parse "+DD" / "-DD" into a signed int.
-bool readSignedFixed2(const char *p, int &out)
-{
-    if ((p[0] != '+' && p[0] != '-') || !isDecimalDigit(p[1]) || !isDecimalDigit(p[2]))
-    {
-        return false;
-    }
-    int v = (p[1] - '0') * 10 + (p[2] - '0');
-    out   = (p[0] == '-') ? -v : v;
-    return true;
-}
-
-// Parse "+DDD" / "-DDD" into a signed int.
-bool readSignedFixed3(const char *p, int &out)
-{
-    if ((p[0] != '+' && p[0] != '-') || !isDecimalDigit(p[1]) || !isDecimalDigit(p[2]) || !isDecimalDigit(p[3]))
-    {
-        return false;
-    }
-    int v = (p[1] - '0') * 100 + (p[2] - '0') * 10 + (p[3] - '0');
-    out   = (p[0] == '-') ? -v : v;
-    return true;
-}
-
-// Format: "[+-]DD<sep>MM:SS" where sep in {'*', ':'}. 9 chars.
-bool readDecCoordinate(const char *p, size_t len, DecCoordinate &out)
-{
-    if (len != 9)
-    {
-        return false;
-    }
     int deg;
     unsigned mm, ss;
-    if (!readSignedFixed2(p, deg))
-    {
-        return false;
-    }
-    if (p[3] != '*' && p[3] != ':')
-    {
-        return false;
-    }
-    if (!readFixedDigits<2>(p + 4, mm))
-    {
-        return false;
-    }
-    if (p[6] != ':')
-    {
-        return false;
-    }
-    if (!readFixedDigits<2>(p + 7, ss))
+    if (!c.signed2(deg) || !c.matchIn("*:") || !c.digits(2, mm) || !c.match(':') || !c.digits(2, ss))
     {
         return false;
     }
@@ -779,15 +797,11 @@ bool readDecCoordinate(const char *p, size_t len, DecCoordinate &out)
     return true;
 }
 
-// Format: "HH:MM:SS". 8 chars.
-bool readRaCoordinate(const char *p, size_t len, RaCoordinate &out)
+// Format: "HH:MM:SS".
+bool readRaCoordinate(Cursor &c, RaCoordinate &out)
 {
-    if (len != 8)
-    {
-        return false;
-    }
     unsigned hh, mm, ss;
-    if (!readFixedDigits<2>(p, hh) || p[2] != ':' || !readFixedDigits<2>(p + 3, mm) || p[5] != ':' || !readFixedDigits<2>(p + 6, ss))
+    if (!c.digits(2, hh) || !c.match(':') || !c.digits(2, mm) || !c.match(':') || !c.digits(2, ss))
     {
         return false;
     }
@@ -797,16 +811,12 @@ bool readRaCoordinate(const char *p, size_t len, RaCoordinate &out)
     return true;
 }
 
-// Format: "[+-]DD<sep>MM" where sep in {'*', ':'}. 6 chars.
-bool readLatitude(const char *p, size_t len, MeadeLatitude &out)
+// Format: "[+-]DD<sep>MM" where sep in {'*', ':'}.
+bool readLatitude(Cursor &c, MeadeLatitude &out)
 {
-    if (len != 6)
-    {
-        return false;
-    }
     int deg;
     unsigned mm;
-    if (!readSignedFixed2(p, deg) || (p[3] != '*' && p[3] != ':') || !readFixedDigits<2>(p + 4, mm))
+    if (!c.signed2(deg) || !c.matchIn("*:") || !c.digits(2, mm))
     {
         return false;
     }
@@ -815,16 +825,12 @@ bool readLatitude(const char *p, size_t len, MeadeLatitude &out)
     return true;
 }
 
-// Format: "[+-]DDD<sep>MM" where sep in {'*', ':'}. 7 chars.
-bool readLongitude(const char *p, size_t len, MeadeLongitude &out)
+// Format: "[+-]DDD<sep>MM" where sep in {'*', ':'}.
+bool readLongitude(Cursor &c, MeadeLongitude &out)
 {
-    if (len != 7)
-    {
-        return false;
-    }
     int deg;
     unsigned mm;
-    if (!readSignedFixed3(p, deg) || (p[4] != '*' && p[4] != ':') || !readFixedDigits<2>(p + 5, mm))
+    if (!c.signed3(deg) || !c.matchIn("*:") || !c.digits(2, mm))
     {
         return false;
     }
@@ -867,14 +873,14 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
         return r;
     }
 
-    const size_t len = strlen(s);
+    Cursor c(s + 1);
 
     switch (s[0])
     {
         case 'd':
             {
                 DecCoordinate dec;
-                if (!readDecCoordinate(s + 1, len - 1, dec))
+                if (!readDecCoordinate(c, dec))
                 {
                     writeChar(r, '0');
                     return r;
@@ -886,7 +892,7 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
         case 'r':
             {
                 RaCoordinate ra;
-                if (!readRaCoordinate(s + 1, len - 1, ra))
+                if (!readRaCoordinate(c, ra))
                 {
                     writeChar(r, '0');
                     return r;
@@ -896,18 +902,22 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
             }
 
         case 'H':
-            if (len >= 2 && s[1] == 'L')
+            if (c.peek() == 'L')
             {
                 // HLhhmmss (8 chars) or HLhhmm (6 chars) — no separators on the wire.
+                c.match('L');
                 unsigned hh = 0, mm = 0, ss = 0;
                 bool ok = false;
-                if (len == 8)
+                if (c.digits(2, hh) && c.digits(2, mm))
                 {
-                    ok = readFixedDigits<2>(s + 2, hh) && readFixedDigits<2>(s + 4, mm) && readFixedDigits<2>(s + 6, ss);
-                }
-                else if (len == 6)
-                {
-                    ok = readFixedDigits<2>(s + 2, hh) && readFixedDigits<2>(s + 4, mm);
+                    if (c.atEnd())
+                    {
+                        ok = true;
+                    }
+                    else if (c.digits(2, ss) && c.atEnd())
+                    {
+                        ok = true;
+                    }
                 }
                 if (!ok)
                 {
@@ -918,17 +928,16 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 writeSetAck(r, h.onSetLocalSiderealTime(t));
                 return r;
             }
-            if (len == 2 && s[1] == 'P')
+            if (c.peek() == 'P' && c.match('P') && c.atEnd())
             {
                 writeSetAck(r, h.onSetHomePoint());
                 return r;
             }
-            // Bare H = HourAngle: H<hh><sep><mm>. Total 6 chars. Separator at s[3] is not validated
+            // Bare H = HourAngle: H<hh><sep><mm>. Separator at s[3] is not validated
             // (legacy behaviour: any single char accepted).
-            if (len == 6)
             {
                 unsigned hh, mm;
-                if (!readFixedDigits<2>(s + 1, hh) || !readFixedDigits<2>(s + 4, mm))
+                if (!c.digits(2, hh) || c.peek() == '\0' || !c.match(c.peek()) || !c.digits(2, mm))
                 {
                     writeChar(r, '0');
                     return r;
@@ -936,20 +945,13 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 writeSetAck(r, h.onSetHourAngle(static_cast<uint8_t>(hh), static_cast<uint8_t>(mm)));
                 return r;
             }
-            writeChar(r, '0');
-            return r;
 
         case 'Y':
             {
-                // Y<dec(9)>.<ra(8)>  total 19 chars including 'Y'.
-                if (len != 19 || s[10] != '.')
-                {
-                    writeChar(r, '0');
-                    return r;
-                }
+                // Y<dec(9)>.<ra(8)>
                 DecCoordinate dec;
                 RaCoordinate ra;
-                if (!readDecCoordinate(s + 1, 9, dec) || !readRaCoordinate(s + 11, 8, ra))
+                if (!readDecCoordinate(c, dec) || !c.match('.') || !readRaCoordinate(c, ra))
                 {
                     writeChar(r, '0');
                     return r;
@@ -961,7 +963,7 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
         case 't':
             {
                 MeadeLatitude lat;
-                if (!readLatitude(s + 1, len - 1, lat))
+                if (!readLatitude(c, lat))
                 {
                     writeChar(r, '0');
                     return r;
@@ -973,7 +975,7 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
         case 'g':
             {
                 MeadeLongitude lon;
-                if (!readLongitude(s + 1, len - 1, lon))
+                if (!readLongitude(c, lon))
                 {
                     writeChar(r, '0');
                     return r;
@@ -984,14 +986,9 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
 
         case 'G':
             {
-                // G<sign><DD>  4 chars total.
-                if (len != 4)
-                {
-                    writeChar(r, '0');
-                    return r;
-                }
+                // G<sign><DD>
                 int hours;
-                if (!readSignedFixed2(s + 1, hours))
+                if (!c.signed2(hours))
                 {
                     writeChar(r, '0');
                     return r;
@@ -1002,15 +999,9 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
 
         case 'L':
             {
-                // L<HH>:<MM>:<SS>  9 chars total.
-                if (len != 9)
-                {
-                    writeChar(r, '0');
-                    return r;
-                }
+                // L<HH>:<MM>:<SS>
                 unsigned hh, mm, ss;
-                if (!readFixedDigits<2>(s + 1, hh) || s[3] != ':' || !readFixedDigits<2>(s + 4, mm) || s[6] != ':'
-                    || !readFixedDigits<2>(s + 7, ss))
+                if (!c.digits(2, hh) || !c.match(':') || !c.digits(2, mm) || !c.match(':') || !c.digits(2, ss))
                 {
                     writeChar(r, '0');
                     return r;
@@ -1022,15 +1013,9 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
 
         case 'C':
             {
-                // C<MM>/<DD>/<YY>  9 chars total.
-                if (len != 9)
-                {
-                    writeChar(r, '0');
-                    return r;
-                }
+                // C<MM>/<DD>/<YY>
                 unsigned mo, dd, yy;
-                if (!readFixedDigits<2>(s + 1, mo) || s[3] != '/' || !readFixedDigits<2>(s + 4, dd) || s[6] != '/'
-                    || !readFixedDigits<2>(s + 7, yy))
+                if (!c.digits(2, mo) || !c.match('/') || !c.digits(2, dd) || !c.match('/') || !c.digits(2, yy))
                 {
                     writeChar(r, '0');
                     return r;
@@ -1287,169 +1272,121 @@ MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &h)
         return r;
     }
 
+    Cursor c(suffix);
+
     // `:MS#` — exact match only ("S123" is not a slew-to-target).
-    if (suffix[0] == 'S' && suffix[1] == '\0')
+    if (c.peek() == 'S' && c.match('S') && c.atEnd())
     {
         h.onStartSlewToTarget();
         return makeSetSuccessResponse(false);
     }
 
-    // `:MAA...#` — any input starting with "AA" requests a home move; the
-    // historical parser captures (but ignores) any trailing payload, so we
-    // accept "AA<anything>" too. AZ/AL nudge by an arc-minute float.
-    if (suffix[0] == 'A' && suffix[1] == 'A')
+    // `:MAA...#` — any input starting with "AA" requests a home move.
+    if (c.peek() == 'A' && c.match('A'))
     {
-        h.onMoveAzAltHome();
-        return makeSetSuccessResponse(true);
-    }
-    if (suffix[0] == 'A' && suffix[1] == 'Z')
-    {
-        const float arcMinutes = static_cast<float>(strtod(suffix + 2, nullptr));
-        h.onMoveAzimuth(arcMinutes);
-        return r;
-    }
-    if (suffix[0] == 'A' && suffix[1] == 'L')
-    {
-        const float arcMinutes = static_cast<float>(strtod(suffix + 2, nullptr));
-        h.onMoveAltitude(arcMinutes);
+        if (c.peek() == 'A')
+        {
+            c.match('A');
+            h.onMoveAzAltHome();
+            return makeSetSuccessResponse(true);
+        }
+        if (c.peek() == 'Z')
+        {
+            c.match('Z');
+            const float arcMinutes = static_cast<float>(strtod(c.remaining(), nullptr));
+            h.onMoveAzimuth(arcMinutes);
+            return r;
+        }
+        if (c.peek() == 'L')
+        {
+            c.match('L');
+            const float arcMinutes = static_cast<float>(strtod(c.remaining(), nullptr));
+            h.onMoveAltitude(arcMinutes);
+            return r;
+        }
         return r;
     }
 
     // `:MHR<R|L>[distance]#` / `:MHD<U|D>[distance]#` — Hall-sensor auto-home.
-    // Direction byte chooses sign; distance bytes (if any) are passed through
-    // to the handler which applies the hardware default + clamp policy.
-    if (suffix[0] == 'H' && suffix[1] == 'R')
+    if (c.peek() == 'H' && c.match('H'))
     {
-        int direction = 0;
-        if (suffix[2] == 'R')
+        if (c.peek() == 'R' && c.match('R'))
         {
-            direction = -1;
+            int direction = 0;
+            char d = c.peek();
+            if (d == 'R') direction = -1;
+            else if (d == 'L') direction = 1;
+            if (direction != 0) c.match(d);
+            if (direction == 0) return makeSetSuccessResponse(false);
+            return makeSetSuccessResponse(h.onHomeRa(direction, c.remaining()));
         }
-        else if (suffix[2] == 'L')
+        if (c.peek() == 'D' && c.match('D'))
         {
-            direction = 1;
+            int direction = 0;
+            char d = c.peek();
+            if (d == 'U') direction = 1;
+            else if (d == 'D') direction = -1;
+            if (direction != 0) c.match(d);
+            if (direction == 0) return makeSetSuccessResponse(false);
+            return makeSetSuccessResponse(h.onHomeDec(direction, c.remaining()));
         }
-        if (direction == 0)
-        {
-            return makeSetSuccessResponse(false);
-        }
-        return makeSetSuccessResponse(h.onHomeRa(direction, suffix + 3));
-    }
-    if (suffix[0] == 'H' && suffix[1] == 'D')
-    {
-        int direction = 0;
-        if (suffix[2] == 'U')
-        {
-            direction = 1;
-        }
-        else if (suffix[2] == 'D')
-        {
-            direction = -1;
-        }
-        if (direction == 0)
-        {
-            return makeSetSuccessResponse(false);
-        }
-        return makeSetSuccessResponse(h.onHomeDec(direction, suffix + 3));
+        return r;
     }
 
-    // `:MT1#` / `:MT0#` — tracking toggle. Anything else under 'T' fails.
-    if (suffix[0] == 'T')
+    // `:MT1#` / `:MT0#` — tracking toggle.
+    if (c.peek() == 'T' && c.match('T'))
     {
-        if (suffix[1] == '1')
-        {
-            h.onTrackingOn();
-            return makeSetSuccessResponse(true);
-        }
-        if (suffix[1] == '0')
-        {
-            h.onTrackingOff();
-            return makeSetSuccessResponse(true);
-        }
+        if (c.peek() == '1') { c.match('1'); h.onTrackingOn(); return makeSetSuccessResponse(true); }
+        if (c.peek() == '0') { c.match('0'); h.onTrackingOff(); return makeSetSuccessResponse(true); }
         return makeSetSuccessResponse(false);
     }
 
-    // `:MG<dir><DDDD>#` / `:Mg<dir><DDDD>#` — guide pulse. Spec is lowercase
-    // but ASCOM pre-0.3.1 used uppercase, so both are accepted. Success emits
-    // the empty literal (no `#` terminator); a malformed pulse emits "0".
-    if (suffix[0] == 'G' || suffix[0] == 'g')
+    // `:MG<dir><DDDD>#` / `:Mg<dir><DDDD>#` — guide pulse.
+    if ((c.peek() == 'G' || c.peek() == 'g') && c.match(c.peek()))
     {
-        if ((strlen(suffix) == 6) && isdigit(static_cast<unsigned char>(suffix[2])) && isdigit(static_cast<unsigned char>(suffix[3]))
-            && isdigit(static_cast<unsigned char>(suffix[4])) && isdigit(static_cast<unsigned char>(suffix[5])))
+        MoveDirection dir = MoveDirection::East;
+        const char dc = static_cast<char>(tolower(static_cast<unsigned char>(c.peek())));
+        if (dc == 'n') dir = MoveDirection::North;
+        else if (dc == 's') dir = MoveDirection::South;
+        else if (dc == 'w') dir = MoveDirection::West;
+        c.match(c.peek());
+        unsigned d = 0;
+        if (c.digits(4, d) && c.atEnd())
         {
-            MoveDirection dir = MoveDirection::East;
-            const char dc     = static_cast<char>(tolower(static_cast<unsigned char>(suffix[1])));
-            if (dc == 'n')
-            {
-                dir = MoveDirection::North;
-            }
-            else if (dc == 's')
-            {
-                dir = MoveDirection::South;
-            }
-            else if (dc == 'w')
-            {
-                dir = MoveDirection::West;
-            }
-            const int duration = (suffix[2] - '0') * 1000 + (suffix[3] - '0') * 100 + (suffix[4] - '0') * 10 + (suffix[5] - '0');
-            h.onGuidePulse(dir, duration);
+            h.onGuidePulse(dir, static_cast<int>(d));
             return makeLiteralResponse("");
         }
         return makeLiteralResponse("0");
     }
 
     // `:MX<axis><steps>#` — move a single stepper by raw step count.
-    if (suffix[0] == 'X')
+    if (c.peek() == 'X' && c.match('X'))
     {
         MovementAxis axis;
-        switch (suffix[1])
+        switch (c.peek())
         {
-            case 'r':
-                axis = MovementAxis::Ra;
-                break;
-            case 'd':
-                axis = MovementAxis::Dec;
-                break;
-            case 'z':
-                axis = MovementAxis::Azimuth;
-                break;
-            case 'l':
-                axis = MovementAxis::Altitude;
-                break;
-            case 'f':
-                axis = MovementAxis::Focus;
-                break;
-            default:
-                return makeSetSuccessResponse(false);
+            case 'r': axis = MovementAxis::Ra; break;
+            case 'd': axis = MovementAxis::Dec; break;
+            case 'z': axis = MovementAxis::Azimuth; break;
+            case 'l': axis = MovementAxis::Altitude; break;
+            case 'f': axis = MovementAxis::Focus; break;
+            default: return makeSetSuccessResponse(false);
         }
-        const long steps = strtol(suffix + 2, nullptr, 10);
+        c.match(c.peek());
+        const long steps = strtol(c.remaining(), nullptr, 10);
         h.onMoveStepper(axis, steps);
         return makeSetSuccessResponse(true);
     }
 
-    // Continuous slew shortcuts. A single direction letter — anything after it
-    // is ignored to match the legacy prefix-matching behavior.
-    if (suffix[0] == 'e')
+    // Continuous slew shortcuts — single direction letter, anything after ignored.
+    switch (c.peek())
     {
-        h.onSlewEast();
-        return r;
+        case 'e': h.onSlewEast(); return r;
+        case 'w': h.onSlewWest(); return r;
+        case 'n': h.onSlewNorth(); return r;
+        case 's': h.onSlewSouth(); return r;
+        default:  return r;
     }
-    if (suffix[0] == 'w')
-    {
-        h.onSlewWest();
-        return r;
-    }
-    if (suffix[0] == 'n')
-    {
-        h.onSlewNorth();
-        return r;
-    }
-    if (suffix[0] == 's')
-    {
-        h.onSlewSouth();
-        return r;
-    }
-    return r;
 }
 
 // ---------------------------------------------------------------------------
