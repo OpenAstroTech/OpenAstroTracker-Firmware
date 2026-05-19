@@ -52,6 +52,6 @@ jobs:
         with:
           install-matrix-deps: 'true'
         env: 
-          PLATFORMIO_BUILD_CACHE_DIR: ${{ github.workspace }}/.pio/build_cache
+          PLATFORMIO_BUILD_CACHE_DIR: ${{ github.workspace }}/build_cache
       - name: Build ${{ matrix.board }}
         run: python matrix_build.py -b ${{ matrix.board }}
