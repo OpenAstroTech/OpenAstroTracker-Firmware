@@ -136,6 +136,12 @@ def copy_caches_to_executors(src_proj_dir: Path, dst_executors: List[Executor]):
     dir_names_to_copy = ['.pio', 'build_cache']
     for dir_name_to_copy in dir_names_to_copy:
         src_path = Path(src_proj_dir, dir_name_to_copy)
+        # If the cache dir isn't inside the temp proj dir (e.g. when
+        # PLATFORMIO_BUILD_CACHE_DIR points at the repo root), try the repo root
+        if not src_path.exists():
+            src_path = Path('.', dir_name_to_copy)
+        if not src_path.exists():
+            continue
         for dst_executor in dst_executors:
             dst_path = Path(dst_executor.proj_dir, dir_name_to_copy)
             shutil.copytree(src_path, dst_path)
