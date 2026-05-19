@@ -4,7 +4,7 @@
 Refactor a ~5k-line `Mount` god-object firmware toward clean architecture for embedded:
 a pure **Domain Core** (no Arduino, fully unit-testable) sitting behind **Port interfaces**,
 with **Adapters** wrapping hardware (AccelStepper, TMC2209, EEPROM, displays, Wi-Fi, clock).
-Approach: **hybrid** — extract pure logic in place first to build a regression-prevention test net (Unity + FFF on the existing `native` PIO env), then **strangler-fig** the hardware-coupled pieces (drivers, slewing loop, command executor) behind ports. Compile-time `#ifdef` axes/drivers migrate to **runtime polymorphism** so unsupported combinations no longer change the call graph. Goal endpoint: `src/core/` is buildable & 100% unit-tested on host; `src/adapters/` contains all Arduino/library coupling; `src/app/` wires them up per board.
+Approach: **hybrid** — extract pure logic in place first to build a regression-prevention test net (Unity + FakeIt via ArduinoFake on the existing `native` PIO env), then **strangler-fig** the hardware-coupled pieces (drivers, slewing loop, command executor) behind ports. Compile-time `#ifdef` axes/drivers migrate to **runtime polymorphism** so unsupported combinations no longer change the call graph. Goal endpoint: `src/core/` is buildable & 100% unit-tested on host; `src/adapters/` contains all Arduino/library coupling; `src/app/` wires them up per board.
 
 ---
 
@@ -94,19 +94,19 @@ The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adap
 
 ## Phased Plan (each phase shippable & green in CI)
 
-### Phase 0 — Safety net & tooling (no behavior change)
-*Foundation for everything else; must land first.*
+### Phase 0 — Safety net & tooling (no behavior change) ✅ COMPLETE
+*Foundation for everything else; must land first. Already implemented — see audit below.*
 
-1. Add **Fake Function Framework (FFF)** as a header-only dep in `unit_tests/test_common/fakes/`.
-2. Add a new PIO env `native_core` (extends `native`) with stricter warnings (`-Wall -Wextra -Werror`) for host-only `core/` builds; keep existing `native` for compatibility.
-3. Add gcovr/lcov-based **coverage reporting** to the `native` env; publish summary in CI.
-4. Extend `.github/workflows/platformio_unit_tests.yml`:
-   - Run `pio test -e native -v`.
-   - Run coverage and fail if `core/` coverage drops below configured threshold (start at 0, ratchet upward).
-5. Add **ArduinoFake** as a `lib_deps` dependency (PlatformIO package `ArduinoFake@^0.4.0`) for Arduino API mocking (`millis`, `String`, `pinMode`, `digitalWrite`, fake `EEPROM`, fake `Serial`, fake `Wire`, fake `SPI`). Provides stubbing/verification via FakeIt-based API. Complements FFF (function-level fakes in `unit_tests/test_common/fakes/`) — ArduinoFake handles the Arduino API layer, FFF handles custom port/adapter function mocking. Replaces the Phase 0 original plan of a custom shim; ArduinoFake was chosen for its richer mocking capabilities (stub, verify, reset).
-6. Establish folders: `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` (READMEs already exist); leave existing files in place. Host-side HAL fakes will land under `unit_tests/test_common/hal_fakes/` when Phase 3 begins.
+1. ~~Add FFF as header-only dep~~ — **Superseded.** FakeIt (bundled with ArduinoFake) replaces FFF. No separate FFF needed.
+2. ~~Add `native_core` PIO env~~ — **Superseded.** Only the `native` env is used. The existing `native` env already has strict warnings (`-Wall -Wextra -Werror -Wpedantic -Wshadow`).
+3. ✅ gcovr-based **coverage reporting** in `native` env — **Done.** `scripts/test-coverage.py` + `--coverage` flag in `build_src_flags`. `pio run -e native -t coverage` produces HTML + markdown reports. Current: 88.3% lines, 97.0% functions, 76.5% branches.
+4. ✅ CI workflow — **Done.** `.github/workflows/ci.yml` runs `pio run -e native -t coverage` (which internally executes `pio test -e native -vvv`), publishes coverage markdown to step summary. Threshold gating deferred to a later phase.
+5. ✅ **ArduinoFake** as `test_lib_deps` — **Done.** Configured in `platformio.ini` `[env:native]` as `ArduinoFake@^0.4.0`. Provides stubbing/verification via FakeIt-based API for Arduino API mocking (`millis`, `String`, `pinMode`, `digitalWrite`, fake `EEPROM`, fake `Serial`, fake `Wire`, fake `SPI`).
+6. ✅ Folder structure — **Done.** `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` all exist with descriptive README files.
 
-**Verify:** `pio test -e native -v` green; coverage report artifact produced in CI; build for all existing boards still green via `matrix_build.py`.
+**Verify:** `pio test -e native -v` → 170 tests, 0 failures; coverage report generates; all 5 board matrix builds green via `matrix_build.py`.
+
+**Changes from original plan (per feedback):** FFF replaced by FakeIt (in ArduinoFake); `native_core` env eliminated (use `native` only); coverage threshold gating deferred to a later phase.
 
 ### Phase 1 — Characterize existing pure logic (regression net)
 *All pure-logic files identified by the audit get exhaustive tests before being moved.*
@@ -182,7 +182,7 @@ Recommended slice order (each is an independent step, parallelizable after Phase
 8. `core/MountState` — single source of truth for the `_mountStatus` bitfield, with typed enum API (`Status::isSlewing()` etc.). Controllers mutate `MountState`; Mount facade reads it.
 9. `core/EventBus` — controllers publish `PositionChanged`, `SlewStarted`, `Parked`, etc.; display adapter subscribes (removes Mount → display direct coupling).
 
-Each step: extract → add focused unit tests with FFF-faked ports → remove the original code from `Mount.cpp` → ship.
+Each step: extract → add focused unit tests with FakeIt-faked ports → remove the original code from `Mount.cpp` → ship.
 
 **Verify per step:** unit tests for the new controller; golden-master tests on `Mount` still green; firmware behavior on hardware unchanged (manual smoke checklist).
 
@@ -238,9 +238,9 @@ Each step: extract → add focused unit tests with FFF-faked ports → remove th
 - [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandProcessor::instance()->processCommand()`; becomes `SerialTransport` adapter.
 
 ### Infrastructure
-- [`platformio.ini`](platformio.ini) — add `native_core` env, coverage flags, FFF include path.
-- [`.github/workflows/platformio_unit_tests.yml`](.github/workflows/platformio_unit_tests.yml) — coverage gating, ratchet.
-- [`unit_tests/test_common/`](unit_tests/test_common/) — expand with FFF-based ports tests.
+- [`platformio.ini`](platformio.ini) — `native` env with coverage flags, ArduinoFake `test_lib_deps`, coverage extra script.
+- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs `pio run -e native -t coverage` + publishes summary; builds all 5 boards.
+- [`unit_tests/test_common/`](unit_tests/test_common/) — expand with FakeIt-based port fakes for Phase 3+.
 - [`Configuration.hpp`](Configuration.hpp), [`Configuration_adv.hpp`](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 5.
 
 ---
@@ -265,7 +265,7 @@ Manual smoke checklist (per shippable phase end):
 
 ## Decisions
 
-- **Test stack:** Unity (already in PIO) + **FFF (Fake Function Framework)** for mocking Arduino/library calls. No GoogleTest.
+- **Test stack:** Unity (already in PIO) + **FakeIt** (via ArduinoFake) for mocking Arduino/library calls. No GoogleTest.
 - **Migration style:** **Hybrid** — extract pure logic in place first (Phase 1–2), then strangler-fig hardware-coupled layers (Phase 3–6).
 - **Config flags:** Migrate to **runtime polymorphism behind interfaces**; composition root reads the `Configuration*.hpp` macros once. `core/` becomes `#ifdef`-free for features.
 - **Back-compat:** Meade serial protocol behavior is invariant (external interface); internal C++ APIs may change freely.
@@ -273,6 +273,6 @@ Manual smoke checklist (per shippable phase end):
 
 ## Further Considerations
 
-1. **C++ standard.** `core/` benefits from at least C++17 (`std::optional`, `std::variant`, `if constexpr`). PlatformIO defaults vary by board (some AVR ports stuck on C++11/14). *Recommendation:* set `build_flags = -std=gnu++17` for `native_core`; verify each board env supports it (likely yes on current toolchains) — fall back to `-std=gnu++14` + tagged unions if AVR pinches.
+1. **C++ standard.** `core/` benefits from at least C++17 (`std::optional`, `std::variant`, `if constexpr`). PlatformIO defaults vary by board (some AVR ports stuck on C++11/14). *Recommendation:* set `build_flags = -std=gnu++17` for the `native` env; verify each board env supports it (likely yes on current toolchains) — fall back to `-std=gnu++14` + tagged unions if AVR pinches.
 2. **Binary size on AVR_MEGA2560.** Polymorphism + extra indirection costs flash on AVR. *Recommendation:* keep vtables small (≤ ~12 ports), mark adapters `final`, allow link-time devirtualization. If we still bust the budget, accept template-based static dispatch for the hot path (`SlewController<RaAxis, DecAxis>`) — adds complexity but keeps AVR shipping.
 3. **Interrupt-driven stepping.** `InterruptAccelStepper` mutates state from ISR context. Ports for axes need explicit thread/ISR-safety contract documented; `core/` controllers must never assume single-threaded access to axis state. *Recommendation:* document this in `ports/IStepperAxis.h`; add a `Snapshot()` method returning a consistent state read.
