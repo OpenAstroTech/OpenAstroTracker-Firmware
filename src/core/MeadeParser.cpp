@@ -777,11 +777,6 @@ MeadeResponse handleMeadeGet(const char *s, IMeadeGetHandlers &h)
 namespace
 {
 
-inline bool isDecimalDigit(char c)
-{
-    return c >= '0' && c <= '9';
-}
-
 // Format: "[+-]DD<sep>MM:SS" where sep in {'*', ':'}.
 bool readDecCoordinate(Cursor &c, DecCoordinate &out)
 {
@@ -937,7 +932,7 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
             // (legacy behaviour: any single char accepted).
             {
                 unsigned hh, mm;
-                if (!c.digits(2, hh) || c.peek() == '\0' || !c.match(c.peek()) || !c.digits(2, mm))
+                if (!c.digits(2, hh) || c.peek() == '\0' || !c.match(c.peek()) || !c.digits(2, mm) || !c.atEnd())
                 {
                     writeChar(r, '0');
                     return r;
@@ -1218,13 +1213,20 @@ MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &h)
     {
         return r;
     }
+
+    Cursor c(suffix);
+
     // `:F1#` .. `:F4#` — speed-by-rate digits act as the whole input.
-    if ((suffix[0] >= '1') && (suffix[0] <= '4') && suffix[1] == '\0')
+    if (c.peek() >= '1' && c.peek() <= '4')
     {
-        h.onFocusSetSpeedByRate(suffix[0] - '0');
-        return r;
+        c.match(c.peek());
+        if (c.atEnd())
+        {
+            h.onFocusSetSpeedByRate(suffix[0] - '0');
+            return r;
+        }
     }
-    switch (suffix[0])
+    switch (c.peek())
     {
         case '+':
             h.onFocusContinuousIn();
@@ -1233,7 +1235,8 @@ MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &h)
             h.onFocusContinuousOut();
             break;
         case 'M':
-            h.onFocusMoveBy(strtol(suffix + 1, nullptr, 10));
+            c.match('M');
+            h.onFocusMoveBy(strtol(c.remaining(), nullptr, 10));
             break;
         case 'F':
             h.onFocusSetSpeedByRate(4);
@@ -1246,7 +1249,8 @@ MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &h)
         case 'P':
             if (h.onFocusIsAvailable())
             {
-                h.onFocusSetPosition(strtol(suffix + 1, nullptr, 10));
+                c.match('P');
+                h.onFocusSetPosition(strtol(c.remaining(), nullptr, 10));
                 return makeSetSuccessResponse(true);
             }
             break;
