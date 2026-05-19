@@ -774,19 +774,18 @@ MeadeResponse handleMeadeExtra(const char *suffix, IMeadeExtraHandlers &handlers
 // `#`) and receive a complete `MeadeResponse`.
 // ---------------------------------------------------------------------------
 
-class IMeadeHandlers
-    : public IMeadeGetHandlers,
-      public IMeadeSetHandlers,
-      public IMeadeQuitHandlers,
-      public IMeadeDistanceHandlers,
-      public IMeadeInitHandlers,
-      public IMeadeSyncControlHandlers,
-      public IMeadeHomeHandlers,
-      public IMeadeSlewRateHandlers,
-      public IMeadeGpsHandlers,
-      public IMeadeFocusHandlers,
-      public IMeadeMovementHandlers,
-      public IMeadeExtraHandlers
+class IMeadeHandlers : public IMeadeGetHandlers,
+                       public IMeadeSetHandlers,
+                       public IMeadeQuitHandlers,
+                       public IMeadeDistanceHandlers,
+                       public IMeadeInitHandlers,
+                       public IMeadeSyncControlHandlers,
+                       public IMeadeHomeHandlers,
+                       public IMeadeSlewRateHandlers,
+                       public IMeadeGpsHandlers,
+                       public IMeadeFocusHandlers,
+                       public IMeadeMovementHandlers,
+                       public IMeadeExtraHandlers
 {
   public:
     virtual ~IMeadeHandlers() = default;

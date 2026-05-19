@@ -24,24 +24,42 @@ namespace meade
 // Cursor
 // ---------------------------------------------------------------------------
 
-Cursor::Cursor(const char *p) : _p(p ? p : "") {}
+Cursor::Cursor(const char *p) : _p(p ? p : "")
+{
+}
 
-bool Cursor::atEnd() const { return *_p == '\0'; }
-char Cursor::peek() const { return *_p; }
-const char *Cursor::remaining() const { return _p; }
+bool Cursor::atEnd() const
+{
+    return *_p == '\0';
+}
+char Cursor::peek() const
+{
+    return *_p;
+}
+const char *Cursor::remaining() const
+{
+    return _p;
+}
 
 bool Cursor::match(char c)
 {
-    if (*_p != c) return false;
-    ++_p; return true;
+    if (*_p != c)
+        return false;
+    ++_p;
+    return true;
 }
 
 bool Cursor::matchIn(const char *set)
 {
-    if (*_p == '\0') return false;
+    if (*_p == '\0')
+        return false;
     for (const char *s = set; *s; ++s)
     {
-        if (*_p == *s) { ++_p; return true; }
+        if (*_p == *s)
+        {
+            ++_p;
+            return true;
+        }
     }
     return false;
 }
@@ -52,20 +70,24 @@ bool Cursor::digits(int n, unsigned &out)
     for (int i = 0; i < n; ++i)
     {
         char c = *_p;
-        if (c < '0' || c > '9') return false;
+        if (c < '0' || c > '9')
+            return false;
         v = v * 10 + static_cast<unsigned>(c - '0');
         ++_p;
     }
-    out = v; return true;
+    out = v;
+    return true;
 }
 
 bool Cursor::signed2(int &out)
 {
     char sign = peek();
-    if (sign != '+' && sign != '-') return false;
+    if (sign != '+' && sign != '-')
+        return false;
     ++_p;
     unsigned v = 0;
-    if (!digits(2, v)) return false;
+    if (!digits(2, v))
+        return false;
     out = (sign == '-') ? -static_cast<int>(v) : static_cast<int>(v);
     return true;
 }
@@ -73,10 +95,12 @@ bool Cursor::signed2(int &out)
 bool Cursor::signed3(int &out)
 {
     char sign = peek();
-    if (sign != '+' && sign != '-') return false;
+    if (sign != '+' && sign != '-')
+        return false;
     ++_p;
     unsigned v = 0;
-    if (!digits(3, v)) return false;
+    if (!digits(3, v))
+        return false;
     out = (sign == '-') ? -static_cast<int>(v) : static_cast<int>(v);
     return true;
 }
@@ -387,7 +411,7 @@ void writeFloat(MeadeResponse &r, float value, int precision)
         precision = 9;
     }
 
-    double v = static_cast<double>(value);
+    double v      = static_cast<double>(value);
     bool negative = v < 0;
     if (negative)
     {
@@ -395,7 +419,7 @@ void writeFloat(MeadeResponse &r, float value, int precision)
     }
 
     // Separate integer and fractional parts.
-    int intVal = static_cast<int>(v);
+    int intVal  = static_cast<int>(v);
     double frac = v - static_cast<double>(intVal);
 
     if (negative)

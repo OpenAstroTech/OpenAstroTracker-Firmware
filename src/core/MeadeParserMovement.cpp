@@ -65,21 +65,29 @@ MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &h)
         if (c.peek() == 'R' && c.match('R'))
         {
             int direction = 0;
-            char d = c.peek();
-            if (d == 'R') direction = -1;
-            else if (d == 'L') direction = 1;
-            if (direction != 0) c.match(d);
-            if (direction == 0) return makeSetSuccessResponse(false);
+            char d        = c.peek();
+            if (d == 'R')
+                direction = -1;
+            else if (d == 'L')
+                direction = 1;
+            if (direction != 0)
+                c.match(d);
+            if (direction == 0)
+                return makeSetSuccessResponse(false);
             return makeSetSuccessResponse(h.onHomeRa(direction, c.remaining()));
         }
         if (c.peek() == 'D' && c.match('D'))
         {
             int direction = 0;
-            char d = c.peek();
-            if (d == 'U') direction = 1;
-            else if (d == 'D') direction = -1;
-            if (direction != 0) c.match(d);
-            if (direction == 0) return makeSetSuccessResponse(false);
+            char d        = c.peek();
+            if (d == 'U')
+                direction = 1;
+            else if (d == 'D')
+                direction = -1;
+            if (direction != 0)
+                c.match(d);
+            if (direction == 0)
+                return makeSetSuccessResponse(false);
             return makeSetSuccessResponse(h.onHomeDec(direction, c.remaining()));
         }
         return r;
@@ -88,8 +96,18 @@ MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &h)
     // `:MT1#` / `:MT0#` — tracking toggle.
     if (c.peek() == 'T' && c.match('T'))
     {
-        if (c.peek() == '1') { c.match('1'); h.onTrackingOn(); return makeSetSuccessResponse(true); }
-        if (c.peek() == '0') { c.match('0'); h.onTrackingOff(); return makeSetSuccessResponse(true); }
+        if (c.peek() == '1')
+        {
+            c.match('1');
+            h.onTrackingOn();
+            return makeSetSuccessResponse(true);
+        }
+        if (c.peek() == '0')
+        {
+            c.match('0');
+            h.onTrackingOff();
+            return makeSetSuccessResponse(true);
+        }
         return makeSetSuccessResponse(false);
     }
 
@@ -97,10 +115,13 @@ MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &h)
     if ((c.peek() == 'G' || c.peek() == 'g') && c.match(c.peek()))
     {
         MoveDirection dir = MoveDirection::East;
-        const char dc = static_cast<char>(tolower(static_cast<unsigned char>(c.peek())));
-        if (dc == 'n') dir = MoveDirection::North;
-        else if (dc == 's') dir = MoveDirection::South;
-        else if (dc == 'w') dir = MoveDirection::West;
+        const char dc     = static_cast<char>(tolower(static_cast<unsigned char>(c.peek())));
+        if (dc == 'n')
+            dir = MoveDirection::North;
+        else if (dc == 's')
+            dir = MoveDirection::South;
+        else if (dc == 'w')
+            dir = MoveDirection::West;
         c.match(c.peek());
         unsigned d = 0;
         if (c.digits(4, d) && c.atEnd())
@@ -117,12 +138,23 @@ MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &h)
         MovementAxis axis;
         switch (c.peek())
         {
-            case 'r': axis = MovementAxis::Ra; break;
-            case 'd': axis = MovementAxis::Dec; break;
-            case 'z': axis = MovementAxis::Azimuth; break;
-            case 'l': axis = MovementAxis::Altitude; break;
-            case 'f': axis = MovementAxis::Focus; break;
-            default: return makeSetSuccessResponse(false);
+            case 'r':
+                axis = MovementAxis::Ra;
+                break;
+            case 'd':
+                axis = MovementAxis::Dec;
+                break;
+            case 'z':
+                axis = MovementAxis::Azimuth;
+                break;
+            case 'l':
+                axis = MovementAxis::Altitude;
+                break;
+            case 'f':
+                axis = MovementAxis::Focus;
+                break;
+            default:
+                return makeSetSuccessResponse(false);
         }
         c.match(c.peek());
         const long steps = strtol(c.remaining(), nullptr, 10);
@@ -133,11 +165,20 @@ MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &h)
     // Continuous slew shortcuts — single direction letter, anything after ignored.
     switch (c.peek())
     {
-        case 'e': h.onSlewEast(); return r;
-        case 'w': h.onSlewWest(); return r;
-        case 'n': h.onSlewNorth(); return r;
-        case 's': h.onSlewSouth(); return r;
-        default:  return r;
+        case 'e':
+            h.onSlewEast();
+            return r;
+        case 'w':
+            h.onSlewWest();
+            return r;
+        case 'n':
+            h.onSlewNorth();
+            return r;
+        case 's':
+            h.onSlewSouth();
+            return r;
+        default:
+            return r;
     }
 }
 

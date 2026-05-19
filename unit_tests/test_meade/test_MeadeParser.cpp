@@ -94,8 +94,7 @@ void test_meade_parser_classifies_all_top_level_families(void)
 
     for (unsigned int index = 0; index < (sizeof(parse_cases) / sizeof(parse_cases[0])); ++index)
     {
-        assert_valid_parse(
-            parse_cases[index].input, parse_cases[index].family, parse_cases[index].payload);
+        assert_valid_parse(parse_cases[index].input, parse_cases[index].family, parse_cases[index].payload);
     }
 }
 
