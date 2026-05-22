@@ -1,4 +1,4 @@
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -14,70 +14,72 @@ void assert_invalid_parse(const char *input)
 {
     MeadeParseResult result;
     bool ok = parseMeadeCommand(input, result);
-    TEST_ASSERT_FALSE(ok);
-    TEST_ASSERT_FALSE(result.valid);
-    TEST_ASSERT_EQUAL_CHAR('\0', result.family);
-    TEST_ASSERT_TRUE(result.payload.empty());
+    EXPECT_FALSE(ok);
+    EXPECT_FALSE(result.valid);
+    EXPECT_EQ('\0', result.family);
+    EXPECT_TRUE(result.payload.empty());
 }
 
 void assert_valid_parse(const char *input, char expected_family, const char *expected_payload)
 {
     MeadeParseResult result;
     bool ok = parseMeadeCommand(input, result);
-    TEST_ASSERT_TRUE(ok);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_CHAR(expected_family, result.family);
-    TEST_ASSERT_EQUAL_STRING(expected_payload, result.payload.c_str());
+    EXPECT_TRUE(ok);
+    EXPECT_TRUE(result.valid);
+    EXPECT_EQ(expected_family, result.family);
+    EXPECT_STREQ(expected_payload, result.payload.c_str());
 }
 
-void test_meade_parser_rejects_empty_and_too_short_inputs(void)
+}  // namespace
+
+TEST(MeadeParser, rejects_empty_and_too_short_inputs)
 {
     assert_invalid_parse("");
     assert_invalid_parse(":");
 }
 
-void test_meade_parser_rejects_missing_colon(void)
+TEST(MeadeParser, rejects_missing_colon)
 {
     assert_invalid_parse("GR#");
 }
 
-void test_meade_parser_returns_family_and_payload_for_get_ra(void)
+TEST(MeadeParser, returns_family_and_payload_for_get_ra)
 {
     MeadeParseResult result;
     parseMeadeCommand(":GR#", result);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_CHAR('G', result.family);
-    TEST_ASSERT_EQUAL_STRING("R", result.payload.c_str());
+    EXPECT_TRUE(result.valid);
+    EXPECT_EQ('G', result.family);
+    EXPECT_STREQ("R", result.payload.c_str());
 }
 
-void test_meade_parser_strips_spaces_and_trailing_hash(void)
+TEST(MeadeParser, strips_spaces_and_trailing_hash)
 {
     MeadeParseResult result;
     parseMeadeCommand(": G R #", result);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_CHAR('G', result.family);
-    TEST_ASSERT_EQUAL_STRING("R", result.payload.c_str());
+    EXPECT_TRUE(result.valid);
+    EXPECT_EQ('G', result.family);
+    EXPECT_STREQ("R", result.payload.c_str());
 }
 
-void test_meade_parser_preserves_payload_for_quit_command(void)
+TEST(MeadeParser, preserves_payload_for_quit_command)
 {
     MeadeParseResult result;
     parseMeadeCommand(":Qq#", result);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_CHAR('Q', result.family);
-    TEST_ASSERT_EQUAL_STRING("q", result.payload.c_str());
+    EXPECT_TRUE(result.valid);
+    EXPECT_EQ('Q', result.family);
+    EXPECT_STREQ("q", result.payload.c_str());
 }
 
-void test_meade_parser_accepts_command_without_trailing_hash(void)
+TEST(MeadeParser, accepts_command_without_trailing_hash)
 {
     MeadeParseResult result;
     parseMeadeCommand(":MS", result);
-    TEST_ASSERT_TRUE(result.valid);
-    TEST_ASSERT_EQUAL_CHAR('M', result.family);
-    TEST_ASSERT_EQUAL_STRING("S", result.payload.c_str());
+    EXPECT_TRUE(result.valid);
+    EXPECT_EQ('M', result.family);
+    EXPECT_STREQ("S", result.payload.c_str());
 }
 
-void test_meade_parser_classifies_all_top_level_families(void)
+TEST(MeadeParser, classifies_all_top_level_families)
 {
     struct ParseCase {
         const char *input;
@@ -106,25 +108,11 @@ void test_meade_parser_classifies_all_top_level_families(void)
     }
 }
 
-void test_meade_parser_rejects_unknown_top_level_family(void)
+TEST(MeadeParser, rejects_unknown_top_level_family)
 {
     MeadeParseResult result;
     parseMeadeCommand(":Z12#", result);
-    TEST_ASSERT_FALSE(result.valid);
-    TEST_ASSERT_EQUAL_CHAR('\0', result.family);
-    TEST_ASSERT_TRUE(result.payload.empty());
-}
-
-}  // namespace
-
-void register_meade_parser_tests()
-{
-    RUN_TEST(test_meade_parser_rejects_empty_and_too_short_inputs);
-    RUN_TEST(test_meade_parser_rejects_missing_colon);
-    RUN_TEST(test_meade_parser_returns_family_and_payload_for_get_ra);
-    RUN_TEST(test_meade_parser_strips_spaces_and_trailing_hash);
-    RUN_TEST(test_meade_parser_preserves_payload_for_quit_command);
-    RUN_TEST(test_meade_parser_accepts_command_without_trailing_hash);
-    RUN_TEST(test_meade_parser_classifies_all_top_level_families);
-    RUN_TEST(test_meade_parser_rejects_unknown_top_level_family);
+    EXPECT_FALSE(result.valid);
+    EXPECT_EQ('\0', result.family);
+    EXPECT_TRUE(result.payload.empty());
 }

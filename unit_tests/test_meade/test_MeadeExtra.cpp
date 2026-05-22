@@ -10,7 +10,7 @@
 // Compile-time hardware guards live in the overrides; the dispatcher itself
 // is hardware-agnostic and exercised directly here via a fake handler.
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -265,282 +265,239 @@ const char *dispatch(const char *suffix, FakeExtra &h)
 
 }  // namespace
 
-namespace
-{
-
 // ---- Family-level -----------------------------------------------------------
 
-void test_extra_factory_reset_emits_one_terminator_and_calls_handler()
+TEST(MeadeExtra, factory_reset_emits_one_terminator_and_calls_handler)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("1#", dispatch("FR", h));
-    TEST_ASSERT_TRUE(h.factoryResetCalled);
+    EXPECT_STREQ("1#", dispatch("FR", h));
+    EXPECT_TRUE(h.factoryResetCalled);
 }
 
-void test_extra_drift_alignment_emits_empty_and_passes_duration_minus_three()
+TEST(MeadeExtra, drift_alignment_emits_empty_and_passes_duration_minus_three)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("D5", h));
-    TEST_ASSERT_TRUE(h.driftCalled);
-    TEST_ASSERT_EQUAL_INT(2, h.driftDuration);
+    EXPECT_STREQ("", dispatch("D5", h));
+    EXPECT_TRUE(h.driftCalled);
+    EXPECT_EQ(2, h.driftDuration);
 }
 
-void test_extra_unknown_family_emits_empty()
+TEST(MeadeExtra, unknown_family_emits_empty)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("Z", h));
+    EXPECT_STREQ("", dispatch("Z", h));
 }
 
-void test_extra_empty_suffix_emits_empty()
+TEST(MeadeExtra, empty_suffix_emits_empty)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("", h));
+    EXPECT_STREQ("", dispatch("", h));
 }
 
 // ---- Get leaves -------------------------------------------------------------
 
-void test_extra_get_ra_steps_per_degree_numeric_float_one_decimal()
+TEST(MeadeExtra, get_ra_steps_per_degree_numeric_float_one_decimal)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("100.5#", dispatch("GR", h));
+    EXPECT_STREQ("100.5#", dispatch("GR", h));
 }
 
-void test_extra_get_dec_limit_both_pipe_pair()
+TEST(MeadeExtra, get_dec_limit_both_pipe_pair)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("-30.5|45.5#", dispatch("GDL", h));
-    TEST_ASSERT_TRUE(h.getDecLimitsCalled);
+    EXPECT_STREQ("-30.5|45.5#", dispatch("GDL", h));
+    EXPECT_TRUE(h.getDecLimitsCalled);
 }
 
-void test_extra_get_dec_limit_lower_only_uses_lo_value()
+TEST(MeadeExtra, get_dec_limit_lower_only_uses_lo_value)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("-30.5#", dispatch("GDLL", h));
+    EXPECT_STREQ("-30.5#", dispatch("GDLL", h));
 }
 
-void test_extra_get_dec_limit_upper_only_uses_hi_value()
+TEST(MeadeExtra, get_dec_limit_upper_only_uses_hi_value)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("45.5#", dispatch("GDLU", h));
+    EXPECT_STREQ("45.5#", dispatch("GDLU", h));
 }
 
-void test_extra_get_dec_limit_invalid_variant_fixed_false()
+TEST(MeadeExtra, get_dec_limit_invalid_variant_fixed_false)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("0#", dispatch("GDLQ", h));
+    EXPECT_STREQ("0#", dispatch("GDLQ", h));
 }
 
-void test_extra_get_dec_parking_fixed_false()
+TEST(MeadeExtra, get_dec_parking_fixed_false)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("0#", dispatch("GDP", h));
+    EXPECT_STREQ("0#", dispatch("GDP", h));
 }
 
-void test_extra_get_backlash_steps_int()
+TEST(MeadeExtra, get_backlash_steps_int)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("7#", dispatch("GB", h));
+    EXPECT_STREQ("7#", dispatch("GB", h));
 }
 
-void test_extra_get_az_alt_positions_long_pair_pipe()
+TEST(MeadeExtra, get_az_alt_positions_long_pair_pipe)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("123|456#", dispatch("GAA", h));
+    EXPECT_STREQ("123|456#", dispatch("GAA", h));
 }
 
-void test_extra_get_target_coordinate_positions_parses_payload()
+TEST(MeadeExtra, get_target_coordinate_positions_parses_payload)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("1000|2000#", dispatch("GC10.5*-20.0", h));
+    EXPECT_STREQ("1000|2000#", dispatch("GC10.5*-20.0", h));
 }
 
-void test_extra_get_target_coordinate_positions_malformed_emits_empty()
+TEST(MeadeExtra, get_target_coordinate_positions_malformed_emits_empty)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("GC", h));
+    EXPECT_STREQ("", dispatch("GC", h));
 }
 
-void test_extra_get_auto_homing_states_text()
+TEST(MeadeExtra, get_auto_homing_states_text)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("RA:Idle,DEC:Idle#", dispatch("GAH", h));
+    EXPECT_STREQ("RA:Idle,DEC:Idle#", dispatch("GAH", h));
 }
 
-void test_extra_get_log_buffer_literal_no_terminator()
+TEST(MeadeExtra, get_log_buffer_literal_no_terminator)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("abc", dispatch("GO", h));
+    EXPECT_STREQ("abc", dispatch("GO", h));
 }
 
-void test_extra_get_ra_homing_offset_long()
+TEST(MeadeExtra, get_ra_homing_offset_long)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("-10#", dispatch("GHR", h));
+    EXPECT_STREQ("-10#", dispatch("GHR", h));
 }
 
-void test_extra_get_hemisphere_returns_hemisphere_format()
+TEST(MeadeExtra, get_hemisphere_returns_hemisphere_format)
 {
     FakeExtra h;
     h.northern = true;
-    TEST_ASSERT_EQUAL_STRING("N#", dispatch("GHS", h));
+    EXPECT_STREQ("N#", dispatch("GHS", h));
 }
 
-void test_extra_get_hour_angle_compact_hms()
+TEST(MeadeExtra, get_hour_angle_compact_hms)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("030405#", dispatch("GH", h));
+    EXPECT_STREQ("030405#", dispatch("GH", h));
 }
 
-void test_extra_get_local_sidereal_time_compact_hms()
+TEST(MeadeExtra, get_local_sidereal_time_compact_hms)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("060708#", dispatch("GL", h));
+    EXPECT_STREQ("060708#", dispatch("GL", h));
 }
 
-void test_extra_get_network_status_text()
+TEST(MeadeExtra, get_network_status_text)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("WL,OAT,192.168.1.10#", dispatch("GN", h));
+    EXPECT_STREQ("WL,OAT,192.168.1.10#", dispatch("GN", h));
 }
 
 // ---- Set leaves -------------------------------------------------------------
 
-void test_extra_set_ra_steps_per_degree_emits_empty_and_captures_value()
+TEST(MeadeExtra, set_ra_steps_per_degree_emits_empty_and_captures_value)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SR123.5", h));
-    TEST_ASSERT_EQUAL_FLOAT(123.5f, h.setRaSpd);
+    EXPECT_STREQ("", dispatch("SR123.5", h));
+    EXPECT_FLOAT_EQ(123.5f, h.setRaSpd);
 }
 
-void test_extra_set_dec_steps_per_degree_zero_value_skipped()
+TEST(MeadeExtra, set_dec_steps_per_degree_zero_value_skipped)
 {
     FakeExtra h;
     h.setDecSpd = -1.0f;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SD0", h));
+    EXPECT_STREQ("", dispatch("SD0", h));
     // Legacy: only positive values are committed; sentinel stays unchanged.
-    TEST_ASSERT_EQUAL_FLOAT(-1.0f, h.setDecSpd);
+    EXPECT_FLOAT_EQ(-1.0f, h.setDecSpd);
 }
 
-void test_extra_set_dec_limit_lower_with_payload()
+TEST(MeadeExtra, set_dec_limit_lower_with_payload)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SDLL-25.5", h));
-    TEST_ASSERT_TRUE(h.decLimitLowerPayload);
-    TEST_ASSERT_EQUAL_FLOAT(-25.5f, h.decLimitLowerVal);
+    EXPECT_STREQ("", dispatch("SDLL-25.5", h));
+    EXPECT_TRUE(h.decLimitLowerPayload);
+    EXPECT_FLOAT_EQ(-25.5f, h.decLimitLowerVal);
 }
 
-void test_extra_set_dec_limit_lower_without_payload_uses_current_position()
+TEST(MeadeExtra, set_dec_limit_lower_without_payload_uses_current_position)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SDLL", h));
-    TEST_ASSERT_FALSE(h.decLimitLowerPayload);
+    EXPECT_STREQ("", dispatch("SDLL", h));
+    EXPECT_FALSE(h.decLimitLowerPayload);
 }
 
-void test_extra_set_dec_limit_lower_clear_invokes_clear()
+TEST(MeadeExtra, set_dec_limit_lower_clear_invokes_clear)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SDLl", h));
-    TEST_ASSERT_TRUE(h.clearLowerCalled);
+    EXPECT_STREQ("", dispatch("SDLl", h));
+    EXPECT_TRUE(h.clearLowerCalled);
 }
 
-void test_extra_set_manual_slew_mode_one_enables()
+TEST(MeadeExtra, set_manual_slew_mode_one_enables)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SM1", h));
-    TEST_ASSERT_TRUE(h.setManualSlew);
+    EXPECT_STREQ("", dispatch("SM1", h));
+    EXPECT_TRUE(h.setManualSlew);
 }
 
-void test_extra_set_manual_slew_mode_zero_disables()
+TEST(MeadeExtra, set_manual_slew_mode_zero_disables)
 {
     FakeExtra h;
     h.setManualSlew = true;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SM0", h));
-    TEST_ASSERT_FALSE(h.setManualSlew);
+    EXPECT_STREQ("", dispatch("SM0", h));
+    EXPECT_FALSE(h.setManualSlew);
 }
 
-void test_extra_set_backlash_correction_captures_int()
+TEST(MeadeExtra, set_backlash_correction_captures_int)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SB42", h));
-    TEST_ASSERT_EQUAL_INT(42, h.setBacklash);
+    EXPECT_STREQ("", dispatch("SB42", h));
+    EXPECT_EQ(42, h.setBacklash);
 }
 
-void test_extra_set_dec_parking_is_no_op_but_emits_empty()
+TEST(MeadeExtra, set_dec_parking_is_no_op_but_emits_empty)
 {
     FakeExtra h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("SDP", h));
+    EXPECT_STREQ("", dispatch("SDP", h));
 }
 
 // ---- Level leaves -----------------------------------------------------------
 
-void test_extra_level_unavailable_returns_zero_terminator()
+TEST(MeadeExtra, level_unavailable_returns_zero_terminator)
 {
     FakeExtra h;
     h.levelAvailable = false;
-    TEST_ASSERT_EQUAL_STRING("0#", dispatch("LGC", h));
-    TEST_ASSERT_FALSE(h.startupCalled);
+    EXPECT_STREQ("0#", dispatch("LGC", h));
+    EXPECT_FALSE(h.startupCalled);
 }
 
-void test_extra_level_startup_returns_one_terminator_when_available()
+TEST(MeadeExtra, level_startup_returns_one_terminator_when_available)
 {
     FakeExtra h;
     h.levelAvailable = true;
-    TEST_ASSERT_EQUAL_STRING("1#", dispatch("L1", h));
-    TEST_ASSERT_TRUE(h.startupCalled);
+    EXPECT_STREQ("1#", dispatch("L1", h));
+    EXPECT_TRUE(h.startupCalled);
 }
 
-void test_extra_level_shutdown_returns_one_terminator_when_available()
+TEST(MeadeExtra, level_shutdown_returns_one_terminator_when_available)
 {
     FakeExtra h;
     h.levelAvailable = true;
-    TEST_ASSERT_EQUAL_STRING("1#", dispatch("L0", h));
-    TEST_ASSERT_TRUE(h.shutdownCalled);
+    EXPECT_STREQ("1#", dispatch("L0", h));
+    EXPECT_TRUE(h.shutdownCalled);
 }
 
-void test_extra_level_get_temperature_numeric_float_when_available()
+TEST(MeadeExtra, level_get_temperature_numeric_float_when_available)
 {
     FakeExtra h;
     h.levelAvailable  = true;
     h.gyroTemperature = 23.5f;
-    TEST_ASSERT_EQUAL_STRING("23.5#", dispatch("LGT", h));
-}
-
-}  // namespace
-
-void register_meade_extra_tests()
-{
-    RUN_TEST(test_extra_factory_reset_emits_one_terminator_and_calls_handler);
-    RUN_TEST(test_extra_drift_alignment_emits_empty_and_passes_duration_minus_three);
-    RUN_TEST(test_extra_unknown_family_emits_empty);
-    RUN_TEST(test_extra_empty_suffix_emits_empty);
-    RUN_TEST(test_extra_get_ra_steps_per_degree_numeric_float_one_decimal);
-    RUN_TEST(test_extra_get_dec_limit_both_pipe_pair);
-    RUN_TEST(test_extra_get_dec_limit_lower_only_uses_lo_value);
-    RUN_TEST(test_extra_get_dec_limit_upper_only_uses_hi_value);
-    RUN_TEST(test_extra_get_dec_limit_invalid_variant_fixed_false);
-    RUN_TEST(test_extra_get_dec_parking_fixed_false);
-    RUN_TEST(test_extra_get_backlash_steps_int);
-    RUN_TEST(test_extra_get_az_alt_positions_long_pair_pipe);
-    RUN_TEST(test_extra_get_target_coordinate_positions_parses_payload);
-    RUN_TEST(test_extra_get_target_coordinate_positions_malformed_emits_empty);
-    RUN_TEST(test_extra_get_auto_homing_states_text);
-    RUN_TEST(test_extra_get_log_buffer_literal_no_terminator);
-    RUN_TEST(test_extra_get_ra_homing_offset_long);
-    RUN_TEST(test_extra_get_hemisphere_returns_hemisphere_format);
-    RUN_TEST(test_extra_get_hour_angle_compact_hms);
-    RUN_TEST(test_extra_get_local_sidereal_time_compact_hms);
-    RUN_TEST(test_extra_get_network_status_text);
-    RUN_TEST(test_extra_set_ra_steps_per_degree_emits_empty_and_captures_value);
-    RUN_TEST(test_extra_set_dec_steps_per_degree_zero_value_skipped);
-    RUN_TEST(test_extra_set_dec_limit_lower_with_payload);
-    RUN_TEST(test_extra_set_dec_limit_lower_without_payload_uses_current_position);
-    RUN_TEST(test_extra_set_dec_limit_lower_clear_invokes_clear);
-    RUN_TEST(test_extra_set_manual_slew_mode_one_enables);
-    RUN_TEST(test_extra_set_manual_slew_mode_zero_disables);
-    RUN_TEST(test_extra_set_backlash_correction_captures_int);
-    RUN_TEST(test_extra_set_dec_parking_is_no_op_but_emits_empty);
-    RUN_TEST(test_extra_level_unavailable_returns_zero_terminator);
-    RUN_TEST(test_extra_level_startup_returns_one_terminator_when_available);
-    RUN_TEST(test_extra_level_shutdown_returns_one_terminator_when_available);
-    RUN_TEST(test_extra_level_get_temperature_numeric_float_when_available);
+    EXPECT_STREQ("23.5#", dispatch("LGT", h));
 }

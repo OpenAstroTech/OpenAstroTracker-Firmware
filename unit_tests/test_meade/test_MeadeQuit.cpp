@@ -4,7 +4,7 @@
 // in which handler callback fires, captured by `FakeHandlers`. Unknown
 // sub-commands must NOT invoke any callback.
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include <string.h>
 
@@ -60,84 +60,66 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_empty_suffix_stops_all()
+TEST(MeadeQuit, empty_suffix_stops_all)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("", h));
-    TEST_ASSERT_EQUAL_STRING("all", h.lastCall);
+    EXPECT_STREQ("", dispatch("", h));
+    EXPECT_STREQ("all", h.lastCall);
 }
 
-void test_a_suffix_stops_directional_all()
+TEST(MeadeQuit, a_suffix_stops_directional_all)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("a", h));
-    TEST_ASSERT_EQUAL_STRING("directional", h.lastCall);
+    EXPECT_STREQ("", dispatch("a", h));
+    EXPECT_STREQ("directional", h.lastCall);
 }
 
-void test_e_suffix_stops_east()
+TEST(MeadeQuit, e_suffix_stops_east)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("e", h));
-    TEST_ASSERT_EQUAL_STRING("east", h.lastCall);
+    EXPECT_STREQ("", dispatch("e", h));
+    EXPECT_STREQ("east", h.lastCall);
 }
 
-void test_w_suffix_stops_west()
+TEST(MeadeQuit, w_suffix_stops_west)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("w", h));
-    TEST_ASSERT_EQUAL_STRING("west", h.lastCall);
+    EXPECT_STREQ("", dispatch("w", h));
+    EXPECT_STREQ("west", h.lastCall);
 }
 
-void test_n_suffix_stops_north()
+TEST(MeadeQuit, n_suffix_stops_north)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("n", h));
-    TEST_ASSERT_EQUAL_STRING("north", h.lastCall);
+    EXPECT_STREQ("", dispatch("n", h));
+    EXPECT_STREQ("north", h.lastCall);
 }
 
-void test_s_suffix_stops_south()
+TEST(MeadeQuit, s_suffix_stops_south)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("s", h));
-    TEST_ASSERT_EQUAL_STRING("south", h.lastCall);
+    EXPECT_STREQ("", dispatch("s", h));
+    EXPECT_STREQ("south", h.lastCall);
 }
 
-void test_q_suffix_quits_control_mode()
+TEST(MeadeQuit, q_suffix_quits_control_mode)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("q", h));
-    TEST_ASSERT_EQUAL_STRING("quitControl", h.lastCall);
+    EXPECT_STREQ("", dispatch("q", h));
+    EXPECT_STREQ("quitControl", h.lastCall);
 }
 
-void test_unknown_suffix_does_not_call_handler()
+TEST(MeadeQuit, unknown_suffix_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("z", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("", dispatch("z", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
-void test_multi_char_suffix_does_not_call_handler()
+TEST(MeadeQuit, multi_char_suffix_does_not_call_handler)
 {
     FakeHandlers h;
     // Single-char commands only; "ea" is not a valid stop-east.
-    TEST_ASSERT_EQUAL_STRING("", dispatch("ea", h));
-    TEST_ASSERT_NULL(h.lastCall);
-}
-
-}  // namespace
-
-void register_meade_quit_tests()
-{
-    RUN_TEST(test_empty_suffix_stops_all);
-    RUN_TEST(test_a_suffix_stops_directional_all);
-    RUN_TEST(test_e_suffix_stops_east);
-    RUN_TEST(test_w_suffix_stops_west);
-    RUN_TEST(test_n_suffix_stops_north);
-    RUN_TEST(test_s_suffix_stops_south);
-    RUN_TEST(test_q_suffix_quits_control_mode);
-    RUN_TEST(test_unknown_suffix_does_not_call_handler);
-    RUN_TEST(test_multi_char_suffix_does_not_call_handler);
+    EXPECT_STREQ("", dispatch("ea", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }

@@ -4,7 +4,7 @@
 // `:hU#`/`:hZ#` unpark / set the Az/Alt home and emit `"1"`. Any other
 // suffix is ignored and produces an empty response.
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -46,67 +46,51 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_home_p_parks_and_emits_empty()
+TEST(MeadeHome, p_parks_and_emits_empty)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("P", h));
-    TEST_ASSERT_EQUAL_STRING("park", h.lastCall);
+    EXPECT_STREQ("", dispatch("P", h));
+    EXPECT_STREQ("park", h.lastCall);
 }
 
-void test_home_f_slews_home_and_emits_empty()
+TEST(MeadeHome, f_slews_home_and_emits_empty)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("F", h));
-    TEST_ASSERT_EQUAL_STRING("home", h.lastCall);
+    EXPECT_STREQ("", dispatch("F", h));
+    EXPECT_STREQ("home", h.lastCall);
 }
 
-void test_home_u_unparks_and_emits_one()
+TEST(MeadeHome, u_unparks_and_emits_one)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("U", h));
-    TEST_ASSERT_EQUAL_STRING("unpark", h.lastCall);
+    EXPECT_STREQ("1", dispatch("U", h));
+    EXPECT_STREQ("unpark", h.lastCall);
 }
 
-void test_home_z_sets_azalt_and_emits_one()
+TEST(MeadeHome, z_sets_azalt_and_emits_one)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("Z", h));
-    TEST_ASSERT_EQUAL_STRING("azalt", h.lastCall);
+    EXPECT_STREQ("1", dispatch("Z", h));
+    EXPECT_STREQ("azalt", h.lastCall);
 }
 
-void test_home_unknown_suffix_emits_empty()
+TEST(MeadeHome, unknown_suffix_emits_empty)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("Q", h));
-    TEST_ASSERT_EQUAL_STRING("", h.lastCall);
+    EXPECT_STREQ("", dispatch("Q", h));
+    EXPECT_STREQ("", h.lastCall);
 }
 
-void test_home_empty_suffix_emits_empty()
+TEST(MeadeHome, empty_suffix_emits_empty)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("", h));
-    TEST_ASSERT_EQUAL_STRING("", h.lastCall);
+    EXPECT_STREQ("", dispatch("", h));
+    EXPECT_STREQ("", h.lastCall);
 }
 
-void test_home_trailing_bytes_do_not_call_handler()
+TEST(MeadeHome, trailing_bytes_do_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("Px", h));
-    TEST_ASSERT_EQUAL_STRING("", h.lastCall);
-}
-
-}  // namespace
-
-void register_meade_home_tests()
-{
-    RUN_TEST(test_home_p_parks_and_emits_empty);
-    RUN_TEST(test_home_f_slews_home_and_emits_empty);
-    RUN_TEST(test_home_u_unparks_and_emits_one);
-    RUN_TEST(test_home_z_sets_azalt_and_emits_one);
-    RUN_TEST(test_home_unknown_suffix_emits_empty);
-    RUN_TEST(test_home_empty_suffix_emits_empty);
-    RUN_TEST(test_home_trailing_bytes_do_not_call_handler);
+    EXPECT_STREQ("", dispatch("Px", h));
+    EXPECT_STREQ("", h.lastCall);
 }

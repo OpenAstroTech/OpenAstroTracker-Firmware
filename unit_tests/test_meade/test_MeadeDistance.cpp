@@ -4,7 +4,7 @@
 // slewing, ' ' when idle) followed by the standard terminator. Any suffix
 // is treated identically (legacy lenient behaviour).
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -36,38 +36,26 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_distance_idle_emits_space()
+TEST(MeadeDistance, idle_emits_space)
 {
     FakeHandlers h;
     h.slewing = false;
-    TEST_ASSERT_EQUAL_STRING(" #", dispatch("", h));
-    TEST_ASSERT_EQUAL_INT(1, h.callCount);
+    EXPECT_STREQ(" #", dispatch("", h));
+    EXPECT_EQ(1, h.callCount);
 }
 
-void test_distance_slewing_emits_pipe()
+TEST(MeadeDistance, slewing_emits_pipe)
 {
     FakeHandlers h;
     h.slewing = true;
-    TEST_ASSERT_EQUAL_STRING("|#", dispatch("", h));
-    TEST_ASSERT_EQUAL_INT(1, h.callCount);
+    EXPECT_STREQ("|#", dispatch("", h));
+    EXPECT_EQ(1, h.callCount);
 }
 
-void test_distance_ignores_suffix_bytes()
+TEST(MeadeDistance, ignores_suffix_bytes)
 {
     FakeHandlers h;
     h.slewing = true;
-    TEST_ASSERT_EQUAL_STRING("|#", dispatch("xyz", h));
-    TEST_ASSERT_EQUAL_INT(1, h.callCount);
-}
-
-}  // namespace
-
-void register_meade_distance_tests()
-{
-    RUN_TEST(test_distance_idle_emits_space);
-    RUN_TEST(test_distance_slewing_emits_pipe);
-    RUN_TEST(test_distance_ignores_suffix_bytes);
+    EXPECT_STREQ("|#", dispatch("xyz", h));
+    EXPECT_EQ(1, h.callCount);
 }

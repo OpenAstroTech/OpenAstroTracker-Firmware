@@ -3,7 +3,7 @@
 // `:CM#` syncs the mount to the previously-set target and emits "NONE#".
 // Any other suffix elicits "FAIL#" with no handler call.
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -32,43 +32,30 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_sync_to_target_emits_none()
+TEST(MeadeSync, to_target_emits_none)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("NONE#", dispatch("M", h));
-    TEST_ASSERT_EQUAL_INT(1, h.callCount);
+    EXPECT_STREQ("NONE#", dispatch("M", h));
+    EXPECT_EQ(1, h.callCount);
 }
 
-void test_sync_unknown_suffix_emits_fail()
+TEST(MeadeSync, unknown_suffix_emits_fail)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("FAIL#", dispatch("Q", h));
-    TEST_ASSERT_EQUAL_INT(0, h.callCount);
+    EXPECT_STREQ("FAIL#", dispatch("Q", h));
+    EXPECT_EQ(0, h.callCount);
 }
 
-void test_sync_empty_suffix_emits_fail()
+TEST(MeadeSync, empty_suffix_emits_fail)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("FAIL#", dispatch("", h));
-    TEST_ASSERT_EQUAL_INT(0, h.callCount);
+    EXPECT_STREQ("FAIL#", dispatch("", h));
+    EXPECT_EQ(0, h.callCount);
 }
 
-void test_sync_trailing_bytes_emit_fail()
+TEST(MeadeSync, trailing_bytes_emit_fail)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("FAIL#", dispatch("Mx", h));
-    TEST_ASSERT_EQUAL_INT(0, h.callCount);
-}
-
-}  // namespace
-
-void register_meade_sync_tests()
-{
-    RUN_TEST(test_sync_to_target_emits_none);
-    RUN_TEST(test_sync_unknown_suffix_emits_fail);
-    RUN_TEST(test_sync_empty_suffix_emits_fail);
-    RUN_TEST(test_sync_trailing_bytes_emit_fail);
+    EXPECT_STREQ("FAIL#", dispatch("Mx", h));
+    EXPECT_EQ(0, h.callCount);
 }

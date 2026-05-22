@@ -4,7 +4,7 @@
 // MoveAzAltHome, axis-nudge (AZ/AL), continuous slews (e/w/n/s), MoveStepper
 // (X<axis><steps>), and Hall-sensor auto-home (HR/HD).
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -125,137 +125,134 @@ const char *run(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_empty_or_null_suffix_returns_empty(void)
+TEST(MeadeMovement, empty_or_null_suffix_returns_empty)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("", h));
-    TEST_ASSERT_EQUAL_STRING("", run(nullptr, h));
-    TEST_ASSERT_EQUAL_INT(0, h.slewToTargetCalls);
+    EXPECT_STREQ("", run("", h).c_str());
+    EXPECT_STREQ("", run(nullptr, h).c_str());
+    EXPECT_EQ(0, h.slewToTargetCalls);
 }
 
-void test_slew_to_target_emits_zero_and_calls_handler(void)
+TEST(MeadeMovement, slew_to_target_emits_zero_and_calls_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", run("S", h));
-    TEST_ASSERT_EQUAL_INT(1, h.slewToTargetCalls);
+    EXPECT_STREQ("0", run("S", h).c_str());
+    EXPECT_EQ(1, h.slewToTargetCalls);
 }
 
-void test_slew_with_trailing_bytes_is_unknown(void)
+TEST(MeadeMovement, slew_with_trailing_bytes_is_unknown)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("S123", h));
-    TEST_ASSERT_EQUAL_INT(0, h.slewToTargetCalls);
+    EXPECT_STREQ("", run("S123", h).c_str());
+    EXPECT_EQ(0, h.slewToTargetCalls);
 }
 
-void test_tracking_on(void)
+TEST(MeadeMovement, tracking_on)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", run("T1", h));
-    TEST_ASSERT_EQUAL_INT(1, h.trackingOnCalls);
+    EXPECT_STREQ("1", run("T1", h).c_str());
+    EXPECT_EQ(1, h.trackingOnCalls);
 }
 
-void test_tracking_off(void)
+TEST(MeadeMovement, tracking_off)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", run("T0", h));
-    TEST_ASSERT_EQUAL_INT(1, h.trackingOffCalls);
+    EXPECT_STREQ("1", run("T0", h).c_str());
+    EXPECT_EQ(1, h.trackingOffCalls);
 }
 
-void test_tracking_bare_or_bad_byte_emits_zero(void)
+TEST(MeadeMovement, tracking_bare_or_bad_byte_emits_zero)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", run("T", h));
-    TEST_ASSERT_EQUAL_STRING("0", run("T2", h));
-    TEST_ASSERT_EQUAL_INT(0, h.trackingOnCalls);
-    TEST_ASSERT_EQUAL_INT(0, h.trackingOffCalls);
+    EXPECT_STREQ("0", run("T", h).c_str());
+    EXPECT_STREQ("0", run("T2", h).c_str());
+    EXPECT_EQ(0, h.trackingOnCalls);
+    EXPECT_EQ(0, h.trackingOffCalls);
 }
 
-void test_guide_pulse_lowercase_directions(void)
+TEST(MeadeMovement, guide_pulse_lowercase_directions)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("Gn0403", h));
-    TEST_ASSERT_EQUAL_INT(1, h.guidePulseCalls);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(meade::MoveDirection::North), static_cast<int>(h.lastDir));
-    TEST_ASSERT_EQUAL_INT(403, h.lastDurationMs);
+    EXPECT_STREQ("", run("Gn0403", h).c_str());
+    EXPECT_EQ(1, h.guidePulseCalls);
+    EXPECT_EQ(static_cast<int>(meade::MoveDirection::North), static_cast<int>(h.lastDir));
+    EXPECT_EQ(403, h.lastDurationMs);
 
-    TEST_ASSERT_EQUAL_STRING("", run("gs0100", h));
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(meade::MoveDirection::South), static_cast<int>(h.lastDir));
-    TEST_ASSERT_EQUAL_INT(100, h.lastDurationMs);
+    EXPECT_STREQ("", run("gs0100", h).c_str());
+    EXPECT_EQ(static_cast<int>(meade::MoveDirection::South), static_cast<int>(h.lastDir));
+    EXPECT_EQ(100, h.lastDurationMs);
 
-    TEST_ASSERT_EQUAL_STRING("", run("Ge0001", h));
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(meade::MoveDirection::East), static_cast<int>(h.lastDir));
-    TEST_ASSERT_EQUAL_INT(1, h.lastDurationMs);
+    EXPECT_STREQ("", run("Ge0001", h).c_str());
+    EXPECT_EQ(static_cast<int>(meade::MoveDirection::East), static_cast<int>(h.lastDir));
+    EXPECT_EQ(1, h.lastDurationMs);
 
-    TEST_ASSERT_EQUAL_STRING("", run("GW9999", h));
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(meade::MoveDirection::West), static_cast<int>(h.lastDir));
-    TEST_ASSERT_EQUAL_INT(9999, h.lastDurationMs);
+    EXPECT_STREQ("", run("GW9999", h).c_str());
+    EXPECT_EQ(static_cast<int>(meade::MoveDirection::West), static_cast<int>(h.lastDir));
+    EXPECT_EQ(9999, h.lastDurationMs);
 }
 
-void test_guide_pulse_uppercase_direction_accepted(void)
+TEST(MeadeMovement, guide_pulse_uppercase_direction_accepted)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("GN0500", h));
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(meade::MoveDirection::North), static_cast<int>(h.lastDir));
-    TEST_ASSERT_EQUAL_INT(500, h.lastDurationMs);
+    EXPECT_STREQ("", run("GN0500", h).c_str());
+    EXPECT_EQ(static_cast<int>(meade::MoveDirection::North), static_cast<int>(h.lastDir));
+    EXPECT_EQ(500, h.lastDurationMs);
 }
 
-void test_guide_pulse_unknown_direction_defaults_to_east(void)
+TEST(MeadeMovement, guide_pulse_unknown_direction_defaults_to_east)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("Gx0123", h));
-    TEST_ASSERT_EQUAL_INT(1, h.guidePulseCalls);
-    TEST_ASSERT_EQUAL_INT(static_cast<int>(meade::MoveDirection::East), static_cast<int>(h.lastDir));
+    EXPECT_STREQ("", run("Gx0123", h).c_str());
+    EXPECT_EQ(1, h.guidePulseCalls);
+    EXPECT_EQ(static_cast<int>(meade::MoveDirection::East), static_cast<int>(h.lastDir));
 }
 
-void test_guide_pulse_malformed_emits_zero(void)
+TEST(MeadeMovement, guide_pulse_malformed_emits_zero)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", run("Gn040", h));    // too short
-    TEST_ASSERT_EQUAL_STRING("0", run("Gn04030", h));  // too long
-    TEST_ASSERT_EQUAL_STRING("0", run("Gn04A3", h));   // non-digit
-    TEST_ASSERT_EQUAL_INT(0, h.guidePulseCalls);
+    EXPECT_STREQ("0", run("Gn040", h).c_str());    // too short
+    EXPECT_STREQ("0", run("Gn04030", h).c_str());  // too long
+    EXPECT_STREQ("0", run("Gn04A3", h).c_str());   // non-digit
+    EXPECT_EQ(0, h.guidePulseCalls);
 }
 
-void test_move_az_alt_home(void)
+TEST(MeadeMovement, move_az_alt_home)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", run("AA", h));
-    TEST_ASSERT_EQUAL_INT(1, h.azAltHomeCalls);
+    EXPECT_STREQ("1", run("AA", h).c_str());
+    EXPECT_EQ(1, h.azAltHomeCalls);
 }
 
-void test_move_azimuth(void)
+TEST(MeadeMovement, move_azimuth)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("AZ+32.5", h));
-    TEST_ASSERT_EQUAL_INT(1, h.azCalls);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 32.5f, h.lastAzArc);
+    EXPECT_STREQ("", run("AZ+32.5", h).c_str());
+    EXPECT_EQ(1, h.azCalls);
+    EXPECT_NEAR(32.5, static_cast<double>(h.lastAzArc), 0.001);
 }
 
-void test_move_altitude(void)
+TEST(MeadeMovement, move_altitude)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("AL-12.25", h));
-    TEST_ASSERT_EQUAL_INT(1, h.alCalls);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, -12.25f, h.lastAlArc);
+    EXPECT_STREQ("", run("AL-12.25", h).c_str());
+    EXPECT_EQ(1, h.alCalls);
+    EXPECT_NEAR(-12.25, static_cast<double>(h.lastAlArc), 0.001);
 }
 
-void test_continuous_slew_shortcuts(void)
+TEST(MeadeMovement, continuous_slew_shortcuts)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("e", h));
-    TEST_ASSERT_EQUAL_STRING("", run("w", h));
-    TEST_ASSERT_EQUAL_STRING("", run("n", h));
-    TEST_ASSERT_EQUAL_STRING("", run("s", h));
-    TEST_ASSERT_EQUAL_INT(1, h.slewE);
-    TEST_ASSERT_EQUAL_INT(1, h.slewW);
-    TEST_ASSERT_EQUAL_INT(1, h.slewN);
-    TEST_ASSERT_EQUAL_INT(1, h.slewS);
+    EXPECT_STREQ("", run("e", h).c_str());
+    EXPECT_STREQ("", run("w", h).c_str());
+    EXPECT_STREQ("", run("n", h).c_str());
+    EXPECT_STREQ("", run("s", h).c_str());
+    EXPECT_EQ(1, h.slewE);
+    EXPECT_EQ(1, h.slewW);
+    EXPECT_EQ(1, h.slewN);
+    EXPECT_EQ(1, h.slewS);
 }
 
-void test_move_stepper_each_axis(void)
+TEST(MeadeMovement, move_stepper_each_axis)
 {
     struct Case {
         const char *suffix;
@@ -272,93 +269,66 @@ void test_move_stepper_each_axis(void)
     for (auto &c : cases)
     {
         FakeHandlers h;
-        TEST_ASSERT_EQUAL_STRING("1", run(c.suffix, h));
-        TEST_ASSERT_EQUAL_INT(1, h.moveStepperCalls);
-        TEST_ASSERT_EQUAL_INT(static_cast<int>(c.axis), static_cast<int>(h.lastAxis));
-        TEST_ASSERT_EQUAL_INT(c.steps, h.lastSteps);
+        EXPECT_STREQ("1", run(c.suffix, h).c_str());
+        EXPECT_EQ(1, h.moveStepperCalls);
+        EXPECT_EQ(static_cast<int>(c.axis), static_cast<int>(h.lastAxis));
+        EXPECT_EQ(c.steps, h.lastSteps);
     }
 }
 
-void test_move_stepper_invalid_axis_returns_zero(void)
+TEST(MeadeMovement, move_stepper_invalid_axis_returns_zero)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", run("Xq500", h));
-    TEST_ASSERT_EQUAL_STRING("0", run("X", h));
-    TEST_ASSERT_EQUAL_INT(0, h.moveStepperCalls);
+    EXPECT_STREQ("0", run("Xq500", h).c_str());
+    EXPECT_STREQ("0", run("X", h).c_str());
+    EXPECT_EQ(0, h.moveStepperCalls);
 }
 
-void test_home_ra_directions(void)
+TEST(MeadeMovement, home_ra_directions)
 {
     FakeHandlers h;
     h.homeRaResult = true;
-    TEST_ASSERT_EQUAL_STRING("1", run("HRR30", h));
-    TEST_ASSERT_EQUAL_INT(1, h.homeRaCalls);
-    TEST_ASSERT_EQUAL_INT(-1, h.lastHomeRaDirection);
-    TEST_ASSERT_EQUAL_STRING("30", h.lastRaPayload);
+    EXPECT_STREQ("1", run("HRR30", h).c_str());
+    EXPECT_EQ(1, h.homeRaCalls);
+    EXPECT_EQ(-1, h.lastHomeRaDirection);
+    EXPECT_STREQ("30", h.lastRaPayload);
 
-    TEST_ASSERT_EQUAL_STRING("1", run("HRL", h));
-    TEST_ASSERT_EQUAL_INT(2, h.homeRaCalls);
-    TEST_ASSERT_EQUAL_INT(1, h.lastHomeRaDirection);
-    TEST_ASSERT_EQUAL_STRING("", h.lastRaPayload);
+    EXPECT_STREQ("1", run("HRL", h).c_str());
+    EXPECT_EQ(2, h.homeRaCalls);
+    EXPECT_EQ(1, h.lastHomeRaDirection);
+    EXPECT_STREQ("", h.lastRaPayload);
 }
 
-void test_home_ra_bad_direction_emits_zero_without_calling(void)
+TEST(MeadeMovement, home_ra_bad_direction_emits_zero_without_calling)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", run("HR", h));
-    TEST_ASSERT_EQUAL_STRING("0", run("HRX", h));
-    TEST_ASSERT_EQUAL_INT(0, h.homeRaCalls);
+    EXPECT_STREQ("0", run("HR", h).c_str());
+    EXPECT_STREQ("0", run("HRX", h).c_str());
+    EXPECT_EQ(0, h.homeRaCalls);
 }
 
-void test_home_dec_directions(void)
+TEST(MeadeMovement, home_dec_directions)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", run("HDU45", h));
-    TEST_ASSERT_EQUAL_INT(1, h.lastHomeDecDirection);
-    TEST_ASSERT_EQUAL_STRING("45", h.lastDecPayload);
+    EXPECT_STREQ("1", run("HDU45", h).c_str());
+    EXPECT_EQ(1, h.lastHomeDecDirection);
+    EXPECT_STREQ("45", h.lastDecPayload);
 
-    TEST_ASSERT_EQUAL_STRING("1", run("HDD", h));
-    TEST_ASSERT_EQUAL_INT(-1, h.lastHomeDecDirection);
+    EXPECT_STREQ("1", run("HDD", h).c_str());
+    EXPECT_EQ(-1, h.lastHomeDecDirection);
 }
 
-void test_home_dec_handler_failure_propagates(void)
+TEST(MeadeMovement, home_dec_handler_failure_propagates)
 {
     FakeHandlers h;
     h.homeDecResult = false;
-    TEST_ASSERT_EQUAL_STRING("0", run("HDU10", h));
-    TEST_ASSERT_EQUAL_INT(1, h.homeDecCalls);
+    EXPECT_STREQ("0", run("HDU10", h).c_str());
+    EXPECT_EQ(1, h.homeDecCalls);
 }
 
-void test_unknown_suffix_returns_empty(void)
+TEST(MeadeMovement, unknown_suffix_returns_empty)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", run("Q", h));
-    TEST_ASSERT_EQUAL_STRING("", run("Z123", h));
-}
-
-}  // namespace
-
-void register_meade_movement_tests()
-{
-    RUN_TEST(test_empty_or_null_suffix_returns_empty);
-    RUN_TEST(test_slew_to_target_emits_zero_and_calls_handler);
-    RUN_TEST(test_slew_with_trailing_bytes_is_unknown);
-    RUN_TEST(test_tracking_on);
-    RUN_TEST(test_tracking_off);
-    RUN_TEST(test_tracking_bare_or_bad_byte_emits_zero);
-    RUN_TEST(test_guide_pulse_lowercase_directions);
-    RUN_TEST(test_guide_pulse_uppercase_direction_accepted);
-    RUN_TEST(test_guide_pulse_unknown_direction_defaults_to_east);
-    RUN_TEST(test_guide_pulse_malformed_emits_zero);
-    RUN_TEST(test_move_az_alt_home);
-    RUN_TEST(test_move_azimuth);
-    RUN_TEST(test_move_altitude);
-    RUN_TEST(test_continuous_slew_shortcuts);
-    RUN_TEST(test_move_stepper_each_axis);
-    RUN_TEST(test_move_stepper_invalid_axis_returns_zero);
-    RUN_TEST(test_home_ra_directions);
-    RUN_TEST(test_home_ra_bad_direction_emits_zero_without_calling);
-    RUN_TEST(test_home_dec_directions);
-    RUN_TEST(test_home_dec_handler_failure_propagates);
-    RUN_TEST(test_unknown_suffix_returns_empty);
+    EXPECT_STREQ("", run("Q", h).c_str());
+    EXPECT_STREQ("", run("Z123", h).c_str());
 }

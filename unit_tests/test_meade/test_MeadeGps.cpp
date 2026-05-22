@@ -4,9 +4,9 @@
 // emits "1" on success / "0" on timeout. Any other suffix emits "0" without
 // invoking the handler.
 
-#include <cstring>
+#include <gtest/gtest.h>
 
-#include <unity.h>
+#include <cstring>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -40,56 +40,42 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_gps_t_success_emits_one()
+TEST(MeadeGps, t_success_emits_one)
 {
     FakeHandlers h;
     h.nextResult = true;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("T", h));
-    TEST_ASSERT_TRUE(h.called);
-    TEST_ASSERT_EQUAL_STRING("", h.lastPayload);
+    EXPECT_STREQ("1", dispatch("T", h));
+    EXPECT_TRUE(h.called);
+    EXPECT_STREQ("", h.lastPayload);
 }
 
-void test_gps_t_failure_emits_zero()
+TEST(MeadeGps, t_failure_emits_zero)
 {
     FakeHandlers h;
     h.nextResult = false;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("T", h));
-    TEST_ASSERT_TRUE(h.called);
+    EXPECT_STREQ("0", dispatch("T", h));
+    EXPECT_TRUE(h.called);
 }
 
-void test_gps_t_with_payload_forwards_payload()
+TEST(MeadeGps, t_with_payload_forwards_payload)
 {
     FakeHandlers h;
     h.nextResult = true;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("T120000", h));
-    TEST_ASSERT_TRUE(h.called);
-    TEST_ASSERT_EQUAL_STRING("120000", h.lastPayload);
+    EXPECT_STREQ("1", dispatch("T120000", h));
+    EXPECT_TRUE(h.called);
+    EXPECT_STREQ("120000", h.lastPayload);
 }
 
-void test_gps_unknown_suffix_emits_zero_no_call()
+TEST(MeadeGps, unknown_suffix_emits_zero_no_call)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("Q", h));
-    TEST_ASSERT_FALSE(h.called);
+    EXPECT_STREQ("0", dispatch("Q", h));
+    EXPECT_FALSE(h.called);
 }
 
-void test_gps_empty_suffix_emits_zero_no_call()
+TEST(MeadeGps, empty_suffix_emits_zero_no_call)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("", h));
-    TEST_ASSERT_FALSE(h.called);
-}
-
-}  // namespace
-
-void register_meade_gps_tests()
-{
-    RUN_TEST(test_gps_t_success_emits_one);
-    RUN_TEST(test_gps_t_failure_emits_zero);
-    RUN_TEST(test_gps_t_with_payload_forwards_payload);
-    RUN_TEST(test_gps_unknown_suffix_emits_zero_no_call);
-    RUN_TEST(test_gps_empty_suffix_emits_zero_no_call);
+    EXPECT_STREQ("0", dispatch("", h));
+    EXPECT_FALSE(h.called);
 }

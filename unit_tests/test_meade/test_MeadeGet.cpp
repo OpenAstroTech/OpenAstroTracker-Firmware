@@ -5,7 +5,7 @@
 // bytes emitted on the wire. The stub records which callback fired so we
 // also catch silent regressions where the wrong handler is invoked.
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include <string.h>
 
@@ -155,200 +155,171 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_firmware_version_two_char_command()
+TEST(MeadeGet, firmware_version_two_char_command)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("V1.2.3#", dispatch("VN", h));
-    TEST_ASSERT_EQUAL_STRING("fw", h.lastCall);
+    EXPECT_STREQ("V1.2.3#", dispatch("VN", h));
+    EXPECT_STREQ("fw", h.lastCall);
 }
 
-void test_product_name_two_char_command()
+TEST(MeadeGet, product_name_two_char_command)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("OpenAstroTracker#", dispatch("VP", h));
-    TEST_ASSERT_EQUAL_STRING("product", h.lastCall);
+    EXPECT_STREQ("OpenAstroTracker#", dispatch("VP", h));
+    EXPECT_STREQ("product", h.lastCall);
 }
 
-void test_current_ra_formats_hh_mm_ss()
+TEST(MeadeGet, current_ra_formats_hh_mm_ss)
 {
     FakeHandlers h;
     h.currentRa = {14, 45, 6};
-    TEST_ASSERT_EQUAL_STRING("14:45:06#", dispatch("R", h));
-    TEST_ASSERT_EQUAL_STRING("currentRa", h.lastCall);
+    EXPECT_STREQ("14:45:06#", dispatch("R", h));
+    EXPECT_STREQ("currentRa", h.lastCall);
 }
 
-void test_target_ra_formats_hh_mm_ss()
+TEST(MeadeGet, target_ra_formats_hh_mm_ss)
 {
     FakeHandlers h;
     h.targetRa = {0, 0, 0};
-    TEST_ASSERT_EQUAL_STRING("00:00:00#", dispatch("r", h));
-    TEST_ASSERT_EQUAL_STRING("targetRa", h.lastCall);
+    EXPECT_STREQ("00:00:00#", dispatch("r", h));
+    EXPECT_STREQ("targetRa", h.lastCall);
 }
 
-void test_current_dec_signed_dms()
+TEST(MeadeGet, current_dec_signed_dms)
 {
     FakeHandlers h;
     h.currentDec = {47, 30, 15};
-    TEST_ASSERT_EQUAL_STRING("+47*30'15#", dispatch("D", h));
-    TEST_ASSERT_EQUAL_STRING("currentDec", h.lastCall);
+    EXPECT_STREQ("+47*30'15#", dispatch("D", h));
+    EXPECT_STREQ("currentDec", h.lastCall);
 }
 
-void test_target_dec_negative()
+TEST(MeadeGet, target_dec_negative)
 {
     FakeHandlers h;
     h.targetDec = {-12, 45, 0};
-    TEST_ASSERT_EQUAL_STRING("-12*45'00#", dispatch("d", h));
-    TEST_ASSERT_EQUAL_STRING("targetDec", h.lastCall);
+    EXPECT_STREQ("-12*45'00#", dispatch("d", h));
+    EXPECT_STREQ("targetDec", h.lastCall);
 }
 
-void test_mount_status_passes_through()
+TEST(MeadeGet, mount_status_passes_through)
 {
     FakeHandlers h;
     h.status = "Idle,---,0,0";
-    TEST_ASSERT_EQUAL_STRING("Idle,---,0,0#", dispatch("X", h));
-    TEST_ASSERT_EQUAL_STRING("status", h.lastCall);
+    EXPECT_STREQ("Idle,---,0,0#", dispatch("X", h));
+    EXPECT_STREQ("status", h.lastCall);
 }
 
-void test_is_slewing_emits_zero_one()
+TEST(MeadeGet, is_slewing_emits_zero_one)
 {
     FakeHandlers h;
     h.isSlewing = true;
-    TEST_ASSERT_EQUAL_STRING("1#", dispatch("IS", h));
-    TEST_ASSERT_EQUAL_STRING("slewing", h.lastCall);
+    EXPECT_STREQ("1#", dispatch("IS", h));
+    EXPECT_STREQ("slewing", h.lastCall);
     h.isSlewing = false;
-    TEST_ASSERT_EQUAL_STRING("0#", dispatch("IS", h));
+    EXPECT_STREQ("0#", dispatch("IS", h));
 }
 
-void test_is_tracking_emits_zero_one()
+TEST(MeadeGet, is_tracking_emits_zero_one)
 {
     FakeHandlers h;
     h.isTracking = false;
-    TEST_ASSERT_EQUAL_STRING("0#", dispatch("IT", h));
-    TEST_ASSERT_EQUAL_STRING("tracking", h.lastCall);
+    EXPECT_STREQ("0#", dispatch("IT", h));
+    EXPECT_STREQ("tracking", h.lastCall);
 }
 
-void test_is_guiding_emits_zero_one()
+TEST(MeadeGet, is_guiding_emits_zero_one)
 {
     FakeHandlers h;
     h.isGuiding = true;
-    TEST_ASSERT_EQUAL_STRING("1#", dispatch("IG", h));
-    TEST_ASSERT_EQUAL_STRING("guiding", h.lastCall);
+    EXPECT_STREQ("1#", dispatch("IG", h));
+    EXPECT_STREQ("guiding", h.lastCall);
 }
 
-void test_site_latitude_signed_two_digit_deg()
+TEST(MeadeGet, site_latitude_signed_two_digit_deg)
 {
     FakeHandlers h;
     h.latitude = {47, 30};
-    TEST_ASSERT_EQUAL_STRING("+47*30#", dispatch("t", h));
+    EXPECT_STREQ("+47*30#", dispatch("t", h));
     h.latitude = {-12, 45};
-    TEST_ASSERT_EQUAL_STRING("-12*45#", dispatch("t", h));
+    EXPECT_STREQ("-12*45#", dispatch("t", h));
 }
 
-void test_site_longitude_signed_three_digit_deg()
+TEST(MeadeGet, site_longitude_signed_three_digit_deg)
 {
     FakeHandlers h;
     h.longitude = {12, 30};
-    TEST_ASSERT_EQUAL_STRING("+012*30#", dispatch("g", h));
+    EXPECT_STREQ("+012*30#", dispatch("g", h));
     h.longitude = {-122, 45};
-    TEST_ASSERT_EQUAL_STRING("-122*45#", dispatch("g", h));
+    EXPECT_STREQ("-122*45#", dispatch("g", h));
 }
 
-void test_utc_offset_signs_and_pads()
+TEST(MeadeGet, utc_offset_signs_and_pads)
 {
     FakeHandlers h;
     h.utcOffset = -5;
-    TEST_ASSERT_EQUAL_STRING("-05#", dispatch("G", h));
+    EXPECT_STREQ("-05#", dispatch("G", h));
     h.utcOffset = 3;
-    TEST_ASSERT_EQUAL_STRING("+03#", dispatch("G", h));
+    EXPECT_STREQ("+03#", dispatch("G", h));
 }
 
-void test_local_time_24h_format()
+TEST(MeadeGet, local_time_24h_format)
 {
     FakeHandlers h;
     h.localTime = {14, 45, 6};
-    TEST_ASSERT_EQUAL_STRING("14:45:06#", dispatch("L", h));
-    TEST_ASSERT_EQUAL_STRING("time", h.lastCall);
+    EXPECT_STREQ("14:45:06#", dispatch("L", h));
+    EXPECT_STREQ("time", h.lastCall);
 }
 
-void test_local_time_12h_converts_pm()
+TEST(MeadeGet, local_time_12h_converts_pm)
 {
     FakeHandlers h;
     h.localTime = {14, 45, 6};  // 14:xx -> 02:xx in 12h
-    TEST_ASSERT_EQUAL_STRING("02:45:06#", dispatch("a", h));
+    EXPECT_STREQ("02:45:06#", dispatch("a", h));
     h.localTime = {0, 30, 0};  // 00 -> 12
-    TEST_ASSERT_EQUAL_STRING("12:30:00#", dispatch("a", h));
+    EXPECT_STREQ("12:30:00#", dispatch("a", h));
     h.localTime = {7, 8, 9};  // morning unchanged
-    TEST_ASSERT_EQUAL_STRING("07:08:09#", dispatch("a", h));
+    EXPECT_STREQ("07:08:09#", dispatch("a", h));
 }
 
-void test_local_date_truncates_year_to_two_digits()
+TEST(MeadeGet, local_date_truncates_year_to_two_digits)
 {
     FakeHandlers h;
     h.localDate = {3, 7, 2024};
-    TEST_ASSERT_EQUAL_STRING("03/07/24#", dispatch("C", h));
-    TEST_ASSERT_EQUAL_STRING("date", h.lastCall);
+    EXPECT_STREQ("03/07/24#", dispatch("C", h));
+    EXPECT_STREQ("date", h.lastCall);
 }
 
-void test_clock_format_24h()
+TEST(MeadeGet, clock_format_24h)
 {
     FakeHandlers h;
     h.clockFmt = meade::MeadeClockFormat::Hours24;
-    TEST_ASSERT_EQUAL_STRING("24#", dispatch("c", h));
+    EXPECT_STREQ("24#", dispatch("c", h));
     h.clockFmt = meade::MeadeClockFormat::Hours12;
-    TEST_ASSERT_EQUAL_STRING("12#", dispatch("c", h));
+    EXPECT_STREQ("12#", dispatch("c", h));
 }
 
-void test_tracking_rate_sidereal()
+TEST(MeadeGet, tracking_rate_sidereal)
 {
     FakeHandlers h;
     h.trackRate = meade::MeadeTrackingRate::Sidereal;
-    TEST_ASSERT_EQUAL_STRING("60.0#", dispatch("T", h));
+    EXPECT_STREQ("60.0#", dispatch("T", h));
 }
 
-void test_site_name_slots_invoke_handler_with_index()
+TEST(MeadeGet, site_name_slots_invoke_handler_with_index)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("OAT1#", dispatch("M", h));
-    TEST_ASSERT_EQUAL_STRING("OAT2#", dispatch("N", h));
-    TEST_ASSERT_EQUAL_STRING("OAT3#", dispatch("O", h));
-    TEST_ASSERT_EQUAL_STRING("OAT4#", dispatch("P", h));
-    TEST_ASSERT_EQUAL_STRING("siteName", h.lastCall);
+    EXPECT_STREQ("OAT1#", dispatch("M", h));
+    EXPECT_STREQ("OAT2#", dispatch("N", h));
+    EXPECT_STREQ("OAT3#", dispatch("O", h));
+    EXPECT_STREQ("OAT4#", dispatch("P", h));
+    EXPECT_STREQ("siteName", h.lastCall);
 }
 
-void test_unknown_suffix_returns_empty()
+TEST(MeadeGet, unknown_suffix_returns_empty)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("ZZ", h));
-    TEST_ASSERT_EQUAL_STRING("", dispatch("Q", h));
-    TEST_ASSERT_EQUAL_STRING("", dispatch("", h));
-    TEST_ASSERT_NULL(h.lastCall);
-}
-
-}  // namespace
-
-void register_meade_get_tests()
-{
-    RUN_TEST(test_firmware_version_two_char_command);
-    RUN_TEST(test_product_name_two_char_command);
-    RUN_TEST(test_current_ra_formats_hh_mm_ss);
-    RUN_TEST(test_target_ra_formats_hh_mm_ss);
-    RUN_TEST(test_current_dec_signed_dms);
-    RUN_TEST(test_target_dec_negative);
-    RUN_TEST(test_mount_status_passes_through);
-    RUN_TEST(test_is_slewing_emits_zero_one);
-    RUN_TEST(test_is_tracking_emits_zero_one);
-    RUN_TEST(test_is_guiding_emits_zero_one);
-    RUN_TEST(test_site_latitude_signed_two_digit_deg);
-    RUN_TEST(test_site_longitude_signed_three_digit_deg);
-    RUN_TEST(test_utc_offset_signs_and_pads);
-    RUN_TEST(test_local_time_24h_format);
-    RUN_TEST(test_local_time_12h_converts_pm);
-    RUN_TEST(test_local_date_truncates_year_to_two_digits);
-    RUN_TEST(test_clock_format_24h);
-    RUN_TEST(test_tracking_rate_sidereal);
-    RUN_TEST(test_site_name_slots_invoke_handler_with_index);
-    RUN_TEST(test_unknown_suffix_returns_empty);
+    EXPECT_STREQ("", dispatch("ZZ", h));
+    EXPECT_STREQ("", dispatch("Q", h));
+    EXPECT_STREQ("", dispatch("", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }

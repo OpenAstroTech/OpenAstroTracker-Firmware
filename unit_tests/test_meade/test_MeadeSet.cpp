@@ -6,7 +6,7 @@
 // observed. The stub records which callback fired so we also catch silent
 // regressions where the wrong handler is invoked.
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include <string.h>
 
@@ -118,320 +118,270 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
 // ---- Target DEC (d) ----------------------------------------------------
 
-void test_set_target_dec_happy_path()
+TEST(MeadeSet, target_dec_happy_path)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("d+84*03:02", h));
-    TEST_ASSERT_EQUAL_STRING("targetDec", h.lastCall);
-    TEST_ASSERT_EQUAL_INT(84, h.dec.degrees);
-    TEST_ASSERT_EQUAL_UINT8(3, h.dec.minutes);
-    TEST_ASSERT_EQUAL_UINT8(2, h.dec.seconds);
+    EXPECT_STREQ("1", dispatch("d+84*03:02", h));
+    EXPECT_STREQ("targetDec", h.lastCall);
+    EXPECT_EQ(84, h.dec.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(3), h.dec.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(2), h.dec.seconds);
 }
 
-void test_set_target_dec_negative_with_colon_separator()
+TEST(MeadeSet, target_dec_negative_with_colon_separator)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("d-12:45:30", h));
-    TEST_ASSERT_EQUAL_INT(-12, h.dec.degrees);
-    TEST_ASSERT_EQUAL_UINT8(45, h.dec.minutes);
-    TEST_ASSERT_EQUAL_UINT8(30, h.dec.seconds);
+    EXPECT_STREQ("1", dispatch("d-12:45:30", h));
+    EXPECT_EQ(-12, h.dec.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(45), h.dec.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(30), h.dec.seconds);
 }
 
-void test_set_target_dec_handler_failure_returns_zero()
+TEST(MeadeSet, target_dec_handler_failure_returns_zero)
 {
     FakeHandlers h;
     h.nextResult = false;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("d+10*20:30", h));
-    TEST_ASSERT_EQUAL_STRING("targetDec", h.lastCall);
+    EXPECT_STREQ("0", dispatch("d+10*20:30", h));
+    EXPECT_STREQ("targetDec", h.lastCall);
 }
 
-void test_set_target_dec_malformed_does_not_call_handler()
+TEST(MeadeSet, target_dec_malformed_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("d+84X03:02", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("d+84X03:02", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Target RA (r) -----------------------------------------------------
 
-void test_set_target_ra_happy_path()
+TEST(MeadeSet, target_ra_happy_path)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("r04:03:02", h));
-    TEST_ASSERT_EQUAL_STRING("targetRa", h.lastCall);
-    TEST_ASSERT_EQUAL_UINT8(4, h.ra.hours);
-    TEST_ASSERT_EQUAL_UINT8(3, h.ra.minutes);
-    TEST_ASSERT_EQUAL_UINT8(2, h.ra.seconds);
+    EXPECT_STREQ("1", dispatch("r04:03:02", h));
+    EXPECT_STREQ("targetRa", h.lastCall);
+    EXPECT_EQ(static_cast<uint8_t>(4), h.ra.hours);
+    EXPECT_EQ(static_cast<uint8_t>(3), h.ra.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(2), h.ra.seconds);
 }
 
-void test_set_target_ra_malformed_does_not_call_handler()
+TEST(MeadeSet, target_ra_malformed_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("r04-03-02", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("r04-03-02", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Local Sidereal Time (HL) -----------------------------------------
 
-void test_set_lst_with_seconds()
+TEST(MeadeSet, lst_with_seconds)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("HL123456", h));
-    TEST_ASSERT_EQUAL_STRING("lst", h.lastCall);
-    TEST_ASSERT_EQUAL_UINT8(12, h.lst.hours);
-    TEST_ASSERT_EQUAL_UINT8(34, h.lst.minutes);
-    TEST_ASSERT_EQUAL_UINT8(56, h.lst.seconds);
+    EXPECT_STREQ("1", dispatch("HL123456", h));
+    EXPECT_STREQ("lst", h.lastCall);
+    EXPECT_EQ(static_cast<uint8_t>(12), h.lst.hours);
+    EXPECT_EQ(static_cast<uint8_t>(34), h.lst.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(56), h.lst.seconds);
 }
 
-void test_set_lst_without_seconds()
+TEST(MeadeSet, lst_without_seconds)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("HL1234", h));
-    TEST_ASSERT_EQUAL_UINT8(12, h.lst.hours);
-    TEST_ASSERT_EQUAL_UINT8(34, h.lst.minutes);
-    TEST_ASSERT_EQUAL_UINT8(0, h.lst.seconds);
+    EXPECT_STREQ("1", dispatch("HL1234", h));
+    EXPECT_EQ(static_cast<uint8_t>(12), h.lst.hours);
+    EXPECT_EQ(static_cast<uint8_t>(34), h.lst.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(0), h.lst.seconds);
 }
 
-void test_set_lst_malformed_length_does_not_call_handler()
+TEST(MeadeSet, lst_malformed_length_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("HL12345", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("HL12345", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Home Point (HP) --------------------------------------------------
 
-void test_set_home_point_happy_path()
+TEST(MeadeSet, home_point_happy_path)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("HP", h));
-    TEST_ASSERT_EQUAL_STRING("home", h.lastCall);
+    EXPECT_STREQ("1", dispatch("HP", h));
+    EXPECT_STREQ("home", h.lastCall);
 }
 
-void test_set_home_point_handler_failure_returns_zero()
+TEST(MeadeSet, home_point_handler_failure_returns_zero)
 {
     FakeHandlers h;
     h.nextResult = false;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("HP", h));
+    EXPECT_STREQ("0", dispatch("HP", h));
 }
 
 // ---- Hour Angle (H) ---------------------------------------------------
 
-void test_set_hour_angle_happy_path()
+TEST(MeadeSet, hour_angle_happy_path)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("H12:34", h));
-    TEST_ASSERT_EQUAL_STRING("ha", h.lastCall);
-    TEST_ASSERT_EQUAL_UINT8(12, h.haHours);
-    TEST_ASSERT_EQUAL_UINT8(34, h.haMinutes);
+    EXPECT_STREQ("1", dispatch("H12:34", h));
+    EXPECT_STREQ("ha", h.lastCall);
+    EXPECT_EQ(static_cast<uint8_t>(12), h.haHours);
+    EXPECT_EQ(static_cast<uint8_t>(34), h.haMinutes);
 }
 
-void test_set_hour_angle_malformed_does_not_call_handler()
+TEST(MeadeSet, hour_angle_malformed_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("H1X:34", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("H1X:34", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Sync Coordinates (Y) ---------------------------------------------
 
-void test_sync_coordinates_happy_path()
+TEST(MeadeSet, sync_coordinates_happy_path)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("Y+84*03:02.18:34:12", h));
-    TEST_ASSERT_EQUAL_STRING("sync", h.lastCall);
-    TEST_ASSERT_EQUAL_INT(84, h.syncDec.degrees);
-    TEST_ASSERT_EQUAL_UINT8(3, h.syncDec.minutes);
-    TEST_ASSERT_EQUAL_UINT8(2, h.syncDec.seconds);
-    TEST_ASSERT_EQUAL_UINT8(18, h.syncRa.hours);
-    TEST_ASSERT_EQUAL_UINT8(34, h.syncRa.minutes);
-    TEST_ASSERT_EQUAL_UINT8(12, h.syncRa.seconds);
+    EXPECT_STREQ("1", dispatch("Y+84*03:02.18:34:12", h));
+    EXPECT_STREQ("sync", h.lastCall);
+    EXPECT_EQ(84, h.syncDec.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(3), h.syncDec.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(2), h.syncDec.seconds);
+    EXPECT_EQ(static_cast<uint8_t>(18), h.syncRa.hours);
+    EXPECT_EQ(static_cast<uint8_t>(34), h.syncRa.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(12), h.syncRa.seconds);
 }
 
-void test_sync_coordinates_missing_dot_does_not_call_handler()
+TEST(MeadeSet, sync_coordinates_missing_dot_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("Y+84*03:02X18:34:12", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("Y+84*03:02X18:34:12", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Site Latitude (t) ------------------------------------------------
 
-void test_set_site_latitude_positive()
+TEST(MeadeSet, site_latitude_positive)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("t+30*29", h));
-    TEST_ASSERT_EQUAL_STRING("lat", h.lastCall);
-    TEST_ASSERT_EQUAL_INT(30, h.lat.degrees);
-    TEST_ASSERT_EQUAL_UINT8(29, h.lat.minutes);
+    EXPECT_STREQ("1", dispatch("t+30*29", h));
+    EXPECT_STREQ("lat", h.lastCall);
+    EXPECT_EQ(30, h.lat.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(29), h.lat.minutes);
 }
 
-void test_set_site_latitude_negative_with_colon()
+TEST(MeadeSet, site_latitude_negative_with_colon)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("t-45:15", h));
-    TEST_ASSERT_EQUAL_INT(-45, h.lat.degrees);
-    TEST_ASSERT_EQUAL_UINT8(15, h.lat.minutes);
+    EXPECT_STREQ("1", dispatch("t-45:15", h));
+    EXPECT_EQ(-45, h.lat.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(15), h.lat.minutes);
 }
 
-void test_set_site_latitude_malformed_does_not_call_handler()
+TEST(MeadeSet, site_latitude_malformed_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("t30*29", h));  // missing sign
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("t30*29", h));  // missing sign
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Site Longitude (g) -----------------------------------------------
 
-void test_set_site_longitude_three_digit_degrees()
+TEST(MeadeSet, site_longitude_three_digit_degrees)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("g+097*34", h));
-    TEST_ASSERT_EQUAL_STRING("lon", h.lastCall);
-    TEST_ASSERT_EQUAL_INT(97, h.lon.degrees);
-    TEST_ASSERT_EQUAL_UINT8(34, h.lon.minutes);
+    EXPECT_STREQ("1", dispatch("g+097*34", h));
+    EXPECT_STREQ("lon", h.lastCall);
+    EXPECT_EQ(97, h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(34), h.lon.minutes);
 }
 
-void test_set_site_longitude_malformed_short_does_not_call_handler()
+TEST(MeadeSet, site_longitude_malformed_short_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("g+97*34", h));  // 2-digit degrees
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("g+97*34", h));  // 2-digit degrees
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- UTC Offset (G) ---------------------------------------------------
 
-void test_set_utc_offset_positive()
+TEST(MeadeSet, utc_offset_positive)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("G+05", h));
-    TEST_ASSERT_EQUAL_STRING("utc", h.lastCall);
-    TEST_ASSERT_EQUAL_INT(5, h.utc);
+    EXPECT_STREQ("1", dispatch("G+05", h));
+    EXPECT_STREQ("utc", h.lastCall);
+    EXPECT_EQ(5, h.utc);
 }
 
-void test_set_utc_offset_negative()
+TEST(MeadeSet, utc_offset_negative)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("G-08", h));
-    TEST_ASSERT_EQUAL_INT(-8, h.utc);
+    EXPECT_STREQ("1", dispatch("G-08", h));
+    EXPECT_EQ(-8, h.utc);
 }
 
-void test_set_utc_offset_malformed_length_does_not_call_handler()
+TEST(MeadeSet, utc_offset_malformed_length_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("G+5", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("G+5", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Local Time (L) ---------------------------------------------------
 
-void test_set_local_time_happy_path()
+TEST(MeadeSet, local_time_happy_path)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1", dispatch("L19:33:03", h));
-    TEST_ASSERT_EQUAL_STRING("time", h.lastCall);
-    TEST_ASSERT_EQUAL_UINT8(19, h.time.hours);
-    TEST_ASSERT_EQUAL_UINT8(33, h.time.minutes);
-    TEST_ASSERT_EQUAL_UINT8(3, h.time.seconds);
+    EXPECT_STREQ("1", dispatch("L19:33:03", h));
+    EXPECT_STREQ("time", h.lastCall);
+    EXPECT_EQ(static_cast<uint8_t>(19), h.time.hours);
+    EXPECT_EQ(static_cast<uint8_t>(33), h.time.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(3), h.time.seconds);
 }
 
-void test_set_local_time_malformed_does_not_call_handler()
+TEST(MeadeSet, local_time_malformed_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("L19-33-03", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("L19-33-03", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Local Date (C) ---------------------------------------------------
 
-void test_set_local_date_success_emits_planetary_ack()
+TEST(MeadeSet, local_date_success_emits_planetary_ack)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("1Updating Planetary Data#                              #", dispatch("C04/30/24", h));
-    TEST_ASSERT_EQUAL_STRING("date", h.lastCall);
-    TEST_ASSERT_EQUAL_UINT8(4, h.date.month);
-    TEST_ASSERT_EQUAL_UINT8(30, h.date.day);
-    TEST_ASSERT_EQUAL_UINT16(2024, h.date.year);
+    EXPECT_STREQ("1Updating Planetary Data#                              #", dispatch("C04/30/24", h));
+    EXPECT_STREQ("date", h.lastCall);
+    EXPECT_EQ(static_cast<uint8_t>(4), h.date.month);
+    EXPECT_EQ(static_cast<uint8_t>(30), h.date.day);
+    EXPECT_EQ(static_cast<uint16_t>(2024), h.date.year);
 }
 
-void test_set_local_date_failure_returns_zero_only()
+TEST(MeadeSet, local_date_failure_returns_zero_only)
 {
     FakeHandlers h;
     h.nextResult = false;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("C04/30/24", h));
+    EXPECT_STREQ("0", dispatch("C04/30/24", h));
 }
 
-void test_set_local_date_malformed_does_not_call_handler()
+TEST(MeadeSet, local_date_malformed_does_not_call_handler)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("C04-30-24", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("C04-30-24", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
 // ---- Top-level routing ------------------------------------------------
 
-void test_unknown_set_subcommand_returns_zero()
+TEST(MeadeSet, unknown_subcommand_returns_zero)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("Z42", h));
-    TEST_ASSERT_NULL(h.lastCall);
+    EXPECT_STREQ("0", dispatch("Z42", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }
 
-void test_empty_suffix_returns_zero()
+TEST(MeadeSet, empty_suffix_returns_zero)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("0", dispatch("", h));
-    TEST_ASSERT_NULL(h.lastCall);
-}
-
-}  // namespace
-
-void register_meade_set_tests()
-{
-    RUN_TEST(test_set_target_dec_happy_path);
-    RUN_TEST(test_set_target_dec_negative_with_colon_separator);
-    RUN_TEST(test_set_target_dec_handler_failure_returns_zero);
-    RUN_TEST(test_set_target_dec_malformed_does_not_call_handler);
-
-    RUN_TEST(test_set_target_ra_happy_path);
-    RUN_TEST(test_set_target_ra_malformed_does_not_call_handler);
-
-    RUN_TEST(test_set_lst_with_seconds);
-    RUN_TEST(test_set_lst_without_seconds);
-    RUN_TEST(test_set_lst_malformed_length_does_not_call_handler);
-
-    RUN_TEST(test_set_home_point_happy_path);
-    RUN_TEST(test_set_home_point_handler_failure_returns_zero);
-
-    RUN_TEST(test_set_hour_angle_happy_path);
-    RUN_TEST(test_set_hour_angle_malformed_does_not_call_handler);
-
-    RUN_TEST(test_sync_coordinates_happy_path);
-    RUN_TEST(test_sync_coordinates_missing_dot_does_not_call_handler);
-
-    RUN_TEST(test_set_site_latitude_positive);
-    RUN_TEST(test_set_site_latitude_negative_with_colon);
-    RUN_TEST(test_set_site_latitude_malformed_does_not_call_handler);
-
-    RUN_TEST(test_set_site_longitude_three_digit_degrees);
-    RUN_TEST(test_set_site_longitude_malformed_short_does_not_call_handler);
-
-    RUN_TEST(test_set_utc_offset_positive);
-    RUN_TEST(test_set_utc_offset_negative);
-    RUN_TEST(test_set_utc_offset_malformed_length_does_not_call_handler);
-
-    RUN_TEST(test_set_local_time_happy_path);
-    RUN_TEST(test_set_local_time_malformed_does_not_call_handler);
-
-    RUN_TEST(test_set_local_date_success_emits_planetary_ack);
-    RUN_TEST(test_set_local_date_failure_returns_zero_only);
-    RUN_TEST(test_set_local_date_malformed_does_not_call_handler);
-
-    RUN_TEST(test_unknown_set_subcommand_returns_zero);
-    RUN_TEST(test_empty_suffix_returns_zero);
+    EXPECT_STREQ("0", dispatch("", h));
+    EXPECT_EQ(nullptr, h.lastCall);
 }

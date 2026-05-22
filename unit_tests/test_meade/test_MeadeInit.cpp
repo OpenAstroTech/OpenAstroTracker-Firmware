@@ -2,7 +2,7 @@
 //
 // `:I#` hands UI over to serial control; the wire response is empty.
 
-#include <unity.h>
+#include <gtest/gtest.h>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -31,27 +31,16 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
 
 }  // namespace
 
-namespace
-{
-
-void test_init_empty_response()
+TEST(MeadeInit, empty_response)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("", h));
-    TEST_ASSERT_EQUAL_INT(1, h.callCount);
+    EXPECT_STREQ("", dispatch("", h));
+    EXPECT_EQ(1, h.callCount);
 }
 
-void test_init_ignores_suffix()
+TEST(MeadeInit, ignores_suffix)
 {
     FakeHandlers h;
-    TEST_ASSERT_EQUAL_STRING("", dispatch("xyz", h));
-    TEST_ASSERT_EQUAL_INT(1, h.callCount);
-}
-
-}  // namespace
-
-void register_meade_init_tests()
-{
-    RUN_TEST(test_init_empty_response);
-    RUN_TEST(test_init_ignores_suffix);
+    EXPECT_STREQ("", dispatch("xyz", h));
+    EXPECT_EQ(1, h.callCount);
 }
