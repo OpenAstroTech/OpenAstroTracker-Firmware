@@ -27,6 +27,11 @@ pio run -e ramps -t upload
 # Run unit tests (native platform)
 pio test -e native
 
+# Run unit tests with coverage report (requires gcovr: pip install gcovr)
+./scripts/test-coverage.sh          # defaults to -e native
+./scripts/test-coverage.sh -e native
+# Report: .pio/build/native/coverage_report/index.html
+
 # Run matrix build (tests many configuration combinations across boards)
 python matrix_build.py -b ramps     # single board
 python matrix_build.py              # all boards
