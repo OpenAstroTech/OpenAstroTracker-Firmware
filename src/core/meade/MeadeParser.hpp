@@ -107,7 +107,7 @@ class MeadeResponse
 
     void clear()
     {
-        _length = 0;
+        _length  = 0;
         _data[0] = '\0';
     }
 
