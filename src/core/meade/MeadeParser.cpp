@@ -22,12 +22,11 @@ namespace meade
 // ---------------------------------------------------------------------------
 // Top-level parser
 // ---------------------------------------------------------------------------
-MeadeParseResult parseMeadeCommand(const char *input)
+bool parseMeadeCommand(const char *input, MeadeParseResult &result)
 {
-    MeadeParseResult result;
     if (input == nullptr || input[0] != ':')
     {
-        return result;
+        return false;
     }
 
     // Copy the input into a stack buffer with whitespace stripped and the
@@ -46,7 +45,7 @@ MeadeParseResult parseMeadeCommand(const char *input)
 
     if (nlen < 2)
     {
-        return result;
+        return false;
     }
 
     if (normalized[nlen - 1] == '#')
@@ -57,7 +56,7 @@ MeadeParseResult parseMeadeCommand(const char *input)
 
     if (nlen < 2)
     {
-        return result;
+        return false;
     }
 
     const char family = normalized[1];
@@ -78,51 +77,64 @@ MeadeParseResult parseMeadeCommand(const char *input)
             result.valid  = true;
             result.family = family;
             result.payload.assign(normalized + 2);
-            return result;
+            return true;
         default:
-            return result;
+            return false;
     }
 }
 
 // ---------------------------------------------------------------------------
 // Unified dispatch — parse + classify + dispatch in one call
 // ---------------------------------------------------------------------------
-MeadeResponse dispatchMeadeCommand(const char *input, IMeadeHandlers &h)
+void dispatchMeadeCommand(MeadeResponse &r, const char *input, IMeadeHandlers &h)
 {
-    MeadeParseResult parsed = parseMeadeCommand(input);
-    if (!parsed.valid)
+    r.clear();
+    MeadeParseResult parsed;
+    if (!parseMeadeCommand(input, parsed))
     {
-        return MeadeResponse {};
+        return;
     }
 
     switch (parsed.family)
     {
         case 'S':
-            return handleMeadeSet(parsed.payload.c_str(), h);
+            handleMeadeSet(r, parsed.payload.c_str(), h);
+            break;
         case 'M':
-            return handleMeadeMovement(parsed.payload.c_str(), h);
+            handleMeadeMovement(r, parsed.payload.c_str(), h);
+            break;
         case 'G':
-            return handleMeadeGet(parsed.payload.c_str(), h);
+            handleMeadeGet(r, parsed.payload.c_str(), h);
+            break;
         case 'g':
-            return handleMeadeGps(parsed.payload.c_str(), h);
+            handleMeadeGps(r, parsed.payload.c_str(), h);
+            break;
         case 'C':
-            return handleMeadeSyncControl(parsed.payload.c_str(), h);
+            handleMeadeSyncControl(r, parsed.payload.c_str(), h);
+            break;
         case 'h':
-            return handleMeadeHome(parsed.payload.c_str(), h);
+            handleMeadeHome(r, parsed.payload.c_str(), h);
+            break;
         case 'I':
-            return handleMeadeInit(parsed.payload.c_str(), h);
+            handleMeadeInit(r, parsed.payload.c_str(), h);
+            break;
         case 'Q':
-            return handleMeadeQuit(parsed.payload.c_str(), h);
+            handleMeadeQuit(r, parsed.payload.c_str(), h);
+            break;
         case 'R':
-            return handleMeadeSetSlewRate(parsed.payload.c_str(), h);
+            handleMeadeSetSlewRate(r, parsed.payload.c_str(), h);
+            break;
         case 'D':
-            return handleMeadeDistance(parsed.payload.c_str(), h);
+            handleMeadeDistance(r, parsed.payload.c_str(), h);
+            break;
         case 'X':
-            return handleMeadeExtra(parsed.payload.c_str(), h);
+            handleMeadeExtra(r, parsed.payload.c_str(), h);
+            break;
         case 'F':
-            return handleMeadeFocus(parsed.payload.c_str(), h);
+            handleMeadeFocus(r, parsed.payload.c_str(), h);
+            break;
         default:
-            return MeadeResponse {};
+            break;
     }
 }
 

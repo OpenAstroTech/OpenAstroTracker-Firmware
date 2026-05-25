@@ -446,118 +446,92 @@ void writeFloat(MeadeResponse &r, float value, int precision)
 }
 
 // ---------------------------------------------------------------------------
-// High-level make*Response wrappers
+// High-level fill*Response wrappers
 // ---------------------------------------------------------------------------
 
-MeadeResponse makeLiteralResponse(const char *text)
+void fillLiteralResponse(MeadeResponse &r, const char *text)
 {
-    MeadeResponse r;
     writeText(r, text != nullptr ? text : "");
-    return r;
 }
 
-MeadeResponse makeSetSuccessResponse(bool ok)
+void fillSetSuccessResponse(MeadeResponse &r, bool ok)
 {
-    MeadeResponse r;
     writeChar(r, ok ? '1' : '0');
-    return r;
 }
 
-MeadeResponse makeFramedTextResponse(const char *text)
+void fillFramedTextResponse(MeadeResponse &r, const char *text)
 {
-    MeadeResponse r;
     writeText(r, text != nullptr ? text : "");
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeLongResponse(long value)
+void fillLongResponse(MeadeResponse &r, long value)
 {
-    MeadeResponse r;
     writeLong(r, value);
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeBooleanResponse(bool flag)
+void fillBooleanResponse(MeadeResponse &r, bool flag)
 {
-    MeadeResponse r;
     writeChar(r, flag ? '1' : '0');
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeNumericFloatResponse(float value, int precision)
+void fillNumericFloatResponse(MeadeResponse &r, float value, int precision)
 {
-    MeadeResponse r;
     writeFloat(r, value, precision);
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeIntResponse(int value)
+void fillIntResponse(MeadeResponse &r, int value)
 {
-    MeadeResponse r;
     writeSignedInt(r, value);
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeLongPairPipeResponse(long a, long b)
+void fillLongPairPipeResponse(MeadeResponse &r, long a, long b)
 {
-    MeadeResponse r;
     writeLong(r, a);
     writeChar(r, '|');
     writeLong(r, b);
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeDecLimitsPairResponse(float lo, float hi)
+void fillDecLimitsPairResponse(MeadeResponse &r, float lo, float hi)
 {
-    MeadeResponse r;
     writeFloat(r, lo, 1);
     writeChar(r, '|');
     writeFloat(r, hi, 1);
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeHemisphereResponse(bool north)
+void fillHemisphereResponse(MeadeResponse &r, bool north)
 {
-    MeadeResponse r;
     writeChar(r, north ? 'N' : 'S');
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeCompactHmsResponse(int hours, int minutes, int seconds)
+void fillCompactHmsResponse(MeadeResponse &r, int hours, int minutes, int seconds)
 {
-    MeadeResponse r;
     writeUnsignedPadded(r, static_cast<unsigned>(hours), 2);
     writeUnsignedPadded(r, static_cast<unsigned>(minutes), 2);
     writeUnsignedPadded(r, static_cast<unsigned>(seconds), 2);
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeAnglePair4Response(float a, float b)
+void fillAnglePair4Response(MeadeResponse &r, float a, float b)
 {
-    MeadeResponse r;
     writeFloat(r, a, 4);
     writeChar(r, ',');
     writeFloat(r, b, 4);
     writeTerminator(r);
-    return r;
 }
 
-MeadeResponse makeLevelUnknownResponse(const char *echoedCmd)
+void fillLevelUnknownResponse(MeadeResponse &r, const char *echoedCmd)
 {
-    MeadeResponse r;
     writeText(r, "Unknown Level command: X");
     writeText(r, echoedCmd != nullptr ? echoedCmd : "");
     writeTerminator(r);
-    return r;
 }
 
 }  // namespace meade

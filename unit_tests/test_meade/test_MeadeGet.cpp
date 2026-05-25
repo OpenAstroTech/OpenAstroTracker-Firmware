@@ -148,7 +148,8 @@ class FakeHandlers : public meade::IMeadeGetHandlers
 const char *dispatch(const char *suffix, FakeHandlers &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeGet(suffix, h);
+    last.clear();
+    meade::handleMeadeGet(last, suffix, h);
     return last.c_str();
 }
 

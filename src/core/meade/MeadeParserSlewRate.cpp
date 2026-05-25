@@ -12,12 +12,11 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeSetSlewRate(const char *suffix, IMeadeSlewRateHandlers &h)
+void handleMeadeSetSlewRate(MeadeResponse &r, const char *suffix, IMeadeSlewRateHandlers &h)
 {
-    MeadeResponse r;
     if (suffix == nullptr || suffix[0] == '\0' || suffix[1] != '\0')
     {
-        return r;
+        return;
     }
     switch (suffix[0])
     {
@@ -36,7 +35,7 @@ MeadeResponse handleMeadeSetSlewRate(const char *suffix, IMeadeSlewRateHandlers 
         default:
             break;
     }
-    return r;
+    (void) r;  // response stays empty
 }
 
 }  // namespace meade

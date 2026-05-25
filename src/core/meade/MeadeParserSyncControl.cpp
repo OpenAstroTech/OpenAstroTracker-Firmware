@@ -13,9 +13,8 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeSyncControl(const char *suffix, IMeadeSyncControlHandlers &h)
+void handleMeadeSyncControl(MeadeResponse &r, const char *suffix, IMeadeSyncControlHandlers &h)
 {
-    MeadeResponse r;
     if (suffix != nullptr && suffix[0] == 'M' && suffix[1] == '\0')
     {
         h.onSyncToTarget();
@@ -25,7 +24,6 @@ MeadeResponse handleMeadeSyncControl(const char *suffix, IMeadeSyncControlHandle
     {
         writeCString(r, "FAIL");
     }
-    return r;
 }
 
 }  // namespace meade

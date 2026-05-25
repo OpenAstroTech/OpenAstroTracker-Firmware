@@ -19,7 +19,7 @@ namespace meade = oat::core::meade;
 
 MeadeCommandProcessor *MeadeCommandProcessor::_instance = nullptr;
 
-const char *MeadeCommandProcessor::store(oat::core::meade::MeadeResponse response)
+const char *MeadeCommandProcessor::store(oat::core::meade::MeadeResponse &response)
 {
     _response = response;
     return _response.c_str();
@@ -954,5 +954,6 @@ const char *MeadeCommandProcessor::processCommand(String inCmd)
 {
     LOG(DEBUG_MEADE, "[MEADE]: Received command   '%s'", inCmd.c_str());
     _mount->commandReceived();
-    return store(meade::dispatchMeadeCommand(inCmd.c_str(), *this));
+    meade::dispatchMeadeCommand(_response, inCmd.c_str(), *this);
+    return _response.c_str();
 }

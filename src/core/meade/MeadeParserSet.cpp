@@ -101,13 +101,12 @@ void writeSetLocalDateAck(MeadeResponse &r, bool ok)
 
 }  // namespace
 
-MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
+void handleMeadeSet(MeadeResponse &r, const char *s, IMeadeSetHandlers &h)
 {
-    MeadeResponse r;
     if (!s || s[0] == '\0')
     {
         writeChar(r, '0');
-        return r;
+        return;
     }
 
     Cursor c(s + 1);
@@ -120,10 +119,10 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!readDecCoordinate(c, dec))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 writeSetAck(r, h.onSetTargetDec(dec));
-                return r;
+                return;
             }
 
         case 'r':
@@ -132,10 +131,10 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!readRaCoordinate(c, ra))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 writeSetAck(r, h.onSetTargetRa(ra));
-                return r;
+                return;
             }
 
         case 'H':
@@ -159,16 +158,16 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!ok)
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 MeadeLocalTime t {static_cast<uint8_t>(hh), static_cast<uint8_t>(mm), static_cast<uint8_t>(ss)};
                 writeSetAck(r, h.onSetLocalSiderealTime(t));
-                return r;
+                return;
             }
             if (c.peek() == 'P' && c.match('P') && c.atEnd())
             {
                 writeSetAck(r, h.onSetHomePoint());
-                return r;
+                return;
             }
             // Bare H = HourAngle: H<hh><sep><mm>. Separator at s[3] is not validated
             // (legacy behaviour: any single char accepted).
@@ -177,10 +176,10 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!c.digits(2, hh) || c.peek() == '\0' || !c.match(c.peek()) || !c.digits(2, mm) || !c.atEnd())
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 writeSetAck(r, h.onSetHourAngle(static_cast<uint8_t>(hh), static_cast<uint8_t>(mm)));
-                return r;
+                return;
             }
 
         case 'Y':
@@ -191,10 +190,10 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!readDecCoordinate(c, dec) || !c.match('.') || !readRaCoordinate(c, ra))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 writeSetAck(r, h.onSyncCoordinates(dec, ra));
-                return r;
+                return;
             }
 
         case 't':
@@ -203,10 +202,10 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!readLatitude(c, lat))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 writeSetAck(r, h.onSetSiteLatitude(lat));
-                return r;
+                return;
             }
 
         case 'g':
@@ -215,10 +214,10 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!readLongitude(c, lon))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 writeSetAck(r, h.onSetSiteLongitude(lon));
-                return r;
+                return;
             }
 
         case 'G':
@@ -228,10 +227,10 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!c.signed2(hours))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 writeSetAck(r, h.onSetUtcOffset(hours));
-                return r;
+                return;
             }
 
         case 'L':
@@ -241,11 +240,11 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!c.digits(2, hh) || !c.match(':') || !c.digits(2, mm) || !c.match(':') || !c.digits(2, ss))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 MeadeLocalTime t {static_cast<uint8_t>(hh), static_cast<uint8_t>(mm), static_cast<uint8_t>(ss)};
                 writeSetAck(r, h.onSetLocalTime(t));
-                return r;
+                return;
             }
 
         case 'C':
@@ -255,19 +254,19 @@ MeadeResponse handleMeadeSet(const char *s, IMeadeSetHandlers &h)
                 if (!c.digits(2, mo) || !c.match('/') || !c.digits(2, dd) || !c.match('/') || !c.digits(2, yy))
                 {
                     writeChar(r, '0');
-                    return r;
+                    return;
                 }
                 MeadeLocalDate d;
                 d.month = static_cast<uint8_t>(mo);
                 d.day   = static_cast<uint8_t>(dd);
                 d.year  = static_cast<uint16_t>(2000 + yy);
                 writeSetLocalDateAck(r, h.onSetLocalDate(d));
-                return r;
+                return;
             }
 
         default:
             writeChar(r, '0');
-            return r;
+            return;
     }
 }
 

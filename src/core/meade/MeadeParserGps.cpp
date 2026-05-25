@@ -13,17 +13,15 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeGps(const char *suffix, IMeadeGpsHandlers &h)
+void handleMeadeGps(MeadeResponse &r, const char *suffix, IMeadeGpsHandlers &h)
 {
-    MeadeResponse r;
     if (suffix == nullptr || suffix[0] != 'T')
     {
         writeChar(r, '0');
-        return r;
+        return;
     }
     const bool acquired = h.onStartGpsAcquisition(suffix + 1);
     writeChar(r, acquired ? '1' : '0');
-    return r;
 }
 
 }  // namespace meade

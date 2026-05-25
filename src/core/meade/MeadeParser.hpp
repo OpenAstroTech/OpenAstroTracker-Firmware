@@ -105,6 +105,12 @@ class MeadeResponse
         _length = n;
     }
 
+    void clear()
+    {
+        _length = 0;
+        _data[0] = '\0';
+    }
+
   private:
     char _data[Capacity];
     size_t _length;
@@ -129,8 +135,10 @@ struct MeadeParseResult {
 /**
  * @brief Classify a top-level Meade command.
  * @param input NUL-terminated bytes after the leading `:`.
+ * @param result Output — populated with family, payload, and validity flag.
+ * @return `true` if the command was recognised.
  */
-MeadeParseResult parseMeadeCommand(const char *input);
+bool parseMeadeCommand(const char *input, MeadeParseResult &result);
 
 // ---------------------------------------------------------------------------
 // Get-family dispatch
@@ -245,12 +253,12 @@ class IMeadeGetHandlers
 /**
  * @brief Parse + dispatch + serialise a Meade Get sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix The bytes that follow the family `:G` prefix, with the
  *               trailing `#` already stripped (e.g. `"R"`, `"VN"`, `"IS"`).
  * @param handlers Implementation providing the runtime values.
- * @return Framed wire response, or an empty response for unknown sub-commands.
  */
-MeadeResponse handleMeadeGet(const char *suffix, IMeadeGetHandlers &handlers);
+void handleMeadeGet(MeadeResponse &r, const char *suffix, IMeadeGetHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // Set-family dispatch
@@ -301,12 +309,12 @@ class IMeadeSetHandlers
 /**
  * @brief Parse + dispatch + serialise a Meade Set sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix The bytes that follow the family `:S` prefix, with the
  *               trailing `#` already stripped (e.g. `"d+12*34:56"`).
  * @param handlers Implementation providing the mount-side side effects.
- * @return Framed wire response, or `"0"` for unknown / malformed input.
  */
-MeadeResponse handleMeadeSet(const char *suffix, IMeadeSetHandlers &handlers);
+void handleMeadeSet(MeadeResponse &r, const char *suffix, IMeadeSetHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // Quit-family dispatch
@@ -346,13 +354,13 @@ class IMeadeQuitHandlers
 /**
  * @brief Parse + dispatch a Meade Quit sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — left empty for every outcome.
  * @param suffix The bytes that follow the family `:Q` prefix, with the
  *               trailing `#` already stripped. The empty string is the
  *               StopAll variant.
  * @param handlers Implementation providing the mount-side side effects.
- * @return Empty wire response (`""`) for every outcome including unknown.
  */
-MeadeResponse handleMeadeQuit(const char *suffix, IMeadeQuitHandlers &handlers);
+void handleMeadeQuit(MeadeResponse &r, const char *suffix, IMeadeQuitHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // Distance family dispatch (:D...)
@@ -376,13 +384,13 @@ class IMeadeDistanceHandlers
 /**
  * @brief Parse + dispatch a Meade Distance sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix Bytes following `:D`, trailing `#` already stripped. The
  *               classic command is the empty suffix; any suffix is treated
  *               as the same query (legacy lenient behaviour).
  * @param handlers Implementation providing the slewing-state query.
- * @return Wire bytes: `"|#"` while slewing, `" #"` otherwise.
  */
-MeadeResponse handleMeadeDistance(const char *suffix, IMeadeDistanceHandlers &handlers);
+void handleMeadeDistance(MeadeResponse &r, const char *suffix, IMeadeDistanceHandlers &handlers);
 
 // ---- Init family dispatch (:I...) -------------------------------------
 //
@@ -401,12 +409,12 @@ class IMeadeInitHandlers
 /**
  * @brief Parse + dispatch a Meade Init sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — left empty.
  * @param suffix Bytes following `:I`, trailing `#` already stripped. Any
  *               suffix is accepted (legacy lenient behaviour).
  * @param handlers Implementation performing the mode switch.
- * @return Empty wire response.
  */
-MeadeResponse handleMeadeInit(const char *suffix, IMeadeInitHandlers &handlers);
+void handleMeadeInit(MeadeResponse &r, const char *suffix, IMeadeInitHandlers &handlers);
 
 // ---- SyncControl family dispatch (:C...) ------------------------------
 //
@@ -426,11 +434,11 @@ class IMeadeSyncControlHandlers
 /**
  * @brief Parse + dispatch a Meade SyncControl sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix Bytes following `:C`, trailing `#` already stripped.
  * @param handlers Implementation performing the sync.
- * @return Wire bytes: `"NONE#"` on success, `"FAIL#"` on unknown suffix.
  */
-MeadeResponse handleMeadeSyncControl(const char *suffix, IMeadeSyncControlHandlers &handlers);
+void handleMeadeSyncControl(MeadeResponse &r, const char *suffix, IMeadeSyncControlHandlers &handlers);
 
 // ---- Home family dispatch (:h...) -------------------------------------
 //
@@ -459,11 +467,11 @@ class IMeadeHomeHandlers
 /**
  * @brief Parse + dispatch a Meade Home sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix Bytes following `:h`, trailing `#` already stripped.
  * @param handlers Implementation of the four home operations.
- * @return Wire bytes per suffix table above; empty for unknown suffix.
  */
-MeadeResponse handleMeadeHome(const char *suffix, IMeadeHomeHandlers &handlers);
+void handleMeadeHome(MeadeResponse &r, const char *suffix, IMeadeHomeHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // SetSlewRate-family dispatch
@@ -488,11 +496,11 @@ class IMeadeSlewRateHandlers
 /**
  * @brief Parse + dispatch a Meade SetSlewRate sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — left empty.
  * @param suffix Bytes following `:R`, trailing `#` already stripped.
  * @param handlers Slew-rate setter callback.
- * @return Empty response on success or unknown suffix.
  */
-MeadeResponse handleMeadeSetSlewRate(const char *suffix, IMeadeSlewRateHandlers &handlers);
+void handleMeadeSetSlewRate(MeadeResponse &r, const char *suffix, IMeadeSlewRateHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // GPSCommands-family dispatch
@@ -518,11 +526,11 @@ class IMeadeGpsHandlers
 /**
  * @brief Parse + dispatch a Meade GPS sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix Bytes following `:g`, trailing `#` already stripped.
  * @param handlers GPS acquisition callback.
- * @return SetSuccess wire bytes ("1" or "0").
  */
-MeadeResponse handleMeadeGps(const char *suffix, IMeadeGpsHandlers &handlers);
+void handleMeadeGps(MeadeResponse &r, const char *suffix, IMeadeGpsHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // Focus-family dispatch
@@ -561,11 +569,11 @@ class IMeadeFocusHandlers
 /**
  * @brief Parse + dispatch a Meade `:F...` Focus sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix Bytes following `:F`, trailing `#` already stripped.
  * @param handlers Focus stepper callbacks.
- * @return Wire bytes per sub-command (Empty, Long, or SetSuccess).
  */
-MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &handlers);
+void handleMeadeFocus(MeadeResponse &r, const char *suffix, IMeadeFocusHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // Movement-family dispatch
@@ -644,11 +652,11 @@ class IMeadeMovementHandlers
 /**
  * @brief Parse + dispatch a Meade `:M...` Movement sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix Bytes following `:M`, trailing `#` already stripped.
  * @param handlers Movement callbacks.
- * @return Wire bytes per sub-command.
  */
-MeadeResponse handleMeadeMovement(const char *suffix, IMeadeMovementHandlers &handlers);
+void handleMeadeMovement(MeadeResponse &r, const char *suffix, IMeadeMovementHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // Extra-family (`:X...`) dispatch
@@ -759,11 +767,11 @@ class IMeadeExtraHandlers
 /**
  * @brief Parse + dispatch a Meade `:X...` Extra sub-command in one step.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param suffix Bytes following `:X`, trailing `#` already stripped.
  * @param handlers Extra-family callbacks.
- * @return Wire bytes per sub-command.
  */
-MeadeResponse handleMeadeExtra(const char *suffix, IMeadeExtraHandlers &handlers);
+void handleMeadeExtra(MeadeResponse &r, const char *suffix, IMeadeExtraHandlers &handlers);
 
 // ---------------------------------------------------------------------------
 // Aggregate handler interface
@@ -796,14 +804,14 @@ class IMeadeHandlers : public IMeadeGetHandlers,
  *
  * Accepts the raw bytes between the framing `:` prefix and `#` terminator.
  * Strips whitespace, validates the family character, and dispatches to the
- * correct family handler. Returns a fully-formed `MeadeResponse` ready for
- * transmission.
+ * correct family handler. Populates `r` with a fully-formed wire response
+ * ready for transmission.
  *
+ * @param r Output buffer (pre-constructed) — populated with the wire response.
  * @param input NUL-terminated bytes (may include leading `:` and trailing `#`).
  * @param handlers Implementation of all family callback interfaces.
- * @return Wire response (may be empty for unknown or unrecognised commands).
  */
-MeadeResponse dispatchMeadeCommand(const char *input, IMeadeHandlers &handlers);
+void dispatchMeadeCommand(MeadeResponse &r, const char *input, IMeadeHandlers &handlers);
 
 }  // namespace meade
 }  // namespace core

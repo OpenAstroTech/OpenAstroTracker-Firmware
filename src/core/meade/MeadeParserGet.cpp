@@ -13,12 +13,11 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeGet(const char *s, IMeadeGetHandlers &h)
+void handleMeadeGet(MeadeResponse &r, const char *s, IMeadeGetHandlers &h)
 {
-    MeadeResponse r;
     if (!s || s[0] == '\0')
     {
-        return r;
+        return;
     }
 
     // Two-character commands.
@@ -30,12 +29,12 @@ MeadeResponse handleMeadeGet(const char *s, IMeadeGetHandlers &h)
             {
                 case 'N':
                     writeCString(r, h.onFirmwareVersion());
-                    return r;
+                    return;
                 case 'P':
                     writeCString(r, h.onProductName());
-                    return r;
+                    return;
                 default:
-                    return r;
+                    return;
             }
         }
         if (s[0] == 'I')
@@ -44,81 +43,81 @@ MeadeResponse handleMeadeGet(const char *s, IMeadeGetHandlers &h)
             {
                 case 'S':
                     writeBool01(r, h.onIsSlewing());
-                    return r;
+                    return;
                 case 'T':
                     writeBool01(r, h.onIsTracking());
-                    return r;
+                    return;
                 case 'G':
                     writeBool01(r, h.onIsGuiding());
-                    return r;
+                    return;
                 default:
-                    return r;
+                    return;
             }
         }
-        return r;
+        return;
     }
 
     // Single-character commands.
     if (s[1] != '\0')
     {
-        return r;
+        return;
     }
 
     switch (s[0])
     {
         case 'R':
             writeRa(r, h.onCurrentRa());
-            return r;
+            return;
         case 'r':
             writeRa(r, h.onTargetRa());
-            return r;
+            return;
         case 'D':
             writeDec(r, h.onCurrentDec());
-            return r;
+            return;
         case 'd':
             writeDec(r, h.onTargetDec());
-            return r;
+            return;
         case 'X':
             writeCString(r, h.onMountStatus());
-            return r;
+            return;
         case 't':
             writeLatitude(r, h.onSiteLatitude());
-            return r;
+            return;
         case 'g':
             writeLongitude(r, h.onSiteLongitude());
-            return r;
+            return;
         case 'G':
             writeUtcOffset(r, h.onUtcOffset());
-            return r;
+            return;
         case 'a':
             writeTime12h(r, h.onLocalTime());
-            return r;
+            return;
         case 'L':
             writeTime24h(r, h.onLocalTime());
-            return r;
+            return;
         case 'C':
             writeLocalDate(r, h.onLocalDate());
-            return r;
+            return;
         case 'c':
             writeClockFormat(r, h.onClockFormat());
-            return r;
+            return;
         case 'T':
             writeTrackingRate(r, h.onTrackingRate());
-            return r;
+            return;
         case 'M':
             writeCString(r, h.onSiteName(1));
-            return r;
+            return;
         case 'N':
             writeCString(r, h.onSiteName(2));
-            return r;
+            return;
         case 'O':
             writeCString(r, h.onSiteName(3));
-            return r;
+            return;
         case 'P':
             writeCString(r, h.onSiteName(4));
-            return r;
+            return;
         default:
-            return r;
+            return;
     }
 }
 

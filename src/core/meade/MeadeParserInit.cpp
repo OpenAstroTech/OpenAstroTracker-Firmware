@@ -12,10 +12,10 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeInit(const char *, IMeadeInitHandlers &h)
+void handleMeadeInit(MeadeResponse &r, const char *, IMeadeInitHandlers &h)
 {
     h.onEnterSerialControl();
-    return MeadeResponse {};
+    (void) r;  // response stays empty
 }
 
 }  // namespace meade

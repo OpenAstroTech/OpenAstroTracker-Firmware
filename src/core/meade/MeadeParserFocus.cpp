@@ -15,12 +15,11 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &h)
+void handleMeadeFocus(MeadeResponse &r, const char *suffix, IMeadeFocusHandlers &h)
 {
-    MeadeResponse r;
     if (suffix == nullptr || suffix[0] == '\0')
     {
-        return r;
+        return;
     }
 
     Cursor c(suffix);
@@ -32,7 +31,7 @@ MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &h)
         if (c.atEnd())
         {
             h.onFocusSetSpeedByRate(suffix[0] - '0');
-            return r;
+            return;
         }
     }
     switch (c.peek())
@@ -54,24 +53,26 @@ MeadeResponse handleMeadeFocus(const char *suffix, IMeadeFocusHandlers &h)
             h.onFocusSetSpeedByRate(1);
             break;
         case 'p':
-            return makeLongResponse(h.onFocusGetPosition());
+            fillLongResponse(r, h.onFocusGetPosition());
+            return;
         case 'P':
             if (h.onFocusIsAvailable())
             {
                 c.match('P');
                 h.onFocusSetPosition(strtol(c.remaining(), nullptr, 10));
-                return makeSetSuccessResponse(true);
+                fillSetSuccessResponse(r, true);
+                return;
             }
             break;
         case 'B':
-            return makeSetSuccessResponse(h.onFocusGetState());
+            fillSetSuccessResponse(r, h.onFocusGetState());
+            return;
         case 'Q':
             h.onFocusStop();
             break;
         default:
             break;
     }
-    return r;
 }
 
 }  // namespace meade

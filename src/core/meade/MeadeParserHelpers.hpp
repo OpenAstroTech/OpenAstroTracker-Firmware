@@ -87,23 +87,23 @@ void writeLong(MeadeResponse &r, long value);
 void writeFloat(MeadeResponse &r, float value, int precision);
 
 // ---------------------------------------------------------------------------
-// High-level make*Response — thin wrappers: create a response, delegate to
-// write*, append `#` when needed, return.
+// High-level fill*Response — thin wrappers: populate an existing MeadeResponse,
+// delegate to write*, append `#` when needed. Caller owns the response object.
 // ---------------------------------------------------------------------------
 
-MeadeResponse makeLiteralResponse(const char *text);
-MeadeResponse makeSetSuccessResponse(bool ok);
-MeadeResponse makeFramedTextResponse(const char *text);
-MeadeResponse makeLongResponse(long value);
-MeadeResponse makeBooleanResponse(bool flag);
-MeadeResponse makeNumericFloatResponse(float value, int precision);
-MeadeResponse makeIntResponse(int value);
-MeadeResponse makeLongPairPipeResponse(long a, long b);
-MeadeResponse makeDecLimitsPairResponse(float lo, float hi);
-MeadeResponse makeHemisphereResponse(bool north);
-MeadeResponse makeCompactHmsResponse(int hours, int minutes, int seconds);
-MeadeResponse makeAnglePair4Response(float a, float b);
-MeadeResponse makeLevelUnknownResponse(const char *echoedCmd);
+void fillLiteralResponse(MeadeResponse &r, const char *text);
+void fillSetSuccessResponse(MeadeResponse &r, bool ok);
+void fillFramedTextResponse(MeadeResponse &r, const char *text);
+void fillLongResponse(MeadeResponse &r, long value);
+void fillBooleanResponse(MeadeResponse &r, bool flag);
+void fillNumericFloatResponse(MeadeResponse &r, float value, int precision);
+void fillIntResponse(MeadeResponse &r, int value);
+void fillLongPairPipeResponse(MeadeResponse &r, long a, long b);
+void fillDecLimitsPairResponse(MeadeResponse &r, float lo, float hi);
+void fillHemisphereResponse(MeadeResponse &r, bool north);
+void fillCompactHmsResponse(MeadeResponse &r, int hours, int minutes, int seconds);
+void fillAnglePair4Response(MeadeResponse &r, float a, float b);
+void fillLevelUnknownResponse(MeadeResponse &r, const char *echoedCmd);
 
 // ---------------------------------------------------------------------------
 // String helpers

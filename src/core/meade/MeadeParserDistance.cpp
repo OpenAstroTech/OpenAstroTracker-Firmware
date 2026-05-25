@@ -13,12 +13,10 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeDistance(const char *, IMeadeDistanceHandlers &h)
+void handleMeadeDistance(MeadeResponse &r, const char *, IMeadeDistanceHandlers &h)
 {
-    MeadeResponse r;
     writeChar(r, h.onIsSlewingRaOrDec() ? '|' : ' ');
     writeTerminator(r);
-    return r;
 }
 
 }  // namespace meade

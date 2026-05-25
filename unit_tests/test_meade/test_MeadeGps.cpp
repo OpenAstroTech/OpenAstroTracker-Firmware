@@ -33,7 +33,8 @@ class FakeHandlers : public meade::IMeadeGpsHandlers
 const char *dispatch(const char *suffix, FakeHandlers &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeGps(suffix, h);
+    last.clear();
+    meade::handleMeadeGps(last, suffix, h);
     return last.c_str();
 }
 

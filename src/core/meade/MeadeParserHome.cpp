@@ -13,12 +13,11 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeHome(const char *suffix, IMeadeHomeHandlers &h)
+void handleMeadeHome(MeadeResponse &r, const char *suffix, IMeadeHomeHandlers &h)
 {
-    MeadeResponse r;
     if (suffix == nullptr || suffix[0] == '\0' || suffix[1] != '\0')
     {
-        return r;
+        return;
     }
     switch (suffix[0])
     {
@@ -39,7 +38,6 @@ MeadeResponse handleMeadeHome(const char *suffix, IMeadeHomeHandlers &h)
         default:
             break;
     }
-    return r;
 }
 
 }  // namespace meade

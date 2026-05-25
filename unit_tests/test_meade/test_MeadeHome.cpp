@@ -39,7 +39,8 @@ class FakeHandlers : public meade::IMeadeHomeHandlers
 const char *dispatch(const char *suffix, FakeHandlers &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeHome(suffix, h);
+    last.clear();
+    meade::handleMeadeHome(last, suffix, h);
     return last.c_str();
 }
 

@@ -12,25 +12,25 @@ namespace core
 namespace meade
 {
 
-MeadeResponse handleMeadeQuit(const char *suffix, IMeadeQuitHandlers &h)
+void handleMeadeQuit(MeadeResponse &r, const char *suffix, IMeadeQuitHandlers &h)
 {
-    MeadeResponse r;
+    (void) r;  // response stays empty
     if (suffix == nullptr)
     {
-        return r;
+        return;
     }
 
     // Empty suffix == :Q# == StopAll.
     if (suffix[0] == '\0')
     {
         h.onStopAll();
-        return r;
+        return;
     }
 
     // All remaining variants are a single character.
     if (suffix[1] != '\0')
     {
-        return r;
+        return;
     }
 
     switch (suffix[0])
@@ -56,7 +56,6 @@ MeadeResponse handleMeadeQuit(const char *suffix, IMeadeQuitHandlers &h)
         default:
             break;
     }
-    return r;
 }
 
 }  // namespace meade

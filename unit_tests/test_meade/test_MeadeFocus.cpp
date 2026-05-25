@@ -73,7 +73,8 @@ class FakeHandlers : public meade::IMeadeFocusHandlers
 const char *dispatch(const char *suffix, FakeHandlers &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeFocus(suffix, h);
+    last.clear();
+    meade::handleMeadeFocus(last, suffix, h);
     return last.c_str();
 }
 

@@ -18,7 +18,7 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeHandlers
 
     // Persist a freshly-built response across the handler return.
     // The returned pointer is valid until the next call to `store`.
-    const char *store(oat::core::meade::MeadeResponse response);
+    const char *store(oat::core::meade::MeadeResponse &response);
 
     // IMeadeGetHandlers overrides. Each method returns a typed domain value;
     // the parser layer handles all Meade wire formatting.

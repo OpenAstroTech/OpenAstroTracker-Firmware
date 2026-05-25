@@ -29,7 +29,8 @@ class FakeHandlers : public meade::IMeadeDistanceHandlers
 const char *dispatch(const char *suffix, FakeHandlers &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeDistance(suffix, h);
+    last.clear();
+    meade::handleMeadeDistance(last, suffix, h);
     return last.c_str();
 }
 

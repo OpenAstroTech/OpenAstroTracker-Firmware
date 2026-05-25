@@ -12,7 +12,9 @@ namespace
 
 void assert_invalid_parse(const char *input)
 {
-    MeadeParseResult result = parseMeadeCommand(input);
+    MeadeParseResult result;
+    bool ok = parseMeadeCommand(input, result);
+    TEST_ASSERT_FALSE(ok);
     TEST_ASSERT_FALSE(result.valid);
     TEST_ASSERT_EQUAL_CHAR('\0', result.family);
     TEST_ASSERT_TRUE(result.payload.empty());
@@ -20,7 +22,9 @@ void assert_invalid_parse(const char *input)
 
 void assert_valid_parse(const char *input, char expected_family, const char *expected_payload)
 {
-    MeadeParseResult result = parseMeadeCommand(input);
+    MeadeParseResult result;
+    bool ok = parseMeadeCommand(input, result);
+    TEST_ASSERT_TRUE(ok);
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_CHAR(expected_family, result.family);
     TEST_ASSERT_EQUAL_STRING(expected_payload, result.payload.c_str());
@@ -39,7 +43,8 @@ void test_meade_parser_rejects_missing_colon(void)
 
 void test_meade_parser_returns_family_and_payload_for_get_ra(void)
 {
-    MeadeParseResult result = parseMeadeCommand(":GR#");
+    MeadeParseResult result;
+    parseMeadeCommand(":GR#", result);
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_CHAR('G', result.family);
     TEST_ASSERT_EQUAL_STRING("R", result.payload.c_str());
@@ -47,7 +52,8 @@ void test_meade_parser_returns_family_and_payload_for_get_ra(void)
 
 void test_meade_parser_strips_spaces_and_trailing_hash(void)
 {
-    MeadeParseResult result = parseMeadeCommand(": G R #");
+    MeadeParseResult result;
+    parseMeadeCommand(": G R #", result);
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_CHAR('G', result.family);
     TEST_ASSERT_EQUAL_STRING("R", result.payload.c_str());
@@ -55,7 +61,8 @@ void test_meade_parser_strips_spaces_and_trailing_hash(void)
 
 void test_meade_parser_preserves_payload_for_quit_command(void)
 {
-    MeadeParseResult result = parseMeadeCommand(":Qq#");
+    MeadeParseResult result;
+    parseMeadeCommand(":Qq#", result);
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_CHAR('Q', result.family);
     TEST_ASSERT_EQUAL_STRING("q", result.payload.c_str());
@@ -63,7 +70,8 @@ void test_meade_parser_preserves_payload_for_quit_command(void)
 
 void test_meade_parser_accepts_command_without_trailing_hash(void)
 {
-    MeadeParseResult result = parseMeadeCommand(":MS");
+    MeadeParseResult result;
+    parseMeadeCommand(":MS", result);
     TEST_ASSERT_TRUE(result.valid);
     TEST_ASSERT_EQUAL_CHAR('M', result.family);
     TEST_ASSERT_EQUAL_STRING("S", result.payload.c_str());
@@ -100,7 +108,8 @@ void test_meade_parser_classifies_all_top_level_families(void)
 
 void test_meade_parser_rejects_unknown_top_level_family(void)
 {
-    MeadeParseResult result = parseMeadeCommand(":Z12#");
+    MeadeParseResult result;
+    parseMeadeCommand(":Z12#", result);
     TEST_ASSERT_FALSE(result.valid);
     TEST_ASSERT_EQUAL_CHAR('\0', result.family);
     TEST_ASSERT_TRUE(result.payload.empty());

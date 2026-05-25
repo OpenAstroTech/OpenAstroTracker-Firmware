@@ -28,7 +28,8 @@ class FakeHandlers : public meade::IMeadeSlewRateHandlers
 const char *dispatch(const char *suffix, FakeHandlers &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeSetSlewRate(suffix, h);
+    last.clear();
+    meade::handleMeadeSetSlewRate(last, suffix, h);
     return last.c_str();
 }
 

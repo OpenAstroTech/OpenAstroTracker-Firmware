@@ -258,7 +258,8 @@ class FakeExtra : public meade::IMeadeExtraHandlers
 const char *dispatch(const char *suffix, FakeExtra &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeExtra(suffix, h);
+    last.clear();
+    meade::handleMeadeExtra(last, suffix, h);
     return last.c_str();
 }
 

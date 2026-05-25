@@ -25,7 +25,8 @@ class FakeHandlers : public meade::IMeadeSyncControlHandlers
 const char *dispatch(const char *suffix, FakeHandlers &h)
 {
     static meade::MeadeResponse last;
-    last = meade::handleMeadeSyncControl(suffix, h);
+    last.clear();
+    meade::handleMeadeSyncControl(last, suffix, h);
     return last.c_str();
 }
 
