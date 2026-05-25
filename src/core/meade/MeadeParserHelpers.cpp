@@ -418,29 +418,55 @@ void writeFloat(MeadeResponse &r, float value, int precision)
         v = -v;
     }
 
-    // Separate integer and fractional parts.
-    int intVal  = static_cast<int>(v);
-    double frac = v - static_cast<double>(intVal);
+    // Round the entire value to the target precision, then extract integer
+    // and fractional digits from the rounded integer.  This avoids the
+    // streaming frac *= 10.0 loop whose floating-point rounding could
+    // produce a spurious digit 10.
+    double scale = 1.0;
+    for (int i = 0; i < precision; ++i)
+    {
+        scale *= 10.0;
+    }
+    long total    = static_cast<long>(v * scale + 0.5);
+    long intPart  = total / static_cast<long>(scale);
+    long fracPart = total % static_cast<long>(scale);
 
     if (negative)
     {
         writeChar(r, '-');
     }
-    writeInt(r, intVal);
 
+    // Integer part.
+    if (intPart == 0)
+    {
+        writeChar(r, '0');
+    }
+    else
+    {
+        char buf[22];
+        int n = 0;
+        while (intPart > 0 && n < 20)
+        {
+            buf[n++] = static_cast<char>('0' + (intPart % 10));
+            intPart /= 10;
+        }
+        while (n > 0)
+        {
+            writeChar(r, buf[--n]);
+        }
+    }
+
+    // Fractional part (MSD first).
     if (precision > 0)
     {
         writeChar(r, '.');
+        long divisor = static_cast<long>(scale) / 10;
         for (int i = 0; i < precision; ++i)
         {
-            frac *= 10.0;
-            int digit = static_cast<int>(frac);
-            if (digit > 9)
-            {
-                digit = 9;  // guard against floating-point rounding
-            }
+            int digit = static_cast<int>(fracPart / divisor);
             writeUnsignedPadded(r, static_cast<unsigned>(digit), 1);
-            frac -= static_cast<double>(digit);
+            fracPart %= divisor;
+            divisor /= 10;
         }
     }
 }

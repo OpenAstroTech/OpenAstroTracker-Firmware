@@ -23,89 +23,89 @@ namespace meade
 namespace
 {
 
-MeadeResponse handleExtraGetLeaf(MeadeResponse &r, const char *leafInput, IMeadeExtraHandlers &h)
+void handleExtraGetLeaf(MeadeResponse &r, const char *leafInput, IMeadeExtraHandlers &h)
 {
     if (leafInput == nullptr || leafInput[0] == '\0')
     {
-        return r;
+        return;
     }
 
     if (isExact(leafInput, "R"))
     {
         fillNumericFloatResponse(r, h.onGetRaStepsPerDegree(), 1);
-        return r;
+        return;
     }
     if (isExact(leafInput, "D"))
     {
         fillNumericFloatResponse(r, h.onGetDecStepsPerDegree(), 1);
-        return r;
+        return;
     }
     if (isExact(leafInput, "DL"))
     {
         ExtraDecLimits lim = h.onGetDecLimits();
         fillDecLimitsPairResponse(r, lim.lo, lim.hi);
-        return r;
+        return;
     }
     if (isExact(leafInput, "DLL"))
     {
         fillNumericFloatResponse(r, h.onGetDecLimits().lo, 1);
-        return r;
+        return;
     }
     if (isExact(leafInput, "DLU"))
     {
         fillNumericFloatResponse(r, h.onGetDecLimits().hi, 1);
-        return r;
+        return;
     }
     if (startsWith(leafInput, "DL"))
     {
         fillBooleanResponse(r, false);
-        return r;
+        return;
     }
     if (isExact(leafInput, "DP"))
     {
         fillBooleanResponse(r, false);
-        return r;
+        return;
     }
     if (isExact(leafInput, "S"))
     {
         fillNumericFloatResponse(r, h.onGetTrackingSpeedCalibration(), 5);
-        return r;
+        return;
     }
     if (isExact(leafInput, "ST"))
     {
         fillNumericFloatResponse(r, h.onGetRemainingSafeTime(), 7);
-        return r;
+        return;
     }
     if (isExact(leafInput, "T"))
     {
         fillNumericFloatResponse(r, h.onGetTrackingSpeed(), 7);
-        return r;
+        return;
     }
     if (isExact(leafInput, "B"))
     {
         fillIntResponse(r, h.onGetBacklashSteps());
-        return r;
+        return;
     }
     if (isExact(leafInput, "A"))
     {
         fillNumericFloatResponse(r, h.onGetAltStepsPerDegree(), 1);
-        return r;
+        return;
     }
     if (isExact(leafInput, "AH"))
     {
         fillFramedTextResponse(r, h.onGetAutoHomingStates());
-        return r;
+        return;
     }
     if (isExact(leafInput, "AA"))
     {
         ExtraAzAltPositions p = h.onGetAzAltPositions();
         fillLongPairPipeResponse(r, p.az, p.alt);
-        return r;
+        return;
     }
     if (isExact(leafInput, "Z"))
     {
         fillNumericFloatResponse(r, h.onGetAzStepsPerDegree(), 1);
-        return r;
+        return;
     }
     if (startsWith(leafInput, "C"))
     {
@@ -114,67 +114,69 @@ MeadeResponse handleExtraGetLeaf(MeadeResponse &r, const char *leafInput, IMeade
         const char *star    = strchr(payload, '*');
         if (star == nullptr || star == payload)
         {
-            return r;
+            return;
         }
         const float raCoord    = static_cast<float>(strtod(payload, nullptr));
         const float decCoord   = static_cast<float>(strtod(star + 1, nullptr));
         ExtraStepperCoords pos = h.onGetTargetCoordinatePositions(raCoord, decCoord);
         fillLongPairPipeResponse(r, pos.raPos, pos.decPos);
-        return r;
+        return;
     }
     if (isExact(leafInput, "MS"))
     {
         fillFramedTextResponse(r, h.onGetStepperInfo());
-        return r;
+        return;
     }
     if (startsWith(leafInput, "M"))
     {
         fillFramedTextResponse(r, h.onGetMountHardwareInfo());
-        return r;
+        return;
     }
     if (isExact(leafInput, "O"))
     {
         fillLiteralResponse(r, h.onGetLogBuffer());
-        return r;
+        return;
     }
+    // H-family keys: order matters — exact matches ("HR", "HD", "HS", "H")
+    // must precede startsWith("H") which acts as catch-all for unknown H- keys.
     if (isExact(leafInput, "HR"))
     {
         fillLongResponse(r, h.onGetRaHomingOffset());
-        return r;
+        return;
     }
     if (isExact(leafInput, "HD"))
     {
         fillLongResponse(r, h.onGetDecHomingOffset());
-        return r;
+        return;
     }
     if (isExact(leafInput, "HS"))
     {
         fillHemisphereResponse(r, h.onGetHemisphere());
-        return r;
+        return;
     }
     if (isExact(leafInput, "H"))
     {
         ExtraHms t = h.onGetHourAngle();
         fillCompactHmsResponse(r, t.hours, t.minutes, t.seconds);
-        return r;
+        return;
     }
     if (startsWith(leafInput, "H"))
     {
         fillBooleanResponse(r, false);
-        return r;
+        return;
     }
     if (isExact(leafInput, "L"))
     {
         ExtraHms t = h.onGetLocalSiderealTime();
         fillCompactHmsResponse(r, t.hours, t.minutes, t.seconds);
-        return r;
+        return;
     }
     if (isExact(leafInput, "N"))
     {
         fillFramedTextResponse(r, h.onGetNetworkStatus());
-        return r;
+        return;
     }
-    return r;
+    return;
 }
 
 void handleExtraSetLeaf(MeadeResponse &r, const char *leafInput, IMeadeExtraHandlers &h)
