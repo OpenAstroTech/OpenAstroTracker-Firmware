@@ -21,14 +21,14 @@ jobs:
         if: always()
         run: |
           pip install gcovr
-          pio run -e native -t coverage
+          ./scripts/test-coverage.sh
       - name: Publish Coverage Summary
         if: always()
         run: |
           echo "## Native Unit Test Coverage" >> "$GITHUB_STEP_SUMMARY"
           echo >> "$GITHUB_STEP_SUMMARY"
-          if [ -f .pio/native/coverage_report/coverage.md ]; then
-            cat .pio/native/coverage_report/coverage.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f .pio/build/native/coverage_report/coverage.md ]; then
+            cat .pio/build/native/coverage_report/coverage.md >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Coverage report was not generated." >> "$GITHUB_STEP_SUMMARY"
           fi
