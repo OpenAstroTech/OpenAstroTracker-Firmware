@@ -6,7 +6,7 @@ on:
       - '**'
   push:
     branches:
-      - '**'
+      - 'develop'
 
 jobs:
   unit-tests:
@@ -17,15 +17,18 @@ jobs:
       - uses: ./.github/actions/setup-pio
         with:
           install-unit-test-deps: 'true'
-      - name: Run unit tests
-        run: pio test -e native -v
+      - name: Run unit tests with coverage
+        if: always()
+        run: |
+          pip install gcovr
+          ./scripts/test-coverage.sh
       - name: Publish Coverage Summary
         if: always()
         run: |
           echo "## Native Unit Test Coverage" >> "$GITHUB_STEP_SUMMARY"
           echo >> "$GITHUB_STEP_SUMMARY"
-          if [ -f .pio/coverage.md ]; then
-            cat .pio/coverage.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f .pio/build/native/coverage_report/coverage.md ]; then
+            cat .pio/build/native/coverage_report/coverage.md >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Coverage report was not generated." >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -33,6 +36,7 @@ jobs:
   build:
     name: Build (${{ matrix.board }})
     runs-on: ubuntu-latest
+    needs: unit-tests
     strategy:
       fail-fast: false
       matrix:
@@ -47,5 +51,7 @@ jobs:
       - uses: ./.github/actions/setup-pio
         with:
           install-matrix-deps: 'true'
+        env: 
+          PLATFORMIO_BUILD_CACHE_DIR: ${{ github.workspace }}/build_cache
       - name: Build ${{ matrix.board }}
         run: python matrix_build.py -b ${{ matrix.board }}

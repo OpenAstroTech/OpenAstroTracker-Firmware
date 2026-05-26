@@ -11,8 +11,8 @@ USAGE:
 import os
 import re
 
-MEADE_CPP = "..\\src\\MeadeCommandProcessor.cpp"
-VERSION_FILE = "..\\Version.h"
+MEADE_CPP = os.path.join("..", "src", "core", "meade", "MeadeProtocol.hpp")
+VERSION_FILE = os.path.join("..", "Version.h")
 MODULE_PATH = os.path.dirname(os.path.realpath(__file__))
 START_LINE = 0
 END_LINE = 0
