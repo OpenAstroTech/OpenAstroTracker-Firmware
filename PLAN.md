@@ -4,7 +4,7 @@
 Refactor a ~5k-line `Mount` god-object firmware toward clean architecture for embedded:
 a pure **Domain Core** (no Arduino, fully unit-testable) sitting behind **Port interfaces**,
 with **Adapters** wrapping hardware (AccelStepper, TMC2209, EEPROM, displays, Wi-Fi, clock).
-Approach: **hybrid** — extract pure logic in place first to build a regression-prevention test net (Unity + FakeIt via ArduinoFake on the existing `native` PIO env), then **strangler-fig** the hardware-coupled pieces (drivers, slewing loop, command executor) behind ports. Compile-time `#ifdef` axes/drivers migrate to **runtime polymorphism** so unsupported combinations no longer change the call graph. Goal endpoint: `src/core/` is buildable & 100% unit-tested on host; `src/adapters/` contains all Arduino/library coupling; `src/app/` wires them up per board.
+Approach: **hybrid** — extract pure logic into `core/` first, then test (invert the typical "test-first" order because `src/` root files transitively include `<Arduino.h>` via `inc/Globals.hpp` and are untestable in the `native` PIO env), then **strangler-fig** the hardware-coupled pieces (drivers, slewing loop, command executor) behind ports. Compile-time `#ifdef` axes/drivers migrate to **runtime polymorphism** so unsupported combinations no longer change the call graph. Goal endpoint: `src/core/` is buildable & 100% unit-tested on host; `src/adapters/` contains all Arduino/library coupling; `src/app/` wires them up per board.
 
 ---
 
@@ -108,35 +108,104 @@ The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adap
 
 **Changes from original plan (per feedback):** FFF replaced by FakeIt (in ArduinoFake); `native_core` env eliminated (use `native` only); coverage threshold gating deferred to a later phase.
 
-### Phase 1 — Characterize existing pure logic (regression net)
-*All pure-logic files identified by the audit get exhaustive tests before being moved.*
+### Phase 1 — Extract pure domain logic into `core/`, then test
+*The original plan called for testing before extraction. That doesn't work here: every `src/` root file includes `inc/Globals.hpp` → `<Arduino.h>`, and uses `String`/`LOG()`/Arduino APIs. The `native` PIO env only builds `core/`, `ports/`, `adapters/` — not `src/` root files. **New approach: extract pure subsets into `core/` first, then write exhaustive tests.** Each step is independently shippable. No behavior change.*
 
-Steps (parallel after Phase 0):
-1. Add Unity tests for `DayTime`, `Declination`, `Latitude`, `Longitude` (arithmetic, parse/format round-trips, sign edges, overflow).
-2. Expand `test_sidereal.h` into full `Sidereal` coverage (LST/HA from date/time across edge dates, leap years, DST-irrelevant UTC).
-3. Add tests for `MappedDict` boundary behaviors not yet covered.
-4. Add **golden-master tests** for the largest pure-ish methods currently in `Mount.cpp` by exercising them as-is through a thin test driver:
-   - `Mount::calculateRAandDECSteppers` (parametrize over hemisphere, meridian-flip, latitude, target).
-   - `Mount::syncPosition` math.
-   - `Mount::getLocalDate` calendar increment (leap years, year/month wrap).
-   - `Mount::DECString` / `Mount::RAString` formatting.
-   These tests link against a stripped-down `Mount` compiled with ArduinoFake — they fail the moment behavior shifts during extraction.
+**Structure:** Data containers (`DayTime`, `Declination`, `Latitude`, `Longitude`) go under `src/core/types/`. Algorithm modules (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`, `EepromLayout`) live at `src/core/` root. Mirrors the `core/meade/` subfolder convention.
 
-**Verify:** All new tests green; coverage report shows non-trivial line coverage on the listed methods; CI threshold ratcheted up.
+```
+src/core/
+├── meade/                     # ✅ already extracted — parser + protocol
+├── types/                     # NEW — pure data containers
+│   ├── DayTime.hpp/.cpp
+│   ├── Declination.hpp/.cpp
+│   ├── Latitude.hpp/.cpp
+│   └── Longitude.hpp/.cpp
+├── SiderealClock.hpp/.cpp     # algorithm producing DayTime outputs
+├── CoordinateMath.hpp/.cpp    # algorithm consuming coordinate types
+├── CalendarMath.hpp/.cpp      # pure date arithmetic
+├── CoordinateFormatter.hpp/.cpp  # char-buffer formatting
+└── EepromLayout.hpp           # struct layouts & validation constants
+```
 
-### Phase 2 — Extract pure domain (in place → `src/core/`)
-*Move characterized logic into `core/` with no behavior change. Tests from Phase 1 prevent regressions.*
+The `src/` originals become **thin overlays**: they `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`, `formatString`). This preserves back-compat — no flag day.
 
-1. Create `core/CoordinateMath` from `Mount::calculateRAandDECSteppers` + helpers; replace original with a thin delegate. Inputs/outputs as plain structs (`MountGeometry`, `EquatorialTarget`, `StepperTarget`).
-2. Create `core/SiderealClock` wrapping `Sidereal::` statics behind an instance API that takes an `IClock`.
-3. Create `core/CalendarMath` from `Mount::getLocalDate`.
-4. Create `core/CoordinateFormatter` from RA/DEC string formatters.
-5. Create `core/MountGeometry` value type holding steps-per-degree, calibration angles, hemisphere, backlash — replaces scattered Mount fields used by math.
-6. ~~Create `core/MeadeParser` by splitting `MeadeCommandProcessor`: pure tokenize/dispatch lookup tables in `core/`; execution stays in adapter for now.~~ **✅ DONE** — Meade parser is already in `core/meade/` with 12 family-specific handler interfaces, 13 comprehensive test files, and `MeadeCommandProcessor` as the adapter implementing `IMeadeHandlers`.
+#### Step 1: DayTime — extract pure arithmetic subset
+*Parallel with Steps 5, 7.*
 
-**Verify:** Phase 1 tests still green unchanged; firmware binary for each board builds identically (size diff ≈ 0); new `core/` files all covered by host tests.
+**What's pure** (uses only `long` math, no Arduino types): constructors, `getHours/getMinutes/getSeconds/getTotalHours/getTotalMinutes/getTotalSeconds`, `set`, `addHours/addMinutes/addSeconds`, `addTime/subtractTime`, `sign`, `checkHours`.
 
-### Phase 3 — Introduce HAL, Ports & Adapters
+**What stays** (uses Arduino `String` or `LOG()`): `ParseFromMeade`, `ToString`, `formatString`.
+
+**Plan:**
+1. Create `src/core/types/DayTime.hpp/.cpp` — pure header with arithmetic only.
+2. Keep original `src/DayTime.hpp/cpp` as overlay: `#include "core/types/DayTime.hpp"` + Arduino-dependent methods.
+3. Write `unit_tests/test_core/test_daytime.cpp` — construction, 24h wrap, negative hours, add/subtract across midnight.
+
+#### Step 2: Declination, Latitude, Longitude — extract pure subsets
+*Depends on Step 1.*
+
+All three inherit `DayTime`. Pure parts: `checkHours()` clamping, degree conversion, constructors. What stays: `ParseFromMeade(String const&)`, `ToString()`, `formatString()`.
+
+**Plan:**
+1. Create `src/core/types/Declination.hpp/.cpp`, `Latitude.hpp/.cpp`, `Longitude.hpp/.cpp` — each inherits `core::DayTime`.
+2. Old `src/Declination.hpp` becomes: `#include "core/types/Declination.hpp"` + `ParseFromMeade`/`ToString`/`formatString` overlay.
+3. Write `test_declination.cpp`, `test_latitude.cpp`, `test_longitude.cpp` — clamping edges, hemisphere handling.
+
+#### Step 3: Sidereal — extract pure math, leave GPS behind
+*Depends on Step 1.*
+
+`Sidereal.cpp` is 130 lines. The GPS path (`calculateByGPS`) uses TinyGPS++. The pure math (`calculateByDateAndTime`, `calculateHa`, `calculateTheta`, `calculateDeltaJd`) uses only `double` + `DayTime`.
+
+**Plan:**
+1. Create `src/core/SiderealClock.hpp/.cpp` — `calculateByDateAndTime` and `calculateHa`.
+2. Keep old `src/Sidereal.cpp` with `calculateByGPS` + thin wrappers delegating to `core::SiderealClock`.
+3. Create `test_core/test_sidereal.cpp` — LST/HA from known dates (equinoxes, solstices), leap years.
+
+#### Step 4: Mount — extract `calculateRAandDECSteppers` math
+*Depends on Steps 1-2.*
+
+The ~200-line function computes stepper positions from RA/DEC targets. Core math is pure arithmetic on floats/longs (hemisphere, meridian flip, 3-solution selection).
+
+**Plan:**
+1. Create `src/core/CoordinateMath.hpp/.cpp` with plain structs (`MountGeometry`, `EquatorialTarget`, `StepperSolution`) and free function `calculateStepperPositions()`.
+2. `Mount::calculateRAandDECSteppers` becomes a thin wrapper that fills `MountGeometry` from member fields, calls the free function.
+3. Write `test_core/test_coordinate_math.cpp` — parametrized over hemisphere, meridian-flip boundary, pole targets.
+
+#### Step 5: Mount — extract calendar math
+*Parallel with Steps 1, 7.*
+
+`Mount::getLocalDate()` handles year/month/day increment with month-length tables and leap-year logic. Pure integer math.
+
+**Plan:**
+1. Create `src/core/CalendarMath.hpp/.cpp` with `struct CalendarDate` and `addDays()`.
+2. `Mount::getLocalDate()` delegates to this.
+3. Write `test_core/test_calendar.cpp` — month boundaries, leap years incl. century rules.
+
+#### Step 6: Mount — extract coordinate formatting
+*Depends on Steps 1-2.*
+
+`Mount::RAString()` and `Mount::DECString()` format RA as HH:MM:SS# and DEC as sDD*MM:SS#. Pure char-buffer manipulation.
+
+**Plan:**
+1. Create `src/core/CoordinateFormatter.hpp/.cpp` with `formatRA(char*, const DayTime&)` and `formatDEC(char*, const Declination&)`.
+2. Old `RAString`/`DECString` allocate `String` and call the formatter.
+3. Write `test_core/test_coordinate_format.cpp` — exact wire-byte output, sign rules, zero-padding.
+
+#### Step 7: EPROMStore — extract validation logic
+*Parallel with Steps 1, 5.*
+
+`EPROMStore` uses Arduino EEPROM API directly. Data-validation logic (magic markers `0xCE`/`0xCF`, struct layouts) is separable.
+
+**Plan:**
+1. Create `src/core/EepromLayout.hpp` — struct definitions and validation constants (no Arduino deps).
+2. Full `IPersistentStore` port + adapter comes in Phase 3 (old numbering).
+3. Write `test_core/test_eeprom_layout.cpp` — struct size checks, magic marker validation.
+
+**Verify:** `pio test -e native -v` — all new tests pass; `pio run -e <board>` for all 5 boards builds green per step; `scripts/test-coverage.sh` shows ≥ 85% line coverage on new `core/` files; manual: mount slews to known coordinates on real hardware.
+
+### Phase 2 — Introduce HAL, Ports & Adapters
+*(Formerly Phase 3. Renumbered — old Phases 1+2 merged into new Phase 1.)*
 *Define the HAL surface, define the domain ports, and route current call sites through them. Keep current behavior bit-for-bit.*
 
 1. Define **HAL interfaces** in `src/hal/`:
@@ -168,10 +237,10 @@ Steps (parallel after Phase 0):
 
 **Verify:** All Phase 1/2 tests still green; new contract tests for each port using HAL fakes from `unit_tests/test_common/hal_fakes/` (e.g., `EepromPersistentStore` round-trips via an in-memory `FakeEeprom`); golden-master tests on `Mount` still pass; firmware builds identical-sized binaries on at least one board (other variants ±1%).
 
-### Phase 4 — Decompose `Mount` into controllers
+### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
 
-Recommended slice order (each is an independent step, parallelizable after Phase 3):
+Recommended slice order (each is an independent step, parallelizable after Phase 2):
 1. `core/TrackingController` — tracking speed, sidereal rate, tracker-stop compensation. Owns `IStepperAxis* trk`.
 2. `core/SlewController` — slew state machine extracted from the 280-line `Mount::loop`. Inputs are target + geometry; outputs are stepper commands and state events.
 3. `core/GuidingController` — guide-pulse direction/speed math + timed completion (uses `IClock`).
@@ -186,7 +255,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 
 **Verify per step:** unit tests for the new controller; golden-master tests on `Mount` still green; firmware behavior on hardware unchanged (manual smoke checklist).
 
-### Phase 5 — Compile-time flags → runtime polymorphism
+### Phase 4 — Compile-time flags → runtime polymorphism
 *Eliminate `#ifdef` axes in `core/`, `ports/`, and most of `adapters/`. Feature flags survive only in the composition root and in HAL backend selection.*
 
 1. Replace `AZ_STEPPER_TYPE`, `ALT_STEPPER_TYPE`, `FOCUS_STEPPER_TYPE` checks: composition root either constructs the controller and injects it, or injects a **null-object** controller. `core/` code calls unconditionally.
@@ -197,18 +266,18 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 
 **Verify:** `core/` and `ports/` contain zero `#ifdef` for features (CI grep check); all 5 existing board matrix builds still pass; binary size delta within budget (set explicit per-board limit, e.g., +3% allowed).
 
-### Phase 6 — Meade execution layer cleanup
+### Phase 5 — Meade execution layer cleanup
 *The parser is already in `core/`. This phase finishes the Meade slice by refining the executor and transport layers.*
 
 1. `MeadeCommandProcessor` (current adapter) is already in `src/` root implementing `IMeadeHandlers` → move it to `src/adapters/MeadeCommandAdapter` to match layer conventions.
 2. Introduce `adapters/SerialTransport` + `adapters/WifiTransport` to feed bytes to `core/meade/MeadeParser`; parsed commands dispatch to the adapter.
-3. Remove `Mount* _mount` raw pointer from `MeadeCommandProcessor` — replace with port-based interfaces from Phase 3/4 (e.g. `IMeadeHandlers` implemented over controller interfaces, not the god-object).
+3. Remove `Mount* _mount` raw pointer from `MeadeCommandProcessor` — replace with port-based interfaces from Phase 2/3 (e.g. `IMeadeHandlers` implemented over controller interfaces, not the god-object).
 4. Remove the legacy `Mount::delay()` blocking call from GPS acquisition handler — replace with `IClock`-based non-blocking state machine.
 5. The existing 13 test files in `unit_tests/test_meade/` already cover all parser families. Add integration tests wiring `SerialTransport` → `MeadeParser` → `MeadeCommandAdapter` with faked ports.
 
 **Verify:** Meade test suite green (existing 13 files + new integration tests); Stellarium/ASCOM round-trip smoke test (manual) recorded as a regression checklist; coverage of `core/meade/` ≥ 80% (already achieved).
 
-### Phase 7 — Cleanup & documentation
+### Phase 6 — Cleanup & documentation
 1. Mount facade slimmed to a thin compat shim (or removed if no external dependents).
 2. Move display-related code paths off the Mount → display direct call into the `EventBus`.
 3. Architecture doc (`docs/architecture.md`) with the layer diagram, port catalog, and "where to add a new feature" guide.
@@ -224,24 +293,40 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - [`src/core/meade/`](src/core/meade/) — 16 files: parser, 12 family dispatchers, helpers, protocol spec, typed handler interfaces
 - [`unit_tests/test_meade/`](unit_tests/test_meade/) — 13 test files covering all parser families with fake handler stubs
 
-### Phase 0–1 targets
-- [`src/Mount.cpp`](src/Mount.cpp), [`src/Mount.hpp`](src/Mount.hpp) — the god-object being decomposed; `loop()`, `calculateRAandDECSteppers()`, `guidePulse()`, `startSlewing()`, `readPersistentData()` are the biggest extraction targets.
-- [`src/Sidereal.cpp`](src/Sidereal.cpp), [`src/DayTime.cpp`](src/DayTime.cpp), [`src/Declination.cpp`](src/Declination.cpp), [`src/Latitude.cpp`](src/Latitude.cpp), [`src/Longitude.cpp`](src/Longitude.cpp) — already pure; move into `core/` in Phase 2.
-- [`src/EPROMStore.cpp`](src/EPROMStore.cpp), [`src/EPROMStore.hpp`](src/EPROMStore.hpp) — already a good seam; becomes `IPersistentStore` + adapter.
+### Phase 1 targets — extract & test
+- [`src/DayTime.cpp`](src/DayTime.cpp), [`src/DayTime.hpp`](src/DayTime.hpp) — extract pure arithmetic to `core/types/DayTime` (Step 1)
+- [`src/Declination.cpp`](src/Declination.cpp), [`src/Latitude.cpp`](src/Latitude.cpp), [`src/Longitude.cpp`](src/Longitude.cpp) — extract pure subsets to `core/types/` (Step 2)
+- [`src/Sidereal.cpp`](src/Sidereal.cpp) — extract pure math to `core/SiderealClock` (Step 3)
+- [`src/Mount.cpp`](src/Mount.cpp) — extract `calculateRAandDECSteppers` to `core/CoordinateMath` (Step 4), `getLocalDate` to `core/CalendarMath` (Step 5), `RAString`/`DECString` to `core/CoordinateFormatter` (Step 6)
+- [`src/EPROMStore.cpp`](src/EPROMStore.cpp) — extract validation logic to `core/EepromLayout.hpp` (Step 7)
 
-### Phase 2–3 targets
+### New files created in Phase 1
+- `src/core/types/DayTime.hpp`, `src/core/types/DayTime.cpp`
+- `src/core/types/Declination.hpp`, `src/core/types/Declination.cpp`
+- `src/core/types/Latitude.hpp`, `src/core/types/Latitude.cpp`
+- `src/core/types/Longitude.hpp`, `src/core/types/Longitude.cpp`
+- `src/core/SiderealClock.hpp`, `src/core/SiderealClock.cpp`
+- `src/core/CoordinateMath.hpp`, `src/core/CoordinateMath.cpp`
+- `src/core/CalendarMath.hpp`, `src/core/CalendarMath.cpp`
+- `src/core/CoordinateFormatter.hpp`, `src/core/CoordinateFormatter.cpp`
+- `src/core/EepromLayout.hpp`
+- `unit_tests/test_core/test_daytime.cpp`, `test_declination.cpp`, `test_latitude.cpp`, `test_longitude.cpp`
+- `unit_tests/test_core/test_sidereal.cpp`, `test_coordinate_math.cpp`, `test_calendar.cpp`, `test_coordinate_format.cpp`
+- `unit_tests/test_core/test_eeprom_layout.cpp`
+
+### Phase 2 targets
 - [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/Gyro.cpp`](src/Gyro.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/WifiControl.cpp`](src/WifiControl.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp) — become adapters behind ports.
 - [`src/Core.cpp`](src/Core.cpp), [`src/a_inits.hpp`](src/a_inits.hpp), [`src/b_setup.hpp`](src/b_setup.hpp), [`src/f_serial.hpp`](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
 
-### Phase 6 targets
+### Phase 5 targets
 - [`src/MeadeCommandProcessor.cpp`](src/MeadeCommandProcessor.cpp), [`src/MeadeCommandProcessor.hpp`](src/MeadeCommandProcessor.hpp) — adapter already bridges parser to `Mount`; move to `src/adapters/` and wire through ports.
 - [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandProcessor::instance()->processCommand()`; becomes `SerialTransport` adapter.
 
 ### Infrastructure
 - [`platformio.ini`](platformio.ini) — `native` env with coverage flags, ArduinoFake `test_lib_deps`, coverage extra script.
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs `pio run -e native -t coverage` + publishes summary; builds all 5 boards.
-- [`unit_tests/test_common/`](unit_tests/test_common/) — expand with FakeIt-based port fakes for Phase 3+.
-- [`Configuration.hpp`](Configuration.hpp), [`Configuration_adv.hpp`](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 5.
+- [`unit_tests/test_common/`](unit_tests/test_common/) — expand with FakeIt-based port fakes for Phase 2+.
+- [`Configuration.hpp`](Configuration.hpp), [`Configuration_adv.hpp`](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 4.
 
 ---
 
@@ -251,7 +336,7 @@ Automated:
 1. `pio test -e native -v` — full host test suite, runs every PR.
 2. `pio run -e <board>` for the existing 5-board matrix — must remain green every phase.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
-4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 5).
+4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 4).
 5. Binary-size budget check per board (warn at +1%, fail at +3%).
 
 Manual smoke checklist (per shippable phase end):
@@ -266,10 +351,13 @@ Manual smoke checklist (per shippable phase end):
 ## Decisions
 
 - **Test stack:** Unity (already in PIO) + **FakeIt** (via ArduinoFake) for mocking Arduino/library calls. No GoogleTest.
-- **Migration style:** **Hybrid** — extract pure logic in place first (Phase 1–2), then strangler-fig hardware-coupled layers (Phase 3–6).
+- **Migration style:** **Hybrid** — extract pure logic first (Phase 1), then strangler-fig hardware-coupled layers (Phase 2–5).
 - **Config flags:** Migrate to **runtime polymorphism behind interfaces**; composition root reads the `Configuration*.hpp` macros once. `core/` becomes `#ifdef`-free for features.
 - **Back-compat:** Meade serial protocol behavior is invariant (external interface); internal C++ APIs may change freely.
 - **Out of scope:** UI menu screens (`c*_menu*.hpp`) refactor; new features; supporting new boards; replacing AccelStepper/TMCStepper libraries; switching build system.
+- **Extract-before-test:** All `src/` root files include `inc/Globals.hpp` → `<Arduino.h>` and are untestable in the `native` PIO env (which only builds `core/`, `ports/`, `adapters/`). Pure logic is extracted into `core/` first, then tested — inverted from the typical test-first order. Only already-pure code (`core/meade/`, `MappedDict`) gets tests before extraction.
+- **`core/types/` for data containers:** `DayTime`, `Declination`, `Latitude`, `Longitude` grouped under `src/core/types/` as pure data. Algorithm modules (`SiderealClock`, `CoordinateMath`, etc.) live at `core/` root. Mirrors the `core/meade/` subfolder convention. Can be split further if needed.
+- **Thin overlays preserve back-compat:** Original `src/` files become overlays that `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`, `formatString`). No flag day — each step is independently shippable.
 
 ## Further Considerations
 
