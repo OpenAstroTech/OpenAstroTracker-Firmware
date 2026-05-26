@@ -52,7 +52,7 @@ Cross-cutting:
 - **Configuration** becomes a runtime `MountConfig` struct populated at composition time from `Configuration.hpp` constants (single translation unit reads the macros). `#ifdef` no longer leaks into `core/` or `ports/`; HAL backend selection is the only place feature flags survive.
 - **Time** is a `IClock` port backed by `hal::ISystemClock`; `core/` never calls `millis()` directly.
 - **Logging** is an `ILogger` port backed by `hal::ISerialPort`; `core/` never includes `Serial`.
-- Optional axes (`AZ`, `ALT`, `Focus`) become `std::optional<AxisController>` or null-object pattern — no `#ifdef` branches in controllers.
+- Optional axes (`AZ`, `ALT`, `Focus`) become `etl::optional<AxisController>` or null-object pattern — no `#ifdef` branches in controllers.
 
 `Mount.cpp` ends up as a thin **facade** (≤ 500 LOC) over `core/` controllers, retained for Meade protocol back-compat; gradually deprecated.
 
@@ -66,7 +66,7 @@ The Meade LX200 command parser has been fully extracted into `src/core/meade/` a
 
 | Layer | Location | Status |
 |-------|----------|--------|
-| **Parser** (pure) | `src/core/meade/MeadeParser.*` + 11 family-specific `.cpp` files | ✅ Done — 100% covered by 13 test files in `unit_tests/test_meade/` |
+| **Parser** (pure) | `src/core/meade/MeadeParser.*` + 11 family-specific `.cpp` files | ✅ Done — 100% covered by 13 test files in `unit_tests/test_core/meade/` |
 | **Protocol spec** | `src/core/meade/MeadeProtocol.hpp` | ✅ Done — comprehensive protocol documentation |
 | **Handler interfaces** | `src/core/meade/MeadeParser.hpp` (12 `IMeade*Handlers` interfaces + aggregate `IMeadeHandlers`) | ✅ Done — clean typed contracts |
 | **Executor/Adapter** | `src/MeadeCommandProcessor.hpp/cpp` | ✅ Done — implements `IMeadeHandlers`, delegates to `Mount`/`LcdMenu` |
@@ -80,7 +80,7 @@ The `MeadeCommandProcessor` adapter bridges the parser to the legacy `Mount` sin
 
 ### Test coverage
 
-13 test files in `unit_tests/test_meade/` provide comprehensive wire-byte coverage for every parser family using fake handler stubs. Tests verify:
+13 test files in `unit_tests/test_core/meade/` provide comprehensive wire-byte coverage for every parser family using fake handler stubs. Tests verify:
 - Exact wire-byte formatting (zero-padding, sign rules, terminators)
 - Suffix classification and handler dispatch routing
 - Edge cases (malformed input, overflow, unknown sub-commands)
@@ -199,13 +199,12 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 
 **Plan:**
 1. Create `src/core/EepromLayout.hpp` — struct definitions and validation constants (no Arduino deps).
-2. Full `IPersistentStore` port + adapter comes in Phase 3 (old numbering).
+2. Full `IPersistentStore` port + adapter comes in Phase 2.
 3. Write `test_core/test_eeprom_layout.cpp` — struct size checks, magic marker validation.
 
 **Verify:** `pio test -e native -v` — all new tests pass; `pio run -e <board>` for all 5 boards builds green per step; `scripts/test-coverage.sh` shows ≥ 85% line coverage on new `core/` files; manual: mount slews to known coordinates on real hardware.
 
 ### Phase 2 — Introduce HAL, Ports & Adapters
-*(Formerly Phase 3. Renumbered — old Phases 1+2 merged into new Phase 1.)*
 *Define the HAL surface, define the domain ports, and route current call sites through them. Keep current behavior bit-for-bit.*
 
 1. Define **HAL interfaces** in `src/hal/`:
@@ -232,28 +231,31 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
    - `LcdMenuDisplay`, `Ssd1306InfoDisplay` (over `hal::IOledPanel` / `hal::ICharLcd`),
    - `SerialTransport`, `WifiTransport` (over `hal::ISerialPort` / `hal::IWifiStack`),
    - `TinyGpsAdapter`.
-5. Refactor `Mount` to **hold port pointers** (`IStepperAxis* _ra; IClock* _clock; ...`) injected at construction instead of owning concrete types. Composition happens in `app/` (currently `b_setup.hpp`).
+5. Refactor `Mount` to **hold port pointers** (`IStepperAxis* _ra; IClock* _clock; ...`) injected at construction instead of owning concrete types. Composition happens in `app/` (currently `b_setup.hpp`). **Migration note:** `Mount` is currently accessed as a global (`extern Mount mount;` from `a_inits.hpp`). Call sites that use `mount.xxx()` will be updated to receive a pointer/reference. This uses the same thin-overlay pattern as Phase 1 — existing call sites delegate through the global during transition, then migrate to injected references when their owning module becomes an adapter.
 6. Replace direct `millis()`, `digitalWrite()`, `EEPROMStore::` calls inside `Mount` with port calls; replace `LOG()` macro with `_logger->log(...)`.
+7. **ISR contract for `IStepperAxis`:** This phase MUST settle the threading model. `Mount::interruptLoop()` is called from ISR context (AVR Timer ISR / ESP32 FreeRTOS task). The `IStepperAxis` interface must specify which methods are ISR-safe and which are main-loop-only. `Snapshot()` provides an ISR-safe state read. This contract is a prerequisite for Phase 3's `SlewController`.
 
-**Verify:** All Phase 1/2 tests still green; new contract tests for each port using HAL fakes from `unit_tests/test_common/hal_fakes/` (e.g., `EepromPersistentStore` round-trips via an in-memory `FakeEeprom`); golden-master tests on `Mount` still pass; firmware builds identical-sized binaries on at least one board (other variants ±1%).
+**Verify:** All Phase 1 tests still green; new contract tests for each port using HAL fakes from `unit_tests/test_common/hal_fakes/` (e.g., `EepromPersistentStore` round-trips via an in-memory `FakeEeprom`); firmware builds all 5 boards (toolchain enforces flash limits).
 
 ### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
 
+**Prerequisite:** Phase 2's ISR contract for `IStepperAxis` must be settled. The threading model for `SlewController::update()` (main loop vs ISR context) follows from that contract.
+
 Recommended slice order (each is an independent step, parallelizable after Phase 2):
 1. `core/TrackingController` — tracking speed, sidereal rate, tracker-stop compensation. Owns `IStepperAxis* trk`.
-2. `core/SlewController` — slew state machine extracted from the 280-line `Mount::loop`. Inputs are target + geometry; outputs are stepper commands and state events.
+2. `core/SlewController` — slew state machine extracted from the 280-line `Mount::loop`. Inputs are target + geometry; outputs are stepper commands and state events. **Threading model deferred to Phase 2's ISR contract.**
 3. `core/GuidingController` — guide-pulse direction/speed math + timed completion (uses `IClock`).
 4. `core/HomingController` — hall-sensor/end-switch state machine; owns `IHomingSensor* ra`, `IHomingSensor* dec`.
 5. `core/ParkingController` — park position, parking transitions.
-6. `core/FocusController` — focus motor (only constructed when focus axis is present).
-7. `core/AzAltController` — AZ/ALT motors (only constructed when present).
+6. `core/FocusController` — focus motor (only constructed when focus axis is present; uses `etl::optional` in composition root).
+7. `core/AzAltController` — AZ/ALT motors (only constructed when present; uses `etl::optional` in composition root).
 8. `core/MountState` — single source of truth for the `_mountStatus` bitfield, with typed enum API (`Status::isSlewing()` etc.). Controllers mutate `MountState`; Mount facade reads it.
 9. `core/EventBus` — controllers publish `PositionChanged`, `SlewStarted`, `Parked`, etc.; display adapter subscribes (removes Mount → display direct coupling).
 
 Each step: extract → add focused unit tests with FakeIt-faked ports → remove the original code from `Mount.cpp` → ship.
 
-**Verify per step:** unit tests for the new controller; golden-master tests on `Mount` still green; firmware behavior on hardware unchanged (manual smoke checklist).
+**Verify per step:** unit tests for the new controller; all prior tests still green; firmware behavior on hardware unchanged (manual smoke checklist).
 
 ### Phase 4 — Compile-time flags → runtime polymorphism
 *Eliminate `#ifdef` axes in `core/`, `ports/`, and most of `adapters/`. Feature flags survive only in the composition root and in HAL backend selection.*
@@ -264,16 +266,18 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 4. Truly board-specific code (interrupt registers, board pins) lives **only inside the relevant `hal/<platform>/` backend**; `core/`, `ports/`, and `adapters/` become `#ifdef`-free.
 5. Add a `MountConfig` builder in `app/` that reads the `Configuration*.hpp` macros and produces a runtime config object.
 
-**Verify:** `core/` and `ports/` contain zero `#ifdef` for features (CI grep check); all 5 existing board matrix builds still pass; binary size delta within budget (set explicit per-board limit, e.g., +3% allowed).
+**Verify:** `core/` and `ports/` contain zero `#ifdef` for features (CI grep check); all 5 existing board matrix builds still pass (toolchain enforces flash limits).
 
 ### Phase 5 — Meade execution layer cleanup
 *The parser is already in `core/`. This phase finishes the Meade slice by refining the executor and transport layers.*
+
+**Prerequisite:** Phase 3 must be substantially complete. The `MeadeCommandProcessor` currently holds a `Mount*` raw pointer and calls Mount methods directly. It can only be re-wired to port-based interfaces once Phase 3's controllers expose those ports.
 
 1. `MeadeCommandProcessor` (current adapter) is already in `src/` root implementing `IMeadeHandlers` → move it to `src/adapters/MeadeCommandAdapter` to match layer conventions.
 2. Introduce `adapters/SerialTransport` + `adapters/WifiTransport` to feed bytes to `core/meade/MeadeParser`; parsed commands dispatch to the adapter.
 3. Remove `Mount* _mount` raw pointer from `MeadeCommandProcessor` — replace with port-based interfaces from Phase 2/3 (e.g. `IMeadeHandlers` implemented over controller interfaces, not the god-object).
 4. Remove the legacy `Mount::delay()` blocking call from GPS acquisition handler — replace with `IClock`-based non-blocking state machine.
-5. The existing 13 test files in `unit_tests/test_meade/` already cover all parser families. Add integration tests wiring `SerialTransport` → `MeadeParser` → `MeadeCommandAdapter` with faked ports.
+5. The existing 13 test files in `unit_tests/test_core/meade/` already cover all parser families. Add integration tests wiring `SerialTransport` → `MeadeParser` → `MeadeCommandAdapter` with faked ports.
 
 **Verify:** Meade test suite green (existing 13 files + new integration tests); Stellarium/ASCOM round-trip smoke test (manual) recorded as a regression checklist; coverage of `core/meade/` ≥ 80% (already achieved).
 
@@ -291,7 +295,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 
 ### Already migrated to `core/`
 - [`src/core/meade/`](src/core/meade/) — 16 files: parser, 12 family dispatchers, helpers, protocol spec, typed handler interfaces
-- [`unit_tests/test_meade/`](unit_tests/test_meade/) — 13 test files covering all parser families with fake handler stubs
+- [`unit_tests/test_core/meade/`](unit_tests/test_core/meade/) — 13 test files covering all parser families with fake handler stubs
 
 ### Phase 1 targets — extract & test
 - [`src/DayTime.cpp`](src/DayTime.cpp), [`src/DayTime.hpp`](src/DayTime.hpp) — extract pure arithmetic to `core/types/DayTime` (Step 1)
@@ -323,7 +327,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandProcessor::instance()->processCommand()`; becomes `SerialTransport` adapter.
 
 ### Infrastructure
-- [`platformio.ini`](platformio.ini) — `native` env with coverage flags, ArduinoFake `test_lib_deps`, coverage extra script.
+- [`platformio.ini`](platformio.ini) — `native` env with coverage flags, ArduinoFake `test_lib_deps`, coverage extra script, `test_filter = test_core` (catches `test_core/meade/` too).
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs `pio run -e native -t coverage` + publishes summary; builds all 5 boards.
 - [`unit_tests/test_common/`](unit_tests/test_common/) — expand with FakeIt-based port fakes for Phase 2+.
 - [`Configuration.hpp`](Configuration.hpp), [`Configuration_adv.hpp`](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 4.
@@ -333,11 +337,10 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 ## Verification strategy
 
 Automated:
-1. `pio test -e native -v` — full host test suite, runs every PR.
+1. `pio test -e native -v` — full host test suite, runs every PR. Filter: `test_core` (covers `test_core/meade/` and new `test_core/` tests).
 2. `pio run -e <board>` for the existing 5-board matrix — must remain green every phase.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
 4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 4).
-5. Binary-size budget check per board (warn at +1%, fail at +3%).
 
 Manual smoke checklist (per shippable phase end):
 1. Mount slews to known coordinates within tolerance on real hardware (one volunteer-owned board).
@@ -350,9 +353,12 @@ Manual smoke checklist (per shippable phase end):
 
 ## Decisions
 
-- **Test stack:** Unity (already in PIO) + **FakeIt** (via ArduinoFake) for mocking Arduino/library calls. No GoogleTest.
+- **Test stack:** **Googletest** + **FakeIt** (via ArduinoFake) for host-side unit tests. The `native` PIO env uses `test_framework = googletest`. FakeIt is bundled with ArduinoFake (`ArduinoFake@^0.4.0`) and provides the mocking/stubbing API (`When(Method(...)).Return(...)`, `Verify(Method(...))`). No Unity. No GoogleMock.
 - **Migration style:** **Hybrid** — extract pure logic first (Phase 1), then strangler-fig hardware-coupled layers (Phase 2–5).
 - **Config flags:** Migrate to **runtime polymorphism behind interfaces**; composition root reads the `Configuration*.hpp` macros once. `core/` becomes `#ifdef`-free for features.
+- **Optional axes:** Use `etl::optional` (from Embedded Template Library) — not `std::optional`. The firmware builds with `-D ETL_NO_STL` on AVR targets. `core/` uses `etl::optional` for consistency across all build targets. The `native` test env adds ETL as a dependency.
+- **Mount global migration:** `Mount` is currently a global variable (`extern Mount mount;` in `a_inits.hpp`). Call sites that use `mount.xxx()` will be migrated using the thin-overlay pattern: existing code delegates through the global during transition; when a module becomes a proper adapter (Phase 2+), it receives injected references instead. No flag day needed.
+- **ISR threading model:** Deferred to Phase 2. The `IStepperAxis` interface contract (which methods are ISR-safe, `Snapshot()` semantics) will be settled before Phase 3 begins extracting controllers. Without this contract, `SlewController`'s threading model is undefined.
 - **Back-compat:** Meade serial protocol behavior is invariant (external interface); internal C++ APIs may change freely.
 - **Out of scope:** UI menu screens (`c*_menu*.hpp`) refactor; new features; supporting new boards; replacing AccelStepper/TMCStepper libraries; switching build system.
 - **Extract-before-test:** All `src/` root files include `inc/Globals.hpp` → `<Arduino.h>` and are untestable in the `native` PIO env (which only builds `core/`, `ports/`, `adapters/`). Pure logic is extracted into `core/` first, then tested — inverted from the typical test-first order. Only already-pure code (`core/meade/`, `MappedDict`) gets tests before extraction.
@@ -361,6 +367,7 @@ Manual smoke checklist (per shippable phase end):
 
 ## Further Considerations
 
-1. **C++ standard.** `core/` benefits from at least C++17 (`std::optional`, `std::variant`, `if constexpr`). PlatformIO defaults vary by board (some AVR ports stuck on C++11/14). *Recommendation:* set `build_flags = -std=gnu++17` for the `native` env; verify each board env supports it (likely yes on current toolchains) — fall back to `-std=gnu++14` + tagged unions if AVR pinches.
-2. **Binary size on AVR_MEGA2560.** Polymorphism + extra indirection costs flash on AVR. *Recommendation:* keep vtables small (≤ ~12 ports), mark adapters `final`, allow link-time devirtualization. If we still bust the budget, accept template-based static dispatch for the hot path (`SlewController<RaAxis, DecAxis>`) — adds complexity but keeps AVR shipping.
-3. **Interrupt-driven stepping.** `InterruptAccelStepper` mutates state from ISR context. Ports for axes need explicit thread/ISR-safety contract documented; `core/` controllers must never assume single-threaded access to axis state. *Recommendation:* document this in `ports/IStepperAxis.h`; add a `Snapshot()` method returning a consistent state read.
+1. **C++ standard.** `core/` benefits from at least C++17 (`etl::optional`, `if constexpr`). PlatformIO defaults vary by board (some AVR ports stuck on C++11/14). *Decision:* native env already uses `-std=gnu++17`. Each board env will be checked for C++17 support and upgraded if needed. Fallback: `-std=gnu++14` + ETL polyfills on boards that can't support C++17.
+2. **Binary size on AVR_MEGA2560.** Polymorphism + extra indirection costs flash on AVR. The toolchain errors if flash is exceeded, so no explicit budget is needed. *Mitigation:* keep vtables small (≤ ~12 ports), mark adapters `final`, allow link-time devirtualization. If flash still overflows, accept template-based static dispatch for the hot path (`SlewController<RaAxis, DecAxis>`) — adds complexity but keeps AVR shipping.
+3. **Characterization / golden-master tests.** A future task: capture known-good (RA,DEC → stepper position) pairs from real hardware for the `calculateRAandDECSteppers` math. This would serve as regression tests for the meridian-flip solution selector — the highest-risk coordinate math in the system. Not part of Phase 1; left as a follow-up task after extraction is complete and the pure math is independently testable on native.
+4. **MeadeCommandProcessor singleton.** `MeadeCommandProcessor::instance()` is a true singleton (unlike `Mount`, which is a global). It's accessed from `f_serial.hpp`, `WifiControl.cpp`, `c_buttons.hpp`, and `testmenu.cpp`. Phase 5 moves it to `src/adapters/MeadeCommandAdapter`; the singleton pattern should be eliminated there in favor of a non-owning reference from the composition root.
