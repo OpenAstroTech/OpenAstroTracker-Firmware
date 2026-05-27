@@ -18,5 +18,8 @@ class Latitude : public core::Latitude
     Latitude(int h, int m, int s);
     Latitude(float inDegrees);
 
+    // Convert to a standard string (like +45:00:00)
+    virtual const char *ToString() const;
+
     static Latitude ParseFromMeade(String const &s);
 };

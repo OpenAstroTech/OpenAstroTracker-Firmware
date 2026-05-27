@@ -20,6 +20,13 @@ Latitude::Latitude(float inDegrees) : core::Latitude(inDegrees)
 {
 }
 
+char achBufLat[32];
+
+const char *Latitude::ToString() const
+{
+    return core::DayTime::formatString(achBufLat, "{+}{d}:{m}:{s}");
+}
+
 Latitude Latitude::ParseFromMeade(String const &s)
 {
     Latitude result(0.0);
