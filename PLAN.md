@@ -231,7 +231,6 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 **Plan:**
 1. Create `src/hal/EepromLayout.hpp` — struct definitions and validation constants (no Arduino deps; EEPROM layout is a storage format, not domain logic).
 2. Full `IPersistentStore` port + adapter comes in Phase 2.
-3. Write `test_hal/test_eeprom_layout.cpp` — struct size checks, magic marker validation.
 
 **Verify:** `pio test -e native -v` — all new tests pass; `pio run -e <board>` for all 5 boards builds green per step; `scripts/test-coverage.sh` shows ≥ 85% line coverage on new `core/` files; manual: mount slews to known coordinates on real hardware.
 
@@ -347,7 +346,6 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - `src/hal/EepromLayout.hpp`
 - `unit_tests/test_core/test_daytime.cpp`, `test_declination.cpp`, `test_latitude.cpp`, `test_longitude.cpp`
 - `unit_tests/test_core/test_sidereal.cpp`, `test_coordinate_math.cpp`, `test_calendar.cpp`, `test_coordinate_format.cpp`
-- `unit_tests/test_hal/test_eeprom_layout.cpp`
 
 ### Phase 2 targets
 - [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/Gyro.cpp`](src/Gyro.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/WifiControl.cpp`](src/WifiControl.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp) — become adapters behind ports.
