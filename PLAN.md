@@ -8,53 +8,85 @@ Approach: **hybrid** — extract pure logic into `core/` first, then test (inver
 
 ---
 
-## Goal Architecture (target)
+## Architecture
 
-Five layers, dependencies point inward only. The **HAL** sits between domain ports and the actual hardware libraries, so swapping AccelStepper/TMCStepper/EEPROM/SSD1306/Wi-Fi never touches `core/` or `ports/`.
+### Goals
 
+| # | Goal | Rationale |
+|---|------|-----------|
+| 1 | **Make domain logic host-testable** | The `native` PIO env can't compile `src/` root files (they transitively include `<Arduino.h>` via `inc/Globals.hpp`). Pure logic must live in `src/core/` with zero Arduino deps so tests run in milliseconds, not on hardware. |
+| 2 | **Shrink the `Mount` god-object** | `Mount.cpp` is ~5000 LOC holding all domain behavior. End state: `Mount` is a thin facade (≤ 500 LOC) over focused controllers in `core/`. |
+| 3 | **Eliminate `#ifdef` from domain code** | Feature flags for axes, driver types, and sensors currently produce 2^N untested build combinations. These become runtime polymorphism behind interfaces — the composition root makes one choice; `core/` never branches. |
+| 4 | **Swap hardware without touching logic** | Changing stepper library, display type, or EEPROM backend must not require edits to `core/` or `ports/`. |
+| 5 | **Coverage that means something** | Target: `core/` ≥ 85% line coverage with tests that verify behavior (not tautologies). |
+
+### Requirements & Constraints
+
+| Category | Constraint | Why |
+|----------|-----------|-----|
+| **Hardware** | Must build & run on all 5 boards (AVR_MEGA2560, MKS_GEN_L_V1/V2/V21, ESP32_ESP32DEV) | Existing user base; CI matrix enforces this. |
+| **Memory** | AVR_MEGA2560 has 256 KB flash, 8 KB SRAM | Flash overflow is caught at link time. Mitigation: keep vtable count ≤ ~12, mark adapters `final`, consider template-based static dispatch as escape hatch. |
+| **C++ standard** | C++17 for `core/` (needs `etl::optional`, `if constexpr`); boards may require C++14 fallback with ETL polyfills | `native` env already uses `-std=gnu++17`. Board envs will be audited per phase. |
+| **Testability** | `core/` must never include `<Arduino.h>` or use `String`, `Serial`, `millis()`, `LOG()` | Enforced by CI grep check. `native` env only compiles `core/`, `ports/`, `adapters/`. |
+| **Back-compat** | Meade LX200 serial protocol behavior is invariant | External interfaces (Stellarium, ASCOM) must not break. Internal C++ APIs may change freely. |
+| **Shippable increments** | Every phase/step must be independently shippable — all boards green, all tests green | No flag days; thin overlays preserve old call-sites during transition. |
+| **Tooling** | PlatformIO + Googletest + FakeIt (bundled with ArduinoFake) + gcovr | Already configured in `platformio.ini` and CI (`ci.yml`). |
+
+### Layers & Dependencies
+
+Dependencies point inward only. No layer may reference a layer above it.
+
+```mermaid
+graph TD
+    APP["app/<br/>Composition Root"]
+    ADAPTERS["adapters/<br/>Port → HAL glue"]
+    PORTS["ports/<br/>Domain interfaces"]
+    CORE["core/<br/>Pure domain logic"]
+    HAL["hal/<br/>Hardware abstraction<br/>interfaces + backends"]
+    HW["Hardware / Libraries<br/>Arduino, AccelStepper, TMCStepper,<br/>EEPROM, SSD1306, TinyGPS++"]
+
+    APP --> ADAPTERS
+    APP --> HAL
+    APP --> PORTS
+    APP --> CORE
+    ADAPTERS --> PORTS
+    ADAPTERS --> HAL
+    CORE --> PORTS
+    HAL --> HW
+
+    style CORE fill:#e1f5fe
+    style PORTS fill:#fff9c4
+    style ADAPTERS fill:#dcedc8
+    style HAL fill:#f3e5f5
+    style APP fill:#ffe0b2
+    style HW fill:#e0e0e0
 ```
-+----------------------------------------------------------------+
-|  app/        per-board composition root (main.cpp + setup     |
-|   |          wiring, replaces the legacy .ino entry point)    |
-|   v                                                            |
-|  adapters/   bind domain ports to HAL (and to non-HAL libs    |
-|   |          such as TinyGPS data structs); thin glue.        |
-|   v                                                            |
-|  hal/        Hardware Abstraction Layer — pure C++ interfaces |
-|   |          for physical components + per-platform backends: |
-|   |            IGpioPin, ISerialPort, ISpiBus, II2cBus,       |
-|   |            IEeprom, IStepperMotor, ITmcDriver, IOledPanel,|
-|   |            ICharLcd, IButtonMatrix, ITimerService,        |
-|   |            ISystemClock, IWifiStack.                      |
-|   |          Backends: hal/arduino/, hal/esp32/, hal/avr/.    |
-|   |          Host-side fakes for unit tests live under        |
-|   |          unit_tests/test_common/ (test code, not src/).   |
-|   v                                                            |
-|  ports/      domain-level interfaces consumed by core:        |
-|   |          IClock, ILogger, IPersistentStore, IStepperAxis, |
-|   |          IMotorDriver, IDisplay, IInfoDisplay, ITransport,|
-|   |          IHomingSensor, IEndSwitch, IGps.                 |
-|   v                                                            |
-|  core/       pure domain logic, no Arduino, host-testable:    |
-|              CoordinateMath, MountState, SlewController,      |
-|              GuidingController, TrackingController,           |
-|              ParkingController, HomingController,             |
-|              FocusController, SiderealClock, MeadeParser,     |
-|              MountConfig, EventBus.                            |
-+----------------------------------------------------------------+
-```
 
-**HAL vs Ports — why both:**
-- `hal/` describes *what the hardware can do* (pin toggles, UART bytes, timer ticks). One backend per platform; one in-memory backend for tests.
-- `ports/` describes *what the domain needs* (axis position, persistent value, "now"). Adapters compose one or more HAL services to satisfy a port — e.g. `AccelStepperAxis` adapter implements `IStepperAxis` using `IStepperMotor` + `ITimerService` from HAL.
+| Layer | Directory | Depends on | Contains | Test strategy |
+|-------|-----------|------------|----------|---------------|
+| **core/** | `src/core/` | `ports/` only | Domain controllers (`SlewController`, `TrackingController`, …), algorithms (`SiderealClock`, `CoordinateMath`, …), `MeadeParser`, `MountState`, `EventBus`, `MountConfig` | Pure unit tests with FakeIt-faked ports. No hardware, no Arduino. `native` env. |
+| **ports/** | `src/ports/` | nothing | Domain interfaces: `IClock`, `ILogger`, `IPersistentStore`, `IStepperAxis`, `IMotorDriver`, `IDisplay`, `IHomingSensor`, `IEndSwitch`, `IGps`, `ITransport` | Pure abstract interfaces — no implementation to test. |
+| **adapters/** | `src/adapters/` | `ports/` + `hal/` | Thin glue: `AccelStepperAxis`, `EepromPersistentStore`, `SerialLogger`, `Tmc2209Driver`, `HallHomingSensor`, `SerialTransport`, `WifiTransport`, `MeadeCommandAdapter` | Integration tests: adapter → faked HAL port. |
+| **hal/** | `src/hal/` | hardware libraries only | Interfaces (`IGpioPin`, `ISerialPort`, `IStepperMotor`, `ITmcDriver`, `ISystemClock`, `ITimerService`, …) + per-platform backends (`hal/arduino/`, `hal/avr/`, `hal/esp32/`) | Not host-tested (wraps hardware). Verified by on-device smoke tests. |
+| **app/** | `src/app/` | all layers | Composition root. Board-specific configuration comes from a header (e.g. `Configuration_local_oaeboardv1.hpp`, selected by the PIO environment) which populates a runtime `MountConfig` struct. Wires up the object graph. Replaces the legacy `.ino` entry point. | Verified by on-device smoke tests across all 5 boards. |
 
-Cross-cutting:
-- **Configuration** becomes a runtime `MountConfig` struct populated at composition time from `Configuration.hpp` constants (single translation unit reads the macros). `#ifdef` no longer leaks into `core/` or `ports/`; HAL backend selection is the only place feature flags survive.
-- **Time** is a `IClock` port backed by `hal::ISystemClock`; `core/` never calls `millis()` directly.
-- **Logging** is an `ILogger` port backed by `hal::ISerialPort`; `core/` never includes `Serial`.
-- Optional axes (`AZ`, `ALT`, `Focus`) become `etl::optional<AxisController>` or null-object pattern — no `#ifdef` branches in controllers.
+**Why both `hal/` and `ports/`:**
+- `hal/` describes *what the hardware can do* (pin toggles, UART bytes, timer ticks). One backend per platform.
+- `ports/` describes *what the domain needs* (axis position, persistent value, "now"). Adapters compose one or more HAL services to satisfy a port — e.g. `AccelStepperAxis` implements `IStepperAxis` using `IStepperMotor` + `ITimerService` from HAL.
+- This split means a new stepper library requires a new HAL backend, not a port change. A new domain requirement (e.g. "axis acceleration profile") requires a port change, not a HAL change.
 
-`Mount.cpp` ends up as a thin **facade** (≤ 500 LOC) over `core/` controllers, retained for Meade protocol back-compat; gradually deprecated.
+### Cross-cutting rules
+
+| Rule | Enforcement |
+|------|-------------|
+| `core/` never includes `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, or any board pin header | CI grep check (Phase 4+) |
+| `core/` and `ports/` contain zero `#ifdef` for feature flags | CI grep check (Phase 4+) |
+| Time = `IClock` port (backed by `hal::ISystemClock`); no direct `millis()` | Interface contract |
+| Logging = `ILogger` port (backed by `hal::ISerialPort`); no direct `Serial.print()` | Interface contract |
+| Configuration = runtime `MountConfig` struct populated once in `app/` from `Configuration*.hpp` macros | Single translation unit reads macros |
+| Optional axes (AZ, ALT, Focus) = `etl::optional` or null-object pattern; no `#ifdef` branches | Composition root constructs or injects null |
+| ISR-safety: `IStepperAxis::Snapshot()` returns an ISR-safe state snapshot; mutation methods are main-loop-only | Settled in Phase 2 before Phase 3 controller extraction |
+| `Mount` becomes a thin facade (≤ 500 LOC) over `core/` controllers, retained for Meade back-compat, gradually deprecated | Shrinks each phase as controllers are extracted |
 
 ---
 
@@ -111,7 +143,7 @@ The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adap
 ### Phase 1 — Extract pure domain logic into `core/`, then test
 *The original plan called for testing before extraction. That doesn't work here: every `src/` root file includes `inc/Globals.hpp` → `<Arduino.h>`, and uses `String`/`LOG()`/Arduino APIs. The `native` PIO env only builds `core/`, `ports/`, `adapters/` — not `src/` root files. **New approach: extract pure subsets into `core/` first, then write exhaustive tests.** Each step is independently shippable. No behavior change.*
 
-**Structure:** Data containers (`DayTime`, `Declination`, `Latitude`, `Longitude`) go under `src/core/types/`. Algorithm modules (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`, `EepromLayout`) live at `src/core/` root. Mirrors the `core/meade/` subfolder convention.
+**Structure:** Data containers (`DayTime`, `Declination`, `Latitude`, `Longitude`) go under `src/core/types/`. Algorithm modules (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`) live at `src/core/` root. EEPROM layout constants (`EepromLayout`) live in `src/hal/` — they describe a storage format, not domain behavior.
 
 ```
 src/core/
@@ -125,7 +157,6 @@ src/core/
 ├── CoordinateMath.hpp/.cpp    # algorithm consuming coordinate types
 ├── CalendarMath.hpp/.cpp      # pure date arithmetic
 ├── CoordinateFormatter.hpp/.cpp  # char-buffer formatting
-└── EepromLayout.hpp           # struct layouts & validation constants
 ```
 
 The `src/` originals become **thin overlays**: they `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`, `formatString`). This preserves back-compat — no flag day.
@@ -198,9 +229,9 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 `EPROMStore` uses Arduino EEPROM API directly. Data-validation logic (magic markers `0xCE`/`0xCF`, struct layouts) is separable.
 
 **Plan:**
-1. Create `src/core/EepromLayout.hpp` — struct definitions and validation constants (no Arduino deps).
+1. Create `src/hal/EepromLayout.hpp` — struct definitions and validation constants (no Arduino deps; EEPROM layout is a storage format, not domain logic).
 2. Full `IPersistentStore` port + adapter comes in Phase 2.
-3. Write `test_core/test_eeprom_layout.cpp` — struct size checks, magic marker validation.
+3. Write `test_hal/test_eeprom_layout.cpp` — struct size checks, magic marker validation.
 
 **Verify:** `pio test -e native -v` — all new tests pass; `pio run -e <board>` for all 5 boards builds green per step; `scripts/test-coverage.sh` shows ≥ 85% line coverage on new `core/` files; manual: mount slews to known coordinates on real hardware.
 
@@ -235,7 +266,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 6. Replace direct `millis()`, `digitalWrite()`, `EEPROMStore::` calls inside `Mount` with port calls; replace `LOG()` macro with `_logger->log(...)`.
 7. **ISR contract for `IStepperAxis`:** This phase MUST settle the threading model. `Mount::interruptLoop()` is called from ISR context (AVR Timer ISR / ESP32 FreeRTOS task). The `IStepperAxis` interface must specify which methods are ISR-safe and which are main-loop-only. `Snapshot()` provides an ISR-safe state read. This contract is a prerequisite for Phase 3's `SlewController`.
 
-**Verify:** All Phase 1 tests still green; new contract tests for each port using HAL fakes from `unit_tests/test_common/hal_fakes/` (e.g., `EepromPersistentStore` round-trips via an in-memory `FakeEeprom`); firmware builds all 5 boards (toolchain enforces flash limits).
+**Verify:** All Phase 1 tests still green; firmware builds all 5 boards (toolchain enforces flash limits).
 
 ### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
@@ -285,7 +316,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 1. Mount facade slimmed to a thin compat shim (or removed if no external dependents).
 2. Move display-related code paths off the Mount → display direct call into the `EventBus`.
 3. Architecture doc (`docs/architecture.md`) with the layer diagram, port catalog, and "where to add a new feature" guide.
-4. Ratchet CI coverage gate to its final value (`core/` ≥ 85%, `adapters/` ≥ 40%).
+4. Ratchet CI coverage gate to its final value (`core/` ≥ 85%).
 
 **Verify:** Architecture doc reviewed; CI gates final; full board matrix green; smoke-tested on at least one real mount.
 
@@ -302,7 +333,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - [`src/Declination.cpp`](src/Declination.cpp), [`src/Latitude.cpp`](src/Latitude.cpp), [`src/Longitude.cpp`](src/Longitude.cpp) — extract pure subsets to `core/types/` (Step 2)
 - [`src/Sidereal.cpp`](src/Sidereal.cpp) — extract pure math to `core/SiderealClock` (Step 3)
 - [`src/Mount.cpp`](src/Mount.cpp) — extract `calculateRAandDECSteppers` to `core/CoordinateMath` (Step 4), `getLocalDate` to `core/CalendarMath` (Step 5), `RAString`/`DECString` to `core/CoordinateFormatter` (Step 6)
-- [`src/EPROMStore.cpp`](src/EPROMStore.cpp) — extract validation logic to `core/EepromLayout.hpp` (Step 7)
+- [`src/EPROMStore.cpp`](src/EPROMStore.cpp) — extract validation logic to `hal/EepromLayout.hpp` (Step 7)
 
 ### New files created in Phase 1
 - `src/core/types/DayTime.hpp`, `src/core/types/DayTime.cpp`
@@ -313,10 +344,10 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - `src/core/CoordinateMath.hpp`, `src/core/CoordinateMath.cpp`
 - `src/core/CalendarMath.hpp`, `src/core/CalendarMath.cpp`
 - `src/core/CoordinateFormatter.hpp`, `src/core/CoordinateFormatter.cpp`
-- `src/core/EepromLayout.hpp`
+- `src/hal/EepromLayout.hpp`
 - `unit_tests/test_core/test_daytime.cpp`, `test_declination.cpp`, `test_latitude.cpp`, `test_longitude.cpp`
 - `unit_tests/test_core/test_sidereal.cpp`, `test_coordinate_math.cpp`, `test_calendar.cpp`, `test_coordinate_format.cpp`
-- `unit_tests/test_core/test_eeprom_layout.cpp`
+- `unit_tests/test_hal/test_eeprom_layout.cpp`
 
 ### Phase 2 targets
 - [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/Gyro.cpp`](src/Gyro.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/WifiControl.cpp`](src/WifiControl.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp) — become adapters behind ports.
@@ -362,8 +393,7 @@ Manual smoke checklist (per shippable phase end):
 - **Back-compat:** Meade serial protocol behavior is invariant (external interface); internal C++ APIs may change freely.
 - **Out of scope:** UI menu screens (`c*_menu*.hpp`) refactor; new features; supporting new boards; replacing AccelStepper/TMCStepper libraries; switching build system.
 - **Extract-before-test:** All `src/` root files include `inc/Globals.hpp` → `<Arduino.h>` and are untestable in the `native` PIO env (which only builds `core/`, `ports/`, `adapters/`). Pure logic is extracted into `core/` first, then tested — inverted from the typical test-first order. Only already-pure code (`core/meade/`, `MappedDict`) gets tests before extraction.
-- **`core/types/` for data containers:** `DayTime`, `Declination`, `Latitude`, `Longitude` grouped under `src/core/types/` as pure data. Algorithm modules (`SiderealClock`, `CoordinateMath`, etc.) live at `core/` root. Mirrors the `core/meade/` subfolder convention. Can be split further if needed.
-- **Thin overlays preserve back-compat:** Original `src/` files become overlays that `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`, `formatString`). No flag day — each step is independently shippable.
+
 
 ## Further Considerations
 

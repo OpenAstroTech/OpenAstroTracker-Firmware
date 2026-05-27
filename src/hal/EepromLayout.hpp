@@ -2,10 +2,10 @@
 
 #include <stdint.h>
 
-namespace core
+namespace hal
 {
 
-/// Pure EEPROM layout constants (no Arduino deps).
+/// EEPROM layout constants — magic markers, flags, and storage addresses.
 /// Mirrors the enum definitions in EPROMStore.hpp for validation and testing.
 struct EepromLayout {
     // Magic marker values
@@ -51,4 +51,4 @@ struct EepromLayout {
     static constexpr float SteppingStorageNormalized = 25600.0;
 };
 
-}  // namespace core
+}  // namespace hal
