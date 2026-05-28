@@ -4,31 +4,27 @@
 
 //////////////////////////////////////////////////////////////////////////////////////
 //
+// Latitude — Arduino-dependent overlay methods
+// Pure arithmetic is in core::Latitude (src/core/types/Latitude.hpp/.cpp)
+//
 // 90 is north pole, -90 is south pole
-Latitude::Latitude(const Latitude &other) : DayTime(other)
+Latitude::Latitude(const Latitude &other) : core::Latitude(other)
 {
 }
 
-Latitude::Latitude(int h, int m, int s) : DayTime(h, m, s)
+Latitude::Latitude(int h, int m, int s) : core::Latitude(h, m, s)
 {
 }
 
-Latitude::Latitude(float inDegrees) : DayTime(inDegrees)
+Latitude::Latitude(float inDegrees) : core::Latitude(inDegrees)
 {
 }
 
-void Latitude::checkHours()
+char achBufLat[32];
+
+const char *Latitude::ToString() const
 {
-    if (totalSeconds > 90L * 3600L)
-    {
-        LOG(DEBUG_GENERAL, "[LATITUDE]: CheckHours: Degrees is more than 90, clamping");
-        totalSeconds = 90L * 3600L;
-    }
-    if (totalSeconds < (-90L * 3600L))
-    {
-        LOG(DEBUG_GENERAL, "[LATITUDE]: CheckHours: Degrees is less than -90, clamping");
-        totalSeconds = -90L * 3600L;
-    }
+    return core::DayTime::formatString(achBufLat, "{+}{d}:{m}:{s}");
 }
 
 Latitude Latitude::ParseFromMeade(String const &s)
@@ -37,7 +33,7 @@ Latitude Latitude::ParseFromMeade(String const &s)
 
     LOG(DEBUG_MEADE, "[LATITUDE]: Latitude.Parse(%s)", s.c_str());
     // Use the DayTime code to parse it.
-    DayTime dt          = DayTime::ParseFromMeade(s);
+    ::DayTime dt        = ::DayTime::ParseFromMeade(s);
     result.totalSeconds = dt.getTotalSeconds();
     result.checkHours();
     LOG(DEBUG_MEADE, "[LATITUDE]: Latitude.Parse(%s) -> %s", s.c_str(), result.ToString());

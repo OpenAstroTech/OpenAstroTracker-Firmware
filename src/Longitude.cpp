@@ -4,32 +4,22 @@
 
 //////////////////////////////////////////////////////////////////////////////////////
 //
-// -180..180 range, 0 is at the prime meridian (through Greenwich), negative going west, positive going east
+// Longitude — Arduino-dependent overlay methods
+// Pure arithmetic is in core::Longitude (src/core/types/Longitude.hpp/.cpp)
+//
+// -180..180 range, 0 is at the prime meridian (through Greenwich),
+// negative going west, positive going east
 
-Longitude::Longitude(const Longitude &other) : DayTime(other)
+Longitude::Longitude(const Longitude &other) : core::Longitude(other)
 {
 }
 
-Longitude::Longitude(int h, int m, int s) : DayTime(h, m, s)
+Longitude::Longitude(int h, int m, int s) : core::Longitude(h, m, s)
 {
 }
 
-Longitude::Longitude(float inDegrees) : DayTime(inDegrees)
+Longitude::Longitude(float inDegrees) : core::Longitude(inDegrees)
 {
-}
-
-void Longitude::checkHours()
-{
-    while (totalSeconds > 180L * 3600L)
-    {
-        LOG(DEBUG_GENERAL, "[LONGITUDE]: CheckHours: Degrees is more than 180, wrapping");
-        totalSeconds -= 360L * 3600L;
-    }
-    while (totalSeconds < (-180L * 3600L))
-    {
-        LOG(DEBUG_GENERAL, "[LONGITUDE]: CheckHours: Degrees is less than -180, wrapping");
-        totalSeconds += 360L * 3600L;
-    }
 }
 
 Longitude Longitude::ParseFromMeade(String const &s)
@@ -38,7 +28,7 @@ Longitude Longitude::ParseFromMeade(String const &s)
     LOG(DEBUG_MEADE, "[LONGITUDE]: Parse(%s)", s.c_str());
 
     // Use the DayTime code to parse it.
-    DayTime dt = DayTime::ParseFromMeade(s);
+    ::DayTime dt = ::DayTime::ParseFromMeade(s);
 
     if ((s[0] == '-') || (s[0] == '+'))
     {

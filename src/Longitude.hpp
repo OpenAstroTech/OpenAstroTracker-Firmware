@@ -1,12 +1,19 @@
 #pragma once
 
+#include "core/types/Longitude.hpp"
 #include "DayTime.hpp"
 
-// -180..180 range, 0 is at the prime meridian (through Greenwich), negative going west, positive going east
-class Longitude : public DayTime
+// Forward declarations
+class String;
+
+/// Longitude overlay — adds Arduino-dependent formatting and parsing
+/// over core::Longitude.
+/// -180..180 range, 0 is at the prime meridian (through Greenwich),
+/// negative going west, positive going east.
+class Longitude : public core::Longitude
 {
   public:
-    Longitude() : DayTime()
+    Longitude() : core::Longitude()
     {
     }
     Longitude(const Longitude &other);
@@ -18,7 +25,4 @@ class Longitude : public DayTime
     virtual const char *ToString() const;
 
     static Longitude ParseFromMeade(String const &s);
-
-  protected:
-    virtual void checkHours() override;
 };
