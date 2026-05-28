@@ -178,3 +178,66 @@ TEST(DayTimeTest, GetTimeRefNegative)
     EXPECT_EQ(29, m);
     EXPECT_EQ(45, s);
 }
+
+TEST(DayTimeTest, NegativeHoursPositiveMinutesSeconds)
+{
+    // (-2, 31, 18): sign from hours only, abs on hours, minutes/seconds as-is
+    // totalSeconds = -1 * ((60*2 + 31)*60 + 18) = -9078
+    // getTime: labs(9078) => h=2, m=31, s=18, h*=sign(-9078)=-1 => (-2, 31, 18)
+    DayTime dt(-2, 31, 18);
+    EXPECT_EQ(-2, dt.getHours());
+    EXPECT_EQ(31, dt.getMinutes());
+    EXPECT_EQ(18, dt.getSeconds());
+}
+
+TEST(DayTimeTest, NegativeTotalMinutes)
+{
+    // (-2, 45, 0): totalSeconds = -1 * ((60*2 + 45)*60 + 0) = -9900
+    // getTotalMinutes() = -9900 / 60 = -165
+    DayTime dt(-2, 45, 0);
+    EXPECT_EQ(-165.0f, dt.getTotalMinutes());
+    EXPECT_EQ(-2, dt.getHours());
+    EXPECT_EQ(45, dt.getMinutes());
+    EXPECT_EQ(0, dt.getSeconds());
+}
+
+TEST(DayTimeTest, SetFromOther)
+{
+    DayTime dt1(5, 30, 15);
+    DayTime dt2;
+    dt2.set(dt1);
+    EXPECT_EQ(5, dt2.getHours());
+    EXPECT_EQ(30, dt2.getMinutes());
+    EXPECT_EQ(15, dt2.getSeconds());
+}
+
+TEST(DayTimeTest, FormatStringExplicitSign)
+{
+    // Exercises the {+} macro: outputs '+' (or '-' if degs < 0)
+    DayTime dt(5, 30, 15);
+    char buf[32];
+    dt.formatString(buf, "{+}{d}:{m}:{s}");
+    // {+} emits '+' since degs >= 0, then {d} copies achDegs = "+05"
+    EXPECT_EQ('+', buf[0]);
+    EXPECT_NE('\0', buf[1]);
+}
+
+TEST(DayTimeTest, FormatStringCustomSecs)
+{
+    // Custom seconds pointer bypasses totalSeconds, enabling 100+ degs
+    DayTime dt;
+    char buf[32];
+    long customSecs = 100L * 3600L + 30L * 60L + 15L;  // 100h 30m 15s
+    dt.formatString(buf, "{d}:{m}:{s}", &customSecs);
+    EXPECT_STREQ("+100:30:15", buf);
+}
+
+TEST(DayTimeTest, FormatStringCustomSecsNegative)
+{
+    // Negative custom seconds — sgn='-', degs=100 (labs)
+    DayTime dt;
+    char buf[32];
+    long customSecs = -(100L * 3600L + 30L * 60L + 15L);
+    dt.formatString(buf, "{d}:{m}:{s}", &customSecs);
+    EXPECT_STREQ("-100:30:15", buf);
+}
