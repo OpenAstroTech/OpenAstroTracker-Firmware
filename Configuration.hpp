@@ -14,10 +14,10 @@
 *  - Specific to a board:
 *    Create a file called Configuration_local_<board>.hpp, see valid board types in LocalConfiguration.hpp
 *    The code automatically picks the right one at compile time. This is useful if you are 
-*    developer or just have multiple OATs. 
+*    developer or just have multiple OpenAstroTech mounts. 
 *  - Custom configurations or advanced builds:
 *    Use Configuration_local.hpp to include an appropriate local configuration file e.g. according to 
-*    preprocessor directives specified on the command line. This is useful if you have multiple OATs, or wish 
+*    preprocessor directives specified on the command line. This is useful if you have multiple OpenAstroTech mounts, or wish 
 *    to build the software across many software configurations on the same platform.
 * 
 * These files won't be tracked by Git and thus will remain after branch changes or code updates. 
@@ -39,10 +39,6 @@
 
 // Uncomment the definition and set a board (see Constants.hpp for valid values) if you build in Arduino IDE.
 // PlatformIO will set this value automatically and no action is needed.
-#ifndef BOARD
-// #define BOARD BOARD_AVR_MEGA2560
-#endif
-
 #ifndef BOARD
     #error You have to specify the board
 #endif
@@ -179,9 +175,9 @@
  * Requirements for WIFI_MODE:
  *  WIFI_MODE_DISABLED (i.e. Wifi transceiver disabled)
  *      No additional requirements.
- *  WIFI_MODE_INFRASTRUCTURE (i.e. connect OAT to existing Wifi network):
+ *  WIFI_MODE_INFRASTRUCTURE (i.e. connect OpenAstroTech mount to existing Wifi network):
  *      WIFI_INFRASTRUCTURE_MODE_SSID & WIFI_INFRASTRUCTURE_MODE_WPAKEY must be set.
- *  WIFI_MODE_AP_ONLY (i.e. set OAT as Wifi hotspot): 
+ *  WIFI_MODE_AP_ONLY (i.e. set OpenAstroTech mount as Wifi hotspot): 
  *      WIFI_AP_MODE_WPAKEY must be set.
  *  WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP (i.e. try WIFI_MODE_INFRASTRUCTURE, fall back to WIFI_MODE_AP_ONLY):
  *      Requirements for both WIFI_MODE_INFRASTRUCTURE and WIFI_MODE_AP_ONLY must be satisfied.
@@ -251,16 +247,19 @@
     #define TRACK_ON_BOOT 1
 #endif
 
-// Set this to specify the amount of debug output OAT should send to the serial port.
-// Note that if you use an app to control OAT, ANY debug output will likely confuse that app.
-// Debug output is useful if you are using Wifi to control the OAT or if you are issuing
+// Set this to specify the amount of debug output the OpenAstroTech mount should send to the serial port.
+// Note that if you use an app to control the OpenAstroTech mount, ANY debug output will likely confuse that app.
+// Debug output is useful if you are using Wifi to control the OpenAstroTech mount or if you are issuing
 // manual commands via a terminal.
 #ifndef DEBUG_LEVEL
     #define DEBUG_LEVEL (DEBUG_NONE)
 #endif
 
 // Append board specific pins data.
-#if (BOARD == BOARD_AVR_MEGA2560)
+#if (BOARD == BOARD_UNKNOWN)
+    // Assume custom user board - no predefined pin mapping. Pins need to be manually defined in Configuration_local.hpp
+    #warning "Assuming custom user board. Pins need to be manually defined in Configuration_local.hpp"
+#elif (BOARD == BOARD_AVR_MEGA2560)
     #include "boards/AVR_MEGA2560/pins_MEGA2560.hpp"
 #elif (BOARD == BOARD_AVR_RAMPS)
     #include "boards/RAMPS/pins_RAMPS.hpp"
