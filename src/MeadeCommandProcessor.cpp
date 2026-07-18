@@ -97,13 +97,40 @@ meade::RaCoordinate raFrom(const DayTime &t)
     };
 }
 
+// The mount stores declination internally as "degrees from the pole"
+// (0 = pole, see Declination.cpp), but the Meade protocol carries standard
+// celestial declination (+90 = north celestial pole). Convert at the
+// protocol boundary, using the same arithmetic as Declination::formatString
+// and Declination::FromSeconds.
+constexpr long polarDistanceArcSeconds = 90L * 60L * 60L;
+
 meade::DecCoordinate decFrom(const Declination &d)
 {
-    return meade::DecCoordinate {
-        static_cast<int16_t>(d.getHours()),
-        static_cast<uint8_t>(d.getMinutes()),
-        static_cast<uint8_t>(d.getSeconds()),
+    const long internal  = d.getTotalSeconds();
+    const long distance  = internal < 0 ? -internal : internal;
+    const long celestial = inNorthernHemisphere ? polarDistanceArcSeconds - distance : -polarDistanceArcSeconds + distance;
+
+    long secs = celestial < 0 ? -celestial : celestial;
+    meade::DecCoordinate out {
+        static_cast<int16_t>(secs / 3600),
+        static_cast<uint8_t>((secs / 60) % 60),
+        static_cast<uint8_t>(secs % 60),
     };
+    if (celestial < 0)
+    {
+        out.degrees = static_cast<int16_t>(-out.degrees);
+    }
+    return out;
+}
+
+// Inverse conversion for values received from the wire (:Sd, :CM), matching
+// Declination::ParseFromMeade. Note: the wire struct cannot carry the sign
+// of "-00*MM:SS" values (degrees == 0), a pre-existing parser limitation.
+Declination declinationFromMeade(const meade::DecCoordinate &dec)
+{
+    const long degrees   = dec.degrees < 0 ? -static_cast<long>(dec.degrees) : static_cast<long>(dec.degrees);
+    const long magnitude = degrees * 3600L + static_cast<long>(dec.minutes) * 60L + dec.seconds;
+    return Declination::FromSeconds(dec.degrees < 0 ? -magnitude : magnitude);
 }
 }  // namespace
 
@@ -248,7 +275,7 @@ void MeadeCommandProcessor::onSyncToTarget()
 /////////////////////////////
 bool MeadeCommandProcessor::onSetTargetDec(meade::DecCoordinate dec)
 {
-    _mount->targetDEC() = Declination(static_cast<int>(dec.degrees), static_cast<int>(dec.minutes), static_cast<int>(dec.seconds));
+    _mount->targetDEC() = declinationFromMeade(dec);
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
     return true;
 }
@@ -282,7 +309,7 @@ bool MeadeCommandProcessor::onSetHourAngle(uint8_t hours, uint8_t minutes)
 
 bool MeadeCommandProcessor::onSyncCoordinates(meade::DecCoordinate dec, meade::RaCoordinate ra)
 {
-    Declination decValue(static_cast<int>(dec.degrees), static_cast<int>(dec.minutes), static_cast<int>(dec.seconds));
+    Declination decValue = declinationFromMeade(dec);
     DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
     _mount->syncPosition(raValue, decValue);
     return true;
