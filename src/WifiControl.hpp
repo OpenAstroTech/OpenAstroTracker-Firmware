@@ -29,7 +29,9 @@ class WifiControl
     void infraToAPFailover();
     void tcpLoop();
     void udpLoop();
-    wl_status_t _status;
+    void establishServers();
+    String getIP();
+    wl_status_t _status = WL_DISCONNECTED;
     Mount *_mount;
     LcdMenu *_lcdMenu;
     MeadeCommandProcessor *_cmdProcessor;

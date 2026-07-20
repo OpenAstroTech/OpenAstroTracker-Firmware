@@ -61,8 +61,11 @@ void WifiControl::startAccessPointMode()
     WiFi.setHostname(WIFI_HOSTNAME);
     #endif
 
-    WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY);
+    WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(local_ip, gateway, subnet);
+    WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY);
+
+    establishServers();
 }
 
 String wifiStatus(int status)
@@ -111,10 +114,29 @@ String WifiControl::getStatus()
     result += WiFi.getHostname();
     #endif
 
-    result += "," + WiFi.localIP().toString() + ":" + WIFI_PORT;
+    result += "," + getIP() + ":" + WIFI_PORT;
     result += "," + String(WIFI_INFRASTRUCTURE_MODE_SSID) + "," + String(WIFI_HOSTNAME);
 
     return result;
+}
+
+void WifiControl::establishServers()
+{
+    delete _tcpServer;
+    _tcpServer = new WiFiServer(WIFI_PORT);
+    _tcpServer->begin();
+    _tcpServer->setNoDelay(true);
+
+    delete _udp;
+    _udp = new WiFiUDP();
+    _udp->begin(4031);
+}
+
+String WifiControl::getIP()
+{
+    return WIFI_MODE == WIFI_MODE_DISABLED  ? "NONE"
+           : WIFI_MODE == WIFI_MODE_AP_ONLY ? WiFi.softAPIP().toString()
+                                            : WiFi.localIP().toString();
 }
 
 void WifiControl::loop()
@@ -123,36 +145,32 @@ void WifiControl::loop()
     {
         return;
     }
-    if (_status != WiFi.status())
+
+    if (WIFI_MODE != WIFI_MODE_AP_ONLY)
     {
-        _status = WiFi.status();
-        LOG(DEBUG_WIFI, "[WIFI]: Connected status changed to %s", wifiStatus(_status).c_str());
-        if (_status == WL_CONNECTED)
+        if (_status != WiFi.status())
         {
-            delete _tcpServer;
-            _tcpServer = new WiFiServer(WIFI_PORT);
-            _tcpServer->begin();
-            _tcpServer->setNoDelay(true);
+            _status = WiFi.status();
+            LOG(DEBUG_WIFI, "[WIFI]: Connected status changed to %s", wifiStatus(_status).c_str());
+            if (_status == WL_CONNECTED)
+            {
+                establishServers();
+                LOG(DEBUG_WIFI,
+                    "[WIFI]: Connecting to SSID %s at %s:%d",
+                    WIFI_INFRASTRUCTURE_MODE_SSID,
+                    WiFi.localIP().toString().c_str(),
+                    WIFI_PORT);
+            }
 
-            delete _udp;
-            _udp = new WiFiUDP();
-            _udp->begin(4031);
-
-            LOG(DEBUG_WIFI,
-                "[WIFI]: Connecting to SSID %s at %s:%d",
-                WIFI_INFRASTRUCTURE_MODE_SSID,
-                WiFi.localIP().toString().c_str(),
-                WIFI_PORT);
+            if (_status != WL_CONNECTED)
+            {
+                infraToAPFailover();
+                return;
+            }
         }
     }
 
     _mount->loop();
-
-    if (_status != WL_CONNECTED)
-    {
-        infraToAPFailover();
-        return;
-    }
 
     tcpLoop();
     udpLoop();
@@ -172,49 +190,58 @@ void WifiControl::infraToAPFailover()
 
 void WifiControl::tcpLoop()
 {
-    if (client && client.connected())
-    {
-        while (client.available())
-        {
-            LOG(DEBUG_WIFI, "[WIFITCP]: Available bytes %d. Peeking.", client.available());
+    if (!_tcpServer)
+        return;
 
-            // Peek first byte and check for ACK (0x06) handshake
-            LOG(DEBUG_WIFI, "[WIFITCP]: First byte is %x", client.peek());
-            if (client.peek() == 0x06)
+    if (!client.connected())
+    {
+        client = _tcpServer->accept();
+        if (!client.connected())
+            return;
+    }
+
+    int peek;
+    int avail;
+    while ((avail = client.available()) != 0)
+    {
+        LOG(DEBUG_WIFI, "[WIFITCP]: Available bytes %d. Peeking.", avail);
+
+        // Peek first byte and check for ACK (0x06) handshake
+        peek = client.peek();
+        LOG(DEBUG_WIFI, "[WIFITCP]: First byte is %x", peek);
+        if (peek == 0x06)
+        {
+            client.read();
+            LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- Handshake request");
+            client.write("P");
+            LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> P (polar mode)");
+        }
+        else
+        {
+            String cmd = client.readStringUntil('#');
+            LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s#", cmd.c_str());
+            const char *retVal = _cmdProcessor->processCommand(cmd);
+
+            if (retVal[0] != '\0')
             {
-                client.read();
-                LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- Handshake request");
-                client.write("P");
-                LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> P (polar mode)");
+                client.write(retVal);
+                LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal);
             }
             else
             {
-                String cmd = client.readStringUntil('#');
-                LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s#", cmd.c_str());
-                const char *retVal = _cmdProcessor->processCommand(cmd);
-
-                if (retVal[0] != '\0')
-                {
-                    client.write(retVal);
-                    LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal);
-                }
-                else
-                {
-                    LOG(DEBUG_WIFI, "[WIFITCP]: No Reply");
-                }
+                LOG(DEBUG_WIFI, "[WIFITCP]: No Reply");
             }
-
-            _mount->loop();
         }
-    }
-    else
-    {
-        client = _tcpServer->available();
+
+        _mount->loop();
     }
 }
 
 void WifiControl::udpLoop()
 {
+    if (!_udp)
+        return;
+
     int packetSize = _udp->parsePacket();
     if (packetSize)
     {
@@ -222,7 +249,7 @@ void WifiControl::udpLoop()
         String reply      = "skyfi:";
         reply += WIFI_HOSTNAME;
         reply += "@";
-        reply += WiFi.localIP().toString();
+        reply += getIP();
         LOG(DEBUG_WIFI,
             "[WIFIUDP]: Received %d bytes from %s, port %d",
             packetSize,
