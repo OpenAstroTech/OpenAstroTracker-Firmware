@@ -109,13 +109,21 @@ String WifiControl::getStatus()
         result += "Infra-Fail-To-AP,";
     }
 
-    result += wifiStatus(WiFi.status()) + ",";
+    if(WIFI_MODE != WIFI_MODE_AP_ONLY)
+    {
+        result += wifiStatus(WiFi.status()) + ",";
+    }
     #if defined(ESP32)
     result += WiFi.getHostname();
+    result += ",";
     #endif
 
-    result += "," + getIP() + ":" + WIFI_PORT;
-    result += "," + String(WIFI_INFRASTRUCTURE_MODE_SSID) + "," + String(WIFI_HOSTNAME);
+    result += getIP() + ":" + WIFI_PORT + ",";
+    if (WIFI_MODE != WIFI_MODE_AP_ONLY)
+    {
+        result += String(WIFI_INFRASTRUCTURE_MODE_SSID) + ",";
+    }
+    result += String(WIFI_HOSTNAME);
 
     return result;
 }
@@ -129,7 +137,7 @@ void WifiControl::establishServers()
 
     delete _udp;
     _udp = new WiFiUDP();
-    _udp->begin(4031);
+    _udp->begin(WIFI_UDP_DISCOVERY_PORT);
 }
 
 String WifiControl::getIP()
@@ -161,12 +169,11 @@ void WifiControl::loop()
                     WiFi.localIP().toString().c_str(),
                     WIFI_PORT);
             }
-
-            if (_status != WL_CONNECTED)
-            {
-                infraToAPFailover();
-                return;
-            }
+        }
+        if (_status != WL_CONNECTED)
+        {
+            infraToAPFailover();
+            return;
         }
     }
 
@@ -263,7 +270,7 @@ void WifiControl::udpLoop()
         incomingPacket[lookingFor.length()] = 0;
         if (lookingFor.equalsIgnoreCase(incomingPacket))
         {
-            _udp->beginPacket(_udp->remoteIP(), 4031);
+            _udp->beginPacket(_udp->remoteIP(), WIFI_UDP_DISCOVERY_PORT);
             /*unsigned char bytes[255];
             reply.getBytes(bytes, 255);
             _udp->write(bytes, reply.length());*/

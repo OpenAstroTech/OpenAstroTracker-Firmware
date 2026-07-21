@@ -10,6 +10,8 @@
         #include <WiFiSTA.h>
     #endif
 
+#define WIFI_UDP_DISCOVERY_PORT 4031
+
 // Forward declarations
 class Mount;
 class LcdMenu;
