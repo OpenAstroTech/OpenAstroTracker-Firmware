@@ -10,6 +10,7 @@ WifiControl::WifiControl(Mount *mount, LcdMenu *lcdMenu)
 {
     _mount   = mount;
     _lcdMenu = lcdMenu;
+    clearCmd();
 }
 
 void WifiControl::setup()
@@ -63,7 +64,11 @@ void WifiControl::startAccessPointMode()
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(local_ip, gateway, subnet);
-    WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY);
+    if (!WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY))
+    {
+        LOG(DEBUG_WIFI, "[WIFI]: AP mode could not be started!");
+        return;
+    }
 
     establishServers();
 }
@@ -109,7 +114,7 @@ String WifiControl::getStatus()
         result += "Infra-Fail-To-AP,";
     }
 
-    if(WIFI_MODE != WIFI_MODE_AP_ONLY)
+    if (WIFI_MODE != WIFI_MODE_AP_ONLY)
     {
         result += wifiStatus(WiFi.status()) + ",";
     }
@@ -145,6 +150,12 @@ String WifiControl::getIP()
     return WIFI_MODE == WIFI_MODE_DISABLED  ? "NONE"
            : WIFI_MODE == WIFI_MODE_AP_ONLY ? WiFi.softAPIP().toString()
                                             : WiFi.localIP().toString();
+}
+
+void WifiControl::clearCmd()
+{
+    _currCmd = "";
+    _currCmd.reserve(_defaultCapacity);
 }
 
 void WifiControl::loop()
@@ -202,45 +213,71 @@ void WifiControl::tcpLoop()
 
     if (!client.connected())
     {
+        if (_currCmd.length() != 0)
+        {
+            clearCmd();
+        }
         client = _tcpServer->accept();
         if (!client.connected())
             return;
     }
 
-    int peek;
     int avail;
     while ((avail = client.available()) != 0)
     {
         LOG(DEBUG_WIFI, "[WIFITCP]: Available bytes %d. Peeking.", avail);
 
         // Peek first byte and check for ACK (0x06) handshake
-        peek = client.peek();
-        LOG(DEBUG_WIFI, "[WIFITCP]: First byte is %x", peek);
-        if (peek == 0x06)
+        if (_currCmd.length() == 0)
         {
-            client.read();
-            LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- Handshake request");
-            client.write("P");
-            LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> P (polar mode)");
-        }
-        else
-        {
-            String cmd = client.readStringUntil('#');
-            LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s#", cmd.c_str());
-            const char *retVal = _cmdProcessor->processCommand(cmd);
-
-            if (retVal[0] != '\0')
+            int peek = client.peek();
+            LOG(DEBUG_WIFI, "[WIFITCP]: First byte is %x", peek);
+            if (peek == 0x06)
             {
-                client.write(retVal);
-                LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal);
-            }
-            else
-            {
-                LOG(DEBUG_WIFI, "[WIFITCP]: No Reply");
+                client.read();
+                LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- Handshake request");
+                client.write("P");
+                LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> P (polar mode)");
+                _mount->loop();
             }
         }
 
-        _mount->loop();
+        int recv;
+        while ((recv = client.read()) != -1)
+        {
+            // Prevent newlines from polluting the command string
+            if (recv == '\n' || recv == '\r')
+            {
+                _mount->loop();
+                continue;
+            }
+
+            _currCmd += (char) recv;
+            if (recv == '#')
+            {
+                LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s", _currCmd.c_str());
+                const char *retVal = _cmdProcessor->processCommand(_currCmd);
+
+                if (retVal[0] != '\0')
+                {
+                    client.write(retVal);
+                    LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal);
+                }
+                else
+                {
+                    LOG(DEBUG_WIFI, "[WIFITCP]: No Reply");
+                }
+                clearCmd();
+            }
+
+            // Prevent memory overconsumption
+            if (_currCmd.length() == _maxCapacity)
+            {
+                LOG(DEBUG_WIFI, "[WIFITCP]: Command string reached maximum capacity --> clear");
+                clearCmd();
+            }
+            _mount->loop();
+        }
     }
 }
 

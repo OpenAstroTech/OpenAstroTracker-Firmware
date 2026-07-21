@@ -32,6 +32,7 @@ class WifiControl
     void tcpLoop();
     void udpLoop();
     void establishServers();
+    void clearCmd();
     String getIP();
     wl_status_t _status = WL_DISCONNECTED;
     Mount *_mount;
@@ -41,9 +42,12 @@ class WifiControl
     WiFiServer *_tcpServer = nullptr;
     WiFiUDP *_udp          = nullptr;
     WiFiClient client;
+    String _currCmd;
 
     unsigned long _infraStart = 0;
     unsigned long _infraWait  = 30000;  // 30 second timeout for
+    static constexpr size_t _defaultCapacity = 32;
+    static constexpr size_t _maxCapacity = 128;
 };
 
 extern WifiControl wifiControl;
