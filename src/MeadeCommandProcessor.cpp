@@ -97,12 +97,27 @@ meade::RaCoordinate raFrom(const DayTime &t)
     };
 }
 
+Declination decToInternal(const meade::DecCoordinate &d)
+{
+    long seconds = labs(static_cast<long>(d.degrees)) * 3600L + d.minutes * 60L + d.seconds;
+    return Declination::FromSeconds(d.degrees < 0 ? -seconds : seconds);
+}
+
 meade::DecCoordinate decFrom(const Declination &d)
 {
+    const long celestialSeconds = inNorthernHemisphere ? 90L * 3600L - labs(d.getTotalSeconds())
+                                                       : -90L * 3600L + labs(d.getTotalSeconds());
+    const long absoluteSeconds  = labs(celestialSeconds);
+    int16_t degrees             = static_cast<int16_t>(absoluteSeconds / 3600L);
+    if (celestialSeconds < 0)
+    {
+        degrees = -degrees;
+    }
+
     return meade::DecCoordinate {
-        static_cast<int16_t>(d.getHours()),
-        static_cast<uint8_t>(d.getMinutes()),
-        static_cast<uint8_t>(d.getSeconds()),
+        degrees,
+        static_cast<uint8_t>((absoluteSeconds / 60L) % 60L),
+        static_cast<uint8_t>(absoluteSeconds % 60L),
     };
 }
 }  // namespace
@@ -160,9 +175,16 @@ meade::MeadeLatitude MeadeCommandProcessor::onSiteLatitude()
 meade::MeadeLongitude MeadeCommandProcessor::onSiteLongitude()
 {
     const Longitude lon = _mount->longitude();
+    long secs           = labs(static_cast<long>(lon.getTotalSeconds()));
+    int16_t deg         = static_cast<int16_t>(secs / 3600L);
+    uint8_t min         = static_cast<uint8_t>((secs / 60L) % 60L);
+    if (lon.getTotalHours() > 0)
+    {
+        deg = -deg;
+    }
     return meade::MeadeLongitude {
-        static_cast<int16_t>(lon.getHours()),
-        static_cast<uint8_t>(lon.getMinutes()),
+        deg,
+        min,
     };
 }
 
@@ -248,7 +270,7 @@ void MeadeCommandProcessor::onSyncToTarget()
 /////////////////////////////
 bool MeadeCommandProcessor::onSetTargetDec(meade::DecCoordinate dec)
 {
-    _mount->targetDEC() = Declination(static_cast<int>(dec.degrees), static_cast<int>(dec.minutes), static_cast<int>(dec.seconds));
+    _mount->targetDEC() = decToInternal(dec);
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
     return true;
 }
@@ -282,7 +304,7 @@ bool MeadeCommandProcessor::onSetHourAngle(uint8_t hours, uint8_t minutes)
 
 bool MeadeCommandProcessor::onSyncCoordinates(meade::DecCoordinate dec, meade::RaCoordinate ra)
 {
-    Declination decValue(static_cast<int>(dec.degrees), static_cast<int>(dec.minutes), static_cast<int>(dec.seconds));
+    Declination decValue = decToInternal(dec);
     DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
     _mount->syncPosition(raValue, decValue);
     return true;
@@ -296,7 +318,7 @@ bool MeadeCommandProcessor::onSetSiteLatitude(meade::MeadeLatitude lat)
 
 bool MeadeCommandProcessor::onSetSiteLongitude(meade::MeadeLongitude lon)
 {
-    _mount->setLongitude(Longitude(static_cast<int>(lon.degrees), static_cast<int>(lon.minutes), 0));
+    _mount->setLongitude(Longitude(-static_cast<int>(lon.degrees), static_cast<int>(lon.minutes), 0));
     return true;
 }
 
