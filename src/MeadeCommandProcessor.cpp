@@ -105,8 +105,7 @@ Declination decToInternal(const meade::DecCoordinate &d)
 
 meade::DecCoordinate decFrom(const Declination &d)
 {
-    const long celestialSeconds = inNorthernHemisphere ? 90L * 3600L - labs(d.getTotalSeconds())
-                                                       : -90L * 3600L + labs(d.getTotalSeconds());
+    const long celestialSeconds = inNorthernHemisphere ? 90L * 3600L - labs(d.getTotalSeconds()) : -90L * 3600L + labs(d.getTotalSeconds());
     const long absoluteSeconds  = labs(celestialSeconds);
     int16_t degrees             = static_cast<int16_t>(absoluteSeconds / 3600L);
     if (celestialSeconds < 0)
