@@ -112,6 +112,9 @@
         #endif
     #endif
 
+#elif defined(OAE)
+// Valid
+
 #else
     #warning Configuration does not support ALT. Use at own risk.
 #endif
@@ -233,7 +236,7 @@
         #endif
     #elif (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if !defined(AZ_STEP_PIN) || !defined(AZ_DIR_PIN) || !defined(AZ_EN_PIN)
-            // Required pin assignments missing
+            // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
         #endif
         #if !defined(AZ_DIAG_PIN)
@@ -257,7 +260,7 @@
         #endif
     #elif (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
-            // Required pin assignments missing
+            // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
         #endif
         #if !defined(ALT_DIAG_PIN)
@@ -463,7 +466,7 @@
     #endif
 #endif
 
-// For OAT, we must have DEC limits defined, otherwise free slew does nto work.
+// For OAT, we must have DEC limits defined, otherwise free slew does not work.
 #ifndef OAM
     #ifndef DEC_LIMIT_UP
         #error "You must set DEC_LIMIT_UP to the number of degrees that your OAT can move upwards from the home position."

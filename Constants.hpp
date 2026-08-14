@@ -19,14 +19,10 @@
 // ESP32 based boards
 #define BOARD_ESP32_ESP32DEV 1001
 
-// RP2040/RP2350 based boards (2000-2999)
-//   2001-2099: Generic bare Pico family (user-defined wiring) -- NOT YET SUPPORTED
+// RP2040 based boards (2000-2999)
 //   2101-2199: Pico family + JackW01 printer carrier board
 //   2201-2299: BTT SKR Pico family
-// #define BOARD_RP2040_PICO      2001  // NOT YET SUPPORTED: requires user-defined pin wiring in local config
-// #define BOARD_RP2350_PICO2     2002  // NOT YET SUPPORTED: requires user-defined pin wiring in local config
 #define BOARD_RP2040_JACKW01   2101  // Raspberry Pi Pico (RP2040) + JackW01 printer board
-#define BOARD_RP2350_JACKW01   2102  // Raspberry Pi Pico 2 (RP2350) + JackW01 printer board
 #define BOARD_RP2040_SKR_PICO  2201  // Raspberry Pi Pico (RP2040) on BTT SKR Pico v1.0
 
 /**

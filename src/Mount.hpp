@@ -36,21 +36,21 @@ using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
     #else
         #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
         #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -61,21 +61,21 @@ using StepperFocusSlew = AccelStepper;
 #else
     #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
     #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -88,23 +88,23 @@ class TMC2209Stepper;
 class HallSensorHoming;
 class EndSwitch;
 
-#define NORTH          0b00000001
-#define EAST           0b00000010
-#define SOUTH          0b00000100
-#define WEST           0b00001000
-#define ALL_DIRECTIONS 0b00001111
-#define TRACKING       0b00010000
-#define FOCUSING       0b00100000
+#define NORTH          B00000001
+#define EAST           B00000010
+#define SOUTH          B00000100
+#define WEST           B00001000
+#define ALL_DIRECTIONS B00001111
+#define TRACKING       B00010000
+#define FOCUSING       B00100000
 
-#define LCDMENU_STRING     0b0001
-#define MEADE_STRING       0b0010
-#define PRINT_STRING       0b0011
-#define LCD_STRING         0b0100
-#define COMPACT_STRING     0b0101
-#define FORMAT_STRING_MASK 0b0111
+#define LCDMENU_STRING     B0001
+#define MEADE_STRING       B0010
+#define PRINT_STRING       B0011
+#define LCD_STRING         B0100
+#define COMPACT_STRING     B0101
+#define FORMAT_STRING_MASK B0111
 
-#define TARGET_STRING  0b01000
-#define CURRENT_STRING 0b10000
+#define TARGET_STRING  B01000
+#define CURRENT_STRING B10000
 
 //mountstatus
 #define STATUS_PARKED            0B0000000000000000
@@ -154,8 +154,6 @@ class Mount
 
     void initializeVariables();
 
-    static Mount instance();
-
     // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
     void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
 
@@ -182,7 +180,8 @@ class Mount
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    bool connectToDriver(TMC2209Stepper *driver, const char *driverKind);
+    bool connectToDriver(const String &driverKind, uint16_t *rmsCurrent = nullptr);
+
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // Configure the RA Driver (TMC2209 UART only)
@@ -265,6 +264,9 @@ class Mount
     void setSlewRate(int rate);
     int getSlewRate();
 
+    // Get the number of hours we've been tracking
+    float getTrackedHours() const;
+
     // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
     void setHA(const DayTime &haTime);
     const DayTime HA() const;
@@ -336,6 +338,9 @@ class Mount
     // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
     void waitUntilStopped(byte direction);
 
+    // Block until all motors are stopped
+    void waitUntilAllStopped();
+
     // Same as Arduino delay() but keeps the tracker going.
     void delay(int ms);
 
@@ -389,6 +394,7 @@ class Mount
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
 
+    void setStatus(int state);
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 
@@ -404,7 +410,7 @@ class Mount
     void setupInfoDisplay();
     void updateInfoDisplay();
     InfoDisplayRender *getInfoDisplay();
-    long _loops;
+    long _lastInfoUpdate = 0;  // Last time the info display was updated
 #endif
 
     // Called by Meade processor every time a command is received.
@@ -433,7 +439,8 @@ class Mount
     // Support for moving the mount in azimuth and altitude (requires extra hardware)
     void moveBy(int direction, float arcMinutes);
     void disableAzAltMotors();
-    void enableAzAltMotors();
+    void enableAzMotor();
+    void enableAltMotor();
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -604,7 +611,7 @@ class Mount
         #else
     AccelStepper *_stepperAZ;
         #endif
-    const long _stepsPerAZDegree;  // u-steps/degree (from CTOR)
+    float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverAZ;
         #endif
@@ -615,7 +622,7 @@ class Mount
         #else
     AccelStepper *_stepperALT;
         #endif
-    const long _stepsPerALTDegree;  // u-steps/degree (from CTOR)
+    float _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     TMC2209Stepper *_driverALT;
         #endif
