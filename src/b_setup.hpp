@@ -12,10 +12,6 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 #endif
 
-#if TEST_VERIFY_MODE == 1
-    #include "testmenu.hpp"
-#endif
-
 #ifndef NEW_STEPPER_LIB
     #include "InterruptCallback.hpp"
 #endif
@@ -94,22 +90,6 @@ void stepperControlTimerCallback(void *payload)
     #endif
 #endif
 
-int addConsoleText(String text)
-{
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    return mount.getInfoDisplay()->addConsoleText(text, false);
-#else
-    return -1;
-#endif
-}
-
-void updateConsoleText(int line, String newText)
-{
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(line, newText);
-#endif
-}
-
 /////////////////////////////////
 //
 // Main program setup
@@ -126,72 +106,83 @@ void setup()
     #endif
 #else
     Serial.begin(SERIAL_BAUDRATE);
+    #if defined(ARDUINO_ARCH_RP2040)
+    // OATControl (and other apps using C# SerialPort) open the port with DTR=false.
+    // The Philhower USB CDC SerialUSB::write() gates TX on tud_cdc_connected() which
+    // requires DTR=true, so all responses are silently dropped for those hosts.
+    // ignoreFlowControl(true) bypasses the DTR check and always sends TX data.
+    Serial.ignoreFlowControl(true);
+    #endif
     #if DEBUG_LEVEL > 0 && DEBUG_SEPARATE_SERIAL == 1
     DEBUG_SERIAL_PORT.begin(DEBUG_SERIAL_BAUDRATE);
     #endif
+    // RP2040 USB CDC: wait up to 3 s for the host to open the port so that
+    // LOG() calls below are not dropped (or do not block indefinitely).
+    // This only matters when DEBUG_LEVEL > 0 — in release builds LOG() is
+    // a no-op, so the wait is compiled out.
+    #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL > 0
+    {
+        uint32_t _cdcWaitStart = millis();
+        while (!Serial && (millis() - _cdcWaitStart) < 3000UL) { /* spin */ }
+    }
+    #endif
 #endif
 
-#if TEST_VERIFY_MODE == 1
-    #ifdef OAM
-    Serial.print(F("Booting OAM Firmware "));
-    #elif defined(OAE)
-    Serial.print(F("Booting OAE Firmware "));
-    #else
-    Serial.print(F("Booting OAT Firmware "));
-    #endif
-    Serial.print(VERSION);
-    Serial.println(F(" ..."));
-#else
-    #ifdef OAM
-    LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAM Firmware %s!", VERSION);
-    #else
-    LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT Firmware %s!", VERSION);
-    #endif
-#endif
+    LOG(DEBUG_ANY, "[SYSTEM]: Hello, universe, this is OAT %s!", VERSION);
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
     mount.setupInfoDisplay();
-    addConsoleText(F("BOOTING " VERSION));
     LOG(DEBUG_ANY, "[SYSTEM]: OLED info screen ready!");
+    mount.getInfoDisplay()->addConsoleText(F("BOOTING " VERSION), false);
 #endif
 
 #if USE_GPS == 1
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing GPS...");
-    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    int gpsLine = addConsoleText(F("Initialize GPS..."));
+    #if defined(ARDUINO_ARCH_RP2040) && defined(RP2040_GPS_TX_PIN) && defined(RP2040_GPS_RX_PIN)
+    GPS_SERIAL_PORT.setTX(RP2040_GPS_TX_PIN);
+    GPS_SERIAL_PORT.setRX(RP2040_GPS_RX_PIN);
     #endif
     GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
-    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    updateConsoleText(gpsLine, F("Initialize GPS... OK"));
-    #endif
 #endif
 
 //Turn on dew heater
 #if DEW_HEATER == 1
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing dew heater...");
-    int dewHeaterLine = addConsoleText(F("Enable Dew Heater..."));
     #if defined(DEW_HEATER_1_PIN)
     digitalWrite(DEW_HEATER_1_PIN, HIGH);
     #endif
     #if defined(DEW_HEATER_2_PIN)
     digitalWrite(DEW_HEATER_2_PIN, HIGH);
     #endif
-    updateConsoleText(dewHeaterLine, F("Enable Dew Heater... OK"));
+#endif
+
+#if defined(RP2040_FAN1_PIN)
+    pinMode(RP2040_FAN1_PIN, OUTPUT);
+    analogWrite(RP2040_FAN1_PIN, (RP2040_FAN1_POWER_PERCENT * 255) / 100);
 #endif
 
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
-    int endSwitchesLine = addConsoleText(F("Init End Switches..."));
     LOG(DEBUG_ANY, "[SYSTEM]: Init EndSwitches...");
     mount.setupEndSwitches();
-    updateConsoleText(endSwitchesLine, F("Init End Switches... OK"));
+#endif
+
+    /////////////////////////////////
+    //   RP2040: UART pin remapping
+    /////////////////////////////////
+    // The Philhower arduino-pico core requires setTX()/setRX() to be called
+    // before begin() to remap UART pins away from their defaults. This must
+    // happen before any Serial2.begin() calls in the driver setup below.
+    // RP2040_UART1_TX_PIN / RP2040_UART1_RX_PIN are defined in the board's
+    // pins file only for RP2040 targets that use a non-default UART1 mapping.
+#if defined(ARDUINO_ARCH_RP2040) && defined(RP2040_UART1_TX_PIN) && defined(RP2040_UART1_RX_PIN)
+    Serial2.setTX(RP2040_UART1_TX_PIN);
+    Serial2.setRX(RP2040_UART1_RX_PIN);
+    Serial2.setPollingMode(true);  // Must be called before begin(); avoids IRQ/CoreMutex blocking in TMCStepper read path
+    Serial2.begin(115200);  // TMCStepper HW-serial path never calls begin(); must do it here.
 #endif
 
     /////////////////////////////////
     //   Microstepping/driver pins
     /////////////////////////////////
-    int raLine = addConsoleText(F("Init RA axis..."));
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing RA microstepping/driver pins...");
     pinMode(RA_EN_PIN, OUTPUT);
     digitalWrite(RA_EN_PIN, LOW);  // ENABLE, LOW to enable
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
@@ -206,25 +197,12 @@ void setup()
     #endif
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for RA...");
     // include TMC2209 UART pins
-    #if defined(RA_DIAG_PIN)
     pinMode(RA_DIAG_PIN, INPUT);
-    #endif
-
     #ifdef RA_SERIAL_PORT
-        #ifdef OAE
-    RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
-        #else
-    RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
-        #endif
-    //
+    RA_SERIAL_PORT.begin(115200);  // Start HardwareSerial comms with driver (TMCStepper requires 115200)
     #endif
 #endif
-    updateConsoleText(raLine, F("Init RA axis... OK"));
-
-    int decLine = addConsoleText(F("Init DEC axis..."));
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing DEC driver pin %s...", String(DEC_EN_PIN).c_str());
     pinMode(DEC_EN_PIN, OUTPUT);
     digitalWrite(DEC_EN_PIN, LOW);  // ENABLE, LOW to enable
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
@@ -238,56 +216,43 @@ void setup()
     digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
     #endif
 #endif
-
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for DEC...");
     // include TMC2209 UART pins
-    #if defined(DEC_DIAG_PIN)
     pinMode(DEC_DIAG_PIN, INPUT);
-    #endif
     #ifdef DEC_SERIAL_PORT
-        #ifdef OAE
-    DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_RX_PIN, DEC_TX_PIN);
-        #else
-    DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
-        #endif
+    DEC_SERIAL_PORT.begin(115200);  // Start HardwareSerial comms with driver (TMCStepper requires 115200)
     #endif
 #endif
-    updateConsoleText(decLine, F("Init DEC axis... OK"));
-    LOG(DEBUG_ANY, "[SYSTEM]: RA/DEC init complete...");
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    int azLine = addConsoleText(F("Init AZ axis..."));
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing AZ microstepping/driver pins...");
     pinMode(AZ_EN_PIN, OUTPUT);
     digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // include TMC2209 UART pins
+    #if defined(AZ_DIAG_PIN)
     pinMode(AZ_DIAG_PIN, INPUT);
+    #endif
         #ifdef AZ_SERIAL_PORT
-    AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    AZ_SERIAL_PORT.begin(115200);  // Start HardwareSerial comms with driver (TMCStepper requires 115200)
         #endif
     #endif
-    updateConsoleText(azLine, F("Init AZ axis... OK"));
 #endif
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    int altLine = addConsoleText(F("Init ALT axis..."));
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing ALT microstepping/driver pins...");
     pinMode(ALT_EN_PIN, OUTPUT);
     digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // include TMC2209 UART pins
+    #if defined(ALT_DIAG_PIN)
     pinMode(ALT_DIAG_PIN, INPUT);
+    #endif
         #ifdef ALT_SERIAL_PORT
-    ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    ALT_SERIAL_PORT.begin(115200);  // Start HardwareSerial comms with driver (TMCStepper requires 115200)
         #endif
     #endif
-    updateConsoleText(altLine, F("Init ALT axis... OK"));
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    int focusLine = addConsoleText(F("Init Focuser..."));
     LOG(DEBUG_FOCUS, "[FOCUS]: setup(): focus disabling enable pin");
     pinMode(FOCUS_EN_PIN, OUTPUT);
     digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
@@ -295,44 +260,51 @@ void setup()
         // include TMC2209 UART pins
         #ifdef FOCUS_SERIAL_PORT
     LOG(DEBUG_FOCUS, "[FOCUS]: setup(): focus TMC2209U starting comms");
-    FOCUS_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    FOCUS_SERIAL_PORT.begin(115200);  // Start HardwareSerial comms with driver (TMCStepper requires 115200)
         #endif
     #endif
-    updateConsoleText(focusLine, F("Init Focuser... OK"));
+#endif
+
+#if defined(RP2040_SHARED_EN_PIN)
+    // On boards where all stepper EN lines share one GPIO (e.g. JackW01 carrier),
+    // the per-axis init sequence leaves that GPIO HIGH (logic disabled) after the
+    // AZ/ALT blocks run.  Force it LOW here so every driver is enabled once all
+    // UART addresses have been configured.  Per-axis power management is handled
+    // via the TMC2209 IHOLD register over UART rather than toggling this pin.
+    pinMode(RP2040_SHARED_EN_PIN, OUTPUT);
+    digitalWrite(RP2040_SHARED_EN_PIN, LOW);
 #endif
     // end microstepping -------------------
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1 || USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    int homingLine = addConsoleText(F("Init homing sensors..."));
-    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
     pinMode(RA_HOMING_SENSOR_PIN, INPUT);
-    #endif
-
-    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
-    #endif
-    updateConsoleText(homingLine, F("Init homing sensors... OK"));
 #endif
 
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing EEPROM store...");
-    int eepromLine = addConsoleText(F("INIT EEPROM..."));
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
+#endif
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int eepromLine = mount.getInfoDisplay()->addConsoleText(F("INIT EEPROM..."));
+#endif
+
+    LOG(DEBUG_ANY, "[SYSTEM]: Get EEPROM store ready...");
     EEPROMStore::initialize();
     LOG(DEBUG_ANY, "[SYSTEM]: EEPROM store ready!");
-    updateConsoleText(eepromLine, F("INIT EEPROM... OK"));
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(eepromLine, F("INIT EEPROM... OK"));
+#endif
 
 // Calling the LCD startup here, I2C can't be found if called earlier
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
     LOG(DEBUG_ANY, "[SYSTEM]: Get LCD ready...");
-    int lcdLine = addConsoleText(F("Init LCD..."));
     lcdMenu.startup();
 
     // Show a splash screen
     lcdMenu.setCursor(0, 0);
     #ifdef OAM
     lcdMenu.printMenu(" OpenAstroMount");
-    #elif defined(OAE)
-    lcdMenu.printMenu("OpenAstroExplorer");
     #else
     lcdMenu.printMenu("OpenAstroTracker");
     #endif
@@ -395,7 +367,6 @@ void setup()
     #if SUPPORT_INFO_DISPLAY == 1
     lcdMenu.addItem("INFO", Status_Menu);
     #endif
-    updateConsoleText(lcdLine, F("Init LCD... OK"));
 
 #endif  // DISPLAY_TYPE > 0
 
@@ -403,16 +374,16 @@ void setup()
 
     // Create the command processor singleton
     LOG(DEBUG_ANY, "[SYSTEM]: Initialize LX200 handler...");
-    int commandProcessorLine = addConsoleText(F("Init MEADE handler..."));
     MeadeCommandProcessor::createProcessor(&mount, &lcdMenu);
-    updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 
 #if (WIFI_ENABLED == 1)
     LOG(DEBUG_ANY, "[SYSTEM]: Setup Wifi...");
     wifiControl.setup();
 #endif
 
-    int stepperLine = addConsoleText(F("Energize Steppers..."));
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int stepperLine = mount.getInfoDisplay()->addConsoleText(F("INIT STEPPERS..."));
+#endif
 
     // Configure the mount
     // Delay for a while to get UARTs booted...
@@ -423,6 +394,7 @@ void setup()
 // Set the stepper motor parameters
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA.");
+    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
     LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps : %d", RA_SLEW_MICROSTEPPING);
     LOG(DEBUG_ANY, "[STEPPERS]: Trk Microsteps  : %d", RA_TRACKING_MICROSTEPPING);
     LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
@@ -446,18 +418,17 @@ void setup()
 
 #if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA.");
-    LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps  : %d", DEC_SLEW_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: Guide Microsteps : %d", DEC_GUIDE_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR      : %d", DEC_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: Transmission     : %f", DEC_TRANSMISSION);
+    LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps : %d", DEC_SLEW_MICROSTEPPING);
+    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", DEC_STEPPER_SPR);
+    LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", DEC_TRANSMISSION);
     #ifdef NEW_STEPPER_LIB
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR  : %l", config::Dec::DRIVER_SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR   : %l", config::Dec::DRIVER_SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew         : %f", config::Dec::SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk          : %f", config::Dec::SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew       : %f", config::Dec::SPEED_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew       : %f", config::Dec::ACCEL_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk        : %f", config::Dec::SPEED_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Dec::DRIVER_SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Dec::DRIVER_SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Dec::SPR_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk         : %f", config::Dec::SPR_TRK);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Dec::SPEED_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew      : %f", config::Dec::ACCEL_SLEW);
+    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Dec::SPEED_TRK);
     LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
     mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEW, config::Dec::ACCEL_SLEW);
     #else
@@ -485,12 +456,6 @@ void setup()
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ stepper...");
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ Microsteps    : %d", AZ_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ Stepper SPR   : %d", AZ_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ Circumference : %f", AZ_CIRCUMFERENCE);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/rev     : %f", AZIMUTH_STEPS_PER_REV);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/deg     : %f", mount.getStepsPerDegree(AZIMUTH_STEPS));
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/minute  : %f", AZIMUTH_STEPS_PER_ARC_MINUTE);
     mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ driver...");
@@ -503,12 +468,6 @@ void setup()
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure Alt stepper...");
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT Microsteps    : %d", ALT_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT Stepper SPR   : %d", ALT_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT Circumference : %f", ALT_CIRCUMFERENCE);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/rev     : %f", ALTITUDE_STEPS_PER_REV);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/deg     : %f", mount.getStepsPerDegree(ALTITUDE_STEPS));
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/minute  : %f", ALTITUDE_STEPS_PER_ARC_MINUTE);
     mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure ALT driver...");
@@ -535,10 +494,22 @@ void setup()
     #endif
 #endif
 
-    LOG(DEBUG_ANY, "[SYSTEM]: Energize Steppers... OK");
-    updateConsoleText(stepperLine, F("Energize Steppers... OK"));
+#if defined(RP2040_SHARED_EN_PIN)
+    // Re-assert EN LOW after all driver configs.  Each configureXXXdriver() that
+    // fails its UART connection test calls digitalWrite(X_EN_PIN, HIGH) as a
+    // safety measure; on JackW01 all EN lines share one GPIO so all four failures
+    // leave that GPIO HIGH (motors disabled).  Override it here unconditionally so
+    // the motors are always enabled after initialization.
+    digitalWrite(RP2040_SHARED_EN_PIN, LOW);
+#endif
 
-    int configureLine = addConsoleText(F("Configure Mount..."));
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(stepperLine, F("INIT STEPPERS... OK"));
+#endif
+
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->addConsoleText(F("CONFIGURING..."));
+#endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Read Configuration...");
 
@@ -559,7 +530,7 @@ void setup()
 
 // Setup service to periodically service the steppers.
 #if defined(ESP32)
-    LOG(DEBUG_ANY, "[SYSTEM]: Setup StepperControlTask on Core 0...");
+
     disableCore0WDT();
     xTaskCreatePinnedToCore(stepperControlTask,  // Function to run on this core
                             "StepperControl",    // Name of this task
@@ -579,10 +550,10 @@ void setup()
     #endif
 #endif
 
-    updateConsoleText(configureLine, F("Configure Mount... OK"));
-
 #if UART_CONNECTION_TEST_TX == 1
-    int testLine = addConsoleText(F("Test UARTs..."));
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    int testLine = mount.getInfoDisplay()->addConsoleText(F("TEST STEPPERS..."));
+    #endif
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Moving RA axis using UART commands...");
     mount.testRA_UART_TX();
@@ -594,7 +565,9 @@ void setup()
     mount.testDEC_UART_TX();
     LOG(DEBUG_STEPPERS, "[STEPPERS]: Finished moving DEC axis using UART commands.");
     #endif
-    updateConsoleText(testLine, F("Test UARTs... OK"));
+    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    mount.getInfoDisplay()->updateConsoleText(testLine, F("TEST STEPPERS... OK"));
+    #endif
 #endif
 
     LOG(DEBUG_ANY, "[SYSTEM]: Setting %s hemisphere...", inNorthernHemisphere ? "northern" : "southern");
@@ -608,13 +581,9 @@ void setup()
 
     mount.bootComplete();
     LOG(DEBUG_ANY, "[SYSTEM]: Boot complete!");
-    addConsoleText(F("BOOT COMPLETE!"));
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    delay(500);
+    mount.getInfoDisplay()->addConsoleText(F("BOOT COMPLETE!"));
+    delay(250);
     mount.getInfoDisplay()->setConsoleMode(false);
-#endif
-
-#if TEST_VERIFY_MODE == 1
-    TestMenu::getCurrentMenu()->display();
 #endif
 }

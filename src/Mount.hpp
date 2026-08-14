@@ -36,21 +36,21 @@ using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
     #else
         #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
         #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
         #endif
 
         #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -61,21 +61,21 @@ using StepperFocusSlew = AccelStepper;
 #else
     #include "AccelStepper.h"
 class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
+using StepperRaSlew  = AccelStepper;
+using StepperRaTrk   = AccelStepper;
+using StepperDecSlew = AccelStepper;
+using StepperDecTrk  = AccelStepper;
 
     #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
+using StepperAzSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
+using StepperAltSlew = AccelStepper;
     #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -264,6 +264,9 @@ class Mount
     void setSlewRate(int rate);
     int getSlewRate();
 
+    // Get the number of hours we've been tracking
+    float getTrackedHours() const;
+
     // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
     void setHA(const DayTime &haTime);
     const DayTime HA() const;
@@ -391,6 +394,7 @@ class Mount
     // Returns a comma-delimited string with all the mounts' information
     String getStatusString();
 
+    void setStatus(int state);
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 

@@ -1,4 +1,3 @@
-#pragma once
 #include <Arduino.h>
 
 // Font generated or edited with the glyphEditor

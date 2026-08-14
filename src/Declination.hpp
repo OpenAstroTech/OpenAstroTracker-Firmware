@@ -11,6 +11,7 @@ class Declination : public DayTime
   public:
     Declination();
     Declination(const Declination &other);
+    Declination& operator=(const Declination&) = default;
     Declination(int h, int m, int s);
     Declination(float inDegrees);
 

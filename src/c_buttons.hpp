@@ -98,6 +98,13 @@ void loop()
     lcdMenu.setCursor(0, 1);
 
     #if SUPPORT_SERIAL_CONTROL == 1
+    #if defined(ARDUINO_ARCH_RP2040)
+    // On RP2040, the Philhower core does not reliably call serialEvent() for the
+    // USB CDC Serial port when a host application opens the port and immediately
+    // sends data (e.g. OATControl). Poll explicitly on every loop() iteration so
+    // that commands are always processed regardless of inSerialControl state.
+    processSerialData();
+    #endif
     if (inSerialControl)
     {
         if (lcdButtons.keyChanged(&lcd_key))

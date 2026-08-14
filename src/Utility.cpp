@@ -226,46 +226,6 @@ float atanf(float x)
     return static_cast<float>(atan(static_cast<double>(x)));
 }
 
-String *splitStringBy(String str, char splitChar)
-{
-    unsigned int count = 1;  // At least one string if input is non-empty
-
-    // Count occurrences of splitChar to determine the number of splits
-    for (unsigned int i = 0; i < str.length(); i++)
-    {
-        if (str[i] == splitChar)
-        {
-            count++;
-        }
-    }
-
-    // Dynamically allocate memory for the resulting array
-    String *array  = new String[count + 1];  // +1 for the nullptr terminator
-    unsigned int r = 0;                      // Start of the substring
-    unsigned int t = 0;                      // Index in the result array
-
-    // Iterate through the string to split it
-    for (unsigned int i = 0; i < str.length(); i++)
-    {
-        if (str[i] == splitChar)
-        {
-            array[t++] = str.substring(r, i);  // Store substring
-            r          = i + 1;                // Move start to next character
-        }
-    }
-
-    // Add the last part of the string
-    if (r < str.length())
-    {
-        array[t++] = str.substring(r);
-    }
-
-    // Mark the end of the array with ""
-    array[t] = "";
-
-    return array;
-}
-
 #if defined(ESP32)
 int freeMemory()
 {
@@ -284,7 +244,7 @@ int freeMemory()
 {
     char top;
     #ifdef __arm__
-    return &top - reinterpret_cast<char *>(sbrk(0));
+    return &top - sbrk(0);
     #elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
     return &top - __brkval;
     #else   // __arm__
@@ -334,7 +294,7 @@ String formatArg(const char *input, va_list args)
 
             case 'd':
                 {
-                    String s = String((int) va_arg(args, int));
+                    String s = String(va_arg(args, int));
                     strcpy(p, s.c_str());
                     p += s.length();
                 }
@@ -342,7 +302,7 @@ String formatArg(const char *input, va_list args)
 
             case 'x':
                 {
-                    int n             = (int) va_arg(args, int);
+                    int n             = va_arg(args, int);
                     int shift         = 12;
                     unsigned int mask = 0xF000;
                     *p++              = '0';
@@ -361,7 +321,7 @@ String formatArg(const char *input, va_list args)
 
             case 'l':
                 {
-                    String s = String((long) va_arg(args, long));
+                    String s = String(va_arg(args, long));
                     strcpy(p, s.c_str());
                     p += s.length();
                 }

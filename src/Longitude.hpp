@@ -10,6 +10,7 @@ class Longitude : public DayTime
     {
     }
     Longitude(const Longitude &other);
+    Longitude& operator=(const Longitude&) = default;
     Longitude(int h, int m, int s);
     Longitude(float inDegrees);
 

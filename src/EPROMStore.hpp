@@ -29,12 +29,6 @@ class EEPROMStore
     static float getDECStepsPerDegree();
     static void storeDECStepsPerDegree(float decStepsPerDegree);
 
-    static float getAZStepsPerDegree();
-    static void storeAZStepsPerDegree(float azStepsPerDegree);
-
-    static float getALTStepsPerDegree();
-    static void storeALTStepsPerDegree(float altStepsPerDegree);
-
     static float getSpeedFactor();
     static void storeSpeedFactor(float speed);
 
@@ -97,15 +91,13 @@ class EEPROMStore
     // If Location 5 is 0xCF, then an extended 16-bit flag is stored in 21/22 and
     // indicates the additional fields that have been stored: 0000 0000 0000 0000
     //                                                        ^^^^ ^^^^ ^^^^ ^^^^
-    //                                                             |||| |||| ||||
-    //     ALT Steps/deg, normalized to 256MS (70-73) -------------+||| |||| ||||
-    //      AZ Steps/deg, normalized to 256MS (66-69) --------------+|| |||| ||||
+    //                                                               || |||| ||||
     //                           ALT position (62-65) ---------------+| |||| ||||
     //                            AZ Position (58-61) ----------------+ |||| ||||
     //                   Last flashed version (56-57) ------------------+||| ||||
     //                       DEC Homing Offet (52-55) -------------------+|| ||||
-    //     DEC Steps/deg, normalized to 256MS (48-51) --------------------+| ||||
-    //      RA Steps/deg, normalized to 256MS (44-47) ---------------------+ ||||
+    //      DEC Steps/deg, normalized to 256MS (48-51) -------------------+| ||||
+    //       RA Steps/deg, normalized to 256MS (44-47) --------------------+ ||||
     //                        RA Homing Offet (40-43) -----------------------+|||
     //                                UTC Offset (39) ------------------------+||
     //     DEC lower (31-34) and upper (35-38) limits -------------------------+|
@@ -145,8 +137,6 @@ class EEPROMStore
         LAST_FLASHED_MARKER_FLAG   = 0x0080,
         AZ_POSITION_MARKER_FLAG    = 0x0100,
         ALT_POSITION_MARKER_FLAG   = 0x0200,
-        AZ_NORM_STEPS_MARKER_FLAG  = 0x0400,
-        ALT_NORM_STEPS_MARKER_FLAG = 0x0800,
     };
 
     // These are the offsets to each item stored in the EEPROM
@@ -219,15 +209,7 @@ class EEPROMStore
         _ALT_POSITION_ADDR_1,
         _ALT_POSITION_ADDR_2,
         _ALT_POSITION_ADDR_3,
-        AZ_NORM_STEPS_DEGREE_ADDR = 66,
-        _AZ_NORM_STEPS_DEGREE_ADDR_1,
-        _AZ_NORM_STEPS_DEGREE_ADDR_2,
-        _AZ_NORM_STEPS_DEGREE_ADDR_3,  // Int32
-        ALT_NORM_STEPS_DEGREE_ADDR = 70,
-        _ALT_NORM_STEPS_DEGREE_ADDR_1,
-        _ALT_NORM_STEPS_DEGREE_ADDR_2,
-        _ALT_NORM_STEPS_DEGREE_ADDR_3,  // Int32
-        STORE_SIZE = 74
+        STORE_SIZE = 66
     };
 
     // Helper functions
