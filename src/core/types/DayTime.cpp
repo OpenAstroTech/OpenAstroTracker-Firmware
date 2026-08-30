@@ -75,6 +75,16 @@ void DayTime::getTime(int &h, int &m, int &s) const
     h *= sign(totalSeconds);
 }
 
+void DayTime::splitSeconds(long secs, int &h, int &m, int &s)
+{
+    long remainder = labs(secs);
+    h              = static_cast<int>(remainder / 3600L);
+    remainder      = remainder - (h * 3600L);
+    m              = static_cast<int>(remainder / 60L);
+    s              = static_cast<int>(remainder - (m * 60L));
+    h *= sign(secs);
+}
+
 void DayTime::set(int h, int m, int s)
 {
     DayTime dt(h, m, s);

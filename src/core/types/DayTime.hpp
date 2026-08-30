@@ -31,6 +31,10 @@ class DayTime
     long getTotalSeconds() const;
 
     void getTime(int &h, int &m, int &s) const;
+
+    // Split signed seconds into (signed) hours plus unsigned minutes/seconds.
+    static void splitSeconds(long secs, int &h, int &m, int &s);
+
     virtual void set(int h, int m, int s);
     void set(const DayTime &other);
 

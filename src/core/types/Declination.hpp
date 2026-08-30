@@ -24,6 +24,16 @@ class Declination : public DayTime
     // Get total degrees (-180..180)
     float getTotalDegrees() const;
 
+    // Hemisphere-aware conversions between the mount-axis coordinate (0 at the
+    // pole above the mount, +/-180 at the opposite pole) and celestial
+    // declination arc-seconds (-90 at the south celestial pole, +90 at the
+    // north celestial pole).
+    static long axisToCelestialSeconds(long axisSeconds, bool northernHemisphere);
+    static long celestialToAxisSeconds(long celestialSeconds, bool northernHemisphere);
+
+    // Construct from total (axis) seconds directly, avoiding float rounding.
+    static Declination fromTotalSeconds(long totalSeconds);
+
   protected:
     virtual void checkHours() override;
 
