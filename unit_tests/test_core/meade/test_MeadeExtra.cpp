@@ -11,6 +11,7 @@
 // is hardware-agnostic and exercised directly here via a fake handler.
 
 #include <gtest/gtest.h>
+#include <string>
 
 #include "core/meade/MeadeParser.hpp"
 
@@ -398,6 +399,52 @@ TEST(MeadeExtra, get_network_status_text)
 {
     FakeExtra h;
     EXPECT_STREQ("WL,OAT,192.168.1.10#", dispatch("GN", h));
+}
+
+// ---- :XGM# (mount hardware info) — response capacity regression -------------
+//
+// MeadeResponse capacity was raised 64 -> 128 (#297): the realistic :XGM#
+// payload is longer than 64 bytes and used to overflow/truncate. These tests
+// pin that a long-but-realistic payload round-trips intact, and that an
+// over-capacity payload truncates safely without overrunning the buffer.
+
+TEST(MeadeExtra, get_mount_hardware_info_long_payload_not_truncated)
+{
+    // Full-featured realistic :XGM# payload — longer than the old 64-byte
+    // capacity, still within the current 128-byte capacity.
+    static const char info[] = "Mega,NEMA|16|4096,NEMA|16|4096,AUTO_AZ_ALT,NO_GYRO,LCD_JOY_I2C_SSD1306,"
+                               "INFO_I2C_SSD1306_128x64,FOC,HSAH,HSAV,ENDSW_RA_DEC";
+    ASSERT_GT(sizeof(info) - 1, meade::MeadeResponse::Capacity / 2);
+
+    FakeExtra h;
+    h.hardwareInfo = info;
+
+    meade::MeadeResponse r;
+    meade::handleMeadeExtra(r, "GM", h);
+
+    const std::string expected = std::string(info) + "#";
+    EXPECT_STREQ(expected.c_str(), r.c_str());
+    EXPECT_EQ(expected.size(), r.length());
+    EXPECT_EQ('\0', r.buffer()[r.length()]);
+}
+
+TEST(MeadeExtra, get_mount_hardware_info_oversized_payload_truncates_safely)
+{
+    // Far beyond capacity — must stay NUL-terminated and capped, never overrun.
+    const std::string huge(meade::MeadeResponse::Capacity * 2, 'X');
+    FakeExtra h;
+    h.hardwareInfo = huge.c_str();
+
+    meade::MeadeResponse r;
+    meade::handleMeadeExtra(r, "GM", h);
+
+    EXPECT_LT(r.length(), meade::MeadeResponse::Capacity);
+    EXPECT_EQ('\0', r.buffer()[r.length()]);
+    EXPECT_EQ('\0', r.buffer()[meade::MeadeResponse::Capacity - 1]);
+    for (size_t i = 0; i < r.length(); ++i)
+    {
+        EXPECT_EQ('X', r.buffer()[i]);
+    }
 }
 
 // ---- Set leaves -------------------------------------------------------------
