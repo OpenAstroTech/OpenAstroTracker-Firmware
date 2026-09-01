@@ -39,7 +39,7 @@ namespace meade
 class MeadeResponse
 {
   public:
-    static constexpr size_t Capacity = 64;
+    static constexpr size_t Capacity = 128;
 
     MeadeResponse() : _length(0)
     {
