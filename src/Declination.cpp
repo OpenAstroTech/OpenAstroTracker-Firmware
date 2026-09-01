@@ -80,7 +80,21 @@ Declination Declination::FromSeconds(long seconds)
 
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const
 {
-    long secs
-        = inNorthernHemisphere ? (arcSecondsPerHemisphere / 2) - labs(totalSeconds) : -(arcSecondsPerHemisphere / 2) + labs(totalSeconds);
+    long secs = core::Declination::axisToCelestialSeconds(totalSeconds, inNorthernHemisphere);
     return core::DayTime::formatString(targetBuffer, format, &secs);
+}
+
+void Declination::getCelestialDegrees(int &deg, int &min, int &sec) const
+{
+    const long celestialSecs = core::Declination::axisToCelestialSeconds(totalSeconds, inNorthernHemisphere);
+    core::DayTime::splitSeconds(celestialSecs, deg, min, sec);
+}
+
+Declination Declination::fromCelestialDegrees(int deg, int min, int sec)
+{
+    const long wireSecs = ((60L * deg) + min) * 60L + sec;
+    Declination result;
+    result.totalSeconds = core::Declination::celestialToAxisSeconds(wireSecs, inNorthernHemisphere);
+    result.checkHours();
+    return result;
 }
