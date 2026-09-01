@@ -39,7 +39,11 @@ namespace meade
 class MeadeResponse
 {
   public:
-    static constexpr size_t Capacity = 64;
+    // Must fit the longest reply: :XGM# (board + two stepper descriptors +
+    // the full addon list) exceeds 100 bytes on an OAE. At 64 the reply was
+    // silently truncated mid-token and the '#' terminator was dropped,
+    // breaking every client waiting for it.
+    static constexpr size_t Capacity = 160;
 
     MeadeResponse() : _length(0)
     {
