@@ -323,13 +323,16 @@ TEST(MeadeGet, site_latitude_signed_two_digit_deg)
     EXPECT_STREQ("-12*45#", dispatch("t", h));
 }
 
+// :Gg is east-negative and MeadeLongitude is east-positive, so the sign on the
+// wire is the opposite of `negative`. This has to stay the exact inverse of
+// readLongitude; see the round trips below.
 TEST(MeadeGet, site_longitude_signed_three_digit_deg)
 {
     FakeHandlers h;
-    h.longitude = {12, 30, false};
-    EXPECT_STREQ("+012*30#", dispatch("g", h));
-    h.longitude = {122, 45, true};
-    EXPECT_STREQ("-122*45#", dispatch("g", h));
+    h.longitude = {12, 30, false};  // 12d30' east
+    EXPECT_STREQ("-012*30#", dispatch("g", h));
+    h.longitude = {122, 45, true};  // 122d45' west
+    EXPECT_STREQ("+122*45#", dispatch("g", h));
 }
 
 // ---- Sign of zero -----------------------------------------------------
@@ -359,10 +362,10 @@ TEST(MeadeGet, site_latitude_zero_degrees_keeps_south_sign)
 TEST(MeadeGet, site_longitude_zero_degrees_keeps_sign)
 {
     FakeHandlers h;
-    h.longitude = {0, 5, true};
-    EXPECT_STREQ("-000*05#", dispatch("g", h));
-    h.longitude = {0, 5, false};
+    h.longitude = {0, 5, true};  // 5' west
     EXPECT_STREQ("+000*05#", dispatch("g", h));
+    h.longitude = {0, 5, false};  // 5' east
+    EXPECT_STREQ("-000*05#", dispatch("g", h));
 }
 
 // ---- Set -> Get round trips -------------------------------------------
@@ -410,6 +413,34 @@ TEST(MeadeGet, site_longitude_round_trip_preserves_nonzero_degrees)
     FakeHandlers h;
     EXPECT_STREQ("-122*45#", setThenGet("g-122*45", "g", h));
     EXPECT_STREQ("+097*34#", setThenGet("g+097*34", "g", h));
+}
+
+// The reader and the writer both flip the sign, so the wire value is unchanged
+// by a round trip -- which is exactly why a flip on one side alone is invisible
+// to a client and has to be caught by the struct-level assertions above.
+TEST(MeadeGet, site_longitude_round_trip_is_unchanged_at_the_meridians)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("+000*00#", setThenGet("g+000*00", "g", h));
+    EXPECT_STREQ("+000*00#", setThenGet("g-000*00", "g", h));
+    EXPECT_STREQ("-180*00#", setThenGet("g-180*00", "g", h));
+}
+
+// The form INDI actually sends: unsigned, counting westward. It comes back in
+// the signed form, on the same meridian.
+TEST(MeadeGet, site_longitude_unsigned_round_trips_to_the_same_meridian)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("+121*53#", setThenGet("g121*53", "g", h));
+    EXPECT_EQ(static_cast<uint16_t>(121), h.longitude.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(53), h.longitude.minutes);
+    EXPECT_TRUE(h.longitude.negative);  // west, east-positive internally
+
+    FakeHandlers e;
+    EXPECT_STREQ("-058*07#", setThenGet("g301*53", "g", e));
+    EXPECT_EQ(static_cast<uint16_t>(58), e.longitude.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(7), e.longitude.minutes);
+    EXPECT_FALSE(e.longitude.negative);
 }
 
 TEST(MeadeGet, utc_offset_signs_and_pads)

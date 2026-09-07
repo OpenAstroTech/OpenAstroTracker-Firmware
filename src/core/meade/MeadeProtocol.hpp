@@ -154,6 +154,7 @@
 //        "MM" is the minutes
 //      Remarks:
 //        Note that this is the actual longitude, but east coordinates are negative (opposite of normal cartographic coordinates)
+//        This is the exact inverse of :Sg, and the two have to stay in step: flipping one alone makes a client read its own site back mirrored
 //
 // :Gc#
 //      Description:
@@ -339,8 +340,8 @@
 //        "DDD" is the number of degrees
 //        "MM" is the minutes
 //      Remarks:
-//        When a sign is provided, longitudes are interpreted as given, with zero at Greenwich but negative coordinates going east (opposite of normal cartographic coordinates)
-//        When a sign is not provided, longitudes are from 0 to 360 going WEST with 180 at Greenwich. So 369 is 179W and 1 is 179E. 190 would be 10W and 170 would be 10E.
+//        Longitudes are east-negative: zero at Greenwich, negative coordinates going east (opposite of normal cartographic coordinates)
+//        The unsigned form is the legacy count running WESTWARD from Greenwich, 0 to 359, which is the same mapping with the sign taken as '+'. So "121*53" is 121d53' west, "301*53" is 58d07' east, and "180*00" is the antimeridian. A full circle ("360*00") is refused rather than wrapped.
 //
 // :SGsHH#
 //      Description:

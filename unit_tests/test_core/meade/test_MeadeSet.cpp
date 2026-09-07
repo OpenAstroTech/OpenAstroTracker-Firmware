@@ -289,6 +289,8 @@ TEST(MeadeSet, site_latitude_malformed_does_not_call_handler)
 
 // ---- Site Longitude (g) -----------------------------------------------
 
+// :Sg is east-negative, so a '+' on the wire is a WEST longitude and reaches
+// the east-positive struct as negative.
 TEST(MeadeSet, site_longitude_three_digit_degrees)
 {
     FakeHandlers h;
@@ -296,13 +298,163 @@ TEST(MeadeSet, site_longitude_three_digit_degrees)
     EXPECT_STREQ("lon", h.lastCall);
     EXPECT_EQ(static_cast<uint16_t>(97), h.lon.degrees);
     EXPECT_EQ(static_cast<uint8_t>(34), h.lon.minutes);
-    EXPECT_FALSE(h.lon.negative);
+    EXPECT_TRUE(h.lon.negative);
 }
 
 TEST(MeadeSet, site_longitude_malformed_short_does_not_call_handler)
 {
     FakeHandlers h;
     EXPECT_STREQ("0", dispatch("g+97*34", h));  // 2-digit degrees
+    EXPECT_EQ(nullptr, h.lastCall);
+}
+
+// A '-' on the wire is an EAST longitude, which the east-positive struct holds
+// as a positive value. #291 dropped the negation on both sides at once, so the
+// convention round-tripped perfectly while being backwards; this assertion is
+// on the struct rather than the wire so that a future flip cannot hide the
+// same way.
+TEST(MeadeSet, site_longitude_signed_negative_is_east)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g-121*53", h));
+    EXPECT_STREQ("lon", h.lastCall);
+    EXPECT_EQ(static_cast<uint16_t>(121), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(53), h.lon.minutes);
+    EXPECT_FALSE(h.lon.negative);
+}
+
+// Unsigned longitudes count WESTWARD from Greenwich, 0..360, and are mirrored into
+// the east-positive range the mount stores. INDI sends this form: a San Jose site
+// at 121d53' west arrives as ":Sg121*53#" and must come back out as -121d53'.
+TEST(MeadeSet, site_longitude_unsigned_west_of_greenwich)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g121*53", h));
+    EXPECT_STREQ("lon", h.lastCall);
+    EXPECT_EQ(static_cast<uint16_t>(121), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(53), h.lon.minutes);
+    EXPECT_TRUE(h.lon.negative);
+}
+
+// The unsigned form is not a second convention, it is the signed one with the
+// sign taken as '+'. These two spellings of the same meridian must agree.
+TEST(MeadeSet, site_longitude_unsigned_and_signed_agree)
+{
+    FakeHandlers u, s;
+    EXPECT_STREQ("1", dispatch("g121*53", u));
+    EXPECT_STREQ("1", dispatch("g+121*53", s));
+    EXPECT_EQ(u.lon.degrees, s.lon.degrees);
+    EXPECT_EQ(u.lon.minutes, s.lon.minutes);
+    EXPECT_EQ(u.lon.negative, s.lon.negative);
+}
+
+// Past 180 the westward count has gone round to the eastern hemisphere.
+TEST(MeadeSet, site_longitude_unsigned_east_of_greenwich)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g301*53", h));
+    EXPECT_EQ(static_cast<uint16_t>(58), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(7), h.lon.minutes);
+    EXPECT_FALSE(h.lon.negative);
+}
+
+TEST(MeadeSet, site_longitude_unsigned_greenwich_is_zero)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g000*00", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(0), h.lon.minutes);
+    EXPECT_FALSE(h.lon.negative);
+}
+
+// 180 west and 180 east are the same meridian, so either sign would be right. This
+// pins the half of the choice the parser makes — it wraps into (-180, 180], keeping
+// the antimeridian positive — rather than leaving it for a reader to infer.
+TEST(MeadeSet, site_longitude_unsigned_antimeridian_stays_positive)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g180*00", h));
+    EXPECT_EQ(static_cast<uint16_t>(180), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(0), h.lon.minutes);
+    EXPECT_FALSE(h.lon.negative);
+}
+
+// Top of the accepted range: one arcminute short of a full circle west is one
+// arcminute east.
+TEST(MeadeSet, site_longitude_unsigned_upper_bound_wraps_to_east)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g359*59", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(1), h.lon.minutes);
+    EXPECT_FALSE(h.lon.negative);
+}
+
+// A west longitude smaller than one degree used to be unrepresentable: the sign
+// lived in `degrees`, which is 0 here, so "000*30" (30' WEST) and "359*30" (30'
+// east) both came out {0, 30} and were read downstream as 30' EAST -- a silent
+// 1-degree error with a "1" reply. The separate `negative` field is what tells
+// the two apart.
+TEST(MeadeSet, site_longitude_unsigned_sub_degree_west_keeps_its_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g000*30", h));
+    EXPECT_STREQ("lon", h.lastCall);
+    EXPECT_EQ(static_cast<uint16_t>(0), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(30), h.lon.minutes);
+    EXPECT_TRUE(h.lon.negative);
+
+    // The east neighbour it used to collide with.
+    FakeHandlers e;
+    EXPECT_STREQ("1", dispatch("g359*30", e));
+    EXPECT_EQ(static_cast<uint16_t>(0), e.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(30), e.lon.minutes);
+    EXPECT_FALSE(e.lon.negative);
+}
+
+// 360 west is the same meridian as 000, but it is refused rather than wrapped: the
+// range check is what stops out-of-circle degrees reaching EEPROMStore, which clamps
+// them into an int16 and persists a site that is wrong rather than merely unwrapped.
+TEST(MeadeSet, site_longitude_unsigned_full_circle_is_rejected)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("g360*00", h));
+    EXPECT_EQ(nullptr, h.lastCall);
+}
+
+// The range check is shared, so it guards the signed path too.
+TEST(MeadeSet, site_longitude_signed_out_of_range_does_not_call_handler)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("g+400*00", h));
+    EXPECT_EQ(nullptr, h.lastCall);
+}
+
+TEST(MeadeSet, site_longitude_minutes_out_of_range_does_not_call_handler)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("g+121*99", h));
+    EXPECT_EQ(nullptr, h.lastCall);
+}
+
+// Degrees this far out would also push the westward arcminute count past INT16_MAX,
+// which is why the conversion works in `long` as well as rejecting the input.
+TEST(MeadeSet, site_longitude_unsigned_beyond_int16_arcminutes_is_rejected)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("g545*69", h));
+    EXPECT_EQ(nullptr, h.lastCall);
+}
+
+// Two-digit degrees are refused on both paths. Pre-#291 DayTime::ParseFromMeade took
+// two or three, so this is stricter than the legacy parser for a client that sends
+// ":Sg97*34#"; nothing observed on the wire does, MeadeProtocol.hpp documents "DDD",
+// and Cursor never backtracks, so accepting either width means hand-rolling the digit
+// reads. Relaxing it should relax the signed path at the same time.
+TEST(MeadeSet, site_longitude_unsigned_two_digit_degrees_does_not_call_handler)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("g97*34", h));
     EXPECT_EQ(nullptr, h.lastCall);
 }
 
@@ -430,19 +582,19 @@ TEST(MeadeSet, site_latitude_positive_zero_degrees_keeps_sign)
 TEST(MeadeSet, site_longitude_negative_zero_degrees_keeps_sign)
 {
     FakeHandlers h;
-    EXPECT_STREQ("1", dispatch("g-000*05", h));
+    EXPECT_STREQ("1", dispatch("g-000*05", h));  // 5' EAST on an east-negative wire
     EXPECT_EQ(static_cast<uint16_t>(0), h.lon.degrees);
     EXPECT_EQ(static_cast<uint8_t>(5), h.lon.minutes);
-    EXPECT_TRUE(h.lon.negative);
+    EXPECT_FALSE(h.lon.negative);
 }
 
 TEST(MeadeSet, site_longitude_positive_zero_degrees_keeps_sign)
 {
     FakeHandlers h;
-    EXPECT_STREQ("1", dispatch("g+000*05", h));
+    EXPECT_STREQ("1", dispatch("g+000*05", h));  // 5' WEST
     EXPECT_EQ(static_cast<uint16_t>(0), h.lon.degrees);
     EXPECT_EQ(static_cast<uint8_t>(5), h.lon.minutes);
-    EXPECT_FALSE(h.lon.negative);
+    EXPECT_TRUE(h.lon.negative);
 }
 
 TEST(MeadeSet, utc_offset_negative_zero_is_zero)
