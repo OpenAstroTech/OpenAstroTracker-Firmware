@@ -144,6 +144,40 @@ bool readLongitude(Cursor &c, MeadeLongitude &out)
     return true;
 }
 
+// Format: "[+-]H[H]", with anything after the hours left unconsumed, so the
+// ":SG+7.0#" that INDI sends on connect parses as +7 -- as it did before the
+// refactor, when the handler ran toInt() over "+7.". Requiring a sign and
+// exactly two digits makes INDI's UTC-offset push fail with "0" and leaves the
+// site offset unset.
+bool readUtcOffset(Cursor &c, int &out)
+{
+    // The sign is required, as MeadeProtocol.hpp specifies -- an unsigned offset
+    // would be indistinguishable from a client that forgot the sign, and half of
+    // those are wrong by twice the offset.
+    int sign;
+    if (!readMandatorySign(c, sign))
+    {
+        return false;
+    }
+
+    // One or two digits, unlike the rest of the Set family: INDI sends ":SG+7.0#".
+    unsigned hh;
+    if (!c.digits(1, hh))
+    {
+        return false;
+    }
+    unsigned secondDigit;
+    if (c.digits(1, secondDigit))
+    {
+        hh = hh * 10 + secondDigit;
+    }
+
+    // Anything after the hours is left unconsumed; a fractional offset is read as
+    // its whole-hour part until the stored offset can hold minutes.
+    out = sign * static_cast<int>(hh);
+    return true;
+}
+
 // Set ack: "1" on success, "0" on failure. No framing terminator.
 void writeSetAck(MeadeResponse &r, bool ok)
 {
@@ -290,15 +324,14 @@ void handleMeadeSet(MeadeResponse &r, const char *s, IMeadeSetHandlers &h)
 
         case 'G':
             {
-                // G<sign><DD>
-                int sign;
-                unsigned hours;
-                if (!readMandatorySign(c, sign) || !c.digits(2, hours))
+                // G<sign><H[H]>
+                int hours;
+                if (!readUtcOffset(c, hours))
                 {
                     writeChar(r, '0');
                     return;
                 }
-                writeSetAck(r, h.onSetUtcOffset(sign * static_cast<int>(hours)));
+                writeSetAck(r, h.onSetUtcOffset(hours));
                 return;
             }
 

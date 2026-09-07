@@ -475,10 +475,83 @@ TEST(MeadeSet, utc_offset_negative)
     EXPECT_EQ(-8, h.utc);
 }
 
-TEST(MeadeSet, utc_offset_malformed_length_does_not_call_handler)
+// The exact bytes INDI puts on the wire when it pushes the site on connect.
+TEST(MeadeSet, utc_offset_indi_fractional_form)
 {
     FakeHandlers h;
-    EXPECT_STREQ("0", dispatch("G+5", h));
+    EXPECT_STREQ("1", dispatch("G+7.0", h));
+    EXPECT_STREQ("utc", h.lastCall);
+    EXPECT_EQ(7, h.utc);
+}
+
+TEST(MeadeSet, utc_offset_single_digit_positive)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("G+5", h));
+    EXPECT_EQ(5, h.utc);
+}
+
+TEST(MeadeSet, utc_offset_single_digit_negative)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("G-3", h));
+    EXPECT_EQ(-3, h.utc);
+}
+
+// The sign is required. Pre-#291 the offset went through String::toInt(), which
+// accepts an unsigned value, so this is a narrowing rather than a restoration --
+// but a missing sign is far more likely a client bug than a deliberate "+", and
+// guessing wrong puts local sidereal time out by twice the offset.
+TEST(MeadeSet, utc_offset_unsigned_is_rejected)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("G07", h));
+    EXPECT_EQ(nullptr, h.lastCall);
+}
+
+// Half-hour zones (India, Newfoundland) are unrepresentable: onSetUtcOffset takes
+// whole hours, so ".5" is left unconsumed and the site lands 30 minutes out.
+// Pinned here so the limitation is documented rather than discovered in the field.
+TEST(MeadeSet, utc_offset_half_hour_zone_drops_the_fraction)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("G+5.5", h));
+    EXPECT_EQ(5, h.utc);
+}
+
+// Nothing range-checks the hours. "+13" is a real offset (Tonga); "-15" is not,
+// and is taken all the same. Both pin the current permissive behaviour --
+// whether to reject impossible offsets is deliberately left to a follow-up.
+// Note that IMeadeSetHandlers::onSetUtcOffset documents "@param hours Signed
+// wire value (-12..+14)"; that range is stated but has never been enforced,
+// here or before this parser accepted the unsigned and single-digit forms.
+TEST(MeadeSet, utc_offset_two_digit_high_value)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("G+13", h));
+    EXPECT_STREQ("utc", h.lastCall);
+    EXPECT_EQ(13, h.utc);
+}
+
+TEST(MeadeSet, utc_offset_impossible_value_is_accepted)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("G-15", h));
+    EXPECT_STREQ("utc", h.lastCall);
+    EXPECT_EQ(-15, h.utc);
+}
+
+TEST(MeadeSet, utc_offset_sign_without_digits_does_not_call_handler)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("G+", h));
+    EXPECT_EQ(nullptr, h.lastCall);
+}
+
+TEST(MeadeSet, utc_offset_non_numeric_does_not_call_handler)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("0", dispatch("Gx", h));
     EXPECT_EQ(nullptr, h.lastCall);
 }
 
