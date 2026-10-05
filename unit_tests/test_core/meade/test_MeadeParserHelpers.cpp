@@ -110,13 +110,28 @@ TEST(MeadeParserHelpers, write_latitude_emits_sign_for_zero_degrees)
     EXPECT_STREQ("-00*30#", bytes(r));
 }
 
-TEST(MeadeParserHelpers, write_longitude_pads_to_three_digits_and_keeps_sign)
+// The struct is east-positive and the wire is east-negative, so the sign
+// inverts on the way out: `negative` (west of Greenwich) emits '+'.
+TEST(MeadeParserHelpers, write_longitude_pads_to_three_digits_and_inverts_the_sign)
 {
     meade::MeadeResponse r;
     writeLongitude(r, meade::MeadeLongitude {0, 5, true});
-    EXPECT_STREQ("-000*05#", bytes(r));
+    EXPECT_STREQ("+000*05#", bytes(r));
 
     meade::MeadeResponse r2;
     writeLongitude(r2, meade::MeadeLongitude {122, 45, false});
-    EXPECT_STREQ("+122*45#", bytes(r2));
+    EXPECT_STREQ("-122*45#", bytes(r2));
+}
+
+// Greenwich is on neither side, and "-000*00" would read as a negative zero,
+// so the zero meridian always goes out positive.
+TEST(MeadeParserHelpers, write_longitude_emits_greenwich_as_positive)
+{
+    meade::MeadeResponse r;
+    writeLongitude(r, meade::MeadeLongitude {0, 0, false});
+    EXPECT_STREQ("+000*00#", bytes(r));
+
+    meade::MeadeResponse r2;
+    writeLongitude(r2, meade::MeadeLongitude {0, 0, true});
+    EXPECT_STREQ("+000*00#", bytes(r2));
 }

@@ -182,7 +182,14 @@ struct MeadeLatitude {
     bool negative;
 };
 
-/** @brief Site longitude: magnitude 0..180 in `degrees`, sign in `negative`. */
+/** @brief Site longitude: magnitude 0..180 in `degrees`, sign in `negative`.
+ *
+ * EAST-POSITIVE: `negative` means west of Greenwich. The Meade wire is the
+ * other way round -- :Sg/:Gg are east-negative -- so readLongitude and
+ * writeLongitude both flip the sign, and they have to stay in step. The
+ * convention is recorded here because the struct alone cannot show it, which
+ * is how a flip on both sides at once once went unnoticed.
+ */
 struct MeadeLongitude {
     uint16_t degrees;
     uint8_t minutes;

@@ -79,18 +79,68 @@ bool readLatitude(Cursor &c, MeadeLatitude &out)
     return true;
 }
 
-// Format: "[+-]DDD<sep>MM" where sep in {'*', ':'}.
+// Unsigned :Sg is the legacy 0..360 count running WESTWARD from Greenwich.
+// East-positive is what the mount stores, so negate modulo a full circle (which is
+// what `fullCircle - arcminutes` is) and wrap into (-180, 180].
+// The tempting mistake is the other reflection, the one that lands Greenwich on 180
+// — `fullCircle / 2 - arcminutes`, which is what Longitude::ParseFromMeade computes.
+// It turns a 121d53' west site into 58d07' east, exactly 180 degrees (12 hours of
+// local sidereal time) from where it should be.
+// A signed wire value negates the same way, so this is the single mapping for both
+// forms: `arcminutes` is the westward count, positive or negative, and never more
+// than one full circle from zero.
+long westwardToEastPositiveArcminutes(long arcminutes)
+{
+    const long fullCircle = 360L * 60L;
+    long east             = fullCircle - arcminutes;
+    while (east > fullCircle / 2)
+    {
+        east -= fullCircle;
+    }
+    return east;
+}
+
+// Format: "[+-]?DDD<sep>MM" where sep in {'*', ':'}.
+//
+// The sign is optional. INDI omits it — ":Sg121*53#" goes on the wire for a site
+// 121d53' WEST — so demanding one answers INDI's site push with "0" and the mount
+// silently keeps whatever longitude it already had.
+//
+// Only the unsigned form is interpreted here. A signed value is passed through
+// unchanged; which hemisphere its sign denotes is a separate question that this
+// function deliberately does not answer.
 bool readLongitude(Cursor &c, MeadeLongitude &out)
 {
+    // The sign is optional, and both forms mean the same thing. MeadeProtocol.hpp
+    // documents :Sg/:Gg as east-negative, so the legacy unsigned 0..360 westward
+    // count that INDI sends is simply the sign == +1 case of the signed form:
+    // east = wrap(-value) either way, with no branch between them.
     int sign;
+    c.optionalSign(sign);
+
     unsigned ddd, mm;
-    if (!readMandatorySign(c, sign) || !c.digits(3, ddd) || !c.matchIn("*:") || !c.digits(2, mm))
+    if (!c.digits(3, ddd) || !c.matchIn("*:") || !c.digits(2, mm))
     {
         return false;
     }
-    out.degrees  = static_cast<uint16_t>(ddd);
-    out.minutes  = static_cast<uint8_t>(mm);
-    out.negative = (sign < 0);
+
+    // Reject anything outside one full circle, which nothing downstream does:
+    // core::Longitude(int, int, int) never calls checkHours(), and
+    // EEPROMStore::storeLongitude clamps degrees*100 into an int16, which destroys
+    // the mod-360 equivalence and persists a genuinely wrong site across reboots.
+    if ((ddd >= 360) || (mm >= 60))
+    {
+        return false;
+    }
+
+    const long westward  = sign * ((static_cast<long>(ddd) * 60L) + static_cast<long>(mm));
+    const long east      = westwardToEastPositiveArcminutes(westward);
+    const bool isWest    = (east < 0);
+    const long magnitude = isWest ? -east : east;
+
+    out.degrees  = static_cast<uint16_t>(magnitude / 60);
+    out.minutes  = static_cast<uint8_t>(magnitude % 60);
+    out.negative = isWest;
     return true;
 }
 

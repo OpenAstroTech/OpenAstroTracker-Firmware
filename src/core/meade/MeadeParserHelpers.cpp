@@ -243,7 +243,14 @@ void writeLatitude(MeadeResponse &r, const MeadeLatitude &l)
 
 void writeLongitude(MeadeResponse &r, const MeadeLongitude &l)
 {
-    writeChar(r, l.negative ? '-' : '+');
+    // :Gg is east-negative (MeadeProtocol.hpp), while MeadeLongitude is
+    // east-positive, so the sign flips on the way out. This has to move with
+    // readLongitude: if only one side flips, a client sets its site, reads it
+    // back mirrored, and pushes the mirror straight back on the next connect.
+    // Greenwich has no side, and a bare '-000*00' reads as a negative zero, so
+    // it goes out positive.
+    const bool atGreenwich = (l.degrees == 0) && (l.minutes == 0);
+    writeChar(r, (l.negative || atGreenwich) ? '+' : '-');
     writeUnsignedPadded(r, l.degrees, 3);
     writeChar(r, '*');
     writeUnsignedPadded(r, l.minutes, 2);
