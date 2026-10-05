@@ -25,6 +25,12 @@ class Declination : public core::Declination
     // minutes/seconds.
     static Declination fromCelestialDegrees(int deg, int min, int sec);
 
+    // Build from signed celestial arc-seconds. Preferred over
+    // fromCelestialDegrees at the wire boundary: a signed degrees component
+    // cannot express a coordinate between 0 and -1 degree. Pair it with
+    // core::Declination::celestialSecondsFrom to do the join.
+    static Declination fromCelestialSeconds(long celestialSeconds);
+
     const char *ToDisplayString(char sep1, char sep2) const;
 
     static Declination ParseFromMeade(String const &s);

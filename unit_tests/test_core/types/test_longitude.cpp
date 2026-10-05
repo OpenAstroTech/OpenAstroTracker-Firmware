@@ -56,3 +56,14 @@ TEST(LongitudeTest, CopyConstructor)
     Longitude lon2(lon1);
     EXPECT_FLOAT_EQ(50.0f, lon2.getTotalHours());
 }
+
+TEST(LongitudeTest, AddSecondsKeepsSignBelowOneDegree)
+{
+    // As for Latitude: a longitude five arc-minutes west of Greenwich has a
+    // sign but no degrees, so it has to be built from signed seconds.
+    Longitude lon;
+    lon.addSeconds(-300);
+    EXPECT_EQ(-300, lon.getTotalSeconds());
+    EXPECT_EQ(0, lon.getHours());
+    EXPECT_EQ(5, lon.getMinutes());
+}

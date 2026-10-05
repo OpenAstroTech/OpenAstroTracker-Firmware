@@ -185,3 +185,64 @@ TEST(DeclinationTest, CelestialWireRoundTrip)
         }
     }
 }
+
+TEST(DeclinationTest, CelestialSecondsFromKeepsTheSignOfZeroDegrees)
+{
+    // The magnitude is unsigned and the sign is separate, so a coordinate
+    // inside the first degree south of the equator survives the join.
+    EXPECT_EQ(-1800L, Declination::celestialSecondsFrom(0, 30, 0, true));
+    EXPECT_EQ(1800L, Declination::celestialSecondsFrom(0, 30, 0, false));
+    EXPECT_EQ(-59L, Declination::celestialSecondsFrom(0, 0, 59, true));
+
+    // Exact zero has no sign to keep, either way round.
+    EXPECT_EQ(0L, Declination::celestialSecondsFrom(0, 0, 0, true));
+    EXPECT_EQ(0L, Declination::celestialSecondsFrom(0, 0, 0, false));
+
+    // Whole degrees still join the way the signed-degrees form did.
+    EXPECT_EQ(core::DayTime::joinSeconds(-5, 30, 0), Declination::celestialSecondsFrom(5, 30, 0, true));
+    EXPECT_EQ(core::DayTime::joinSeconds(89, 59, 59), Declination::celestialSecondsFrom(89, 59, 59, false));
+}
+
+TEST(DeclinationTest, ZeroDegreesSouthLandsOneDegreeFromWhereSignedDegreesPutIt)
+{
+    // Pins the defect this pairing exists to close. MeadeCommandProcessor's
+    // decFromWire used to flatten the parser's sign flag back into a signed
+    // `deg`, so "-00*30:00" reached the join as joinSeconds(0, 30, 0) -- the
+    // same value as "+00*30:00", one whole degree away from the truth.
+    const long viaSignedDegrees = Declination::celestialToAxisSeconds(core::DayTime::joinSeconds(0, 30, 0), true);
+    const long viaSeparateSign  = Declination::celestialToAxisSeconds(Declination::celestialSecondsFrom(0, 30, 0, true), true);
+
+    EXPECT_EQ(322200L, viaSignedDegrees);
+    EXPECT_EQ(325800L, viaSeparateSign);
+    EXPECT_EQ(3600L, viaSeparateSign - viaSignedDegrees);
+
+    // Southern mounts have the same blind spot on the same input, mirrored:
+    // the signed-degrees path is the one that lands 1 degree out.
+    EXPECT_EQ(-325800L, Declination::celestialToAxisSeconds(core::DayTime::joinSeconds(0, 30, 0), false));
+    EXPECT_EQ(-322200L, Declination::celestialToAxisSeconds(Declination::celestialSecondsFrom(0, 30, 0, true), false));
+}
+
+TEST(DeclinationTest, CelestialSecondsFromRoundTripsThroughTheAxis)
+{
+    struct WireDec {
+        uint16_t deg;
+        uint8_t min;
+        uint8_t sec;
+        bool negative;
+    };
+    const WireDec cases[] = {
+        {0, 30, 0, true}, {0, 30, 0, false}, {0, 0, 1, true}, {5, 30, 0, true}, {24, 23, 0, true}, {89, 59, 59, true}, {89, 59, 59, false}};
+    const bool hemispheres[] = {true, false};
+
+    for (bool north : hemispheres)
+    {
+        for (const WireDec &wire : cases)
+        {
+            const long celestial = Declination::celestialSecondsFrom(wire.deg, wire.min, wire.sec, wire.negative);
+            const Declination onAxis(Declination::fromTotalSeconds(Declination::celestialToAxisSeconds(celestial, north)));
+
+            EXPECT_EQ(celestial, Declination::axisToCelestialSeconds(onAxis.getTotalSeconds(), north))
+                << "north=" << north << " deg=" << wire.deg << " negative=" << wire.negative;
+        }
+    }
+}

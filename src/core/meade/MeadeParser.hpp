@@ -160,23 +160,33 @@ struct RaCoordinate {
     uint8_t seconds;
 };
 
-/** @brief Declination coordinate; `degrees` carries the sign (-180..180). */
+/**
+ * @brief Declination coordinate: unsigned magnitude plus a separate sign.
+ *
+ * The sign is a field of its own rather than the sign bit of `degrees`
+ * because the Meade wire format has coordinates such as `-00*30:00` whose
+ * degrees component is zero; folding the sign into `degrees` would round
+ * those to `+00*30:00`, a one-degree error either side of the equator.
+ */
 struct DecCoordinate {
-    int16_t degrees;
+    uint16_t degrees;  ///< Magnitude only, 0..180.
     uint8_t minutes;
     uint8_t seconds;
+    bool negative;
 };
 
-/** @brief Site latitude; `degrees` is signed (-90..90). */
+/** @brief Site latitude: magnitude 0..90 in `degrees`, sign in `negative`. */
 struct MeadeLatitude {
-    int16_t degrees;
+    uint16_t degrees;
     uint8_t minutes;
+    bool negative;
 };
 
-/** @brief Site longitude; `degrees` is signed (-180..180). */
+/** @brief Site longitude: magnitude 0..180 in `degrees`, sign in `negative`. */
 struct MeadeLongitude {
-    int16_t degrees;
+    uint16_t degrees;
     uint8_t minutes;
+    bool negative;
 };
 
 /** @brief Wall-clock time (24h). The parser handles 12h conversion for `:Ga#`. */

@@ -55,3 +55,15 @@ TEST(LatitudeTest, CopyConstructor)
     Latitude lat2(lat1);
     EXPECT_FLOAT_EQ(45.0f, lat2.getTotalHours());
 }
+
+TEST(LatitudeTest, AddSecondsKeepsSignBelowOneDegree)
+{
+    // The (h, m, s) constructor derives the sign from `h`, so it cannot build
+    // a site half a degree south of the equator. Accumulating signed seconds
+    // can, and the clamp in checkHours() leaves the value alone.
+    Latitude lat;
+    lat.addSeconds(-1800);
+    EXPECT_EQ(-1800, lat.getTotalSeconds());
+    EXPECT_EQ(0, lat.getHours());
+    EXPECT_EQ(30, lat.getMinutes());
+}

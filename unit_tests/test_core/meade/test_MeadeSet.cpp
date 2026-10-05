@@ -125,18 +125,20 @@ TEST(MeadeSet, target_dec_happy_path)
     FakeHandlers h;
     EXPECT_STREQ("1", dispatch("d+84*03:02", h));
     EXPECT_STREQ("targetDec", h.lastCall);
-    EXPECT_EQ(84, h.dec.degrees);
+    EXPECT_EQ(static_cast<uint16_t>(84), h.dec.degrees);
     EXPECT_EQ(static_cast<uint8_t>(3), h.dec.minutes);
     EXPECT_EQ(static_cast<uint8_t>(2), h.dec.seconds);
+    EXPECT_FALSE(h.dec.negative);
 }
 
 TEST(MeadeSet, target_dec_negative_with_colon_separator)
 {
     FakeHandlers h;
     EXPECT_STREQ("1", dispatch("d-12:45:30", h));
-    EXPECT_EQ(-12, h.dec.degrees);
+    EXPECT_EQ(static_cast<uint16_t>(12), h.dec.degrees);
     EXPECT_EQ(static_cast<uint8_t>(45), h.dec.minutes);
     EXPECT_EQ(static_cast<uint8_t>(30), h.dec.seconds);
+    EXPECT_TRUE(h.dec.negative);
 }
 
 TEST(MeadeSet, target_dec_handler_failure_returns_zero)
@@ -242,7 +244,7 @@ TEST(MeadeSet, sync_coordinates_happy_path)
     FakeHandlers h;
     EXPECT_STREQ("1", dispatch("Y+84*03:02.18:34:12", h));
     EXPECT_STREQ("sync", h.lastCall);
-    EXPECT_EQ(84, h.syncDec.degrees);
+    EXPECT_EQ(static_cast<uint16_t>(84), h.syncDec.degrees);
     EXPECT_EQ(static_cast<uint8_t>(3), h.syncDec.minutes);
     EXPECT_EQ(static_cast<uint8_t>(2), h.syncDec.seconds);
     EXPECT_EQ(static_cast<uint8_t>(18), h.syncRa.hours);
@@ -264,16 +266,18 @@ TEST(MeadeSet, site_latitude_positive)
     FakeHandlers h;
     EXPECT_STREQ("1", dispatch("t+30*29", h));
     EXPECT_STREQ("lat", h.lastCall);
-    EXPECT_EQ(30, h.lat.degrees);
+    EXPECT_EQ(static_cast<uint16_t>(30), h.lat.degrees);
     EXPECT_EQ(static_cast<uint8_t>(29), h.lat.minutes);
+    EXPECT_FALSE(h.lat.negative);
 }
 
 TEST(MeadeSet, site_latitude_negative_with_colon)
 {
     FakeHandlers h;
     EXPECT_STREQ("1", dispatch("t-45:15", h));
-    EXPECT_EQ(-45, h.lat.degrees);
+    EXPECT_EQ(static_cast<uint16_t>(45), h.lat.degrees);
     EXPECT_EQ(static_cast<uint8_t>(15), h.lat.minutes);
+    EXPECT_TRUE(h.lat.negative);
 }
 
 TEST(MeadeSet, site_latitude_malformed_does_not_call_handler)
@@ -290,8 +294,9 @@ TEST(MeadeSet, site_longitude_three_digit_degrees)
     FakeHandlers h;
     EXPECT_STREQ("1", dispatch("g+097*34", h));
     EXPECT_STREQ("lon", h.lastCall);
-    EXPECT_EQ(97, h.lon.degrees);
+    EXPECT_EQ(static_cast<uint16_t>(97), h.lon.degrees);
     EXPECT_EQ(static_cast<uint8_t>(34), h.lon.minutes);
+    EXPECT_FALSE(h.lon.negative);
 }
 
 TEST(MeadeSet, site_longitude_malformed_short_does_not_call_handler)
@@ -368,6 +373,85 @@ TEST(MeadeSet, local_date_malformed_does_not_call_handler)
     FakeHandlers h;
     EXPECT_STREQ("0", dispatch("C04-30-24", h));
     EXPECT_EQ(nullptr, h.lastCall);
+}
+
+// ---- Sign of zero -----------------------------------------------------
+//
+// Every wire format in this family puts the sign in front of a degrees field
+// that can legitimately be zero. Half a degree south of the equator is
+// "-00*30:00", and reading it as "+00*30:00" is a one-degree error.
+
+TEST(MeadeSet, target_dec_negative_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("d-00*30:00", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.dec.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(30), h.dec.minutes);
+    EXPECT_EQ(static_cast<uint8_t>(0), h.dec.seconds);
+    EXPECT_TRUE(h.dec.negative);
+}
+
+TEST(MeadeSet, target_dec_positive_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("d+00*30:00", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.dec.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(30), h.dec.minutes);
+    EXPECT_FALSE(h.dec.negative);
+}
+
+TEST(MeadeSet, sync_coordinates_negative_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("Y-00*30:00.18:34:12", h));
+    EXPECT_STREQ("sync", h.lastCall);
+    EXPECT_EQ(static_cast<uint16_t>(0), h.syncDec.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(30), h.syncDec.minutes);
+    EXPECT_TRUE(h.syncDec.negative);
+}
+
+TEST(MeadeSet, site_latitude_negative_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("t-00*30", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.lat.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(30), h.lat.minutes);
+    EXPECT_TRUE(h.lat.negative);
+}
+
+TEST(MeadeSet, site_latitude_positive_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("t+00*30", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.lat.degrees);
+    EXPECT_FALSE(h.lat.negative);
+}
+
+TEST(MeadeSet, site_longitude_negative_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g-000*05", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(5), h.lon.minutes);
+    EXPECT_TRUE(h.lon.negative);
+}
+
+TEST(MeadeSet, site_longitude_positive_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("1", dispatch("g+000*05", h));
+    EXPECT_EQ(static_cast<uint16_t>(0), h.lon.degrees);
+    EXPECT_EQ(static_cast<uint8_t>(5), h.lon.minutes);
+    EXPECT_FALSE(h.lon.negative);
+}
+
+TEST(MeadeSet, utc_offset_negative_zero_is_zero)
+{
+    FakeHandlers h;
+    h.utc = 99;  // Poison, so the assertion below cannot pass on the default.
+    EXPECT_STREQ("1", dispatch("G-00", h));
+    EXPECT_STREQ("utc", h.lastCall);
+    EXPECT_EQ(0, h.utc);
 }
 
 // ---- Top-level routing ------------------------------------------------

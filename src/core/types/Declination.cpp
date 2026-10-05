@@ -74,4 +74,10 @@ long Declination::celestialToAxisSeconds(long celestialSeconds, bool northernHem
     return northernHemisphere ? hemiArcsecs - celestialSeconds : -hemiArcsecs - celestialSeconds;
 }
 
+long Declination::celestialSecondsFrom(uint16_t degrees, uint8_t minutes, uint8_t seconds, bool negative)
+{
+    const long magnitude = (((static_cast<long>(degrees) * 60L) + minutes) * 60L) + seconds;
+    return negative ? -magnitude : magnitude;
+}
+
 }  // namespace core

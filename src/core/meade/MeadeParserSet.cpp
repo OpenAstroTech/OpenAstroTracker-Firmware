@@ -19,18 +19,34 @@ namespace meade
 namespace
 {
 
-// Format: "[+-]DD<sep>MM:SS" where sep in {'*', ':'}.
-bool readDecCoordinate(Cursor &c, DecCoordinate &out)
+// The readers below have always required an explicit sign, and this keeps
+// that grammar byte-for-byte unchanged. It is a description of the parser as
+// it stands, not of the protocol: MeadeProtocol.hpp documents the sign as
+// optional for `:Sg`, where an unsigned value means 0..360 going westward.
+// That form is rejected here, exactly as it was before this change.
+bool readMandatorySign(Cursor &c, int &sign)
 {
-    int deg;
-    unsigned mm, ss;
-    if (!c.signed2(deg) || !c.matchIn("*:") || !c.digits(2, mm) || !c.match(':') || !c.digits(2, ss))
+    const char first = c.peek();
+    if ((first != '+') && (first != '-'))
     {
         return false;
     }
-    out.degrees = static_cast<int16_t>(deg);
-    out.minutes = static_cast<uint8_t>(mm);
-    out.seconds = static_cast<uint8_t>(ss);
+    return c.optionalSign(sign);
+}
+
+// Format: "[+-]DD<sep>MM:SS" where sep in {'*', ':'}.
+bool readDecCoordinate(Cursor &c, DecCoordinate &out)
+{
+    int sign;
+    unsigned dd, mm, ss;
+    if (!readMandatorySign(c, sign) || !c.digits(2, dd) || !c.matchIn("*:") || !c.digits(2, mm) || !c.match(':') || !c.digits(2, ss))
+    {
+        return false;
+    }
+    out.degrees  = static_cast<uint16_t>(dd);
+    out.minutes  = static_cast<uint8_t>(mm);
+    out.seconds  = static_cast<uint8_t>(ss);
+    out.negative = (sign < 0);
     return true;
 }
 
@@ -51,28 +67,30 @@ bool readRaCoordinate(Cursor &c, RaCoordinate &out)
 // Format: "[+-]DD<sep>MM" where sep in {'*', ':'}.
 bool readLatitude(Cursor &c, MeadeLatitude &out)
 {
-    int deg;
-    unsigned mm;
-    if (!c.signed2(deg) || !c.matchIn("*:") || !c.digits(2, mm))
+    int sign;
+    unsigned dd, mm;
+    if (!readMandatorySign(c, sign) || !c.digits(2, dd) || !c.matchIn("*:") || !c.digits(2, mm))
     {
         return false;
     }
-    out.degrees = static_cast<int16_t>(deg);
-    out.minutes = static_cast<uint8_t>(mm);
+    out.degrees  = static_cast<uint16_t>(dd);
+    out.minutes  = static_cast<uint8_t>(mm);
+    out.negative = (sign < 0);
     return true;
 }
 
 // Format: "[+-]DDD<sep>MM" where sep in {'*', ':'}.
 bool readLongitude(Cursor &c, MeadeLongitude &out)
 {
-    int deg;
-    unsigned mm;
-    if (!c.signed3(deg) || !c.matchIn("*:") || !c.digits(2, mm))
+    int sign;
+    unsigned ddd, mm;
+    if (!readMandatorySign(c, sign) || !c.digits(3, ddd) || !c.matchIn("*:") || !c.digits(2, mm))
     {
         return false;
     }
-    out.degrees = static_cast<int16_t>(deg);
-    out.minutes = static_cast<uint8_t>(mm);
+    out.degrees  = static_cast<uint16_t>(ddd);
+    out.minutes  = static_cast<uint8_t>(mm);
+    out.negative = (sign < 0);
     return true;
 }
 
@@ -223,13 +241,14 @@ void handleMeadeSet(MeadeResponse &r, const char *s, IMeadeSetHandlers &h)
         case 'G':
             {
                 // G<sign><DD>
-                int hours;
-                if (!c.signed2(hours))
+                int sign;
+                unsigned hours;
+                if (!readMandatorySign(c, sign) || !c.digits(2, hours))
                 {
                     writeChar(r, '0');
                     return;
                 }
-                writeSetAck(r, h.onSetUtcOffset(hours));
+                writeSetAck(r, h.onSetUtcOffset(sign * static_cast<int>(hours)));
                 return;
             }
 

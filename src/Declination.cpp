@@ -95,13 +95,22 @@ Declination Declination::fromCelestialDegrees(int deg, int min, int sec)
     // deg carries the only sign on the wire, so min and sec are unsigned
     // magnitudes and must move away from zero. joinSeconds is the inverse of the
     // splitSeconds that getCelestialDegrees uses.
-    // Declinations between -1 and 0 degrees still cannot round-trip here: they
-    // arrive as deg == 0, and integer 0 has no sign, so -00*30:00 reads the same
-    // as +00*30:00. Fixing that means carrying the sign separately from the
-    // magnitude across this boundary, not changing the join.
+    // Declinations between -1 and 0 degrees cannot round-trip here: they arrive
+    // as deg == 0, and integer 0 has no sign, so -00*30:00 reads the same as
+    // +00*30:00. That is why the wire boundary uses fromCelestialSeconds
+    // instead -- the sign travels in the total, not in a degrees component.
     const long wireSecs = core::DayTime::joinSeconds(deg, min, sec);
     Declination result;
     result.totalSeconds = core::Declination::celestialToAxisSeconds(wireSecs, inNorthernHemisphere);
+    result.checkHours();
+    return result;
+}
+
+Declination Declination::fromCelestialSeconds(long celestialSeconds)
+{
+    // The sign lives in the total, so there is no zero-degrees blind spot here.
+    Declination result;
+    result.totalSeconds = core::Declination::celestialToAxisSeconds(celestialSeconds, inNorthernHemisphere);
     result.checkHours();
     return result;
 }

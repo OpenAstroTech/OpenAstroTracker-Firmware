@@ -64,6 +64,14 @@ bool Cursor::matchIn(const char *set)
     return false;
 }
 
+void Cursor::advance()
+{
+    if (*_p != '\0')
+    {
+        ++_p;
+    }
+}
+
 bool Cursor::digits(int n, unsigned &out)
 {
     unsigned v = 0;
@@ -79,29 +87,14 @@ bool Cursor::digits(int n, unsigned &out)
     return true;
 }
 
-bool Cursor::signed2(int &out)
+bool Cursor::optionalSign(int &sign)
 {
-    char sign = peek();
-    if (sign != '+' && sign != '-')
-        return false;
-    ++_p;
-    unsigned v = 0;
-    if (!digits(2, v))
-        return false;
-    out = (sign == '-') ? -static_cast<int>(v) : static_cast<int>(v);
-    return true;
-}
-
-bool Cursor::signed3(int &out)
-{
-    char sign = peek();
-    if (sign != '+' && sign != '-')
-        return false;
-    ++_p;
-    unsigned v = 0;
-    if (!digits(3, v))
-        return false;
-    out = (sign == '-') ? -static_cast<int>(v) : static_cast<int>(v);
+    const char c = peek();
+    sign         = (c == '-') ? -1 : 1;
+    if ((c == '+') || (c == '-'))
+    {
+        advance();
+    }
     return true;
 }
 
@@ -230,13 +223,8 @@ void writeRa(MeadeResponse &r, const RaCoordinate &ra)
 
 void writeDec(MeadeResponse &r, const DecCoordinate &d)
 {
-    int deg = d.degrees;
-    writeChar(r, deg < 0 ? '-' : '+');
-    if (deg < 0)
-    {
-        deg = -deg;
-    }
-    writeUnsignedPadded(r, static_cast<unsigned>(deg), 2);
+    writeChar(r, d.negative ? '-' : '+');
+    writeUnsignedPadded(r, d.degrees, 2);
     writeChar(r, '*');
     writeUnsignedPadded(r, d.minutes, 2);
     writeChar(r, '\'');
@@ -246,13 +234,8 @@ void writeDec(MeadeResponse &r, const DecCoordinate &d)
 
 void writeLatitude(MeadeResponse &r, const MeadeLatitude &l)
 {
-    int deg = l.degrees;
-    writeChar(r, deg < 0 ? '-' : '+');
-    if (deg < 0)
-    {
-        deg = -deg;
-    }
-    writeUnsignedPadded(r, static_cast<unsigned>(deg), 2);
+    writeChar(r, l.negative ? '-' : '+');
+    writeUnsignedPadded(r, l.degrees, 2);
     writeChar(r, '*');
     writeUnsignedPadded(r, l.minutes, 2);
     writeTerminator(r);
@@ -260,13 +243,8 @@ void writeLatitude(MeadeResponse &r, const MeadeLatitude &l)
 
 void writeLongitude(MeadeResponse &r, const MeadeLongitude &l)
 {
-    int deg = l.degrees;
-    writeChar(r, deg < 0 ? '-' : '+');
-    if (deg < 0)
-    {
-        deg = -deg;
-    }
-    writeUnsignedPadded(r, static_cast<unsigned>(deg), 3);
+    writeChar(r, l.negative ? '-' : '+');
+    writeUnsignedPadded(r, l.degrees, 3);
     writeChar(r, '*');
     writeUnsignedPadded(r, l.minutes, 2);
     writeTerminator(r);

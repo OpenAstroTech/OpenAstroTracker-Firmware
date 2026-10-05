@@ -23,9 +23,11 @@ namespace meade
 // ---------------------------------------------------------------------------
 // Cursor — single-pass input cursor with small grammar primitives
 //
-// Forward-only; never backtracks. Each primitive returns `false` on mismatch
-// (cursor is advanced on success). Ideal for fixed-format Meade sub-commands
-// like coordinates, times, and dates.
+// Forward-only; never backtracks. The matching primitives return `false` on
+// mismatch and advance only on success. The two unconditional ones are the
+// exception: `advance` returns nothing and `optionalSign` always returns
+// `true`. Ideal for fixed-format Meade sub-commands like coordinates, times,
+// and dates.
 // ---------------------------------------------------------------------------
 
 class Cursor
@@ -43,14 +45,17 @@ class Cursor
     /// Consume one character if it is any of the chars in `set`.
     bool matchIn(const char *set);
 
+    /// Consume one character unconditionally; a no-op at end of input.
+    void advance();
+
     /// Read exactly `n` decimal digits into `out` (big-endian, no separators).
     bool digits(int n, unsigned &out);
 
-    /// Read "+DD" or "-DD" into a signed int.
-    bool signed2(int &out);
-
-    /// Read "+DDD" or "-DDD" into a signed int.
-    bool signed3(int &out);
+    /// Consume a leading '+' or '-' if present and report it in `sign` as -1
+    /// or +1 (+1 when absent). Always succeeds — callers that require a sign
+    /// check `peek()` first. Keeping the sign out of the magnitude is what
+    /// lets "-00" survive; a signed magnitude cannot hold it.
+    bool optionalSign(int &sign);
 
   private:
     const char *_p;

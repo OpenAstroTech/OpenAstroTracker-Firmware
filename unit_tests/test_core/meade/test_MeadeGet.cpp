@@ -29,13 +29,13 @@ class FakeHandlers : public meade::IMeadeGetHandlers
 
     meade::RaCoordinate currentRa      = {1, 2, 3};
     meade::RaCoordinate targetRa       = {4, 5, 6};
-    meade::DecCoordinate currentDec    = {7, 8, 9};
-    meade::DecCoordinate targetDec     = {-10, 11, 12};
+    meade::DecCoordinate currentDec    = {7, 8, 9, false};
+    meade::DecCoordinate targetDec     = {10, 11, 12, true};
     bool isSlewing                     = false;
     bool isTracking                    = true;
     bool isGuiding                     = false;
-    meade::MeadeLatitude latitude      = {47, 30};
-    meade::MeadeLongitude longitude    = {-12, 30};
+    meade::MeadeLatitude latitude      = {47, 30, false};
+    meade::MeadeLongitude longitude    = {12, 30, true};
     int utcOffset                      = -5;
     meade::MeadeLocalTime localTime    = {14, 45, 6};
     meade::MeadeLocalDate localDate    = {3, 7, 2024};
@@ -153,6 +153,85 @@ const char *dispatch(const char *suffix, FakeHandlers &h)
     return last.c_str();
 }
 
+// Pipes the values the Set family parses back into the Get family's fake, so
+// a test can drive `:S...` and read the result out through `:G...`.
+//
+// This joins the two parser families and nothing else. A real client's bytes
+// also pass through MeadeCommandProcessor and the Declination / Latitude /
+// Longitude types, which no native test reaches; passing here does not mean
+// the mount stores what was sent.
+class RoundTripSetHandlers : public meade::IMeadeSetHandlers
+{
+  public:
+    explicit RoundTripSetHandlers(FakeHandlers &sink) : _sink(sink)
+    {
+    }
+
+    bool onSetTargetDec(meade::DecCoordinate v) override
+    {
+        _sink.currentDec = v;
+        _sink.targetDec  = v;
+        return true;
+    }
+    bool onSetSiteLatitude(meade::MeadeLatitude v) override
+    {
+        _sink.latitude = v;
+        return true;
+    }
+    bool onSetSiteLongitude(meade::MeadeLongitude v) override
+    {
+        _sink.longitude = v;
+        return true;
+    }
+
+    bool onSetTargetRa(meade::RaCoordinate) override
+    {
+        return true;
+    }
+    bool onSetLocalSiderealTime(meade::MeadeLocalTime) override
+    {
+        return true;
+    }
+    bool onSetHomePoint() override
+    {
+        return true;
+    }
+    bool onSetHourAngle(uint8_t, uint8_t) override
+    {
+        return true;
+    }
+    bool onSyncCoordinates(meade::DecCoordinate, meade::RaCoordinate) override
+    {
+        return true;
+    }
+    bool onSetUtcOffset(int) override
+    {
+        return true;
+    }
+    bool onSetLocalTime(meade::MeadeLocalTime) override
+    {
+        return true;
+    }
+    bool onSetLocalDate(meade::MeadeLocalDate) override
+    {
+        return true;
+    }
+
+  private:
+    FakeHandlers &_sink;
+};
+
+// Runs one `:S...` suffix through the Set dispatcher into `h`, asserting the
+// "1" ack, then returns the bytes the matching `:G...` suffix emits.
+const char *setThenGet(const char *setSuffix, const char *getSuffix, FakeHandlers &h)
+{
+    meade::MeadeResponse ack;
+    RoundTripSetHandlers sink(h);
+    meade::handleMeadeSet(ack, setSuffix, sink);
+    EXPECT_STREQ("1", ack.c_str());
+    return dispatch(getSuffix, h);
+}
+
 }  // namespace
 
 TEST(MeadeGet, firmware_version_two_char_command)
@@ -188,7 +267,7 @@ TEST(MeadeGet, target_ra_formats_hh_mm_ss)
 TEST(MeadeGet, current_dec_signed_dms)
 {
     FakeHandlers h;
-    h.currentDec = {47, 30, 15};
+    h.currentDec = {47, 30, 15, false};
     EXPECT_STREQ("+47*30'15#", dispatch("D", h));
     EXPECT_STREQ("currentDec", h.lastCall);
 }
@@ -196,7 +275,7 @@ TEST(MeadeGet, current_dec_signed_dms)
 TEST(MeadeGet, target_dec_negative)
 {
     FakeHandlers h;
-    h.targetDec = {-12, 45, 0};
+    h.targetDec = {12, 45, 0, true};
     EXPECT_STREQ("-12*45'00#", dispatch("d", h));
     EXPECT_STREQ("targetDec", h.lastCall);
 }
@@ -238,19 +317,99 @@ TEST(MeadeGet, is_guiding_emits_zero_one)
 TEST(MeadeGet, site_latitude_signed_two_digit_deg)
 {
     FakeHandlers h;
-    h.latitude = {47, 30};
+    h.latitude = {47, 30, false};
     EXPECT_STREQ("+47*30#", dispatch("t", h));
-    h.latitude = {-12, 45};
+    h.latitude = {12, 45, true};
     EXPECT_STREQ("-12*45#", dispatch("t", h));
 }
 
 TEST(MeadeGet, site_longitude_signed_three_digit_deg)
 {
     FakeHandlers h;
-    h.longitude = {12, 30};
+    h.longitude = {12, 30, false};
     EXPECT_STREQ("+012*30#", dispatch("g", h));
-    h.longitude = {-122, 45};
+    h.longitude = {122, 45, true};
     EXPECT_STREQ("-122*45#", dispatch("g", h));
+}
+
+// ---- Sign of zero -----------------------------------------------------
+//
+// A coordinate whose degrees component is zero still has a hemisphere. The
+// magnitude and the sign are separate struct fields precisely so that these
+// four replies do not all collapse onto the '+' form.
+
+TEST(MeadeGet, dec_zero_degrees_keeps_south_sign)
+{
+    FakeHandlers h;
+    h.currentDec = {0, 30, 0, true};
+    EXPECT_STREQ("-00*30'00#", dispatch("D", h));
+    h.currentDec = {0, 30, 0, false};
+    EXPECT_STREQ("+00*30'00#", dispatch("D", h));
+}
+
+TEST(MeadeGet, site_latitude_zero_degrees_keeps_south_sign)
+{
+    FakeHandlers h;
+    h.latitude = {0, 30, true};
+    EXPECT_STREQ("-00*30#", dispatch("t", h));
+    h.latitude = {0, 30, false};
+    EXPECT_STREQ("+00*30#", dispatch("t", h));
+}
+
+TEST(MeadeGet, site_longitude_zero_degrees_keeps_sign)
+{
+    FakeHandlers h;
+    h.longitude = {0, 5, true};
+    EXPECT_STREQ("-000*05#", dispatch("g", h));
+    h.longitude = {0, 5, false};
+    EXPECT_STREQ("+000*05#", dispatch("g", h));
+}
+
+// ---- Set -> Get round trips -------------------------------------------
+//
+// The sign has to survive the wire -> struct -> wire journey, not just one
+// leg of it. `-00*30:00` is the case that used to come back as `+00*30'00`.
+
+TEST(MeadeGet, dec_round_trip_preserves_sign_of_zero)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("-00*30'00#", setThenGet("d-00*30:00", "D", h));
+    EXPECT_STREQ("+00*30'00#", setThenGet("d+00*30:00", "D", h));
+}
+
+TEST(MeadeGet, dec_round_trip_preserves_nonzero_degrees)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("-12*45'30#", setThenGet("d-12*45:30", "D", h));
+    EXPECT_STREQ("+84*03'02#", setThenGet("d+84*03:02", "D", h));
+}
+
+TEST(MeadeGet, site_latitude_round_trip_preserves_sign_of_zero)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("-00*30#", setThenGet("t-00*30", "t", h));
+    EXPECT_STREQ("+00*30#", setThenGet("t+00*30", "t", h));
+}
+
+TEST(MeadeGet, site_latitude_round_trip_preserves_nonzero_degrees)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("-45*15#", setThenGet("t-45:15", "t", h));
+    EXPECT_STREQ("+47*30#", setThenGet("t+47*30", "t", h));
+}
+
+TEST(MeadeGet, site_longitude_round_trip_preserves_sign_of_zero)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("-000*05#", setThenGet("g-000*05", "g", h));
+    EXPECT_STREQ("+000*05#", setThenGet("g+000*05", "g", h));
+}
+
+TEST(MeadeGet, site_longitude_round_trip_preserves_nonzero_degrees)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("-122*45#", setThenGet("g-122*45", "g", h));
+    EXPECT_STREQ("+097*34#", setThenGet("g+097*34", "g", h));
 }
 
 TEST(MeadeGet, utc_offset_signs_and_pads)
