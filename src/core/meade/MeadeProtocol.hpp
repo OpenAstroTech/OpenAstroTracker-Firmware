@@ -343,16 +343,20 @@
 //        Longitudes are east-negative: zero at Greenwich, negative coordinates going east (opposite of normal cartographic coordinates)
 //        The unsigned form is the legacy count running WESTWARD from Greenwich, 0 to 359, which is the same mapping with the sign taken as '+'. So "121*53" is 121d53' west, "301*53" is 58d07' east, and "180*00" is the antimeridian. A full circle ("360*00") is refused rather than wrapped.
 //
-// :SGsHH#
+// :SGsHH.H#
 //      Description:
 //        Set Site UTC Offset
 //      Information:
 //        This sets the offset of the timezone in which the mount is in hours from UTC.
 //      Returns:
-//        "1"
+//        "1" if successfully set
+//        "0" otherwise
 //      Parameters:
-//        "s" is the sign
-//        "HH" is the number of hours
+//        "s" is the sign, and is required
+//        "HH" is the number of hours, one or two digits
+//      Remarks:
+//        The LX200 spec (Revision 2010.10) defines this as ":SGsHH.H#" -- a sign, two-digit hours, one decimal. The single-digit and fractional forms INDI sends are a deviation from it; accepting them is a compatibility choice, not a correctness one.
+//        Anything following the hours is ignored, so the ":SG+7.0#" that INDI sends is read as +7. The offset is whole hours only, so half-hour zones such as India and Newfoundland cannot yet be expressed; the stored offset is a single signed byte with no unit tag, so widening it is a storage change rather than a parser one.
 //
 // :SLHH:MM:SS#
 //      Description:
