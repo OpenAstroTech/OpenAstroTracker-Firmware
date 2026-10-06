@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.13.22](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/compare/v1.13.21...v1.13.22) (2026-10-05)
+
+
+### Bug Fixes
+
+* **meade:** accept the unsigned site longitude INDI sends ([#304](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/304)) ([1c56888](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/1c568880b97159893c728ab494d20ab7833335a5))
+* **meade:** accept the UTC offset format INDI sends ([#303](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/303)) ([46289c7](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/46289c79f0513d5eeb35f66e9659cace09a2b595))
+* **meade:** keep the sign of coordinates whose degrees component is zero ([#305](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/305)) ([1760a95](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/1760a950c41fa0c7692a9144759f87fb1041b8c7))
+
 ## [1.13.21](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/compare/v1.13.20...v1.13.21) (2026-09-09)
 
 
