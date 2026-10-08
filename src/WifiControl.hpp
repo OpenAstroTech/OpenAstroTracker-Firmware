@@ -10,7 +10,7 @@
         #include <WiFiSTA.h>
     #endif
 
-#define WIFI_UDP_DISCOVERY_PORT 4031
+    #define WIFI_UDP_DISCOVERY_PORT 4031
 
 // Forward declarations
 class Mount;
@@ -44,10 +44,10 @@ class WifiControl
     WiFiClient client;
     String _currCmd;
 
-    unsigned long _infraStart = 0;
-    unsigned long _infraWait  = 30000;  // 30 second timeout for
+    unsigned long _infraStart                = 0;
+    unsigned long _infraWait                 = 30000;  // 30 second timeout for
     static constexpr size_t _defaultCapacity = 32;
-    static constexpr size_t _maxCapacity = 128;
+    static constexpr size_t _maxCapacity     = 128;
 };
 
 extern WifiControl wifiControl;
