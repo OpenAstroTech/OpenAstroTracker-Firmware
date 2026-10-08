@@ -1,15 +1,16 @@
 #pragma once
 
 /**
- * This file contains constants that SHOULD NOT BE CHANGED by oat users!
- * If you are a developer and want to add new hardware support, add a
- * proper definition here with increased value.
+ * This file contains constants that SHOULD NOT BE CHANGED by OpenAstroTech users!
+ * If you are a developer and want to add new hardware support, add a proper
+ * definition here with an increased value.
  **/
 
 /**
  * Supported boards. The name consists of the platform and the board name (model).
  **/
 // AVR based boards
+#define BOARD_UNKNOWN           0000
 #define BOARD_AVR_MEGA2560      0001
 #define BOARD_AVR_MKS_GEN_L_V21 0002
 #define BOARD_AVR_MKS_GEN_L_V2  0003
