@@ -556,16 +556,15 @@
 // Enable RA End Switches in your local configuration. Do not edit here!
 #ifndef USE_RA_END_SWITCH
     #define USE_RA_END_SWITCH 0
-#else
-    #ifndef RA_END_SWITCH_ACTIVE_STATE
-        #define RA_END_SWITCH_ACTIVE_STATE LOW
-    #endif
-    // You can define how many degrees to slew back after the end switch has triggered.
-    // Mechanical end switches might have a hysteresis behavior, meaning once signaled,
-    // it needs to move well back beyond the signal point to become un-signaled.
-    #ifndef RA_ENDSWITCH_BACKSLEW_DEG
-        #define RA_ENDSWITCH_BACKSLEW_DEG 0.5
-    #endif
+#endif
+#ifndef RA_END_SWITCH_ACTIVE_STATE
+    #define RA_END_SWITCH_ACTIVE_STATE LOW
+#endif
+// You can define how many degrees to slew back after the end switch has triggered.
+// Mechanical end switches might have a hysteresis behavior, meaning once signaled,
+// it needs to move well back beyond the signal point to become un-signaled.
+#ifndef RA_ENDSWITCH_BACKSLEW_DEG
+    #define RA_ENDSWITCH_BACKSLEW_DEG 0.5
 #endif
 
 //////////////////////////////////////////
@@ -574,17 +573,15 @@
 // Enable DEC End Switches in your local configuration. Do not edit here!
 #ifndef USE_DEC_END_SWITCH
     #define USE_DEC_END_SWITCH 0
-#else
-    #ifndef DEC_END_SWITCH_ACTIVE_STATE
-        #define DEC_END_SWITCH_ACTIVE_STATE LOW
-    #endif
-    // You can define how many degrees to slew back after the end switch has triggered.
-    // Mechanical end switches might have a hysteresis behavior, meaning once signaled,
-    // it needs to move well back beyond the signal point to become un-signaled.
-    #ifndef DEC_ENDSWITCH_BACKSLEW_DEG
-        #define DEC_ENDSWITCH_BACKSLEW_DEG 0.5
-    #endif
-
+#endif
+#ifndef DEC_END_SWITCH_ACTIVE_STATE
+    #define DEC_END_SWITCH_ACTIVE_STATE LOW
+#endif
+// You can define how many degrees to slew back after the end switch has triggered.
+// Mechanical end switches might have a hysteresis behavior, meaning once signaled,
+// it needs to move well back beyond the signal point to become un-signaled.
+#ifndef DEC_ENDSWITCH_BACKSLEW_DEG
+    #define DEC_ENDSWITCH_BACKSLEW_DEG 0.5
 #endif
 
 //////////////////////////////////////////
