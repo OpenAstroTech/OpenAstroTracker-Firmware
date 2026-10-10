@@ -21,6 +21,12 @@
 #define BOARD_ESP32_ESP32DEV 1001
 #define BOARD_OAE_V1         1002
 
+// RP2040 based boards (2000-2999)
+//   2101-2199: Pico family + JackW01 printer carrier board
+//   2201-2299: BTT SKR Pico family
+#define BOARD_RP2040_JACKW01  2101
+#define BOARD_RP2040_SKR_PICO 2201
+
 /**
  * Supported keypad/display types. Use one of these values for DISPLAY_TYPE configuration matching your used display and keypad.
  * 

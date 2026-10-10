@@ -273,6 +273,10 @@
     #include "boards/AVR_MKS_GEN_L_V2/pins_MKS_GEN_L_V2.h"
 #elif (BOARD == BOARD_AVR_MKS_GEN_L_V21)
     #include "boards/AVR_MKS_GEN_L_V21/pins_MKS_GEN_L_V21.h"
+#elif (BOARD == BOARD_RP2040_JACKW01)
+    #include "boards/RP2040_JACKW01/pins_RP2040_JACKW01.hpp"
+#elif (BOARD == BOARD_RP2040_SKR_PICO)
+    #include "boards/RP2040_SKR_PICO/pins_RP2040_SKR_PICO.hpp"
 #endif
 
 #include "Configuration_adv.hpp"
