@@ -25,9 +25,13 @@ MKS_GENL_BOARDS = [
 AVR_BOARDS = MKS_GENL_BOARDS + [
     "ramps",
 ]
+RP2040_BOARDS = [
+    "rp2040_jackw01",
+    "rp2040_skr_pico",
+]
 BOARDS = AVR_BOARDS + [
     "esp32",
-]
+] + RP2040_BOARDS
 
 STEPPER_TYPES = [
     "STEPPER_TYPE_NONE",
@@ -176,6 +180,49 @@ BOARD_SUPPORT = {
             "DISPLAY_TYPE_LCD_KEYPAD"
         ],
     }),
+    "rp2040_jackw01": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        # No LCD menu display support on RP2040 (enforced by ConfigurationValidation)
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE"
+        ],
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "FOCUS_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "FOCUS_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+    }),
+    "rp2040_skr_pico": update_dict(BUILD_FLAGS, {
+        "USE_GYRO_LEVEL": [0],
+        # No LCD menu display support on RP2040 (enforced by ConfigurationValidation)
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE"
+        ],
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "FOCUS_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "FOCUS_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+    }),
 }
 
 SHORT_STRINGS = {
@@ -296,11 +343,11 @@ def set_ci_constraints(problem):
     problem.addConstraint(InSetConstraint({"DISPLAY_TYPE_NONE", "DISPLAY_TYPE_LCD_KEYPAD"}), ["DISPLAY_TYPE"])
     # problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
 
-    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21 and esp32 only
+    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21, esp32 and rp2040_skr_pico only
     # (just to reduce compile times)
     def info_display_constraint(board, info_display):
         if info_display == "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64":
-            return board in ["mksgenlv21", "esp32"]
+            return board in ["mksgenlv21", "esp32", "rp2040_skr_pico"]
         return True
     problem.addConstraint(info_display_constraint, ["BOARD", "INFO_DISPLAY_TYPE"])
 
