@@ -19,7 +19,7 @@ void serialLoop()
     mount.loop();
     mount.displayStepperPositionThrottled();
 
-    #ifdef ESP32
+    #if defined(ESP32) || defined(ARDUINO_ARCH_RP2040)
     processSerialData();
     #endif
 

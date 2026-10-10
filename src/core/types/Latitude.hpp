@@ -12,6 +12,7 @@ class Latitude : public DayTime
   public:
     Latitude();
     Latitude(const Latitude &other);
+    Latitude &operator=(const Latitude &) = default;
     Latitude(int h, int m, int s);
     Latitude(float inDegrees);
 
