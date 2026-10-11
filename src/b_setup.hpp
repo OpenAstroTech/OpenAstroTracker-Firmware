@@ -651,8 +651,9 @@ void setup()
 
 #else
     #ifndef NEW_STEPPER_LIB
-    // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
-    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
+    // Stepper servicing rate: 2 kHz on AVR (higher rates there interfere with serial
+    // communications and mess up OATControl), 5 kHz on RP2040 (see STEPPER_CONTROL_INTERVAL_MS).
+    if (!InterruptCallback::setInterval(STEPPER_CONTROL_INTERVAL_MS, stepperControlTimerCallback, &mount))
     {
         LOG(DEBUG_MOUNT, "[SYSTEM]: CANNOT setup interrupt timer!");
     }

@@ -37,6 +37,19 @@
 //                            ////////
 //////////////////////////////////////
 //
+// Interval at which the stepper control timer/interrupt services the steppers.
+// Shorter intervals mean finer step timing. AVR is capped at 2 kHz: higher rates
+// there interfere with serial communications. The RP2040 has ample headroom.
+#ifndef STEPPER_CONTROL_INTERVAL_MS
+    #if defined(ARDUINO_ARCH_RP2040)
+        #define STEPPER_CONTROL_INTERVAL_MS 0.2f  // 5 kHz
+    #else
+        #define STEPPER_CONTROL_INTERVAL_MS 0.5f  // 2 kHz
+    #endif
+#endif
+
+//////////////////////////////////////
+//
 // This is how many steps your stepper needs for a full rotation.
 #ifndef RA_STEPPER_SPR
     #define RA_STEPPER_SPR 400  // NEMA 0.9° = 400  |  NEMA 1.8° = 200
