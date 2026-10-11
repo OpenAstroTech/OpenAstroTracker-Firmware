@@ -143,7 +143,9 @@ void setup()
     #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL > 0
     {
         uint32_t _cdcWaitStart = millis();
-        while (!Serial && (millis() - _cdcWaitStart) < 3000UL) { /* spin */ }
+        while (!Serial && (millis() - _cdcWaitStart) < 3000UL)
+        { /* spin */
+        }
     }
     #endif
 #endif
@@ -225,7 +227,7 @@ void setup()
     Serial2.setTX(RP2040_UART1_TX_PIN);
     Serial2.setRX(RP2040_UART1_RX_PIN);
     Serial2.setPollingMode(true);  // Must be called before begin(); avoids IRQ/CoreMutex blocking in TMCStepper read path
-    Serial2.begin(115200);  // TMCStepper HW-serial path never calls begin(); must do it here.
+    Serial2.begin(115200);         // TMCStepper HW-serial path never calls begin(); must do it here.
 #endif
 
     /////////////////////////////////
@@ -307,7 +309,7 @@ void setup()
     pinMode(AZ_EN_PIN, OUTPUT);
     digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // include TMC2209 UART pins
+        // include TMC2209 UART pins
         #if defined(AZ_DIAG_PIN)
     pinMode(AZ_DIAG_PIN, INPUT);
         #endif
@@ -328,7 +330,7 @@ void setup()
     pinMode(ALT_EN_PIN, OUTPUT);
     digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // include TMC2209 UART pins
+        // include TMC2209 UART pins
         #if defined(ALT_DIAG_PIN)
     pinMode(ALT_DIAG_PIN, INPUT);
         #endif

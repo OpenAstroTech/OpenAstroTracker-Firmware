@@ -94,33 +94,33 @@
 //   RMSCURRENT = RATING * (SETTING / 100) / sqrt(2)  => ~249 mA RMS
 // Do NOT define XXX_RMSCURRENT directly; Configuration_adv.hpp will error.
 #define RA_MOTOR_CURRENT_RATING      470  // mA
-#define RA_OPERATING_CURRENT_SETTING  75  // %
+#define RA_OPERATING_CURRENT_SETTING 75   // %
 
-#define DEC_MOTOR_CURRENT_RATING     470  // mA
-#define DEC_OPERATING_CURRENT_SETTING 75  // %
+#define DEC_MOTOR_CURRENT_RATING      470  // mA
+#define DEC_OPERATING_CURRENT_SETTING 75   // %
 
 #define AZ_MOTOR_CURRENT_RATING      470  // mA
-#define AZ_OPERATING_CURRENT_SETTING  75  // %
+#define AZ_OPERATING_CURRENT_SETTING 75   // %
 
-#define ALT_MOTOR_CURRENT_RATING     470  // mA
-#define ALT_OPERATING_CURRENT_SETTING 75  // %
+#define ALT_MOTOR_CURRENT_RATING      470  // mA
+#define ALT_OPERATING_CURRENT_SETTING 75   // %
 
 // ── AZ/ALT hold current ───────────────────────────────────────────────────────
 // AZ must hold position against backlash forces; use 40 % of run current.
 // ALT is held by friction and gearing; bleed hold current to zero.
 // These are percentages (0-100) converted to TMC2209 IHOLD by the firmware.
 #define AZ_MOTOR_HOLD_SETTING  40  // %
-#define ALT_MOTOR_HOLD_SETTING  0  // %
+#define ALT_MOTOR_HOLD_SETTING 0   // %
 
 // ── DEC axis travel limits ────────────────────────────────────────────────────
 // Physical limits measured from the home (level) position.
 // These must be defined here; Configuration_adv.hpp defaults to 0.0f for
 // non-OAM builds, which makes :Mn#/:Ms# target position 0 and do nothing.
 #ifndef DEC_LIMIT_UP
-    #define DEC_LIMIT_UP   135.0f  // 135° north of home
+    #define DEC_LIMIT_UP 135.0f  // 135° north of home
 #endif
 #ifndef DEC_LIMIT_DOWN
-    #define DEC_LIMIT_DOWN  35.0f  // 35° south of home
+    #define DEC_LIMIT_DOWN 35.0f  // 35° south of home
 #endif
 
 // ── RA Hall sensor auto-home ──────────────────────────────────────────────────
@@ -129,9 +129,9 @@
 // Search distance: 30° default (RA_HOMING_SENSOR_SEARCH_DEGREES in Configuration_adv.hpp).
 // GPIO4 is configured INPUT (no pull-up); add external 10kΩ to 3.3V if sensor
 // is open-drain, or change to INPUT_PULLUP in b_setup.hpp.
-#define USE_HALL_SENSOR_RA_AUTOHOME    1
-#define RA_HOMING_SENSOR_PIN           4    // GPIO4 = RA_DIAG_PIN (X-STOP)
-#define RA_HOMING_SENSOR_ACTIVE_STATE  LOW  // sensor pulls LOW when active
+#define USE_HALL_SENSOR_RA_AUTOHOME   1
+#define RA_HOMING_SENSOR_PIN          4    // GPIO4 = RA_DIAG_PIN (X-STOP)
+#define RA_HOMING_SENSOR_ACTIVE_STATE LOW  // sensor pulls LOW when active
 
 // ── GPS ───────────────────────────────────────────────────────────────────────
 // ATGM336H-5N wired to left-side header: GPS TX→IO1, GPS RX→IO0, VCC→5V, GND.
