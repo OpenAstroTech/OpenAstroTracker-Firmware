@@ -139,14 +139,17 @@ void setup()
     #if DEBUG_LEVEL > 0 && DEBUG_SEPARATE_SERIAL == 1
     DEBUG_SERIAL_PORT.begin(DEBUG_SERIAL_BAUDRATE);
     #endif
-    // RP2040 USB CDC: wait for the host to open the port before logging.
-    // With no host attached, the CDC TX FIFO holds only ~250 bytes and further
-    // writes are dropped, so a debug build boots invisibly. Waiting for the
-    // console keeps the whole boot visible. Release builds (DEBUG_LEVEL == 0)
-    // skip this entirely and boot headless.
+    // RP2040 USB CDC: give a console up to 3 seconds to attach so the boot
+    // log stays visible. Bounded, never infinite: a mount powered externally
+    // in the field must boot with no USB host attached. With no host attached
+    // the CDC TX FIFO holds only ~250 bytes and further writes are dropped, so
+    // a headless debug build simply boots invisibly (reset with the console
+    // open to see the full log). Release builds (DEBUG_LEVEL == 0) skip this
+    // entirely.
     #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL > 0
-    while (!Serial)
-    { /* spin until the console connects */
+    uint32_t consoleWaitStart = millis();
+    while (!Serial && (millis() - consoleWaitStart < 3000UL))
+    { /* spin until the console connects or the timeout expires */
     }
     #endif
 #endif
