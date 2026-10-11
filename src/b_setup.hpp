@@ -126,26 +126,27 @@ void setup()
     #endif
 #else
     Serial.begin(SERIAL_BAUDRATE);
-    #if defined(ARDUINO_ARCH_RP2040)
+    #if defined(ARDUINO_ARCH_RP2040) && defined(RP2040_IGNORE_CDC_FLOW_CONTROL)
     // OATControl (and other apps using C# SerialPort) open the port with DTR=false.
     // The Philhower USB CDC SerialUSB::write() gates TX on tud_cdc_connected() which
     // requires DTR=true, so all responses are silently dropped for those hosts.
     // ignoreFlowControl(true) bypasses the DTR check and always sends TX data.
+    // DISABLED BY DEFAULT: forcing TX while no host is draining can wedge the
+    // TinyUSB write loop while it holds the USB mutex (board hangs, USB stays
+    // enumerated). Enable only with a host that keeps the port drained.
     Serial.ignoreFlowControl(true);
     #endif
     #if DEBUG_LEVEL > 0 && DEBUG_SEPARATE_SERIAL == 1
     DEBUG_SERIAL_PORT.begin(DEBUG_SERIAL_BAUDRATE);
     #endif
-    // RP2040 USB CDC: wait up to 3 s for the host to open the port so that
-    // LOG() calls below are not dropped (or do not block indefinitely).
-    // This only matters when DEBUG_LEVEL > 0 — in release builds LOG() is
-    // a no-op, so the wait is compiled out.
+    // RP2040 USB CDC: wait for the host to open the port before logging.
+    // With no host attached, the CDC TX FIFO holds only ~250 bytes and further
+    // writes are dropped, so a debug build boots invisibly. Waiting for the
+    // console keeps the whole boot visible. Release builds (DEBUG_LEVEL == 0)
+    // skip this entirely and boot headless.
     #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL > 0
-    {
-        uint32_t _cdcWaitStart = millis();
-        while (!Serial && (millis() - _cdcWaitStart) < 3000UL)
-        { /* spin */
-        }
+    while (!Serial)
+    { /* spin until the console connects */
     }
     #endif
 #endif
