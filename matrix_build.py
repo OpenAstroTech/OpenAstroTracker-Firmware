@@ -187,6 +187,14 @@ BOARD_SUPPORT = {
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE"
         ],
+        # Both RP2040 boards carry on-board TMC2209s wired for UART only;
+        # A4988/standalone driver types need MS pins they do not route.
+        "RA_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "DEC_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
         "AZ_DRIVER_TYPE": [
             "DRIVER_TYPE_NONE",
             "DRIVER_TYPE_TMC2209_UART"
@@ -207,6 +215,14 @@ BOARD_SUPPORT = {
         # No LCD menu display support on RP2040 (enforced by ConfigurationValidation)
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE"
+        ],
+        # Both RP2040 boards carry on-board TMC2209s wired for UART only;
+        # A4988/standalone driver types need MS pins they do not route.
+        "RA_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "DEC_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
         ],
         "AZ_DRIVER_TYPE": [
             "DRIVER_TYPE_NONE",
