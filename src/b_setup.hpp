@@ -126,14 +126,15 @@ void setup()
     #endif
 #else
     Serial.begin(SERIAL_BAUDRATE);
-    #if defined(ARDUINO_ARCH_RP2040) && defined(RP2040_IGNORE_CDC_FLOW_CONTROL)
+    #if defined(ARDUINO_ARCH_RP2040)
     // OATControl (and other apps using C# SerialPort) open the port with DTR=false.
     // The Philhower USB CDC SerialUSB::write() gates TX on tud_cdc_connected() which
     // requires DTR=true, so all responses are silently dropped for those hosts.
-    // ignoreFlowControl(true) bypasses the DTR check and always sends TX data.
-    // DISABLED BY DEFAULT: forcing TX while no host is draining can wedge the
-    // TinyUSB write loop while it holds the USB mutex (board hangs, USB stays
-    // enumerated). Enable only with a host that keeps the port drained.
+    // ignoreFlowControl(true) bypasses the DTR check so replies always flow.
+    // Bounded by the core: with no (or a non-DTR) host, writes stop as soon as the
+    // ~257-byte CDC TX FIFO is full (tud_cdc_connected() false breaks the write
+    // loop immediately); a connected host that stops draining is dropped after
+    // 1 second without progress. Headless boots never stall on logging.
     Serial.ignoreFlowControl(true);
     #endif
     #if DEBUG_LEVEL > 0 && DEBUG_SEPARATE_SERIAL == 1
