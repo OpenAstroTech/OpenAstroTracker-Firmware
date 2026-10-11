@@ -1168,6 +1168,8 @@ String Mount::getMountHardwareInfo()
     ret = F("ESP32,");
 #elif defined(__AVR_ATmega2560__)
     ret = F("Mega,");
+#elif defined(ARDUINO_ARCH_RP2040)
+    ret = F("RP2040,");
 #endif
 
     ret += F("NEMA|");
