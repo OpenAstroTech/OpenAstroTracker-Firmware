@@ -18,6 +18,7 @@ class DayTime
     DayTime();
 
     DayTime(const DayTime &other);
+    DayTime &operator=(const DayTime &) = default;
     DayTime(int h, int m, int s);
 
     // From hours (fractional)

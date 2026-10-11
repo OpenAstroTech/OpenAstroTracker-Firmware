@@ -17,6 +17,7 @@ class Longitude : public core::Longitude
     {
     }
     Longitude(const Longitude &other);
+    Longitude &operator=(const Longitude &) = default;
     Longitude(int h, int m, int s);
     Longitude(float inDegrees);
 

@@ -84,6 +84,41 @@ uint8_t EEPROMStore::read(uint8_t location)
     return value;
 }
 
+#elif defined(ARDUINO_ARCH_RP2040)
+
+// Initialize the flash-backed EEPROM emulation provided by the Philhower
+// arduino-pico core. API is identical to the ESP32 path.
+void EEPROMStore::initialize()
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Startup with %d bytes", STORE_SIZE);
+    EEPROM.begin(STORE_SIZE);
+
+    displayContents();
+}
+
+// Update the given location with the given value
+void EEPROMStore::update(uint8_t location, uint8_t value)
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Writing %x to %d", value, location);
+    EEPROM.write(location, value);
+}
+
+// Complete the transaction (flush RAM cache to flash)
+void EEPROMStore::commit()
+{
+    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Committing");
+    EEPROM.commit();
+}
+
+// Read the value at the given location
+uint8_t EEPROMStore::read(uint8_t location)
+{
+    uint8_t value;
+    value = EEPROM.read(location);
+    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Read %x from %d", value, location);
+    return value;
+}
+
 #else
 
 // Initialize the EEPROM storage in a platform-independent abstraction
