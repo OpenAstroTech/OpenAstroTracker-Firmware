@@ -18,6 +18,10 @@
     #include "Configuration_local_esp32dev.hpp"
 #elif BOARD == BOARD_OAE_V1 && __has_include("Configuration_local_oae.hpp")
     #include "Configuration_local_oae.hpp"
+#elif BOARD == BOARD_RP2040_JACKW01 && __has_include("Configuration_local_rp2040_jackw01.hpp")
+    #include "Configuration_local_rp2040_jackw01.hpp"
+#elif BOARD == BOARD_RP2040_SKR_PICO && __has_include("Configuration_local_rp2040_skr_pico.hpp")
+    #include "Configuration_local_rp2040_skr_pico.hpp"
 #elif __has_include("Configuration_local.hpp")
     #include "Configuration_local.hpp"
 #endif

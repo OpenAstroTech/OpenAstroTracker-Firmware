@@ -17,7 +17,7 @@
 #endif
 
 // Platform
-#if defined(ESP32) || defined(__AVR_ATmega2560__)
+#if defined(ESP32) || defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
 // Valid platform
 #else
     #error Unsupported platform configuration. Use at own risk.
@@ -30,6 +30,8 @@
     && ((DISPLAY_TYPE == DISPLAY_TYPE_NONE) || (DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD) || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008)         \
         || (DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017))
 // Valid display for ATmega
+#elif defined(ARDUINO_ARCH_RP2040) && (DISPLAY_TYPE == DISPLAY_TYPE_NONE)
+// Valid display for RP2040
 #else
     #error Unsupported display configuration. Use at own risk.
 #endif
@@ -81,7 +83,7 @@
     #else
         #error Defined an AZ driver, but no AZ stepper.
     #endif
-#elif defined(__AVR_ATmega2560__)
+#elif defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
     // Azimuth configuration
     #if (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef AZ_DRIVER_ADDRESS
@@ -102,7 +104,7 @@
     #else
         #error Defined an ALT driver, but no ALT stepper.
     #endif
-#elif defined(__AVR_ATmega2560__)
+#elif defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
     // Altitude configuration
     #if (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
         #ifndef ALT_DRIVER_ADDRESS
@@ -166,8 +168,8 @@
 // External sensors
 #if (USE_GPS == 0)
 // Baseline configuration without GPS is valid
-#elif defined(ESP32) || defined(__AVR_ATmega2560__)
-// GPS is supported on ESP32 and ATmega
+#elif defined(ESP32) || defined(__AVR_ATmega2560__) || defined(ARDUINO_ARCH_RP2040)
+// GPS is supported on ESP32, ATmega and RP2040
 #else
     #error Unsupported GPS configuration. Use at own risk.
 #endif
@@ -238,6 +240,12 @@
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
         #endif
+        #if !defined(AZ_DIAG_PIN)
+            // AZ_DIAG_PIN (TMC2209 DIAG output) is used only for stallGuard-based homing.
+            // It is optional: omit it if your hardware does not wire the DIAG output to a GPIO.
+            // Without it, stallGuard homing is unavailable but all other AZ motion works normally.
+            #pragma message "AZ_DIAG_PIN not defined. StallGuard homing unavailable for AZ axis."
+        #endif
         #if !((defined(AZ_SERIAL_PORT_TX) && defined(AZ_SERIAL_PORT_RX)) || defined(AZ_SERIAL_PORT))
             // Required pin assignments missing for UART serial
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver serial connection
@@ -255,6 +263,12 @@
         #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
+        #endif
+        #if !defined(ALT_DIAG_PIN)
+            // ALT_DIAG_PIN (TMC2209 DIAG output) is used only for stallGuard-based homing.
+            // It is optional: omit it if your hardware does not wire the DIAG output to a GPIO.
+            // Without it, stallGuard homing is unavailable but all other ALT motion works normally.
+            #pragma message "ALT_DIAG_PIN not defined. StallGuard homing unavailable for ALT axis."
         #endif
         #if !((defined(ALT_SERIAL_PORT_TX) && defined(ALT_SERIAL_PORT_RX)) || defined(ALT_SERIAL_PORT))
             // Required pin assignments missing for UART serial

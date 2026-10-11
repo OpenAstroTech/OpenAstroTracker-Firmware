@@ -25,9 +25,13 @@ MKS_GENL_BOARDS = [
 AVR_BOARDS = MKS_GENL_BOARDS + [
     "ramps",
 ]
+RP2040_BOARDS = [
+    "rp2040_jackw01",
+    "rp2040_skr_pico",
+]
 BOARDS = AVR_BOARDS + [
     "esp32",
-]
+] + RP2040_BOARDS
 
 STEPPER_TYPES = [
     "STEPPER_TYPE_NONE",
@@ -174,6 +178,38 @@ BOARD_SUPPORT = {
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_KEYPAD"
+        ],
+    }),
+    "rp2040_jackw01": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE"
+        ],
+        "INFO_DISPLAY_TYPE": [
+            "INFO_DISPLAY_TYPE_NONE"
+        ],
+        "FOCUS_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "FOCUS_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+    }),
+    "rp2040_skr_pico": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE"
+        ],
+        "INFO_DISPLAY_TYPE": [
+            "INFO_DISPLAY_TYPE_NONE"
+        ],
+        "FOCUS_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "FOCUS_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
         ],
     }),
 }

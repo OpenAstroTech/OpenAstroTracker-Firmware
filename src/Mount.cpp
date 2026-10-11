@@ -498,7 +498,11 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
     _driverRA->pdn_disable(1);
     _driverRA->ihold(31);
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverRA->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverRA->toff(1);
+        #endif
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
     _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
@@ -537,7 +541,11 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested RA motor rms_current: %d mA", rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverRA->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverRA->toff(1);
+        #endif
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
     _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
@@ -585,7 +593,11 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->ihold(31);
     _driverDEC->iholddelay(15);
     _driverDEC->TPOWERDOWN(255);
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverDEC->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverDEC->toff(1);
+        #endif
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
@@ -624,7 +636,11 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested DEC motor rms_current: %d mA", rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverDEC->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverDEC->toff(1);
+        #endif
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
@@ -668,7 +684,11 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested AZ motor rms_current: %d mA", rmscurrent);
     _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverAZ->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverAZ->toff(1);
+        #endif
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);  // If 1 then disable microstepping
@@ -706,7 +726,11 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested AZ motor rms_current: %d mA", rmscurrent);
     _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverAZ->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverAZ->toff(1);
+        #endif
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);  // If 1 then disable microstepping
@@ -749,7 +773,11 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested ALT motor rms_current: %d mA", rmscurrent);
     _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverALT->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverALT->toff(1);
+        #endif
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);  // If 1 then disable microstepping
@@ -787,7 +815,11 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
         #endif
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested ALT motor rms_current: %d mA", rmscurrent);
     _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverALT->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverALT->toff(1);
+        #endif
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
     _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);  // If 1 then disable microstepping
@@ -832,7 +864,11 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
         #endif
     LOG(DEBUG_STEPPERS | DEBUG_FOCUS, "[FOCUS]: Requested Focus motor rms_current: %d mA", rmscurrent);
     _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverFocus->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverFocus->toff(1);
+        #endif
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
     _driverFocus->microsteps(FOCUS_MICROSTEPPING == 1 ? 0 : FOCUS_MICROSTEPPING);  // If 1 then disable microstepping
@@ -878,7 +914,11 @@ void Mount::configureFocusDriver(
         #endif
     LOG(DEBUG_STEPPERS | DEBUG_FOCUS, "[FOCUS]: Requested Focus motor rms_current: %d mA", rmscurrent);
     _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
+        #if defined(ARDUINO_ARCH_RP2040)
+    _driverFocus->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+        #else
     _driverFocus->toff(1);
+        #endif
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
     _driverFocus->microsteps(FOCUS_MICROSTEPPING == 1 ? 0 : FOCUS_MICROSTEPPING);  // If 1 then disable microstepping
