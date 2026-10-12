@@ -69,6 +69,7 @@
 
 // USB serial port speed according to external controller
 #define SERIAL_BAUDRATE_ASCOM 19200
+#define SERIAL_BAUDRATE_FAST  115200  // For platforms that keep up (RP2040 USB CDC)
 
 // Wifi operating modes (ESP32 only)
 #define WIFI_MODE_INFRASTRUCTURE 0  // Infrastructure Only - OAT connects to an existing Router

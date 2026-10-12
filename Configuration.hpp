@@ -178,7 +178,12 @@
  * See Constants.hpp for predefined SERIAL_BAUDRATE options, or customize as required.
  */
 #ifndef SERIAL_BAUDRATE
-    #define SERIAL_BAUDRATE SERIAL_BAUDRATE_ASCOM
+    #if defined(ARDUINO_ARCH_RP2040)
+        // The 19200 ASCOM default exists because the 8-bit AVR platforms cannot keep up.
+        #define SERIAL_BAUDRATE SERIAL_BAUDRATE_FAST
+    #else
+        #define SERIAL_BAUDRATE SERIAL_BAUDRATE_ASCOM
+    #endif
 #endif
 
 /**
