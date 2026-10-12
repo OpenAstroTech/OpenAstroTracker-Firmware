@@ -3401,10 +3401,10 @@ void Mount::updateInfoDisplay()
 
     const bool isSlewingAny = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
 
-    int refreshRateHz            = 30;
-    #if defined(ARDUINO_ARCH_RP2040)
-    refreshRateHz            = isSlewingAny ? 15 : 30;
-    #else
+    int refreshRateHz = 30;
+        #if defined(ARDUINO_ARCH_RP2040)
+    refreshRateHz = isSlewingAny ? 15 : 30;
+        #else
     const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
     if (isSlewingRAandDEC)
     {
@@ -3414,7 +3414,7 @@ void Mount::updateInfoDisplay()
     {
         refreshRateHz = 5;  // Update the display slower
     }
-    #endif
+        #endif
     const long now = millis();
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
