@@ -3399,7 +3399,12 @@ void Mount::updateInfoDisplay()
     // timeout, causing ASCOM errors.
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
 
+    const bool isSlewingAny = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
+
     int refreshRateHz            = 30;
+    #if defined(ARDUINO_ARCH_RP2040)
+    refreshRateHz            = isSlewingAny ? 15 : 30;
+    #else
     const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
     if (isSlewingRAandDEC)
     {
@@ -3409,7 +3414,7 @@ void Mount::updateInfoDisplay()
     {
         refreshRateHz = 5;  // Update the display slower
     }
-
+    #endif
     const long now = millis();
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
@@ -3788,7 +3793,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
     {
         if (_decUpperLimit != 0)
         {
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL != 0
             if (targetDECSteps > (float) _decUpperLimit)
             {
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %l", _decUpperLimit);
@@ -3799,7 +3804,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
 
         if (_decLowerLimit != 0)
         {
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL != 0
             if (targetDECSteps < (float) _decLowerLimit)
             {
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %l", _decLowerLimit);

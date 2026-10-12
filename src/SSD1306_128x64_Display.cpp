@@ -124,7 +124,11 @@ void SDD1306OLED128x64::drawIndicators(Mount *mount)
         _display->drawString(11, 59, F("L"));  // Memory chip icon
         _display->setFont(Bitmap3x5);
         long availMem = freeMemory();
-        if (availMem > 9999)
+        if (availMem > 999999)
+        {
+            _display->drawString(20, 59, String(availMem / 1024 / 1024, 1) + "M");
+        }
+        else if (availMem > 9999)
         {
             _display->drawString(20, 59, String(availMem / 1024) + "K");
         }

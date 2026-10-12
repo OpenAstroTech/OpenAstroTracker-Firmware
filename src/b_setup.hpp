@@ -137,7 +137,7 @@ void setup()
     // 1 second without progress. Headless boots never stall on logging.
     Serial.ignoreFlowControl(true);
     #endif
-    #if DEBUG_LEVEL > 0 && DEBUG_SEPARATE_SERIAL == 1
+    #if DEBUG_LEVEL != 0 && DEBUG_SEPARATE_SERIAL == 1
     DEBUG_SERIAL_PORT.begin(DEBUG_SERIAL_BAUDRATE);
     #endif
     // RP2040 USB CDC: give a console up to 3 seconds to attach so the boot
@@ -147,7 +147,7 @@ void setup()
     // a headless debug build simply boots invisibly (reset with the console
     // open to see the full log). Release builds (DEBUG_LEVEL == 0) skip this
     // entirely.
-    #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL > 0
+    #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL != 0
     uint32_t consoleWaitStart = millis();
     while (!Serial && (millis() - consoleWaitStart < 3000UL))
     { /* spin until the console connects or the timeout expires */

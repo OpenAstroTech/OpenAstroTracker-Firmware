@@ -3,11 +3,11 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL != 0
     #include <stdarg.h>
 #endif
 
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL != 0
 unsigned long RealTime::_pausedTime   = 0;
 unsigned long RealTime::_suspendStart = 0;
 int RealTime::_suspended              = 0;
@@ -293,7 +293,7 @@ int freeMemory()
 }
 #endif
 
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL != 0
 
 String formatArg(const char *input, va_list args)
 {
