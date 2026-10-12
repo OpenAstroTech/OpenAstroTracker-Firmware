@@ -59,6 +59,9 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     void static renderCallback(void *context);
     void drawScreen();
 
+    // Console-mode header: logo and product name
+    void drawHeader();
+
     // Build the display from the mount
     void renderScreen(void *mount);
 

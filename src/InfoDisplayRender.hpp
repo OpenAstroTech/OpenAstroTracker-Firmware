@@ -18,6 +18,10 @@ class InfoDisplayRender
     int _curLine;
 
   public:
+    // Draws the console-mode header (logo and product name).
+    // Overridden by subclasses; the default draws nothing.
+    virtual void drawHeader() {};
+
     InfoDisplayRender()
     {
         _consoleMode = true;
@@ -55,6 +59,12 @@ class InfoDisplayRender
         if (drawContentFunction)
         {
             drawContentFunction(this);
+        }
+        else if (_consoleMode)
+        {
+            // Console-text updates arrive without a content callback; draw the
+            // header here so the boot console carries the logo on every frame.
+            drawHeader();
         }
 
         if (_consoleMode)
