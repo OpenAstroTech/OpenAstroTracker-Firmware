@@ -80,24 +80,29 @@ AZ and ALT are optional: set `AZ_DRIVER_TYPE`/`ALT_DRIVER_TYPE` to
 
 ## Info display (SSD1306 128x64 OLED, I2C)
 
-Config keys (set in your local config):
+Config keys (set in your local config; the pins default correctly per board):
 
 ```cpp
 #define INFO_DISPLAY_TYPE             INFO_DISPLAY_TYPE_I2C_SSD1306_128x64
-#define INFO_DISPLAY_I2C_ADDRESS      0x3C
-#define INFO_DISPLAY_I2C_SDA_PIN      20
-#define INFO_DISPLAY_I2C_SCL_PIN      21
-#define INFO_DISPLAY_UPSIDE_DOWN      0   // 1 = rotate 180 degrees
-#define INFO_DISPLAY_MIRRORED         0   // 1 = flip horizontally
+#define INFO_DISPLAY_I2C_ADDRESS      0x3C   // default
+#define INFO_DISPLAY_UPSIDE_DOWN      0      // 1 = rotate 180 degrees
+#define INFO_DISPLAY_MIRRORED         0      // 1 = flip horizontally
 ```
 
-> **Important:** the global firmware defaults are SDA=5 / SCL=4. Those pins
-> collide on the SKR Pico (GP5 is DEC direction, GP4 is the RA homing input),
-> so always set the pins explicitly - GP20/GP21 are the recommended free pair.
+- **SKR Pico**: SDA = GP0, SCL = GP1 (I2C0) — the only header-accessible
+  I2C-capable GPIO pair on this board, and the firmware default when the
+  display is enabled. Wire SDA→IO0, SCL→IO1, VCC→5V, GND→GND, all on the
+  left-side header (bench-verified with a common 4-pin SSD1306 module on 5V).
+  **GP0/GP1 are shared with the default GPS wiring** — enable either the
+  display or GPS, not both (enforced at compile time).
+- **JackW01**: defaults are SDA = GP20, SCL = GP21 (free on that carrier);
+  override with `INFO_DISPLAY_I2C_SDA_PIN`/`..._SCL_PIN` to use other pins.
 
-- **SKR Pico**: SDA = GP20, SCL = GP21 (I2C0). Power the display from 3.3 V.
-- **JackW01**: the pins file does not reserve display pins; pick any two free
-  I2C-capable GPIOs (GP20/GP21 work here too) and set the same keys.
+> **Important (SKR Pico):** do **not** use GP20/GP21 for the display on the SKR
+> Pico. They only drive on-board MOSFETs (the HB/FAN/Laser power outputs,
+> labelled + and − on the board) and are never exposed as raw GPIO on any
+> connector. Wiring an I2C display to those pins hangs the bus and the
+> firmware (enforced at compile time).
 
 ## GPS (SKR Pico)
 
@@ -112,6 +117,8 @@ Wired to the left-side 5-pin header (IO0, IO1, GND, 5V) using UART0:
 
 Enable with `#define USE_GPS 1`. Tested with an ATGM336H-5N; any GPS module
 with a 3.3 V UART output works (the RP2040 GPIO are not 5 V tolerant).
+GP0/GP1 are shared with the info display's default pins on this board —
+enable either GPS or the display, not both (enforced at compile time).
 
 The JackW01 board has no default GPS wiring; leave `USE_GPS` at 0.
 

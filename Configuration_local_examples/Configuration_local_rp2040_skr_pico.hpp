@@ -133,6 +133,16 @@
 #define RA_HOMING_SENSOR_PIN          4    // GPIO4 = RA_DIAG_PIN (X-STOP)
 #define RA_HOMING_SENSOR_ACTIVE_STATE LOW  // sensor pulls LOW when active
 
+// ── Info display (alternative to GPS) ─────────────────────────────────────────
+// The SKR Pico has exactly one header-accessible I2C-capable GPIO pair: GP0/GP1
+// on the left-side header (IO0/IO1/GND/5V). This example uses it for GPS below.
+// For an SSD1306 128x64 info display instead, set USE_GPS to 0 and enable:
+//   #define INFO_DISPLAY_TYPE INFO_DISPLAY_TYPE_I2C_SSD1306_128x64
+//   (SDA/SCL then default to GP0/GP1: SDA->IO0, SCL->IO1, VCC->5V, GND->GND.)
+// NOTE: GP20/GP21 must NOT be used for the display on this board - they only
+// drive the HB/FAN/Laser MOSFET power outputs and never reach a connector as
+// raw GPIO (wiring I2C there hangs the bus). Enforced by ConfigurationValidation.
+
 // ── GPS ───────────────────────────────────────────────────────────────────────
 // ATGM336H-5N wired to left-side header: GPS TX→IO1, GPS RX→IO0, VCC→5V, GND.
 // GPS_SERIAL_PORT, RP2040_GPS_TX_PIN, RP2040_GPS_RX_PIN defined in pins file.

@@ -367,6 +367,15 @@ def set_ci_constraints(problem):
         return True
     problem.addConstraint(info_display_constraint, ["BOARD", "INFO_DISPLAY_TYPE"])
 
+    # SKR Pico: the info display (defaults to GP0/GP1) and GPS share the only
+    # free header I2C/UART pair; ConfigurationValidation rejects the combo.
+    def skr_pico_gps_display_constraint(board, gps, info_display):
+        if board == "rp2040_skr_pico" and gps == 1 and info_display == "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64":
+            return False
+        return True
+
+    problem.addConstraint(skr_pico_gps_display_constraint, ["BOARD", "USE_GPS", "INFO_DISPLAY_TYPE"])
+
 
 def print_solutions_matrix(solutions, short_strings=False):
     def get_value(vb, vk):
