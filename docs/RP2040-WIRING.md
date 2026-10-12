@@ -38,7 +38,7 @@ wiring - MS pins are not routed).
 
 ### SKR Pico (on-board TMC2209s)
 
-| Axis | Slot | STEP | DIR | EN | DIAG / endstop input | TMC2209 UART address |
+| Axis | Slot | STEP | DIR | EN | Endstop input | TMC2209 UART address |
 |---|---|---|---|---|---|---|
 | RA | X | GP11 | GP10 | GP12 | GP4 | 0 |
 | DEC | Y | GP6 | GP5 | GP7 | GP3 | 2 |
@@ -53,7 +53,7 @@ AZ and ALT are optional: set `AZ_DRIVER_TYPE`/`ALT_DRIVER_TYPE` to
 
 ### JackW01 (TMC2209 modules)
 
-| Axis | Slot | STEP | DIR | EN | DIAG / endstop input | TMC2209 UART address |
+| Axis | Slot | STEP | DIR | EN | Endstop input | TMC2209 UART address |
 |---|---|---|---|---|---|---|
 | RA | X | GP7 | GP6 | GP5 | GP4 | 0 |
 | DEC | Y | GP11 | GP10 | GP5 | GP3 | 1 |
@@ -158,6 +158,8 @@ The FAN1 header is switched by a MOSFET on GP17 and carries the VIN rail
 
 ## Not available by default on RP2040
 
+- **StallGuard driver autohome** (`USE_AUTOHOME`) - not supported on these
+  boards; use Hall sensor homing instead (the DIAG outputs are unused)
 - **LCD menu display** - `DISPLAY_TYPE` must be `DISPLAY_TYPE_NONE`
   (enforced at compile time)
 - **Gyro auto-leveling** - `USE_GYRO_LEVEL` must be 0
