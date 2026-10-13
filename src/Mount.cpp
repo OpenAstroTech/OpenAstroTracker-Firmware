@@ -2156,6 +2156,9 @@ void Mount::enableAzMotor()
 {
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(AZ_EN_PIN, LOW);  // Logic LOW to enable driver
+    // Let loop() disable the driver again, even if the move turns out to be zero steps
+    // (e.g. move to home while already at home), so it never stays powered.
+    _azAltWasRunning = true;
     #endif
 }
 
@@ -2163,6 +2166,8 @@ void Mount::enableAltMotor()
 {
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(ALT_EN_PIN, LOW);  // Logic LOW to enable driver
+    // See enableAzMotor()
+    _azAltWasRunning = true;
     #endif
 }
 
