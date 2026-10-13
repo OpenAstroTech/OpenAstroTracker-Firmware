@@ -4347,7 +4347,7 @@ float Mount::checkRALimit()
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
     float hourPos         = currentRA().getTotalHours();
     LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: degreePosDec: %f , RA hourpos : %f)", degreePos, hourPos);
-    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
+    if (degreePos < 0)
     {
         hourPos -= 12;
         if (hourPos < 0)
