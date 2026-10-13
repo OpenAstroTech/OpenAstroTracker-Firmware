@@ -4618,7 +4618,7 @@ float Mount::checkRALimit()
     const float homeRA = zeroRA + trackedHours;
     LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)", homeRA, zeroRA, trackedHours);
     LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: degreePosDec: %f , RA hourpos : %f)", degreePos, hourPos);
-    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
+    if (degreePos < 0)
     {
         hourPos -= 12;
         if (hourPos < 0)
