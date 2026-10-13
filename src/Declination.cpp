@@ -69,13 +69,9 @@ Declination Declination::ParseFromMeade(String const &s)
 
 Declination Declination::FromSeconds(long seconds)
 {
-    const auto secondsFloat                 = static_cast<float>(seconds);
-    const auto arcSecondsPerHemisphereFloat = static_cast<float>(arcSecondsPerHemisphere);
-    if (inNorthernHemisphere)
-    {
-        return Declination(((arcSecondsPerHemisphereFloat / 2.0f) - secondsFloat) / 3600.0f);
-    }
-    return Declination(((arcSecondsPerHemisphereFloat / 2.0f) + secondsFloat) / 3600.0f);
+    // Celestial seconds to axis: use the same conversion as the Meade wire path, so the LCD POI menu and :XGC
+    // land on the same side of the pole as a Meade goto in both hemispheres.
+    return fromCelestialSeconds(seconds);
 }
 
 const char *Declination::formatString(char *targetBuffer, const char *format, long *) const
