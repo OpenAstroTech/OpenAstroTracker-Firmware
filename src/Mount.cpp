@@ -1700,7 +1700,10 @@ void Mount::guidePulse(byte direction, int duration)
     const char *directionName = "-NE-S---W";
 #endif
     LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms requested", directionName[direction], duration);
-    if (!isSlewingTRK())
+    // Deliberately not using isSlewingTRK() here: slewStatus() reports NOT_SLEWING while any guide pulse
+    // is running, so that check would silently drop every pulse arriving during an active one (e.g. from
+    // clients that send pulses back-to-back without waiting for completion, like INDI/EKOS).
+    if (!isTracking())
     {
         LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: Not tracking (at limit?), ignoring guide pulse");
     }
@@ -2534,6 +2537,18 @@ bool Mount::isSlewingTRK() const
 
 /////////////////////////////////
 //
+// isTracking
+//
+/////////////////////////////////
+bool Mount::isTracking() const
+{
+    // Unlike isSlewingTRK(), this stays true while a guide pulse is running,
+    // since slewStatus() reports NOT_SLEWING for the whole guiding block.
+    return (_mountStatus & STATUS_TRACKING) != 0;
+}
+
+/////////////////////////////////
+//
 // isParking
 //
 /////////////////////////////////
@@ -3173,12 +3188,10 @@ void Mount::loop()
             LOG(DEBUG_GUIDE, "[MOUNT]: Loop: StopGuiding. Now: %l, RA End: %l, DEC End: %l", now, _guideRaEndTime, _guideDecEndTime);
             stopGuiding(stopRaGuiding, stopDecGuiding);
         }
-        else
-        {
-#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
-            updateInfoDisplay();
-#endif
-        }
+        // Do not update the info display while a pulse is running: a full-frame render blocks
+        // loop() for roughly 100ms (1KB over the default 100kHz I2C), which delays the end-time
+        // checks above and makes guide pulses overshoot their requested duration. The display
+        // is still refreshed at each pulse start (guidePulse) and between pulses (end of loop()).
         return;
     }
 
