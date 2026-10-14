@@ -1,6 +1,10 @@
 #pragma once
+PUSH_NO_WARNINGS
+// The arduino-pico core headers (the Arduino.h chain) and the OLED library are not
+// warning-clean under our strict flag set (-Wshadow).
 #include <Arduino.h>
 #include "SSD1306Wire.h"
+POP_NO_WARNINGS
 #include "Configuration.hpp"
 #include "Utility.hpp"
 #include "Version.h"
@@ -54,6 +58,9 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     SDD1306OLED128x64(uint8_t addr, int sda, int scl);
     void static renderCallback(void *context);
     void drawScreen();
+
+    // Console-mode header: logo and product name
+    void drawHeader();
 
     // Build the display from the mount
     void renderScreen(void *mount);

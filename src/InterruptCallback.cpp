@@ -22,8 +22,9 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
     #elif defined(ARDUINO_ARCH_RP2040)
         // Earle Philhower arduino-pico core exposes the Pico SDK alarm API.
-        // add_repeating_timer_us() fires a hardware alarm callback at a precise
-        // interval without relying on FreeRTOS or a second core.
+        // add_repeating_timer_us() fires a hardware-alarm callback at a precise interval in
+        // interrupt context, like the AVR timers. (The ESP32 port instead steps from a FreeRTOS
+        // task; this core has no RTOS at all, and no second core needs to be dedicated.)
         #include <hardware/timer.h>
     #else
         #error Unrecognized board selected. Either implement interrupt code or define the board here.
@@ -75,10 +76,10 @@ bool InterruptCallback::setInterval(float intervalMs, interrupt_callback_p callb
     _rp2040_callback = callback;
     _rp2040_payload  = payload;
 
-    // Positive delay_us means the period is measured from callback-start to
-    // callback-start (fixed wall-clock rate), which is what the stepper
-    // controller needs for consistent timing.
-    int32_t intervalUs = static_cast<int32_t>(intervalMs * 1000.0f);
+    // Negative delay_us gives a fixed wall-clock period from callback start to
+    // callback start (matching the AVR TimerInterrupt semantics). A positive
+    // delay would add the callback's own runtime to every period.
+    int64_t intervalUs = -static_cast<int64_t>(intervalMs * 1000.0f);
     return add_repeating_timer_us(intervalUs, rp2040_timer_isr, nullptr, &_rp2040_timer);
 }
 
@@ -90,8 +91,7 @@ void InterruptCallback::stop()
 void InterruptCallback::start()
 {
     // Re-arm with the same interval. The stored callback/payload are still set.
-    int32_t intervalUs = static_cast<int32_t>(_rp2040_timer.delay_us);
-    add_repeating_timer_us(intervalUs, rp2040_timer_isr, nullptr, &_rp2040_timer);
+    add_repeating_timer_us(_rp2040_timer.delay_us, rp2040_timer_isr, nullptr, &_rp2040_timer);
 }
 
     #endif

@@ -10,6 +10,8 @@ CMakeListsPrivate.txt
 build_cache
 
 Configuration_local*
+!Configuration_local_examples/
+!Configuration_local_examples/*
 MeadeToWikiOutput.txt
 
 !Configuration_local_examples/

@@ -174,6 +174,17 @@
     #error Unsupported GPS configuration. Use at own risk.
 #endif
 
+// RP2040 SKR Pico: info display pin sharing.
+#if defined(ARDUINO_ARCH_RP2040) && (BOARD == BOARD_RP2040_SKR_PICO) && (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    #if (USE_GPS == 1)
+        #error On the SKR Pico the info display and GPS share GP0/GP1 on the left-side header. Enable only one, or remap the pins explicitly.
+    #endif
+    #if (INFO_DISPLAY_I2C_SDA_PIN == 20) || (INFO_DISPLAY_I2C_SCL_PIN == 21) || (INFO_DISPLAY_I2C_SDA_PIN == 21)                           \
+        || (INFO_DISPLAY_I2C_SCL_PIN == 20)
+        #error GP20/GP21 on the SKR Pico only drive on-board MOSFETs (HB/FAN/Laser power outputs); they are not exposed as GPIO on any connector and cannot be used for I2C. Use GP0/GP1 on the left-side header.
+    #endif
+#endif
+
 #if (USE_GYRO_LEVEL == 0)
 // Baseline configuration without gyro is valid
 #elif defined(ESP32) || defined(__AVR_ATmega2560__)
@@ -240,12 +251,6 @@
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver
         #endif
-        #if !defined(AZ_DIAG_PIN)
-            // AZ_DIAG_PIN (TMC2209 DIAG output) is used only for stallGuard-based homing.
-            // It is optional: omit it if your hardware does not wire the DIAG output to a GPIO.
-            // Without it, stallGuard homing is unavailable but all other AZ motion works normally.
-            #pragma message "AZ_DIAG_PIN not defined. StallGuard homing unavailable for AZ axis."
-        #endif
         #if !((defined(AZ_SERIAL_PORT_TX) && defined(AZ_SERIAL_PORT_RX)) || defined(AZ_SERIAL_PORT))
             // Required pin assignments missing for UART serial
             #error Missing pin assignments for configured AZ DRIVER_TYPE_TMC2209_UART driver serial connection
@@ -263,12 +268,6 @@
         #if !defined(ALT_STEP_PIN) || !defined(ALT_DIR_PIN) || !defined(ALT_EN_PIN)
             // Required pin assignments missing (ATmega uses SoftwareSerial for this driver)
             #error Missing pin assignments for configured ALT DRIVER_TYPE_TMC2209_UART driver
-        #endif
-        #if !defined(ALT_DIAG_PIN)
-            // ALT_DIAG_PIN (TMC2209 DIAG output) is used only for stallGuard-based homing.
-            // It is optional: omit it if your hardware does not wire the DIAG output to a GPIO.
-            // Without it, stallGuard homing is unavailable but all other ALT motion works normally.
-            #pragma message "ALT_DIAG_PIN not defined. StallGuard homing unavailable for ALT axis."
         #endif
         #if !((defined(ALT_SERIAL_PORT_TX) && defined(ALT_SERIAL_PORT_RX)) || defined(ALT_SERIAL_PORT))
             // Required pin assignments missing for UART serial

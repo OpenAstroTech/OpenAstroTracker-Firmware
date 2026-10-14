@@ -46,6 +46,8 @@ jobs:
           - mksgenlv1
           - esp32
           - ramps
+          - rp2040_jackw01
+          - rp2040_skr_pico
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pio

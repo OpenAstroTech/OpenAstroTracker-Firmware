@@ -55,25 +55,30 @@ void SDD1306OLED128x64::renderCallback(void *context)
     display->drawScreen();
 }
 
-void SDD1306OLED128x64::drawScreen()
+// Console-mode header, in the area 0,0 to 127,20.
+// Logo on the left, product name on the right.
+void SDD1306OLED128x64::drawHeader()
 {
     _display->setColor(WHITE);
+    _display->setFont(OATLogo);
+    _display->drawString(0, 0, "!");
+
+    // Name on the right
+    _display->setFont(Bitmap5x7);
+#ifdef OAE
+    _display->drawString(32, 6, F("OpenAstroExplorer"));
+#elif defined(OAM)
+    _display->drawString(32, 6, F("OpenAstroMount"));
+#else
+    _display->drawString(32, 6, F("OpenAstroTracker"));
+#endif
+}
+
+void SDD1306OLED128x64::drawScreen()
+{
     if (_consoleMode)
     {
-        // Draw header only in console mode, in the area 0,0 to 127,20
-        // Logo on the left. Base class renders console output text.
-        _display->setFont(OATLogo);
-        _display->drawString(0, 0, "!");
-
-        // Name on the right
-        _display->setFont(Bitmap5x7);
-#ifdef OAE
-        _display->drawString(32, 6, F("OpenAstroExplorer"));
-#elif defined(OAM)
-        _display->drawString(32, 6, F("OpenAstroMount"));
-#else
-        _display->drawString(32, 6, F("OpenAstroTracker"));
-#endif
+        drawHeader();
     }
     else
     {
@@ -124,7 +129,11 @@ void SDD1306OLED128x64::drawIndicators(Mount *mount)
         _display->drawString(11, 59, F("L"));  // Memory chip icon
         _display->setFont(Bitmap3x5);
         long availMem = freeMemory();
-        if (availMem > 9999)
+        if (availMem > 999999)
+        {
+            _display->drawString(20, 59, String(availMem / 1024 / 1024, 1) + "M");
+        }
+        else if (availMem > 9999)
         {
             _display->drawString(20, 59, String(availMem / 1024) + "K");
         }
@@ -159,7 +168,11 @@ void SDD1306OLED128x64::drawIndicators(Mount *mount)
                 break;
             case 3:
                 {
-                    _display->drawString(55, 59, (String(F(" FW ")) + String(VERSION)).c_str());
+                    // Bitmap3x5 has no lowercase glyphs; uppercase so release-please's
+                    // "v" version prefix renders as V instead of an out-of-range glyph.
+                    String fw = String(F(" FW ")) + String(VERSION);
+                    fw.toUpperCase();
+                    _display->drawString(55, 59, fw.c_str());
                 }
                 break;
             case 4:

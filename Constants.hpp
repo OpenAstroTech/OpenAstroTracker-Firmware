@@ -21,7 +21,9 @@
 #define BOARD_ESP32_ESP32DEV 1001
 #define BOARD_OAE_V1         1002
 
-// RP2040 based boards
+// RP2040 based boards (2000-2999)
+//   2101-2199: Pico family + JackW01 printer carrier board
+//   2201-2299: BTT SKR Pico family
 #define BOARD_RP2040_JACKW01  2101
 #define BOARD_RP2040_SKR_PICO 2201
 
@@ -67,6 +69,7 @@
 
 // USB serial port speed according to external controller
 #define SERIAL_BAUDRATE_ASCOM 19200
+#define SERIAL_BAUDRATE_FAST  115200  // For platforms that keep up (RP2040 USB CDC)
 
 // Wifi operating modes (ESP32 only)
 #define WIFI_MODE_INFRASTRUCTURE 0  // Infrastructure Only - OAT connects to an existing Router

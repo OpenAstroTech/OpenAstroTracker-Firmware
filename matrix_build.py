@@ -183,11 +183,25 @@ BOARD_SUPPORT = {
     "rp2040_jackw01": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        # No LCD menu display support on RP2040 (enforced by ConfigurationValidation)
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE"
         ],
-        "INFO_DISPLAY_TYPE": [
-            "INFO_DISPLAY_TYPE_NONE"
+        # Both RP2040 boards carry on-board TMC2209s wired for UART only;
+        # A4988/standalone driver types need MS pins they do not route.
+        "RA_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "DEC_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
         ],
         "FOCUS_DRIVER_TYPE": [
             "DRIVER_TYPE_NONE"
@@ -197,13 +211,26 @@ BOARD_SUPPORT = {
         ],
     }),
     "rp2040_skr_pico": update_dict(BUILD_FLAGS, {
-        "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        # No LCD menu display support on RP2040 (enforced by ConfigurationValidation)
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE"
         ],
-        "INFO_DISPLAY_TYPE": [
-            "INFO_DISPLAY_TYPE_NONE"
+        # Both RP2040 boards carry on-board TMC2209s wired for UART only;
+        # A4988/standalone driver types need MS pins they do not route.
+        "RA_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "DEC_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE",
+            "DRIVER_TYPE_TMC2209_UART"
         ],
         "FOCUS_DRIVER_TYPE": [
             "DRIVER_TYPE_NONE"
@@ -332,13 +359,22 @@ def set_ci_constraints(problem):
     problem.addConstraint(InSetConstraint({"DISPLAY_TYPE_NONE", "DISPLAY_TYPE_LCD_KEYPAD"}), ["DISPLAY_TYPE"])
     # problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
 
-    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21 and esp32 only
+    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21, esp32 and rp2040_skr_pico only
     # (just to reduce compile times)
     def info_display_constraint(board, info_display):
         if info_display == "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64":
-            return board in ["mksgenlv21", "esp32"]
+            return board in ["mksgenlv21", "esp32", "rp2040_skr_pico"]
         return True
     problem.addConstraint(info_display_constraint, ["BOARD", "INFO_DISPLAY_TYPE"])
+
+    # SKR Pico: the info display (defaults to GP0/GP1) and GPS share the only
+    # free header I2C/UART pair; ConfigurationValidation rejects the combo.
+    def skr_pico_gps_display_constraint(board, gps, info_display):
+        if board == "rp2040_skr_pico" and gps == 1 and info_display == "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64":
+            return False
+        return True
+
+    problem.addConstraint(skr_pico_gps_display_constraint, ["BOARD", "USE_GPS", "INFO_DISPLAY_TYPE"])
 
 
 def print_solutions_matrix(solutions, short_strings=False):
