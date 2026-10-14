@@ -3188,12 +3188,10 @@ void Mount::loop()
             LOG(DEBUG_GUIDE, "[MOUNT]: Loop: StopGuiding. Now: %l, RA End: %l, DEC End: %l", now, _guideRaEndTime, _guideDecEndTime);
             stopGuiding(stopRaGuiding, stopDecGuiding);
         }
-        else
-        {
-#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
-            updateInfoDisplay();
-#endif
-        }
+        // Do not update the info display while a pulse is running: a full-frame render blocks
+        // loop() for roughly 100ms (1KB over the default 100kHz I2C), which delays the end-time
+        // checks above and makes guide pulses overshoot their requested duration. The display
+        // is still refreshed at each pulse start (guidePulse) and between pulses (end of loop()).
         return;
     }
 
