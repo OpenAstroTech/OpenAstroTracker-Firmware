@@ -64,4 +64,22 @@ CalendarDate addDays(CalendarDate date, long days)
     return date;
 }
 
+CalendarDate localToUtcDate(CalendarDate localDate, long localSecondsOfDay, int utcOffsetHours)
+{
+    long utcSeconds = localSecondsOfDay - utcOffsetHours * 3600L;
+    long dayShift   = 0;
+    while (utcSeconds < 0)
+    {
+        utcSeconds += 86400L;
+        dayShift--;
+    }
+    while (utcSeconds >= 86400L)
+    {
+        utcSeconds -= 86400L;
+        dayShift++;
+    }
+
+    return addDays(localDate, dayShift);
+}
+
 }  // namespace core

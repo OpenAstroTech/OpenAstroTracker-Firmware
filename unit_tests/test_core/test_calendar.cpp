@@ -101,3 +101,83 @@ TEST(CalendarMathTest, NegativeDays)
     EXPECT_EQ(12, result.month);
     EXPECT_EQ(31, result.day);
 }
+
+TEST(CalendarMathTest, LocalToUtcDateEastAfterMidnight)
+{
+    // UTC+2, local 2026-10-14 01:30 is UTC 2026-10-13 23:30
+    CalendarDate result = core::localToUtcDate({2026, 10, 14}, 1 * 3600L + 30 * 60L, 2);
+    EXPECT_EQ(2026, result.year);
+    EXPECT_EQ(10, result.month);
+    EXPECT_EQ(13, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateEastSameDay)
+{
+    // UTC+2, local 2026-10-14 03:30 is UTC 2026-10-14 01:30
+    CalendarDate result = core::localToUtcDate({2026, 10, 14}, 3 * 3600L + 30 * 60L, 2);
+    EXPECT_EQ(2026, result.year);
+    EXPECT_EQ(10, result.month);
+    EXPECT_EQ(14, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateWestEvening)
+{
+    // UTC-5, local 2026-01-15 20:00 is UTC 2026-01-16 01:00
+    CalendarDate result = core::localToUtcDate({2026, 1, 15}, 20 * 3600L, -5);
+    EXPECT_EQ(2026, result.year);
+    EXPECT_EQ(1, result.month);
+    EXPECT_EQ(16, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateWestSameDay)
+{
+    // UTC-5, local 2026-01-15 18:59:59 is UTC 2026-01-15 23:59:59
+    CalendarDate result = core::localToUtcDate({2026, 1, 15}, 18 * 3600L + 59 * 60L + 59, -5);
+    EXPECT_EQ(2026, result.year);
+    EXPECT_EQ(1, result.month);
+    EXPECT_EQ(15, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateUtcZero)
+{
+    CalendarDate result = core::localToUtcDate({2026, 10, 14}, 0, 0);
+    EXPECT_EQ(14, result.day);
+    result = core::localToUtcDate({2026, 10, 14}, 86399L, 0);
+    EXPECT_EQ(14, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateEastYearBoundary)
+{
+    // UTC+10, local 2027-01-01 05:00 is UTC 2026-12-31 19:00
+    CalendarDate result = core::localToUtcDate({2027, 1, 1}, 5 * 3600L, 10);
+    EXPECT_EQ(2026, result.year);
+    EXPECT_EQ(12, result.month);
+    EXPECT_EQ(31, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateWestLeapDay)
+{
+    // UTC-8, local 2028-02-28 17:00 is UTC 2028-02-29 01:00
+    CalendarDate result = core::localToUtcDate({2028, 2, 28}, 17 * 3600L, -8);
+    EXPECT_EQ(2028, result.year);
+    EXPECT_EQ(2, result.month);
+    EXPECT_EQ(29, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateWestYearBoundary)
+{
+    // UTC-12, local 2026-12-31 12:00 is UTC 2027-01-01 00:00
+    CalendarDate result = core::localToUtcDate({2026, 12, 31}, 12 * 3600L, -12);
+    EXPECT_EQ(2027, result.year);
+    EXPECT_EQ(1, result.month);
+    EXPECT_EQ(1, result.day);
+}
+
+TEST(CalendarMathTest, LocalToUtcDateExactUtcMidnight)
+{
+    // UTC+2, local 02:00 is exactly UTC 00:00 on the same date; 01:59:59 is still the day before
+    CalendarDate result = core::localToUtcDate({2026, 10, 14}, 2 * 3600L, 2);
+    EXPECT_EQ(14, result.day);
+    result = core::localToUtcDate({2026, 10, 14}, 2 * 3600L - 1, 2);
+    EXPECT_EQ(13, result.day);
+}

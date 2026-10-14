@@ -6,6 +6,7 @@
 #include "EndSwitches.hpp"
 #include "Mount.hpp"
 #include "Sidereal.hpp"
+#include "core/CalendarMath.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
@@ -2156,6 +2157,9 @@ void Mount::enableAzMotor()
 {
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(AZ_EN_PIN, LOW);  // Logic LOW to enable driver
+    // Let loop() disable the driver again, even if the move turns out to be zero steps
+    // (e.g. move to home while already at home), so it never stays powered.
+    _azAltWasRunning = true;
     #endif
 }
 
@@ -2163,6 +2167,8 @@ void Mount::enableAltMotor()
 {
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     digitalWrite(ALT_EN_PIN, LOW);  // Logic LOW to enable driver
+    // See enableAzMotor()
+    _azAltWasRunning = true;
     #endif
 }
 
@@ -4244,13 +4250,16 @@ DayTime Mount::calculateLst()
 {
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
-    DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), localDate.year, localDate.month, localDate.day, &timeUTC);
+    // The sidereal formula needs the UTC date, which differs from the local date for |UTC offset| hours each day.
+    core::CalendarDate utcDate
+        = core::localToUtcDate({localDate.year, localDate.month, localDate.day}, getLocalTime().getTotalSeconds(), _localUtcOffset);
+    DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), utcDate.year, utcDate.month, utcDate.day, &timeUTC);
     // LOG(DEBUG_INFO,
-    //     "[MOUNT]: Calculating LST. UTC time: %s. Date: %d-%d-%d. Longitude: %s",
+    //     "[MOUNT]: Calculating LST. UTC time: %s. UTC date: %d-%d-%d. Longitude: %s",
     //     timeUTC.ToString(),
-    //     localDate.year,
-    //     localDate.month,
-    //     localDate.day,
+    //     utcDate.year,
+    //     utcDate.month,
+    //     utcDate.day,
     //     longitude().ToString());
     // LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
     return lst;
