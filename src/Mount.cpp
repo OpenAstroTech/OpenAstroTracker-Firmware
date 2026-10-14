@@ -1700,7 +1700,10 @@ void Mount::guidePulse(byte direction, int duration)
     const char *directionName = "-NE-S---W";
 #endif
     LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: > Guide Pulse %c for %dms requested", directionName[direction], duration);
-    if (!isSlewingTRK())
+    // Deliberately not using isSlewingTRK() here: slewStatus() reports NOT_SLEWING while any guide pulse
+    // is running, so that check would silently drop every pulse arriving during an active one (e.g. from
+    // clients that send pulses back-to-back without waiting for completion, like INDI/EKOS).
+    if (!isTracking())
     {
         LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: Not tracking (at limit?), ignoring guide pulse");
     }
@@ -2530,6 +2533,18 @@ bool Mount::isSlewingIdle() const
 bool Mount::isSlewingTRK() const
 {
     return (slewStatus() & SLEWING_TRACKING) != 0;
+}
+
+/////////////////////////////////
+//
+// isTracking
+//
+/////////////////////////////////
+bool Mount::isTracking() const
+{
+    // Unlike isSlewingTRK(), this stays true while a guide pulse is running,
+    // since slewStatus() reports NOT_SLEWING for the whole guiding block.
+    return (_mountStatus & STATUS_TRACKING) != 0;
 }
 
 /////////////////////////////////
