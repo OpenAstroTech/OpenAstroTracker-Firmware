@@ -64,6 +64,7 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeHandlers
     void onStopNorth() override;
     void onStopSouth() override;
     void onQuitControlMode() override;
+    void onStopAzAlt() override;
 
     // IMeadeDistanceHandlers overrides.
     bool onIsSlewingRaOrDec() override;

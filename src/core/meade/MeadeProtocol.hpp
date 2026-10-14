@@ -641,6 +641,15 @@
 //      Returns:
 //        nothing
 //
+// :QZ#
+//      Description:
+//        Stop Azimuth and Altitude
+//      Information:
+//        If the scope supports automated azimuth and/or altitude operation, stops any AZ and ALT movement (following
+//        the deceleration curve). Tracking and RA/DEC slews are not affected.
+//      Returns:
+//        nothing
+//
 //------------------------------------------------------------------
 // EXTRA OAT FAMILY - These are used by the PC control application OATControl
 //

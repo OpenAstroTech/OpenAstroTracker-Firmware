@@ -53,6 +53,9 @@ void handleMeadeQuit(MeadeResponse &r, const char *suffix, IMeadeQuitHandlers &h
         case 'q':
             h.onQuitControlMode();
             break;
+        case 'Z':
+            h.onStopAzAlt();
+            break;
         default:
             break;
     }

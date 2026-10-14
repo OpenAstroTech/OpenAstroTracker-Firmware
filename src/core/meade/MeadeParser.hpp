@@ -366,6 +366,8 @@ class IMeadeQuitHandlers
     virtual void onStopSouth() = 0;
     /** @brief `:Qq#` — leave serial control mode without stopping motors. */
     virtual void onQuitControlMode() = 0;
+    /** @brief `:QZ#` — stop the AZ and ALT adjustment axes; leaves tracking and RA/DEC alone. */
+    virtual void onStopAzAlt() = 0;
 };
 
 /**

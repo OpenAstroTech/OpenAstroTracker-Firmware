@@ -48,6 +48,10 @@ class FakeHandlers : public meade::IMeadeQuitHandlers
     {
         lastCall = "quitControl";
     }
+    void onStopAzAlt() override
+    {
+        lastCall = "azAlt";
+    }
 };
 
 const char *dispatch(const char *suffix, FakeHandlers &h)
@@ -107,6 +111,13 @@ TEST(MeadeQuit, q_suffix_quits_control_mode)
     FakeHandlers h;
     EXPECT_STREQ("", dispatch("q", h));
     EXPECT_STREQ("quitControl", h.lastCall);
+}
+
+TEST(MeadeQuit, Z_suffix_stops_az_alt)
+{
+    FakeHandlers h;
+    EXPECT_STREQ("", dispatch("Z", h));
+    EXPECT_STREQ("azAlt", h.lastCall);
 }
 
 TEST(MeadeQuit, unknown_suffix_does_not_call_handler)

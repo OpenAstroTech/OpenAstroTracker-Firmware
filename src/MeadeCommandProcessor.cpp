@@ -751,6 +751,14 @@ void MeadeCommandProcessor::onQuitControlMode()
     _lcdMenu->updateDisplay();
 }
 
+void MeadeCommandProcessor::onStopAzAlt()
+{
+    // :QZ# decelerates AZ and ALT only; Mount::loop() de-energizes them once stopped.
+    LOG(DEBUG_MEADE, "[MEADE]: Stop AZ and ALT");
+    _mount->stopSlewing(AZIMUTH_STEPS);
+    _mount->stopSlewing(ALTITUDE_STEPS);
+}
+
 /////////////////////////////
 // Set Slew Rates
 /////////////////////////////
