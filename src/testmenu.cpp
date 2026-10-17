@@ -479,7 +479,7 @@ void TestMenu::onKeyPressed(int key)
                     Serial.println(F("Mount reset, EEPROM erased."));
                     _currentMenu->display();
                 }
-                else if (action = F("PassthroughCmd"))
+                else if (action == F("PassthroughCmd"))
                 {
                     Serial.print(F("Enter LX200-OAT command to send to mount: "));
                     TestMenu::setMenuState(testMenuState_t::WAITING_ON_COMMAND);

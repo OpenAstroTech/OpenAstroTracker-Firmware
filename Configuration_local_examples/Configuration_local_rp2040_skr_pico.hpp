@@ -16,7 +16,7 @@
  *  Stepper slot : E0 -> ALT   (TMC2209, UART addr 3)
  *  Motor rating : 0.9 deg / step (400 SPR), 470 mA
  *  Pulley       : 16T aluminium GT2
- *  RA homing    : Hall sensor on GPIO4 (X-STOP / RA_DIAG_PIN)
+ *  RA homing    : Hall sensor on GPIO4 (X-STOP)
  *
  * All pin assignments are in boards/RP2040_SKR_PICO/pins_RP2040_SKR_PICO.hpp.
  * R_SENSE (0.11 ohm) is set globally in src/a_inits.hpp for all TMC2209_UART
@@ -124,14 +124,24 @@
 #endif
 
 // ── RA Hall sensor auto-home ──────────────────────────────────────────────────
-// Hall sensor is wired to GPIO4 (X-STOP input / RA_DIAG_PIN on SKR Pico).
+// Hall sensor is wired to GPIO4 (X-STOP input on SKR Pico).
 // Active state LOW: sensor pulls GPIO4 LOW when the magnet is present.
 // Search distance: 30° default (RA_HOMING_SENSOR_SEARCH_DEGREES in Configuration_adv.hpp).
 // GPIO4 is configured INPUT (no pull-up); add external 10kΩ to 3.3V if sensor
 // is open-drain, or change to INPUT_PULLUP in b_setup.hpp.
 #define USE_HALL_SENSOR_RA_AUTOHOME   1
-#define RA_HOMING_SENSOR_PIN          4    // GPIO4 = RA_DIAG_PIN (X-STOP)
+#define RA_HOMING_SENSOR_PIN          4    // GPIO4 (X-STOP)
 #define RA_HOMING_SENSOR_ACTIVE_STATE LOW  // sensor pulls LOW when active
+
+// ── Info display (alternative to GPS) ─────────────────────────────────────────
+// The SKR Pico has exactly one header-accessible I2C-capable GPIO pair: GP0/GP1
+// on the left-side header (IO0/IO1/GND/5V). This example uses it for GPS below.
+// For an SSD1306 128x64 info display instead, set USE_GPS to 0 and enable:
+//   #define INFO_DISPLAY_TYPE INFO_DISPLAY_TYPE_I2C_SSD1306_128x64
+//   (SDA/SCL then default to GP0/GP1: SDA->IO0, SCL->IO1, VCC->5V, GND->GND.)
+// NOTE: GP20/GP21 must NOT be used for the display on this board - they only
+// drive the HB/FAN/Laser MOSFET power outputs and never reach a connector as
+// raw GPIO (wiring I2C there hangs the bus). Enforced by ConfigurationValidation.
 
 // ── GPS ───────────────────────────────────────────────────────────────────────
 // ATGM336H-5N wired to left-side header: GPS TX→IO1, GPS RX→IO0, VCC→5V, GND.

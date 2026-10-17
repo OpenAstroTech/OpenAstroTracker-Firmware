@@ -498,9 +498,8 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested RA motor rms_current: %d mA", rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
     _driverRA->pdn_disable(1);
-    _driverRA->ihold(31);
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverRA->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverRA->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverRA->toff(1);
         #endif
@@ -543,7 +542,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested RA motor rms_current: %d mA", rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverRA->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverRA->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverRA->toff(1);
         #endif
@@ -591,11 +590,10 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested DEC motor rms_current: %d mA", rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
     _driverDEC->pdn_disable(1);
-    _driverDEC->ihold(31);
     _driverDEC->iholddelay(15);
     _driverDEC->TPOWERDOWN(255);
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverDEC->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverDEC->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverDEC->toff(1);
         #endif
@@ -638,7 +636,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested DEC motor rms_current: %d mA", rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverDEC->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverDEC->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverDEC->toff(1);
         #endif
@@ -686,7 +684,7 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested AZ motor rms_current: %d mA", rmscurrent);
     _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverAZ->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverAZ->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverAZ->toff(1);
         #endif
@@ -728,7 +726,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested AZ motor rms_current: %d mA", rmscurrent);
     _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverAZ->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverAZ->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverAZ->toff(1);
         #endif
@@ -775,7 +773,7 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested ALT motor rms_current: %d mA", rmscurrent);
     _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverALT->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverALT->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverALT->toff(1);
         #endif
@@ -817,7 +815,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     LOG(DEBUG_STEPPERS, "[MOUNT]: Requested ALT motor rms_current: %d mA", rmscurrent);
     _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverALT->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverALT->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverALT->toff(1);
         #endif
@@ -866,7 +864,7 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
     LOG(DEBUG_STEPPERS | DEBUG_FOCUS, "[FOCUS]: Requested Focus motor rms_current: %d mA", rmscurrent);
     _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverFocus->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverFocus->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverFocus->toff(1);
         #endif
@@ -916,7 +914,7 @@ void Mount::configureFocusDriver(
     LOG(DEBUG_STEPPERS | DEBUG_FOCUS, "[FOCUS]: Requested Focus motor rms_current: %d mA", rmscurrent);
     _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
         #if defined(ARDUINO_ARCH_RP2040)
-    _driverFocus->toff(4);  // toff(1) is too short for StealthChop to engage reliably on RP2040
+    _driverFocus->toff(4);  // toff>=3 required for StealthChop slow-decay phase
         #else
     _driverFocus->toff(1);
         #endif
@@ -1169,6 +1167,8 @@ String Mount::getMountHardwareInfo()
     ret = F("ESP32,");
 #elif defined(__AVR_ATmega2560__)
     ret = F("Mega,");
+#elif defined(ARDUINO_ARCH_RP2040)
+    ret = F("RP2040,");
 #endif
 
     ret += F("NEMA|");
@@ -3405,7 +3405,11 @@ void Mount::updateInfoDisplay()
     // timeout, causing ASCOM errors.
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
 
-    int refreshRateHz            = 30;
+    int refreshRateHz = 30;
+        #if defined(ARDUINO_ARCH_RP2040)
+    const bool isSlewingAny = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
+    refreshRateHz           = isSlewingAny ? 15 : 30;
+        #else
     const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
     if (isSlewingRAandDEC)
     {
@@ -3415,7 +3419,7 @@ void Mount::updateInfoDisplay()
     {
         refreshRateHz = 5;  // Update the display slower
     }
-
+        #endif
     const long now = millis();
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
@@ -3794,7 +3798,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
     {
         if (_decUpperLimit != 0)
         {
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL != 0
             if (targetDECSteps > (float) _decUpperLimit)
             {
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %l", _decUpperLimit);
@@ -3805,7 +3809,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
 
         if (_decLowerLimit != 0)
         {
-#if DEBUG_LEVEL > 0
+#if DEBUG_LEVEL != 0
             if (targetDECSteps < (float) _decLowerLimit)
             {
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %l", _decLowerLimit);

@@ -130,22 +130,27 @@ void setup()
     // OATControl (and other apps using C# SerialPort) open the port with DTR=false.
     // The Philhower USB CDC SerialUSB::write() gates TX on tud_cdc_connected() which
     // requires DTR=true, so all responses are silently dropped for those hosts.
-    // ignoreFlowControl(true) bypasses the DTR check and always sends TX data.
+    // ignoreFlowControl(true) bypasses the DTR check so replies always flow.
+    // Bounded by the core: with no (or a non-DTR) host, writes stop as soon as the
+    // ~257-byte CDC TX FIFO is full (tud_cdc_connected() false breaks the write
+    // loop immediately); a connected host that stops draining is dropped after
+    // 1 second without progress. Headless boots never stall on logging.
     Serial.ignoreFlowControl(true);
     #endif
-    #if DEBUG_LEVEL > 0 && DEBUG_SEPARATE_SERIAL == 1
+    #if DEBUG_LEVEL != 0 && DEBUG_SEPARATE_SERIAL == 1
     DEBUG_SERIAL_PORT.begin(DEBUG_SERIAL_BAUDRATE);
     #endif
-    // RP2040 USB CDC: wait up to 3 s for the host to open the port so that
-    // LOG() calls below are not dropped (or do not block indefinitely).
-    // This only matters when DEBUG_LEVEL > 0 — in release builds LOG() is
-    // a no-op, so the wait is compiled out.
-    #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL > 0
-    {
-        uint32_t _cdcWaitStart = millis();
-        while (!Serial && (millis() - _cdcWaitStart) < 3000UL)
-        { /* spin */
-        }
+    // RP2040 USB CDC: give a console up to 3 seconds to attach so the boot
+    // log stays visible. Bounded, never infinite: a mount powered externally
+    // in the field must boot with no USB host attached. With no host attached
+    // the CDC TX FIFO holds only ~250 bytes and further writes are dropped, so
+    // a headless debug build simply boots invisibly (reset with the console
+    // open to see the full log). Release builds (DEBUG_LEVEL == 0) skip this
+    // entirely.
+    #if defined(ARDUINO_ARCH_RP2040) && DEBUG_LEVEL != 0
+    uint32_t consoleWaitStart = millis();
+    while (!Serial && (millis() - consoleWaitStart < 3000UL))
+    { /* spin until the console connects or the timeout expires */
     }
     #endif
 #endif
@@ -218,9 +223,6 @@ void setup()
     /////////////////////////////////
     //   RP2040: UART pin remapping
     /////////////////////////////////
-    // The Philhower arduino-pico core requires setTX()/setRX() to be called
-    // before begin() to remap UART pins away from their defaults. This must
-    // happen before any Serial2.begin() calls in the driver setup below.
     // RP2040_UART1_TX_PIN / RP2040_UART1_RX_PIN are defined in the board's
     // pins file only for RP2040 targets that use a non-default UART1 mapping.
 #if defined(ARDUINO_ARCH_RP2040) && defined(RP2040_UART1_TX_PIN) && defined(RP2040_UART1_RX_PIN)
@@ -256,10 +258,10 @@ void setup()
     #endif
 
     #ifdef RA_SERIAL_PORT
-        #if defined(ARDUINO_ARCH_RP2040)
-    RA_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on the Philhower RP2040 core
-        #elif defined(OAE)
+        #ifdef OAE
     RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
+        #elif defined(ARDUINO_ARCH_RP2040)
+    RA_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
         #else
     RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
@@ -291,10 +293,10 @@ void setup()
     pinMode(DEC_DIAG_PIN, INPUT);
     #endif
     #ifdef DEC_SERIAL_PORT
-        #if defined(ARDUINO_ARCH_RP2040)
-    DEC_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on the Philhower RP2040 core
-        #elif defined(OAE)
+        #ifdef OAE
     DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_RX_PIN, DEC_TX_PIN);
+        #elif defined(ARDUINO_ARCH_RP2040)
+    DEC_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
         #else
     DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
         #endif
@@ -315,7 +317,7 @@ void setup()
         #endif
         #ifdef AZ_SERIAL_PORT
             #if defined(ARDUINO_ARCH_RP2040)
-    AZ_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on the Philhower RP2040 core
+    AZ_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
             #else
     AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
             #endif
@@ -336,7 +338,7 @@ void setup()
         #endif
         #ifdef ALT_SERIAL_PORT
             #if defined(ARDUINO_ARCH_RP2040)
-    ALT_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on the Philhower RP2040 core
+    ALT_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
             #else
     ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
             #endif
@@ -355,7 +357,7 @@ void setup()
         #ifdef FOCUS_SERIAL_PORT
     LOG(DEBUG_FOCUS, "[FOCUS]: setup(): focus TMC2209U starting comms");
             #if defined(ARDUINO_ARCH_RP2040)
-    FOCUS_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on the Philhower RP2040 core
+    FOCUS_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
             #else
     FOCUS_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
             #endif
@@ -653,8 +655,9 @@ void setup()
 
 #else
     #ifndef NEW_STEPPER_LIB
-    // 2 kHz updates (higher frequency interferes with serial communications and complete messes up OATControl communications)
-    if (!InterruptCallback::setInterval(0.5f, stepperControlTimerCallback, &mount))
+    // Stepper servicing rate: 2 kHz on AVR (higher rates there interfere with serial
+    // communications and mess up OATControl), 5 kHz on RP2040 (see STEPPER_CONTROL_INTERVAL_MS).
+    if (!InterruptCallback::setInterval(STEPPER_CONTROL_INTERVAL_MS, stepperControlTimerCallback, &mount))
     {
         LOG(DEBUG_MOUNT, "[SYSTEM]: CANNOT setup interrupt timer!");
     }

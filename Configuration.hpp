@@ -64,10 +64,24 @@
         #define INFO_DISPLAY_I2C_ADDRESS 0x3C
     #endif
     #ifndef INFO_DISPLAY_I2C_SDA_PIN
-        #define INFO_DISPLAY_I2C_SDA_PIN 5
+        #if (BOARD == BOARD_RP2040_SKR_PICO)
+            // The SKR Pico has exactly one header-accessible I2C-capable GPIO pair:
+            // GP0/GP1 on the left-side header (shared with the default GPS wiring).
+            #define INFO_DISPLAY_I2C_SDA_PIN 0
+        #elif (BOARD == BOARD_RP2040_JACKW01)
+            #define INFO_DISPLAY_I2C_SDA_PIN 20
+        #else
+            #define INFO_DISPLAY_I2C_SDA_PIN 5
+        #endif
     #endif
     #ifndef INFO_DISPLAY_I2C_SCL_PIN
-        #define INFO_DISPLAY_I2C_SCL_PIN 4
+        #if (BOARD == BOARD_RP2040_SKR_PICO)
+            #define INFO_DISPLAY_I2C_SCL_PIN 1
+        #elif (BOARD == BOARD_RP2040_JACKW01)
+            #define INFO_DISPLAY_I2C_SCL_PIN 21
+        #else
+            #define INFO_DISPLAY_I2C_SCL_PIN 4
+        #endif
     #endif
     #ifndef INFO_DISPLAY_UPSIDE_DOWN
         #define INFO_DISPLAY_UPSIDE_DOWN 0
@@ -164,7 +178,12 @@
  * See Constants.hpp for predefined SERIAL_BAUDRATE options, or customize as required.
  */
 #ifndef SERIAL_BAUDRATE
-    #define SERIAL_BAUDRATE SERIAL_BAUDRATE_ASCOM
+    #if defined(ARDUINO_ARCH_RP2040)
+        // The 19200 ASCOM default exists because the 8-bit AVR platforms cannot keep up.
+        #define SERIAL_BAUDRATE SERIAL_BAUDRATE_FAST
+    #else
+        #define SERIAL_BAUDRATE SERIAL_BAUDRATE_ASCOM
+    #endif
 #endif
 
 /**
