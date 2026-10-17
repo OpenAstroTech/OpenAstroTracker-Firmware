@@ -37,8 +37,10 @@
 #define INFO_DISPLAY_MIRRORED    0
 
 // ── Stepper control interval ─────────────────────────────────────────────────
-// The RP2040 can handle a 10kHz stepper timer
-#define STEPPER_CONTROL_INTERVAL_MS 0.1f  // 10 kHz
+// 5 kHz is the RP2040 default (see Configuration_adv.hpp) and the bench-verified
+// rate. The RP2040 can also handle 10 kHz if you need faster step generation
+// (set 0.1f), but that is not part of the verified baseline.
+#define STEPPER_CONTROL_INTERVAL_MS 0.2f  // 5 kHz
 
 // ── Stepper motor types ───────────────────────────────────────────────────────
 #define RA_STEPPER_TYPE  STEPPER_TYPE_ENABLED
@@ -95,7 +97,7 @@
 #define AZ_MOTOR_HOLD_SETTING        15
 #define AZ_PULLEY_TEETH              20
 #define AZ_ROD_PITCH                 1.0f  // mm per full rev of stepper
-#define AZ_CIRCUMFERENCE             (115 * 2 * 3.1515927)
+#define AZ_CIRCUMFERENCE             (115 * 2 * 3.1415927)
 #define AZIMUTH_STEPS_PER_REV        (AZ_CIRCUMFERENCE / AZ_ROD_PITCH * AZ_STEPPER_SPR * AZ_MICROSTEPPING)  // Steps needed to turn AZ 360deg
 #define AZ_INVERT_DIR                1
 

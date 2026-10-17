@@ -158,8 +158,8 @@ The FAN1 header is switched by a MOSFET on GP17 and carries the VIN rail
 
 ## Not available by default on RP2040
 
-- **StallGuard driver autohome** (`USE_AUTOHOME`) - not supported on these
-  boards; use Hall sensor homing instead (the DIAG outputs are unused)
+- **StallGuard driver autohome** - not implemented in the OAT firmware on any
+  platform; use Hall sensor homing instead (the DIAG outputs are unused)
 - **LCD menu display** - `DISPLAY_TYPE` must be `DISPLAY_TYPE_NONE`
   (enforced at compile time)
 - **Gyro auto-leveling** - `USE_GYRO_LEVEL` must be 0

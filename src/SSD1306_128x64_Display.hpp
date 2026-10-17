@@ -1,7 +1,17 @@
 #pragma once
-PUSH_NO_WARNINGS
+// In PlatformIO builds the real pragma wrappers come from macros/gcc/Macros.hpp,
+// which is force-included via the -include build flag. Arduino IDE builds have no
+// such flag, and this header can be the first to use the macros (SSD1306_128x64_Display.cpp
+// includes it directly), so provide the same no-op fallbacks as inc/Globals.hpp.
+#if !defined(PUSH_NO_WARNINGS)
+    #define PUSH_NO_WARNINGS ;
+#endif
+#if !defined(POP_NO_WARNINGS)
+    #define POP_NO_WARNINGS ;
+#endif
 // The arduino-pico core headers (the Arduino.h chain) and the OLED library are not
 // warning-clean under our strict flag set (-Wshadow).
+PUSH_NO_WARNINGS
 #include <Arduino.h>
 #include "SSD1306Wire.h"
 POP_NO_WARNINGS

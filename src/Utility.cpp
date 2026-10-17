@@ -424,6 +424,12 @@ void logv(int levelFlags, String input, ...)
         line += formatArg(input.c_str(), argp);
         line += "\n";
         DEBUG_SERIAL_PORT.print(line);
+        #if !defined(ARDUINO_ARCH_RP2040)
+        // UART outputs drain from a ring buffer; flush so the tail of the log is not
+        // lost if the firmware crashes right after logging (matters for AVR debugging).
+        // On RP2040 the port is USB CDC, where flush() can stall without a reader.
+        DEBUG_SERIAL_PORT.flush();
+        #endif
     #endif
         lastLog = now;
         va_end(argp);
