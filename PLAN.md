@@ -142,12 +142,12 @@ The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adap
 
 1. ~~Add FFF as header-only dep~~ — **Superseded.** FakeIt (bundled with ArduinoFake) replaces FFF. No separate FFF needed.
 2. ~~Add `native_core` PIO env~~ — **Superseded.** Only the `native` env is used. The existing `native` env already has strict warnings (`-Wall -Wextra -Werror -Wpedantic -Wshadow`). Note: `src/core/README.md` still mentions `native_core` and needs updating.
-3. ✅ gcovr-based **coverage reporting** in `native` env — **Done.** `scripts/test-coverage.py` appends `--coverage` to `LINKFLAGS`; `build_src_flags` carries the compile-side flag. Reports (HTML + markdown) are produced by `./scripts/test-coverage.sh`. **There is no `coverage` PlatformIO target** — `pio run -e native -t coverage` fails with "unknown target". Current: 90.2% lines, 98.2% functions, 79.6% branches (357 test cases).
+3. ✅ gcovr-based **coverage reporting** in `native` env — **Done.** `scripts/test-coverage.py` appends `--coverage` to `LINKFLAGS`; `build_src_flags` carries the compile-side flag. Reports (HTML + markdown) are produced by `./scripts/test-coverage.sh`. **There is no `coverage` PlatformIO target** — `pio run -e native -t coverage` fails with "unknown target". Current: 90.2% lines, 98.2% functions, 79.6% branches (366 test cases).
 4. ✅ CI workflow — **Done.** `.github/workflows/ci.yml` runs `./scripts/test-coverage.sh` (which runs `pio test -e native`, then gcovr) and publishes `coverage.md` to the step summary. Threshold gating deferred to a later phase.
 5. ⬜ **ArduinoFake** as `test_lib_deps` — **NOT done.** Absent from `platformio.ini` (no `test_lib_deps` key, no ArduinoFake/FakeIt dependency). `unit_tests/test_common/ArduinoFake/` holds only six `CMakeLists.txt` files — no headers or sources — and no test uses FakeIt; all host tests use plain googletest. Required before Phase 2 can add adapter tests that fake the Arduino API.
 6. ✅ Folder structure — **Done.** `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` all exist with descriptive README files (they link to `specs/plan.md`, which does not exist in the repo).
 
-**Verify:** `./scripts/test-coverage.sh` → 357 test cases, 0 failures; coverage report generates; the 7-board CI matrix builds green via `matrix_build.py`.
+**Verify:** `./scripts/test-coverage.sh` → 366 test cases, 0 failures; coverage report generates; the 7-board CI matrix builds green via `matrix_build.py`.
 
 **Changes from original plan (per feedback):** FFF replaced by FakeIt (in ArduinoFake); `native_core` env eliminated (use `native` only); coverage threshold gating deferred to a later phase. **Open item:** ArduinoFake/FakeIt is still not wired up (item 5).
 
@@ -171,7 +171,7 @@ src/core/
 └── CoordinateFormatter.hpp/.cpp  # ✅ wired into Mount::RAString/DECString
 ```
 
-The `src/` originals become **thin overlays**: they `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`, `formatString`). This preserves back-compat — no flag day. **Status:** all seven steps are extracted, wired and tested — the `src/` originals no longer hold their own copies of the extracted logic.
+The `src/` originals become **thin overlays**: they `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`; `Declination` and `Longitude` also override `formatString` for their wire formats). This preserves back-compat — no flag day. **Status:** all seven steps are extracted, wired and tested — the `src/` originals no longer hold their own copies of the extracted logic.
 
 #### Step 1: DayTime — extract pure arithmetic subset ✅ DONE
 *Parallel with Steps 5, 7.*
@@ -201,7 +201,7 @@ All four inherit `DayTime`. Pure parts: `checkHours()` clamping, degree conversi
 `Sidereal.cpp` is 130 lines. The GPS path (`calculateByGPS`) uses TinyGPS++. The pure math (`calculateByDateAndTime`, `calculateHa`, `calculateTheta`, `calculateDeltaJd`) uses only `double` + `DayTime`.
 
 **Plan:**
-1. ✅ Create `src/core/SiderealClock.hpp/.cpp` — `calculateByDateAndTime` and `calculateHa` (plus `calculateTheta`/`calculateDeltaJd`/`calculateHaDegrees`).
+1. ✅ Create `src/core/SiderealClock.hpp/.cpp` — pure primitives `calculateTheta`/`calculateDeltaJd`/`calculateHaDegrees`; the `calculateByDateAndTime`/`calculateHa` entry points remain in `src/Sidereal.cpp` and compose them.
 2. ✅ Keep old `src/Sidereal.cpp` with `calculateByGPS` + thin wrappers delegating to `core::SiderealClock`.
 3. ✅ Create `test_core/test_sidereal.cpp` — LST/HA from known dates (equinoxes, solstices), leap years.
 
@@ -213,7 +213,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 **Plan:**
 1. ✅ Create `src/core/CoordinateMath.hpp/.cpp` with plain structs (`SlewGeometry`, `SlewResult`) and free function `calculateStepperPositions()`. `SlewResult` returns the three candidate solutions inline rather than via the out-parameters the original plan described.
 2. ✅ `Mount::calculateRAandDECSteppers()` fills a `SlewGeometry` and calls the free function. Rounding was reconciled to the legacy expressions — the candidate solutions truncate the hour delta to whole hours before scaling and the selected target scales the unrounded delta in float — so results are identical to the pre-refactor code. `SlewResult` also reports the selected candidate (`SlewSolution`) and the post-flip RA/DEC, letting `Mount` keep its `DEBUG_COORD_CALC` logs.
-3. ✅ Write `test_core/test_coordinate_math.cpp` — covers hemisphere, meridian-flip boundaries, pole targets, the reported solution, and the legacy rounding of the candidate solutions.
+3. ✅ Write `test_core/test_coordinate_math.cpp` — covers both flip directions, meridian-flip boundaries, pole targets (including a flipped pole target), the reported solution, and the legacy rounding of the candidate solutions.
 
 #### Step 5: Mount — extract calendar math ✅ DONE
 *Parallel with Steps 1, 7.*
@@ -244,7 +244,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 1. ✅ `src/hal/EepromLayout.hpp` holds the layout — magic markers, item flags, extended flags, item addresses and `SteppingStorageNormalized` — with no Arduino deps. It exposes them as `hal::eeprom` (a namespace rather than a struct, so the unscoped enumerators can be pulled into `EPROMStore.cpp` with one `using namespace` on pre-C++20 toolchains instead of being re-listed). `EEPROMStore`'s private `ItemFlag`/`ExtendedItemFlag`/`ItemAddress` are aliases of it, and `unit_tests/test_hal/test_eeprom_layout.cpp` pins every address, flag mask and the store size against the shipped V1.x layout.
 2. Full `IPersistentStore` port + adapter comes in Phase 2.
 
-**Verify:** `./scripts/test-coverage.sh` — all new tests pass (357 test cases); `pio run -e <board>` for every board env builds green per step; coverage shows ≥ 85% line coverage on new `core/` files (**met** — every Phase 1 module is ~100% except `core/meade/` at 87.0%); manual: mount slews to known coordinates on real hardware.
+**Verify:** `./scripts/test-coverage.sh` — all new tests pass (366 test cases); every board env builds green via the CI matrix (`python matrix_build.py -b <board>`; a bare `pio run -e <board>` needs an untracked `Configuration_local_*.hpp`); coverage shows ≥ 85% line coverage on new `core/` files (**met** — every Phase 1 module is ~100% except `core/meade/` at 87.0%); manual: mount slews to known coordinates on real hardware.
 
 ### Phase 2 — Introduce HAL, Ports & Adapters
 *Define the HAL surface, define the domain ports, and route current call sites through them. Keep current behavior bit-for-bit.*
@@ -339,7 +339,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - [`src/core/meade/`](src/core/meade/) — 17 files: parser, 12 family dispatchers, helpers, protocol spec, typed handler interfaces
 - [`unit_tests/test_core/meade/`](unit_tests/test_core/meade/) — 14 test files covering all parser families with fake handler stubs
 
-### Phase 1 targets — ✅ modules + tests done (wiring gaps noted above)
+### Phase 1 targets — ✅ modules, tests and wiring done
 - [`src/DayTime.cpp`](src/DayTime.cpp), [`src/DayTime.hpp`](src/DayTime.hpp) — pure arithmetic in `core/types/DayTime` (Step 1, wired)
 - [`src/Declination.cpp`](src/Declination.cpp), [`src/Latitude.cpp`](src/Latitude.cpp), [`src/Longitude.cpp`](src/Longitude.cpp), [`src/RightAscension.cpp`](src/RightAscension.cpp) — pure subsets in `core/types/` (Step 2, wired)
 - [`src/Sidereal.cpp`](src/Sidereal.cpp) — pure math in `core/SiderealClock` (Step 3, wired)
@@ -371,7 +371,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandProcessor::instance()->processCommand()`; becomes `SerialTransport` adapter.
 
 ### Infrastructure
-- [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` currently holds only a googletest `main()`). **ArduinoFake/FakeIt `test_lib_deps` is not configured yet.**
+- [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). **ArduinoFake/FakeIt `test_lib_deps` is not configured yet.**
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs `./scripts/test-coverage.sh` + publishes `coverage.md` to the step summary; builds 7 boards (ramps, mksgenlv1/v2/v21, esp32, rp2040_jackw01, rp2040_skr_pico).
 - [`unit_tests/test_common/`](unit_tests/test_common/) — expand with FakeIt-based port fakes for Phase 2+.
 - [`Configuration.hpp`](Configuration.hpp), [`Configuration_adv.hpp`](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 4.
@@ -381,8 +381,8 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 ## Verification strategy
 
 Automated:
-1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (357 test cases). `test_filter` = `test_core` + `test_hal` (covers `test_core/meade/` and `test_core/types/`).
-2. `pio run -e <board>` for every board env in `platformio.ini` (CI matrix: 7 boards) — must remain green every phase.
+1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (366 test cases). `test_filter` = `test_core` + `test_hal` (covers `test_core/meade/` and `test_core/types/`).
+2. Every board env in `platformio.ini` (CI matrix: 7 boards) builds green every phase via `matrix_build.py`, which supplies the generated configuration. A bare `pio run -e <board>` additionally needs the developer's untracked `Configuration_local_*.hpp`.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
 4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 4).
 

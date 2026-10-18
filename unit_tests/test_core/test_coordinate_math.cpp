@@ -90,6 +90,34 @@ TEST(CoordinateMathTest, BoundaryExactlyAtLimit)
     EXPECT_EQ(static_cast<long>(30.0f * 500.0f), result.targetDECSteps);
 }
 
+TEST(CoordinateMathTest, NorthPoleTarget)
+{
+    SlewGeometry geo  = makeGeo(3.0f, 90.0f, 2.0f);
+    SlewResult result = calculateStepperPositions(geo);
+
+    EXPECT_EQ(45000L, result.targetDECSteps);
+    EXPECT_FLOAT_EQ(90.0f, result.adjustedDEC);
+}
+
+TEST(CoordinateMathTest, SouthPoleTarget)
+{
+    SlewGeometry geo  = makeGeo(3.0f, -90.0f, 2.0f);
+    SlewResult result = calculateStepperPositions(geo);
+
+    EXPECT_EQ(-45000L, result.targetDECSteps);
+    EXPECT_FLOAT_EQ(-90.0f, result.adjustedDEC);
+}
+
+TEST(CoordinateMathTest, PoleTargetWithMeridianFlip)
+{
+    // Past the upper RA limit the DEC axis is inverted, pole targets included
+    SlewGeometry geo  = makeGeo(4.0f, 90.0f, 7.0f);
+    SlewResult result = calculateStepperPositions(geo);
+
+    EXPECT_EQ(-45000L, result.targetDECSteps);
+    EXPECT_FLOAT_EQ(-90.0f, result.adjustedDEC);
+}
+
 TEST(CoordinateMathTest, ReportsSelectedSolution)
 {
     EXPECT_EQ(core::SlewSolution::Direct, calculateStepperPositions(makeGeo(3.0f, 45.0f, 2.0f)).selected);
