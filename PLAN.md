@@ -120,14 +120,14 @@ The `MeadeCommandProcessor` adapter bridges the parser to the legacy `Mount` sin
 
 ### ✅ Completed: Phase 1 pure-logic extraction (modules + tests)
 
-All seven Phase 1 modules already exist under `src/core/`, plus `src/hal/EepromLayout.hpp`, and are covered by host tests — see the status markers on each Phase 1 step below. Pure arithmetic for `DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension` and `Sidereal` is fully extracted, and the `src/` originals are now thin overlays that delegate to `core/`.
+All seven Phase 1 modules exist under `src/core/`, plus `src/hal/EepromLayout.hpp`, and are covered by host tests — see the status markers on each Phase 1 step below. Pure arithmetic for `DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension` and `Sidereal` is fully extracted, and the `src/` originals are now thin overlays that delegate to `core/`.
 
-**Still open — the remaining wiring (Steps 4–7):**
+**Wiring is complete (Steps 4–7):**
 
-1. `Mount::calculateRAandDECSteppers()` still holds the original inline implementation and never calls `core::calculateStepperPositions()`. The `core` copy also rounds differently (`long` casts of the factors), so the two implementations can silently drift.
-2. `Mount::getLocalDate()` still contains the inline month-length/leap-year loop; only `core::localToUtcDate()` is wired in (used by `calculateLst`).
-3. `Mount::RAString()`/`DECString()` do not call `core::formatRA()`/`formatDEC()`; `CoordinateFormatter` is referenced only by its own test.
-4. `src/hal/EepromLayout.hpp` has **zero** references — `EPROMStore` keeps its own enums, and `hal/` is not in the `native` `build_src_filter`, so the header is never compiled or tested.
+1. ✅ `Mount::calculateRAandDECSteppers()` now builds a `core::SlewGeometry`, calls `core::calculateStepperPositions()`, and copies the result back. Rounding was reconciled to the legacy expressions (`long(-moveRA) * stepsPerSiderealHour`, product truncated on assignment) so the refactor is bit-for-bit identical; `SlewResult` now reports which candidate was selected (`SlewSolution`) plus the post-flip RA/DEC, so `Mount` keeps its existing `DEBUG_COORD_CALC` logs. Pinned by unit tests.
+2. ✅ `Mount::getLocalDate()` now converts the elapsed day-ends into a whole-day count and calls `core::addDays()`; the inline month-length/leap-year loop is gone.
+3. ✅ `Mount::RAString()`/`DECString()` call `core::formatRA()`/`core::formatDEC()`. `formatRA` gained a `bufSize` argument (it previously hard-coded `snprintf(..., 32, ...)` against `Mount`'s 24-byte `scratchBuffer`) and no longer forces `abs()`, matching the legacy `sprintf` output exactly.
+4. ✅ `src/hal/EepromLayout.hpp` is now the single source of truth for magic markers, item flags, item addresses and `SteppingStorageNormalized`. It exposes them as `hal::eeprom::*` (a namespace rather than a struct, so unscoped enumerators can be brought into `EPROMStore.cpp` with one `using namespace` on pre-C++20 toolchains), `EEPROMStore`'s private aliases point at it, and `test_hal/test_eeprom_layout.cpp` pins the on-device layout on the host.
 
 ### What remains (Phase 2 onward)
 
@@ -142,16 +142,16 @@ The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adap
 
 1. ~~Add FFF as header-only dep~~ — **Superseded.** FakeIt (bundled with ArduinoFake) replaces FFF. No separate FFF needed.
 2. ~~Add `native_core` PIO env~~ — **Superseded.** Only the `native` env is used. The existing `native` env already has strict warnings (`-Wall -Wextra -Werror -Wpedantic -Wshadow`). Note: `src/core/README.md` still mentions `native_core` and needs updating.
-3. ✅ gcovr-based **coverage reporting** in `native` env — **Done.** `scripts/test-coverage.py` appends `--coverage` to `LINKFLAGS`; `build_src_flags` carries the compile-side flag. Reports (HTML + markdown) are produced by `./scripts/test-coverage.sh`. **There is no `coverage` PlatformIO target** — `pio run -e native -t coverage` fails with "unknown target". Current: 90.2% lines, 98.2% functions, 79.6% branches (342 test cases).
+3. ✅ gcovr-based **coverage reporting** in `native` env — **Done.** `scripts/test-coverage.py` appends `--coverage` to `LINKFLAGS`; `build_src_flags` carries the compile-side flag. Reports (HTML + markdown) are produced by `./scripts/test-coverage.sh`. **There is no `coverage` PlatformIO target** — `pio run -e native -t coverage` fails with "unknown target". Current: 90.2% lines, 98.2% functions, 79.6% branches (357 test cases).
 4. ✅ CI workflow — **Done.** `.github/workflows/ci.yml` runs `./scripts/test-coverage.sh` (which runs `pio test -e native`, then gcovr) and publishes `coverage.md` to the step summary. Threshold gating deferred to a later phase.
 5. ⬜ **ArduinoFake** as `test_lib_deps` — **NOT done.** Absent from `platformio.ini` (no `test_lib_deps` key, no ArduinoFake/FakeIt dependency). `unit_tests/test_common/ArduinoFake/` holds only six `CMakeLists.txt` files — no headers or sources — and no test uses FakeIt; all host tests use plain googletest. Required before Phase 2 can add adapter tests that fake the Arduino API.
 6. ✅ Folder structure — **Done.** `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` all exist with descriptive README files (they link to `specs/plan.md`, which does not exist in the repo).
 
-**Verify:** `./scripts/test-coverage.sh` → 342 test cases, 0 failures; coverage report generates; the 7-board CI matrix builds green via `matrix_build.py`.
+**Verify:** `./scripts/test-coverage.sh` → 357 test cases, 0 failures; coverage report generates; the 7-board CI matrix builds green via `matrix_build.py`.
 
 **Changes from original plan (per feedback):** FFF replaced by FakeIt (in ArduinoFake); `native_core` env eliminated (use `native` only); coverage threshold gating deferred to a later phase. **Open item:** ArduinoFake/FakeIt is still not wired up (item 5).
 
-### Phase 1 — Extract pure domain logic into `core/`, then test — ✅ modules done, ⚠️ partly wired
+### Phase 1 — Extract pure domain logic into `core/`, then test — ✅ COMPLETE
 *The original plan called for testing before extraction. That doesn't work here: every `src/` root file includes `inc/Globals.hpp` → `<Arduino.h>`, and uses `String`/`LOG()`/Arduino APIs. The `native` PIO env only builds `core/`, `ports/`, `adapters/` — not `src/` root files. **New approach: extract pure subsets into `core/` first, then write exhaustive tests.** Each step is independently shippable. No behavior change.*
 
 **Structure:** Data containers (`DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension`) go under `src/core/types/`. Algorithm modules (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`) live at `src/core/` root. EEPROM layout constants (`EepromLayout`) live in `src/hal/` — they describe a storage format, not domain behavior.
@@ -166,12 +166,12 @@ src/core/
 │   ├── Longitude.hpp/.cpp
 │   └── RightAscension.hpp/.cpp
 ├── SiderealClock.hpp/.cpp        # ✅ algorithm producing DayTime outputs
-├── CoordinateMath.hpp/.cpp       # ⚠️ module + tests done, Mount not wired
-├── CalendarMath.hpp/.cpp         # ⚠️ module + tests done, only localToUtcDate wired
-└── CoordinateFormatter.hpp/.cpp  # ⚠️ module + tests done, Mount not wired
+├── CoordinateMath.hpp/.cpp       # ✅ wired into Mount::calculateRAandDECSteppers
+├── CalendarMath.hpp/.cpp         # ✅ wired into Mount::calculateLst + Mount::getLocalDate
+└── CoordinateFormatter.hpp/.cpp  # ✅ wired into Mount::RAString/DECString
 ```
 
-The `src/` originals become **thin overlays**: they `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`, `formatString`). This preserves back-compat — no flag day. **Status:** done for Steps 1–3; Steps 4–7 have the `core/` module and tests, but the `src/` originals still contain their own logic.
+The `src/` originals become **thin overlays**: they `#include` the `core/` version and add only Arduino-dependent methods (`ParseFromMeade`, `ToString`, `formatString`). This preserves back-compat — no flag day. **Status:** all seven steps are extracted, wired and tested — the `src/` originals no longer hold their own copies of the extracted logic.
 
 #### Step 1: DayTime — extract pure arithmetic subset ✅ DONE
 *Parallel with Steps 5, 7.*
@@ -205,46 +205,46 @@ All four inherit `DayTime`. Pure parts: `checkHours()` clamping, degree conversi
 2. ✅ Keep old `src/Sidereal.cpp` with `calculateByGPS` + thin wrappers delegating to `core::SiderealClock`.
 3. ✅ Create `test_core/test_sidereal.cpp` — LST/HA from known dates (equinoxes, solstices), leap years.
 
-#### Step 4: Mount — extract `calculateRAandDECSteppers` math ✅ module + tests, ❌ Mount not wired
+#### Step 4: Mount — extract `calculateRAandDECSteppers` math ✅ DONE
 *Depends on Steps 1-2.*
 
 The ~200-line function computes stepper positions from RA/DEC targets. Core math is pure arithmetic on floats/longs (hemisphere, meridian flip, 3-solution selection).
 
 **Plan:**
 1. ✅ Create `src/core/CoordinateMath.hpp/.cpp` with plain structs (`SlewGeometry`, `SlewResult`) and free function `calculateStepperPositions()`. `SlewResult` returns the three candidate solutions inline rather than via the out-parameters the original plan described.
-2. ❌ `Mount::calculateRAandDECSteppers()` **still contains its own copy** of the algorithm — it never fills a `SlewGeometry` or calls the free function. When wiring it up, reconcile the rounding first: `core` casts to `long` *before* multiplying (`long(-moveRA) * long(stepsPerSiderealHour)`), while `Mount` multiplies in float and casts the product.
-3. ✅ Write `test_core/test_coordinate_math.cpp` — covers hemisphere, meridian-flip boundaries, pole targets.
+2. ✅ `Mount::calculateRAandDECSteppers()` fills a `SlewGeometry` and calls the free function. Rounding was reconciled to the legacy expressions — the candidate solutions truncate the hour delta to whole hours before scaling and the selected target scales the unrounded delta in float — so results are identical to the pre-refactor code. `SlewResult` also reports the selected candidate (`SlewSolution`) and the post-flip RA/DEC, letting `Mount` keep its `DEBUG_COORD_CALC` logs.
+3. ✅ Write `test_core/test_coordinate_math.cpp` — covers hemisphere, meridian-flip boundaries, pole targets, the reported solution, and the legacy rounding of the candidate solutions.
 
-#### Step 5: Mount — extract calendar math ✅ module + tests, ⚠️ only `localToUtcDate` wired
+#### Step 5: Mount — extract calendar math ✅ DONE
 *Parallel with Steps 1, 7.*
 
 `Mount::getLocalDate()` handles year/month/day increment with month-length tables and leap-year logic. Pure integer math.
 
 **Plan:**
 1. ✅ Create `src/core/CalendarMath.hpp/.cpp` with `struct CalendarDate`, `addDays()` and `localToUtcDate()`.
-2. ⚠️ Only `localToUtcDate()` is wired (in `Mount::calculateLst`). `Mount::getLocalDate()` **still has its own inline** month-length/leap-year loop.
+2. ✅ `localToUtcDate()` is used by `Mount::calculateLst`, and `Mount::getLocalDate()` now folds the elapsed day-ends into a whole-day count and delegates to `core::addDays()` — the inline month-length/leap-year loop is gone.
 3. ✅ Write `test_core/test_calendar.cpp` — month boundaries, leap years incl. century rules.
 
-#### Step 6: Mount — extract coordinate formatting ✅ module + tests, ❌ Mount not wired
+#### Step 6: Mount — extract coordinate formatting ✅ DONE
 *Depends on Steps 1-2.*
 
 `Mount::RAString()` and `Mount::DECString()` format RA as HH:MM:SS# and DEC as sDD*MM:SS#. Pure char-buffer manipulation.
 
 **Plan:**
-1. ✅ Create `src/core/CoordinateFormatter.hpp/.cpp` with `formatRA(char*, const RightAscension&, const char*)` and `formatDEC(char*, const Declination&, const char*)`.
-2. ❌ `Mount::RAString()`/`DECString()` do **not** call the formatter — they still format inline (`sprintf` / `Declination::formatString`).
+1. ✅ Create `src/core/CoordinateFormatter.hpp/.cpp` with `formatRA(char*, size_t, const core::DayTime&, const char*)` and `formatDEC(char*, const Declination&, const char*)`. `formatRA` takes the buffer capacity because it previously hard-coded `snprintf(..., 32, ...)` while `Mount::scratchBuffer` is only 24 bytes.
+2. ✅ `Mount::RAString()`/`DECString()` call the formatter. `formatRA` no longer forces `abs()` on the hours, so output matches the legacy `sprintf` byte-for-byte (including a negative-hours edge case) and DEC still dispatches through the virtual `Declination::formatString`.
 3. ✅ Write `test_core/test_coordinate_formatter.cpp` — exact wire-byte output, sign rules, zero-padding.
 
-#### Step 7: EPROMStore — extract validation logic ✅ header exists, ❌ unreferenced
+#### Step 7: EPROMStore — extract validation logic ✅ DONE
 *Parallel with Steps 1, 5.*
 
 `EPROMStore` uses Arduino EEPROM API directly. Data-validation logic (magic markers `0xCE`/`0xCF`, struct layouts) is separable.
 
 **Plan:**
-1. ✅ Create `src/hal/EepromLayout.hpp` — struct definitions and validation constants (no Arduino deps; EEPROM layout is a storage format, not domain logic). **Currently unreferenced:** `EPROMStore` keeps its own enums, and `hal/` is not in the `native` `build_src_filter`, so the header is never compiled or tested.
+1. ✅ `src/hal/EepromLayout.hpp` holds the layout — magic markers, item flags, extended flags, item addresses and `SteppingStorageNormalized` — with no Arduino deps. It exposes them as `hal::eeprom` (a namespace rather than a struct, so the unscoped enumerators can be pulled into `EPROMStore.cpp` with one `using namespace` on pre-C++20 toolchains instead of being re-listed). `EEPROMStore`'s private `ItemFlag`/`ExtendedItemFlag`/`ItemAddress` are aliases of it, and `unit_tests/test_hal/test_eeprom_layout.cpp` pins every address, flag mask and the store size against the shipped V1.x layout.
 2. Full `IPersistentStore` port + adapter comes in Phase 2.
 
-**Verify:** `./scripts/test-coverage.sh` — all new tests pass (342 test cases); `pio run -e <board>` for every board env builds green per step; coverage shows ≥ 85% line coverage on new `core/` files (**met** — every Phase 1 module is ~100% except `core/meade/` at 87.0%); manual: mount slews to known coordinates on real hardware.
+**Verify:** `./scripts/test-coverage.sh` — all new tests pass (357 test cases); `pio run -e <board>` for every board env builds green per step; coverage shows ≥ 85% line coverage on new `core/` files (**met** — every Phase 1 module is ~100% except `core/meade/` at 87.0%); manual: mount slews to known coordinates on real hardware.
 
 ### Phase 2 — Introduce HAL, Ports & Adapters
 *Define the HAL surface, define the domain ports, and route current call sites through them. Keep current behavior bit-for-bit.*
@@ -343,8 +343,8 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - [`src/DayTime.cpp`](src/DayTime.cpp), [`src/DayTime.hpp`](src/DayTime.hpp) — pure arithmetic in `core/types/DayTime` (Step 1, wired)
 - [`src/Declination.cpp`](src/Declination.cpp), [`src/Latitude.cpp`](src/Latitude.cpp), [`src/Longitude.cpp`](src/Longitude.cpp), [`src/RightAscension.cpp`](src/RightAscension.cpp) — pure subsets in `core/types/` (Step 2, wired)
 - [`src/Sidereal.cpp`](src/Sidereal.cpp) — pure math in `core/SiderealClock` (Step 3, wired)
-- [`src/Mount.cpp`](src/Mount.cpp) — `calculateRAandDECSteppers` → `core/CoordinateMath` (Step 4, **not wired**), `getLocalDate` → `core/CalendarMath::addDays` (Step 5, **not wired**), `RAString`/`DECString` → `core/CoordinateFormatter` (Step 6, **not wired**)
-- [`src/EPROMStore.cpp`](src/EPROMStore.cpp) — validation constants in `hal/EepromLayout.hpp` (Step 7, **unreferenced**)
+- [`src/Mount.cpp`](src/Mount.cpp) — `calculateRAandDECSteppers` → `core/CoordinateMath` (Step 4, wired), `getLocalDate` → `core/CalendarMath::addDays` (Step 5, wired), `RAString`/`DECString` → `core/CoordinateFormatter` (Step 6, wired)
+- [`src/EPROMStore.cpp`](src/EPROMStore.cpp) / [`src/EPROMStore.hpp`](src/EPROMStore.hpp) — layout constants sourced from `hal/EepromLayout.hpp` (Step 7, wired)
 
 ### New files created in Phase 1
 - `src/core/types/DayTime.hpp`, `src/core/types/DayTime.cpp`
@@ -356,11 +356,11 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - `src/core/CoordinateMath.hpp`, `src/core/CoordinateMath.cpp`
 - `src/core/CalendarMath.hpp`, `src/core/CalendarMath.cpp`
 - `src/core/CoordinateFormatter.hpp`, `src/core/CoordinateFormatter.cpp`
-- `src/hal/EepromLayout.hpp` (currently unreferenced)
+- `src/hal/EepromLayout.hpp` (definition of the on-device EEPROM layout, used by `EPROMStore`)
 - `unit_tests/test_core/types/test_daytime.cpp`, `test_declination.cpp`, `test_latitude.cpp`, `test_longitude.cpp`, `test_right_ascension.cpp`
 - `unit_tests/test_core/test_sidereal.cpp`, `test_coordinate_math.cpp`, `test_calendar.cpp`, `test_coordinate_formatter.cpp`
 - `unit_tests/test_core/test_main.cpp` (googletest main)
-- `unit_tests/test_hal/test_main.cpp` (placeholder group; currently contains 0 test cases)
+- `unit_tests/test_hal/test_main.cpp` (googletest main) and `unit_tests/test_hal/test_eeprom_layout.cpp` (9 EEPROM layout tests)
 
 ### Phase 2 targets
 - [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/Gyro.cpp`](src/Gyro.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/WifiControl.cpp`](src/WifiControl.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp) — become adapters behind ports.
@@ -381,7 +381,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 ## Verification strategy
 
 Automated:
-1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (342 test cases). `test_filter` = `test_core` + `test_hal` (covers `test_core/meade/` and `test_core/types/`).
+1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (357 test cases). `test_filter` = `test_core` + `test_hal` (covers `test_core/meade/` and `test_core/types/`).
 2. `pio run -e <board>` for every board env in `platformio.ini` (CI matrix: 7 boards) — must remain green every phase.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
 4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 4).
