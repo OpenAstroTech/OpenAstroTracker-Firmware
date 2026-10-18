@@ -247,37 +247,63 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 **Verify:** `./scripts/test-coverage.sh` — all new tests pass (366 test cases); every board env builds green via the CI matrix (`python matrix_build.py -b <board>`; a bare `pio run -e <board>` needs an untracked `Configuration_local_*.hpp`); coverage shows ≥ 85% line coverage on new `core/` files (**met** — every Phase 1 module is ~100% except `core/meade/` at 87.0%); manual: mount slews to known coordinates on real hardware.
 
 ### Phase 2 — Introduce HAL, Ports & Adapters
-*Define the HAL surface, define the domain ports, and route current call sites through them. Keep current behavior bit-for-bit.*
+*Define the HAL surface, define the domain ports, and start routing current call sites through them. Keep current behavior bit-for-bit. Split into three independently shippable sub-phases: **2a** contracts (no production change), **2b** adapters + `Mount` injection, **2c** call-site cleanup.*
+
+**Blocking prerequisite:** Phase 0 item 5 — ArduinoFake/FakeIt must be wired up (`test_lib_deps` plus real sources under `unit_tests/test_common/ArduinoFake/`). Without it neither Arduino-API fakes nor the adapter integration tests required by ARCHITECTURE.md can be written.
+
+**Calibration facts (measured on the current tree):** `Mount.cpp` is 4,361 LOC with 116 public methods and contains **274 `LOG()` sites (273 literal formats totalling 13,857 bytes, currently kept in PROGMEM via `F()`), 47 `EEPROMStore::` sites, 21 `millis()`, 19 `digitalWrite()`, 184 TMC-driver calls and ~150 stepper-axis calls**. The global is defined in `src/b_setup.hpp` (`Mount mount(&lcdMenu);`); the only `extern Mount mount;` is in `src/testmenu.cpp`. Stepping has **three** concurrency models, not two (step 9).
+
+#### 2a — Contracts (no production changes)
 
 1. Define **HAL interfaces** in `src/hal/`:
    - `IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`,
-   - `IStepperMotor` (step/dir pulses, microstep config), `ITmcDriver` (UART register IO),
+   - `IStepperMotor`, `ITmcDriver` (UART register IO),
    - `IOledPanel`, `ICharLcd`, `IButtonMatrix`,
-   - `ITimerService` (periodic/one-shot callbacks, used by interrupt stepper), `ISystemClock` (`millis`/`micros`),
+   - `ITimerService` (periodic/one-shot callbacks), `ISystemClock` (`millis`/`micros`),
    - `IWifiStack`.
-2. Implement HAL backends:
+   - **Decide `IStepperMotor`'s level first.** Either it exposes step/dir pulses + microstep config (then `AccelStepperAxis` owns the acceleration engine), or it is the motion engine itself. [`src/adapters/README.md`](src/adapters/README.md) assumes the latter (`setTargetSteps`/`startMotion`/`currentSteps`/`isRunning`); the description above assumes the former. The choice determines whether `AccelStepperAxis` can be host-compiled at all.
+2. Implement HAL backends (headers stay Arduino-free; each backend directory compiles only for its platform):
    - `hal/arduino/` — generic Arduino implementation (`ArduinoGpioPin`, `ArduinoSerialPort`, `ArduinoEeprom`, `ArduinoSystemClock`, …).
-   - `hal/avr/` — AVR-specific bits (Timer1/Timer3 interrupt service, fast pin IO).
+   - `hal/avr/` — AVR-specific bits: the vendored `InterruptStepper` bindings now in [`src/StepperConfiguration.hpp`](src/StepperConfiguration.hpp) and [`src/InterruptAccelStepper.h`](src/InterruptAccelStepper.h), the Timer1/3/4/5 ISR vectors in [`src/Core.cpp`](src/Core.cpp), and the Timer2 path in [`src/InterruptCallback.cpp`](src/InterruptCallback.cpp).
+   - `hal/rp2040/` — RP2040-specific: the `add_repeating_timer_us` alarm ISR in [`src/InterruptCallback.cpp`](src/InterruptCallback.cpp) (`TimerInterrupt` is already `lib_ignore`d for those envs).
    - `hal/esp32/` — ESP32-specific (hardware timers, Wi-Fi stack glue).
-   - `unit_tests/test_common/hal_fakes/` — pure C++ test fakes (in-memory EEPROM, virtual GPIO, controllable clock, fake serial). Lives in test code, **not** in `src/`. Complements ArduinoFake (ArduinoFake handles the Arduino API layer; hal_fakes handles custom HAL interfaces).
+   - `unit_tests/test_common/hal_fakes/` — pure C++ fakes (in-memory EEPROM, virtual GPIO, controllable clock, fake serial). Test code only, **not** in `src/`.
 3. Define domain **ports** in `src/ports/`:
    - `IClock`, `ILogger`, `IPersistentStore`,
-   - `IStepperAxis` (position, target, speed, accel, run, stop, isRunning, `Snapshot()` for ISR safety),
-   - `IMotorDriver` (enable/disable, microsteps, current; null implementation for non-TMC),
-   - `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay`, `ITransport`, `IGps`.
-4. Provide **adapters** in `src/adapters/` that bind ports to HAL:
-   - `ArduinoClock` (port `IClock` ← hal `ISystemClock`), `SerialLogger`, `EepromPersistentStore`,
-   - `AccelStepperAxis`, `InterruptAccelStepperAxis` (use `hal::ITimerService` + `hal::IStepperMotor`),
-   - `Tmc2209Driver` (UART + standalone variants over `hal::ISerialPort`), `NullMotorDriver`,
-   - `HallHomingSensor`, `GpioEndSwitch` (over `hal::IGpioPin`),
-   - `LcdMenuDisplay`, `Ssd1306InfoDisplay` (over `hal::IOledPanel` / `hal::ICharLcd`),
-   - `SerialTransport`, `WifiTransport` (over `hal::ISerialPort` / `hal::IWifiStack`),
-   - `TinyGpsAdapter`.
-5. Refactor `Mount` to **hold port pointers** (`IStepperAxis* _ra; IClock* _clock; ...`) injected at construction instead of owning concrete types. Composition happens in `app/` (currently `b_setup.hpp`). **Migration note:** `Mount` is currently accessed as a global (`extern Mount mount;` from `a_inits.hpp`). Call sites that use `mount.xxx()` will be updated to receive a pointer/reference. This uses the same thin-overlay pattern as Phase 1 — existing call sites delegate through the global during transition, then migrate to injected references when their owning module becomes an adapter.
-6. Replace direct `millis()`, `digitalWrite()`, `EEPROMStore::` calls inside `Mount` with port calls; replace `LOG()` macro with `_logger->log(...)`.
-7. **ISR contract for `IStepperAxis`:** This phase MUST settle the threading model. `Mount::interruptLoop()` is called from ISR context (AVR Timer ISR / ESP32 FreeRTOS task). The `IStepperAxis` interface must specify which methods are ISR-safe and which are main-loop-only. `Snapshot()` provides an ISR-safe state read. This contract is a prerequisite for Phase 3's `SlewController`.
+   - `IStepperAxis` — sized to the real call surface: `currentPosition`, `setCurrentPosition`, `targetPosition`, `distanceToGo`, `move`, `moveTo`, `runToNewPosition`, `runToPosition`, `run`, `runSpeed`, `stop`, `isRunning`, `setMaxSpeed`, `maxSpeed`, `setAcceleration`, `setSpeed`, `speed`, `setPinsInverted`, plus the ISR-safe `Snapshot()`. Keep the existing two-instances-per-axis split (RA slew + tracking, DEC slew + guide).
+   - `IMotorDriver` — sized to the real call surface: `beginSerial`/`begin`, `microsteps`, `rms_current`, `toff`, `blank_time`, `vsense`, `semin`, `iholddelay`, `TPOWERDOWN`, `TCOOLTHRESH`, `SGTHRS`, `en_spreadCycle`, `pdn_disable`, `mstep_reg_select`, `I_scale_analog`, `fclktrim`, `cs_actual`; null implementation for non-TMC.
+   - `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay`, `ITransport`, `IGps`, `IGyro`.
+4. Update **`platformio.ini`**: the `native` env compiles *all* of `src/adapters/`, so either every adapter must be host-compilable or `build_src_filter` needs per-file exclusions for Arduino-dependent adapters. Also add a test filter/directory so adapter tests actually run (today only `test_core` + `test_hal` are filtered).
 
-**Verify:** All Phase 1 tests still green; firmware builds all board envs (toolchain enforces flash limits).
+**Verify (2a):** `pio test -e native` green; board builds unchanged (nothing references the new interfaces yet).
+
+#### 2b — Adapters + `Mount` injection
+
+5. Provide **adapters** in `src/adapters/` that bind ports to HAL. Only adapters with no upward dependency on the legacy `Mount` (and no Phase 5 dependency) belong here:
+   - `ArduinoClock` (port `IClock` ← hal `ISystemClock`), `SerialLogger`, `EepromPersistentStore` (the [`src/EPROMStore.cpp`](src/EPROMStore.cpp) layout logic moves in; `EEPROMStore` survives as a thin static overlay over the injected `IPersistentStore` while menus and `b_setup` still call it),
+   - `AccelStepperAxis`, `InterruptAccelStepperAxis`,
+   - `Tmc2209Driver` (UART + standalone variants over `hal::ISerialPort`), `NullMotorDriver`,
+   - `TinyGpsAdapter` — define it, but note its only consumer today is the out-of-scope [`src/c72_menuHA_GPS.hpp`](src/c72_menuHA_GPS.hpp) plus a forward-declared `gpsAqcuisitionComplete()` in [`src/MeadeCommandProcessor.cpp`](src/MeadeCommandProcessor.cpp); the real consumer arrives in Phase 5.
+   - **Deferred to Phase 3** (they call `Mount` today and would violate "adapters depend only on ports + HAL"): `HallHomingSensor` (~11 Mount calls), `GpioEndSwitch` (~9 Mount calls), `Ssd1306InfoDisplay` (~16 Mount getters), `LcdMenuDisplay` (the menu screens call `mount.*` 170+ times and instantiate LiquidCrystal/U8g2 inside [`src/LcdMenu.hpp`](src/LcdMenu.hpp)). Phase 3's `HomingController`/`EventBus` supplies the read model they need.
+   - **Deferred to Phase 5:** `SerialTransport` and `WifiTransport` (Phase 5 step 2 introduces both; they feed `core/meade/MeadeParser` and need the Meade execution layer). Their ports (`ITransport`, `IDisplay`, `IInfoDisplay`) are still defined in 2a and stay unimplemented until then.
+6. Refactor `Mount` to **hold port pointers** (`IStepperAxis* _ra; IClock* _clock; ...`) injected at construction instead of owning concrete types. Composition happens in `app/` (currently `b_setup.hpp`). **Migration note:** the global is defined in [`src/b_setup.hpp`](src/b_setup.hpp) (`Mount mount(&lcdMenu);`); the only `extern Mount mount;` is in [`src/testmenu.cpp`](src/testmenu.cpp). Existing `mount.xxx()` call sites keep working through that global — no call-site flag day. The step is atomic *inside* `Mount` (member types change together); keep the `new` sites in `setupRA()`/`setupRADriver()`/`setupHoming()`/`setupEndSwitches()` as the seam until they move into `app/`.
+7. **`Mount::delay()`** ([`src/Mount.cpp`](src/Mount.cpp)) re-enters `loop()` and calls `yield()`. Give it its own decision (IClock + a yield/scheduler port, or move it into the app layer) — do not fold it into the generic `millis()` replacement.
+
+**Verify (2b):** adapter tests run against `hal_fakes`; all prior tests green; every board env builds; manual smoke: slew, park/unpark, guide pulses (same objects, same behaviour).
+
+#### 2c — Call-site cleanup
+
+8. Replace `millis()`, `digitalWrite()` and `EEPROMStore::` calls inside `Mount` with port calls. For `LOG()`: **the AVR RAM budget forbids a naive `_logger->log(level, "literal", ...)`** — the 273 format literals (13.9 KB) would move from PROGMEM into `.data` on an 8 KB-SRAM ATmega2560. Settle the `ILogger` contract first: it must preserve PROGMEM on AVR (opaque format type, adapter-side `F()` expansion, or a string table). Only then migrate the 274 call sites.
+9. **ISR contract for `IStepperAxis`:** this phase MUST settle the threading model. There are three:
+   - **AVR + `NEW_STEPPER_LIB`** (ramps, oae): `Mount::interruptLoop()` is **compiled out** ([`src/Mount.cpp`](src/Mount.cpp)); the vendored `InterruptStepper` ISR steps autonomously and `run()`/`runSpeed()` are stubs. `IStepperAxis` mutation is main-loop-only; reads must go through `Snapshot()`.
+   - **ESP32**: `stepperControlTask` on core 0 calls `interruptLoop()` in a tight loop ([`src/b_setup.hpp`](src/b_setup.hpp)).
+   - **RP2040 / AVR without `NEW_STEPPER_LIB`**: `InterruptCallback` invokes `interruptLoop()` from a hardware timer ISR (2 kHz AVR, 5 kHz RP2040).
+   The contract must also cover `_mountStatus` (a `volatile int`, non-atomic on AVR) and must define timer arbitration: timers are shared, not per-axis (Timer3 = RA slew + track, Timer4 = DEC slew + guide, Timer1 = AZ, Timer5 = ALT *and* Focus). This contract is a prerequisite for Phase 3's `SlewController`.
+10. The feature `#if`s inside `interruptLoop()` stay as-is until Phase 4.
+
+**Verify (2c):** all Phase 1 tests green; new adapter tests green; every board env builds; **record flash and SRAM before/after on `ramps`** (the AVR budget is the binding constraint for the `ILogger` change); the manual smoke checklist from "Verification strategy" passes (slew, park, guide, home).
+
+**Doc sync:** ARCHITECTURE.md §3/§4 must gain `hal/rp2040/` and `IGyro`, and must show the hall/end-switch/display adapters as Phase 3 rather than Phase 2.
 
 ### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
@@ -363,8 +389,10 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - `unit_tests/test_hal/test_main.cpp` (googletest main) and `unit_tests/test_hal/test_eeprom_layout.cpp` (9 EEPROM layout tests)
 
 ### Phase 2 targets
-- [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/Gyro.cpp`](src/Gyro.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/WifiControl.cpp`](src/WifiControl.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp) — become adapters behind ports.
-- [`src/Core.cpp`](src/Core.cpp), [`src/a_inits.hpp`](src/a_inits.hpp), [`src/b_setup.hpp`](src/b_setup.hpp), [`src/f_serial.hpp`](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
+- [`src/Gyro.cpp`](src/Gyro.cpp) — behind a new `IGyro` port (MPU6050 access goes through `hal::II2cBus`).
+- [`src/Core.cpp`](src/Core.cpp), [`src/InterruptCallback.cpp`](src/InterruptCallback.cpp), [`src/StepperConfiguration.hpp`](src/StepperConfiguration.hpp), [`src/InterruptAccelStepper.h`](src/InterruptAccelStepper.h) — board-specific timer/ISR code moves into `src/hal/avr/` and `src/hal/rp2040/`.
+- [`src/a_inits.hpp`](src/a_inits.hpp), [`src/b_setup.hpp`](src/b_setup.hpp), [`src/f_serial.hpp`](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
+- Deferred to Phase 3 (they still call `Mount` directly): [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp). Deferred to Phase 5: [`src/WifiControl.cpp`](src/WifiControl.cpp).
 
 ### Phase 5 targets
 - [`src/MeadeCommandProcessor.cpp`](src/MeadeCommandProcessor.cpp), [`src/MeadeCommandProcessor.hpp`](src/MeadeCommandProcessor.hpp) — adapter already bridges parser to `Mount`; move to `src/adapters/` and wire through ports.
@@ -401,7 +429,7 @@ Manual smoke checklist (per shippable phase end):
 - **Migration style:** **Hybrid** — extract pure logic first (Phase 1), then strangler-fig hardware-coupled layers (Phase 2–5).
 - **Config flags:** Migrate to **runtime polymorphism behind interfaces**; composition root reads the `Configuration*.hpp` macros once. `core/` becomes `#ifdef`-free for features.
 - **Optional axes:** Use `etl::optional` (from Embedded Template Library) — not `std::optional`. The firmware builds with `-D ETL_NO_STL` on AVR targets. `core/` uses `etl::optional` for consistency across all build targets. **Open:** ETL is not currently a `lib_deps` entry anywhere (`src/libs/` holds only `MappedDict` and `TimerInterrupt`) and nothing uses `etl::` yet — ETL must be added to both the board and `native` envs before Phase 4 relies on it.
-- **Mount global migration:** `Mount` is currently a global variable (`extern Mount mount;` in `a_inits.hpp`). Call sites that use `mount.xxx()` will be migrated using the thin-overlay pattern: existing code delegates through the global during transition; when a module becomes a proper adapter (Phase 2+), it receives injected references instead. No flag day needed.
+- **Mount global migration:** `Mount` is currently a global variable (defined as `Mount mount(&lcdMenu);` in `src/b_setup.hpp`; the only `extern Mount mount;` is in `src/testmenu.cpp`). Call sites that use `mount.xxx()` will be migrated using the thin-overlay pattern: existing code delegates through the global during transition; when a module becomes a proper adapter (Phase 2+), it receives injected references instead. No flag day needed.
 - **ISR threading model:** Deferred to Phase 2. The `IStepperAxis` interface contract (which methods are ISR-safe, `Snapshot()` semantics) will be settled before Phase 3 begins extracting controllers. Without this contract, `SlewController`'s threading model is undefined.
 - **Back-compat:** Meade serial protocol behavior is invariant (external interface); internal C++ APIs may change freely.
 - **Out of scope:** UI menu screens (`c*_menu*.hpp`) refactor; new features; supporting new boards; replacing AccelStepper/TMCStepper libraries; switching build system.
