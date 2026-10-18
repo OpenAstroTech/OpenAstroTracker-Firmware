@@ -7,6 +7,8 @@
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 #include "core/CalendarMath.hpp"
+#include "core/CoordinateFormatter.hpp"
+#include "core/CoordinateMath.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
@@ -3709,64 +3711,64 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     float const RALimitR = inNorthernHemisphere ? RA_LIMIT_RIGHT : RA_LIMIT_LEFT;
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", RALimitL, RALimitR);
 
+    core::SlewGeometry geometry;
+    geometry.moveRA               = moveRA;
+    geometry.moveDEC              = moveDEC;
+    geometry.homeTargetDeltaRA    = homeTargetDeltaRA;
+    geometry.stepsPerSiderealHour = stepsPerSiderealHour;
+    geometry.stepsPerDECDegree    = _stepsPerDECDegree;
+    geometry.zeroPosDEC           = _zeroPosDEC;
+    geometry.raLimitL             = RALimitL;
+    geometry.raLimitR             = RALimitR;
+
+    const core::SlewResult result = core::calculateStepperPositions(geometry);
+
     if (pSolutions != nullptr)
     {
-        pSolutions[0] = long(-moveRA) * stepsPerSiderealHour;
-        pSolutions[1] = long(moveDEC) * _stepsPerDECDegree;
-        pSolutions[2] = long(-(moveRA - 12.0f)) * stepsPerSiderealHour;
-        pSolutions[3] = long(-moveDEC) * _stepsPerDECDegree;
-        pSolutions[4] = long(-(moveRA + 12.0f)) * stepsPerSiderealHour;
-        pSolutions[5] = long(-moveDEC) * _stepsPerDECDegree;
+        for (int i = 0; i < 6; i++)
+        {
+            pSolutions[i] = result.solutions[i];
+        }
     }
 
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 1: %f, %f", -moveRA, moveDEC);
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 2: %f, %f", -(moveRA - 12.0f), -moveDEC);
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 3: %f, %f", -(moveRA + 12.0f), -moveDEC);
 
-    // If we reach the limit in the positive direction ...
-    if (homeTargetDeltaRA > RALimitR)
+    switch (result.selected)
     {
-        LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: Using Solution 2, since hometargetDeltaRA %f (RA:%f) is past max limit %f, inverting both axes",
-            homeTargetDeltaRA,
-            moveRA,
-            RALimitR);
-
-        // ... turn both RA and DEC axis around
-        moveRA -= 12.0f;
-        moveDEC = -moveDEC;
-        LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f", moveRA, moveDEC);
-    }
-    // If we reach the limit in the negative direction...
-    else if (homeTargetDeltaRA < RALimitL)
-    {
-        LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: Using solution 3 since homeTargetDeltaRA %f (RA:%f) is past min limit: %f, inverting both axes",
-            homeTargetDeltaRA,
-            moveRA,
-            RALimitL);
-        // ... turn both RA and DEC axis around
-
-        moveRA += 12.0f;
-        moveDEC = -moveDEC;
-        LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f", moveRA, moveDEC);
-    }
-    else
-    {
-        LOG(DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: Using solution 1 since targetRA %f is in range. RA: %f, DEC: %f",
-            homeTargetDeltaRA,
-            moveRA,
-            moveDEC);
+        case core::SlewSolution::FlipUpper:
+            LOG(DEBUG_COORD_CALC,
+                "[MOUNT]: CalcSteppersIn: Using Solution 2, since hometargetDeltaRA %f (RA:%f) is past max limit %f, inverting both axes",
+                homeTargetDeltaRA,
+                moveRA,
+                RALimitR);
+            break;
+        case core::SlewSolution::FlipLower:
+            LOG(DEBUG_COORD_CALC,
+                "[MOUNT]: CalcSteppersIn: Using solution 3 since homeTargetDeltaRA %f (RA:%f) is past min limit: %f, inverting both axes",
+                homeTargetDeltaRA,
+                moveRA,
+                RALimitL);
+            break;
+        case core::SlewSolution::Direct:
+            LOG(DEBUG_COORD_CALC,
+                "[MOUNT]: CalcSteppersIn: Using solution 1 since targetRA %f is in range. RA: %f, DEC: %f",
+                homeTargetDeltaRA,
+                moveRA,
+                moveDEC);
+            break;
     }
 
-    // zeroPosDEC will be zero unless one or more Sync commands have moved it, in which case it is the
-    // accumulated offset from zero (home) in degrees.
-    moveDEC -= _zeroPosDEC;
-    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: adjusted DEC by _zeroPosDEC: %f => DEC: %f", _zeroPosDEC, moveDEC);
+    // zeroPosDEC is the accumulated offset from zero (home) in degrees that one or more Sync commands have applied.
+    LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f", result.adjustedRA, result.adjustedDEC);
+    LOG(DEBUG_COORD_CALC,
+        "[MOUNT]: CalcSteppersIn: adjusted DEC by _zeroPosDEC: %f => DEC: %f",
+        _zeroPosDEC,
+        result.adjustedDEC - _zeroPosDEC);
 
-    targetRASteps  = -moveRA * stepsPerSiderealHour;
-    targetDECSteps = moveDEC * _stepsPerDECDegree;
+    targetRASteps  = result.targetRASteps;
+    targetDECSteps = result.targetDECSteps;
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: ResultTarget Steps RA: %l, DEC: %l", targetRASteps, targetDECSteps);
 }
 
@@ -4066,7 +4068,7 @@ String Mount::DECString(byte type, byte active)
         dec = currentDEC();
     }
 
-    dec.formatString(scratchBuffer, formatStringsDEC[type & FORMAT_STRING_MASK]);
+    core::formatDEC(scratchBuffer, dec, formatStringsDEC[type & FORMAT_STRING_MASK]);
 
     if ((type & FORMAT_STRING_MASK) == LCDMENU_STRING)
     {
@@ -4094,7 +4096,7 @@ String Mount::RAString(byte type, byte active)
         ra = currentRA();
     }
 
-    sprintf(scratchBuffer, formatStringsRA[type & FORMAT_STRING_MASK], ra.getHours(), ra.getMinutes(), ra.getSeconds());
+    core::formatRA(scratchBuffer, sizeof(scratchBuffer), ra, formatStringsRA[type & FORMAT_STRING_MASK]);
     if ((type & FORMAT_STRING_MASK) == LCDMENU_STRING)
     {
         scratchBuffer[active * 4] = '>';
@@ -4136,46 +4138,13 @@ LocalDate Mount::getLocalDate()
     LocalDate localDate        = _localStartDate;
     long secondsSinceSetDayEnd = ((millis() - _localStartTimeSetMillis) / 1000) - (86400 - _localStartTime.getTotalSeconds());
 
-    while (secondsSinceSetDayEnd >= 0)
-    {
-        localDate.day++;
-        secondsSinceSetDayEnd -= 86400;
+    // Number of day ends passed since the date was set; a partial day still counts as one.
+    const long daysElapsed = secondsSinceSetDayEnd >= 0 ? (secondsSinceSetDayEnd / 86400) + 1 : 0;
 
-        int maxDays = 31;
-        switch (localDate.month)
-        {
-            case 2:
-                if (((localDate.year % 4 == 0) && (localDate.year % 100 != 0)) || (localDate.year % 400 == 0))
-                {
-                    maxDays = 29;
-                }
-                else
-                {
-                    maxDays = 28;
-                }
-                break;
-
-            case 4:
-            case 6:
-            case 9:
-            case 11:
-                maxDays = 30;
-                break;
-        }
-
-        //calculate day overflow
-        if (localDate.day > maxDays)
-        {
-            localDate.day = 1;
-            localDate.month++;
-        }
-        //calculate year overflow
-        if (localDate.month > 12)
-        {
-            localDate.month = 1;
-            localDate.year++;
-        }
-    }
+    const core::CalendarDate rolled = core::addDays({localDate.year, localDate.month, localDate.day}, daysElapsed);
+    localDate.year                  = rolled.year;
+    localDate.month                 = rolled.month;
+    localDate.day                   = rolled.day;
 
     return localDate;
 }
