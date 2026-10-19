@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.14.0](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/compare/v1.13.22...v1.14.0) (2026-10-19)
+
+
+### Features
+
+* **rp2040:** 5 kHz stepping, hardware info, SSD1306 display, CI coverage + TMC hold-current fix ([#309](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/309)) ([82b8592](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/82b859232eca8c0e999dcfd1449656cf02449bb5))
+* **rp2040:** add support for JackW01 and BTT SKR Pico boards ([#298](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/298)) ([2f77d61](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/2f77d61fb783f7b1142534da3fbf0d5867171d5e))
+
+
+### Bug Fixes
+
+* AZ ALT drivers staying energized on 0 length moves ([#311](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/311)) ([42d2982](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/42d29825285c1be1ff0f180c3afdc10055e0352e))
+* **guiding:** guide pulses dropped during active pulses + display render delaying pulse end ([#313](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/313)) ([3ad0c21](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/3ad0c21adb27becca56bda4d51da5998018e1e07))
+* use UTC date for LST calculation ([#312](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/312)) ([034b190](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/034b1907eae935dd23615e60c4b3e57e96f7c1c8))
+
 ## [1.13.22](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/compare/v1.13.21...v1.13.22) (2026-10-05)
 
 
