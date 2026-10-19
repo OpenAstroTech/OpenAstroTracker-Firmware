@@ -41,10 +41,16 @@ objects constructed in the composition root, never as different code paths in th
    container is required, because the firmware builds with `-D ETL_NO_STL`.
 
 3. **Ports describe needs, HAL describes capabilities.** A port answers "what does the domain
-   want" (`IStepperAxis::moveTo`, `IClock::now`). A HAL interface answers "what can this chip do"
-   (`IStepperMotor::step`, `ISerialPort::read`). An adapter composes HAL services to satisfy a
+   want" (`IStepperAxis::moveTo`, `IClock::now`). A HAL interface answers "what can this platform
+   do" (`IStepperMotor::moveTo`, `ISerialPort::read`). An adapter composes HAL services to satisfy a
    port, so a new stepper library needs a new HAL backend and a new domain requirement needs a
    port, never the other way round.
+
+   A HAL backend may wrap a platform library rather than a bare chip register: `IStepperMotor` is
+   the motion-engine surface (`moveTo`, `setSpeed`, `run`/`runSpeed`, `currentPosition`,
+   `distanceToGo`, `isRunning`, `setPinsInverted`, …), implemented by `AccelStepper` on
+   ESP32/RP2040 and by the vendored `InterruptStepper` on AVR. Library names therefore appear only
+   under `hal/`, never in `ports/` or `core/`.
 
 4. **Configuration is read exactly once, in the composition root.** `Configuration*.hpp` macros are
    consumed by a `MountConfig` builder in `app/`; every layer below receives runtime objects.
@@ -77,8 +83,8 @@ objects constructed in the composition root, never as different code paths in th
 |-------|-----------|---------------|----------|---------------|
 | **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
 | **Ports** | `src/ports/` | nothing | `IClock`, `ILogger`, `IPersistentStore`, `IStepperAxis`, `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay`, `ITransport`, `IGps` | Interfaces only — nothing to test. |
-| **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `EepromPersistentStore`, `AccelStepperAxis`, `InterruptAccelStepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
-| **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor`, `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`) plus per-platform backends (`arduino/`, `avr/`, `esp32/`) | Not host-tested; verified on hardware. |
+| **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `EepromPersistentStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
+| **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor` (motion engine), `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`) plus per-platform backends (`arduino/`, `avr/`, `esp32/`, `rp2040/`) | Not host-tested; verified on hardware. |
 | **App** | `src/app/` | all layers | Composition root: reads `Configuration*.hpp` into `MountConfig`, selects HAL backends, constructs adapters and controllers, owns the entry point | On-device smoke tests. |
 
 ### Dependency direction
@@ -145,8 +151,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── ArduinoClock.hpp/.cpp        # IClock            <- ISystemClock
 │   │   ├── SerialLogger.hpp/.cpp        # ILogger           <- ISerialPort
 │   │   ├── EepromPersistentStore.*      # IPersistentStore  <- IEeprom + EepromLayout
-│   │   ├── AccelStepperAxis.*           # IStepperAxis      <- IStepperMotor
-│   │   ├── InterruptAccelStepperAxis.*  # IStepperAxis      <- IStepperMotor + ITimerService
+│   │   ├── StepperAxis.hpp/.cpp         # IStepperAxis      <- IStepperMotor
 │   │   ├── Tmc2209Driver.hpp/.cpp       # IMotorDriver      <- ISerialPort / pins
 │   │   ├── NullMotorDriver.hpp          # IMotorDriver      null object for non-TMC builds
 │   │   ├── HallHomingSensor.hpp/.cpp    # IHomingSensor     <- IGpioPin
@@ -187,8 +192,9 @@ OpenAstroTracker-Firmware/
 │   │   ├── IWifiStack.hpp
 │   │   ├── EepromLayout.hpp             # storage layout constants
 │   │   ├── arduino/                     # generic Arduino backends
-│   │   ├── avr/                         # Timer1/Timer3 ISR, fast pin I/O
-│   │   └── esp32/                       # hardware timers, Wi-Fi glue
+│   │   ├── avr/                         # Timer1/Timer3 ISR, fast pin I/O, InterruptStepperMotor
+│   │   ├── esp32/                       # hardware timers, Wi-Fi glue, ArduinoAccelStepperMotor
+│   │   └── rp2040/                      # alarm timer ISR, ArduinoAccelStepperMotor
 │   │
 │   ├── core/                            # PURE DOMAIN — no Arduino
 │   │   ├── meade/
@@ -290,10 +296,10 @@ core controllers                  # SlewController, TrackingController, ...
 IStepperAxis                      # port
    │
    ▼
-adapters/AccelStepperAxis         # HAL: IStepperMotor + ITimerService
+adapters/StepperAxis              # HAL: IStepperMotor (motion engine)
    │
    ▼
-hal/avr | hal/esp32 | hal/arduino backends
+hal/avr | hal/esp32 | hal/rp2040 | hal/arduino backends
 ```
 
 Displays are not called by controllers. Controllers publish on `core/EventBus` and the display
