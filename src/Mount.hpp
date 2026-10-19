@@ -312,6 +312,7 @@ class Mount
     bool isSlewingRAorDEC() const;
     bool isSlewingIdle() const;
     bool isSlewingTRK() const;
+    bool isTracking() const;
     bool isParking() const;
     bool isGuiding() const;
     bool isFindingHome() const;
