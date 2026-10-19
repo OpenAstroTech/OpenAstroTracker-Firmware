@@ -46,6 +46,7 @@ class WifiControl
 
     unsigned long _infraStart                = 0;
     unsigned long _infraWait                 = 30000;  // 30 second timeout for
+    bool _failedOver                         = false;  // true once failover mode has switched to the access point
     static constexpr size_t _defaultCapacity = 32;
     static constexpr size_t _maxCapacity     = 128;
 };
