@@ -89,4 +89,4 @@ public:
 Responsibility: keep step-based/transmission-aware behavior in a generic base, implement the concrete motor backend in `AccelStepperAxis`, then add RA-specific translation in `RaAxis`.
 Dependency rule: adapters depend on both [`../ports/`](../ports/) and [`../hal/`](../hal/), but they do not decide go-to targets or mount behavior.
 
-See [specs/plan.md](../../specs/plan.md) for the target architecture.
+See [PLAN.md](../../PLAN.md) for the target architecture.

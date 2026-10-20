@@ -15,7 +15,7 @@ Approach: **hybrid** — extract pure logic into `core/` first, then test (inver
 | # | Goal | Rationale |
 |---|------|-----------|
 | 1 | **Make domain logic host-testable** | The `native` PIO env can't compile `src/` root files (they transitively include `<Arduino.h>` via `inc/Globals.hpp`). Pure logic must live in `src/core/` with zero Arduino deps so tests run in milliseconds, not on hardware. |
-| 2 | **Shrink the `Mount` god-object** | `Mount.cpp` is ~5000 LOC holding all domain behavior. End state: `Mount` is a thin facade (≤ 500 LOC) over focused controllers in `core/`. |
+| 2 | **Shrink the `Mount` god-object** | `Mount.cpp` is 4,361 LOC holding all domain behavior. End state: `Mount` is a thin facade (≤ 500 LOC) over focused controllers in `core/`. |
 | 3 | **Eliminate `#ifdef` from domain code** | Feature flags for axes, driver types, and sensors currently produce 2^N untested build combinations. These become runtime polymorphism behind interfaces — the composition root makes one choice; `core/` never branches. |
 | 4 | **Swap hardware without touching logic** | Changing stepper library, display type, or EEPROM backend must not require edits to `core/` or `ports/`. |
 | 5 | **Coverage that means something** | Target: `core/` ≥ 85% line coverage with tests that verify behavior (not tautologies). |
@@ -26,11 +26,11 @@ Approach: **hybrid** — extract pure logic into `core/` first, then test (inver
 |----------|-----------|-----|
 | **Hardware** | Must build & run on all supported boards: AVR_MEGA2560, MKS_GEN_L_V1/V2/V21, ESP32_ESP32DEV, RP2040_JACKW01, RP2040_SKR_PICO (`oaeboardv1` is also a PIO env). The CI matrix builds **7** boards | Existing user base; CI matrix enforces this. |
 | **Memory** | AVR_MEGA2560 has 256 KB flash, 8 KB SRAM | Flash overflow is caught at link time. Mitigation: keep vtable count ≤ ~12, mark adapters `final`, consider template-based static dispatch as escape hatch. |
-| **C++ standard** | C++17 for `core/` (needs `etl::optional`, `if constexpr`); boards may require C++14 fallback with ETL polyfills | `native` env already uses `-std=gnu++17`. Board envs will be audited per phase. |
+| **C++ standard** | `core/` must stay **C++11-compatible** until the AVR spike proves otherwise: `etl::optional` is fine (header-only, C++11-safe), **`if constexpr` is not available** | Measured on the tree: only `esp32`, `oaeboardv1` and `native` set `-std=gnu++17`. The four AVR envs set **no** `-std`, so they inherit the Arduino core's **gnu++11** on **avr-gcc 7.3.0** — and they already compile all of `src/core/**`. Raising AVR's standard is an unproven spike (Phase 2a). |
 | **Testability** | `core/` must never include `<Arduino.h>` or use `String`, `Serial`, `millis()`, `LOG()` | Enforced by CI grep check. `native` env only compiles `core/`, `ports/`, `adapters/`. |
 | **Back-compat** | Meade LX200 serial protocol behavior is invariant | External interfaces (Stellarium, ASCOM) must not break. Internal C++ APIs may change freely. |
 | **Shippable increments** | Every phase/step must be independently shippable — all boards green, all tests green | No flag days; thin overlays preserve old call-sites during transition. |
-| **Tooling** | PlatformIO + Googletest + FakeIt (bundled with ArduinoFake) + gcovr | Googletest + gcovr are configured in `platformio.ini` and CI (`ci.yml`); ArduinoFake/FakeIt is still **not** wired up (Phase 0, item 5). |
+| **Tooling** | PlatformIO + Googletest + **hand-written port fakes** + gcovr | Googletest + gcovr are configured in `platformio.ini` and CI (`ci.yml`). ArduinoFake/FakeIt is **not required**: every port is a pure abstract interface and `core/` is Arduino-free, so plain fakes under `unit_tests/test_common/hal_fakes/` cover every test (Phase 0, item 5). |
 
 ### Layers & Dependencies
 
@@ -64,7 +64,7 @@ graph TD
 
 | Layer | Directory | Depends on | Contains | Test strategy |
 |-------|-----------|------------|----------|---------------|
-| **core/** | `src/core/` | `ports/` only | Domain controllers (`SlewController`, `TrackingController`, …), algorithms (`SiderealClock`, `CoordinateMath`, …), `MeadeParser`, `MountState`, `EventBus`, `MountConfig` | Pure unit tests with FakeIt-faked ports. No hardware, no Arduino. `native` env. |
+| **core/** | `src/core/` | `ports/` only | Domain controllers (`SlewController`, `TrackingController`, …), algorithms (`SiderealClock`, `CoordinateMath`, …), `MeadeParser`, `MountState`, `EventBus`, `MountConfig` | Pure unit tests with hand-written fakes of the ports. No hardware, no Arduino. `native` env. |
 | **ports/** | `src/ports/` | nothing | Domain interfaces: `IClock`, `ILogger`, `IPersistentStore`, `IStepperAxis`, `IMotorDriver`, `IDisplay`, `IHomingSensor`, `IEndSwitch`, `IGps`, `ITransport` | Pure abstract interfaces — no implementation to test. |
 | **adapters/** | `src/adapters/` | `ports/` + `hal/` | Thin glue: `StepperAxis`, `EepromPersistentStore`, `SerialLogger`, `Tmc2209Driver`, `HallHomingSensor`, `SerialTransport`, `WifiTransport`, `MeadeCommandAdapter` | Integration tests: adapter → faked HAL port. |
 | **hal/** | `src/hal/` | hardware libraries only | Interfaces (`IGpioPin`, `ISerialPort`, `IStepperMotor`, `ITmcDriver`, `ISystemClock`, `ITimerService`, …) + per-platform backends (`hal/arduino/`, `hal/avr/`, `hal/esp32/`, `hal/rp2040/`) | Not host-tested (wraps hardware). Verified by on-device smoke tests. |
@@ -108,7 +108,7 @@ The parser directory (`src/core/meade/`) contains 17 files (12 family dispatcher
 - A `handleMeade*` entry point that parses suffixes, invokes handler callbacks, and serializes `MeadeResponse`
 - Value types for coordinates (e.g. `RaCoordinate`, `DecCoordinate`)
 
-The `MeadeCommandProcessor` adapter bridges the parser to the legacy `Mount` singleton, implementing all 115 handler overrides. It is the **only** file in `src/` root that references the core parser.
+The `MeadeCommandProcessor` adapter bridges the parser to the legacy `Mount` singleton, implementing all 127 handler overrides. It is the **only** file in `src/` root that references the core parser.
 
 ### Test coverage
 
@@ -137,19 +137,19 @@ The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adap
 
 ## Phased Plan (each phase shippable & green in CI)
 
-### Phase 0 — Safety net & tooling (no behavior change) ✅ COMPLETE (one open item)
-*Foundation for everything else; must land first. Mostly implemented — per-item status below.*
+### Phase 0 — Safety net & tooling (no behavior change) ✅ COMPLETE
+*Foundation for everything else; must land first. Fully implemented — per-item status below.*
 
-1. ~~Add FFF as header-only dep~~ — **Superseded.** FakeIt (bundled with ArduinoFake) replaces FFF. No separate FFF needed.
-2. ~~Add `native_core` PIO env~~ — **Superseded.** Only the `native` env is used. The existing `native` env already has strict warnings (`-Wall -Wextra -Werror -Wpedantic -Wshadow`). Note: `src/core/README.md` still mentions `native_core` and needs updating.
+1. ~~Add FFF as header-only dep~~ — **Superseded and dropped.** No mocking framework is needed: the ports are pure abstract interfaces, so hand-written fakes (Phase 2a, `unit_tests/test_common/hal_fakes/`) cover every test.
+2. ~~Add `native_core` PIO env~~ — **Superseded.** Only the `native` env is used. The existing `native` env already has strict warnings (`-Wall -Wextra -Werror -Wpedantic -Wshadow`). Note: `src/core/README.md` mentioned `native_core` and has been corrected.
 3. ✅ gcovr-based **coverage reporting** in `native` env — **Done.** `scripts/test-coverage.py` appends `--coverage` to `LINKFLAGS`; `build_src_flags` carries the compile-side flag. Reports (HTML + markdown) are produced by `./scripts/test-coverage.sh`. **There is no `coverage` PlatformIO target** — `pio run -e native -t coverage` fails with "unknown target". Current: 90.2% lines, 98.2% functions, 79.6% branches (366 test cases).
 4. ✅ CI workflow — **Done.** `.github/workflows/ci.yml` runs `./scripts/test-coverage.sh` (which runs `pio test -e native`, then gcovr) and publishes `coverage.md` to the step summary. Threshold gating deferred to a later phase.
-5. ⬜ **ArduinoFake** as `test_lib_deps` — **NOT done.** Absent from `platformio.ini` (no `test_lib_deps` key, no ArduinoFake/FakeIt dependency). `unit_tests/test_common/ArduinoFake/` holds only six `CMakeLists.txt` files — no headers or sources — and no test uses FakeIt; all host tests use plain googletest. Required before Phase 2 can add adapter tests that fake the Arduino API.
-6. ✅ Folder structure — **Done.** `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` all exist with descriptive README files (they link to `specs/plan.md`, which does not exist in the repo).
+5. ✅ **No Arduino API fakes needed** — **Resolved (was: ArduinoFake as `test_lib_deps`).** `unit_tests/test_common/ArduinoFake/` holds only six `CMakeLists.txt` files (no headers, no sources) and is dead weight. Every port is a pure abstract interface and `core/` is Arduino-free, so host tests need plain hand-written fakes, not an Arduino-API mock. ArduinoFake/FakeIt is **not** a prerequisite for Phase 2. The only test-plumbing change left is a `test_adapters` entry in `test_filter` (Phase 2a, step 4). The empty `unit_tests/test_common/ArduinoFake/` tree can be deleted.
+6. ✅ Folder structure — **Done.** `src/ports/`, `src/hal/`, `src/adapters/`, `src/app/` all exist with descriptive README files (they now link to [`PLAN.md`](PLAN.md)).
 
 **Verify:** `./scripts/test-coverage.sh` → 366 test cases, 0 failures; coverage report generates; the 7-board CI matrix builds green via `matrix_build.py`.
 
-**Changes from original plan (per feedback):** FFF replaced by FakeIt (in ArduinoFake); `native_core` env eliminated (use `native` only); coverage threshold gating deferred to a later phase. **Open item:** ArduinoFake/FakeIt is still not wired up (item 5).
+**Changes from original plan (per feedback):** FFF and FakeIt/ArduinoFake both dropped (hand-written port fakes instead); `native_core` env eliminated (use `native` only); coverage threshold gating deferred to a later phase. **No open items.**
 
 ### Phase 1 — Extract pure domain logic into `core/`, then test — ✅ COMPLETE
 *The original plan called for testing before extraction. That doesn't work here: every `src/` root file includes `inc/Globals.hpp` → `<Arduino.h>`, and uses `String`/`LOG()`/Arduino APIs. The `native` PIO env only builds `core/`, `ports/`, `adapters/` — not `src/` root files. **New approach: extract pure subsets into `core/` first, then write exhaustive tests.** Each step is independently shippable. No behavior change.*
@@ -249,9 +249,9 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 ### Phase 2 — Introduce HAL, Ports & Adapters
 *Define the HAL surface, define the domain ports, and start routing current call sites through them. Keep current behavior bit-for-bit. Split into three independently shippable sub-phases: **2a** contracts (no production change), **2b** adapters + `Mount` injection, **2c** call-site cleanup.*
 
-**Blocking prerequisite:** Phase 0 item 5 — ArduinoFake/FakeIt must be wired up (`test_lib_deps` plus real sources under `unit_tests/test_common/ArduinoFake/`). Without it neither Arduino-API fakes nor the adapter integration tests required by ARCHITECTURE.md can be written.
+**Prerequisites:** none blocking. ArduinoFake/FakeIt is **not** required (ports are pure interfaces; Phase 2a supplies hand-written fakes). The build-config work that makes 2a shippable — `test_adapters` in `test_filter`, per-board HAL source filters, the AVR C++-standard spike and the ETL dependency — is folded into 2a step 4.
 
-**Calibration facts (measured on the current tree):** `Mount.cpp` is 4,361 LOC with 116 public methods and contains **274 `LOG()` sites (273 literal formats totalling 13,857 bytes, currently kept in PROGMEM via `F()`), 47 `EEPROMStore::` sites, 21 `millis()`, 19 `digitalWrite()`, 184 TMC-driver calls and ~150 stepper-axis calls**. The global is defined in `src/b_setup.hpp` (`Mount mount(&lcdMenu);`); the only `extern Mount mount;` is in `src/testmenu.cpp`. Stepping has **three** concurrency models, not two (step 9).
+**Calibration facts (measured on the current tree):** `Mount.cpp` is 4,361 LOC with **~134 public method declarations** and contains **274 `LOG()` sites (273 literal formats totalling 13,857 bytes, currently kept in PROGMEM via `F()`), 47 `EEPROMStore::` sites, 21 `millis()`, 19 `digitalWrite()`, 184 TMC-driver calls and 251 stepper-axis calls (on 236 call sites)**. `Mount::loop()` is 293 lines. These counts are the real size of 2b/2c: the work is mechanical but large. The global is defined in `src/b_setup.hpp` (`Mount mount(&lcdMenu);`); the only `extern Mount mount;` is in `src/testmenu.cpp`. Stepping has **three** concurrency models, not two (step 9).
 
 #### 2a — Contracts (no production changes)
 
@@ -273,9 +273,13 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
    - `IStepperAxis` — sized to the real call surface: `currentPosition`, `setCurrentPosition`, `targetPosition`, `distanceToGo`, `move`, `moveTo`, `runToNewPosition`, `runToPosition`, `run`, `runSpeed`, `stop`, `isRunning`, `setMaxSpeed`, `maxSpeed`, `setAcceleration`, `setSpeed`, `speed`, `setPinsInverted`, plus the ISR-safe `Snapshot()`. Keep the existing two-instances-per-axis split (RA slew + tracking, DEC slew + guide).
    - `IMotorDriver` — sized to the real call surface: `beginSerial`/`begin`, `microsteps`, `rms_current`, `toff`, `blank_time`, `vsense`, `semin`, `iholddelay`, `TPOWERDOWN`, `TCOOLTHRESH`, `SGTHRS`, `en_spreadCycle`, `pdn_disable`, `mstep_reg_select`, `I_scale_analog`, `fclktrim`, `cs_actual`; null implementation for non-TMC.
    - `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay`, `ITransport`, `IGps`, `IGyro`.
-4. Update **`platformio.ini`**: the `native` env compiles *all* of `src/adapters/` and none of `src/hal/`. With the stepper library confined to `hal/`, `StepperAxis` stays pure and needs no per-file exclusion; if a future adapter must include an Arduino header, add an exclusion rather than moving it into `hal/`. Also add a test filter/directory so adapter tests actually run (today only `test_core` + `test_hal` are filtered).
+4. Update **build configuration** — all of it belongs in 2a, because nothing references the new interfaces yet:
+   - **`native` env:** compiles *all* of `src/adapters/` and none of `src/hal/`. With the stepper library confined to `hal/`, `StepperAxis` stays pure and needs no per-file exclusion; if a future adapter must include an Arduino header, add an exclusion rather than moving it into `hal/`. Add `test_adapters` to `test_filter` so adapter tests actually run (today only `test_core` + `test_hal` are filtered).
+   - **Every embedded env needs platform source filters.** `[common_embedded]` uses `src_filter = +<*>` (minus `libs/`), so without exclusions the AVR build would try to compile `hal/esp32/` and `hal/rp2040/` the moment they exist. Add per-env `build_src_filter`: AVR (`ramps`, `mksgenlv1/v2/v21`) → `-<hal/esp32/> -<hal/rp2040/>`; `esp32` + `oaeboardv1` → `-<hal/avr/> -<hal/rp2040/>`; `rp2040_jackw01` + `rp2040_skr_pico` → `-<hal/avr/> -<hal/esp32/>`.
+   - **AVR C++-standard spike.** The AVR envs set no `-std` and inherit **gnu++11** from the Arduino core on **avr-gcc 7.3.0**, yet they compile all of `src/core/**`. Until this spike proves otherwise, `core/` must stay C++11-compatible: keep `etl::optional` (header-only, C++11-safe) and **avoid `if constexpr`**. Try `-std=gnu++14`, then `gnu++17`, on `ramps`; record the outcome here.
+   - **ETL dependency.** `-D ETL_NO_STL` is already global (`[env]`), but ETL is in no `lib_deps` anywhere and nothing uses `etl::` yet. Add ETL to `[common].lib_deps` for boards and to `[env:native].test_lib_deps` (the `native` env has **no** `lib_deps` block) before Phase 4 relies on `etl::optional`.
 
-**Verify (2a):** `pio test -e native` green; board builds unchanged (nothing references the new interfaces yet).
+**Verify (2a):** `pio test -e native` green; `matrix_build.py -b <board>` still links for all 7 CI boards after the HAL exclusions (nothing references the new interfaces yet).
 
 #### 2b — Adapters + `Mount` injection
 
@@ -284,7 +288,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
    - `StepperAxis` — implements `IStepperAxis` over `hal::IStepperMotor`; pure C++, host-tested against a faked engine. One adapter covers every platform: the AVR difference (`run()`/`runSpeed()` are stubs; the ISR steps autonomously) lives in `hal/avr/InterruptStepperMotor`, not in the adapter. There is deliberately no `AccelStepperAxis` and no `InterruptAccelStepperAxis`.
    - `Tmc2209Driver` (UART + standalone variants over `hal::ISerialPort`), `NullMotorDriver`,
    - `TinyGpsAdapter` — define it, but note its only consumer today is the out-of-scope [`src/c72_menuHA_GPS.hpp`](src/c72_menuHA_GPS.hpp) plus a forward-declared `gpsAqcuisitionComplete()` in [`src/MeadeCommandProcessor.cpp`](src/MeadeCommandProcessor.cpp); the real consumer arrives in Phase 5.
-   - **Deferred to Phase 3** (they call `Mount` today and would violate "adapters depend only on ports + HAL"): `HallHomingSensor` (~11 Mount calls), `GpioEndSwitch` (~9 Mount calls), `Ssd1306InfoDisplay` (~16 Mount getters), `LcdMenuDisplay` (the menu screens call `mount.*` 170+ times and instantiate LiquidCrystal/U8g2 inside [`src/LcdMenu.hpp`](src/LcdMenu.hpp)). Phase 3's `HomingController`/`EventBus` supplies the read model they need.
+   - **Deferred to Phase 3** (they call `Mount` today and would violate "adapters depend only on ports + HAL"): `HallHomingSensor` (33 `_pMount->` calls), `GpioEndSwitch` (18 `_pMount->` calls), `Ssd1306InfoDisplay` (23 `mount->` calls), `LcdMenuDisplay` (the menu screens call `mount.*` 192 times and instantiate LiquidCrystal/U8g2 inside [`src/LcdMenu.hpp`](src/LcdMenu.hpp)). Phase 3's `HomingController`/`EventBus` supplies the read model they need.
    - **Deferred to Phase 5:** `SerialTransport` and `WifiTransport` (Phase 5 step 2 introduces both; they feed `core/meade/MeadeParser` and need the Meade execution layer). Their ports (`ITransport`, `IDisplay`, `IInfoDisplay`) are still defined in 2a and stay unimplemented until then.
 6. Refactor `Mount` to **hold port pointers** (`IStepperAxis* _ra; IClock* _clock; ...`) injected at construction instead of owning concrete types. Composition happens in `app/` (currently `b_setup.hpp`). **Migration note:** the global is defined in [`src/b_setup.hpp`](src/b_setup.hpp) (`Mount mount(&lcdMenu);`); the only `extern Mount mount;` is in [`src/testmenu.cpp`](src/testmenu.cpp). Existing `mount.xxx()` call sites keep working through that global — no call-site flag day. The step is atomic *inside* `Mount` (member types change together); keep the `new` sites in `setupRA()`/`setupRADriver()`/`setupHoming()`/`setupEndSwitches()` as the seam until they move into `app/`.
 7. **`Mount::delay()`** ([`src/Mount.cpp`](src/Mount.cpp)) re-enters `loop()` and calls `yield()`. Give it its own decision (IClock + a yield/scheduler port, or move it into the app layer) — do not fold it into the generic `millis()` replacement.
@@ -303,7 +307,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 
 **Verify (2c):** all Phase 1 tests green; new adapter tests green; every board env builds; **record flash and SRAM before/after on `ramps`** (the AVR budget is the binding constraint for the `ILogger` change); the manual smoke checklist from "Verification strategy" passes (slew, park, guide, home).
 
-**Doc sync:** ARCHITECTURE.md §3/§4 must gain `hal/rp2040/` and `IGyro`, and must show the hall/end-switch/display adapters as Phase 3 rather than Phase 2.
+**Doc sync:** [`ARCHITECTURE.md`](ARCHITECTURE.md) already lists `hal/rp2040/` (§3/§4) and the hall/end-switch/display adapters as Phase 3. What is still missing there: `IGyro` in the §3 HAL interface list, the port catalog entries added in 2a, and any 2b/2c decisions that change it.
 
 ### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
@@ -312,7 +316,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 
 Recommended slice order (each is an independent step, parallelizable after Phase 2):
 1. `core/TrackingController` — tracking speed, sidereal rate, tracker-stop compensation. Owns `IStepperAxis* trk`.
-2. `core/SlewController` — slew state machine extracted from the 280-line `Mount::loop`. Inputs are target + geometry; outputs are stepper commands and state events. **Threading model deferred to Phase 2's ISR contract.**
+2. `core/SlewController` — slew state machine extracted from the 293-line `Mount::loop`. Inputs are target + geometry; outputs are stepper commands and state events. **Threading model deferred to Phase 2's ISR contract.**
 3. `core/GuidingController` — guide-pulse direction/speed math + timed completion (uses `IClock`).
 4. `core/HomingController` — hall-sensor/end-switch state machine; owns `IHomingSensor* ra`, `IHomingSensor* dec`.
 5. `core/ParkingController` — park position, parking transitions.
@@ -322,7 +326,7 @@ Recommended slice order (each is an independent step, parallelizable after Phase
 9. `core/EventBus` — controllers publish `PositionChanged`, `SlewStarted`, `Parked`, etc.; display adapter subscribes (removes Mount → display direct coupling). Events are **facts, never requests** (an event named `StartSlew` is a coordinator request in disguise); payloads are POD, capacity is fixed (no heap), and dispatch is deferred to the tick boundary so a subscriber can never re-enter a controller mid-update.
 10. `core/MountCoordinator` — the only object that holds all controllers and the only caller of their mutating methods. Owns request admission, per-axis ownership grants, tick order, completion and timeouts; `Mount` forwards to it. Requires steps 8 and 9. Arbitration **preserves current behaviour** (see Decisions) — last-wins requests, a slew stops guiding and suspends tracking, park stops everything before homing, guide pulses only while tracking, optional axes independent — plus one fix: a goto during parking is refused. Phase 5 wires `MeadeCommandAdapter` to it.
 
-Each step: extract → add focused unit tests with FakeIt-faked ports → remove the original code from `Mount.cpp` → ship.
+Each step: extract → add focused unit tests with faked ports → remove the original code from `Mount.cpp` → ship.
 
 **Verify per step:** unit tests for the new controller; all prior tests still green; firmware behavior on hardware unchanged (manual smoke checklist). For step 10: host tests covering every cell of the admission table, axis-grant exclusivity (RA/DEC two-instances-per-axis and Timer3/4/5 sharing), and deadline expiry.
 
@@ -360,7 +364,7 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 ### Phase 6 — Cleanup & documentation
 1. Mount facade slimmed to a thin compat shim (or removed if no external dependents).
 2. Move display-related code paths off the Mount → display direct call into the `EventBus`.
-3. Architecture doc (`docs/architecture.md`) with the layer diagram, port catalog, and "where to add a new feature" guide.
+3. Finish the architecture doc — [`ARCHITECTURE.md`](ARCHITECTURE.md) already exists at the repo root with the layer diagram, dependency rules, coordination model and command-flow sections. Add the missing port catalog entries (`IGyro` is absent from the HAL interface list in §3), the "where to add a new feature" guide, and reconcile it with the final port set from Phase 2.
 4. Ratchet CI coverage gate to its final value (`core/` ≥ 85%).
 
 **Verify:** Architecture doc reviewed; CI gates final; full board matrix green; smoke-tested on at least one real mount.
@@ -407,9 +411,10 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 - [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandProcessor::instance()->processCommand()`; becomes `SerialTransport` adapter.
 
 ### Infrastructure
-- [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). **ArduinoFake/FakeIt `test_lib_deps` is not configured yet.**
+- [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). Phase 2a adds `test_adapters` to `test_filter`, per-board `build_src_filter` HAL exclusions, ETL to `[common].lib_deps` + `[env:native].test_lib_deps`, and the AVR `-std` spike.
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs `./scripts/test-coverage.sh` + publishes `coverage.md` to the step summary; builds 7 boards (ramps, mksgenlv1/v2/v21, esp32, rp2040_jackw01, rp2040_skr_pico).
-- [`unit_tests/test_common/`](unit_tests/test_common/) — expand with FakeIt-based port fakes for Phase 2+.
+- [`unit_tests/test_common/`](unit_tests/test_common/) — expand with hand-written port fakes (`hal_fakes/`) for Phase 2+; no ArduinoFake/FakeIt. The empty `test_common/ArduinoFake/` CMake stub tree can be deleted.
+- [`unit_tests/test_embedded/`](unit_tests/test_embedded/) — a stale Unity test (`main.cpp` + `test_sidereal.h`) that no `test_filter` or `test_ignore` path runs. Decide to delete or revive it; it currently contributes nothing to the suite.
 - [`Configuration.hpp`](Configuration.hpp), [`Configuration_adv.hpp`](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 4.
 
 ---
@@ -433,10 +438,10 @@ Manual smoke checklist (per shippable phase end):
 
 ## Decisions
 
-- **Test stack:** **Googletest** + **FakeIt** (via ArduinoFake) for host-side unit tests. The `native` PIO env uses `test_framework = googletest`. FakeIt is bundled with ArduinoFake (`ArduinoFake@^0.4.0`) and provides the mocking/stubbing API (`When(Method(...)).Return(...)`, `Verify(Method(...))`). No Unity. No GoogleMock. **Current state:** only Googletest is in place — ArduinoFake/FakeIt has not been added to `platformio.ini` yet (see Phase 0, item 5).
+- **Test stack:** **Googletest** + **hand-written port fakes** for host-side unit tests. The `native` PIO env uses `test_framework = googletest`. No Unity, no GoogleMock, **no FakeIt/ArduinoFake**. Rationale: every port is a pure abstract interface, `core/` is Arduino-free, and the plan never host-tests `src/` overlays, so an Arduino-API mocking framework adds a dependency without covering anything. ArduinoFake/FakeIt was dropped in Phase 0 (item 5); `unit_tests/test_common/ArduinoFake/` holds only CMake stubs and can be deleted.
 - **Migration style:** **Hybrid** — extract pure logic first (Phase 1), then strangler-fig hardware-coupled layers (Phase 2–5).
 - **Config flags:** Migrate to **runtime polymorphism behind interfaces**; composition root reads the `Configuration*.hpp` macros once. `core/` becomes `#ifdef`-free for features.
-- **Optional axes:** Use `etl::optional` (from Embedded Template Library) — not `std::optional`. The firmware builds with `-D ETL_NO_STL` on AVR targets. `core/` uses `etl::optional` for consistency across all build targets. **Open:** ETL is not currently a `lib_deps` entry anywhere (`src/libs/` holds only `MappedDict` and `TimerInterrupt`) and nothing uses `etl::` yet — ETL must be added to both the board and `native` envs before Phase 4 relies on it.
+- **Optional axes:** Use `etl::optional` (from Embedded Template Library) — not `std::optional`. The firmware builds with `-D ETL_NO_STL` on AVR targets. `core/` uses `etl::optional` for consistency across all build targets. **Open:** `-D ETL_NO_STL` is already global via `[env]`, but ETL is not a `lib_deps` entry anywhere (`src/libs/` holds only `MappedDict` and `TimerInterrupt`) and nothing uses `etl::` yet — add ETL to `[common].lib_deps` and `[env:native].test_lib_deps` in Phase 2a before Phase 4 relies on it.
 - **Mount global migration:** `Mount` is currently a global variable (defined as `Mount mount(&lcdMenu);` in `src/b_setup.hpp`; the only `extern Mount mount;` is in `src/testmenu.cpp`). Call sites that use `mount.xxx()` will be migrated using the thin-overlay pattern: existing code delegates through the global during transition; when a module becomes a proper adapter (Phase 2+), it receives injected references instead. No flag day needed.
 - **Stepper axis layering:** `AccelStepperAxis` is neither a `core/` class nor a library-wrapping adapter. `IStepperAxis` (step-level contract) is implemented by one pure `adapters/StepperAxis` over `hal::IStepperMotor`; the motion engine lives in HAL — `hal/avr/InterruptStepperMotor` (vendored `InterruptStepper`) and `hal/esp32/ArduinoAccelStepperMotor` / `hal/rp2040/ArduinoAccelStepperMotor` (`AccelStepper`). Rationale: `core/` may not include `<Arduino.h>`; library names belong in `hal/`; adapters stay host-testable and library-free; and the libraries are retained, not replaced (out of scope). A domain-side motion planner would be a separate `core/` concept, not this class.
 - **ISR threading model:** Deferred to Phase 2. The `IStepperAxis` interface contract (which methods are ISR-safe, `Snapshot()` semantics) will be settled before Phase 3 begins extracting controllers. Without this contract, `SlewController`'s threading model is undefined.
@@ -450,7 +455,7 @@ Manual smoke checklist (per shippable phase end):
 
 ## Further Considerations
 
-1. **C++ standard.** `core/` benefits from at least C++17 (`etl::optional`, `if constexpr`). PlatformIO defaults vary by board (some AVR ports stuck on C++11/14). *Decision:* native env already uses `-std=gnu++17`. Each board env will be checked for C++17 support and upgraded if needed. Fallback: `-std=gnu++14` + ETL polyfills on boards that can't support C++17.
+1. **C++ standard.** Measured: only `esp32`, `oaeboardv1` and `native` pass `-std=gnu++17`; the four AVR envs pass no `-std` and inherit **gnu++11** from the Arduino core, on **avr-gcc 7.3.0** — and they already compile all of `src/core/**`. So `core/` must stay C++11-compatible until a spike proves AVR accepts more: `etl::optional` is fine (header-only, C++11-safe), **`if constexpr` is not available**. Phase 2a step 4 includes the spike (`-std=gnu++14`, then `gnu++17`, on `ramps`) and records the outcome; if it fails, `core/` stays C++11 and optional axes use `etl::optional` plus explicit branches.
 2. **Binary size on AVR_MEGA2560.** Polymorphism + extra indirection costs flash on AVR. The toolchain errors if flash is exceeded, so no explicit budget is needed. *Mitigation:* keep vtables small (≤ ~12 ports), mark adapters `final`, allow link-time devirtualization. If flash still overflows, accept template-based static dispatch for the hot path (`SlewController<RaAxis, DecAxis>`) — adds complexity but keeps AVR shipping.
 3. **Characterization / golden-master tests.** A future task: capture known-good (RA,DEC → stepper position) pairs from real hardware for the `calculateRAandDECSteppers` math. This would serve as regression tests for the meridian-flip solution selector — the highest-risk coordinate math in the system. Not part of Phase 1; left as a follow-up task after extraction is complete and the pure math is independently testable on native.
 4. **MeadeCommandProcessor singleton.** `MeadeCommandProcessor::instance()` is a true singleton (unlike `Mount`, which is a global). It's accessed from `f_serial.hpp`, `WifiControl.cpp`, `c_buttons.hpp`, and `testmenu.cpp`. Phase 5 moves it to `src/adapters/MeadeCommandAdapter`; the singleton pattern should be eliminated there in favor of a non-owning reference from the composition root.

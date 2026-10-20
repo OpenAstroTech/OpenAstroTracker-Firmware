@@ -1,7 +1,7 @@
 # core/
 
 Pure domain logic. **No Arduino, no hardware libraries, no `#ifdef` feature flags.**
-Everything here must be buildable and unit-testable on the host (`native_core` PIO env).
+Everything here must be buildable and unit-testable on the host (`native` PIO env).
 
 Depends only on the C++ standard library and on interfaces in [`../ports/`](../ports/).
 
@@ -49,4 +49,4 @@ private:
 Responsibility: decide what each axis should do for a go-to in domain units such as RA and DEC.
 Dependency rule: core depends only on [`../ports/`](../ports/)-style interfaces, never on adapters, HAL, or Arduino APIs.
 
-See [specs/plan.md](../../specs/plan.md) for the target architecture.
+See [PLAN.md](../../PLAN.md) for the target architecture.

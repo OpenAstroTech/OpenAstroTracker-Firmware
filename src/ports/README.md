@@ -32,4 +32,4 @@ public:
 Responsibility: define the axis contract the domain needs for a go-to in domain terms such as RA, not steps.
 Dependency rule: ports are consumed by [`../core/`](../core/) and implemented by [`../adapters/`](../adapters/); they do not depend on HAL details.
 
-See [specs/plan.md](../../specs/plan.md) for the target architecture.
+See [PLAN.md](../../PLAN.md) for the target architecture.

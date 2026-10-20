@@ -27,4 +27,4 @@ MeadeCommandAdapter meade(goToController);
 Responsibility: choose concrete implementations and wire the go-to slice together for the selected board.
 Dependency rule: app may depend on every inner layer because it is the composition root; the inner layers never depend back on app.
 
-See [specs/plan.md](../../specs/plan.md) for the target architecture.
+See [PLAN.md](../../PLAN.md) for the target architecture.

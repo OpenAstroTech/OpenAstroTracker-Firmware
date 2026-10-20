@@ -34,4 +34,4 @@ public:
 Responsibility: expose raw motor-driving capability such as target position and motion start/stop.
 Dependency rule: HAL knows about hardware capabilities and platform backends, not about go-to policy, RA/DEC semantics, or domain state machines.
 
-See [specs/plan.md](../../specs/plan.md) for the target architecture.
+See [PLAN.md](../../PLAN.md) for the target architecture.
