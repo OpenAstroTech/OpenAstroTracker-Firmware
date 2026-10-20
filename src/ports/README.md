@@ -6,30 +6,32 @@ Domain-level interfaces consumed by [`../core/`](../core/): what the domain *nee
 Pure C++ interfaces only. No Arduino, no hardware libraries, no `#ifdef` feature flags.
 Adapters in [`../adapters/`](../adapters/) implement these ports on top of [`../hal/`](../hal/).
 
-Note: the snippets below are illustrative only. They demonstrate layer responsibilities and dependency direction, not the final refactored code shape; actual code can and will differ.
+## Catalogue
 
-Minimal go-to example:
+| Header | What the domain needs |
+|--------|----------------------|
+| `IClock.hpp` | "now" in milliseconds, plus a blocking delay |
+| `ILogger.hpp` | a log sink taking the firmware's `DEBUG_*` bit-mask |
+| `LogFormat.hpp` | the opaque, PROGMEM-safe format handle that `ILogger` takes |
+| `IPersistentStore.hpp` | durable bytes at an address |
+| `IStepperAxis.hpp` | one stepper axis; `AxisSnapshot` is the ISR-safe read |
+| `IMotorDriver.hpp` | driver current/chopper/stall-guard configuration |
+| `IHomingSensor.hpp` | "the magnet is here" |
+| `IEndSwitch.hpp` | "the carriage hit this end" |
+| `IDisplay.hpp` | the menu's text grid and backlight |
+| `IInfoDisplay.hpp` | the status panel, fed an `InfoDisplayState` snapshot |
+| `ITransport.hpp` | line-oriented command input and reply output |
+| `IGps.hpp` | the receiver's `GpsFix` |
+| `IGyro.hpp` | the base's `GyroAngles` |
 
-```cpp
-class RA {
-public:
-	explicit RA(int32_t milliArcSeconds) : _milliArcSeconds(milliArcSeconds) {}
-	int32_t milliArcSeconds() const { return _milliArcSeconds; }
+## Two contracts worth knowing
 
-private:
-	int32_t _milliArcSeconds;
-};
-
-class IRaAxis {
-public:
-	virtual ~IRaAxis() = default;
-	virtual void moveTo(const RA &target) = 0;
-	virtual bool isBusy() const = 0;
-	virtual void stop() = 0;
-};
-```
-
-Responsibility: define the axis contract the domain needs for a go-to in domain terms such as RA, not steps.
-Dependency rule: ports are consumed by [`../core/`](../core/) and implemented by [`../adapters/`](../adapters/); they do not depend on HAL details.
+- **`IStepperAxis` threading.** `snapshot()` is the only method an ISR may call; every
+  other method is main-loop-only. Timers are shared between axes, so ownership is
+  granted by the coordinator rather than assumed by an axis.
+- **`ILogger` and flash.** Format strings reach the logger as an opaque `LogFormat`
+  built with `OAT_LOG_FORMAT()`, which is `PSTR()` on AVR. That single platform-specific
+  line in `LogFormat.hpp` is what keeps the firmware's 273 format literals (13.9 KB) out
+  of the ATmega2560's 8 KB of SRAM.
 
 See [PLAN.md](../../PLAN.md) for the target architecture.

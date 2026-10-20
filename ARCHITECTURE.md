@@ -87,7 +87,7 @@ objects constructed in the composition root, never as different code paths in th
 | Layer | Directory | May depend on | Contains | Test strategy |
 |-------|-----------|---------------|----------|---------------|
 | **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `MountCoordinator`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
-| **Ports** | `src/ports/` | nothing | `IClock`, `ILogger`, `IPersistentStore`, `IStepperAxis`, `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay`, `ITransport`, `IGps` | Interfaces only — nothing to test. |
+| **Ports** | `src/ports/` | nothing | `IClock`, `ILogger` (+ `LogFormat`), `IPersistentStore`, `IStepperAxis` (+ `AxisSnapshot`), `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay` (+ `InfoDisplayState`), `ITransport`, `IGps`, `IGyro` | Interfaces only — nothing to test. |
 | **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `EepromPersistentStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
 | **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor` (motion engine), `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`) plus per-platform backends (`arduino/`, `avr/`, `esp32/`, `rp2040/`) | Not host-tested; verified on hardware. |
 | **App** | `src/app/` | all layers | Composition root: reads `Configuration*.hpp` into `MountConfig`, selects HAL backends, constructs adapters and controllers, owns the entry point | On-device smoke tests. |
@@ -171,15 +171,17 @@ OpenAstroTracker-Firmware/
 │   ├── ports/                           # DOMAIN INTERFACES
 │   │   ├── IClock.hpp
 │   │   ├── ILogger.hpp
+│   │   ├── LogFormat.hpp                # opaque, PROGMEM-safe log format handle
 │   │   ├── IPersistentStore.hpp
-│   │   ├── IStepperAxis.hpp
+│   │   ├── IStepperAxis.hpp             # + AxisSnapshot, threading contract
 │   │   ├── IMotorDriver.hpp
 │   │   ├── IHomingSensor.hpp
 │   │   ├── IEndSwitch.hpp
 │   │   ├── IDisplay.hpp
-│   │   ├── IInfoDisplay.hpp
+│   │   ├── IInfoDisplay.hpp             # + InfoDisplayState
 │   │   ├── ITransport.hpp
-│   │   └── IGps.hpp
+│   │   ├── IGps.hpp                     # + GpsFix
+│   │   └── IGyro.hpp                    # + GyroAngles
 │   │
 │   ├── hal/                             # HARDWARE CAPABILITIES
 │   │   ├── IGpioPin.hpp
@@ -194,12 +196,19 @@ OpenAstroTracker-Firmware/
 │   │   ├── IButtonMatrix.hpp
 │   │   ├── ITimerService.hpp
 │   │   ├── ISystemClock.hpp
-│   │   ├── IWifiStack.hpp
+│   │   ├── IWifiStack.hpp               # + ITcpListener/ITcpConnection/IUdpSocket
 │   │   ├── EepromLayout.hpp             # storage layout constants
-│   │   ├── arduino/                     # generic Arduino backends
-│   │   ├── avr/                         # Timer1/Timer3 ISR, fast pin I/O, InterruptStepperMotor
-│   │   ├── esp32/                       # hardware timers, Wi-Fi glue, ArduinoAccelStepperMotor
-│   │   └── rp2040/                      # alarm timer ISR, ArduinoAccelStepperMotor
+│   │   ├── WarningGuard.hpp             # PUSH/POP_NO_WARNINGS fallbacks for backends
+│   │   ├── arduino/                     # generic Arduino backends:
+│   │   │   ├── ArduinoSystemClock.*     #   ISystemClock
+│   │   │   ├── ArduinoGpioPin.*         #   IGpioPin
+│   │   │   ├── ArduinoSerialPort.*      #   ISerialPort over any Stream
+│   │   │   ├── ArduinoEeprom.*          #   IEeprom
+│   │   │   └── AccelStepperMotor.*      #   IStepperMotor (ESP32 + RP2040)
+│   │   ├── avr/                         # InterruptStepperMotor.hpp (IStepperMotor over the
+│   │   │                                #   timer-ISR engine; template, header-only)
+│   │   ├── esp32/                       # Esp32TimerService, Esp32WifiStack
+│   │   └── rp2040/                      # Rp2040TimerService
 │   │
 │   ├── core/                            # PURE DOMAIN — no Arduino
 │   │   ├── meade/
@@ -255,8 +264,16 @@ OpenAstroTracker-Firmware/
 │   │       └── test_Meade<Family>.cpp
 │   ├── test_hal/
 │   │   └── test_main.cpp
+│   ├── test_adapters/                   # adapter + fake tests (native env, test_filter)
+│   │   ├── test_main.cpp
+│   │   ├── test_hal_fakes.cpp
+│   │   └── test_ArduinoClock.cpp, test_EepromPersistentStore.cpp, ...   # Phase 2b
 │   └── test_common/
 │       └── hal_fakes/                   # in-memory EEPROM, virtual GPIO, controllable clock
+│           ├── FakeSystemClock.hpp      #   hal::ISystemClock + ports::IClock
+│           ├── FakeGpioPin.hpp          #   hal::IGpioPin
+│           ├── FakeSerialPort.hpp       #   hal::ISerialPort
+│           └── FakeEeprom.hpp           #   hal::IEeprom
 │
 └── docs/
     └── RP2040-WIRING.md

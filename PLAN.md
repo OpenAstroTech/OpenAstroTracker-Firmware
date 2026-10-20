@@ -131,7 +131,9 @@ All seven Phase 1 modules exist under `src/core/`, plus `src/hal/EepromLayout.hp
 
 ### What remains (Phase 2 onward)
 
-The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adapter that still couples to `Mount*` and `LcdMenu*` directly. The `Mount` god-object still contains all domain logic (slewing, tracking, guiding, parking, homing, focus, coordinate math). No ports, adapters, HAL interfaces, or controllers exist yet — `src/ports/`, `src/adapters/`, and `src/app/` contain only READMEs, and `src/hal/` contains only `EepromLayout.hpp`.
+The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adapter that still couples to `Mount*` and `LcdMenu*` directly. The `Mount` god-object still contains all domain logic (slewing, tracking, guiding, parking, homing, focus, coordinate math).
+
+Phase 2a (contracts) has landed: `src/ports/` holds the 12 domain interfaces plus `LogFormat`, `src/hal/` holds the 13 HAL interfaces, `EepromLayout.hpp`, the generic Arduino backends, the AVR interrupt-stepper backend and the ESP32/RP2040 timer and Wi-Fi backends, and `unit_tests/test_common/hal_fakes/` holds the hand-written port fakes. Nothing in `src/` root uses any of it yet — `src/adapters/` and `src/app/` still contain only READMEs, and `Mount` is untouched.
 
 ---
 
@@ -253,33 +255,44 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 
 **Calibration facts (measured on the current tree):** `Mount.cpp` is 4,361 LOC with **~134 public method declarations** and contains **274 `LOG()` sites (273 literal formats totalling 13,857 bytes, currently kept in PROGMEM via `F()`), 47 `EEPROMStore::` sites, 21 `millis()`, 19 `digitalWrite()`, 184 TMC-driver calls and 251 stepper-axis calls (on 236 call sites)**. `Mount::loop()` is 293 lines. These counts are the real size of 2b/2c: the work is mechanical but large. The global is defined in `src/b_setup.hpp` (`Mount mount(&lcdMenu);`); the only `extern Mount mount;` is in `src/testmenu.cpp`. Stepping has **three** concurrency models, not two (step 9).
 
-#### 2a — Contracts (no production changes)
+#### 2a — Contracts (no production changes) ✅ COMPLETE
 
-1. Define **HAL interfaces** in `src/hal/`:
+*Status: all four steps landed. `pio test -e native` runs 377 cases green (366 prior + 11 fake smoke tests); `ramps`, `mksgenlv21`, `esp32`, `oaeboardv1` and `rp2040_skr_pico` build green, and `mksgenlv1` was verified with a temporary local config (the CI matrix supplies one for the boards that have none in-tree). Nothing in `src/` root includes any new interface yet, so behaviour is untouched.*
+
+1. ✅ Define **HAL interfaces** in `src/hal/`:
    - `IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`,
    - `IStepperMotor`, `ITmcDriver` (UART register IO),
    - `IOledPanel`, `ICharLcd`, `IButtonMatrix`,
    - `ITimerService` (periodic/one-shot callbacks), `ISystemClock` (`millis`/`micros`),
    - `IWifiStack`.
    - `IStepperMotor` is the **motion-engine** surface: `moveTo`, `move`, `setSpeed`, `setMaxSpeed`, `setAcceleration`, `run`, `runSpeed`, `currentPosition`, `setCurrentPosition`, `targetPosition`, `distanceToGo`, `isRunning`, `setPinsInverted`, plus microstep/enable config. It is **not** a bare step/dir pulse interface, and it is **not** a copy of `IStepperAxis`: `core/`/`ports/` never name a stepper library. See the *Stepper axis layering* decision.
-2. Implement HAL backends (headers stay Arduino-free; each backend directory compiles only for its platform):
+   - Done: all 13 headers exist (one interface per file) and are Arduino-free. `ISerialPort` is deliberately *open-port* only — baud rate and pins are a backend constructor concern, so one `ArduinoSerialPort(Stream &)` covers `HardwareSerial`, `SerialUSB`, `SoftwareSerial` and the AVR `Serial`. `IGpioPin::writeAnalog` is named that way because `analogWrite` is a global Arduino symbol.
+2. ✅ Implement HAL backends (headers stay Arduino-free; each backend directory compiles only for its platform):
    - `hal/arduino/` — generic Arduino implementation (`ArduinoGpioPin`, `ArduinoSerialPort`, `ArduinoEeprom`, `ArduinoSystemClock`, …).
    - `hal/avr/` — AVR-specific bits: the vendored `InterruptStepper` bindings now in [`src/StepperConfiguration.hpp`](src/StepperConfiguration.hpp) and [`src/InterruptAccelStepper.h`](src/InterruptAccelStepper.h), the Timer1/3/4/5 ISR vectors in [`src/Core.cpp`](src/Core.cpp), and the Timer2 path in [`src/InterruptCallback.cpp`](src/InterruptCallback.cpp). Exposes `InterruptStepperMotor` (implements `hal::IStepperMotor`).
    - `hal/rp2040/` — RP2040-specific: the `add_repeating_timer_us` alarm ISR in [`src/InterruptCallback.cpp`](src/InterruptCallback.cpp) (`TimerInterrupt` is already `lib_ignore`d for those envs) plus `ArduinoAccelStepperMotor` (wraps `AccelStepper`).
    - `hal/esp32/` — ESP32-specific: hardware timers, Wi-Fi stack glue, `ArduinoAccelStepperMotor` (wraps `AccelStepper`).
    - `unit_tests/test_common/hal_fakes/` — pure C++ fakes (in-memory EEPROM, virtual GPIO, controllable clock, fake serial). Test code only, **not** in `src/`.
-3. Define domain **ports** in `src/ports/`:
+   - Done: `hal/arduino/` has `ArduinoSystemClock`, `ArduinoGpioPin`, `ArduinoSerialPort`, `ArduinoEeprom` and `AccelStepperMotor`; `hal/avr/InterruptStepperMotor.hpp` is a header-only template over the `config::<Axis>::stepper_*` types (it owns the engine by value — no heap); `hal/esp32/` has `Esp32TimerService` (over `esp_timer`) and `Esp32WifiStack` (with `ITcpListener`/`ITcpConnection`/`IUdpSocket` wrappers); `hal/rp2040/` has `Rp2040TimerService` (over `add_repeating_timer_us`/`add_alarm_in_us`). `hal/arduino/AccelStepperMotor` is shared by ESP32 and RP2040 instead of being copied into both platform directories. `ISpiBus`/`II2cBus` are contracts only: nothing needs them until the display adapters arrive in Phase 3.
+3. ✅ Define domain **ports** in `src/ports/`:
    - `IClock`, `ILogger`, `IPersistentStore`,
    - `IStepperAxis` — sized to the real call surface: `currentPosition`, `setCurrentPosition`, `targetPosition`, `distanceToGo`, `move`, `moveTo`, `runToNewPosition`, `runToPosition`, `run`, `runSpeed`, `stop`, `isRunning`, `setMaxSpeed`, `maxSpeed`, `setAcceleration`, `setSpeed`, `speed`, `setPinsInverted`, plus the ISR-safe `Snapshot()`. Keep the existing two-instances-per-axis split (RA slew + tracking, DEC slew + guide).
    - `IMotorDriver` — sized to the real call surface: `beginSerial`/`begin`, `microsteps`, `rms_current`, `toff`, `blank_time`, `vsense`, `semin`, `iholddelay`, `TPOWERDOWN`, `TCOOLTHRESH`, `SGTHRS`, `en_spreadCycle`, `pdn_disable`, `mstep_reg_select`, `I_scale_analog`, `fclktrim`, `cs_actual`; null implementation for non-TMC.
    - `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay`, `ITransport`, `IGps`, `IGyro`.
-4. Update **build configuration** — all of it belongs in 2a, because nothing references the new interfaces yet:
+   - Done: all 12 ports exist. `IStepperAxis` carries the settled threading contract in its header (only `snapshot()` is ISR-callable; everything else is main-loop-only; timers are shared, so axis ownership is granted by the coordinator). `ILogger` takes an opaque `LogFormat` built with `OAT_LOG_FORMAT()`, which expands to `PSTR()` on AVR and a plain pointer elsewhere — that is the only platform-specific line under `ports/`, and it exists to keep the 273 format literals out of SRAM. `IPersistentStore` is byte-addressed; the layout and value encoding stay with the EEPROM adapter.
+4. ✅ Update **build configuration** — all of it belongs in 2a, because nothing references the new interfaces yet:
    - **`native` env:** compiles *all* of `src/adapters/` and none of `src/hal/`. With the stepper library confined to `hal/`, `StepperAxis` stays pure and needs no per-file exclusion; if a future adapter must include an Arduino header, add an exclusion rather than moving it into `hal/`. Add `test_adapters` to `test_filter` so adapter tests actually run (today only `test_core` + `test_hal` are filtered).
    - **Every embedded env needs platform source filters.** `[common_embedded]` uses `src_filter = +<*>` (minus `libs/`), so without exclusions the AVR build would try to compile `hal/esp32/` and `hal/rp2040/` the moment they exist. Add per-env `build_src_filter`: AVR (`ramps`, `mksgenlv1/v2/v21`) → `-<hal/esp32/> -<hal/rp2040/>`; `esp32` + `oaeboardv1` → `-<hal/avr/> -<hal/rp2040/>`; `rp2040_jackw01` + `rp2040_skr_pico` → `-<hal/avr/> -<hal/esp32/>`.
    - **AVR C++-standard spike.** The AVR envs set no `-std` and inherit **gnu++11** from the Arduino core on **avr-gcc 7.3.0**, yet they compile all of `src/core/**`. Until this spike proves otherwise, `core/` must stay C++11-compatible: keep `etl::optional` (header-only, C++11-safe) and **avoid `if constexpr`**. Try `-std=gnu++14`, then `gnu++17`, on `ramps`; record the outcome here.
+     - **Outcome (measured):** both standards build and link on `ramps` with avr-gcc 7.3.0. A `-std=gnu++17` in `build_flags` reaches every `src/` TU without any `build_unflags`, leaving the Arduino core on its own gnu++11. Flash and RAM came out byte-identical to the gnu++11 build, so raising the standard costs nothing. (The vendored `InterruptStepper` library already builds itself with `-std=c++17`, so the AVR toolchain was in fact already mixing standards.)
+     - **Decision: stay C++11.** The firmware still supports Arduino IDE builds, which compile AVR sketches with the core's default standard; using C++17 in `core/` would silently break that path. The spike proves C++17 is available if that constraint is ever dropped.
    - **ETL dependency.** `-D ETL_NO_STL` is already global (`[env]`), but ETL is in no `lib_deps` anywhere and nothing uses `etl::` yet. Add ETL to `[common].lib_deps` for boards and to `[env:native].test_lib_deps` (the `native` env has **no** `lib_deps` block) before Phase 4 relies on `etl::optional`.
+     - Done: `etlcpp/Embedded Template Library @ 20.32.1` is in `[common]`, in `[common_rp2xxx]` (that section duplicates instead of extending `[common]`) and in `[env:native].test_lib_deps`. ETL already arrived transitively through `InterruptStepper`, whose manifest pins **exactly** `20.32.1`; declaring any wider range makes LDF install a second, conflicting copy (measurable as +108 B of AVR flash), so the pin matches that manifest. Same ETL version on every board.
+   - Done: `[common_embedded]` now uses `build_src_filter` (the `src_filter` spelling is the deprecated alias) so each env can extend it, `test_adapters` is in `[env:native].test_filter`, and `unit_tests/test_adapters/test_hal_fakes.cpp` is the first suite in it.
 
 **Verify (2a):** `pio test -e native` green; `matrix_build.py -b <board>` still links for all 7 CI boards after the HAL exclusions (nothing references the new interfaces yet).
+
+**Verified:** `pio test -e native` → 377/377 passed (11 new). Board builds: `ramps` (AVR interrupt-stepper), `mksgenlv21` (AVR AccelStepper), `mksgenlv1` (AVR AccelStepper, temporary local config), `esp32`, `oaeboardv1`, `rp2040_skr_pico` all SUCCESS. On `ramps` the cost is **zero**: `168430` B flash and `7457` B RAM before and after (64.5% / 91.0%) — the unreferenced backends are fully dead-stripped. `hal/avr/InterruptStepperMotor.hpp` is header-only and has no consumer yet, so it was instantiated once in a throwaway TU to prove it compiles and links, then the TU was removed.
 
 #### 2b — Adapters + `Mount` injection
 
