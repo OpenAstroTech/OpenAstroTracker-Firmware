@@ -1,7 +1,4 @@
 #include "inc/Globals.hpp"
-PUSH_NO_WARNINGS
-#include <EEPROM.h>
-POP_NO_WARNINGS
 
 #include "../Configuration.hpp"
 #include "Utility.hpp"
@@ -10,53 +7,25 @@ POP_NO_WARNINGS
 // The platform-independant EEPROM class
 //
 // The on-device layout (addresses, flags, magic markers) is defined in hal::eeprom.
+// Byte access goes through the injected IPersistentStore, so this file contains no
+// platform code and no Arduino EEPROM calls: which medium backs the store (EEPROM
+// cells on AVR, flash-emulated EEPROM on ESP32/RP2040, or RAM for USE_DUMMY_EEPROM)
+// is decided once, in the composition root.
 using namespace hal::eeprom;
 
-///////////////////////////////////////
-// PLATFORM-SPECIFIC IMPLEMENTATIONS
+namespace
+{
+ports::IPersistentStore *_store = nullptr;
+}  // namespace
 
-#if USE_DUMMY_EEPROM == true
+void EEPROMStore::setStore(ports::IPersistentStore *store)
+{
+    _store = store;
+}
 
-static uint8_t dummyEepromStorage[STORE_SIZE];
-
-// Initialize the EEPROM object for ESP boards, setting aside storage
 void EEPROMStore::initialize()
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Dummy: Startup with %d bytes", EEPROMStore::STORE_SIZE);
-    memset(dummyEepromStorage, 0, sizeof(dummyEepromStorage));
-
-    displayContents();  // Will always be empty at restart
-}
-
-// Update the given location with the given value
-void EEPROMStore::update(uint8_t location, uint8_t value)
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: Dummy: Writing %x to %d", value, location);
-    dummyEepromStorage[location] = value;
-}
-
-// Complete the transaction
-void EEPROMStore::commit()
-{
-    // Nothing to do
-}
-
-// Read the value at the given location
-uint8_t EEPROMStore::read(uint8_t location)
-{
-    uint8_t value;
-    value = dummyEepromStorage[location];
-    LOG(DEBUG_EEPROM, "[EEPROM]: Dummy: Read %x from %d", value, location);
-    return value;
-}
-
-#elif defined(ESP32)
-
-// Initialize the EEPROM object for ESP boards, setting aside space for storage
-void EEPROMStore::initialize()
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: ESP32: Startup with %d bytes", STORE_SIZE);
-    EEPROM.begin(STORE_SIZE);
+    LOG(DEBUG_EEPROM, "[EEPROM]: Startup with %d bytes", STORE_SIZE);
 
     displayContents();
 }
@@ -64,93 +33,31 @@ void EEPROMStore::initialize()
 // Update the given location with the given value
 void EEPROMStore::update(uint8_t location, uint8_t value)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: ESP32: Writing %x to %d", value, location);
-    EEPROM.write(location, value);
+    if (_store == nullptr)
+    {
+        return;
+    }
+    _store->writeByte(location, value);
 }
 
 // Complete the transaction
 void EEPROMStore::commit()
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: ESP32: Committing");
-    EEPROM.commit();
+    if (_store != nullptr)
+    {
+        _store->commit();
+    }
 }
 
 // Read the value at the given location
 uint8_t EEPROMStore::read(uint8_t location)
 {
-    uint8_t value;
-    value = EEPROM.read(location);
-    LOG(DEBUG_EEPROM, "[EEPROM]: ESP32: Read %x from %d", value, location);
-    return value;
+    if (_store == nullptr)
+    {
+        return 0;
+    }
+    return _store->readByte(location);
 }
-
-#elif defined(ARDUINO_ARCH_RP2040)
-
-// Initialize the flash-backed EEPROM emulation provided by the Philhower
-// arduino-pico core. API is identical to the ESP32 path.
-void EEPROMStore::initialize()
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Startup with %d bytes", STORE_SIZE);
-    EEPROM.begin(STORE_SIZE);
-
-    displayContents();
-}
-
-// Update the given location with the given value
-void EEPROMStore::update(uint8_t location, uint8_t value)
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Writing %x to %d", value, location);
-    EEPROM.write(location, value);
-}
-
-// Complete the transaction (flush RAM cache to flash)
-void EEPROMStore::commit()
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Committing");
-    EEPROM.commit();
-}
-
-// Read the value at the given location
-uint8_t EEPROMStore::read(uint8_t location)
-{
-    uint8_t value;
-    value = EEPROM.read(location);
-    LOG(DEBUG_EEPROM, "[EEPROM]: RP2040: Read %x from %d", value, location);
-    return value;
-}
-
-#else
-
-// Initialize the EEPROM storage in a platform-independent abstraction
-void EEPROMStore::initialize()
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: ATMega: Startup");
-
-    displayContents();
-}
-
-// Update the given location with the given value
-void EEPROMStore::update(uint8_t location, uint8_t value)
-{
-    LOG(DEBUG_EEPROM, "[EEPROM]: ATMega: Writing8 %x to %d", value, location);
-    EEPROM.write(location, value);
-}
-
-// Complete the transaction
-void EEPROMStore::commit()
-{
-    // Nothing to do
-}
-
-// Read the value at the given location
-uint8_t EEPROMStore::read(uint8_t location)
-{
-    uint8_t value = EEPROM.read(location);
-    LOG(DEBUG_EEPROM, "[EEPROM]: ATMega: Read8 %x from %d", value, location);
-    return value;
-}
-
-#endif
 
 void EEPROMStore::displayContents()
 {

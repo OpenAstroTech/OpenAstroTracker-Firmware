@@ -5,6 +5,10 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "ports/IClock.hpp"
+#include "ports/IMotorDriver.hpp"
+#include "ports/IScheduler.hpp"
+#include "ports/IStepperAxis.hpp"
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 class InfoDisplayRender;
@@ -150,7 +154,11 @@ enum FocuserDirection
 class Mount
 {
   public:
-    Mount(LcdMenu *lcdMenu);
+    /// The infrastructure ports are injected by the composition root
+    /// (`src/b_setup.hpp` today). The axes and drivers are created in the
+    /// `configure*` methods and owned by the mount for the lifetime of the program,
+    /// exactly as the concrete steppers used to be.
+    Mount(LcdMenu *lcdMenu, ports::IClock *clock, ports::IScheduler *scheduler);
 
     void initializeVariables();
 
@@ -528,7 +536,7 @@ class Mount
   private:
 #if UART_CONNECTION_TEST_TX == 1
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    void testUART_vactual(TMC2209Stepper *driver, int speed, int duration);
+    void testUART_vactual(ports::IMotorDriver *driver, int speed, int duration);
     #endif
 #endif
 
@@ -541,6 +549,11 @@ class Mount
     void autoCalcHa();
 
   private:
+    // Injected by the composition root; declared first so the constructor's
+    // initialiser order is the declaration order (and therefore warning-free).
+    ports::IClock *_clock;
+    ports::IScheduler *_scheduler;
+
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     InfoDisplayRender *infoDisplay;
@@ -585,46 +598,52 @@ class Mount
     long _commandReceived;
 
     // Stepper control for RA, DEC and TRK.
-#ifdef NEW_STEPPER_LIB
+    //
+    // AVR keeps the concrete engines: the interrupt-stepper engines are compile-time
+    // specialised per axis (pins, timer, ramp) and a polymorphic wrapper per engine
+    // would cost ~50 B of the 8 KB SRAM for its vtable alone (~350 B for a RAMPS
+    // build). That is PLAN.md's "template-based static dispatch" escape hatch. Every
+    // other platform drives the same code through the axis port.
+#ifdef ARDUINO_AVR_ATmega2560
     StepperRaSlew *_stepperRA;
     StepperRaTrk *_stepperTRK;
     StepperDecSlew *_stepperDEC;
     StepperDecTrk *_stepperGUIDE;
 #else
-    AccelStepper *_stepperRA;
-    AccelStepper *_stepperDEC;
-    AccelStepper *_stepperTRK;
-    AccelStepper *_stepperGUIDE;
+    ports::IStepperAxis *_stepperRA;
+    ports::IStepperAxis *_stepperTRK;
+    ports::IStepperAxis *_stepperDEC;
+    ports::IStepperAxis *_stepperGUIDE;
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    TMC2209Stepper *_driverRA;
+    ports::IMotorDriver *_driverRA;
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    TMC2209Stepper *_driverDEC;
+    ports::IMotorDriver *_driverDEC;
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool _azAltWasRunning;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #ifdef NEW_STEPPER_LIB
+        #ifdef ARDUINO_AVR_ATmega2560
     StepperAzSlew *_stepperAZ;
         #else
-    AccelStepper *_stepperAZ;
+    ports::IStepperAxis *_stepperAZ;
         #endif
     float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    TMC2209Stepper *_driverAZ;
+    ports::IMotorDriver *_driverAZ;
         #endif
     #endif
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #ifdef NEW_STEPPER_LIB
+        #ifdef ARDUINO_AVR_ATmega2560
     StepperAltSlew *_stepperALT;
         #else
-    AccelStepper *_stepperALT;
+    ports::IStepperAxis *_stepperALT;
         #endif
     float _stepsPerALTDegree;  // u-steps/degree (from CTOR)
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    TMC2209Stepper *_driverALT;
+    ports::IMotorDriver *_driverALT;
         #endif
     #endif
 #endif
@@ -633,16 +652,14 @@ class Mount
     bool _focuserWasRunning  = false;
     FocuserMode _focuserMode = FOCUS_IDLE;
     float _maxFocusRateSpeed;
-    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #ifdef NEW_STEPPER_LIB
+    #ifdef ARDUINO_AVR_ATmega2560
     StepperFocusSlew *_stepperFocus;
-        #else
-    AccelStepper *_stepperFocus;
-        #endif
+    #else
+    ports::IStepperAxis *_stepperFocus;
+    #endif
     int _focusRate;
-        #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    TMC2209Stepper *_driverFocus;
-        #endif
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    ports::IMotorDriver *_driverFocus;
     #endif
 #endif
 

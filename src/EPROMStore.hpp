@@ -4,6 +4,7 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "hal/EepromLayout.hpp"
+#include "ports/IPersistentStore.hpp"
 
 // Platform independant abstraction of the EEPROM storage capability of the boards.
 // This is needed because the ESP boards require two things that the Arduino boards don't:
@@ -12,6 +13,11 @@
 class EEPROMStore
 {
   public:
+    /// Installs the byte storage the store writes through. The composition root owns
+    /// the instance for the lifetime of the program and must call this before
+    /// `initialize()`.
+    static void setStore(ports::IPersistentStore *store);
+
     static void initialize();
     static void clearConfiguration();
 

@@ -11,6 +11,26 @@
 #include "core/CoordinateMath.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
+#include "adapters/NullMotorDriver.hpp"
+#include "adapters/StepperAxis.hpp"
+#include "adapters/Tmc2209Driver.hpp"
+
+#ifndef ARDUINO_AVR_ATmega2560
+    #include "hal/arduino/AccelStepperMotor.hpp"
+#endif
+
+namespace
+{
+#ifndef ARDUINO_AVR_ATmega2560
+/// Wraps a motion engine in its axis adapter. Both objects live for the lifetime of
+/// the program, exactly like the concrete steppers they replace.
+ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
+{
+    return new adapters::StepperAxis(motor);
+}
+#endif
+}  // namespace
+
 PUSH_NO_WARNINGS
 #ifdef NEW_STEPPER_LIB
     #ifdef __AVR_ATmega2560__
@@ -66,9 +86,11 @@ const float siderealDegreesInHour = 14.95904348958;
 // CTOR
 //
 /////////////////////////////////
-Mount::Mount(LcdMenu *lcdMenu)
+Mount::Mount(LcdMenu *lcdMenu, ports::IClock *clock, ports::IScheduler *scheduler)
+    : _clock(clock), _scheduler(scheduler)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    : _azAltWasRunning(false)
+      ,
+      _azAltWasRunning(false)
 #endif
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
       ,
@@ -101,9 +123,40 @@ void Mount::initializeVariables()
     _mountStatus       = 0;
     _lastDisplayUpdate = 0;
     _stepperWasRunning = false;
-    _latitude          = Latitude(inNorthernHemisphere ? 45.0f : -45.0f);
-    _longitude         = Longitude(100.0);
-    _zeroPosDEC        = 0.0f;
+
+    // Created by the configure* methods below; null until then.
+    _stepperRA    = nullptr;
+    _stepperTRK   = nullptr;
+    _stepperDEC   = nullptr;
+    _stepperGUIDE = nullptr;
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    _driverRA = nullptr;
+#endif
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    _driverDEC = nullptr;
+#endif
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+    _stepperAZ = nullptr;
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    _driverAZ = nullptr;
+    #endif
+#endif
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+    _stepperALT = nullptr;
+    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    _driverALT = nullptr;
+    #endif
+#endif
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    _stepperFocus = nullptr;
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    _driverFocus = nullptr;
+    #endif
+#endif
+
+    _latitude   = Latitude(inNorthernHemisphere ? 45.0f : -45.0f);
+    _longitude  = Longitude(100.0);
+    _zeroPosDEC = 0.0f;
 
     _compensateForTrackerOff = false;
     _trackerStoppedAt        = 0;
@@ -297,16 +350,16 @@ void Mount::configureHemisphere(bool inNorthern, bool force)
 /////////////////////////////////
 void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-#ifdef NEW_STEPPER_LIB
+#ifdef ARDUINO_AVR_ATmega2560
     _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
     _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
 #else
-    _stepperRA = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperRA = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
 
-    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    // Use another axis instance to run the RA motor as well. This one tracks earths rotation.
+    _stepperTRK = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
 #endif
 
     _stepperRA->setMaxSpeed(maxSpeed);
@@ -325,16 +378,16 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
 /////////////////////////////////
 void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
-#ifdef NEW_STEPPER_LIB
+#ifdef ARDUINO_AVR_ATmega2560
     _stepperDEC = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
 
     // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
     _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
 #else
-    _stepperDEC = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperDEC = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
 
-    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
-    _stepperGUIDE = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    // Use another axis instance to run the DEC motor as well. This one is used for guiding.
+    _stepperGUIDE = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
 #endif
     _stepperDEC->setMaxSpeed(maxSpeed);
     _stepperDEC->setAcceleration(maxAcceleration);
@@ -359,10 +412,10 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    #ifdef NEW_STEPPER_LIB
+    #ifdef ARDUINO_AVR_ATmega2560
     _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -377,10 +430,10 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    #ifdef NEW_STEPPER_LIB
+    #ifdef ARDUINO_AVR_ATmega2560
     _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -400,10 +453,10 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
-    #ifdef NEW_STEPPER_LIB
+    #ifdef ARDUINO_AVR_ATmega2560
     _stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperFocus = new AccelStepper(AccelStepper::DRIVER, pin1, pin2);
+    _stepperFocus = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
     _stepperFocus->setMaxSpeed(maxSpeed);
     _stepperFocus->setAcceleration(maxAcceleration);
@@ -421,7 +474,7 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
     #if (UART_CONNECTION_TEST_TXRX == 1) || (TEST_VERIFY_MODE == 1)
 bool Mount::connectToDriver(const String &driverKind, uint16_t *rmsCurrent)
 {
-    MappedDict<String, TMC2209Stepper *>::DictEntry_t lookupTable[] = {
+    MappedDict<String, ports::IMotorDriver *>::DictEntry_t lookupTable[] = {
         #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         {"RA", _driverRA},
         #endif
@@ -438,9 +491,9 @@ bool Mount::connectToDriver(const String &driverKind, uint16_t *rmsCurrent)
         {"FOC", _driverFocus},
         #endif
     };
-    auto driverLookup = MappedDict<String, TMC2209Stepper *>(lookupTable, ARRAY_SIZE(lookupTable));
+    auto driverLookup = MappedDict<String, ports::IMotorDriver *>(lookupTable, ARRAY_SIZE(lookupTable));
 
-    TMC2209Stepper *driver = nullptr;
+    ports::IMotorDriver *driver = nullptr;
     driverLookup.tryGet(driverKind, &driver);
 
     if (driver != nullptr)
@@ -448,7 +501,7 @@ bool Mount::connectToDriver(const String &driverKind, uint16_t *rmsCurrent)
         LOG(DEBUG_STEPPERS, "[STEPPERS]: Testing UART Connection to %s driver...", driverKind.c_str());
         for (int i = 0; i < UART_CONNECTION_TEST_RETRIES; i++)
         {
-            if (driver->test_connection() == 0)
+            if (driver->testConnection())
             {
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: UART connection to %s driver successful.", driverKind.c_str());
                 if (rmsCurrent != nullptr)
@@ -482,7 +535,7 @@ bool Mount::connectToDriver(const String &driverKind, uint16_t *rmsCurrent)
     #if SW_SERIAL_UART == 0
 void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverRA = new TMC2209Stepper(serial, rsense, driveraddress);
+    _driverRA = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     _driverRA->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -524,7 +577,7 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
 
 void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverRA = new TMC2209Stepper(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
+    _driverRA = new adapters::Tmc2209Driver(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
     _driverRA->beginSerial(19200);
     _driverRA->mstep_reg_select(true);
     _driverRA->pdn_disable(true);
@@ -574,7 +627,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     #if SW_SERIAL_UART == 0
 void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverDEC = new TMC2209Stepper(serial, rsense, driveraddress);
+    _driverDEC = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     _driverDEC->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -618,7 +671,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
 
 void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverDEC = new TMC2209Stepper(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
+    _driverDEC = new adapters::Tmc2209Driver(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
     _driverDEC->beginSerial(19200);
     _driverDEC->mstep_reg_select(true);
     _driverDEC->pdn_disable(true);
@@ -668,7 +721,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     #if SW_SERIAL_UART == 0
 void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverAZ = new TMC2209Stepper(serial, rsense, driveraddress);
+    _driverAZ = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     _driverAZ->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -708,7 +761,7 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
 
 void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverAZ = new TMC2209Stepper(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
+    _driverAZ = new adapters::Tmc2209Driver(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
     _driverAZ->beginSerial(19200);
     _driverAZ->mstep_reg_select(true);
     _driverAZ->pdn_disable(true);
@@ -757,7 +810,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
     #if SW_SERIAL_UART == 0
 void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverALT = new TMC2209Stepper(serial, rsense, driveraddress);
+    _driverALT = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     _driverALT->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -797,7 +850,7 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
 
 void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverALT = new TMC2209Stepper(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
+    _driverALT = new adapters::Tmc2209Driver(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
     _driverALT->beginSerial(19200);
     _driverALT->mstep_reg_select(true);
     _driverALT->pdn_disable(true);
@@ -848,7 +901,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     #if SW_SERIAL_UART == 0
 void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverFocus = new TMC2209Stepper(serial, rsense, driveraddress);
+    _driverFocus = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     _driverFocus->begin();
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
@@ -896,7 +949,7 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
 void Mount::configureFocusDriver(
     uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
-    _driverFocus = new TMC2209Stepper(FOCUS_SW_RX, FOCUS_SW_TX, rsense, driveraddress);
+    _driverFocus = new adapters::Tmc2209Driver(FOCUS_SW_RX, FOCUS_SW_TX, rsense, driveraddress);
     _driverFocus->beginSerial(19200);
     _driverFocus->mstep_reg_select(true);
     _driverFocus->pdn_disable(true);
@@ -1730,8 +1783,8 @@ void Mount::guidePulse(byte direction, int duration)
         // Also compensate for microstepping mode change between slew & guiding/tracking
         float decGuidingSpeed = _stepsPerDECDegree * (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
                                 / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-        float raGuidingSpeed = _stepsPerRADegree * (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                               / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+        float raGuidingSpeed  = _stepsPerRADegree * (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
+                                / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
 
         // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
         // If so, we need to remember where we were when we started the guide pulse. Then at the end,
@@ -2984,11 +3037,14 @@ void Mount::setupEndSwitches()
 /////////////////////////////////
 void Mount::delay(int ms)
 {
-    unsigned long now = millis();
-    while (millis() - now < (unsigned long) ms)
+    // Keeps the mount loop running, so tracking does not stop while waiting. The
+    // deadline comes from the clock port and the yield from the scheduler port, so
+    // this needs no direct millis()/yield().
+    const unsigned long now = _clock->now();
+    while (_clock->now() - now < (unsigned long) ms)
     {
         loop();
-        yield();
+        _scheduler->yield();
     }
 }
 
@@ -4290,7 +4346,7 @@ void Mount::testDEC_UART_TX()
  * @param[in] speed The speed to run the stepper motor at (in microsteps per driver clock tick)
  * @param[in] duration The amount of time to turn the stepper (in milliseconds)
  */
-void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
+void Mount::testUART_vactual(ports::IMotorDriver *driver, int _speed, int _duration)
 {
     driver->VACTUAL(_speed);
     delay(_duration);

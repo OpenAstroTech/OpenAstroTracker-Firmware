@@ -11,6 +11,7 @@ Adapters in [`../adapters/`](../adapters/) implement these ports on top of [`../
 | Header | What the domain needs |
 |--------|----------------------|
 | `IClock.hpp` | "now" in milliseconds, plus a blocking delay |
+| `IScheduler.hpp` | handing control back to the platform while waiting |
 | `ILogger.hpp` | a log sink taking the firmware's `DEBUG_*` bit-mask |
 | `LogFormat.hpp` | the opaque, PROGMEM-safe format handle that `ILogger` takes |
 | `IPersistentStore.hpp` | durable bytes at an address |

@@ -25,6 +25,20 @@ POP_NO_WARNINGS
 #include "a_inits.hpp"
 #include "LcdMenu.hpp"
 #include "LcdButtons.hpp"
+
+// Composition root: the only place that picks concrete backends and hands them to the
+// domain as ports. Everything below `mount` works against `ports::*`.
+#include "adapters/ArduinoClock.hpp"
+#include "adapters/ArduinoScheduler.hpp"
+#include "adapters/EepromPersistentStore.hpp"
+#include "hal/InMemoryEeprom.hpp"
+#include "hal/WarningGuard.hpp"
+#include "hal/arduino/ArduinoEeprom.hpp"
+#include "hal/arduino/ArduinoSystemClock.hpp"
+
+PUSH_NO_WARNINGS
+#include <EEPROM.h>
+POP_NO_WARNINGS
 #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
     #include "SSD1306_128x64_Display.hpp"
 #endif
@@ -39,10 +53,28 @@ LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
 LcdButtons lcdButtons(&lcdMenu);
 #endif
 
-#ifdef ESP32
-DRAM_ATTR Mount mount(&lcdMenu);
+// The infrastructure the domain runs on. Declared before `mount` so it is
+// constructed first; all of these are stateless or trivially initialised.
+namespace
+{
+hal::ArduinoSystemClock arduinoSystemClock;
+adapters::ArduinoClock clockPort(arduinoSystemClock);
+adapters::ArduinoScheduler schedulerPort;
+
+#if USE_DUMMY_EEPROM == true
+// A development switch: boot without touching the board's EEPROM.
+hal::InMemoryEeprom<hal::eeprom::STORE_SIZE> eeprom;
 #else
-Mount mount(&lcdMenu);
+hal::ArduinoEeprom eeprom(EEPROM);
+#endif
+
+adapters::EepromPersistentStore persistentStore(eeprom, hal::eeprom::STORE_SIZE);
+}  // namespace
+
+#ifdef ESP32
+DRAM_ATTR Mount mount(&lcdMenu, &clockPort, &schedulerPort);
+#else
+Mount mount(&lcdMenu, &clockPort, &schedulerPort);
 #endif
 
 #if (WIFI_ENABLED == 1)
@@ -392,6 +424,8 @@ void setup()
     LOG(DEBUG_ANY, "[SYSTEM]: Initializing EEPROM store...");
     int eepromLine = addConsoleText(F("INIT EEPROM..."));
 
+    EEPROMStore::setStore(&persistentStore);
+    persistentStore.begin();
     EEPROMStore::initialize();
     LOG(DEBUG_ANY, "[SYSTEM]: EEPROM store ready!");
     updateConsoleText(eepromLine, F("INIT EEPROM... OK"));

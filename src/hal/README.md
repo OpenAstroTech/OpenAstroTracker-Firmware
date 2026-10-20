@@ -21,6 +21,7 @@ per platform.
 | `ITimerService.hpp` | periodic/one-shot callbacks from one hardware timer |
 | `ISystemClock.hpp` | `millis`/`micros`/`delay` |
 | `IWifiStack.hpp` | network stack plus TCP/UDP socket factories |
+| `InMemoryEeprom.hpp` | a RAM-backed `IEeprom` (for `USE_DUMMY_EEPROM` builds) |
 
 Two more headers are not capabilities:
 
@@ -36,13 +37,20 @@ Each directory compiles only for its platform, enforced by per-env
 
 | Directory | Contents |
 |-----------|----------|
-| `arduino/` | Generic Arduino backends: `ArduinoSystemClock`, `ArduinoGpioPin`, `ArduinoSerialPort` (wraps any `Stream`), `ArduinoEeprom`, `AccelStepperMotor`. Compiles on every platform; the stepper backend is used by ESP32 and RP2040 only |
-| `avr/` | `InterruptStepperMotor.hpp` — a header-only template over the timer-ISR engine in [`../StepperConfiguration.hpp`](../StepperConfiguration.hpp), parameterised by `config::<Axis>::stepper_*` |
+| `arduino/` | Generic Arduino backends: `ArduinoSystemClock`, `ArduinoGpioPin`, `ArduinoSerialPort` (wraps any `Stream`), `ArduinoEeprom`, `AccelStepperMotor`. Compiles on every platform; the stepper backend is used by ESP32 and RP2040 |
 | `esp32/` | `Esp32TimerService` (over `esp_timer`), `Esp32WifiStack` (over `WiFi`, `WiFiServer`, `WiFiUDP`) |
 | `rp2040/` | `Rp2040TimerService` (over `add_repeating_timer_us` / `add_alarm_in_us`) |
 
-AVR has no `ITimerService` backend on purpose: its timers are owned by the interrupt
-stepper and by `IntervalInterrupt`, so timer arbitration is a Phase 3 concern.
+There is no AVR-specific backend, for two measured reasons:
+
+- **No `IStepperMotor` wrapper.** The AVR engines (`InterruptAccelStepper<
+  config::<Axis>::stepper_*>` in [`../StepperConfiguration.hpp`](../StepperConfiguration.hpp))
+  are compile-time specialised per axis, and each polymorphic wrapper would add a
+  ~50-byte vtable to the ATmega2560's 8 KB of SRAM — ~350 B for a RAMPS build. That path
+  therefore keeps the concrete engines (PLAN.md's "template-based static dispatch"
+  escape hatch) and `Mount` holds them directly.
+- **No `ITimerService` backend.** AVR timers are owned by the interrupt stepper and by
+  `IntervalInterrupt`, so timer arbitration is a Phase 3 concern.
 
 ## Rules
 

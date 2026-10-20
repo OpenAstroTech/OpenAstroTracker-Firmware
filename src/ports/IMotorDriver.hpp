@@ -22,6 +22,10 @@ class IMotorDriver
 
     virtual void beginSerial(uint32_t baudRate) = 0;
 
+    /// Asks the driver to identify itself. False for a driver that cannot answer
+    /// (no UART, or a null driver).
+    virtual bool testConnection() = 0;
+
     // --- current and chopper configuration ---------------------------------
 
     virtual void microsteps(uint16_t value) = 0;
@@ -59,6 +63,14 @@ class IMotorDriver
     virtual void I_scale_analog(bool value) = 0;
 
     virtual void fclktrim(uint8_t value) = 0;
+
+    // --- motion and shaft --------------------------------------------------
+
+    /// Raw velocity mode, in driver clock ticks. Used by the UART self-test.
+    virtual void VACTUAL(int32_t value) = 0;
+
+    /// Shaft selection for the UART self-test.
+    virtual void shaft(bool value) = 0;
 
     // --- read-back ---------------------------------------------------------
 

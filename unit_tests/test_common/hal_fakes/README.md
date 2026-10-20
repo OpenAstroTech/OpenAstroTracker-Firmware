@@ -9,6 +9,7 @@ is compiled into the firmware.
 | `FakeGpioPin.hpp` | `hal::IGpioPin` | `setInputLevel()`, `setAnalogValue()`; records mode, output level, PWM duty and write count |
 | `FakeSerialPort.hpp` | `hal::ISerialPort` | `feed()` to queue input, `output()` to read what was written, `clearOutput()`, `flushCount()` |
 | `FakeEeprom.hpp` | `hal::IEeprom` | in-memory cells starting at `0xFF`, `setFailCommit()`, `fill()`, plus write/commit/begin counters |
+| `FakeStepperMotor.hpp` | `hal::IStepperMotor` | position/target bookkeeping, call counters per method, `setPosition()` |
 
 Include them by relative path from an adapter test, e.g.
 
