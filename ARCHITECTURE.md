@@ -75,13 +75,18 @@ objects constructed in the composition root, never as different code paths in th
    small, mark adapters `final`, and allow static dispatch for hot paths if flash pressure demands
    it.
 
+10. **Coordination is explicit and has one owner.** Controllers are peers only in the type system:
+    none calls another's mutating methods. They read `MountState`, publish facts on `EventBus`, and
+    ask `MountCoordinator` for anything that changes another controller's behaviour. No handler
+    blocks waiting for an action to finish.
+
 ---
 
 ## 3. Layers
 
 | Layer | Directory | May depend on | Contains | Test strategy |
 |-------|-----------|---------------|----------|---------------|
-| **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
+| **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `MountCoordinator`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
 | **Ports** | `src/ports/` | nothing | `IClock`, `ILogger`, `IPersistentStore`, `IStepperAxis`, `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay`, `ITransport`, `IGps` | Interfaces only — nothing to test. |
 | **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `EepromPersistentStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
 | **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor` (motion engine), `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`) plus per-platform backends (`arduino/`, `avr/`, `esp32/`, `rp2040/`) | Not host-tested; verified on hardware. |
@@ -161,7 +166,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── SerialTransport.hpp/.cpp     # ITransport        <- ISerialPort
 │   │   ├── WifiTransport.hpp/.cpp       # ITransport        <- IWifiStack
 │   │   ├── TinyGpsAdapter.hpp/.cpp      # IGps              <- serial stream + TinyGPS++
-│   │   └── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- core controllers
+│   │   └── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- ITransport + core/MountCoordinator
 │   │
 │   ├── ports/                           # DOMAIN INTERFACES
 │   │   ├── IClock.hpp
@@ -221,6 +226,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── FocusController.hpp/.cpp     # optional focus axis
 │   │   ├── AzAltController.hpp/.cpp     # optional AZ/ALT axes
 │   │   ├── MountState.hpp/.cpp          # typed mount-status enum API
+│   │   ├── MountCoordinator.hpp/.cpp    # admission, axis grants, tick order, completion
 │   │   ├── EventBus.hpp/.cpp            # PositionChanged, SlewStarted, Parked, ...
 │   │   └── MountConfig.hpp              # runtime configuration struct
 │   │
@@ -271,10 +277,127 @@ OpenAstroTracker-Firmware/
 | ISR-safe methods are named and documented on `IStepperAxis` | Interface contract |
 | Board-specific code (interrupt registers, pin mappings) lives only in `hal/<platform>/` | Code review |
 | `Mount`, where retained for Meade back-compat, is a facade only and holds no domain logic | Code review |
+| Command handlers never block (`waitUntil*`, `Mount::delay()`, `while (millis() < …)`) | CI grep check |
+| A controller mutates only its own `MountState` fields and never calls a peer controller | Code review |
 
 ---
 
-## 6. How a command flows
+## 6. Coordination and completion
+
+Controllers are peers only in the type system: none calls another's mutating methods. Communication
+uses three one-way channels.
+
+| Channel | Direction | Carries | Example |
+|---------|-----------|---------|---------|
+| `core/MountState` | pull, `const` | current truth as typed enums | `SlewController` reading `state.tracking()` for tracker-off compensation |
+| `core/EventBus` | push, fire-and-forget | facts that already happened | `SlewCompleted` → display repaint, pending reply completion |
+| `core/MountCoordinator` | request → ack | anything that changes another controller's behaviour | `:MS#` suspends tracking and stops guiding |
+
+Events are facts, never requests: an event named `StartSlew` is a request and belongs in the
+coordinator API, otherwise completion and causation become indistinguishable. Each controller writes
+only its own `MountState` fields and may read all of them. Event payloads are POD, bus capacity is
+fixed (no heap), and events published during a controller update are queued and drained after the
+tick — never dispatched inline, which would re-enter the controller that is mid-update.
+
+### `MountCoordinator`
+
+One instance per firmware, constructed in `app/`. It is the only object that holds all controllers
+and the only caller of their mutating methods.
+
+- **Admission** — one decision table for conflicting requests, tested on the host.
+- **Axis ownership** — RA and DEC each have two `IStepperAxis` instances (slew/track, slew/guide)
+  and the AVR timers are shared (Timer3 = RA, Timer4 = DEC, Timer5 = ALT *and* Focus). Exactly one
+  `MotionOwner` (Tracking, Slew, Guide, Home, Park, Focus, AzAlt) holds a physical axis at a time.
+- **Tick order** — `now = clock.now()` → poll inputs → controllers in fixed order
+  (`Slew → Tracking → Guide → Home → Park → Focus → AzAlt`) → resolve completion and release grants
+  → scan deadlines → drain `EventBus` → complete pending replies.
+- **Completion and timeouts** — every request gets an id; completion comes from the owning
+  controller's terminal state or from an `IClock` deadline.
+- **Domain entry point** — `requestSlew`, `requestPark`, `requestHome`, `requestStop`,
+  `requestGuide`, plus `state()`.
+
+Admission preserves the firmware's current behaviour — requests are last-wins and each cancels only
+what it conflicts with — with one deliberate fix: a goto during parking is refused, because today it
+retargets the axes while `STATUS_PARKING` suppresses `isSlewingDECorRA()`.
+
+| Request ↓ / Active → | Idle/Tracking | Slewing | Guiding | Homing | Parking |
+|---|---|---|---|---|---|
+| Goto slew | accept, suspend tracking | accept, retarget | accept, stop guide | accept, retarget | reject |
+| Manual slew | accept, suspend tracking | accept, retarget | accept, stop guide | accept, retarget | reject |
+| Park | accept | stop all, then accept | stop guide, then accept | stop all, then accept | idempotent |
+| Guide pulse | accept if tracking, else ignore | ignore | accept, extend | ignore | ignore |
+| Home | accept | accept, retarget | accept, stop guide | restart | accept |
+| Focus / AzAlt | accept | accept | accept | accept | accept |
+
+The `isParking()` gate in `startSlewing()`, `stopGuiding()` in the slew and home entry points, and
+the "only while tracking" rule in `guidePulse()` are the current implementation of these cells; the
+coordinator makes them explicit, single-sourced and tested.
+
+`Mount` is a compatibility facade over the coordinator during migration; no coordination logic lives
+in it.
+
+### `Mount` vs `MountCoordinator`
+
+They are not two versions of the same object. The coordinator is a new domain component; `Mount` is
+the old one dissolving into it one responsibility at a time.
+
+| | `MountCoordinator` | `Mount` |
+|---|---|---|
+| Layer / path | `core/` — part of the final layering | legacy root (`src/Mount.*`) — outside it |
+| Lifetime | permanent; the domain entry point | temporary; until the last legacy call site is migrated (Phase 6) |
+| Owns | controllers, `MountState`, `EventBus` wiring, axis grants, deadlines | nothing |
+| Drives time | `update(now)`, exactly once per app tick | never |
+| API | `request*`, `update`, `state()` | only the methods legacy call sites still use |
+| Called by | `app`, `MeadeCommandAdapter` | menus, `SSD1306_128x64_Display`, the `EPROMStore` overlay, `testmenu` |
+| Logic | admission, ordering, completion, timeouts | none — one delegating line per method |
+| State | authoritative | none; `_mountStatus`, `_stepper*`, `_driver*` all move out |
+
+Four rules keep them from collapsing into each other:
+
+1. The coordinator exposes nothing but requests, `update()` and `state()`.
+2. The facade holds no members beyond its dependencies, validates nothing and sequences nothing.
+3. New code calls the coordinator; the facade's method list may only shrink.
+4. If the facade's surface starts mirroring the coordinator, delete it — that is the Phase 6
+   outcome. The only reason it survives until then is the ~170 `mount.*` call sites in the menu
+   screens.
+
+The 116 public methods of `Mount` are redistributed, not renamed:
+
+| Cluster today | New home |
+|---|---|
+| motion commands (`startSlewing*`, `park`, `guidePulse`, `stop*`, `focus*`, `moveAZALTToHome`, `findHomeByHallSensor`) | coordinator requests → controllers |
+| status queries (`isSlewing*`, `isGuiding`, `mountStatus`, `getStepperProgress`) | `MountState` reads |
+| coordinate math / formatting (`calculateLst`, `calculateRAandDECSteppers`, `RAString`, `getLocalDate`) | `core/` algorithms (partly done in Phase 1) |
+| configuration and persistence (`readConfiguration`, `setStepsPerDegree`, limits, calibration, homing offset) | `IPersistentStore` + `MountConfig` |
+| hardware bring-up (`configure*Stepper`, `configure*driver`, `connectToDriver`, `setupEndSwitches`, `testRA_UART_TX`) | `app/` composition root + `hal/` |
+| loop and ISR (`loop`, `interruptLoop`, `delay`, `waitUntil*`) | `update()`, the platform ISR, or deleted |
+| UI and diagnostics (`updateInfoDisplay`, `getStatusString`, `getMountHardwareInfo`, `getNumCommandsReceived`) | display adapters, `EventBus` subscribers, `MountState` |
+
+### Waiting and answering
+
+The LX200 protocol is poll-based: `:MS#`/`:MA#` acknowledge and the host observes progress through
+`:D#`/`:Gm#`. Handlers therefore come in three shapes:
+
+| Shape | Reply | Mechanism |
+|---|---|---|
+| **Immediate** | computed now | read `MountState` (`:Gm#`, `:Gd#`, `:D#`) |
+| **Request/ack** | accepted or protocol error now; completion polled | `coordinator.request*()` (`:MS#`, `:PS#`, `:Q#`) |
+| **Deferred reply** | only at completion | `PendingReply` slot (`:gT#` GPS, drift alignment) |
+
+A deferred handler returns a correlation id instead of bytes, and `MeadeResponse` records "deferred,
+no inline output". `adapters/MeadeCommandAdapter` owns a fixed-capacity (4) table of
+`{correlation, ITransport *out, OpKind, deadlineMs}`, subscribes to completion events, formats the
+wire bytes and writes them through `ITransport::write()`. Keeping the requesting transport in the
+entry is what lets serial and Wi-Fi coexist. Every entry has an `IClock` deadline; expiry produces
+the protocol's failure reply, so a host never hangs, and `:Q#` aborts an outstanding request.
+
+Handlers never block — no `waitUntilStopped`, no `waitUntilAllStopped`, no `Mount::delay()`, no
+`while (millis() < …)`. Blocking does not stop stepping (the ISR or the ESP32 task owns that), but it
+starves the AVR serial ring buffer, freezes the display and skips coordinator ticks.
+
+---
+
+## 7. How a command flows
 
 ```text
 Serial or Wi-Fi bytes
@@ -287,35 +410,42 @@ adapters/WifiTransport    ──(ITransport)──┘
 core/meade/MeadeParser            # pure: classifies the command, parses suffixes
    │
    ▼
-IMeadeHandlers                    # implemented by adapters/MeadeCommandAdapter
+adapters/MeadeCommandAdapter      # implements IMeadeHandlers
    │
-   ▼
-core controllers                  # SlewController, TrackingController, ...
+   ├── immediate ────────────────► reply bytes via ITransport::write()
    │
-   ▼
-IStepperAxis                      # port
+   ├── request/ack ──► core/MountCoordinator.request*()
+   │                        │
+   │                        ▼
+   │                   core controllers   # Slew, Tracking, Guide, Home, Park, ...
+   │                        │
+   │                        ▼
+   │                   IStepperAxis → adapters/StepperAxis → hal/<platform>
    │
-   ▼
-adapters/StepperAxis              # HAL: IStepperMotor (motion engine)
-   │
-   ▼
-hal/avr | hal/esp32 | hal/rp2040 | hal/arduino backends
+   └── deferred ─────► PendingReply{correlation, out, deadline}
+                            ▲
+                            │ completion events
+                       core/EventBus  ◄── controllers, MountState
 ```
 
-Displays are not called by controllers. Controllers publish on `core/EventBus` and the display
-adapters subscribe.
+Replies leave through the same transport object that carried the command. Displays are not called by
+controllers either: they subscribe to `core/EventBus`.
 
 ---
 
-## 7. Adding to the architecture
+## 8. Adding to the architecture
 
 **A new Meade command** — add the handler method to the relevant `IMeade*Handlers` interface in
 `core/meade/MeadeParser.hpp`, implement parsing in the matching `MeadeParser*.cpp`, add a test in
 `unit_tests/test_core/meade/`, then implement the method in `MeadeCommandAdapter`. The first three
-steps involve no Arduino code.
+steps involve no Arduino code. Pick the handler shape first (§6): immediate if the answer already
+exists in `MountState`, request/ack if the host can poll, deferred only if the protocol requires the
+answer at completion.
 
 **A new domain behaviour** — put the decision in a `core/` controller, express any hardware need as
-a port in `src/ports/`, and fake that port in the unit test. Never call HAL from `core/`.
+a port in `src/ports/`, and fake that port in the unit test. Never call HAL from `core/`. If the
+behaviour conflicts with another controller, add a row to the coordinator's admission table and a
+test for it rather than calling the peer directly.
 
 **A new peripheral** — define or reuse a HAL interface in `src/hal/`, implement it for each platform
 that has the peripheral, write the adapter that satisfies the port, and construct it in `app/`.

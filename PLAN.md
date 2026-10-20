@@ -319,11 +319,12 @@ Recommended slice order (each is an independent step, parallelizable after Phase
 6. `core/FocusController` — focus motor (only constructed when focus axis is present; uses `etl::optional` in composition root).
 7. `core/AzAltController` — AZ/ALT motors (only constructed when present; uses `etl::optional` in composition root).
 8. `core/MountState` — single source of truth for the `_mountStatus` bitfield, with typed enum API (`Status::isSlewing()` etc.). Controllers mutate `MountState`; Mount facade reads it.
-9. `core/EventBus` — controllers publish `PositionChanged`, `SlewStarted`, `Parked`, etc.; display adapter subscribes (removes Mount → display direct coupling).
+9. `core/EventBus` — controllers publish `PositionChanged`, `SlewStarted`, `Parked`, etc.; display adapter subscribes (removes Mount → display direct coupling). Events are **facts, never requests** (an event named `StartSlew` is a coordinator request in disguise); payloads are POD, capacity is fixed (no heap), and dispatch is deferred to the tick boundary so a subscriber can never re-enter a controller mid-update.
+10. `core/MountCoordinator` — the only object that holds all controllers and the only caller of their mutating methods. Owns request admission, per-axis ownership grants, tick order, completion and timeouts; `Mount` forwards to it. Requires steps 8 and 9. Arbitration **preserves current behaviour** (see Decisions) — last-wins requests, a slew stops guiding and suspends tracking, park stops everything before homing, guide pulses only while tracking, optional axes independent — plus one fix: a goto during parking is refused. Phase 5 wires `MeadeCommandAdapter` to it.
 
 Each step: extract → add focused unit tests with FakeIt-faked ports → remove the original code from `Mount.cpp` → ship.
 
-**Verify per step:** unit tests for the new controller; all prior tests still green; firmware behavior on hardware unchanged (manual smoke checklist).
+**Verify per step:** unit tests for the new controller; all prior tests still green; firmware behavior on hardware unchanged (manual smoke checklist). For step 10: host tests covering every cell of the admission table, axis-grant exclusivity (RA/DEC two-instances-per-axis and Timer3/4/5 sharing), and deadline expiry.
 
 ### Phase 4 — Compile-time flags → runtime polymorphism
 *Eliminate `#ifdef` axes in `core/`, `ports/`, and most of `adapters/`. Feature flags survive only in the composition root and in HAL backend selection.*
@@ -343,11 +344,18 @@ Each step: extract → add focused unit tests with FakeIt-faked ports → remove
 
 1. `MeadeCommandProcessor` (current adapter) is already in `src/` root implementing `IMeadeHandlers` → move it to `src/adapters/MeadeCommandAdapter` to match layer conventions.
 2. Introduce `adapters/SerialTransport` + `adapters/WifiTransport` to feed bytes to `core/meade/MeadeParser`; parsed commands dispatch to the adapter.
-3. Remove `Mount* _mount` raw pointer from `MeadeCommandProcessor` — replace with port-based interfaces from Phase 2/3 (e.g. `IMeadeHandlers` implemented over controller interfaces, not the god-object).
-4. Remove the legacy `Mount::delay()` blocking call from GPS acquisition handler — replace with `IClock`-based non-blocking state machine.
-5. The existing 14 test files in `unit_tests/test_core/meade/` already cover all parser families. Add integration tests wiring `SerialTransport` → `MeadeParser` → `MeadeCommandAdapter` with faked ports.
+3. Remove `Mount* _mount` raw pointer from `MeadeCommandProcessor` — dispatch through `core/MountCoordinator` (`request*` + `state()`) and the port-based controller interfaces from Phase 2/3 (not the god-object).
+4. Split `IMeadeHandlers` into three shapes: **immediate** (read `MountState`), **request/ack** (`coordinator.request*()`), **deferred** (return a correlation id instead of bytes). `MeadeResponse` gains an explicit "deferred, no inline output" outcome and `dispatchMeadeCommand` reports it. `:MS#`/`:MA#` stay request/ack — they already acknowledge immediately and the host polls `:D#`.
+5. Add the `PendingReply` table to `MeadeCommandAdapter` — fixed capacity 4, `{correlation, ITransport *out, OpKind, deadlineMs}`. The adapter subscribes to `EventBus` completion events, formats the wire bytes and writes them via `ITransport::write()`; entries expire on an `IClock` deadline with the protocol's failure reply. `ITransport` gains an egress `write()` (today the reply is returned from `processCommand()`), and the requesting transport is stored so serial and Wi-Fi replies never cross.
+6. Replace the blocking handlers with requests / state machines:
+   - `:Q#` `onStopAll()` — issue the stop and return; `:D#` answers from `MountState` (drop `waitUntilAllStopped()`).
+   - drift alignment — `core/DriftAlignmentController` state machine + deferred reply (drop `waitUntilStopped()` and the 3× `delay(1500)`).
+   - `:gT#` GPS — deferred reply with the existing 120 s deadline, polled `IGps` fix (drop the `while (millis() < timeoutTime)` spin).
+   - `setManualSlewMode()` — request stop, apply the mode when the axis grant arrives (drop `waitUntilStopped()`).
+7. `Mount::delay()` stops re-entering `loop()` — it becomes a bounded `IClock` wait plus `yield()`, so it can no longer re-enter the coordinator tick. Menu screens keep their blocking calls (menu refactor is explicitly out of scope); they only need motion to continue, which the ISR / ESP32 task already provides.
+8. The existing 14 test files in `unit_tests/test_core/meade/` already cover all parser families. Add integration tests wiring `SerialTransport` → `MeadeParser` → `MeadeCommandAdapter` with faked ports, including a deferred handler that emits no inline bytes and completes on an event or its deadline.
 
-**Verify:** Meade test suite green (existing 14 files + new integration tests); Stellarium/ASCOM round-trip smoke test (manual) recorded as a regression checklist; coverage of `core/meade/` ≥ 80% (already achieved — 87.0%).
+**Verify:** Meade test suite green (existing 14 files + new integration tests); Stellarium/ASCOM round-trip smoke test (manual) recorded as a regression checklist; coverage of `core/meade/` ≥ 80% (already achieved — 87.0%); grep check that the adapter contains no `waitUntil*`, `Mount::delay(`, or `while (millis()`.
 
 ### Phase 6 — Cleanup & documentation
 1. Mount facade slimmed to a thin compat shim (or removed if no external dependents).
@@ -433,6 +441,9 @@ Manual smoke checklist (per shippable phase end):
 - **Stepper axis layering:** `AccelStepperAxis` is neither a `core/` class nor a library-wrapping adapter. `IStepperAxis` (step-level contract) is implemented by one pure `adapters/StepperAxis` over `hal::IStepperMotor`; the motion engine lives in HAL — `hal/avr/InterruptStepperMotor` (vendored `InterruptStepper`) and `hal/esp32/ArduinoAccelStepperMotor` / `hal/rp2040/ArduinoAccelStepperMotor` (`AccelStepper`). Rationale: `core/` may not include `<Arduino.h>`; library names belong in `hal/`; adapters stay host-testable and library-free; and the libraries are retained, not replaced (out of scope). A domain-side motion planner would be a separate `core/` concept, not this class.
 - **ISR threading model:** Deferred to Phase 2. The `IStepperAxis` interface contract (which methods are ISR-safe, `Snapshot()` semantics) will be settled before Phase 3 begins extracting controllers. Without this contract, `SlewController`'s threading model is undefined.
 - **Back-compat:** Meade serial protocol behavior is invariant (external interface); internal C++ APIs may change freely.
+- **Coordination model:** `core/MountCoordinator` is the single arbiter. Controllers never call each other's mutating methods; they read `MountState`, publish facts on `EventBus`, and request work through the coordinator. Events are facts, never requests, and dispatch is deferred to the tick boundary (no re-entrancy).
+- **Arbitration policy:** **Preserve current behaviour**, with one deliberate fix. Requests are last-wins and each cancels only what it conflicts with: a slew retargets an in-flight slew and stops guiding (`startSlewingToTarget` → `stopGuiding()`), a manual slew is refused while parking (`isParking()` gate in `startSlewing()`), park stops everything before homing (`stopGuiding()` + `stopSlewing(ALL_DIRECTIONS | TRACKING)`), guide pulses are ignored unless tracking (`guidePulse()`). The fix: a goto during parking is refused instead of retargeting the axes while `STATUS_PARKING` suppresses `isSlewingDECorRA()`. The coordinator makes these rules explicit, single-sourced and host-tested.
+- **Command completion:** Three handler shapes — **immediate**, **request/ack**, **deferred reply**. `:MS#` and friends already acknowledge immediately and are polled via `:D#`; that stays. Deferred replies use a fixed-capacity `PendingReply` table in the adapter with an `IClock` deadline, so no handler blocks.
 - **Out of scope:** UI menu screens (`c*_menu*.hpp`) refactor; new features; supporting new boards; replacing AccelStepper/TMCStepper libraries; switching build system.
 - **Extract-before-test:** All `src/` root files include `inc/Globals.hpp` → `<Arduino.h>` and are untestable in the `native` PIO env (which only builds `core/`, `ports/`, `adapters/`). Pure logic is extracted into `core/` first, then tested — inverted from the typical test-first order. Only already-pure code (`core/meade/`, `MappedDict`) gets tests before extraction.
 
