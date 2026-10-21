@@ -153,6 +153,7 @@ void Mount::initializeVariables()
 #endif
 #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
     _stepperFocus = nullptr;
+    _focus.detach();
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     _driverFocus = nullptr;
     #endif
@@ -470,7 +471,8 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
     _stepperFocus->setCurrentPosition(50000);
     _maxFocusSpeed        = maxSpeed;
     _maxFocusAcceleration = maxAcceleration;
-    _maxFocusRateSpeed    = maxSpeed;
+    _focus.attach(_stepperFocus);
+    _focus.initialize(maxSpeed);
 }
 #endif
 
@@ -2112,9 +2114,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
                     "[FOCUS]: Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous",
                     speedDegsPerSec);
             enableFocusMotor();
-            _stepperFocus->setMaxSpeed(speedDegsPerSec);
-            _stepperFocus->moveTo(sign(speedDegsPerSec) * 300000);
-            _focuserMode = FOCUS_TO_TARGET;
+            _focus.runAtSpeed(speedDegsPerSec);
         }
         else
         {
@@ -2331,7 +2331,7 @@ void Mount::enableAltMotor()
 /////////////////////////////////
 bool Mount::isRunningFocus() const
 {
-    return _stepperFocus->isRunning();
+    return _focus.isRunning();
 }
 
 /////////////////////////////////
@@ -2341,7 +2341,7 @@ bool Mount::isRunningFocus() const
 /////////////////////////////////
 float Mount::getFocusSpeed() const
 {
-    return _stepperFocus->speed();
+    return _focus.speed();
 }
 
 /////////////////////////////////
@@ -2351,22 +2351,19 @@ float Mount::getFocusSpeed() const
 /////////////////////////////////
 void Mount::focusSetSpeedByRate(int rate)
 {
-    _focusRate          = clamp(rate, 1, 4);
-    float speedFactor[] = {0, 0.05, 0.2, 0.5, 1.0};
-    _maxFocusRateSpeed  = speedFactor[_focusRate] * _maxFocusSpeed;
+    _focus.setRate(rate, _maxFocusSpeed);
     OAT_LOG(_deps.logger,
             DEBUG_FOCUS,
             "[FOCUS]: focusSetSpeedByRate: rate is %d, factor %f, maxspeed %f -> %f",
-            _focusRate,
-            speedFactor[_focusRate],
+            _focus.rate(),
+            _focus.rateFactor(),
             _maxFocusSpeed,
-            _maxFocusRateSpeed);
-    _stepperFocus->setMaxSpeed(_maxFocusRateSpeed);
+            _focus.maxRateSpeed());
 
-    if (_stepperFocus->isRunning())
+    if (_focus.isRunning())
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusSetSpeedByRate: stepper is already running so should adjust speed?");
-        //_stepperFocus->setSpeed(speedFactor[_focusRate ] * _maxFocusSpeed);
+        //_stepperFocus->setSpeed(_focus.rateFactor() * _maxFocusSpeed);
     }
 }
 
@@ -2378,8 +2375,8 @@ void Mount::focusSetSpeedByRate(int rate)
 void Mount::focusContinuousMove(FocuserDirection direction)
 {
     // maxSpeed is set to what the rate dictates
-    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusContinuousMove: direction is %d, maxspeed %f", direction, _maxFocusRateSpeed);
-    setSpeed(FOCUS_STEPS, static_cast<int>(direction) * _maxFocusRateSpeed);
+    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusContinuousMove: direction is %d, maxspeed %f", direction, _focus.maxRateSpeed());
+    setSpeed(FOCUS_STEPS, static_cast<int>(direction) * _focus.maxRateSpeed());
 }
 
 /////////////////////////////////
@@ -2389,11 +2386,9 @@ void Mount::focusContinuousMove(FocuserDirection direction)
 /////////////////////////////////
 void Mount::focusMoveBy(long steps)
 {
-    long targetPosition = _stepperFocus->currentPosition() + steps;
-    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusMoveBy: move by %ld steps to %ld. Target Mode.", steps, targetPosition);
+    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusMoveBy: move by %ld steps to %ld. Target Mode.", steps, _focus.position() + steps);
     enableFocusMotor();
-    _stepperFocus->moveTo(targetPosition);
-    _focuserMode = FOCUS_TO_TARGET;
+    _focus.moveBy(steps);
 }
 
 /////////////////////////////////
@@ -2403,7 +2398,7 @@ void Mount::focusMoveBy(long steps)
 /////////////////////////////////
 long Mount::focusGetStepperPosition()
 {
-    return _stepperFocus->currentPosition();
+    return _focus.position();
 }
 
 /////////////////////////////////
@@ -2413,7 +2408,7 @@ long Mount::focusGetStepperPosition()
 /////////////////////////////////
 void Mount::focusSetStepperPosition(long steps)
 {
-    _stepperFocus->setCurrentPosition(steps);
+    _focus.setPosition(steps);
 }
 
 /////////////////////////////////
@@ -2460,7 +2455,7 @@ void Mount::enableFocusMotor()
 void Mount::focusStop()
 {
     OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusStop: stopping motor.");
-    _stepperFocus->stop();
+    _focus.stop();
 }
 
 #endif
@@ -3228,11 +3223,13 @@ void Mount::interruptLoop()
     #endif
 
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (_focuserMode == FOCUS_TO_TARGET)
+    // `FocusMode::Continuous` is kept from the original, which never selected it: a
+    // continuous run targets a far position and therefore uses `run()`.
+    if (_focus.mode() == core::FocusMode::ToTarget)
     {
         _stepperFocus->run();
     }
-    else if (_focuserMode == FOCUS_CONTINUOUS)
+    else if (_focus.mode() == core::FocusMode::Continuous)
     {
         _stepperFocus->runSpeed();
     }
@@ -3308,18 +3305,14 @@ void Mount::loop()
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _stepperFocus->isRunning());
 
-    if (_stepperFocus->isRunning())
+    if (_focus.isRunning())
     {
-        OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser running at speed %f", _stepperFocus->speed());
-        _focuserWasRunning = true;
+        OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser running at speed %f", _focus.speed());
     }
-    else if (_focuserWasRunning)
+
+    if (_focus.update() == core::FocusUpdate::Stopped)
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running ");
-        // If focuser was running last time through the loop, but not this time, it has
-        // either been stopped, or reached the target.
-        _focuserMode       = FOCUS_IDLE;
-        _focuserWasRunning = false;
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running, disabling");
         disableFocusMotor();
     }

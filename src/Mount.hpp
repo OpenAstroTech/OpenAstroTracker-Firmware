@@ -5,6 +5,7 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "core/FocusController.hpp"
 #include "core/GuidingController.hpp"
 #include "core/TrackingController.hpp"
 #include "hal/IGpioPin.hpp"
@@ -138,18 +139,11 @@ struct LocalDate {
 };
 
 // Focuser support
-enum FocuserMode
-{
-    FOCUS_IDLE,
-    FOCUS_TO_TARGET,
-    FOCUS_CONTINUOUS,
-};
-
-enum FocuserDirection
-{
-    FOCUS_BACKWARD = -1,
-    FOCUS_FORWARD  = 1
-};
+// The focuser's direction and mode are domain vocabulary, so they live in `core/` with
+// the controller that acts on them. The aliases keep the public menu and Meade names.
+using core::FOCUS_BACKWARD;
+using core::FOCUS_FORWARD;
+using FocuserDirection = core::FocuserDirection;
 
 //////////////////////////////////////////////////////////////////
 //
@@ -690,15 +684,14 @@ class Mount
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    bool _focuserWasRunning  = false;
-    FocuserMode _focuserMode = FOCUS_IDLE;
-    float _maxFocusRateSpeed;
+    // Focus motion and its selected rate. The axis is attached by configureFocusStepper().
     #ifdef ARDUINO_AVR_ATmega2560
+    core::FocusController<StepperFocusSlew> _focus;
     StepperFocusSlew *_stepperFocus;
     #else
+    core::FocusController<ports::IStepperAxis> _focus;
     ports::IStepperAxis *_stepperFocus;
     #endif
-    int _focusRate;
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverFocus;
     #endif
