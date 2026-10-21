@@ -7,6 +7,7 @@
 #include "Types.hpp"
 #include "core/EventBus.hpp"
 #include "core/FocusController.hpp"
+#include "core/Microsteps.hpp"
 #include "core/MountRequests.hpp"
 #include "core/MountState.hpp"
 #include "core/SlewController.hpp"
@@ -585,6 +586,15 @@ class Mount
     /// Snapshot of the state the admission rules read. See `core/MountRequests.hpp`.
     core::MountActivityFacts activityFacts() const;
     bool admit(core::MountRequest request) const;
+
+    /// Switches the RA/DEC driver's microstep register.
+    ///
+    /// On a board whose driver takes its microsteps from pin strapping these are no-ops,
+    /// which is the whole point: the call sites are the same on every board, so code that
+    /// has to run "switch RA to tracking microsteps" does not need to know what kind of
+    /// driver is fitted. That is what lets the slew sequence become runtime logic.
+    void setRaMicrosteps(int microsteps);
+    void setDecMicrosteps(int microsteps);
 
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);

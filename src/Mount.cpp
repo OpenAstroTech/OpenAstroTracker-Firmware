@@ -567,7 +567,7 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
         #endif
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
-    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
+    _driverRA->microsteps(core::microstepRegisterValue(RA_TRACKING_MICROSTEPPING));  // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->semin(0);            //disable CoolStep so that current is consistent
@@ -610,8 +610,8 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
         #endif
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
-    _driverRA->semin(0);                                                                    //disable CoolStep so that current is consistent
-    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);  // System starts in tracking mode
+    _driverRA->semin(0);                                                             //disable CoolStep so that current is consistent
+    _driverRA->microsteps(core::microstepRegisterValue(RA_TRACKING_MICROSTEPPING));  // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->SGTHRS(stallvalue);
@@ -662,7 +662,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
-        DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps.
+        core::microstepRegisterValue(DEC_GUIDE_MICROSTEPPING));  // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -705,7 +705,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
-        DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);  // If 1 then disable microstepping. Start with Guide microsteps
+        core::microstepRegisterValue(DEC_GUIDE_MICROSTEPPING));  // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -752,9 +752,9 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
         #endif
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
-    _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);  // If 1 then disable microstepping
-    _driverAZ->TCOOLTHRS(0xFFFFF);                                        //xFFFFF);
-    _driverAZ->semin(0);                                                  //disable CoolStep so that current is consistent
+    _driverAZ->microsteps(core::microstepRegisterValue(AZ_MICROSTEPPING));  // If 1 then disable microstepping
+    _driverAZ->TCOOLTHRS(0xFFFFF);                                          //xFFFFF);
+    _driverAZ->semin(0);                                                    //disable CoolStep so that current is consistent
     _driverAZ->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -794,9 +794,9 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
         #endif
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
-    _driverAZ->microsteps(AZ_MICROSTEPPING == 1 ? 0 : AZ_MICROSTEPPING);  // If 1 then disable microstepping
-    _driverAZ->TCOOLTHRS(0xFFFFF);                                        //xFFFFF);
-    _driverAZ->semin(0);                                                  //disable CoolStep so that current is consistent
+    _driverAZ->microsteps(core::microstepRegisterValue(AZ_MICROSTEPPING));  // If 1 then disable microstepping
+    _driverAZ->TCOOLTHRS(0xFFFFF);                                          //xFFFFF);
+    _driverAZ->semin(0);                                                    //disable CoolStep so that current is consistent
     _driverAZ->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -841,9 +841,9 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
         #endif
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
-    _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);  // If 1 then disable microstepping
-    _driverALT->TCOOLTHRS(0xFFFFF);                                          //xFFFFF);
-    _driverALT->semin(0);                                                    //disable CoolStep so that current is consistent
+    _driverALT->microsteps(core::microstepRegisterValue(ALT_MICROSTEPPING));  // If 1 then disable microstepping
+    _driverALT->TCOOLTHRS(0xFFFFF);                                           //xFFFFF);
+    _driverALT->semin(0);                                                     //disable CoolStep so that current is consistent
     _driverALT->SGTHRS(stallvalue);
     if (UART_Rx_connected)
     {
@@ -883,9 +883,9 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
         #endif
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
-    _driverALT->microsteps(ALT_MICROSTEPPING == 1 ? 0 : ALT_MICROSTEPPING);  // If 1 then disable microstepping
-    _driverALT->TCOOLTHRS(0xFFFFF);                                          //xFFFFF);
-    _driverALT->semin(0);                                                    //disable CoolStep so that current is consistent
+    _driverALT->microsteps(core::microstepRegisterValue(ALT_MICROSTEPPING));  // If 1 then disable microstepping
+    _driverALT->TCOOLTHRS(0xFFFFF);                                           //xFFFFF);
+    _driverALT->semin(0);                                                     //disable CoolStep so that current is consistent
     _driverALT->SGTHRS(stallvalue);
         #if UART_CONNECTION_TEST_TXRX == 1
     if (UART_Rx_connected)
@@ -932,9 +932,9 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
         #endif
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
-    _driverFocus->microsteps(FOCUS_MICROSTEPPING == 1 ? 0 : FOCUS_MICROSTEPPING);  // If 1 then disable microstepping
-    _driverFocus->TCOOLTHRS(0xFFFFF);                                              //xFFFFF);
-    _driverFocus->semin(0);                                                        //disable CoolStep so that current is consistent
+    _driverFocus->microsteps(core::microstepRegisterValue(FOCUS_MICROSTEPPING));  // If 1 then disable microstepping
+    _driverFocus->TCOOLTHRS(0xFFFFF);                                             //xFFFFF);
+    _driverFocus->semin(0);                                                       //disable CoolStep so that current is consistent
     _driverFocus->SGTHRS(stallvalue);
         #if UART_CONNECTION_TEST_TXRX == 1
     if (UART_Rx_connected)
@@ -982,9 +982,9 @@ void Mount::configureFocusDriver(
         #endif
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
-    _driverFocus->microsteps(FOCUS_MICROSTEPPING == 1 ? 0 : FOCUS_MICROSTEPPING);  // If 1 then disable microstepping
-    _driverFocus->TCOOLTHRS(0xFFFFF);                                              //xFFFFF);
-    _driverFocus->semin(0);                                                        //disable CoolStep so that current is consistent
+    _driverFocus->microsteps(core::microstepRegisterValue(FOCUS_MICROSTEPPING));  // If 1 then disable microstepping
+    _driverFocus->TCOOLTHRS(0xFFFFF);                                             //xFFFFF);
+    _driverFocus->semin(0);                                                       //disable CoolStep so that current is consistent
     _driverFocus->SGTHRS(stallvalue);
         #if UART_CONNECTION_TEST_TXRX == 1
     if (UART_Rx_connected)
@@ -1633,12 +1633,8 @@ void Mount::startSlewingToTarget()
             _tracking.noteStopped(_deps.clock->now());
         }
 
-// Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        OAT_LOG(
-            _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
+        // Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
+        setRaMicrosteps(RA_SLEW_MICROSTEPPING);
 
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %ldms", _tracking.stoppedAt());
     }
@@ -1646,12 +1642,8 @@ void Mount::startSlewingToTarget()
     _slew.begin(core::SlewIntent::Target);
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
     publishEvent(core::MountEventType::SlewStarted);
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-    OAT_LOG(
-        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-#endif
+    // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
+    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
     _slew.noteRunning(true);
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _slew.setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
@@ -1700,23 +1692,16 @@ void Mount::startSlewingToHome()
         stopSlewing(TRACKING);
         _tracking.noteStopped(_deps.clock->now());
 
-// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        OAT_LOG(
-            _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
+        // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
+        setRaMicrosteps(RA_SLEW_MICROSTEPPING);
 
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %ldms", _tracking.stoppedAt());
     }
 
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
     publishEvent(core::MountEventType::SlewStarted);
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-#endif
+    // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
+    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
     _slew.noteRunning(true);
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _slew.setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
@@ -2036,11 +2021,7 @@ void Mount::setManualSlewMode(bool state)
         stopSlewing(TRACKING);
         waitUntilStopped(ALL_DIRECTIONS);
         setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_MANUAL);
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        OAT_LOG(
-            _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: setManualSlewMode: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-        _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
+        setRaMicrosteps(RA_SLEW_MICROSTEPPING);
     }
     else
     {
@@ -2752,6 +2733,33 @@ bool Mount::admit(core::MountRequest request) const
     return core::MountRequests::admit(request, activityFacts()) == core::Admission::Allowed;
 }
 
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+void Mount::setRaMicrosteps(int microsteps)
+{
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: RA driver setMicrosteps(%d)", microsteps);
+    _driverRA->microsteps(core::microstepRegisterValue(microsteps));
+}
+#else
+void Mount::setRaMicrosteps(int microsteps)
+{
+    // This board's driver reads its microsteps from pin strapping.
+    (void) microsteps;
+}
+#endif
+
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+void Mount::setDecMicrosteps(int microsteps)
+{
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: DEC driver setMicrosteps(%d)", microsteps);
+    _driverDEC->microsteps(core::microstepRegisterValue(microsteps));
+}
+#else
+void Mount::setDecMicrosteps(int microsteps)
+{
+    (void) microsteps;
+}
+#endif
+
 /////////////////////////////////
 //
 // startSlewing
@@ -2769,14 +2777,8 @@ void Mount::startSlewing(int direction)
 
         if (direction & TRACKING)
         {
-// Start tracking
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            OAT_LOG(_deps.logger,
-                    DEBUG_STEPPERS,
-                    "[STEPPERS]: startSlewing: Tracking: Switching RA driver to microsteps(%d)",
-                    RA_TRACKING_MICROSTEPPING);
-            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
-#endif
+            // Start tracking
+            setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
             _tracking.applySpeed();
 
             // Turn on tracking
@@ -2797,22 +2799,10 @@ void Mount::startSlewing(int direction)
                 OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %ld", _tracking.stoppedAt());
             }
 
-// Change microstep mode for slewing
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            OAT_LOG(_deps.logger,
-                    DEBUG_STEPPERS,
-                    "[STEPPERS]: startSlewing: Slewing: Switching RA driver to microsteps(%d)",
-                    RA_SLEW_MICROSTEPPING);
-            _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-            OAT_LOG(_deps.logger,
-                    DEBUG_STEPPERS,
-                    "[STEPPERS]: startSlewing: Slewing: Switching DEC driver to microsteps(%d)",
-                    DEC_SLEW_MICROSTEPPING);
-            _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-#endif
+            // Change microstep mode for slewing
+            setRaMicrosteps(RA_SLEW_MICROSTEPPING);
+            // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
+            setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
 
             if (direction & NORTH)
             {
@@ -3491,13 +3481,10 @@ void Mount::loop()
             }
 
             _currentRAStepperPosition = _stepperRA->currentPosition();
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
             if (!isFindingHome())  // When finding home, we never want to switch back to tracking until homing is finished.
             {
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived. RA driver setMicrosteps(%d)", RA_TRACKING_MICROSTEPPING);
-                _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
+                setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
             }
-#endif
             if (!isParking())
             {
                 OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: Loop: Not parking");
@@ -3523,11 +3510,8 @@ void Mount::loop()
                 }
             }
 
-// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
-            _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
-#endif
+            // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+            setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
 
             if (_slew.backlashOwed())
             {
@@ -3563,12 +3547,8 @@ void Mount::loop()
                 _targetRA = currentRA();
                 if (isParking())
                 {
-// Set DEC to Slew microstepping since it is set to guiding.
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                    OAT_LOG(
-                        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: Loop: Parking. DEC driver setMicrosteps(%d)", DEC_SLEW_MICROSTEPPING);
-                    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-#endif
+                    // Set DEC to slew microstepping, since it is set to guiding.
+                    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
                     OAT_LOG(_deps.logger,
                             DEBUG_MOUNT | DEBUG_STEPPERS,
                             "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
@@ -3606,14 +3586,8 @@ void Mount::loop()
                     startSlewing(TRACKING);
                 }
                 _slew.end();
-// Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS,
-                        "[STEPPERS]: Loop: Arrived at park. DEC driver setMicrosteps(%d)",
-                        DEC_GUIDE_MICROSTEPPING);
-                _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
-#endif
+                // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+                setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
             }
             else if (_slew.headingToParkPosition())
             {
@@ -4157,12 +4131,8 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 }
             }
 
-// set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            OAT_LOG(
-                _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-            _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
-#endif
+            // Slew microsteps once the TRK stepper has stopped.
+            setRaMicrosteps(RA_SLEW_MICROSTEPPING);
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             publishEvent(core::MountEventType::SlewStarted);
             _slew.noteRunning(true);
@@ -4174,14 +4144,8 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             {
                 setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
                 publishEvent(core::MountEventType::SlewStarted);
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-                // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS,
-                        "[STEPPERS]: moveStepperBy: Switching DEC driver to microsteps(%d)",
-                        DEC_SLEW_MICROSTEPPING);
-                _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
-#endif
+                // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
+                setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
                 _slew.noteRunning(true);
                 moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
                 _slew.setTotalMove(_slew.totalRaSteps(), 1.0f * _stepperDEC->distanceToGo());
@@ -4574,13 +4538,13 @@ void Mount::testRA_UART_TX()
     const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerRADegree / (RA_STEPPER_SPEED / 2)) * 1000;
     OAT_LOG(
         _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) for UART test", RA_SLEW_MICROSTEPPING);
-    _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
+    setRaMicrosteps(RA_SLEW_MICROSTEPPING);
     testUART_vactual(_driverRA, speed, duration);
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) after UART test",
             RA_TRACKING_MICROSTEPPING);
-    _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
+    setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
 }
     #endif
 
@@ -4593,13 +4557,13 @@ void Mount::testDEC_UART_TX()
     const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerDECDegree / (DEC_STEPPER_SPEED / 2)) * 1000;
     OAT_LOG(
         _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test", DEC_SLEW_MICROSTEPPING);
-    _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
+    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
     testUART_vactual(_driverDEC, speed, duration);
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) after UART test",
             DEC_GUIDE_MICROSTEPPING);
-    _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
+    setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
 }
     #endif
 
