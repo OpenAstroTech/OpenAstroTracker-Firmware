@@ -86,6 +86,11 @@ class FakeClock final : public ports::IClock
         _now += milliseconds;
     }
 
+    void set(uint32_t milliseconds)
+    {
+        _now = milliseconds;
+    }
+
     uint32_t delaysRequested() const
     {
         return _delaysRequested;

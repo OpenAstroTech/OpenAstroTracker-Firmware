@@ -360,7 +360,9 @@ The AVR growth is the settings port's vtable (86 B — 39 virtuals × 2 B), the 
 ### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
 
-*Status: step 1 landed. `core/TrackingController` owns the tracking axis, the calibration factor, the derived rate and the tracker-stopped compensation; `Mount` keeps the microstep switching, the `STATUS_TRACKING` bit and every diagnostic line. `pio test -e native` runs 410 cases green (11 new); `ramps`, `mksgenlv21`, `esp32`, `oaeboardv1` and `rp2040_skr_pico` build green. Measured on `ramps`: 7749 → 7761 B RAM (+12) and 182246 → 182466 B flash (+220); the same board with `DEBUG_ANY` uses 8181 B of the 8 KB SRAM, so the worst-case AVR shape still links with 11 B spare.*
+*Status: steps 1 and 3 landed. `core/TrackingController` owns the tracking axis, the calibration factor, the derived rate and the tracker-stopped compensation; `core/GuidingController` owns the guide-pulse rates, the DEC limit refusal and the two pulse deadlines. `Mount` keeps the microstep switching, the `STATUS_*` bits, the blocking DEC stop and every diagnostic line. `pio test -e native` runs 423 cases green (24 new); `ramps`, `mksgenlv21`, `esp32`, `oaeboardv1` and `rp2040_skr_pico` build green. Measured on `ramps`: 7749 → 7763 B RAM (+14) and 182246 → 182904 B flash; the same board with `DEBUG_ANY` uses 8183 B of the 8 KB SRAM, so the worst-case AVR shape still links, with **9 B spare**. The AVR RAM ceiling is now the binding constraint for every remaining step: new controllers must remove at least as much state from `Mount` as they add.*
+
+**Order note:** step 2 (`SlewController`) is deferred until steps 8 (`MountState`) and 9 (`EventBus`) exist. Its specified outputs are "stepper commands and state events", and the arrival/backlash/park sequence it would own currently *calls back* into `Mount` (`setHome()`, `startSlewing()`, driver microstep writes, display refresh). Extracting it first would trade one god-object for two half-owners; with a typed `MountState` and an event queue it becomes a state machine with typed outputs. Steps 3-7 are independent of it.
 
 **Prerequisite:** Phase 2's ISR contract for `IStepperAxis` must be settled. The threading model for `SlewController::update()` (main loop vs ISR context) follows from that contract.
 
@@ -372,7 +374,13 @@ Recommended slice order (each is an independent step, parallelizable after Phase
    - `detach()` restores what `initializeVariables()` used to do to `_compensateForTrackerOff`/`_trackerStoppedAt` when the mount drops its configuration.
    - Tests: `unit_tests/test_core/test_tracking_controller.cpp` (11 cases) over a new `fakes::FakeStepperAxis` in `unit_tests/test_common/hal_fakes/`.
 2. `core/SlewController` — slew state machine extracted from the 293-line `Mount::loop`. Inputs are target + geometry; outputs are stepper commands and state events. **Threading model deferred to Phase 2's ISR contract.**
-3. `core/GuidingController` — guide-pulse direction/speed math + timed completion (uses `IClock`).
+3. ✅ `core/GuidingController` — guide-pulse direction/speed math + timed completion (uses `IClock`).
+   - Pure policy plus two deadlines: `raPulse()`/`decPulse()` take the axis geometry (`stepsPerDegree`, the two microstep modes, the configured pulse multiplier) and return the value to set, so the controller stores no configuration and no copy of `Mount`'s geometry. `Mount` keeps `_stepsPerRADegree`/`_stepsPerDECDegree`, which the slew math needs anyway.
+   - The microstep ratio is a **floating-point** division here (`1.0 * guide / slew`), unlike the tracking rate's integer one. That asymmetry is in the original code and is preserved, so the pulse rates are bit-identical.
+   - `decPulse()` also answers "is this pulse legal?" — the DEC upper/lower limit refusal now lives with the rate that would violate it, instead of in a branch of `guidePulse()`.
+   - `raExpired()`/`decExpired()` are wrap-safe (`(int32_t)(now - deadline) > 0`) and an unarmed pulse (deadline 0) never expires, so `Mount` no longer has to AND the deadline with a status bit to decide whether a pulse ended.
+   - `stopGuiding()` clears the matching deadline next to the status bit it already cleared, keeping the two representations in step.
+   - Tests: `unit_tests/test_core/test_guiding_controller.cpp` (13 cases). `fakes::FakeClock` gained `set()` so the wrap test could start near `UINT32_MAX`.
 4. `core/HomingController` — hall-sensor/end-switch state machine; owns `IHomingSensor* ra`, `IHomingSensor* dec`.
 5. `core/ParkingController` — park position, parking transitions.
 6. `core/FocusController` — focus motor (only constructed when focus axis is present; uses `etl::optional` in composition root).

@@ -5,6 +5,7 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "core/GuidingController.hpp"
 #include "core/TrackingController.hpp"
 #include "hal/IGpioPin.hpp"
 #include "ports/IClock.hpp"
@@ -591,6 +592,9 @@ class Mount
     core::TrackingController<ports::IStepperAxis> _tracking;
 #endif
 
+    // Guide-pulse rates and pulse deadlines.
+    core::GuidingController _guiding;
+
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     InfoDisplayRender *infoDisplay;
@@ -714,8 +718,6 @@ class Mount
     EndSwitch *_decEndSwitch;
 #endif
 
-    unsigned long _guideRaEndTime;
-    unsigned long _guideDecEndTime;
     unsigned long _lastMountPrint = 0;
     unsigned long _lastDisplayUpdate;
 

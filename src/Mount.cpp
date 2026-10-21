@@ -90,7 +90,7 @@ Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps)
     : _deps(deps),
       // Tracking runs at the finer microstep rate while the steps-per-degree value is
       // the slew-mode one, hence the integer ratio (as the inline expression had it).
-      _tracking(SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING)
+      _tracking(SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING), _guiding(deps.clock)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
       ,
       _azAltWasRunning(false)
@@ -1730,6 +1730,7 @@ void Mount::stopGuiding(bool ra, bool dec)
             _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK stop guide at  : %ld", _stepperTRK->currentPosition());
         _tracking.applySpeed();
         OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK speed set to   : %f", _tracking.speed());
+        _guiding.clearRa();
         clearStatusFlag(STATUS_GUIDE_PULSE_RA);
     }
 
@@ -1751,6 +1752,7 @@ void Mount::stopGuiding(bool ra, bool dec)
         }
 #endif
 
+        _guiding.clearDec();
         clearStatusFlag(STATUS_GUIDE_PULSE_DEC);
     }
 
@@ -1815,10 +1817,10 @@ void Mount::guidePulse(byte direction, int duration)
         // DEC stepper moves at sidereal rate in both directions
         // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
         // Also compensate for microstepping mode change between slew & guiding/tracking
-        float decGuidingSpeed = _stepsPerDECDegree * (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                                / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
-        float raGuidingSpeed = _stepsPerRADegree * (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING) * siderealDegreesInHour
-                               / 3600.0f;  // u-steps/deg * deg/hr / sec/hr = u-steps/sec
+        const core::GuideAxisGeometry raGeometry
+            = {_stepsPerRADegree, RA_TRACKING_MICROSTEPPING, RA_SLEW_MICROSTEPPING, RA_PULSE_MULTIPLIER};
+        const core::GuideAxisGeometry decGeometry
+            = {_stepsPerDECDegree, DEC_GUIDE_MICROSTEPPING, DEC_SLEW_MICROSTEPPING, DEC_PULSE_MULTIPLIER};
 
         // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
         // If so, we need to remember where we were when we started the guide pulse. Then at the end,
@@ -1828,85 +1830,108 @@ void Mount::guidePulse(byte direction, int duration)
         switch (direction)
         {
             case NORTH:
-                // If a upper limit is set, check we're not there. If we are, refuse the guide pulse.
-                if (_decUpperLimit != 0 && _stepperDEC->currentPosition() >= _decUpperLimit)
                 {
-                    // TODO: Make sure Southern hemisphere does not need a sign/direction inversion.
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS | DEBUG_GUIDE,
-                            "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or above upper limit (%ld), ignoring guide pulse",
-                            _stepperDEC->currentPosition(),
-                            _decUpperLimit);
-                }
-                else
-                {
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS | DEBUG_GUIDE,
-                            "[GUIDE]: guidePulse:   DEC guide speed     : %f",
-                            DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                    _stepperGUIDE->setSpeed(DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                    setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
-                    _guideDecEndTime = _deps.clock->now() + duration;
+                    // If a upper limit is set, check we're not there. If we are, refuse the guide pulse.
+                    const core::DecPulse pulse = core::GuidingController::decPulse(
+                        true, decGeometry, siderealDegreesInHour, _stepperDEC->currentPosition(), _decLowerLimit, _decUpperLimit);
+                    if (!pulse.allowed)
+                    {
+                        // TODO: Make sure Southern hemisphere does not need a sign/direction inversion.
+                        OAT_LOG(_deps.logger,
+                                DEBUG_STEPPERS | DEBUG_GUIDE,
+                                "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or above upper limit (%ld), ignoring guide pulse",
+                                _stepperDEC->currentPosition(),
+                                _decUpperLimit);
+                    }
+                    else
+                    {
+                        OAT_LOG(
+                            _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", pulse.baseSpeed);
+                        OAT_LOG(_deps.logger,
+                                DEBUG_STEPPERS | DEBUG_GUIDE,
+                                "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                                pulse.targetSpeed);
+                        _stepperGUIDE->setSpeed(pulse.targetSpeed);
+                        setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
+                        _guiding.startDec(duration);
+                    }
                 }
                 break;
 
             case SOUTH:
-                if (_decLowerLimit != 0 && _stepperDEC->currentPosition() <= _decLowerLimit)
                 {
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS | DEBUG_GUIDE,
-                            "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or below lower limit (%ld), ignoring guide pulse",
-                            _stepperDEC->currentPosition(),
-                            _decLowerLimit);
-                    OAT_LOG(
-                        _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC is at lower limit, ignoring guide pulse");
-                }
-                else
-                {
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", decGuidingSpeed);
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS | DEBUG_GUIDE,
-                            "[GUIDE]: guidePulse:   DEC guide speed     : %f",
-                            -DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                    _stepperGUIDE->setSpeed(-DEC_PULSE_MULTIPLIER * decGuidingSpeed);
-                    setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
-                    _guideDecEndTime = _deps.clock->now() + duration;
+                    const core::DecPulse pulse = core::GuidingController::decPulse(
+                        false, decGeometry, siderealDegreesInHour, _stepperDEC->currentPosition(), _decLowerLimit, _decUpperLimit);
+                    if (!pulse.allowed)
+                    {
+                        OAT_LOG(_deps.logger,
+                                DEBUG_STEPPERS | DEBUG_GUIDE,
+                                "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or below lower limit (%ld), ignoring guide pulse",
+                                _stepperDEC->currentPosition(),
+                                _decLowerLimit);
+                        OAT_LOG(_deps.logger,
+                                DEBUG_STEPPERS | DEBUG_GUIDE,
+                                "[GUIDE]: guidePulse:   DEC is at lower limit, ignoring guide pulse");
+                    }
+                    else
+                    {
+                        OAT_LOG(
+                            _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC base speed      : %f", pulse.baseSpeed);
+                        OAT_LOG(_deps.logger,
+                                DEBUG_STEPPERS | DEBUG_GUIDE,
+                                "[GUIDE]: guidePulse:   DEC guide speed     : %f",
+                                pulse.targetSpeed);
+                        _stepperGUIDE->setSpeed(pulse.targetSpeed);
+                        setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
+                        _guiding.startDec(duration);
+                    }
                 }
                 break;
 
             case WEST:
-                // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
-                OAT_LOG(
-                    _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _tracking.calibration());
-                raGuidingSpeed *= _tracking.calibration();
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS | DEBUG_GUIDE,
-                        "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
-                        (RA_PULSE_MULTIPLIER * raGuidingSpeed),
-                        RA_PULSE_MULTIPLIER);
-                _stepperTRK->setSpeed(RA_PULSE_MULTIPLIER * raGuidingSpeed);  // Faster than siderael
-                setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
-                _guideRaEndTime = _deps.clock->now() + duration;
+                {
+                    // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+                    const core::RaPulse pulse
+                        = core::GuidingController::raPulse(true, raGeometry, siderealDegreesInHour, _tracking.calibration());
+                    OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", pulse.baseSpeed);
+                    OAT_LOG(_deps.logger,
+                            DEBUG_STEPPERS | DEBUG_GUIDE,
+                            "[GUIDE]: guidePulse:   RA  speed factor    : %f",
+                            _tracking.calibration());
+                    OAT_LOG(
+                        _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", pulse.adjustedSpeed);
+                    OAT_LOG(_deps.logger,
+                            DEBUG_STEPPERS | DEBUG_GUIDE,
+                            "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                            pulse.targetSpeed,
+                            RA_PULSE_MULTIPLIER);
+                    _stepperTRK->setSpeed(pulse.targetSpeed);  // Faster than siderael
+                    setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
+                    _guiding.startRa(duration);
+                }
                 break;
 
             case EAST:
-                // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", raGuidingSpeed);
-                OAT_LOG(
-                    _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  speed factor    : %f", _tracking.calibration());
-                raGuidingSpeed *= _tracking.calibration();
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", raGuidingSpeed);
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS | DEBUG_GUIDE,
-                        "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
-                        (2.0 - RA_PULSE_MULTIPLIER * raGuidingSpeed),
-                        (2.0 - RA_PULSE_MULTIPLIER));
-                _stepperTRK->setSpeed(raGuidingSpeed * (2.0f - RA_PULSE_MULTIPLIER));  // Slower than siderael
-                setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
-                _guideRaEndTime = _deps.clock->now() + duration;
+                {
+                    // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
+                    const core::RaPulse pulse
+                        = core::GuidingController::raPulse(false, raGeometry, siderealDegreesInHour, _tracking.calibration());
+                    OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", pulse.baseSpeed);
+                    OAT_LOG(_deps.logger,
+                            DEBUG_STEPPERS | DEBUG_GUIDE,
+                            "[GUIDE]: guidePulse:   RA  speed factor    : %f",
+                            _tracking.calibration());
+                    OAT_LOG(
+                        _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", pulse.adjustedSpeed);
+                    OAT_LOG(_deps.logger,
+                            DEBUG_STEPPERS | DEBUG_GUIDE,
+                            "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
+                            (2.0 - RA_PULSE_MULTIPLIER * pulse.adjustedSpeed),
+                            (2.0 - RA_PULSE_MULTIPLIER));
+                    _stepperTRK->setSpeed(pulse.targetSpeed);  // Slower than siderael
+                    setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
+                    _guiding.startRa(duration);
+                }
                 break;
         }
     }
@@ -3306,16 +3331,16 @@ void Mount::loop()
     if (isGuiding())
     {
         now                 = _deps.clock->now();
-        bool stopRaGuiding  = (now > _guideRaEndTime) && (_mountStatus & STATUS_GUIDE_PULSE_RA);
-        bool stopDecGuiding = (now > _guideDecEndTime) && (_mountStatus & STATUS_GUIDE_PULSE_DEC);
+        bool stopRaGuiding  = _guiding.raExpired();
+        bool stopDecGuiding = _guiding.decExpired();
         if (stopRaGuiding || stopDecGuiding)
         {
             OAT_LOG(_deps.logger,
                     DEBUG_GUIDE,
                     "[MOUNT]: Loop: StopGuiding. Now: %ld, RA End: %ld, DEC End: %ld",
                     now,
-                    _guideRaEndTime,
-                    _guideDecEndTime);
+                    _guiding.raDeadline(),
+                    _guiding.decDeadline());
             stopGuiding(stopRaGuiding, stopDecGuiding);
         }
         else

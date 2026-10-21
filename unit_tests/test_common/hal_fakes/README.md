@@ -5,13 +5,14 @@ is compiled into the firmware.
 
 | Fake | Implements | Test controls |
 |------|-----------|---------------|
-| `FakeSystemClock.hpp` | `hal::ISystemClock` and `ports::IClock` | `advance()`, `set()`; `delay()` advances the clock instead of blocking |
+| `FakeSystemClock.hpp` | `hal::ISystemClock` and `ports::IClock` | `advance()`, `set()` on both fakes; `delay()` advances the clock instead of blocking |
 | `FakeGpioPin.hpp` | `hal::IGpioPin` | `setInputLevel()`, `setAnalogValue()`; records mode, output level, PWM duty and write count |
 | `FakeSerialPort.hpp` | `hal::ISerialPort` | `feed()` to queue input, `output()` to read what was written, `clearOutput()`, `flushCount()` |
 | `FakeEeprom.hpp` | `hal::IEeprom` | in-memory cells starting at `0xFF`, `setFailCommit()`, `fill()`, plus write/commit/begin counters |
 | `FakeStepperMotor.hpp` | `hal::IStepperMotor` | position/target bookkeeping, call counters per method, `setPosition()` |
+| `FakeStepperAxis.hpp` | `ports::IStepperAxis` | same bookkeeping at the domain axis, plus call counters for the methods the controllers use |
 
-Include them by relative path from an adapter test, e.g.
+Include them by relative path from an adapter or core test, e.g.
 
 ```cpp
 #include "../test_common/hal_fakes/FakeEeprom.hpp"
