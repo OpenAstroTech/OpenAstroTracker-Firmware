@@ -1938,10 +1938,8 @@ void Mount::guidePulse(byte direction, int duration)
         publishEvent(core::MountEventType::GuidingStarted);
     }
 
-// Since we will not be updating the display during a guide pulse, update the display here.
-#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
+    // Since we will not be updating the display during a guide pulse, update the display here.
     updateInfoDisplay();
-#endif
 
     OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: < Guide Pulse");
 }
@@ -3118,15 +3116,18 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
     #endif
     return false;
 }
+#endif
 
 /////////////////////////////////
 //
 // processHomingProgress
 //
 /////////////////////////////////
+/// A board with no hall sensor compiles both branches out, so this becomes the no-op the
+/// mount loop calls every tick.
 void Mount::processHomingProgress()
 {
-    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
     if ((_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
     {
         _raHoming->processHomingProgress();
@@ -3135,9 +3136,9 @@ void Mount::processHomingProgress()
             publishEvent(core::MountEventType::HomingFinished, _raHoming->homingResult() == core::HomingResult::Succeeded);
         }
     }
-    #endif
+#endif
 
-    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
     if ((_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
     {
         _decHoming->processHomingProgress();
@@ -3146,9 +3147,23 @@ void Mount::processHomingProgress()
             publishEvent(core::MountEventType::HomingFinished, _decHoming->homingResult() == core::HomingResult::Succeeded);
         }
     }
-    #endif
-}
 #endif
+}
+
+/// End switches are polled twice: once to debounce the raw pin, once to act on the
+/// debounced state. On a board without them both calls compile out.
+void Mount::pollEndSwitches()
+{
+#if (USE_RA_END_SWITCH == 1)
+    _raEndSwitch->processEndSwitchState();
+    _raEndSwitch->checkSwitchState();
+#endif
+
+#if (USE_DEC_END_SWITCH == 1)
+    _decEndSwitch->processEndSwitchState();
+    _decEndSwitch->checkSwitchState();
+#endif
+}
 
 String Mount::getAutoHomingStates() const
 {
@@ -3408,9 +3423,7 @@ void Mount::loop()
         }
         else
         {
-#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
             updateInfoDisplay();
-#endif
         }
         return;
     }
@@ -3606,27 +3619,15 @@ void Mount::loop()
         }
     }
 
-#if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
     if (_state.test(STATUS_FINDING_HOME))
     {
         processHomingProgress();
     }
-#endif
 
-#if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch->processEndSwitchState();
-    _raEndSwitch->checkSwitchState();
-#endif
-
-#if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch->processEndSwitchState();
-    _decEndSwitch->checkSwitchState();
-#endif
+    pollEndSwitches();
 
     _slew.noteRunning(raStillRunning || decStillRunning);
-#if INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE
     updateInfoDisplay();
-#endif
 }
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
@@ -3641,19 +3642,24 @@ void Mount::setupInfoDisplay()
     OAT_LOG(_deps.logger, DEBUG_DISPLAY, "[DISPLAY]: Created and initialized SSD1306 OLED class...");
     #endif
 }
+#endif
 
 void Mount::updateInfoDisplay()
 {
-    #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_NONE)
+    // No panel on this board: the call sites below stay unconditional so the mount code
+    // does not have to know whether anything is listening.
+    return;
+#else
     // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
     // timeout, causing ASCOM errors.
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
 
     int refreshRateHz = 30;
-        #if defined(ARDUINO_ARCH_RP2040)
+    #if defined(ARDUINO_ARCH_RP2040)
     const bool isSlewingAny = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
     refreshRateHz           = isSlewingAny ? 15 : 30;
-        #else
+    #else
     const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
     if (isSlewingRAandDEC)
     {
@@ -3663,7 +3669,7 @@ void Mount::updateInfoDisplay()
     {
         refreshRateHz = 5;  // Update the display slower
     }
-        #endif
+    #endif
     const long now = _deps.clock->now();
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
@@ -3672,14 +3678,14 @@ void Mount::updateInfoDisplay()
         OAT_LOG(_deps.logger, DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
         _lastInfoUpdate = now;
     }
-    #endif
+#endif
 }
 
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 InfoDisplayRender *Mount::getInfoDisplay()
 {
     return infoDisplay;
 }
-
 #endif
 
 /////////////////////////////////

@@ -454,10 +454,15 @@ class Mount
     void displayStepperPositionThrottled();
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     void setupInfoDisplay();
-    void updateInfoDisplay();
     InfoDisplayRender *getInfoDisplay();
     long _lastInfoUpdate = 0;  // Last time the info display was updated
 #endif
+    /// Refreshes the info display if the board has one, otherwise does nothing.
+    ///
+    /// Unconditionally declared and callable so the code paths that drive the mount do
+    /// not carry an `#if` for a peripheral that only reports on them. A board without the
+    /// panel pays one inlined no-op.
+    void updateInfoDisplay();
 
     // Called by Meade processor every time a command is received.
     void commandReceived();
@@ -503,8 +508,13 @@ class Mount
 
 #if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
     bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance);
-    void processHomingProgress();
 #endif
+    /// Advances whichever hall-sensor homing run is active; a no-op on a board without
+    /// one. Called once per tick, so the mount loop needs no `#if` for it.
+    void processHomingProgress();
+
+    /// Polls the RA/DEC end switches, if this board has them. No-op otherwise.
+    void pollEndSwitches();
     String getAutoHomingStates() const;
 
     void setHomingOffset(StepperAxis axis, long offset);
