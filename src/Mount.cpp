@@ -2567,7 +2567,7 @@ String Mount::getStatusStateString()
     }
     else
     {
-        status = "Idle";
+        status = F("Idle");
     }
     return status;
 }
@@ -2580,7 +2580,7 @@ String Mount::getStatusString()
 {
     String status = getStatusStateString() + ",";
 
-    String disp = "------,";
+    String disp = F("------,");
     if (_state.test(STATUS_SLEWING))
     {
         byte slew = slewStatus();
@@ -4257,10 +4257,10 @@ void Mount::displayStepperPosition()
         float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _slew.totalDecSteps();
         float raDist  = 100.0f - 100.0f * _stepperRA->distanceToGo() / _slew.totalRaSteps();
 
-        sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
         _lcdMenu->setCursor(0, 0);
         _lcdMenu->printMenu(String(scratchBuffer));
-        sprintf(scratchBuffer, "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
         _lcdMenu->setCursor(0, 1);
         _lcdMenu->printMenu(String(scratchBuffer));
         return;
@@ -4270,7 +4270,7 @@ void Mount::displayStepperPosition()
     {
         // Only DEC moving to target
         float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _slew.totalDecSteps();
-        sprintf(scratchBuffer, "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
         _lcdMenu->setCursor(0, 1);
         _lcdMenu->printMenu(String(scratchBuffer));
     }
@@ -4278,7 +4278,7 @@ void Mount::displayStepperPosition()
     {
         // Only RAmoving to target
         float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _slew.totalRaSteps();
-        sprintf(scratchBuffer, "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
         disp = disp + String(scratchBuffer);
         _lcdMenu->setCursor(0, inSerialControl ? 0 : 1);
         _lcdMenu->printMenu(String(scratchBuffer));
@@ -4289,27 +4289,29 @@ void Mount::displayStepperPosition()
     #if SUPPORT_SERIAL_CONTROL == 1
         if (inSerialControl)
         {
-            sprintf(scratchBuffer, " RA: %s", RAString(LCD_STRING | CURRENT_STRING).c_str());
+            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " RA: %s", RAString(LCD_STRING | CURRENT_STRING).c_str());
             _lcdMenu->setCursor(0, 0);
             _lcdMenu->printMenu(scratchBuffer);
-            sprintf(scratchBuffer, "DEC: %s", DECString(LCD_STRING | CURRENT_STRING).c_str());
+            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "DEC: %s", DECString(LCD_STRING | CURRENT_STRING).c_str());
             _lcdMenu->setCursor(0, 1);
             _lcdMenu->printMenu(scratchBuffer);
         }
         else
         {
-            sprintf(scratchBuffer,
-                    "R%s D%s",
-                    RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
-                    DECString(COMPACT_STRING | CURRENT_STRING).c_str());
+            OAT_SNPRINTF(scratchBuffer,
+                         sizeof(scratchBuffer),
+                         "R%s D%s",
+                         RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
+                         DECString(COMPACT_STRING | CURRENT_STRING).c_str());
             _lcdMenu->setCursor(0, 1);
             _lcdMenu->printMenu(scratchBuffer);
         }
     #else
-        sprintf(scratchBuffer,
-                "R%s D%s",
-                RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
-                DECString(COMPACT_STRING | CURRENT_STRING).c_str());
+        OAT_SNPRINTF(scratchBuffer,
+                     sizeof(scratchBuffer),
+                     "R%s D%s",
+                     RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
+                     DECString(COMPACT_STRING | CURRENT_STRING).c_str());
         _lcdMenu->setCursor(0, 1);
         _lcdMenu->printMenu(scratchBuffer);
     #endif

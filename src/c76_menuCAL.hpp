@@ -379,24 +379,24 @@ bool processCalibrationKeys()
     else if (calState == DRIFT_CALIBRATION_RUNNING)
     {
         lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Pause 1.5s ...");
+        lcdMenu.printMenu(F("Pause 1.5s ..."));
         mount.stopSlewing(TRACKING);
         mount.delay(1500);
 
         lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Eastward pass...");
+        lcdMenu.printMenu(F("Eastward pass..."));
         mount.runDriftAlignmentPhase(EAST, driftDuration);
 
         lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Pause 1.5s ...");
+        lcdMenu.printMenu(F("Pause 1.5s ..."));
         mount.delay(1500);
 
         lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Westward pass...");
+        lcdMenu.printMenu(F("Westward pass..."));
         mount.runDriftAlignmentPhase(WEST, driftDuration);
 
         lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu("Done. Pause 1.5s");
+        lcdMenu.printMenu(F("Done. Pause 1.5s"));
         mount.delay(1500);
         mount.runDriftAlignmentPhase(0, 0);
 
@@ -428,7 +428,7 @@ bool processCalibrationKeys()
                     if (key == btnSELECT)
                     {
                         mount.setSpeedCalibration(1.0f + SpeedCalibration / 10000.0f, true);
-                        lcdMenu.printMenu("Speed Stored.");
+                        lcdMenu.printMenu(F("Speed Stored."));
                         mount.delay(500);
                         calState = HIGHLIGHT_SPEED;
                     }
@@ -448,7 +448,7 @@ bool processCalibrationKeys()
                     if (key == btnSELECT)
                     {
                         mount.setStepsPerDegree(RA_STEPS, 0.1 * RAStepsPerDegree);
-                        lcdMenu.printMenu("RA steps stored");
+                        lcdMenu.printMenu(F("RA steps stored"));
                         mount.delay(500);
                         calState = HIGHLIGHT_RA_STEPS;
                     }
@@ -466,7 +466,7 @@ bool processCalibrationKeys()
                     if (key == btnSELECT)
                     {
                         mount.setStepsPerDegree(DEC_STEPS, 0.1 * DECStepsPerDegree);
-                        lcdMenu.printMenu("DEC steps stored.");
+                        lcdMenu.printMenu(F("DEC steps stored."));
                         mount.delay(500);
                         calState = HIGHLIGHT_DEC_STEPS;
                     }
@@ -484,7 +484,7 @@ bool processCalibrationKeys()
                     if (key == btnSELECT)
                     {
                         mount.setBacklashCorrection(BacklashSteps);
-                        lcdMenu.printMenu("Backlash stored.");
+                        lcdMenu.printMenu(F("Backlash stored."));
                         mount.delay(500);
                         calState = HIGHLIGHT_BACKLASH_STEPS;
                     }
@@ -654,7 +654,7 @@ bool processCalibrationKeys()
                     {
                         LOG(DEBUG_GENERAL, "[CAL]: Set brightness to %d", Brightness);
                         lcdMenu.setBacklightBrightness(Brightness);
-                        lcdMenu.printMenu("Level stored.");
+                        lcdMenu.printMenu(F("Level stored."));
                         mount.delay(500);
                         calState = HIGHLIGHT_BACKLIGHT;
                     }
@@ -672,7 +672,7 @@ bool processCalibrationKeys()
                     if (key == btnSELECT)
                     {
                         mount.setLocalUtcOffset(UTCOffset);
-                        lcdMenu.printMenu("UTC stored.");
+                        lcdMenu.printMenu(F("UTC stored."));
                         mount.delay(500);
                         calState = HIGHLIGHT_UTC_OFFSET;
                     }
@@ -716,7 +716,7 @@ bool processCalibrationKeys()
                     if (key == btnSELECT)
                     {
                         calState = POLAR_CALIBRATION_WAIT_HOME;
-                        lcdMenu.printMenu("Aligned, homing");
+                        lcdMenu.printMenu(F("Aligned, homing"));
                         mount.delay(750);
 
                         // Sync the mount to Polaris, since that's where it's pointing
@@ -799,25 +799,25 @@ bool processCalibrationKeys()
                         if (limitSetClearCancelIndex == 0)
                         {  // Set
                             mount.setDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
-                            lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit stored" : "LowLimit stored");
+                            lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? F("UprLimit stored") : F("LowLimit stored"));
                             mount.delay(800);
                         }
                         if (limitSetClearCancelIndex == 1)
                         {  // Clear
                             mount.clearDecLimitPosition(calState == DEC_UPPER_LIMIT_CONFIRM);
-                            lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? "UprLimit cleared" : "LowLimit cleared");
+                            lcdMenu.printMenu(calState == DEC_UPPER_LIMIT_CONFIRM ? F("UprLimit cleared") : F("LowLimit cleared"));
                             mount.delay(800);
                         }
                         else if (limitSetClearCancelIndex == 2)
                         {  // Cancel
 
-                            lcdMenu.printMenu("Use CTRL to move");
+                            lcdMenu.printMenu(F("Use CTRL to move"));
                             mount.delay(750);
                             lcdMenu.setCursor(0, 1);
-                            lcdMenu.printMenu("OAT to limit,");
+                            lcdMenu.printMenu(F("OAT to limit,"));
                             mount.delay(750);
                             lcdMenu.setCursor(0, 1);
-                            lcdMenu.printMenu("then come back.");
+                            lcdMenu.printMenu(F("then come back."));
                             mount.delay(700);
                         }
                         calState       = (calState == DEC_UPPER_LIMIT_CONFIRM) ? HIGHLIGHT_DEC_UPPER_LIMIT : HIGHLIGHT_DEC_LOWER_LIMIT;
@@ -1031,143 +1031,143 @@ void printCalibrationSubmenu()
     char scratchBuffer[20];
     if (calState == HIGHLIGHT_POLAR)
     {
-        lcdMenu.printMenu(">Polar alignment");
+        lcdMenu.printMenu(F(">Polar alignment"));
     }
     else if (calState == HIGHLIGHT_SPEED)
     {
-        lcdMenu.printMenu(">Speed calibratn");
+        lcdMenu.printMenu(F(">Speed calibratn"));
     }
         #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == HIGHLIGHT_DRIFT)
     {
-        lcdMenu.printMenu(">Drift alignment");
+        lcdMenu.printMenu(F(">Drift alignment"));
     }
         #endif
     else if (calState == HIGHLIGHT_RA_STEPS)
     {
-        lcdMenu.printMenu(">RA Step Adjust");
+        lcdMenu.printMenu(F(">RA Step Adjust"));
     }
     else if (calState == HIGHLIGHT_DEC_STEPS)
     {
-        lcdMenu.printMenu(">DEC Step Adjust");
+        lcdMenu.printMenu(F(">DEC Step Adjust"));
     }
     else if (calState == HIGHLIGHT_BACKLASH_STEPS)
     {
-        lcdMenu.printMenu(">Backlash Adjust");
+        lcdMenu.printMenu(F(">Backlash Adjust"));
     }
     else if (calState == HIGHLIGHT_DEC_LOWER_LIMIT)
     {
-        lcdMenu.printMenu(">DEC Lower Limit");
+        lcdMenu.printMenu(F(">DEC Lower Limit"));
     }
     else if (calState == HIGHLIGHT_DEC_UPPER_LIMIT)
     {
-        lcdMenu.printMenu(">DEC Upper Limit");
+        lcdMenu.printMenu(F(">DEC Upper Limit"));
     }
     else if (calState == HIGHLIGHT_UTC_OFFSET)
     {
-        lcdMenu.printMenu(">UTC Offset");
+        lcdMenu.printMenu(F(">UTC Offset"));
     }
         #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (calState == HIGHLIGHT_AZIMUTH_ADJUSTMENT)
     {
-        lcdMenu.printMenu(">Azimuth Adjst.");
+        lcdMenu.printMenu(F(">Azimuth Adjst."));
     }
         #endif
         #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (calState == HIGHLIGHT_ALTITUDE_ADJUSTMENT)
     {
-        lcdMenu.printMenu(">Altitude Adjst.");
+        lcdMenu.printMenu(F(">Altitude Adjst."));
     }
         #endif
 
         #if USE_GYRO_LEVEL == 1
     else if (calState == HIGHLIGHT_ROLL_LEVEL)
     {
-        lcdMenu.printMenu(">Roll Offset");
+        lcdMenu.printMenu(F(">Roll Offset"));
     }
     else if (calState == HIGHLIGHT_PITCH_LEVEL)
     {
-        lcdMenu.printMenu(">Pitch Offset");
+        lcdMenu.printMenu(F(">Pitch Offset"));
     }
         #endif
     else if (calState == HIGHLIGHT_BACKLIGHT)
     {
-        lcdMenu.printMenu(">LCD Brightness");
+        lcdMenu.printMenu(F(">LCD Brightness"));
     }
     else if (calState == POLAR_CALIBRATION_WAIT_CENTER_POLARIS)
     {
         if (!mount.isSlewingRAorDEC())
         {
             lcdMenu.setCursor(0, 0);
-            lcdMenu.printMenu("Center Polaris");
+            lcdMenu.printMenu(F("Center Polaris"));
             lcdMenu.setCursor(0, 1);
-            lcdMenu.printMenu(">Centered");
+            lcdMenu.printMenu(F(">Centered"));
         }
     }
     else if (calState == SPEED_CALIBRATION)
     {
-        sprintf(scratchBuffer, "SpdFctr: ");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "SpdFctr: ");
         dtostrf(mount.getSpeedCalibration(), 6, 4, &scratchBuffer[9]);
         lcdMenu.printMenu(scratchBuffer);
     }
         #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == DRIFT_CALIBRATION_WAIT)
     {
-        sprintf(scratchBuffer, " 1m  2m  3m  5m");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " 1m  2m  3m  5m");
         scratchBuffer[driftSubIndex * 4] = '>';
         lcdMenu.printMenu(scratchBuffer);
     }
         #endif
     else if (calState == RA_STEP_CALIBRATION)
     {
-        sprintf(scratchBuffer, "RA Steps: %s", String(0.1 * RAStepsPerDegree, 1).c_str());
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "RA Steps: %s", String(0.1 * RAStepsPerDegree, 1).c_str());
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == DEC_STEP_CALIBRATION)
     {
-        sprintf(scratchBuffer, "DEC Steps: %s", String(0.1 * DECStepsPerDegree, 1).c_str());
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "DEC Steps: %s", String(0.1 * DECStepsPerDegree, 1).c_str());
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == BACKLASH_CALIBRATION)
     {
-        sprintf(scratchBuffer, "Backlash: %d", BacklashSteps);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Backlash: %d", BacklashSteps);
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == DEC_LOWER_LIMIT_CONFIRM)
     {
         lcdMenu.setCursor(0, 0);
-        lcdMenu.printMenu("DEC Lower Limit");
+        lcdMenu.printMenu(F("DEC Lower Limit"));
         lcdMenu.setCursor(0, 1);
 
-        sprintf(scratchBuffer, " Set  Clr  Cancl");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " Set  Clr  Cancl");
         scratchBuffer[limitSetClearCancelIndex * 5] = '>';
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == DEC_UPPER_LIMIT_CONFIRM)
     {
         lcdMenu.setCursor(0, 0);
-        lcdMenu.printMenu("DEC Upper Limit");
+        lcdMenu.printMenu(F("DEC Upper Limit"));
         lcdMenu.setCursor(0, 1);
-        sprintf(scratchBuffer, " Set  Clr  Cancl");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " Set  Clr  Cancl");
         scratchBuffer[limitSetClearCancelIndex * 5] = '>';
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == UTC_OFFSET_CALIBRATION)
     {
-        sprintf(scratchBuffer, "UTC : %d", UTCOffset);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "UTC : %d", UTCOffset);
         lcdMenu.printMenu(scratchBuffer);
     }
         #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (calState == AZIMUTH_ADJUSTMENT)
     {
-        sprintf(scratchBuffer, "Az: %d arcmins", AzimuthMinutes);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Az: %d arcmins", AzimuthMinutes);
         lcdMenu.printMenu(scratchBuffer);
     }
         #endif
         #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     else if (calState == ALTITUDE_ADJUSTMENT)
     {
-        sprintf(scratchBuffer, "Alt: %d arcmins", AltitudeMinutes);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Alt: %d arcmins", AltitudeMinutes);
         lcdMenu.printMenu(scratchBuffer);
     }
         #endif
@@ -1175,13 +1175,13 @@ void printCalibrationSubmenu()
     else if (calState == ROLL_OFFSET_CALIBRATION)
     {
         auto angles = Gyro::getCurrentAngles();
-        sprintf(scratchBuffer, "R: -------------");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R: -------------");
         makeIndicator(scratchBuffer, angles.rollAngle - mount.getRollCalibrationAngle());
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == ROLL_OFFSET_CONFIRM)
     {
-        String disp = " Yes  No  ";
+        String disp = F(" Yes  No  ");
         disp.setCharAt(setRollZeroPoint ? 0 : 5, '>');
         disp.setCharAt(setRollZeroPoint ? 4 : 8, '<');
         lcdMenu.printMenu(disp);
@@ -1189,13 +1189,13 @@ void printCalibrationSubmenu()
     else if (calState == PITCH_OFFSET_CALIBRATION)
     {
         auto angles = Gyro::getCurrentAngles();
-        sprintf(scratchBuffer, "P: -------------");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "P: -------------");
         makeIndicator(scratchBuffer, angles.pitchAngle - mount.getPitchCalibrationAngle());
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == PITCH_OFFSET_CONFIRM)
     {
-        String disp = " Yes  No  ";
+        String disp = F(" Yes  No  ");
         disp.setCharAt(setPitchZeroPoint ? 0 : 5, '>');
         disp.setCharAt(setPitchZeroPoint ? 4 : 8, '<');
         lcdMenu.printMenu(disp);
@@ -1203,7 +1203,7 @@ void printCalibrationSubmenu()
         #endif
     else if (calState == BACKLIGHT_CALIBRATION)
     {
-        sprintf(scratchBuffer, "Brightness: %d", Brightness);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Brightness: %d", Brightness);
         lcdMenu.printMenu(scratchBuffer);
     }
 }

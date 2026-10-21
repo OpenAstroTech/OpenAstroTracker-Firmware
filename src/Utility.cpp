@@ -107,7 +107,7 @@ String getLogBuffer()
 #else
 String getLogBuffer()
 {
-    return "Debugging disabled.#";
+    return F("Debugging disabled.#");
 }
 #endif
 

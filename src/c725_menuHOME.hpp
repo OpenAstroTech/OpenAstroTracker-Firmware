@@ -59,11 +59,11 @@ void printHomeSubmenu()
     char scratchBuffer[16];
     if (mount.isSlewingTRK())
     {
-        strcpy(scratchBuffer, " Home  Park");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " Home  Park");
     }
     else
     {
-        strcpy(scratchBuffer, " Home  Unpark");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " Home  Unpark");
     }
     scratchBuffer[subGoIndex * 6] = '>';
     lcdMenu.printMenu(scratchBuffer);

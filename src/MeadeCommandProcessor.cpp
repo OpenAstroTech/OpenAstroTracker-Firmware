@@ -60,9 +60,9 @@ void MeadeCommandProcessor::onEnterSerialControl()
 {
     inSerialControl = true;
     _lcdMenu->setCursor(0, 0);
-    _lcdMenu->printMenu("Remote control");
+    _lcdMenu->printMenu(F("Remote control"));
     _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu(">SELECT to quit");
+    _lcdMenu->printMenu(F(">SELECT to quit"));
 }
 
 /////////////////////////////
@@ -413,24 +413,24 @@ void MeadeCommandProcessor::onDriftAlignment(int duration)
 {
 #if SUPPORT_DRIFT_ALIGNMENT == 1
     _lcdMenu->setCursor(0, 0);
-    _lcdMenu->printMenu(">Drift Alignment");
+    _lcdMenu->printMenu(F(">Drift Alignment"));
     _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu("Pause 1.5s....");
+    _lcdMenu->printMenu(F("Pause 1.5s...."));
     _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
     _mount->waitUntilStopped(ALL_DIRECTIONS);
     _mount->delay(1500);
     _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu("Eastward pass...");
+    _lcdMenu->printMenu(F("Eastward pass..."));
     _mount->runDriftAlignmentPhase(EAST, duration);
     _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu("Pause 1.5s....");
+    _lcdMenu->printMenu(F("Pause 1.5s...."));
     _mount->delay(1500);
-    _lcdMenu->printMenu("Westward pass...");
+    _lcdMenu->printMenu(F("Westward pass..."));
     _mount->runDriftAlignmentPhase(WEST, duration);
     _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu("Pause 1.5s....");
+    _lcdMenu->printMenu(F("Pause 1.5s...."));
     _mount->delay(1500);
-    _lcdMenu->printMenu("Reset _mount->..");
+    _lcdMenu->printMenu(F("Reset _mount->.."));
     _mount->runDriftAlignmentPhase(0, duration);
     _lcdMenu->setCursor(0, 1);
     _mount->startSlewing(TRACKING);

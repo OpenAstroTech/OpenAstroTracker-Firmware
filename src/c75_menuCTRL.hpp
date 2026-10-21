@@ -203,7 +203,7 @@ bool processControlKeys()
                 {
                     okToUpdateMenu = false;
                     lcdMenu.setCursor(0, 0);
-                    lcdMenu.printMenu("Set home pos?");
+                    lcdMenu.printMenu(F("Set home pos?"));
                     ctrlState      = MANUAL_CONTROL_CONFIRM_HOME;
                     waitForRelease = true;
                 }
@@ -219,14 +219,14 @@ void printControlSubmenu()
     switch (ctrlState)
     {
         case HIGHLIGHT_MANUAL:
-            lcdMenu.printMenu(">Manual slewing");
+            lcdMenu.printMenu(F(">Manual slewing"));
             break;
         case HIGHLIGHT_SERIAL:
-            lcdMenu.printMenu(">Serial display");
+            lcdMenu.printMenu(F(">Serial display"));
             break;
         case MANUAL_CONTROL_CONFIRM_HOME:
             {
-                String disp = " Yes  No  ";
+                String disp = F(" Yes  No  ");
                 disp.setCharAt(setZeroPoint ? 0 : 5, '>');
                 disp.setCharAt(setZeroPoint ? 4 : 8, '<');
                 lcdMenu.printMenu(disp);

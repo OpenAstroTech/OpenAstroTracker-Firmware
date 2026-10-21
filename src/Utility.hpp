@@ -11,6 +11,22 @@
 String getLogBuffer();
 int freeMemory();
 
+/// Formatted output whose format string stays in flash on AVR.
+///
+/// `sprintf`/`snprintf` take a plain `const char *`, and on AVR a plain literal is linked
+/// into `.data` — i.e. it occupies SRAM. `OAT_SNPRINTF` is the same call with the format
+/// in program memory: `snprintf_P` + `PSTR()` on AVR, a plain `snprintf` elsewhere. It
+/// also takes the buffer size, which the `sprintf` sites never passed (so it truncates
+/// instead of overflowing).
+///
+/// This is the buffer-writing sibling of `OAT_LOG`; `lcdMenu.printMenu(F("..."))` covers
+/// the sites that pass a literal to `String`.
+#if defined(__AVR__)
+    #define OAT_SNPRINTF(buffer, size, format, ...) snprintf_P((buffer), (size), PSTR(format), ##__VA_ARGS__)
+#else
+    #define OAT_SNPRINTF(buffer, size, format, ...) snprintf((buffer), (size), (format), ##__VA_ARGS__)
+#endif
+
 #if DEBUG_LEVEL != 0
     #define LOG(level, format, ...) logv((level), (F(format)), ##__VA_ARGS__)
 

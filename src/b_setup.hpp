@@ -504,11 +504,11 @@ void setup()
     // Show a splash screen
     lcdMenu.setCursor(0, 0);
     #ifdef OAM
-    lcdMenu.printMenu(" OpenAstroMount");
+    lcdMenu.printMenu(F(" OpenAstroMount"));
     #elif defined(OAE)
-    lcdMenu.printMenu("OpenAstroExplorer");
+    lcdMenu.printMenu(F("OpenAstroExplorer"));
     #else
-    lcdMenu.printMenu("OpenAstroTracker");
+    lcdMenu.printMenu(F("OpenAstroTracker"));
     #endif
     lcdMenu.setCursor(5, 1);
     lcdMenu.printMenu(VERSION);
@@ -520,7 +520,7 @@ void setup()
     {
         // Wait for button release
         lcdMenu.setCursor(13, 1);
-        lcdMenu.printMenu("CLR");
+        lcdMenu.printMenu(F("CLR"));
         LOG(DEBUG_INFO, "[SYSTEM]: DOWN pressed, waiting for button release!");
         bool timedOut = false;
         while (lcdButtons.currentState() != btnNONE)

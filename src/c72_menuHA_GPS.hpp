@@ -51,7 +51,7 @@ bool gpsAqcuisitionComplete(int &indicator)
                 LOG(DEBUG_INFO, "[GPS]: Sync'd GPS location. Age is %d secs", gps.location.age() / 1000);
                 LOG(DEBUG_INFO, "[GPS]: Location: %f  %f", gps.location.lat(), gps.location.lng());
                 LOG(DEBUG_INFO, "[GPS]: UTC time is %dh%dm%ds", gps.time.hour(), gps.time.minute(), gps.time.second());
-                lcdMenu.printMenu("GPS sync'd....");
+                lcdMenu.printMenu(F("GPS sync'd...."));
 
                 DayTime utcNow = DayTime(gps.time.hour(), gps.time.minute(), gps.time.second());
                 utcNow.addHours(mount.getLocalUtcOffset());
@@ -139,7 +139,7 @@ bool processHAKeys()
             {
                 DayTime ha(mount.HA());
                 EEPROMStore::storeHATime(mount.HA());
-                lcdMenu.printMenu("Stored.");
+                lcdMenu.printMenu(F("Stored."));
                 mount.delay(500);
                 haState = SHOWING_HA_SET;
         #if SUPPORT_GUIDED_STARTUP == 1
@@ -208,20 +208,20 @@ void printHASubmenu()
     char satBuffer[20];
     if (haState == SHOWING_HA_SYNC)
     {
-        sprintf(satBuffer, "%02dh %02dm >Sync", mount.HA().getHours(), mount.HA().getMinutes());
+        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), "%02dh %02dm >Sync", mount.HA().getHours(), mount.HA().getMinutes());
     }
     else if (haState == SHOWING_HA_SET)
     {
-        sprintf(satBuffer, "%02dh %02dm >Set", mount.HA().getHours(), mount.HA().getMinutes());
+        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), "%02dh %02dm >Set", mount.HA().getHours(), mount.HA().getMinutes());
     }
     else if (haState == STARTING_GPS)
     {
-        sprintf(satBuffer, "  Found %u sats", static_cast<unsigned>(gps.satellites.value()));
+        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), "  Found %u sats", static_cast<unsigned>(gps.satellites.value()));
         satBuffer[0] = ind[indicator];
     }
     else if (haState == ENTER_HA_MANUALLY)
     {
-        sprintf(satBuffer, " %02dh %02dm", mount.HA().getHours(), mount.HA().getMinutes());
+        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), " %02dh %02dm", mount.HA().getHours(), mount.HA().getMinutes());
         satBuffer[HAselect * 4] = '>';
     }
     lcdMenu.printMenu(satBuffer);

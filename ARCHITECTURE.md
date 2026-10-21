@@ -308,6 +308,7 @@ OpenAstroTracker-Firmware/
 | Optional axes use `etl::optional` or a null object, never `#ifdef` branches | Code review |
 | ISR-safe methods are named and documented on `IStepperAxis` | Interface contract |
 | AVR builds link `-lprintf_flt` (`[avr_float_printf]` in `platformio.ini`) so `ILogger` still prints `%f` | Build config |
+| String literals that outlive one call go in flash on AVR: `F("…")` for `String`/`print` paths and `OAT_SNPRINTF(buf, size, "…", …)` for printf paths — a plain literal is linked into `.data`, i.e. SRAM | Code review; `ramps` RAM budget (see PLAN.md) |
 | Board-specific code (interrupt registers, pin mappings) lives only in `hal/<platform>/` | Code review |
 | `Mount`, where retained for Meade back-compat, is a facade only and holds no domain logic | Code review |
 | Command handlers never block (`waitUntil*`, `Mount::delay()`, `while (millis() < …)`) | CI grep check |

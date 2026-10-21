@@ -32,7 +32,14 @@ void SerialLogger::log(uint16_t levelFlags, ports::LogFormat format, ...)
     _lastLogTime         = now;
 
     char line[LINE_BUFFER_SIZE];
+    // The prefix format is a literal, so on AVR it has to be kept out of `.data` the
+    // same way the message format is (see the `vsnprintf_P` below).
+#if defined(__AVR__)
+    const int prefix
+        = snprintf_P(line, sizeof(line), PSTR("[%lu]{%lu}ms: "), static_cast<unsigned long>(now), static_cast<unsigned long>(delta));
+#else
     const int prefix = snprintf(line, sizeof(line), "[%lu]{%lu}ms: ", static_cast<unsigned long>(now), static_cast<unsigned long>(delta));
+#endif
     if (prefix < 0)
     {
         return;

@@ -88,7 +88,7 @@ bool processStartupKeys()
                             inStartup      = false;
                             okToUpdateMenu = false;
                             lcdMenu.setCursor(0, 0);
-                            lcdMenu.printMenu("Home with ^~<>");
+                            lcdMenu.printMenu(F("Home with ^~<>"));
                             lcdMenu.setActive(Control_Menu);
 
                             // Skip the 'Manual control' prompt
@@ -110,7 +110,7 @@ bool processStartupKeys()
                 LOG(DEBUG_INFO, "[STARTUP]: Switching to CAL menu!");
 
                 lcdMenu.setCursor(0, 0);
-                lcdMenu.printMenu("Level front");
+                lcdMenu.printMenu(F("Level front"));
                 lcdMenu.setActive(Calibration_Menu);
 
                 startupState = StartupWaitForRollCompletion;
@@ -133,12 +133,12 @@ bool processStartupKeys()
         #if USE_GPS == 0
                 // Jump to the HA menu
                 lcdMenu.setCursor(0, 0);
-                lcdMenu.printMenu("Set current HA");
+                lcdMenu.printMenu(F("Set current HA"));
                 lcdMenu.setActive(HA_Menu);
                 startupState = StartupWaitForHACompletion;
         #else
                 lcdMenu.setCursor(0, 0);
-                lcdMenu.printMenu("Finding GPS...");
+                lcdMenu.printMenu(F("Finding GPS..."));
                 lcdMenu.setActive(HA_Menu);
                 startupState = StartupWaitForHACompletion;
         #endif
@@ -178,7 +178,7 @@ void printStartupMenu()
         case StartupIsInHomePosition:
             {
                 //              0123456789012345
-                String choices(" Yes  No  Cancl ");
+                String choices(F(" Yes  No  Cancl "));
                 if (isInHomePosition == YES)
                 {
                     choices.setCharAt(0, '>');
@@ -198,7 +198,7 @@ void printStartupMenu()
                 }
 
                 lcdMenu.setCursor(0, 0);
-                lcdMenu.printMenu("Home position?");
+                lcdMenu.printMenu(F("Home position?"));
                 lcdMenu.setCursor(0, 1);
                 lcdMenu.printMenu(choices);
             }

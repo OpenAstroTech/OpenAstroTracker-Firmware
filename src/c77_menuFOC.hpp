@@ -97,11 +97,11 @@ void printFocusSubmenu()
     char scratchBuffer[20];
     if (focState == HIGHLIGHT_FOCUS_ADJUSTMENT)
     {
-        lcdMenu.printMenu(">Focus Adjust");
+        lcdMenu.printMenu(F(">Focus Adjust"));
     }
     else if (focState == FOCUS_ADJUSTMENT)
     {
-        strcpy(scratchBuffer, "Rate:  1 2 3 4 *");
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Rate:  1 2 3 4 *");
         scratchBuffer[6 + rateIndex * 2] = '>';
         scratchBuffer[8 + rateIndex * 2] = '<';
         if (!mount.isRunningFocus())

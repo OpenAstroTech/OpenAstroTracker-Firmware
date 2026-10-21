@@ -48,7 +48,7 @@ bool processHAKeys()
             case btnSELECT:
                 {
                     EEPROMStore::storeHATime(mount.HA());
-                    lcdMenu.printMenu("Stored.");
+                    lcdMenu.printMenu(F("Stored."));
                     mount.delay(500);
 
         #if SUPPORT_GUIDED_STARTUP == 1
@@ -84,7 +84,7 @@ bool processHAKeys()
 void printHASubmenu()
 {
     char scratchBuffer[20];
-    sprintf(scratchBuffer, " %02dh %02dm", mount.HA().getHours(), mount.HA().getMinutes());
+    OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " %02dh %02dm", mount.HA().getHours(), mount.HA().getMinutes());
     scratchBuffer[HAselect * 4] = '>';
     lcdMenu.printMenu(scratchBuffer);
 }
