@@ -10,6 +10,7 @@
 #include "core/Microsteps.hpp"
 #include "core/MountRequests.hpp"
 #include "core/MountState.hpp"
+#include "core/SlewCompletion.hpp"
 #include "core/SlewController.hpp"
 #include "core/GuidingController.hpp"
 #include "core/TrackingController.hpp"

@@ -3463,70 +3463,74 @@ void Mount::loop()
                     "[MOUNT]: Loop: Reached target. RA:%ld, DEC:%ld",
                     _stepperRA->currentPosition(),
                     _stepperDEC->currentPosition());
-            // Mount is at Target!
-            // If we we're parking, we just reached home. Clear the flag, reset the motors and stop tracking.
-            if (isParking())
+
+            // The rules for what happens at the end of a slew live in
+            // core/SlewCompletion.hpp, as a plan this loop executes in order.
+            core::ArrivalFacts facts;
+            facts.intent                    = _slew.intent();
+            facts.parking                   = isParking();
+            facts.headingToParkPosition     = _slew.headingToParkPosition();
+            facts.findingHome               = isFindingHome();
+            facts.compensationPending       = _tracking.compensationPending();
+            facts.backlashOwed              = _slew.backlashOwed();
+            const core::CompletionPlan plan = core::SlewCompletion::plan(facts);
+
+            // Set once the park leg is programmed: true when there is nowhere to go.
+            bool parkLegIsNoOp = false;
+
+            // A park just reached home: stop tracking, and record the home position
+            // unless this is the second leg (which starts from it).
+            if (plan.stopTracking)
             {
                 stopSlewing(TRACKING);
-                // If we're on the second part of the slew to parking, don't set home here
-                if (!_slew.headingToParkPosition())
-                {
-                    const core::SlewSnapshot savedSlew = _slew.snapshot();
-                    OAT_LOG(_deps.logger,
-                            DEBUG_MOUNT | DEBUG_STEPPERS,
-                            "[MOUNT]: Loop:   Was Parking, not slewing to park so stop tracking and set home. SlewToHome: %d",
-                            _slew.intent() == core::SlewIntent::Home);
-                    setHome(false);
-                    _slew.restore(savedSlew);
-                }
-                else
-                {
-                    OAT_LOG(_deps.logger,
-                            DEBUG_MOUNT | DEBUG_STEPPERS,
-                            "[MOUNT]: Loop:   Was Parking and slewing to Park, stop tracking. SlewToHome: %d",
-                            _slew.intent() == core::SlewIntent::Home);
-                }
+            }
+            if (plan.setHome)
+            {
+                // setHome() resets the slew, and the rest of this block still needs to
+                // know what the slew was for.
+                const core::SlewSnapshot savedSlew = _slew.snapshot();
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
-                        "[MOUNT]: Loop:   Slew2Park:%d, Slew2Home:%d",
-                        _slew.headingToParkPosition(),
+                        "[MOUNT]: Loop:   Was Parking, not slewing to park so stop tracking and set home. SlewToHome: %d",
                         _slew.intent() == core::SlewIntent::Home);
+                setHome(false);
+                _slew.restore(savedSlew);
             }
 
             _currentRAStepperPosition = _stepperRA->currentPosition();
-            if (!isFindingHome())  // When finding home, we never want to switch back to tracking until homing is finished.
+            if (plan.raTrackingMicrosteps)  // RA stays in slew configuration while homing
             {
                 setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
             }
-            if (!isParking())
+
+            if (plan.compensateTracker)
             {
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: Loop: Not parking");
-                if (_tracking.compensationPending())
-                {
-                    now                          = _deps.clock->now();
-                    const long compensationSteps = _tracking.compensationSteps(now);
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS,
-                            "[STEPPERS]: loop: Arrived at %ldms. Tracking was off for %ldms (%ld steps), compensating.",
-                            now,
-                            now - _tracking.stoppedAt(),
-                            compensationSteps);
-                    _tracking.applyCompensation(compensationSteps);
+                now                          = _deps.clock->now();
+                const long compensationSteps = _tracking.compensationSteps(now);
+                OAT_LOG(_deps.logger,
+                        DEBUG_STEPPERS,
+                        "[STEPPERS]: loop: Arrived at %ldms. Tracking was off for %ldms (%ld steps), compensating.",
+                        now,
+                        now - _tracking.stoppedAt(),
+                        compensationSteps);
+                _tracking.applyCompensation(compensationSteps);
 
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
-                }
-
-                if (!isFindingHome())  // If we're homing, RA must stay in Slew configuration
-                {
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: Loop: Not finding home, so start tracking");
-                    startSlewing(TRACKING);
-                }
+                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
             }
 
-            // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
-            setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
+            if (plan.startTracking)
+            {
+                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: Loop: Not parking and not finding home, so start tracking");
+                startSlewing(TRACKING);
+            }
 
-            if (_slew.backlashOwed())
+            // Guiding is always ready again once the slew is over.
+            if (plan.decGuideMicrosteps)
+            {
+                setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
+            }
+
+            if (plan.correctBacklash)
             {
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
@@ -3549,69 +3553,75 @@ void Mount::loop()
                         _currentRAStepperPosition);
             }
 
-            OAT_LOG(_deps.logger,
-                    DEBUG_MOUNT | DEBUG_STEPPERS,
-                    "[MOUNT]: Loop:   Slew2Park:%d, Slew2Home:%d",
-                    _slew.headingToParkPosition(),
-                    _slew.intent() == core::SlewIntent::Home);
-            if (_slew.intent() == core::SlewIntent::Home)
+            if (plan.retargetRa)
             {
                 OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Was Slewing home...");
                 _targetRA = currentRA();
-                if (isParking())
+            }
+
+            if (plan.startParkPositionLeg)
+            {
+                // Home is known; now go to the configured park position.
+                setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
+                OAT_LOG(_deps.logger,
+                        DEBUG_MOUNT | DEBUG_STEPPERS,
+                        "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
+                clearStatusFlag(STATUS_PARKING);
+                _slew.setHeadingToParkPosition(true);
+                _stepperRA->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
+                _stepperDEC->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
+                _slew.setTotalMove(1.0f * _stepperRA->distanceToGo(), 1.0f * _stepperDEC->distanceToGo());
+                OAT_LOG(_deps.logger,
+                        DEBUG_MOUNT | DEBUG_STEPPERS,
+                        "[MOUNT]: Loop:   Park Position is R:%ld  D:%ld, TotalMove is R:%f, D:%f",
+                        -getHomingOffset(StepperAxis::RA_STEPS),
+                        -getHomingOffset(StepperAxis::DEC_STEPS),
+                        _slew.totalRaSteps(),
+                        _slew.totalDecSteps());
+                parkLegIsNoOp = core::SlewCompletion::parkLegIsNoOp(_stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
+                if (parkLegIsNoOp)
                 {
-                    // Set DEC to slew microstepping, since it is set to guiding.
-                    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
-                    OAT_LOG(_deps.logger,
-                            DEBUG_MOUNT | DEBUG_STEPPERS,
-                            "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
-                    clearStatusFlag(STATUS_PARKING);
-                    _slew.setHeadingToParkPosition(true);
-                    _stepperRA->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
-                    _stepperDEC->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
-                    _slew.setTotalMove(1.0f * _stepperRA->distanceToGo(), 1.0f * _stepperDEC->distanceToGo());
-                    OAT_LOG(_deps.logger,
-                            DEBUG_MOUNT | DEBUG_STEPPERS,
-                            "[MOUNT]: Loop:   Park Position is R:%ld  D:%ld, TotalMove is R:%f, D:%f",
-                            -getHomingOffset(StepperAxis::RA_STEPS),
-                            -getHomingOffset(StepperAxis::DEC_STEPS),
-                            _slew.totalRaSteps(),
-                            _slew.totalDecSteps());
-                    if ((_stepperDEC->distanceToGo() != 0) || (_stepperRA->distanceToGo() != 0))
-                    {
-                        OAT_LOG(_deps.logger,
-                                DEBUG_MOUNT | DEBUG_STEPPERS,
-                                "[MOUNT]: Loop:   Distance to Parking is non-zero, slewing to park position...");
-                        setStatusFlag(STATUS_PARKING_POS | STATUS_SLEWING);
-                    }
-                    else
-                    {
-                        OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Already at Parking pos, so done.");
-                        noInterrupts();
-                        setStatus(STATUS_PARKED);
-                        interrupts();
-                        publishEvent(core::MountEventType::Parked);
-                    }
+                    OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Already at Parking pos, so done.");
                 }
                 else
                 {
-                    OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slewed home, not parking, so restart tracking.");
-                    startSlewing(TRACKING);
+                    OAT_LOG(_deps.logger,
+                            DEBUG_MOUNT | DEBUG_STEPPERS,
+                            "[MOUNT]: Loop:   Distance to Parking is non-zero, slewing to park position...");
+                    setStatusFlag(STATUS_PARKING_POS | STATUS_SLEWING);
                 }
-                _slew.end();
-                // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
+            }
+
+            if (plan.restartTrackingAfterHome)
+            {
+                OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slewed home, not parking, so restart tracking.");
+                startSlewing(TRACKING);
+            }
+
+            if (plan.decGuideAfterHome)
+            {
                 setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
             }
-            else if (_slew.headingToParkPosition())
+
+            if (plan.parkComplete)
             {
                 OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
+            }
+
+            // Both ways of finishing a park end in the same two writes.
+            if (plan.parkComplete || parkLegIsNoOp)
+            {
                 noInterrupts();
                 setStatus(STATUS_PARKED);
                 interrupts();
                 publishEvent(core::MountEventType::Parked);
                 _slew.setHeadingToParkPosition(false);
             }
-            _slew.end();
+
+            if (plan.endSlew)
+            {
+                _slew.end();
+            }
             _slew.clearTotalMove();
 
             // Make sure we do one last update when the steppers have stopped.
