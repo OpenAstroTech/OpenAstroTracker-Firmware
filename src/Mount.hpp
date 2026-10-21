@@ -5,8 +5,10 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "core/EventBus.hpp"
 #include "core/FocusController.hpp"
 #include "core/MountState.hpp"
+#include "core/SlewController.hpp"
 #include "core/GuidingController.hpp"
 #include "core/TrackingController.hpp"
 #include "hal/IGpioPin.hpp"
@@ -434,6 +436,12 @@ class Mount
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 
+    /// Registers the single observer of mount events (the info display). Events are
+    /// drained once per `loop()`, so the observer is never called from inside the code
+    /// that published.
+    void setEventSink(core::IEventSink *sink);
+    void clearEventSink();
+
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction);
 
@@ -570,6 +578,8 @@ class Mount
 
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
+
+    void publishEvent(core::MountEventType type, bool succeeded = false);
 
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);
@@ -719,11 +729,15 @@ class Mount
     // The mount's status bitfield. `core::MountState` documents its threading contract.
     core::MountState _state;
 
+    // What slew, if any, is in flight, plus the bookkeeping the arrival sequence needs.
+    core::SlewController _slew;
+
+    // Facts the mount publishes (slew started/arrived, parked, ...). Drained once per
+    // `loop()`, so a subscriber is never called from inside the publisher.
+    static const uint8_t kEventQueueDepth = 4;
+    core::EventBus<kEventQueueDepth> _events;
+
     char scratchBuffer[24];
-    bool _stepperWasRunning;
-    bool _correctForBacklash;
-    bool _slewingToHome;
-    bool _slewingToPark;
     bool _bootComplete;
 
     int _localUtcOffset;

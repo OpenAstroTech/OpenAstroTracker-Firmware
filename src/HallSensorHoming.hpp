@@ -35,6 +35,7 @@ class HallSensorHoming
     void processHomingProgress();
     String getHomingState(core::HomingState state) const;
     core::HomingState getHomingState() const;
+    core::HomingResult homingResult() const;
     bool isIdleOrComplete() const;
     String getLastResult() const;
 

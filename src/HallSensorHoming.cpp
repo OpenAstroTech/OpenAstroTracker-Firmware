@@ -52,6 +52,11 @@ core::HomingState HallSensorHoming::getHomingState() const
 // getLastResult
 //
 /////////////////////////////////
+core::HomingResult HallSensorHoming::homingResult() const
+{
+    return _controller.result();
+}
+
 String HallSensorHoming::getLastResult() const
 {
     MappedDict<core::HomingResult, String>::DictEntry_t lookupTable[] = {
