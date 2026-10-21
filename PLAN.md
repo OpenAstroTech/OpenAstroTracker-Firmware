@@ -360,10 +360,17 @@ The AVR growth is the settings port's vtable (86 B — 39 virtuals × 2 B), the 
 ### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
 
+*Status: step 1 landed. `core/TrackingController` owns the tracking axis, the calibration factor, the derived rate and the tracker-stopped compensation; `Mount` keeps the microstep switching, the `STATUS_TRACKING` bit and every diagnostic line. `pio test -e native` runs 410 cases green (11 new); `ramps`, `mksgenlv21`, `esp32`, `oaeboardv1` and `rp2040_skr_pico` build green. Measured on `ramps`: 7749 → 7761 B RAM (+12) and 182246 → 182466 B flash (+220); the same board with `DEBUG_ANY` uses 8181 B of the 8 KB SRAM, so the worst-case AVR shape still links with 11 B spare.*
+
 **Prerequisite:** Phase 2's ISR contract for `IStepperAxis` must be settled. The threading model for `SlewController::update()` (main loop vs ISR context) follows from that contract.
 
 Recommended slice order (each is an independent step, parallelizable after Phase 2):
-1. `core/TrackingController` — tracking speed, sidereal rate, tracker-stop compensation. Owns `IStepperAxis* trk`.
+1. ✅ `core/TrackingController` — tracking speed, sidereal rate, tracker-stop compensation. Owns `IStepperAxis* trk`.
+   - The axis is a **template parameter** (`TrackingController<Axis>`, defaulting to `ports::IStepperAxis`): AVR instantiates it with its concrete `StepperRaTrk`, so the controller owns the engine without a vtable. This is the measurement from 2b repeated — one wrapper per axis is affordable, but the same pattern for the other six engines is not.
+   - The controller holds `calibration`, `speed`, `stepsPerDegree`, the (compile-time) microstep ratio and the sidereal day length; the composition root supplies the last two from `Configuration_adv.hpp` and `Configuration.hpp`. The rate expression keeps the original operand order and the original integer microstep division, so the computed value is bit-identical.
+   - Tracker-stop compensation is split into `compensationSteps(now)` (pure, keeps value semantics and lets `Mount` log before the move) and `applyCompensation(steps)` (the `runToNewPosition` call plus clearing the request).
+   - `detach()` restores what `initializeVariables()` used to do to `_compensateForTrackerOff`/`_trackerStoppedAt` when the mount drops its configuration.
+   - Tests: `unit_tests/test_core/test_tracking_controller.cpp` (11 cases) over a new `fakes::FakeStepperAxis` in `unit_tests/test_common/hal_fakes/`.
 2. `core/SlewController` — slew state machine extracted from the 293-line `Mount::loop`. Inputs are target + geometry; outputs are stepper commands and state events. **Threading model deferred to Phase 2's ISR contract.**
 3. `core/GuidingController` — guide-pulse direction/speed math + timed completion (uses `IClock`).
 4. `core/HomingController` — hall-sensor/end-switch state machine; owns `IHomingSensor* ra`, `IHomingSensor* dec`.

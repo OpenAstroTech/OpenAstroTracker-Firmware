@@ -5,6 +5,7 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "core/TrackingController.hpp"
 #include "hal/IGpioPin.hpp"
 #include "ports/IClock.hpp"
 #include "ports/ILogger.hpp"
@@ -583,6 +584,13 @@ class Mount
     // initialiser order is the declaration order (and therefore warning-free).
     MountDeps _deps;
 
+    // Sidereal tracking. The axis is attached by configureRAStepper().
+#ifdef ARDUINO_AVR_ATmega2560
+    core::TrackingController<StepperRaTrk> _tracking;
+#else
+    core::TrackingController<ports::IStepperAxis> _tracking;
+#endif
+
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     InfoDisplayRender *infoDisplay;
@@ -709,11 +717,7 @@ class Mount
     unsigned long _guideRaEndTime;
     unsigned long _guideDecEndTime;
     unsigned long _lastMountPrint = 0;
-    float _trackingSpeed;             // RA u-steps/sec when in tracking mode
-    float _trackingSpeedCalibration;  // Dimensionless, very close to 1.0
     unsigned long _lastDisplayUpdate;
-    unsigned long _trackerStoppedAt;
-    bool _compensateForTrackerOff;
 
     // The mount's status bitfield (STATUS_* above).
     //
