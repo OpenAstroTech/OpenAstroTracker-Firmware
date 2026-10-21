@@ -6,6 +6,7 @@
 #include "Longitude.hpp"
 #include "Types.hpp"
 #include "core/FocusController.hpp"
+#include "core/MountState.hpp"
 #include "core/GuidingController.hpp"
 #include "core/TrackingController.hpp"
 #include "hal/IGpioPin.hpp"
@@ -116,21 +117,22 @@ class EndSwitch;
 #define TARGET_STRING  B01000
 #define CURRENT_STRING B10000
 
-//mountstatus
-#define STATUS_PARKED            0B0000000000000000
-#define STATUS_SLEWING           0B0000000000000010
-#define STATUS_SLEWING_TO_TARGET 0B0000000000000100
-#define STATUS_SLEWING_FREE      0B0000000000000010
-#define STATUS_SLEWING_MANUAL    0B0000000100000000
-#define STATUS_TRACKING          0B0000000000001000
-#define STATUS_PARKING           0B0000000000010000
-#define STATUS_PARKING_POS       0B0001000000000000
-#define STATUS_GUIDE_PULSE       0B0000000010000000
-#define STATUS_GUIDE_PULSE_DIR   0B0000000001100000
-#define STATUS_GUIDE_PULSE_RA    0B0000000001000000
-#define STATUS_GUIDE_PULSE_DEC   0B0000000000100000
-#define STATUS_GUIDE_PULSE_MASK  0B0000000011100000
-#define STATUS_FINDING_HOME      0B0010000000000000
+// Mount status bits. `core::MountState` owns the field; these names are the masks the
+// firmware has always used, defined once in `core/MountState.hpp`.
+#define STATUS_PARKED            ((uint16_t) core::StatusBit::Parked)
+#define STATUS_SLEWING           ((uint16_t) core::StatusBit::Slewing)
+#define STATUS_SLEWING_TO_TARGET ((uint16_t) core::StatusBit::SlewingToTarget)
+#define STATUS_SLEWING_FREE      ((uint16_t) core::StatusBit::SlewingFree)
+#define STATUS_SLEWING_MANUAL    ((uint16_t) core::StatusBit::SlewingManual)
+#define STATUS_TRACKING          ((uint16_t) core::StatusBit::Tracking)
+#define STATUS_PARKING           ((uint16_t) core::StatusBit::Parking)
+#define STATUS_PARKING_POS       ((uint16_t) core::StatusBit::ParkingPos)
+#define STATUS_GUIDE_PULSE       ((uint16_t) core::StatusBit::GuidePulse)
+#define STATUS_GUIDE_PULSE_DIR   ((uint16_t) core::StatusBit::GuidePulseDir)
+#define STATUS_GUIDE_PULSE_RA    ((uint16_t) core::StatusBit::GuidePulseRa)
+#define STATUS_GUIDE_PULSE_DEC   ((uint16_t) core::StatusBit::GuidePulseDec)
+#define STATUS_GUIDE_PULSE_MASK  ((uint16_t) core::StatusBit::GuidePulseMask)
+#define STATUS_FINDING_HOME      ((uint16_t) core::StatusBit::FindingHome)
 
 struct LocalDate {
     int year;
@@ -714,23 +716,8 @@ class Mount
     unsigned long _lastMountPrint = 0;
     unsigned long _lastDisplayUpdate;
 
-    // The mount's status bitfield (STATUS_* above).
-    //
-    // Threading contract, matching the one in `ports/IStepperAxis.hpp`. This is a
-    // plain volatile int, not an atomic, so the rules are:
-    //  * Reads are safe from any context: `int` is 16-bit on AVR and 32-bit on
-    //    ESP32/RP2040, aligned, so a load never sees a torn value.
-    //  * Read-modify-write (`setStatus`, `clearStatusFlag`) is main-loop-only. It is
-    //    not atomic on AVR, so a concurrent writer would lose bits.
-    //  * The step generator — `stepperControlTask` on core 0 (ESP32) or the timer ISR
-    //    (RP2040, and AVR without NEW_STEPPER_LIB; compiled out on AVR with it) —
-    //    reads the status to decide which axes to step and does not write it.
-    //  * One pre-existing exception: `interruptLoop()` drives
-    //    `HallSensorHoming::processHomingProgress()`, which calls `stopSlewing()` /
-    //    `moveStepperBy()` and so does write status and axis targets from that
-    //    context. Phase 3's `HomingController` moves that decision back to the main
-    //    loop and leaves the generator with a request bit to act on.
-    volatile int _mountStatus;
+    // The mount's status bitfield. `core::MountState` documents its threading contract.
+    core::MountState _state;
 
     char scratchBuffer[24];
     bool _stepperWasRunning;

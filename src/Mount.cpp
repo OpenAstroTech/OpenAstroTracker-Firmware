@@ -123,7 +123,7 @@ void Mount::initializeVariables()
     _stepsPerRADegree  = RA_STEPS_PER_DEGREE;   // u-steps per degree when slewing
     _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
 
-    _mountStatus       = 0;
+    _state.reset(0);
     _lastDisplayUpdate = 0;
     _stepperWasRunning = false;
 
@@ -1726,7 +1726,7 @@ void Mount::stopGuiding(bool ra, bool dec)
         return;
 
     // Stop RA guide first, since it's just a speed change back to tracking speed
-    if (ra && (_mountStatus & STATUS_GUIDE_PULSE_RA))
+    if (ra && _state.test(STATUS_GUIDE_PULSE_RA))
     {
         OAT_LOG(
             _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK stop guide at  : %ld", _stepperTRK->currentPosition());
@@ -1736,7 +1736,7 @@ void Mount::stopGuiding(bool ra, bool dec)
         clearStatusFlag(STATUS_GUIDE_PULSE_RA);
     }
 
-    if (dec && (_mountStatus & STATUS_GUIDE_PULSE_DEC))
+    if (dec && _state.test(STATUS_GUIDE_PULSE_DEC))
     {
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS | DEBUG_GUIDE,
@@ -1759,7 +1759,7 @@ void Mount::stopGuiding(bool ra, bool dec)
     }
 
     //disable pulse state if no direction is active
-    if ((_mountStatus & STATUS_GUIDE_PULSE_DIR) == 0)
+    if (!_state.test(STATUS_GUIDE_PULSE_DIR))
     {
         OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: Clear guiding state");
         clearStatusFlag(STATUS_GUIDE_PULSE_MASK);
@@ -2473,21 +2473,21 @@ void Mount::setTrackingStepperPos(long stepPos)
 void Mount::setStatus(int state)
 {
     noInterrupts();
-    _mountStatus = state;
+    _state.reset((uint16_t) state);
     interrupts();
 }
 
 void Mount::setStatusFlag(int flag)
 {
     noInterrupts();
-    _mountStatus |= flag;
+    _state.set((uint16_t) flag);
     interrupts();
 }
 
 void Mount::clearStatusFlag(int flag)
 {
     noInterrupts();
-    _mountStatus &= ~flag;
+    _state.clear((uint16_t) flag);
     interrupts();
 }
 
@@ -2499,11 +2499,11 @@ void Mount::clearStatusFlag(int flag)
 String Mount::getStatusStateString()
 {
     String status;
-    if (_mountStatus == STATUS_PARKED)
+    if (_state.isParked())
     {
         status = F("Parked");
     }
-    else if ((_mountStatus & STATUS_PARKING) || (_mountStatus & STATUS_PARKING_POS))
+    else if (_state.test(STATUS_PARKING) || _state.test(STATUS_PARKING_POS))
     {
         status = F("Parking");
     }
@@ -2517,15 +2517,15 @@ String Mount::getStatusStateString()
     }
     else if (slewStatus() & SLEW_MASK_ANY)
     {
-        if (_mountStatus & STATUS_SLEWING_TO_TARGET)
+        if (_state.test(STATUS_SLEWING_TO_TARGET))
         {
             status = F("SlewToTarget");
         }
-        else if (_mountStatus & STATUS_SLEWING_FREE)
+        else if (_state.test(STATUS_SLEWING_FREE))
         {
             status = F("FreeSlew");
         }
-        else if (_mountStatus & STATUS_SLEWING_MANUAL)
+        else if (_state.test(STATUS_SLEWING_MANUAL))
         {
             status = F("ManualSlew");
         }
@@ -2550,7 +2550,7 @@ String Mount::getStatusString()
     String status = getStatusStateString() + ",";
 
     String disp = "------,";
-    if (_mountStatus & STATUS_SLEWING)
+    if (_state.test(STATUS_SLEWING))
     {
         byte slew = slewStatus();
         if (slew & SLEWING_RA)
@@ -2613,7 +2613,7 @@ String Mount::getStatusString()
 /////////////////////////////////
 byte Mount::slewStatus() const
 {
-    if (_mountStatus == STATUS_PARKED)
+    if (_state.isParked())
     {
         return NOT_SLEWING;
     }
@@ -2624,13 +2624,13 @@ byte Mount::slewStatus() const
     byte slewState = _stepperRA->isRunning() ? SLEWING_RA : NOT_SLEWING;
     slewState |= _stepperDEC->isRunning() ? SLEWING_DEC : NOT_SLEWING;
 
-    slewState |= (_mountStatus & STATUS_TRACKING) ? SLEWING_TRACKING : NOT_SLEWING;
+    slewState |= _state.test(STATUS_TRACKING) ? SLEWING_TRACKING : NOT_SLEWING;
     return slewState;
 }
 
 byte Mount::mountStatus() const
 {
-    return _mountStatus;
+    return (byte) _state.value();
 }
 
 /////////////////////////////////
@@ -2640,7 +2640,7 @@ byte Mount::mountStatus() const
 /////////////////////////////////
 bool Mount::isGuiding() const
 {
-    return (_mountStatus & STATUS_GUIDE_PULSE) != 0;
+    return _state.test(STATUS_GUIDE_PULSE);
 }
 
 /////////////////////////////////
@@ -2684,7 +2684,7 @@ bool Mount::isSlewingTRK() const
 /////////////////////////////////
 bool Mount::isParking() const
 {
-    return _mountStatus & (STATUS_PARKING | STATUS_PARKING_POS);
+    return _state.test(STATUS_PARKING | STATUS_PARKING_POS);
 }
 
 /////////////////////////////////
@@ -2694,7 +2694,7 @@ bool Mount::isParking() const
 /////////////////////////////////
 bool Mount::isFindingHome() const
 {
-    return _mountStatus & STATUS_FINDING_HOME;
+    return _state.test(STATUS_FINDING_HOME);
 }
 
 /////////////////////////////////
@@ -2900,7 +2900,7 @@ void Mount::stopSlewing(StepperAxis axis)
 void Mount::waitUntilStopped(byte direction)
 {
     while (((direction & (EAST | WEST)) && _stepperRA->isRunning()) || ((direction & (NORTH | SOUTH)) && _stepperDEC->isRunning())
-           || ((direction & TRACKING) && (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning()))
+           || ((direction & TRACKING) && ((!_state.test(STATUS_TRACKING)) && _stepperTRK->isRunning()))
 #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
            || ((direction & FOCUSING) && _stepperFocus->isRunning())
 #endif
@@ -2919,7 +2919,7 @@ void Mount::waitUntilStopped(byte direction)
 // Block until all steppers are stopped
 void Mount::waitUntilAllStopped()
 {
-    while (_stepperRA->isRunning() || _stepperDEC->isRunning() || (((_mountStatus & STATUS_TRACKING) == 0) && _stepperTRK->isRunning())
+    while (_stepperRA->isRunning() || _stepperDEC->isRunning() || ((!_state.test(STATUS_TRACKING)) && _stepperTRK->isRunning())
 #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
            || _stepperFocus->isRunning()
 #endif
@@ -3158,24 +3158,24 @@ void Mount::delay(int ms)
 void Mount::interruptLoop()
 {
     // Only process guide pulses if we are tracking.
-    if ((_mountStatus & STATUS_GUIDE_PULSE) && (_mountStatus & STATUS_TRACKING))
+    if (_state.test(STATUS_GUIDE_PULSE) && _state.test(STATUS_TRACKING))
     {
         _stepperTRK->runSpeed();
-        if (_mountStatus & STATUS_GUIDE_PULSE_DEC)
+        if (_state.test(STATUS_GUIDE_PULSE_DEC))
         {
             _stepperGUIDE->runSpeed();
         }
         return;
     }
 
-    if (_mountStatus & STATUS_TRACKING)
+    if (_state.test(STATUS_TRACKING))
     {
         _stepperTRK->runSpeed();
     }
 
-    if (_mountStatus & STATUS_SLEWING)
+    if (_state.test(STATUS_SLEWING))
     {
-        if (_mountStatus & STATUS_SLEWING_MANUAL)
+        if (_state.test(STATUS_SLEWING_MANUAL))
         {
             _stepperDEC->runSpeed();
             _stepperRA->runSpeed();
@@ -3186,7 +3186,7 @@ void Mount::interruptLoop()
             _stepperRA->run();
         }
     }
-    else if (!(_mountStatus & STATUS_TRACKING) && (_stepperTRK->isRunning()))
+    else if (!_state.test(STATUS_TRACKING) && (_stepperTRK->isRunning()))
     {
         // If we are not tracking, but the tracking stepper is running, we need to let it move.
         // This can happen when we need to compensate for a slew (during which the tracker is
@@ -3197,7 +3197,7 @@ void Mount::interruptLoop()
         _stepperTRK->run();
     }
 
-    if (_mountStatus & STATUS_FINDING_HOME)
+    if (_state.test(STATUS_FINDING_HOME))
     {
     #if USE_HALL_SENSOR_RA_AUTOHOME == 1
         _stepperRA->run();
@@ -3545,7 +3545,7 @@ void Mount::loop()
     }
 
 #if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
-    if (_mountStatus & STATUS_FINDING_HOME)
+    if (_state.test(STATUS_FINDING_HOME))
     {
         processHomingProgress();
     }
