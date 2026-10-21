@@ -3046,8 +3046,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _raHoming;
         }
-        int32_t offset = _deps.settings->getRAHomingOffset();
-        _raHoming      = new HallSensorHoming(this, axis, _stepsPerRADegree, RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE, offset);
+        _raHoming = new HallSensorHoming(this, axis, RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE);
         return _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
     }
     #endif
@@ -3059,8 +3058,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _decHoming;
         }
-        int32_t offset = _deps.settings->getDECHomingOffset();
-        _decHoming = new HallSensorHoming(this, axis, _stepsPerDECDegree, DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE, offset);
+        _decHoming = new HallSensorHoming(this, axis, DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE);
         return _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
     }
     #endif

@@ -2,87 +2,45 @@
 #define _HALLSENSORHOMING_HPP
 
 #include "Types.hpp"
-#include "Mount.hpp"
-
-#define HOMING_RESULT_SUCCEEDED                   1
-#define HOMING_RESULT_HOMING_NEVER_RUN            0
-#define HOMING_RESULT_HOMING_IN_PROGRESS          -1
-#define HOMING_RESULT_CANT_MOVE_OFF_SENSOR        -2
-#define HOMING_RESULT_CANT_FIND_SENSOR_ON_REVERSE -3
-#define HOMING_RESULT_CANT_FIND_SENSOR_END        -4
+#include "core/HomingController.hpp"
 
 class Mount;
-
-enum HomingState
-{
-    HOMING_MOVE_OFF,
-    HOMING_MOVING_OFF,
-    HOMING_STOP_AT_TIME,
-    HOMING_WAIT_FOR_STOP,
-    HOMING_START_FIND_START,
-    HOMING_FINDING_START,
-    HOMING_FINDING_START_REVERSE,
-    HOMING_FINDING_END,
-    HOMING_RANGE_FOUND,
-    HOMING_FAILED,
-    HOMING_SUCCESSFUL,
-
-    HOMING_NOT_ACTIVE
-};
-
-struct HomingData {
-    HomingState state;
-    HomingState nextState;
-    int pinState;
-    int lastPinState;
-    int pinChangeCount;
-    int savedRate;
-    int initialDir;
-    long searchDistance;
-    long position[2];
-    long offset;
-    long startPos;
-    unsigned long stopAt;
-};
 
 /////////////////////////////////
 //
 // class HallSensorHoming
 //
 /////////////////////////////////
+/// Binds the hall-sensor homing state machine to one mount axis.
+///
+/// The decisions live in `core::HomingController`; this class reads the sensor and the
+/// axis each tick, hands them over, and performs the single action that comes back. It
+/// also owns the two pieces of mount policy the state machine does not: the slew rate
+/// to restore and whether tracking was on when the mount was set up.
 class HallSensorHoming
 {
   private:
-    HomingData _homingData;
+    core::HomingController _controller;
     Mount *_pMount;
     StepperAxis _axis;
-    long _stepsPerDegree;
-    int _sensorPin;
-    int _activeState;
-    int _lastResult;
+    uint8_t _sensorPin;
+    uint8_t _activeState;
+    uint8_t _savedRate;
     bool _wasTracking;
 
   public:
-    HallSensorHoming(Mount *mount, StepperAxis axis, long stepsPerDegree, int sensorPin, int activeState, int32_t offset)
-    {
-        _homingData.state          = HomingState::HOMING_NOT_ACTIVE;
-        _homingData.offset         = offset;
-        _homingData.pinChangeCount = 0;
-        _pMount                    = mount;
-        _axis                      = axis;
-        _stepsPerDegree            = stepsPerDegree;
-        _sensorPin                 = sensorPin;
-        _activeState               = activeState;
-        _lastResult                = HOMING_RESULT_HOMING_NEVER_RUN;
-        _wasTracking               = mount->isSlewingTRK();
-    }
+    HallSensorHoming(Mount *mount, StepperAxis axis, int sensorPin, int activeState);
 
     bool findHomeByHallSensor(int initialDirection, int searchDistanceDegrees);
     void processHomingProgress();
-    String getHomingState(HomingState state) const;
-    HomingState getHomingState() const;
+    String getHomingState(core::HomingState state) const;
+    core::HomingState getHomingState() const;
     bool isIdleOrComplete() const;
     String getLastResult() const;
+
+  private:
+    bool sensorIsActive() const;
+    void logTransition(core::HomingState previous, const core::HomingStep &step);
 };
 
 #endif
