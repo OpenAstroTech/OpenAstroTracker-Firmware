@@ -1601,6 +1601,14 @@ void Mount::syncPosition(DayTime ra, Declination dec)
 // there. Must call loop() frequently to actually move.
 void Mount::startSlewingToTarget()
 {
+    if (!admit(core::MountRequest::GoTo))
+    {
+        // A go-to used to reprogram both axes underneath a park sequence that was still
+        // homing. PLAN.md lists this refusal as the one intentional behaviour change.
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: refused while parking");
+        return;
+    }
+
     stopGuiding();
 
     // Make sure we're slewing at full speed on a GoTo
@@ -1788,7 +1796,7 @@ void Mount::guidePulse(byte direction, int duration)
             duration);
     const bool wasGuiding = _state.test(STATUS_GUIDE_PULSE);
 
-    if (!isSlewingTRK())
+    if (!admit(core::MountRequest::Guide))
     {
         OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: Not tracking (at limit?), ignoring guide pulse");
     }
@@ -2728,6 +2736,22 @@ bool Mount::isFindingHome() const
     return _state.test(STATUS_FINDING_HOME);
 }
 
+core::MountActivityFacts Mount::activityFacts() const
+{
+    core::MountActivityFacts facts;
+    facts.parking     = isParking();
+    facts.tracking    = isSlewingTRK();
+    facts.guiding     = isGuiding();
+    facts.slewing     = _state.test(STATUS_SLEWING);
+    facts.findingHome = isFindingHome();
+    return facts;
+}
+
+bool Mount::admit(core::MountRequest request) const
+{
+    return core::MountRequests::admit(request, activityFacts()) == core::Admission::Allowed;
+}
+
 /////////////////////////////////
 //
 // startSlewing
@@ -2737,7 +2761,9 @@ bool Mount::isFindingHome() const
 /////////////////////////////////
 void Mount::startSlewing(int direction)
 {
-    if (!isParking())
+    // Parking owns both axes until it finishes; every request in this function is
+    // refused while it runs. See core/MountRequests.hpp for the whole table.
+    if (admit((direction & TRACKING) ? core::MountRequest::Track : core::MountRequest::ManualSlew))
     {
         stopGuiding();
 

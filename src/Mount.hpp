@@ -7,6 +7,7 @@
 #include "Types.hpp"
 #include "core/EventBus.hpp"
 #include "core/FocusController.hpp"
+#include "core/MountRequests.hpp"
 #include "core/MountState.hpp"
 #include "core/SlewController.hpp"
 #include "core/GuidingController.hpp"
@@ -580,6 +581,10 @@ class Mount
     void readPersistentData();
 
     void publishEvent(core::MountEventType type, bool succeeded = false);
+
+    /// Snapshot of the state the admission rules read. See `core/MountRequests.hpp`.
+    core::MountActivityFacts activityFacts() const;
+    bool admit(core::MountRequest request) const;
 
     void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);
