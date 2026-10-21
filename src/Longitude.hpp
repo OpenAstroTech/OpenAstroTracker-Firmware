@@ -20,6 +20,9 @@ class Longitude : public core::Longitude
     Longitude &operator=(const Longitude &) = default;
     Longitude(int h, int m, int s);
     Longitude(float inDegrees);
+    Longitude(const core::Longitude &other) : core::Longitude(other)
+    {
+    }
 
     virtual const char *formatString(char *targetBuffer, const char *format, long *pSeconds = nullptr) const;
     const char *formatStringForMeade(char *targetBuffer) const;

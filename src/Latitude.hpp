@@ -18,6 +18,9 @@ class Latitude : public core::Latitude
     Latitude &operator=(const Latitude &) = default;
     Latitude(int h, int m, int s);
     Latitude(float inDegrees);
+    Latitude(const core::Latitude &other) : core::Latitude(other)
+    {
+    }
 
     // Convert to a standard string (like +45:00:00)
     virtual const char *ToString() const;

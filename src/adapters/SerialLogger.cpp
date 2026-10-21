@@ -53,10 +53,16 @@ void SerialLogger::log(uint16_t levelFlags, ports::LogFormat format, ...)
 #endif
     va_end(args);
 
-    const size_t length = strlen(line);
+    size_t length = strlen(line);
+    if (length < sizeof(line))
+    {
+        line[length++] = '\n';
+    }
+
+    // One write per line: the arduino-pico USB CDC path can wedge when many small
+    // writes per line race the TinyUSB FIFO, and the legacy logger printed a single
+    // line for the same reason.
     _port.write(reinterpret_cast<const uint8_t *>(line), length);
-    const uint8_t newline = '\n';
-    _port.write(newline);
     _port.flush();
 }
 

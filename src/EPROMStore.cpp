@@ -2,6 +2,7 @@
 
 #include "../Configuration.hpp"
 #include "Utility.hpp"
+#include "adapters/NullLogger.hpp"
 #include "EPROMStore.hpp"
 
 // The platform-independant EEPROM class
@@ -15,7 +16,12 @@ using namespace hal::eeprom;
 
 namespace
 {
+// Stands in until the composition root installs a real sink, so a missed wiring call
+// costs a diagnostic rather than a null dereference.
+adapters::NullLogger _nullLogger;
+
 ports::IPersistentStore *_store = nullptr;
+ports::ILogger *_logger         = &_nullLogger;
 }  // namespace
 
 void EEPROMStore::setStore(ports::IPersistentStore *store)
@@ -23,9 +29,14 @@ void EEPROMStore::setStore(ports::IPersistentStore *store)
     _store = store;
 }
 
+void EEPROMStore::setLogger(ports::ILogger *logger)
+{
+    _logger = logger;
+}
+
 void EEPROMStore::initialize()
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Startup with %d bytes", STORE_SIZE);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Startup with %d bytes", STORE_SIZE);
 
     displayContents();
 }
@@ -64,31 +75,31 @@ void EEPROMStore::displayContents()
 #if (DEBUG_LEVEL & (DEBUG_INFO | DEBUG_EEPROM))
     // Read the magic marker byte and state
     uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Magic Marker: %x", marker);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Magic Marker: 0x%04X", marker);
 
-    LOG(DEBUG_INFO, "[EEPROM]: Values? %s", ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? "Yes" : "No");
-    LOG(DEBUG_INFO, "[EEPROM]: Extended values? %s", ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? "Yes" : "No");
-    LOG(DEBUG_INFO, "[EEPROM]: IsPresent(EXTENDED)? %s", (EEPROMStore::isPresent(EXTENDED_FLAG) ? "Yes" : "No"));
-    LOG(DEBUG_INFO, "[EEPROM]: Stored HATime: %s", getHATime().ToString());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored UTC Offset: %d", getUtcOffset());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Brightness: %d", getBrightness());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored RA Steps per Degree: %f", getRAStepsPerDegree());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Steps per Degree: %f", getDECStepsPerDegree());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Speed Factor: %f", getSpeedFactor());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Backlash Correction Steps: %d", getBacklashCorrectionSteps());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Latitude: %s", getLatitude().ToString());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Longitude: %s", getLongitude().ToString());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Pitch Calibration Angle: %f", getPitchCalibrationAngle());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Roll Calibration Angle: %f", getRollCalibrationAngle());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored RA Homing Offset: %l", getRAHomingOffset());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored AZ Position: %l", getAZPosition());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored ALT Position: %l", getALTPosition());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored AZ Steps per Degree: %f", getAZStepsPerDegree());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored ALT Steps per Degree: %f", getALTStepsPerDegree());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Homing Offset : %l", getDECHomingOffset());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Lower Limit: %l", getDECLowerLimit());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored DEC Upper Limit: %l", getDECUpperLimit());
-    LOG(DEBUG_INFO, "[EEPROM]: Stored Last Flashed Version: %d", getLastFlashedVersion());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Values? %s", ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? "Yes" : "No");
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Extended values? %s", ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? "Yes" : "No");
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: IsPresent(EXTENDED)? %s", (EEPROMStore::isPresent(EXTENDED_FLAG) ? "Yes" : "No"));
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored HATime: %s", getHATime().ToString());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored UTC Offset: %d", getUtcOffset());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Brightness: %d", getBrightness());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored RA Steps per Degree: %f", getRAStepsPerDegree());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored DEC Steps per Degree: %f", getDECStepsPerDegree());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Speed Factor: %f", getSpeedFactor());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Backlash Correction Steps: %d", getBacklashCorrectionSteps());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Latitude: %s", getLatitude().ToString());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Longitude: %s", getLongitude().ToString());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Pitch Calibration Angle: %f", getPitchCalibrationAngle());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Roll Calibration Angle: %f", getRollCalibrationAngle());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored RA Homing Offset: %ld", getRAHomingOffset());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored AZ Position: %ld", getAZPosition());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored ALT Position: %ld", getALTPosition());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored AZ Steps per Degree: %f", getAZStepsPerDegree());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored ALT Steps per Degree: %f", getALTStepsPerDegree());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored DEC Homing Offset : %ld", getDECHomingOffset());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored DEC Lower Limit: %ld", getDECLowerLimit());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored DEC Upper Limit: %ld", getDECUpperLimit());
+    OAT_LOG(_logger, DEBUG_INFO, "[EEPROM]: Stored Last Flashed Version: %d", getLastFlashedVersion());
 #endif
 }
 
@@ -98,7 +109,7 @@ void EEPROMStore::displayContents()
 // Helper to update the given location with the given 8-bit value
 void EEPROMStore::updateUint8(EEPROMStore::ItemAddress location, uint8_t value)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Writing8 %x (%d) to %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Writing8 0x%04X (%d) to %d", value, value, location);
     update(location, value);
 }
 
@@ -107,14 +118,14 @@ uint8_t EEPROMStore::readUint8(EEPROMStore::ItemAddress location)
 {
     uint8_t value;
     value = read(location);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Read8 %x (%d) from %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Read8 0x%04X (%d) from %d", value, value, location);
     return value;
 }
 
 // Helper to update the given location with the given 8-bit value
 void EEPROMStore::updateInt8(EEPROMStore::ItemAddress location, int8_t value)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Writing8 %x (%d) to %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Writing8 0x%04X (%d) to %d", value, value, location);
     update(location, static_cast<uint8_t>(value));
 }
 
@@ -123,14 +134,14 @@ int8_t EEPROMStore::readInt8(EEPROMStore::ItemAddress location)
 {
     int8_t value;
     value = static_cast<int8_t>(read(location));
-    LOG(DEBUG_EEPROM, "[EEPROM]: Read8 %x (%d) from %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Read8 0x%04X (%d) from %d", value, value, location);
     return value;
 }
 
 // Helper to update the given location with the given 16-bit value
 void EEPROMStore::updateInt16(EEPROMStore::ItemAddress location, int16_t value)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Writing16 %x (%d) to %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Writing16 0x%04X (%d) to %d", value, value, location);
     update(location, value & 0x00FF);
     update(location + 1, (value >> 8) & 0x00FF);
 }
@@ -142,14 +153,14 @@ int16_t EEPROMStore::readInt16(EEPROMStore::ItemAddress location)
     uint8_t valHi   = read(location + 1);
     uint16_t uValue = (uint16_t) valLo + (uint16_t) valHi * 256;
     int16_t value   = static_cast<int16_t>(uValue);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Read16 %x (%d) from %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Read16 0x%04X (%d) from %d", value, value, location);
     return value;
 }
 
 // Helper to update the given location with the given 16-bit value
 void EEPROMStore::updateUint16(EEPROMStore::ItemAddress location, uint16_t value)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Writing16 %x (%d) to %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Writing16 0x%04X (%d) to %d", value, value, location);
     update(location, value & 0x00FF);
     update(location + 1, (value >> 8) & 0x00FF);
 }
@@ -160,14 +171,14 @@ uint16_t EEPROMStore::readUint16(EEPROMStore::ItemAddress location)
     uint8_t valLo  = read(location);
     uint8_t valHi  = read(location + 1);
     uint16_t value = (uint16_t) valLo + (uint16_t) valHi * 256;
-    LOG(DEBUG_EEPROM, "[EEPROM]: Read16 %x (%d) from %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Read16 0x%04X (%d) from %d", value, value, location);
     return value;
 }
 
 // Helper to update the given location with the given 32-bit value
 void EEPROMStore::updateInt32(EEPROMStore::ItemAddress location, int32_t value)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Writing32 %x (%l) to %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Writing32 0x%08lX (%ld) to %d", static_cast<unsigned long>(value), value, location);
     update(location, value & 0x00FF);
     update(location + 1, (value >> 8) & 0x00FF);
     update(location + 2, (value >> 16) & 0x00FF);
@@ -183,7 +194,7 @@ int32_t EEPROMStore::readInt32(EEPROMStore::ItemAddress location)
     uint8_t val4    = read(location + 3);
     uint32_t uValue = (uint32_t) val1 + (uint32_t) val2 * 256 + (uint32_t) val3 * 256 * 256 + (uint32_t) val4 * 256 * 256 * 256;
     int32_t value   = static_cast<int32_t>(uValue);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Read32 %x (%l) from %d", value, value, location);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Read32 0x%08lX (%ld) from %d", static_cast<unsigned long>(value), value, location);
     return value;
 }
 
@@ -197,7 +208,14 @@ bool EEPROMStore::isPresent(ItemFlag item)
     unsigned check  = (MAGIC_MARKER_MASK | item);
     unsigned result = (MAGIC_MARKER_VALUE | item);
     bool res        = ((marker & check) == result);
-    LOG(DEBUG_EEPROM, "[EEPROM]: IsDataPresent (%x). Checking (%x & %x) == %x => %d", item, marker, check, result, res);
+    OAT_LOG(_logger,
+            DEBUG_EEPROM,
+            "[EEPROM]: IsDataPresent (0x%04X). Checking (0x%04X & 0x%04X) == 0x%04X => %d",
+            item,
+            marker,
+            check,
+            result,
+            res);
 
     // Data is only present if both magic marker and item flag are present
     //return ((marker & (MAGIC_MARKER_MASK | item)) == (MAGIC_MARKER_VALUE | item));
@@ -217,7 +235,8 @@ bool EEPROMStore::isPresentExtended(ExtendedItemFlag item)
     uint16_t marker = readUint16(EXTENDED_FLAGS_ADDR);
 
     bool result = (marker & item);
-    LOG(DEBUG_EEPROM, "[EEPROM]: IsExtendedDataPresent (%x). Checking (%x & %x) => %d", item, marker, item, result);
+    OAT_LOG(
+        _logger, DEBUG_EEPROM, "[EEPROM]: IsExtendedDataPresent (0x%04X). Checking (0x%04X & 0x%04X) => %d", item, marker, item, result);
 
     return result;
 }
@@ -236,7 +255,7 @@ void EEPROMStore::updateFlags(ItemFlag item)
     updateUint16(MAGIC_MARKER_AND_FLAGS_ADDR, newMarkerAndFlags);
     // We will not commit until the actual item value has been written
 
-    LOG(DEBUG_EEPROM, "[EEPROM]: Marker & flags updated from %x to %x", existingMarkerAndFlags, newMarkerAndFlags);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Marker & flags updated from 0x%04X to 0x%04X", existingMarkerAndFlags, newMarkerAndFlags);
 }
 
 // Updates the core & extended flags for the specified extended item to indicate it is present.
@@ -252,7 +271,7 @@ void EEPROMStore::updateFlagsExtended(ExtendedItemFlag item)
     updateUint16(EXTENDED_FLAGS_ADDR, extendedFlags | item);
     // We will not commit until the actual item value has been written
 
-    LOG(DEBUG_EEPROM, "[EEPROM]: Extended flags updated from %x to %x", extendedFlags, extendedFlags | item);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Extended flags updated from 0x%04X to 0x%04X", extendedFlags, extendedFlags | item);
 }
 
 ///////////////////////////////////////
@@ -292,11 +311,11 @@ int EEPROMStore::getUtcOffset()
     if (isPresentExtended(UTC_OFFSET_MARKER_FLAG))
     {
         utcOffset = readInt8(UTC_OFFSET_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: UTC OFfset Marker OK! UTC Offset is %d", utcOffset);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: UTC OFfset Marker OK! UTC Offset is %d", utcOffset);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for UTC Offset");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for UTC Offset");
     }
 
     return utcOffset;
@@ -339,17 +358,17 @@ float EEPROMStore::getRAStepsPerDegree()
         // Latest version stores 100x steps/deg for 256 MS
         const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
         raStepsPerDegree   = readInt32(RA_NORM_STEPS_DEGREE_ADDR) / factor;
-        LOG(DEBUG_EEPROM, "[EEPROM]: RA Normed Marker Present! RA steps/deg is %f", raStepsPerDegree);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: RA Normed Marker Present! RA steps/deg is %f", raStepsPerDegree);
     }
     else if (isPresent(RA_STEPS_FLAG))
     {
         // Previous versions stored 10x steps/deg for the specific MS setting
         raStepsPerDegree = 0.1 * readInt16(RA_STEPS_DEGREE_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: RA Marker OK! RA steps/deg is %f", raStepsPerDegree);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: RA Marker OK! RA steps/deg is %f", raStepsPerDegree);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for RA steps");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for RA steps");
     }
 
     return raStepsPerDegree;  // microsteps per degree
@@ -361,7 +380,7 @@ void EEPROMStore::storeRAStepsPerDegree(float raStepsPerDegree)
     // Store steps as 100x steps/deg at 256 MS.
     const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
     int32_t val        = raStepsPerDegree * factor;
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing RA steps to %l (%f)", val, raStepsPerDegree);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing RA steps to %ld (%f)", val, raStepsPerDegree);
 
     updateInt32(RA_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(RA_NORM_STEPS_MARKER_FLAG);
@@ -379,17 +398,17 @@ float EEPROMStore::getDECStepsPerDegree()
         // This version stored 100x steps/deg for 256 MS
         const float factor = SteppingStorageNormalized / DEC_SLEW_MICROSTEPPING;
         decStepsPerDegree  = readInt32(DEC_NORM_STEPS_DEGREE_ADDR) / factor;
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC Normed Marker Present! DEC steps/deg is %f", decStepsPerDegree);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: DEC Normed Marker Present! DEC steps/deg is %f", decStepsPerDegree);
     }
     else if (isPresent(DEC_STEPS_FLAG))
     {
         // Previous versions stored 10x steps/deg for the specific MS setting
         decStepsPerDegree = 0.1 * readInt16(DEC_STEPS_DEGREE_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC Marker OK! DEC steps/deg is %f", decStepsPerDegree);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: DEC Marker OK! DEC steps/deg is %f", decStepsPerDegree);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for DEC steps");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for DEC steps");
     }
 
     return decStepsPerDegree;  // microsteps per degree
@@ -400,7 +419,7 @@ void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
 {
     const float factor = SteppingStorageNormalized / DEC_SLEW_MICROSTEPPING;
     int32_t val        = decStepsPerDegree * factor;
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing DEC steps to %l (%f)", val, decStepsPerDegree);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing DEC steps to %ld (%f)", val, decStepsPerDegree);
 
     updateInt32(DEC_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(DEC_NORM_STEPS_MARKER_FLAG);
@@ -423,14 +442,14 @@ float EEPROMStore::getAZStepsPerDegree()
         // Latest version stores 100x steps/deg for 256 MS
         const float factor = SteppingStorageNormalized / AZ_MICROSTEPPING;
         azStepsPerDegree   = readInt32(AZ_NORM_STEPS_DEGREE_ADDR) / factor;
-        LOG(DEBUG_EEPROM, "[EEPROM]: AZ Normed Marker Present! AZ steps/deg is %f", azStepsPerDegree);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: AZ Normed Marker Present! AZ steps/deg is %f", azStepsPerDegree);
 #else
-        LOG(DEBUG_EEPROM, "[EEPROM]: AZ marker present but AZ axis disabled; ignoring stored value");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: AZ marker present but AZ axis disabled; ignoring stored value");
 #endif
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for AZ steps");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for AZ steps");
     }
 
     return azStepsPerDegree;  // microsteps per degree
@@ -443,13 +462,13 @@ void EEPROMStore::storeAZStepsPerDegree(float azStepsPerDegree)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     const float factor = SteppingStorageNormalized / AZ_MICROSTEPPING;
     int32_t val        = azStepsPerDegree * factor;
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing AZ steps to %l (%f)", val, azStepsPerDegree);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing AZ steps to %ld (%f)", val, azStepsPerDegree);
 
     updateInt32(AZ_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(AZ_NORM_STEPS_MARKER_FLAG);
     commit();  // Complete the transaction
 #else
-    LOG(DEBUG_EEPROM, "[EEPROM]: Skipping AZ steps store; AZ axis disabled");
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Skipping AZ steps store; AZ axis disabled");
     (void) azStepsPerDegree;
 #endif
 }
@@ -470,14 +489,14 @@ float EEPROMStore::getALTStepsPerDegree()
         // Latest version stores 100x steps/deg for 256 MS
         const float factor = SteppingStorageNormalized / ALT_MICROSTEPPING;
         azStepsPerDegree   = readInt32(ALT_NORM_STEPS_DEGREE_ADDR) / factor;
-        LOG(DEBUG_EEPROM, "[EEPROM]: ALT Normed Marker Present! ALT steps/deg is %f", azStepsPerDegree);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: ALT Normed Marker Present! ALT steps/deg is %f", azStepsPerDegree);
 #else
-        LOG(DEBUG_EEPROM, "[EEPROM]: ALT marker present but ALT axis disabled; ignoring stored value");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: ALT marker present but ALT axis disabled; ignoring stored value");
 #endif
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for ALT steps");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for ALT steps");
     }
 
     return azStepsPerDegree;  // microsteps per degree
@@ -490,13 +509,13 @@ void EEPROMStore::storeALTStepsPerDegree(float azStepsPerDegree)
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     const float factor = SteppingStorageNormalized / ALT_MICROSTEPPING;
     int32_t val        = azStepsPerDegree * factor;
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing ALT steps to %l (%f)", val, azStepsPerDegree);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing ALT steps to %ld (%f)", val, azStepsPerDegree);
 
     updateInt32(ALT_NORM_STEPS_DEGREE_ADDR, val);
     updateFlagsExtended(ALT_NORM_STEPS_MARKER_FLAG);
     commit();  // Complete the transaction
 #else
-    LOG(DEBUG_EEPROM, "[EEPROM]: Skipping ALT steps store; ALT axis disabled");
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Skipping ALT steps store; ALT axis disabled");
     (void) azStepsPerDegree;
 #endif
 }
@@ -507,19 +526,19 @@ int16_t EEPROMStore::getLastFlashedVersion()
     {
         // This version stored 100x steps/deg for 256 MS
         int16_t version = readInt16(LAST_FLASHED_VERSION);
-        LOG(DEBUG_EEPROM, "[EEPROM]: Last Flashed version Marker Present! last version %d", version);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Last Flashed version Marker Present! last version %d", version);
         return version;
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Last Flashed Version");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for Last Flashed Version");
     }
     return 0;
 }
 
 void EEPROMStore::storeLastFlashedVersion(int16_t version)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Last flashed version (%d)", version);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing Last flashed version (%d)", version);
     updateInt16(LAST_FLASHED_VERSION, version);
     updateFlagsExtended(LAST_FLASHED_MARKER_FLAG);
     commit();  // Complete the transaction
@@ -536,11 +555,11 @@ float EEPROMStore::getSpeedFactor()
         // Speed factor bytes are in split locations :-(
         int val     = readUint8(SPEED_FACTOR_LOW_ADDR) + (int) readUint8(SPEED_FACTOR_HIGH_ADDR) * 256;
         speedFactor = 1.0 + val / 10000.0;
-        LOG(DEBUG_EEPROM, "[EEPROM]: Speed Marker OK! Speed adjust is %d, speedFactor is %f", val, speedFactor);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Speed Marker OK! Speed adjust is %d, speedFactor is %f", val, speedFactor);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for speed factor");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for speed factor");
     }
 
     return speedFactor;
@@ -552,7 +571,7 @@ void EEPROMStore::storeSpeedFactor(float speedFactor)
     // Store the fractional speed factor since it is a number very close to 1
     int32_t val = (speedFactor - 1.0f) * 10000.0f;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Speed Factor to %l (%f)", val, speedFactor);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing Speed Factor to %ld (%f)", val, speedFactor);
 
     // Speed factor bytes are in split locations :-(
     updateUint8(SPEED_FACTOR_LOW_ADDR, val & 0xFF);
@@ -571,11 +590,11 @@ int16_t EEPROMStore::getBacklashCorrectionSteps()
     if (isPresent(BACKLASH_STEPS_FLAG))
     {
         backlashCorrectionSteps = readInt16(BACKLASH_STEPS_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: Backlash Steps Marker OK! Backlash correction is %d", backlashCorrectionSteps);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Backlash Steps Marker OK! Backlash correction is %d", backlashCorrectionSteps);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for backlash correction");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for backlash correction");
     }
 
     return backlashCorrectionSteps;  // Microsteps (slew)
@@ -584,7 +603,7 @@ int16_t EEPROMStore::getBacklashCorrectionSteps()
 // Store the Backlash Correction step count (microsteps).
 void EEPROMStore::storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating Backlash to %d", backlashCorrectionSteps);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Write: Updating Backlash to %d", backlashCorrectionSteps);
 
     updateInt16(BACKLASH_STEPS_ADDR, backlashCorrectionSteps);
     updateFlags(BACKLASH_STEPS_FLAG);
@@ -600,11 +619,11 @@ Latitude EEPROMStore::getLatitude()
     if (isPresent(LATITUDE_FLAG))
     {
         latitude = Latitude(1.0f * readInt16(LATITUDE_ADDR) / 100.0f);
-        LOG(DEBUG_EEPROM, "[EEPROM]: Latitude Marker OK! Latitude is %s", latitude.ToString());
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Latitude Marker OK! Latitude is %s", latitude.ToString());
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for latitude");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for latitude");
     }
 
     return latitude;  // Object
@@ -615,7 +634,7 @@ void EEPROMStore::storeLatitude(Latitude const &latitude)
 {
     int32_t val = static_cast<int32_t>(roundf(latitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Latitude as %l (%f)", val, latitude.getTotalHours());
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing Latitude as %ld (%f)", val, latitude.getTotalHours());
 
     updateInt16(LATITUDE_ADDR, val);
     updateFlags(LATITUDE_FLAG);
@@ -631,11 +650,11 @@ Longitude EEPROMStore::getLongitude()
     if (isPresent(LONGITUDE_FLAG))
     {
         longitude = Longitude(1.0f * readInt16(LONGITUDE_ADDR) / 100.0f);
-        LOG(DEBUG_EEPROM, "[EEPROM]: Longitude Marker OK! Longitude is %s", longitude.ToString());
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Longitude Marker OK! Longitude is %s", longitude.ToString());
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for longitude");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for longitude");
     }
 
     return longitude;  // Object
@@ -646,7 +665,7 @@ void EEPROMStore::storeLongitude(Longitude const &longitude)
 {
     int32_t val = static_cast<int32_t>(roundf(longitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Longitude as %l (%f)", val, longitude.getTotalHours());
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing Longitude as %ld (%f)", val, longitude.getTotalHours());
 
     updateInt16(LONGITUDE_ADDR, val);
     updateFlags(LONGITUDE_FLAG);
@@ -663,11 +682,11 @@ float EEPROMStore::getPitchCalibrationAngle()
     {
         int32_t val           = readUint16(PITCH_OFFSET_ADDR);
         pitchCalibrationAngle = (val - 16384) / 100.0;
-        LOG(DEBUG_EEPROM, "[EEPROM]: Pitch Offset Marker OK! Pitch Offset is %l (%f)", val, pitchCalibrationAngle);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Pitch Offset Marker OK! Pitch Offset is %ld (%f)", val, pitchCalibrationAngle);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Pitch Offset");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for Pitch Offset");
     }
 
     return pitchCalibrationAngle;  // degrees
@@ -678,7 +697,7 @@ void EEPROMStore::storePitchCalibrationAngle(float pitchCalibrationAngle)
 {
     int32_t val = (pitchCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Pitch calibration %l (%f)", val, pitchCalibrationAngle);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing Pitch calibration %ld (%f)", val, pitchCalibrationAngle);
 
     updateInt16(PITCH_OFFSET_ADDR, val);
     updateFlags(PITCH_OFFSET_FLAG);
@@ -695,11 +714,11 @@ float EEPROMStore::getRollCalibrationAngle()
     {
         int32_t val          = readUint16(ROLL_OFFSET_ADDR);
         rollCalibrationAngle = (val - 16384) / 100.0;
-        LOG(DEBUG_EEPROM, "[EEPROM]: Roll Offset Marker OK! Roll Offset is %l (%f)", val, rollCalibrationAngle);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Roll Offset Marker OK! Roll Offset is %ld (%f)", val, rollCalibrationAngle);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored value for Roll Offset");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored value for Roll Offset");
     }
 
     return rollCalibrationAngle;  // degrees
@@ -710,7 +729,7 @@ void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
 {
     int32_t val = (rollCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    LOG(DEBUG_EEPROM, "[EEPROM]: Storing Roll calibration %l (%f)", val, rollCalibrationAngle);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Storing Roll calibration %ld (%f)", val, rollCalibrationAngle);
 
     updateInt16(ROLL_OFFSET_ADDR, val);
     updateFlags(ROLL_OFFSET_FLAG);
@@ -727,11 +746,11 @@ float EEPROMStore::getDECLowerLimit()
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
         decLowerLimit = readInt32(DEC_LOWER_LIMIT_ADDR) / 100.0f;
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC lower limit read as %f", decLowerLimit);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: DEC lower limit read as %f", decLowerLimit);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
     }
 
     return decLowerLimit;  // limit angle (deg)
@@ -740,7 +759,7 @@ float EEPROMStore::getDECLowerLimit()
 // Store the configured DEC Lower Limit Pos (slew microsteps relative to home).
 void EEPROMStore::storeDECLowerLimit(float decLowerLimit)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Lower Limit to %l", decLowerLimit);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Lower Limit to %ld", decLowerLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     updateInt32(DEC_LOWER_LIMIT_ADDR, static_cast<int32_t>(roundf(decLowerLimit * 100.0f)));
@@ -758,11 +777,11 @@ float EEPROMStore::getDECUpperLimit()
     if (isPresentExtended(DEC_LIMIT_MARKER_FLAG))
     {
         decUpperLimit = readInt32(DEC_UPPER_LIMIT_ADDR) / 100.0f;
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC upper limit read as %f", decUpperLimit);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: DEC upper limit read as %f", decUpperLimit);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored values for DEC limits");
     }
 
     return decUpperLimit;  // limit angle (deg)
@@ -771,7 +790,7 @@ float EEPROMStore::getDECUpperLimit()
 // Store the configured DEC Upper Limit Pos (slew microsteps relative to home).
 void EEPROMStore::storeDECUpperLimit(float decUpperLimit)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Upper Limit to %l", decUpperLimit);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Upper Limit to %ld", decUpperLimit);
 
     // Note that flags doesn't verify that _both_ DEC limits have been written - these should always be stored as a pair
     updateInt32(DEC_UPPER_LIMIT_ADDR, static_cast<int32_t>(roundf(decUpperLimit * 100.0f)));
@@ -787,11 +806,11 @@ int32_t EEPROMStore::getRAHomingOffset()
     if (isPresentExtended(RA_HOMING_MARKER_FLAG))
     {
         raHomingOffset = readInt32(RA_HOMING_OFFSET_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: RA Homing offset read as %l", raHomingOffset);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: RA Homing offset read as %ld", raHomingOffset);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for RA Homing offset");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored values for RA Homing offset");
     }
 
     return raHomingOffset;  // microsteps (slew)
@@ -805,11 +824,11 @@ int32_t EEPROMStore::getDECHomingOffset()
     if (isPresentExtended(DEC_HOMING_MARKER_FLAG))
     {
         decHomingOffset = readInt32(DEC_HOMING_OFFSET_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: DEC Homing offset read as %l", decHomingOffset);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: DEC Homing offset read as %ld", decHomingOffset);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for DEC Homing offset");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored values for DEC Homing offset");
     }
 
     return decHomingOffset;  // microsteps (slew)
@@ -818,7 +837,7 @@ int32_t EEPROMStore::getDECHomingOffset()
 // Store the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
 void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating RA Homing offset to %l", raHomingOffset);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Write: Updating RA Homing offset to %ld", raHomingOffset);
 
     updateInt32(RA_HOMING_OFFSET_ADDR, raHomingOffset);
     updateFlagsExtended(RA_HOMING_MARKER_FLAG);
@@ -828,7 +847,7 @@ void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
 // Store the configured DEC Homing offset for Hall sensor homing (slew microsteps relative to home).
 void EEPROMStore::storeDECHomingOffset(int32_t decHomingOffset)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Homing offset to %l", decHomingOffset);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Homing offset to %ld", decHomingOffset);
 
     updateInt32(DEC_HOMING_OFFSET_ADDR, decHomingOffset);
     updateFlagsExtended(DEC_HOMING_MARKER_FLAG);
@@ -843,11 +862,11 @@ int32_t EEPROMStore::getAZPosition()
     if (isPresentExtended(AZ_POSITION_MARKER_FLAG))
     {
         azPosition = readInt32(AZ_POSITION_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: AZ position read as %l", azPosition);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: AZ position read as %ld", azPosition);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for AZ position");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored values for AZ position");
     }
 
     return azPosition;  // microsteps (slew)
@@ -856,7 +875,7 @@ int32_t EEPROMStore::getAZPosition()
 // Store the current AZ position (in steps)
 void EEPROMStore::storeAZPosition(int32_t azPosition)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating AZ Position to %l", azPosition);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Write: Updating AZ Position to %ld", azPosition);
 
     updateInt32(AZ_POSITION_ADDR, azPosition);
     updateFlagsExtended(AZ_POSITION_MARKER_FLAG);
@@ -871,11 +890,11 @@ int32_t EEPROMStore::getALTPosition()
     if (isPresentExtended(ALT_POSITION_MARKER_FLAG))
     {
         altPosition = readInt32(ALT_POSITION_ADDR);
-        LOG(DEBUG_EEPROM, "[EEPROM]: ALT position read as %l", altPosition);
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: ALT position read as %ld", altPosition);
     }
     else
     {
-        LOG(DEBUG_EEPROM, "[EEPROM]: No stored values for ALT position");
+        OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: No stored values for ALT position");
     }
 
     return altPosition;  // microsteps (slew)
@@ -884,7 +903,7 @@ int32_t EEPROMStore::getALTPosition()
 // Store the current ALT position in steps
 void EEPROMStore::storeALTPosition(int32_t altPosition)
 {
-    LOG(DEBUG_EEPROM, "[EEPROM]: Write: Updating ALT Position to %l", altPosition);
+    OAT_LOG(_logger, DEBUG_EEPROM, "[EEPROM]: Write: Updating ALT Position to %ld", altPosition);
 
     updateInt32(ALT_POSITION_ADDR, altPosition);
     updateFlagsExtended(ALT_POSITION_MARKER_FLAG);

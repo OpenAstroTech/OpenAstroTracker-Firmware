@@ -8,7 +8,9 @@ Thin glue binding domain [`../ports/`](../ports/) to [`../hal/`](../hal/) backen
 | `ArduinoClock` | `IClock` | `hal::ISystemClock` |
 | `ArduinoScheduler` | `IScheduler` | the Arduino `yield()` |
 | `SerialLogger` | `ILogger` | `hal::ISerialPort` + `hal::ISystemClock` |
+| `NullLogger` | `ILogger` | nothing — the null object for `DEBUG_NONE` builds |
 | `EepromPersistentStore` | `IPersistentStore` | `hal::IEeprom` |
+| `MountSettingsStore` | `IMountSettings` | the legacy `EEPROMStore` facade |
 | `StepperAxis` | `IStepperAxis` | `hal::IStepperMotor` |
 | `Tmc2209Driver` | `IMotorDriver` | `TMC2209Stepper` (UART or software serial) |
 | `NullMotorDriver` | `IMotorDriver` | nothing — the null object for non-UART drivers |
@@ -19,6 +21,11 @@ a hardware library, so the `native` env excludes them from its `build_src_filter
 they are compile-verified by the board builds instead. Everything else is host-tested
 in `unit_tests/test_adapters/` against the fakes in
 [`../../unit_tests/test_common/hal_fakes/`](../../unit_tests/test_common/hal_fakes/).
+
+`MountSettingsStore` is the exception: it is header-only and forwards every method to
+the legacy `EEPROMStore` facade, which still owns the on-device encoding. That makes it
+the only adapter that names a `src/` root class, and it has nothing of its own to test.
+It disappears when the remaining `EEPROMStore` consumers move in Phase 5.
 
 Still missing on purpose:
 

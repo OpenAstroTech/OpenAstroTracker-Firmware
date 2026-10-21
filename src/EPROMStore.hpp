@@ -4,6 +4,7 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "hal/EepromLayout.hpp"
+#include "ports/ILogger.hpp"
 #include "ports/IPersistentStore.hpp"
 
 // Platform independant abstraction of the EEPROM storage capability of the boards.
@@ -17,6 +18,11 @@ class EEPROMStore
     /// the instance for the lifetime of the program and must call this before
     /// `initialize()`.
     static void setStore(ports::IPersistentStore *store);
+
+    /// Installs the log sink used for the store's diagnostics. Optional: without one
+    /// every `OAT_LOG()` in this class is a no-op at run time. Call before
+    /// `initialize()` so the startup dump is not lost.
+    static void setLogger(ports::ILogger *logger);
 
     static void initialize();
     static void clearConfiguration();

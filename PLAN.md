@@ -248,7 +248,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 
 **Verify:** `./scripts/test-coverage.sh` — all new tests pass (366 test cases); every board env builds green via the CI matrix (`python matrix_build.py -b <board>`; a bare `pio run -e <board>` needs an untracked `Configuration_local_*.hpp`); coverage shows ≥ 85% line coverage on new `core/` files (**met** — every Phase 1 module is ~100% except `core/meade/` at 87.0%); manual: mount slews to known coordinates on real hardware.
 
-### Phase 2 — Introduce HAL, Ports & Adapters
+### Phase 2 — Introduce HAL, Ports & Adapters ✅ COMPLETE
 *Define the HAL surface, define the domain ports, and start routing current call sites through them. Keep current behavior bit-for-bit. Split into three independently shippable sub-phases: **2a** contracts (no production change), **2b** adapters + `Mount` injection, **2c** call-site cleanup.*
 
 **Prerequisites:** none blocking. ArduinoFake/FakeIt is **not** required (ports are pure interfaces; Phase 2a supplies hand-written fakes). The build-config work that makes 2a shippable — `test_adapters` in `test_filter`, per-board HAL source filters, the AVR C++-standard spike and the ETL dependency — is folded into 2a step 4.
@@ -319,19 +319,41 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 
 **Verified:** `pio test -e native` → 399/399 (22 new adapter tests). `ramps`, `mksgenlv21`, `esp32`, `oaeboardv1`, `rp2040_skr_pico` build green; `mksgenlv1` was verified in 2a with a temporary local config and shares the AVR-only code paths with `mksgenlv21`. **Not verified:** the on-hardware smoke test (slew/park/guide/home) — the stepper objects, driver calls and EEPROM path are the same ones as before, but that needs a mount.
 
-#### 2c — Call-site cleanup
+#### 2c — Call-site cleanup ✅ COMPLETE
 
-8. Replace `millis()`, `digitalWrite()` and `EEPROMStore::` calls inside `Mount` with port calls. For `LOG()`: **the AVR RAM budget forbids a naive `_logger->log(level, "literal", ...)`** — the 273 format literals (13.9 KB) would move from PROGMEM into `.data` on an 8 KB-SRAM ATmega2560. Settle the `ILogger` contract first: it must preserve PROGMEM on AVR (opaque format type, adapter-side `F()` expansion, or a string table). Only then migrate the 274 call sites.
-9. **ISR contract for `IStepperAxis`:** this phase MUST settle the threading model. There are three:
+*Status: `Mount` reaches time, diagnostics, enable pins and persisted settings only through ports; `EPROMStore` logs through the same `ILogger`. `pio test -e native` runs 399 cases green, and `ramps`, `mksgenlv21`, `mksgenlv2`, `mksgenlv1` (temporary local config), `esp32`, `oaeboardv1`, `rp2040_skr_pico` and `rp2040_jackw01` (temporary local config) build green.*
+
+8. ✅ Replace `millis()`, `digitalWrite()` and `EEPROMStore::` calls inside `Mount` with port calls. For `LOG()`: **the AVR RAM budget forbids a naive `_logger->log(level, "literal", ...)`** — the 273 format literals (13.9 KB) would move from PROGMEM into `.data` on an 8 KB-SRAM ATmega2560. Settle the `ILogger` contract first: it must preserve PROGMEM on AVR (opaque format type, adapter-side `F()` expansion, or a string table). Only then migrate the 274 call sites.
+   - **The call-site shape is `OAT_LOG(logger, level, format, …)`**, added next to `LOG()` in [`src/Utility.hpp`](src/Utility.hpp). It expands to `(logger)->log((level), OAT_LOG_FORMAT(format), …)`, so the literal stays in flash through `PSTR()` on AVR, and it expands to nothing when `DEBUG_LEVEL == DEBUG_NONE` — the same compile-time elimination `LOG()` had, which matters because `DEBUG_LEVEL` defaults to `DEBUG_NONE` and shipping builds must not pay for 359 dead call sites. `SerialLogger` then applies the level mask at run time, exactly as `logv()` did.
+   - 261 live sites in [`src/Mount.cpp`](src/Mount.cpp) migrated (274 `LOG(` matches; the other 13 are commented out and left alone). [`src/EPROMStore.cpp`](src/EPROMStore.cpp) migrated its 98 sites the same way, through a new `EEPROMStore::setLogger()`; it defaults to `adapters::NullLogger` so a missed wiring call costs a diagnostic, not a null dereference.
+   - The format strings needed a real audit, because `logv()`'s hand-written `formatArg()` accepted things `printf` does not: `%l` meant "long" (82 in `Mount.cpp`, 29 in `EPROMStore.cpp`) and became `%ld`; `%x` printed `0x` plus four hex digits and became `0x%04X` (the two 32-bit sites became `0x%08lX` with an `unsigned long` cast); `%lms` / `%l steps` (four sites, where the `m` was a literal) became `%ldms` / `%ld steps`. Behaviour deltas in log text only: `%f` now prints printf's six decimals instead of `String(value, 4)`'s four, and `%02d` now pads instead of emitting `02d` and losing the argument.
+   - `millis()` → `_deps.clock->now()` (19 sites; the 20th match is a comment). `EEPROMStore::` → `_deps.settings->` (47 sites). `digitalWrite(…_EN_PIN, …)` → `_deps.<axis>EnablePin->write(hal::PinLevel::…)` (19 sites).
+   - **New `ports::IMountSettings` + `adapters::MountSettingsStore`.** The typed accessors and the on-device encoding stay in `EEPROMStore` — it is the single writer of that format and the menu screens, the Meade adapter and the composition root still read it — and the adapter is a header-only forwarder, so there is no duplicated encoding. This is the one adapter that names a legacy `src/` root class; revisit in Phase 5, when the remaining EEPROM consumers move.
+   - **`MountDeps`** (in [`src/Mount.hpp`](src/Mount.hpp)) replaces the two constructor pointers with one aggregate: clock, scheduler, logger, settings, plus the driver enable pins this board compiles in. Placing the pins in `MountDeps` under their own `#if`s is what keeps the AVR cost at a pointer per compiled-in axis; the RA/DEC entries exist only when `UART_CONNECTION_TEST_TXRX == 1`, because that is the only code that drives them.
+   - **AVR float printf.** `avr-libc` leaves `%f` out of `vfprintf` unless the float-aware variant is linked, so every migrated `%f` (121 in `Mount.cpp`, 27 in `EPROMStore.cpp`) would have printed `?`. A new `[avr_float_printf]` section in [`platformio.ini`](platformio.ini) adds `-Wl,-u,vfprintf -lprintf_flt -lm` to the four AVR envs (the mksgen envs override `build_flags`, so they name it explicitly). Measured cost: **+792 B of flash on `ramps`**.
+   - `adapters::NullLogger` is also installed by the composition root when `DEBUG_LEVEL == DEBUG_NONE`, in place of `SerialLogger`: a sink that can never be called would otherwise cost a vtable, its object and a serial-port wrapper out of the 8 KB. Measured saving on `ramps`: 48 B RAM and 886 B flash.
+   - **Two RP2040 details the migration would otherwise have changed.** The legacy `logv()` printed a whole line in one call and skipped `flush()` on `ARDUINO_ARCH_RP2040`, because the arduino-pico USB CDC path can wedge when small writes race the TinyUSB FIFO, and `flush()` can stall when no host is attached. `SerialLogger` now appends the newline to its line buffer and issues a single `write()`, and `hal::ArduinoSerialPort::flush()` carries the RP2040 no-op, so that policy lives in the HAL backend instead of in the log call site.
+9. ✅ **ISR contract for `IStepperAxis`:** this phase MUST settle the threading model. There are three:
    - **AVR + `NEW_STEPPER_LIB`** (ramps, oae): `Mount::interruptLoop()` is **compiled out** ([`src/Mount.cpp`](src/Mount.cpp)); the vendored `InterruptStepper` ISR steps autonomously and `run()`/`runSpeed()` are stubs. `IStepperAxis` mutation is main-loop-only; reads must go through `Snapshot()`.
    - **ESP32**: `stepperControlTask` on core 0 calls `interruptLoop()` in a tight loop ([`src/b_setup.hpp`](src/b_setup.hpp)).
    - **RP2040 / AVR without `NEW_STEPPER_LIB`**: `InterruptCallback` invokes `interruptLoop()` from a hardware timer ISR (2 kHz AVR, 5 kHz RP2040).
    The contract must also cover `_mountStatus` (a `volatile int`, non-atomic on AVR) and must define timer arbitration: timers are shared, not per-axis (Timer3 = RA slew + track, Timer4 = DEC slew + guide, Timer1 = AZ, Timer5 = ALT *and* Focus). This contract is a prerequisite for Phase 3's `SlewController`.
-10. The feature `#if`s inside `interruptLoop()` stay as-is until Phase 4.
+   - 2a already wrote the axis half of the contract into [`src/ports/IStepperAxis.hpp`](src/ports/IStepperAxis.hpp): `snapshot()` is the only ISR-callable method, every mutation is main-loop-only, and timer ownership is granted by the coordinator rather than assumed. 2c added the `_mountStatus` half at its declaration in [`src/Mount.hpp`](src/Mount.hpp): reads are safe from any context (an aligned 16-bit load on AVR, 32-bit on ESP32/RP2040, so no tearing), read-modify-write is main-loop-only because it is not atomic on AVR, and the step generator reads the status without writing it.
+   - **The one exception is recorded rather than fixed:** `interruptLoop()` calls `HallSensorHoming::processHomingProgress()`, which calls `stopSlewing()` / `moveStepperBy()` and therefore does mutate status and axis targets from the step-generator context. Phase 3's `HomingController` moves that decision back to the main loop and leaves the generator a request bit; until then the contract documents the exception so `SlewController` is not designed against a promise the firmware does not keep.
+10. ✅ The feature `#if`s inside `interruptLoop()` stay as-is until Phase 4 — untouched.
 
 **Verify (2c):** all Phase 1 tests green; new adapter tests green; every board env builds; **record flash and SRAM before/after on `ramps`** (the AVR budget is the binding constraint for the `ILogger` change); the manual smoke checklist from "Verification strategy" passes (slew, park, guide, home).
 
-**Doc sync:** [`ARCHITECTURE.md`](ARCHITECTURE.md) already lists `hal/rp2040/` (§3/§4) and the hall/end-switch/display adapters as Phase 3. What is still missing there: `IGyro` in the §3 HAL interface list, the port catalog entries added in 2a, and any 2b/2c decisions that change it.
+**Verified:** `pio test -e native` → **399/399**. Measured on `ramps` (`size` from `pio run`):
+
+| `ramps` build | RAM before → after | Flash before → after |
+|---|---|---|
+| `DEBUG_NONE` (default, the shipping shape) | 7610 → **7749** B (92.9% → 94.6%) | 175158 → **182246** B (67.1% → 69.8%) |
+| `DEBUG_ANY` (worst case: LCD keypad + AZ/ALT/Focus + TMC UART) | 7966 → **8169** B (97.2% → 99.7%) | 245732 → **254472** B (94.1% → 97.5%) |
+
+The AVR growth is the settings port's vtable (86 B — 39 virtuals × 2 B), the logger objects and the `MountDeps` members; the flash growth is the hand-written `formatArg()` being replaced by `vsnprintf_P` plus the 792 B of float support. **The `DEBUG_ANY` configuration is now 23 B from the RAM ceiling**, so the next AVR addition of any size needs a measurement of that configuration, not of the default one. Other boards: `esp32` 46008 → 46032 B RAM / 844981 → 847721 B flash; `oaeboardv1` 22444 → 22820 / 370921 → 386077; `rp2040_skr_pico` 11316 → 11364 / 128700 → 130724. `mksgenlv1`/`mksgenlv2`/`rp2040_jackw01` need a local config that is not tracked, so they were verified with temporary ones. **Not verified:** the on-hardware smoke test (slew/park/guide/home) — same objects and same calls as before, but it needs a mount.
+
+**Doc sync:** ✅ [`ARCHITECTURE.md`](ARCHITECTURE.md) gained `IMountSettings` (§3 ports and §4 layout), `MountSettingsStore`/`NullLogger` (§3 adapters, §4 layout), the `[avr_float_printf]` rule in the §5 table, and a "what the composition root wires today" subsection (§6). `IGyro` was already in the §3 port list. [`src/ports/README.md`](src/ports/README.md) and [`src/adapters/README.md`](src/adapters/README.md) list the new port and adapters.
 
 ### Phase 3 — Decompose `Mount` into controllers
 *Strangler-fig: move responsibilities out of `Mount` into `core/` controllers, one at a time. Mount becomes a facade.*
@@ -430,6 +452,12 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 - [`src/a_inits.hpp`](src/a_inits.hpp), [`src/b_setup.hpp`](src/b_setup.hpp), [`src/f_serial.hpp`](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
 - Deferred to Phase 3 (they still call `Mount` directly): [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp). Deferred to Phase 5: [`src/WifiControl.cpp`](src/WifiControl.cpp).
 
+### New files created in Phase 2
+- `src/hal/`: the 13 interfaces + `EepromLayout.hpp`, `InMemoryEeprom.hpp`, `WarningGuard.hpp`, and the `arduino/`, `esp32/`, `rp2040/` backends
+- `src/ports/`: the 13 ports, `LogFormat.hpp`, and `IMountSettings.hpp` (2c)
+- `src/adapters/`: `ArduinoClock`, `ArduinoScheduler`, `SerialLogger`, `NullLogger` (2c), `EepromPersistentStore`, `MountSettingsStore` (2c), `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `TinyGpsAdapter`
+- `unit_tests/test_common/hal_fakes/` and `unit_tests/test_adapters/`
+
 ### Phase 5 targets
 - [`src/MeadeCommandProcessor.cpp`](src/MeadeCommandProcessor.cpp), [`src/MeadeCommandProcessor.hpp`](src/MeadeCommandProcessor.hpp) — adapter already bridges parser to `Mount`; move to `src/adapters/` and wire through ports.
 - [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandProcessor::instance()->processCommand()`; becomes `SerialTransport` adapter.
@@ -446,7 +474,7 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 ## Verification strategy
 
 Automated:
-1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (366 test cases). `test_filter` = `test_core` + `test_hal` (covers `test_core/meade/` and `test_core/types/`).
+1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (399 test cases). `test_filter` = `test_core` + `test_hal` + `test_adapters` (covers `test_core/meade/` and `test_core/types/`).
 2. Every board env in `platformio.ini` (CI matrix: 7 boards) builds green every phase via `matrix_build.py`, which supplies the generated configuration. A bare `pio run -e <board>` additionally needs the developer's untracked `Configuration_local_*.hpp`.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
 4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 4).

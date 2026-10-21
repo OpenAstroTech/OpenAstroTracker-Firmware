@@ -40,7 +40,14 @@ size_t ArduinoSerialPort::write(const uint8_t *data, size_t length)
 
 void ArduinoSerialPort::flush()
 {
+#if defined(ARDUINO_ARCH_RP2040)
+    // The RP2040 port is USB CDC, where flush() can stall when no host is reading.
+    // The log path deliberately skipped it there before this backend existed.
+#else
+    // UART output drains from a ring buffer; flushing makes sure the tail of a log
+    // survives a crash immediately after it (matters when debugging on AVR).
     _stream.flush();
+#endif
 }
 
 }  // namespace hal

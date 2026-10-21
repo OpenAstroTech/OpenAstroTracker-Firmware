@@ -87,8 +87,8 @@ objects constructed in the composition root, never as different code paths in th
 | Layer | Directory | May depend on | Contains | Test strategy |
 |-------|-----------|---------------|----------|---------------|
 | **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `MountCoordinator`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
-| **Ports** | `src/ports/` | nothing | `IClock`, `IScheduler`, `ILogger` (+ `LogFormat`), `IPersistentStore`, `IStepperAxis` (+ `AxisSnapshot`), `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay` (+ `InfoDisplayState`), `ITransport`, `IGps`, `IGyro` | Interfaces only — nothing to test. |
-| **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `EepromPersistentStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
+| **Ports** | `src/ports/` | the pure value types in `core/types/`, nothing else | `IClock`, `IScheduler`, `ILogger` (+ `LogFormat`), `IPersistentStore`, `IMountSettings`, `IStepperAxis` (+ `AxisSnapshot`), `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay` (+ `InfoDisplayState`), `ITransport`, `IGps`, `IGyro` | Interfaces only — nothing to test. |
+| **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `NullLogger`, `EepromPersistentStore`, `MountSettingsStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
 | **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor` (motion engine), `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`), `InMemoryEeprom`, plus per-platform backends (`arduino/`, `esp32/`, `rp2040/`). AVR has no stepper backend: it keeps the concrete timer-ISR engines, because a vtable per engine costs ~50 B of the 8 KB SRAM | Not host-tested; verified on hardware. |
 | **App** | `src/app/` | all layers | Composition root: reads `Configuration*.hpp` into `MountConfig`, selects HAL backends, constructs adapters and controllers, owns the entry point | On-device smoke tests. |
 
@@ -116,6 +116,12 @@ graph TD
 Adapters are the only layer that touches both a port and a HAL interface; that is their entire
 responsibility. `core/` never sees a HAL type, and `hal/` never sees a domain concept such as RA
 or DEC.
+
+`ports/` is otherwise dependency-free, with one deliberate exception: a port may name a value type
+from `core/types/` when that type *is* the vocabulary (`IMountSettings` returns a `core::DayTime`, a
+`core::Latitude`, a `core::Longitude`). Those headers are pure data with no behaviour that could call
+back into the domain, so the arrow `core/ → ports/` is not cycled at the file level. A port must not
+include a `core/` header that has behaviour.
 
 ---
 
@@ -156,7 +162,9 @@ OpenAstroTracker-Firmware/
 │   │   ├── ArduinoClock.hpp/.cpp        # IClock            <- ISystemClock          (done)
 │   │   ├── ArduinoScheduler.hpp/.cpp    # IScheduler        <- Arduino yield()       (done)
 │   │   ├── SerialLogger.hpp/.cpp        # ILogger           <- ISerialPort + clock   (done)
+│   │   ├── NullLogger.hpp               # ILogger           null object for DEBUG_NONE builds (done)
 │   │   ├── EepromPersistentStore.*      # IPersistentStore  <- IEeprom               (done)
+│   │   ├── MountSettingsStore.hpp       # IMountSettings    -> EEPROMStore facade    (done)
 │   │   ├── StepperAxis.hpp/.cpp         # IStepperAxis      <- IStepperMotor         (done)
 │   │   ├── Tmc2209Driver.hpp/.cpp       # IMotorDriver      <- TMCStepper            (done)
 │   │   ├── NullMotorDriver.hpp          # IMotorDriver      null object for non-TMC builds (done)
@@ -175,6 +183,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── ILogger.hpp
 │   │   ├── LogFormat.hpp                # opaque, PROGMEM-safe log format handle
 │   │   ├── IPersistentStore.hpp
+│   │   ├── IMountSettings.hpp           # typed view of the persisted settings
 │   │   ├── IStepperAxis.hpp             # + AxisSnapshot, threading contract
 │   │   ├── IMotorDriver.hpp
 │   │   ├── IHomingSensor.hpp
@@ -298,6 +307,7 @@ OpenAstroTracker-Firmware/
 | Configuration macros are read only in `app/` | CI grep check |
 | Optional axes use `etl::optional` or a null object, never `#ifdef` branches | Code review |
 | ISR-safe methods are named and documented on `IStepperAxis` | Interface contract |
+| AVR builds link `-lprintf_flt` (`[avr_float_printf]` in `platformio.ini`) so `ILogger` still prints `%f` | Build config |
 | Board-specific code (interrupt registers, pin mappings) lives only in `hal/<platform>/` | Code review |
 | `Mount`, where retained for Meade back-compat, is a facade only and holds no domain logic | Code review |
 | Command handlers never block (`waitUntil*`, `Mount::delay()`, `while (millis() < …)`) | CI grep check |
@@ -417,6 +427,22 @@ the protocol's failure reply, so a host never hangs, and `:Q#` aborts an outstan
 Handlers never block — no `waitUntilStopped`, no `waitUntilAllStopped`, no `Mount::delay()`, no
 `while (millis() < …)`. Blocking does not stop stepping (the ISR or the ESP32 task owns that), but it
 starves the AVR serial ring buffer, freezes the display and skips coordinator ticks.
+
+### What the composition root wires today
+
+`src/b_setup.hpp` is the composition root until `src/app/` exists. It owns the single instances and
+hands `Mount` one `MountDeps` value: the clock, the scheduler, the logger, the typed settings store,
+and the driver enable pins this board compiles in. Nothing below it constructs a backend or reads a
+`Configuration*.hpp` macro.
+
+- A board without AZ/ALT/Focus gets no `MountDeps` entry for that axis, so no RAM goes to a pointer
+  nothing reads; each enable pin costs a pointer plus a two-byte `ArduinoGpioPin`.
+- With `DEBUG_LEVEL == DEBUG_NONE` the root installs `adapters::NullLogger` instead of
+  `SerialLogger`: `OAT_LOG()` compiles out, so a serial sink would be a vtable and a few bytes of
+  the ATmega2560's 8 KB spent on calls that can never happen.
+- `EEPROMStore` keeps its static facade for the menu screens and the Meade adapter. It is handed the
+  same `IPersistentStore` and `ILogger` here (`setStore`, `setLogger`), and `Mount` reaches the typed
+  settings through `ports::IMountSettings` instead of naming the facade.
 
 ---
 

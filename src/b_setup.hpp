@@ -31,9 +31,14 @@ POP_NO_WARNINGS
 #include "adapters/ArduinoClock.hpp"
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/EepromPersistentStore.hpp"
+#include "adapters/MountSettingsStore.hpp"
+#include "adapters/NullLogger.hpp"
+#include "adapters/SerialLogger.hpp"
 #include "hal/InMemoryEeprom.hpp"
 #include "hal/WarningGuard.hpp"
 #include "hal/arduino/ArduinoEeprom.hpp"
+#include "hal/arduino/ArduinoGpioPin.hpp"
+#include "hal/arduino/ArduinoSerialPort.hpp"
 #include "hal/arduino/ArduinoSystemClock.hpp"
 
 PUSH_NO_WARNINGS
@@ -61,6 +66,22 @@ hal::ArduinoSystemClock arduinoSystemClock;
 adapters::ArduinoClock clockPort(arduinoSystemClock);
 adapters::ArduinoScheduler schedulerPort;
 
+// Diagnostics. `DEBUG_LEVEL` is the same mask the legacy `LOG()` macro was compiled
+// against, so a build that logged nothing still emits nothing here. With logging
+// compiled out the serial sink would be dead weight, so that build gets the null
+// object instead: the same pointer type, no vtable of its own, nothing to call.
+#if DEBUG_LEVEL != 0
+hal::ArduinoSerialPort debugSerialPort(DEBUG_SERIAL_PORT);
+adapters::SerialLogger loggerPort(debugSerialPort, arduinoSystemClock, DEBUG_LEVEL);
+ports::ILogger *const logSink = &loggerPort;
+#else
+adapters::NullLogger loggerPort;
+ports::ILogger *const logSink = &loggerPort;
+#endif
+
+// The typed view of the persisted settings; `EEPROMStore` stays the format owner.
+adapters::MountSettingsStore settingsStore;
+
 #if USE_DUMMY_EEPROM == true
 // A development switch: boot without touching the board's EEPROM.
 hal::InMemoryEeprom<hal::eeprom::STORE_SIZE> eeprom;
@@ -69,12 +90,55 @@ hal::ArduinoEeprom eeprom(EEPROM);
 #endif
 
 adapters::EepromPersistentStore persistentStore(eeprom, hal::eeprom::STORE_SIZE);
+
+// Driver enable lines. Only declared where `Mount` drives them: the RA/DEC writes
+// sit inside the UART self-test, and AZ/ALT/Focus exist only when the axis does.
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
+hal::ArduinoGpioPin raEnablePin(RA_EN_PIN);
+#endif
+#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
+hal::ArduinoGpioPin decEnablePin(DEC_EN_PIN);
+#endif
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+hal::ArduinoGpioPin azEnablePin(AZ_EN_PIN);
+#endif
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+hal::ArduinoGpioPin altEnablePin(ALT_EN_PIN);
+#endif
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+hal::ArduinoGpioPin focusEnablePin(FOCUS_EN_PIN);
+#endif
+
+MountDeps makeMountDeps()
+{
+    MountDeps deps;
+    deps.clock     = &clockPort;
+    deps.scheduler = &schedulerPort;
+    deps.logger    = logSink;
+    deps.settings  = &settingsStore;
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
+    deps.raEnablePin = &raEnablePin;
+#endif
+#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
+    deps.decEnablePin = &decEnablePin;
+#endif
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+    deps.azEnablePin = &azEnablePin;
+#endif
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+    deps.altEnablePin = &altEnablePin;
+#endif
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    deps.focusEnablePin = &focusEnablePin;
+#endif
+    return deps;
+}
 }  // namespace
 
 #ifdef ESP32
-DRAM_ATTR Mount mount(&lcdMenu, &clockPort, &schedulerPort);
+DRAM_ATTR Mount mount(&lcdMenu, makeMountDeps());
 #else
-Mount mount(&lcdMenu, &clockPort, &schedulerPort);
+Mount mount(&lcdMenu, makeMountDeps());
 #endif
 
 #if (WIFI_ENABLED == 1)
@@ -425,6 +489,7 @@ void setup()
     int eepromLine = addConsoleText(F("INIT EEPROM..."));
 
     EEPROMStore::setStore(&persistentStore);
+    EEPROMStore::setLogger(&loggerPort);
     persistentStore.begin();
     EEPROMStore::initialize();
     LOG(DEBUG_ANY, "[SYSTEM]: EEPROM store ready!");

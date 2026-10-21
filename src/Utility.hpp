@@ -2,6 +2,7 @@
 #define UTILITY_HPP_
 
 #include "inc/Globals.hpp"
+#include "ports/LogFormat.hpp"
 
 #ifndef DEBUG_LEVEL
     #error Configuration.hpp must be included before Utility.hpp for correct debug configuration
@@ -12,6 +13,14 @@ int freeMemory();
 
 #if DEBUG_LEVEL != 0
     #define LOG(level, format, ...) logv((level), (F(format)), ##__VA_ARGS__)
+
+    /// One diagnostic line through a `ports::ILogger`.
+    ///
+    /// Same shape as `LOG()`: the format literal stays in flash on AVR
+    /// (`OAT_LOG_FORMAT` is `PSTR()` there) and the whole call compiles out when
+    /// `DEBUG_LEVEL` is `DEBUG_NONE`, so arguments are not even evaluated. The
+    /// logger then filters on the level bits at run time.
+    #define OAT_LOG(logger, level, format, ...) (logger)->log((level), OAT_LOG_FORMAT(format), ##__VA_ARGS__)
 
 // Realtime timer class using microseconds to time stuff
 class RealTime
@@ -130,6 +139,7 @@ void logv(int levelFlags, String input, ...);
 
 #else  // DEBUG_LEVEL>0
     #define LOG(level, format, ...)
+    #define OAT_LOG(logger, level, format, ...)
 #endif  // DEBUG_LEVEL>0
 
 // For some reason arduino just defines all float functions to be as double

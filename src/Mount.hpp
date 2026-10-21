@@ -5,8 +5,11 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "hal/IGpioPin.hpp"
 #include "ports/IClock.hpp"
+#include "ports/ILogger.hpp"
 #include "ports/IMotorDriver.hpp"
+#include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
 #include "ports/IStepperAxis.hpp"
 
@@ -151,6 +154,33 @@ enum FocuserDirection
 // Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
 //
 //////////////////////////////////////////////////////////////////
+/// Everything `Mount` is handed by the composition root (`src/b_setup.hpp` today).
+///
+/// Entries exist only for the features compiled into this build, so a board without
+/// an AZ/ALT/Focus axis, or without the UART connection test, spends no RAM on
+/// pointers that nothing reads.
+struct MountDeps {
+    ports::IClock *clock;
+    ports::IScheduler *scheduler;
+    ports::ILogger *logger;
+    ports::IMountSettings *settings;
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
+    hal::IGpioPin *raEnablePin;
+#endif
+#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
+    hal::IGpioPin *decEnablePin;
+#endif
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+    hal::IGpioPin *azEnablePin;
+#endif
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+    hal::IGpioPin *altEnablePin;
+#endif
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    hal::IGpioPin *focusEnablePin;
+#endif
+};
+
 class Mount
 {
   public:
@@ -158,7 +188,7 @@ class Mount
     /// (`src/b_setup.hpp` today). The axes and drivers are created in the
     /// `configure*` methods and owned by the mount for the lifetime of the program,
     /// exactly as the concrete steppers used to be.
-    Mount(LcdMenu *lcdMenu, ports::IClock *clock, ports::IScheduler *scheduler);
+    Mount(LcdMenu *lcdMenu, const MountDeps &deps);
 
     void initializeVariables();
 
@@ -551,8 +581,7 @@ class Mount
   private:
     // Injected by the composition root; declared first so the constructor's
     // initialiser order is the declaration order (and therefore warning-free).
-    ports::IClock *_clock;
-    ports::IScheduler *_scheduler;
+    MountDeps _deps;
 
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
@@ -685,6 +714,23 @@ class Mount
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
+
+    // The mount's status bitfield (STATUS_* above).
+    //
+    // Threading contract, matching the one in `ports/IStepperAxis.hpp`. This is a
+    // plain volatile int, not an atomic, so the rules are:
+    //  * Reads are safe from any context: `int` is 16-bit on AVR and 32-bit on
+    //    ESP32/RP2040, aligned, so a load never sees a torn value.
+    //  * Read-modify-write (`setStatus`, `clearStatusFlag`) is main-loop-only. It is
+    //    not atomic on AVR, so a concurrent writer would lose bits.
+    //  * The step generator — `stepperControlTask` on core 0 (ESP32) or the timer ISR
+    //    (RP2040, and AVR without NEW_STEPPER_LIB; compiled out on AVR with it) —
+    //    reads the status to decide which axes to step and does not write it.
+    //  * One pre-existing exception: `interruptLoop()` drives
+    //    `HallSensorHoming::processHomingProgress()`, which calls `stopSlewing()` /
+    //    `moveStepperBy()` and so does write status and axis targets from that
+    //    context. Phase 3's `HomingController` moves that decision back to the main
+    //    loop and leaves the generator with a request bit to act on.
     volatile int _mountStatus;
 
     char scratchBuffer[24];

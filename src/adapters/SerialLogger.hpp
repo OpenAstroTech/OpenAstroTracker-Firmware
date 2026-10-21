@@ -11,6 +11,9 @@ namespace adapters
 
 /// `ports::ILogger` writing `[uptime]{delta}ms: message` lines to a serial port.
 ///
+/// One line is one `write()` call, and the platform decides whether it is flushed
+/// (`hal::ArduinoSerialPort::flush()` skips the RP2040 USB CDC, where it can stall).
+///
 /// The format string is read through `ports::LogFormat`, so on AVR it is consumed
 /// straight out of flash (`vsnprintf_P`) and never lands in `.data`. Call sites that
 /// pass a plain literal still get `F()`-equivalent behaviour through

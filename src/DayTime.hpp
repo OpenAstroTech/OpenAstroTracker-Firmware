@@ -16,6 +16,12 @@ class DayTime : public core::DayTime
     // Inherit constructors from core
     using core::DayTime::DayTime;
 
+    /// Copies the pure value. Used when a `ports` accessor hands back a
+    /// `core::DayTime` and the caller holds the Arduino-aware overlay.
+    DayTime(const core::DayTime &other) : core::DayTime(other)
+    {
+    }
+
     // Convert to a standard string (like 14:45:06)
     virtual const char *ToString() const;
 
