@@ -9,6 +9,7 @@
 #include "core/MountRequests.hpp"
 #include "core/MountState.hpp"
 #include "core/ParkingController.hpp"
+#include "core/SlewCompletion.hpp"
 #include "core/SlewController.hpp"
 #include "core/TrackingController.hpp"
 #include "ports/IClock.hpp"
@@ -16,6 +17,20 @@
 
 namespace core
 {
+
+/// What the controller half of a tick decided, so the hardware layer knows what is left.
+///
+/// The tick used to be a fixed order of six calls buried in a 300-line `Mount::loop()`,
+/// interleaved with pins and EEPROM writes, so "in what order do these run" was only
+/// answerable by reading the whole function. The order is now stated once, in
+/// `MountCoordinator::tick()`, and reported here as facts the caller acts on.
+struct TickOutcome {
+    bool azAltJustStopped  = false;  ///< the AZ/ALT axes stopped this tick: power the drivers down
+    bool focusStopped      = false;  ///< the focuser stopped this tick: disable and publish
+    bool guiding           = false;  ///< a guide pulse owns the tick; the rest of it is skipped
+    bool guidingRaExpired  = false;  ///< this pulse ends on RA
+    bool guidingDecExpired = false;  ///< this pulse ends on DEC
+};
 
 /// The objects that make up "what the mount is doing", in one place.
 ///
@@ -147,6 +162,63 @@ template <typename TrackingAxis = ports::IStepperAxis, typename FocusAxis = port
     Admission admit(MountRequest request) const
     {
         return MountRequests::admit(request, activityFacts());
+    }
+
+    /// Runs the controllers this tick, in the one order that is correct.
+    ///
+    /// Published facts are delivered first, so a subscriber is never called from inside the
+    /// code that published. Then the two independent axes poll for "stopped", then the guide
+    /// pulse — which, when one is in flight, is the whole tick: the rest of `loop()` is
+    /// skipped so a pulse cannot be interrupted by slew bookkeeping.
+    ///
+    /// Every hardware consequence is reported, not performed: the caller owns the pins.
+    TickOutcome tick(bool azAltRunning)
+    {
+        TickOutcome outcome;
+
+        _events.dispatch();
+
+        outcome.azAltJustStopped = (_azAlt.update(azAltRunning) == AzAltUpdate::JustStopped);
+        outcome.focusStopped     = (_focus.update() == FocusUpdate::Stopped);
+
+        outcome.guiding = _state.test(bitMask(StatusBit::GuidePulse));
+        if (outcome.guiding)
+        {
+            outcome.guidingRaExpired  = _guiding.raExpired();
+            outcome.guidingDecExpired = _guiding.decExpired();
+        }
+
+        return outcome;
+    }
+
+    /// Records what the arrival logic saw at the start of this tick. Called at the end of it,
+    /// because the arrival path reads the previous tick's answer to tell "still moving" from
+    /// "just stopped".
+    void finishTick(bool raRunning, bool decRunning)
+    {
+        _slew.noteRunning(raRunning || decRunning);
+    }
+
+    /// Everything `SlewCompletion` needs, taken from the controllers that own it.
+    ///
+    /// `Mount` used to fill these six fields by hand in the middle of the arrival block.
+    ArrivalFacts arrivalFacts() const
+    {
+        ArrivalFacts facts;
+        facts.intent                = _slew.intent();
+        facts.parking               = _parking.isParking();
+        facts.headingToParkPosition = _parking.headingToPosition();
+        facts.findingHome           = _state.test(bitMask(StatusBit::FindingHome));
+        facts.compensationPending   = _tracking.compensationPending();
+        facts.backlashOwed          = _slew.backlashOwed();
+        facts.parkTargetReached     = false;  // computed from post-move distances, if ever needed
+        return facts;
+    }
+
+    /// The plan for finishing the move that just arrived.
+    CompletionPlan completionPlan() const
+    {
+        return SlewCompletion::plan(arrivalFacts());
     }
 
   private:

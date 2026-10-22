@@ -3293,10 +3293,6 @@ void Mount::interruptLoop()
 /////////////////////////////////
 void Mount::loop()
 {
-    // Facts published during the previous tick reach the display here, never from inside
-    // the code that published them.
-    _coordinator.events().dispatch();
-
     bool raStillRunning  = false;
     bool decStillRunning = false;
 
@@ -3310,6 +3306,13 @@ void Mount::loop()
     }
 #endif
 
+    // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _stepperFocus->isRunning());
+
+    if (_coordinator.focus().isRunning())
+    {
+        OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser running at speed %f", _coordinator.focus().speed());
+    }
+
     bool oneIsRunning = false;
     if (kHasAzStepper)
     {
@@ -3320,7 +3323,12 @@ void Mount::loop()
         oneIsRunning |= _stepperALT->isRunning();
     }
 
-    if (_coordinator.azAlt().update(oneIsRunning) == core::AzAltUpdate::JustStopped)
+    // The controller half of a tick: dispatch published facts, poll the axes, then the guide
+    // pulse. Everything it decides is reported back, because the pins and the EEPROM live
+    // here. See `core::MountCoordinator::tick()`.
+    const core::TickOutcome tick = _coordinator.tick(oneIsRunning);
+
+    if (tick.azAltJustStopped)
     {
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
@@ -3334,14 +3342,7 @@ void Mount::loop()
         }
     }
 
-    // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _stepperFocus->isRunning());
-
-    if (_coordinator.focus().isRunning())
-    {
-        OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser running at speed %f", _coordinator.focus().speed());
-    }
-
-    if (_coordinator.focus().update() == core::FocusUpdate::Stopped)
+    if (tick.focusStopped)
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running ");
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running, disabling");
@@ -3349,12 +3350,10 @@ void Mount::loop()
         publishEvent(core::MountEventType::FocusStopped);
     }
 
-    if (isGuiding())
+    if (tick.guiding)
     {
-        now                 = _deps.clock->now();
-        bool stopRaGuiding  = _coordinator.guiding().raExpired();
-        bool stopDecGuiding = _coordinator.guiding().decExpired();
-        if (stopRaGuiding || stopDecGuiding)
+        now = _deps.clock->now();
+        if (tick.guidingRaExpired || tick.guidingDecExpired)
         {
             OAT_LOG(_deps.logger,
                     DEBUG_GUIDE,
@@ -3362,7 +3361,7 @@ void Mount::loop()
                     now,
                     _coordinator.guiding().raDeadline(),
                     _coordinator.guiding().decDeadline());
-            stopGuiding(stopRaGuiding, stopDecGuiding);
+            stopGuiding(tick.guidingRaExpired, tick.guidingDecExpired);
         }
         else
         {
@@ -3408,15 +3407,9 @@ void Mount::loop()
                     _stepperDEC->currentPosition());
 
             // The rules for what happens at the end of a slew live in
-            // core/SlewCompletion.hpp, as a plan this loop executes in order.
-            core::ArrivalFacts facts;
-            facts.intent                    = _coordinator.slew().intent();
-            facts.parking                   = isParking();
-            facts.headingToParkPosition     = _coordinator.parking().headingToPosition();
-            facts.findingHome               = isFindingHome();
-            facts.compensationPending       = _coordinator.tracking().compensationPending();
-            facts.backlashOwed              = _coordinator.slew().backlashOwed();
-            const core::CompletionPlan plan = core::SlewCompletion::plan(facts);
+            // core/SlewCompletion.hpp, as a plan this loop executes in order. The facts they
+            // are decided from belong to the controllers, so the coordinator assembles them.
+            const core::CompletionPlan plan = _coordinator.completionPlan();
 
             // Set once the park leg is programmed: true when there is nowhere to go.
             bool parkLegIsNoOp = false;
@@ -3580,7 +3573,7 @@ void Mount::loop()
 
     pollEndSwitches();
 
-    _coordinator.slew().noteRunning(raStillRunning || decStillRunning);
+    _coordinator.finishTick(raStillRunning, decStillRunning);
     updateInfoDisplay();
 }
 

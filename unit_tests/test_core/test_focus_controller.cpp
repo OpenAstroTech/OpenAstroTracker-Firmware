@@ -179,3 +179,45 @@ TEST(FocusControllerTest, DetachForgetsTheAxisAndTheMode)
 
     EXPECT_EQ(core::FocusMode::Idle, focus.mode());
 }
+
+// A board without a focuser keeps the controller detached and still ticks it every pass, so
+// a detached controller has to read as idle rather than dereference a null axis. This is the
+// shape `MountCoordinator::tick()` relies on for every board.
+TEST(FocusControllerTest, DetachedControllerReadsAsIdle)
+{
+    core::FocusController<> focus;
+
+    EXPECT_FALSE(focus.attached());
+    EXPECT_FALSE(focus.isRunning());
+    EXPECT_EQ(0, focus.position());
+    EXPECT_FLOAT_EQ(0.0f, focus.speed());
+    EXPECT_EQ(core::FocusUpdate::None, focus.update());
+
+    // Commands are accepted and dropped, so a caller needs no presence check of its own.
+    focus.setPosition(100);
+    focus.moveBy(10);
+    focus.runAtSpeed(5.0f);
+    focus.stop();
+    focus.setRate(2, 10.0f);
+
+    EXPECT_FALSE(focus.attached());
+    EXPECT_EQ(0, focus.position());
+    EXPECT_EQ(core::FocusUpdate::None, focus.update());
+}
+
+// Attaching after a detach must bring the controller back, including the mode the stopped
+// transition resets.
+TEST(FocusControllerTest, ReattachResumesMotion)
+{
+    fakes::FakeStepperAxis axis;
+    core::FocusController<> focus;
+    focus.attach(&axis);
+    focus.detach();
+
+    focus.attach(&axis);
+    focus.moveBy(25);
+
+    EXPECT_TRUE(focus.attached());
+    EXPECT_EQ(core::FocusMode::ToTarget, focus.mode());
+    EXPECT_EQ(25, axis.targetPosition());
+}

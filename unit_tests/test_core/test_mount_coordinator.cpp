@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "../test_common/hal_fakes/FakeStepperAxis.hpp"
 #include "../test_common/hal_fakes/FakeSystemClock.hpp"
 #include "core/MountCoordinator.hpp"
 
@@ -184,6 +185,137 @@ TEST(MountCoordinatorTest, EventsAreQueuedAndDispatchedThroughTheOwnedBus)
 
     f.coordinator.events().dispatch();
     EXPECT_EQ(2, sink.count);  // the queue is empty, so the second tick delivers nothing
+}
+
+// The tick's order is the point of the class: published facts are delivered before any
+// controller is polled, so a subscriber never runs from inside the code that published.
+TEST(MountCoordinatorTest, TickDeliversQueuedEventsBeforePolling)
+{
+    Fixture f;
+    RecordingSink sink;
+    f.coordinator.events().subscribe(&sink);
+    f.coordinator.events().publish(MountEvent {MountEventType::TrackingStarted, false});
+
+    const core::TickOutcome outcome = f.coordinator.tick(false);
+
+    EXPECT_EQ(1, sink.count);
+    EXPECT_FALSE(outcome.azAltJustStopped);
+    EXPECT_FALSE(outcome.guiding);
+}
+
+// The AZ/ALT poll is edge-triggered: only the tick that observes the axes stopping reports
+// it, because that is the moment the drivers are powered down.
+TEST(MountCoordinatorTest, TickReportsTheAzAltStoppedEdgeOnce)
+{
+    Fixture f;
+
+    EXPECT_FALSE(f.coordinator.tick(true).azAltJustStopped);
+    EXPECT_TRUE(f.coordinator.tick(false).azAltJustStopped);
+    EXPECT_FALSE(f.coordinator.tick(false).azAltJustStopped);
+}
+
+// Same edge rule for the focuser, and it has to survive a detached axis: a board without a
+// focuser ticks through here on every pass.
+TEST(MountCoordinatorTest, TickReportsTheFocusStoppedEdge)
+{
+    Fixture f;
+
+    EXPECT_FALSE(f.coordinator.tick(false).focusStopped);  // detached axis: no transition
+
+    fakes::FakeStepperAxis focusAxis;
+    f.coordinator.focus().attach(&focusAxis);
+    f.coordinator.focus().moveBy(100);
+    EXPECT_TRUE(focusAxis.isRunning());
+
+    EXPECT_FALSE(f.coordinator.tick(false).focusStopped);  // seen running
+    focusAxis.runToPosition();
+    EXPECT_TRUE(f.coordinator.tick(false).focusStopped);   // stopped this tick
+    EXPECT_FALSE(f.coordinator.tick(false).focusStopped);  // and only this one
+}
+
+// A guide pulse owns the tick: the caller skips the rest of its work, and the tick reports
+// which of the two deadlines fired so the pulse is stopped on the right axis.
+TEST(MountCoordinatorTest, GuidingTickReportsTheExpiredAxes)
+{
+    Fixture f;
+    fakes::FakeStepperAxis raAxis;
+    f.coordinator.tracking().attach(&raAxis);
+
+    EXPECT_FALSE(f.coordinator.tick(false).guiding);
+
+    // A pulse with a deadline still in the future is not expiring yet.
+    f.coordinator.state().set(mask(StatusBit::GuidePulse));
+    f.coordinator.guiding().startRa(50);
+    core::TickOutcome outcome = f.coordinator.tick(false);
+    EXPECT_TRUE(outcome.guiding);
+    EXPECT_FALSE(outcome.guidingRaExpired);
+    EXPECT_FALSE(outcome.guidingDecExpired);  // no DEC pulse was started
+
+    f.clock.advance(51);
+    outcome = f.coordinator.tick(false);
+    EXPECT_TRUE(outcome.guidingRaExpired);
+    EXPECT_FALSE(outcome.guidingDecExpired);
+}
+
+// `wasRunning()` is the arrival path's "the axes just stopped" test, so it must only ever see
+// what the previous tick observed. `finishTick()` is the one place that writes it.
+TEST(MountCoordinatorTest, FinishTickFeedsTheArrivalWasRunningFlag)
+{
+    Fixture f;
+
+    f.coordinator.finishTick(false, false);
+    EXPECT_FALSE(f.coordinator.slew().wasRunning());
+
+    f.coordinator.finishTick(false, true);  // DEC alone is enough
+    EXPECT_TRUE(f.coordinator.slew().wasRunning());
+
+    f.coordinator.finishTick(false, false);
+    EXPECT_FALSE(f.coordinator.slew().wasRunning());
+}
+
+// The six facts the arrival plan is decided from belong to the controllers, so the
+// coordinator fills them instead of `Mount` doing it by hand in the middle of the block.
+TEST(MountCoordinatorTest, ArrivalFactsComeFromTheOwnedControllers)
+{
+    Fixture f;
+
+    core::ArrivalFacts idle = f.coordinator.arrivalFacts();
+    EXPECT_EQ(SlewIntent::None, idle.intent);
+    EXPECT_FALSE(idle.parking);
+    EXPECT_FALSE(idle.headingToParkPosition);
+    EXPECT_FALSE(idle.findingHome);
+    EXPECT_FALSE(idle.compensationPending);
+    EXPECT_FALSE(idle.backlashOwed);
+    EXPECT_FALSE(idle.parkTargetReached);
+
+    f.coordinator.slew().begin(SlewIntent::Park);
+    f.coordinator.slew().requestBacklashCorrection();
+    f.coordinator.parking().beginHoming();
+    f.coordinator.state().set(mask(StatusBit::FindingHome));
+
+    core::ArrivalFacts facts = f.coordinator.arrivalFacts();
+    EXPECT_EQ(SlewIntent::Park, facts.intent);
+    EXPECT_TRUE(facts.parking);
+    EXPECT_FALSE(facts.headingToParkPosition);  // still on the homing leg
+    EXPECT_TRUE(facts.findingHome);
+    EXPECT_TRUE(facts.backlashOwed);
+
+    f.coordinator.parking().beginPositionLeg();
+    EXPECT_TRUE(f.coordinator.arrivalFacts().headingToParkPosition);
+}
+
+// The plan is derived, not stored: the same facts have to give the same plan.
+TEST(MountCoordinatorTest, CompletionPlanFollowsTheArrivalFacts)
+{
+    Fixture f;
+
+    f.coordinator.slew().begin(SlewIntent::Target);
+    const core::CompletionPlan plan = f.coordinator.completionPlan();
+    EXPECT_TRUE(plan.startTracking);  // a finished go-to resumes tracking
+    EXPECT_TRUE(plan.decGuideMicrosteps);
+
+    f.coordinator.parking().beginHoming();
+    EXPECT_FALSE(f.coordinator.completionPlan().startTracking);
 }
 
 // The capacity has to stay a power of two: on AVR the ring index is a mask, not a divide.

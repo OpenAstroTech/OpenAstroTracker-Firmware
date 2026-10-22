@@ -60,26 +60,38 @@ template <typename Axis = ports::IStepperAxis> class FocusController
         _wasRunning = false;
     }
 
+    /// True when this build has a focus axis. A board without one keeps the controller
+    /// detached, which is why every method below tolerates a null axis instead of treating
+    /// the attachment as a precondition.
+    bool attached() const
+    {
+        return _axis != nullptr;
+    }
+
     // --- read model ---
 
     long position() const
     {
-        return _axis->currentPosition();
+        return attached() ? _axis->currentPosition() : 0;
     }
 
     void setPosition(long steps)
     {
+        if (!attached())
+        {
+            return;
+        }
         _axis->setCurrentPosition(steps);
     }
 
     float speed() const
     {
-        return _axis->speed();
+        return attached() ? _axis->speed() : 0.0F;
     }
 
     bool isRunning() const
     {
-        return _axis->isRunning();
+        return attached() && _axis->isRunning();
     }
 
     FocusMode mode() const
@@ -111,7 +123,10 @@ template <typename Axis = ports::IStepperAxis> class FocusController
     {
         _rate         = clampRate(rate);
         _maxRateSpeed = factorFor(_rate) * maxSpeed;
-        _axis->setMaxSpeed(_maxRateSpeed);
+        if (attached())
+        {
+            _axis->setMaxSpeed(_maxRateSpeed);
+        }
     }
 
     /// The configured maximum is the fastest rate, matching what the mount used to
@@ -127,6 +142,10 @@ template <typename Axis = ports::IStepperAxis> class FocusController
     /// Moves by a relative number of steps. The caller has enabled the driver.
     void moveBy(long steps)
     {
+        if (!attached())
+        {
+            return;
+        }
         _axis->moveTo(_axis->currentPosition() + steps);
         _mode = FocusMode::ToTarget;
     }
@@ -142,6 +161,10 @@ template <typename Axis = ports::IStepperAxis> class FocusController
     /// what the legacy `setSpeed(FOCUS_STEPS, 0)` did.
     void runAtSpeed(float signedSpeed)
     {
+        if (!attached())
+        {
+            return;
+        }
         if (signedSpeed != 0)
         {
             _axis->setMaxSpeed(signedSpeed);
@@ -156,7 +179,10 @@ template <typename Axis = ports::IStepperAxis> class FocusController
 
     void stop()
     {
-        _axis->stop();
+        if (attached())
+        {
+            _axis->stop();
+        }
     }
 
     /// Called once per main-loop tick. Reports the single transition from "seen running"
@@ -165,6 +191,13 @@ template <typename Axis = ports::IStepperAxis> class FocusController
     /// previous `_focuserWasRunning` flag.
     FocusUpdate update()
     {
+        if (!attached())
+        {
+            _wasRunning = false;
+            _mode       = FocusMode::Idle;
+            return FocusUpdate::None;
+        }
+
         if (_axis->isRunning())
         {
             _wasRunning = true;
