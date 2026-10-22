@@ -22,6 +22,7 @@
 #include "ports/IClock.hpp"
 #include "ports/ILogger.hpp"
 #include "ports/IMotorDriver.hpp"
+#include "ports/IMountConfiguration.hpp"
 #include "ports/IMountMotion.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
@@ -184,7 +185,7 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class Mount final : public ports::IMountMotion
+class Mount final : public ports::IMountConfiguration
 {
   public:
     /// The infrastructure ports are injected by the composition root
@@ -275,34 +276,34 @@ class Mount final : public ports::IMountMotion
 #endif
 
     // Get the current RA tracking speed factor
-    float getSpeedCalibration();
+    float getSpeedCalibration() override;
 
     // Set the current RA tracking speed factor
-    void setSpeedCalibration(float val, bool saveToStorage);
+    void setSpeedCalibration(float val, bool saveToStorage) override;
 
 #if USE_GYRO_LEVEL == 1
     // Get the current pitch angle calibraton
-    float getPitchCalibrationAngle();
+    float getPitchCalibrationAngle() override;
 
     // Set the current pitch angle calibration
-    void setPitchCalibrationAngle(float angle);
+    void setPitchCalibrationAngle(float angle) override;
 
     // Get the current roll angle calibration
-    float getRollCalibrationAngle();
+    float getRollCalibrationAngle() override;
 
     // Set the current pitch angle calibration
-    void setRollCalibrationAngle(float angle);
+    void setRollCalibrationAngle(float angle) override;
 #endif
 
     // Returns the number of slew microsteps the given motor turns to move one degree
-    float getStepsPerDegree(StepperAxis which);
+    float getStepsPerDegree(StepperAxis which) override;
 
     // Function to set the number of slew microsteps the given motor turns to move one
     // degree for each axis. This function stores the value in persistent storage
-    void setStepsPerDegree(StepperAxis which, float steps);
+    void setStepsPerDegree(StepperAxis which, float steps) override;
 
     // Sets the slew rate of the mount. rate is between 1 (slowest) and 4 (fastest)
-    void setSlewRate(int rate);
+    void setSlewRate(int rate) override;
     int getSlewRate();
 
     // Get the number of hours we've been tracking
@@ -400,13 +401,13 @@ class Mount final : public ports::IMountMotion
     // Set the DEC limit position to the given angle in degrees (saved as DEC steps).
     // If upper is true, sets the upper limit, else the lower limit.
     // If limitAngle is 0, limit is set to current position.
-    void setDecLimitPosition(bool upper, float limitAngle = 0);
+    void setDecLimitPosition(bool upper, float limitAngle = 0) override;
 
     // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
-    void clearDecLimitPosition(bool upper);
+    void clearDecLimitPosition(bool upper) override;
 
     // Get the DEC limit positions
-    void getDecLimitPositions(float &lowerLimit, float &upperLimit);
+    void getDecLimitPositions(float &lowerLimit, float &upperLimit) override;
 
     // Asynchronously parks the mount. Moves to the home position and stops all motors.
     void park() override;
@@ -440,7 +441,7 @@ class Mount final : public ports::IMountMotion
     void clearEventSink();
 
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
-    float getSpeed(int direction);
+    float getSpeed(int direction) override;
 
     // See if a slew to target is in progress and return the percentage along the path
     bool getStepperProgress(int &raPercentage, int &decPercentage);
@@ -475,7 +476,7 @@ class Mount final : public ports::IMountMotion
     void setManualSlewMode(bool state);
 
     // Set the speed of the given motor
-    void setSpeed(StepperAxis which, float speedDegsPerSec);
+    void setSpeed(StepperAxis which, float speedDegsPerSec) override;
 
     /// Creates the end switches this board has. A board without them calls a function
     /// that creates nothing, and every reader below null-checks instead of branching on a
@@ -512,8 +513,8 @@ class Mount final : public ports::IMountMotion
     String getAutoHomingStates() const;
     String homingStateText(bool present, const HallSensorHoming *sensor) const;
 
-    void setHomingOffset(StepperAxis axis, long offset);
-    long getHomingOffset(StepperAxis axis);
+    void setHomingOffset(StepperAxis axis, long offset) override;
+    long getHomingOffset(StepperAxis axis) override;
 
     // Move the given stepper motor by the given amount of steps.
     void moveStepperBy(StepperAxis which, long steps) override;
@@ -522,10 +523,10 @@ class Mount final : public ports::IMountMotion
     void moveStepperTo(StepperAxis which, long position);
 
     // Set the number of steps to use for backlash correction
-    void setBacklashCorrection(int steps);
+    void setBacklashCorrection(int steps) override;
 
     // Get the number of steps to use for backlash correction
-    int getBacklashCorrection();
+    int getBacklashCorrection() override;
 
     // Read the saved configuration from persistent storage
     void readConfiguration();

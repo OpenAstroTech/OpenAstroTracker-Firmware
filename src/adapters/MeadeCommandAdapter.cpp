@@ -49,6 +49,7 @@ MeadeCommandAdapter::MeadeCommandAdapter(Mount *mount, LcdMenu *lcdMenu)
 {
     _mount  = mount;
     _motion = mount;
+    _config = mount;
 
     // In case of DISPLAY_TYPE_NONE mode, the lcdMenu is just an empty shell class to save having to null check everywhere
     _lcdMenu = lcdMenu;
@@ -392,7 +393,7 @@ void MeadeCommandAdapter::onSetAzAltHome()
 
 void MeadeCommandAdapter::onSetSlewRate(uint8_t rate)
 {
-    _mount->setSlewRate(static_cast<int>(rate));
+    _config->setSlewRate(static_cast<int>(rate));
 }
 
 bool MeadeCommandAdapter::onIsSlewingRaOrDec()
@@ -442,31 +443,31 @@ void MeadeCommandAdapter::onDriftAlignment(int duration)
 
 float MeadeCommandAdapter::onGetRaStepsPerDegree()
 {
-    return _mount->getStepsPerDegree(RA_STEPS);
+    return _config->getStepsPerDegree(RA_STEPS);
 }
 float MeadeCommandAdapter::onGetDecStepsPerDegree()
 {
-    return _mount->getStepsPerDegree(DEC_STEPS);
+    return _config->getStepsPerDegree(DEC_STEPS);
 }
 float MeadeCommandAdapter::onGetAltStepsPerDegree()
 {
-    return _mount->getStepsPerDegree(ALTITUDE_STEPS);
+    return _config->getStepsPerDegree(ALTITUDE_STEPS);
 }
 float MeadeCommandAdapter::onGetAzStepsPerDegree()
 {
-    return _mount->getStepsPerDegree(AZIMUTH_STEPS);
+    return _config->getStepsPerDegree(AZIMUTH_STEPS);
 }
 
 oat::core::meade::ExtraDecLimits MeadeCommandAdapter::onGetDecLimits()
 {
     oat::core::meade::ExtraDecLimits lim;
-    _mount->getDecLimitPositions(lim.lo, lim.hi);
+    _config->getDecLimitPositions(lim.lo, lim.hi);
     return lim;
 }
 
 float MeadeCommandAdapter::onGetTrackingSpeedCalibration()
 {
-    return _mount->getSpeedCalibration();
+    return _config->getSpeedCalibration();
 }
 float MeadeCommandAdapter::onGetRemainingSafeTime()
 {
@@ -474,11 +475,11 @@ float MeadeCommandAdapter::onGetRemainingSafeTime()
 }
 float MeadeCommandAdapter::onGetTrackingSpeed()
 {
-    return _mount->getSpeed(TRACKING);
+    return _config->getSpeed(TRACKING);
 }
 int MeadeCommandAdapter::onGetBacklashSteps()
 {
-    return _mount->getBacklashCorrection();
+    return _config->getBacklashCorrection();
 }
 const char *MeadeCommandAdapter::onGetAutoHomingStates()
 {
@@ -517,11 +518,11 @@ const char *MeadeCommandAdapter::onGetLogBuffer()
 }
 long MeadeCommandAdapter::onGetRaHomingOffset()
 {
-    return _mount->getHomingOffset(StepperAxis::RA_STEPS);
+    return _config->getHomingOffset(StepperAxis::RA_STEPS);
 }
 long MeadeCommandAdapter::onGetDecHomingOffset()
 {
-    return _mount->getHomingOffset(StepperAxis::DEC_STEPS);
+    return _config->getHomingOffset(StepperAxis::DEC_STEPS);
 }
 bool MeadeCommandAdapter::onGetHemisphere()
 {
@@ -560,54 +561,54 @@ const char *MeadeCommandAdapter::onGetNetworkStatus()
 
 void MeadeCommandAdapter::onSetRaStepsPerDegree(float v)
 {
-    _mount->setStepsPerDegree(RA_STEPS, v);
+    _config->setStepsPerDegree(RA_STEPS, v);
 }
 void MeadeCommandAdapter::onSetDecStepsPerDegree(float v)
 {
-    _mount->setStepsPerDegree(DEC_STEPS, v);
+    _config->setStepsPerDegree(DEC_STEPS, v);
 }
 void MeadeCommandAdapter::onSetAzStepsPerDegree(float v)
 {
-    _mount->setStepsPerDegree(AZIMUTH_STEPS, v);
+    _config->setStepsPerDegree(AZIMUTH_STEPS, v);
 }
 void MeadeCommandAdapter::onSetAltStepsPerDegree(float v)
 {
-    _mount->setStepsPerDegree(ALTITUDE_STEPS, v);
+    _config->setStepsPerDegree(ALTITUDE_STEPS, v);
 }
 
 void MeadeCommandAdapter::onSetDecLimitLower(bool havePayload, float value)
 {
     if (havePayload)
     {
-        _mount->setDecLimitPosition(false, value);
+        _config->setDecLimitPosition(false, value);
     }
     else
     {
-        _mount->setDecLimitPosition(false);
+        _config->setDecLimitPosition(false);
     }
 }
 void MeadeCommandAdapter::onSetDecLimitUpper(bool havePayload, float value)
 {
     if (havePayload)
     {
-        _mount->setDecLimitPosition(true, value);
+        _config->setDecLimitPosition(true, value);
     }
     else
     {
-        _mount->setDecLimitPosition(true);
+        _config->setDecLimitPosition(true);
     }
 }
 void MeadeCommandAdapter::onClearDecLimitLower()
 {
-    _mount->clearDecLimitPosition(false);
+    _config->clearDecLimitPosition(false);
 }
 void MeadeCommandAdapter::onClearDecLimitUpper()
 {
-    _mount->clearDecLimitPosition(true);
+    _config->clearDecLimitPosition(true);
 }
 void MeadeCommandAdapter::onSetTrackingSpeedCalibration(float v)
 {
-    _mount->setSpeedCalibration(v, true);
+    _config->setSpeedCalibration(v, true);
 }
 void MeadeCommandAdapter::onSetTrackingStepperPosition(long v)
 {
@@ -619,23 +620,23 @@ void MeadeCommandAdapter::onSetManualSlewMode(bool enable)
 }
 void MeadeCommandAdapter::onSetRaManualSpeed(float v)
 {
-    _mount->setSpeed(RA_STEPS, v);
+    _config->setSpeed(RA_STEPS, v);
 }
 void MeadeCommandAdapter::onSetDecManualSpeed(float v)
 {
-    _mount->setSpeed(DEC_STEPS, v);
+    _config->setSpeed(DEC_STEPS, v);
 }
 void MeadeCommandAdapter::onSetBacklashCorrection(int v)
 {
-    _mount->setBacklashCorrection(v);
+    _config->setBacklashCorrection(v);
 }
 void MeadeCommandAdapter::onSetRaHomingOffset(long v)
 {
-    _mount->setHomingOffset(StepperAxis::RA_STEPS, static_cast<int>(v));
+    _config->setHomingOffset(StepperAxis::RA_STEPS, static_cast<int>(v));
 }
 void MeadeCommandAdapter::onSetDecHomingOffset(long v)
 {
-    _mount->setHomingOffset(StepperAxis::DEC_STEPS, static_cast<int>(v));
+    _config->setHomingOffset(StepperAxis::DEC_STEPS, static_cast<int>(v));
 }
 
 bool MeadeCommandAdapter::onLevelIsAvailable()
@@ -651,8 +652,8 @@ oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetReferenceAngles(
 {
     oat::core::meade::ExtraPitchRoll pr;
 #if USE_GYRO_LEVEL == 1
-    pr.pitch = _mount->getPitchCalibrationAngle();
-    pr.roll  = _mount->getRollCalibrationAngle();
+    pr.pitch = _config->getPitchCalibrationAngle();
+    pr.roll  = _config->getRollCalibrationAngle();
 #endif
     return pr;
 }
@@ -680,7 +681,7 @@ float MeadeCommandAdapter::onLevelGetTemperature()
 void MeadeCommandAdapter::onLevelSetReferencePitch(float v)
 {
 #if USE_GYRO_LEVEL == 1
-    _mount->setPitchCalibrationAngle(v);
+    _config->setPitchCalibrationAngle(v);
 #else
     (void) v;
 #endif
@@ -688,7 +689,7 @@ void MeadeCommandAdapter::onLevelSetReferencePitch(float v)
 void MeadeCommandAdapter::onLevelSetReferenceRoll(float v)
 {
 #if USE_GYRO_LEVEL == 1
-    _mount->setRollCalibrationAngle(v);
+    _config->setRollCalibrationAngle(v);
 #else
     (void) v;
 #endif
