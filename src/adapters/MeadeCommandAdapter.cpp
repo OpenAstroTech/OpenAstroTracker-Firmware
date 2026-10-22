@@ -250,25 +250,37 @@ const char *MeadeCommandAdapter::onSiteName(uint8_t index)
 bool MeadeCommandAdapter::onStartGpsAcquisition(const char *timeoutPayload)
 {
 #if USE_GPS == 1
-    unsigned long timeoutLen = 2UL * 60UL * 1000UL;
+    // The requested timeout is honoured as a *budget for this call*, not as something to spin on.
+    // It used to busy-wait for up to two minutes inside the handler, with the main loop and the
+    // whole command layer stopped — no `:D#`, no `:Q#`, nothing. The protocol already defines the
+    // answer for "not yet": this returns 0 and the host asks again, which is what
+    // `MeadeProtocol.hpp` documents for `:gTnnn#` ("by using a low timeout, you can avoid long
+    // pauses and let the user know that it's not ready yet").
+    unsigned long budgetMs = 2UL * 60UL * 1000UL;
     if (timeoutPayload != nullptr && timeoutPayload[0] != '\0')
     {
-        timeoutLen = String(timeoutPayload).toInt();
+        budgetMs = String(timeoutPayload).toInt();
     }
-    unsigned long timeoutTime = millis() + timeoutLen;
-    int indicator             = 0;
-    while (millis() < timeoutTime)
+
+    // One probe per call, plus a short bounded wait so a fix that is one second away still
+    // answers in the same exchange. The cap keeps the handler from ever owning the loop.
+    constexpr unsigned long kMaxWaitPerCall = 250UL;
+    const unsigned long deadline            = millis() + ((budgetMs < kMaxWaitPerCall) ? budgetMs : kMaxWaitPerCall);
+
+    int indicator = 0;
+    do
     {
         if (gpsAqcuisitionComplete(indicator))
         {
             LOG(DEBUG_MEADE, "[MEADE]: GPS startup, GPS acquired");
             return true;
         }
-    }
+        delay(10);
+    } while (millis() < deadline);
 #else
     (void) timeoutPayload;
 #endif
-    LOG(DEBUG_MEADE, "[MEADE]: GPS startup, no GPS signal");
+    LOG(DEBUG_MEADE, "[MEADE]: GPS startup, no GPS signal (yet)");
     return false;
 }
 
