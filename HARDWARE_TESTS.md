@@ -161,7 +161,7 @@ Fill in §10 as you go. A case is only "pass" when the *expected* column matches
 | # | Case | Steps | Expected | Guards |
 |---|---|---|---|---|
 | 9.1 | Serial framing | Send `:GR#`, a command with trailing CR/LF, a 30-character command, and `0x06` | Normal replies; the 30-character command is **discarded whole** (see §11.5 — the old code executed its tail); `0x06` answers `P`, and answers nothing when the debug log shares the port | `core::meade::CommandAssembler`, `adapters::SerialTransport` (Phase 5) |
-| 9.2 | Wi-Fi transport | Connect to the mount's AP, send the same commands | Identical replies to 9.1; serial and Wi-Fi replies never cross | `WifiControl`, Phase 5 transports |
+| 9.2 | Wi-Fi transport | Connect to the mount's AP, send the same commands, including a 200-character one and a mid-command `0x06` | Identical replies to 9.1; the over-long command is dropped and logged; the handshake answers `P`; serial and Wi-Fi replies never cross | `SerialTransport<128>` in `WifiControl::tcpLoop()` |
 | 9.3 | Both transports at once | Serial and Wi-Fi simultaneously | Each peer gets only its own replies | `PendingReply` routing (Phase 5) |
 | 9.4 | Status display | Run a slew and a park on a board with the info display | Display updates, no flicker/lockup; events arrive once per transition | `EventBus`, `updateInfoDisplay()` |
 | 9.5 | LCD menu | Navigate every menu, start a slew and a park from the menu | No lockup; state matches the Meade view | menu screens (out of scope for the refactor — smoke only) |

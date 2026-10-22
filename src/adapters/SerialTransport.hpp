@@ -22,12 +22,15 @@ namespace meade = oat::core::meade;
 /// `answerAck` is a constructor flag rather than an `#if`: when the build shares one serial
 /// port with the debug log, the firmware has always suppressed the `P` reply so it does not
 /// interleave with a log line. The caller owns that decision.
-class SerialTransport final : public ports::ITransport
+///
+/// `Capacity` is a template parameter because the two transports that use it were sized
+/// differently: the serial loop accepted 19 characters (20 with the NUL) and the Wi-Fi path
+/// 128. A board instantiates only the size it needs, so AVR pays for the 20-byte buffer it
+/// always had, not for the Wi-Fi one.
+template <uint8_t Capacity = 20> class SerialTransport final : public ports::ITransport
 {
   public:
-    /// The command buffer, sized to what the serial loop accepted before: 19 characters plus
-    /// the NUL. A longer command is discarded whole, exactly as it was.
-    static constexpr uint8_t kCommandCapacity = 20;
+    static constexpr uint8_t kCommandCapacity = Capacity;
 
     SerialTransport(hal::ISerialPort &port, bool answerAck) : _port(port), _answerAck(answerAck)
     {
@@ -50,22 +53,22 @@ class SerialTransport final : public ports::ITransport
 
             switch (_assembler.push(static_cast<uint8_t>(value)))
             {
-                case meade::CommandAssembler<kCommandCapacity>::Event::AckRequested:
+                case meade::CommandAssembler<Capacity>::Event::AckRequested:
                     if (_answerAck)
                     {
                         _port.write(static_cast<uint8_t>('P'));
                     }
                     break;
 
-                case meade::CommandAssembler<kCommandCapacity>::Event::CommandReady:
+                case meade::CommandAssembler<Capacity>::Event::CommandReady:
                     _haveCommand = true;
                     return true;
 
-                case meade::CommandAssembler<kCommandCapacity>::Event::Overflow:
+                case meade::CommandAssembler<Capacity>::Event::Overflow:
                     _overflowed = true;
                     break;
 
-                case meade::CommandAssembler<kCommandCapacity>::Event::None:
+                case meade::CommandAssembler<Capacity>::Event::None:
                     break;
             }
         }
@@ -117,6 +120,14 @@ class SerialTransport final : public ports::ITransport
         _port.write(reinterpret_cast<const uint8_t *>(response), length);
     }
 
+    /// Drops any partial command and a pending one. Used when the peer goes away, so bytes
+    /// from a dropped connection never complete a command from the next one.
+    void reset()
+    {
+        _assembler.reset();
+        _haveCommand = false;
+    }
+
     /// True once since the last call when a command had to be discarded for being too long.
     /// The caller logs it; the transport has no logger of its own.
     bool takeOverflow()
@@ -129,7 +140,7 @@ class SerialTransport final : public ports::ITransport
   private:
     hal::ISerialPort &_port;
     const bool _answerAck;
-    meade::CommandAssembler<kCommandCapacity> _assembler;
+    meade::CommandAssembler<Capacity> _assembler;
     bool _haveCommand = false;
     bool _overflowed  = false;
 };

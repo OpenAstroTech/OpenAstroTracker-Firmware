@@ -10,7 +10,11 @@ WifiControl::WifiControl(Mount *mount, LcdMenu *lcdMenu)
 {
     _mount   = mount;
     _lcdMenu = lcdMenu;
-    clearCmd();
+
+    // `client` is a member, so its address is stable across `client = accept()`; one port and
+    // one transport serve every connection.
+    _clientPort      = new hal::ArduinoSerialPort(client);
+    _clientTransport = new adapters::SerialTransport<128>(*_clientPort, true);
 }
 
 void WifiControl::setup()
@@ -152,12 +156,6 @@ String WifiControl::getIP()
                                             : WiFi.localIP().toString();
 }
 
-void WifiControl::clearCmd()
-{
-    _currCmd = "";
-    _currCmd.reserve(_defaultCapacity);
-}
-
 void WifiControl::loop()
 {
     if (WIFI_MODE == WIFI_MODE_DISABLED)
@@ -213,71 +211,42 @@ void WifiControl::tcpLoop()
 
     if (!client.connected())
     {
-        if (_currCmd.length() != 0)
-        {
-            clearCmd();
-        }
+        _clientTransport->reset();
         client = _tcpServer->accept();
         if (!client.connected())
             return;
     }
 
-    int avail;
-    while ((avail = client.available()) != 0)
+    // Framing, the 0x06 handshake reply and the write-back all live in the transport, so this
+    // loop is the same shape as the serial one.
+    while (_clientTransport->hasCommand())
     {
-        LOG(DEBUG_WIFI, "[WIFITCP]: Available bytes %d. Peeking.", avail);
-
-        // Peek first byte and check for ACK (0x06) handshake
-        if (_currCmd.length() == 0)
+        char buffer[adapters::SerialTransport<128>::kCommandCapacity] = {0};
+        const size_t length = _clientTransport->readCommand(buffer, sizeof(buffer));
+        if (length == 0)
         {
-            int peek = client.peek();
-            LOG(DEBUG_WIFI, "[WIFITCP]: First byte is %x", peek);
-            if (peek == 0x06)
-            {
-                client.read();
-                LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- Handshake request");
-                client.write("P");
-                LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> P (polar mode)");
-                _mount->loop();
-            }
+            continue;
         }
 
-        int recv;
-        while ((recv = client.read()) != -1)
+        LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s", buffer);
+        const char *retVal = _cmdProcessor->processCommand(String(buffer));
+
+        if (retVal[0] != '\0')
         {
-            // Prevent newlines from polluting the command string
-            if (recv == '\n' || recv == '\r')
-            {
-                _mount->loop();
-                continue;
-            }
-
-            _currCmd += (char) recv;
-            if (recv == '#')
-            {
-                LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s", _currCmd.c_str());
-                const char *retVal = _cmdProcessor->processCommand(_currCmd);
-
-                if (retVal[0] != '\0')
-                {
-                    client.write(retVal);
-                    LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal);
-                }
-                else
-                {
-                    LOG(DEBUG_WIFI, "[WIFITCP]: No Reply");
-                }
-                clearCmd();
-            }
-
-            // Prevent memory overconsumption
-            if (_currCmd.length() == _maxCapacity)
-            {
-                LOG(DEBUG_WIFI, "[WIFITCP]: Command string reached maximum capacity --> clear");
-                clearCmd();
-            }
-            _mount->loop();
+            _clientTransport->writeResponse(retVal);
+            LOG(DEBUG_WIFI, "[WIFITCP]: Reply --> %s", retVal);
         }
+        else
+        {
+            LOG(DEBUG_WIFI, "[WIFITCP]: No Reply");
+        }
+
+        _mount->loop();
+    }
+
+    if (_clientTransport->takeOverflow())
+    {
+        LOG(DEBUG_WIFI, "[WIFITCP]: Command string reached maximum capacity --> clear");
     }
 }
 

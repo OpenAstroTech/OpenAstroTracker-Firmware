@@ -114,21 +114,21 @@ void processSerialData()
 /// The ACK reply is suppressed when the debug log shares this port, which is the `#if` this
 /// used to carry inline; with the log on the same wire a stray `P` would interleave with a
 /// log line.
-adapters::SerialTransport &serialTransport()
+adapters::SerialTransport<> &serialTransport()
 {
     static hal::ArduinoSerialPort port(Serial);
-    static adapters::SerialTransport transport(port, (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1));
+    static adapters::SerialTransport<> transport(port, (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1));
     return transport;
 }
 
 // ESP needs to call this in a loop :_(
 void processSerialData()
 {
-    adapters::SerialTransport &transport = serialTransport();
+    adapters::SerialTransport<> &transport = serialTransport();
 
     while (transport.hasCommand())
     {
-        char buffer[adapters::SerialTransport::kCommandCapacity] = {0};
+        char buffer[adapters::SerialTransport<>::kCommandCapacity] = {0};
         const size_t length                                      = transport.readCommand(buffer, sizeof(buffer));
         if (length == 0)
         {

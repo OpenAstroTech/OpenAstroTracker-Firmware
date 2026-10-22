@@ -5,7 +5,7 @@
 #include "../test_common/hal_fakes/FakeSerialPort.hpp"
 #include "adapters/SerialTransport.hpp"
 
-using adapters::SerialTransport;
+using SerialTransport = adapters::SerialTransport<>;
 using fakes::FakeSerialPort;
 
 namespace

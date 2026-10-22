@@ -5,6 +5,9 @@
     #include "WiFiUdp.h"
     #include "WiFiClient.h"
 
+    #include "adapters/SerialTransport.hpp"
+    #include "hal/arduino/ArduinoSerialPort.hpp"
+
     #ifdef ESP32
         #include <WiFi.h>
         #include <WiFiSTA.h>
@@ -32,7 +35,6 @@ class WifiControl
     void tcpLoop();
     void udpLoop();
     void establishServers();
-    void clearCmd();
     String getIP();
     wl_status_t _status = WL_DISCONNECTED;
     Mount *_mount;
@@ -42,12 +44,14 @@ class WifiControl
     WiFiServer *_tcpServer = nullptr;
     WiFiUDP *_udp          = nullptr;
     WiFiClient client;
-    String _currCmd;
+
+    // The TCP peer as a transport: the same framing, ACK probe and reply write the serial path
+    // uses. The Wi-Fi path accepted 127-character commands, which is what the capacity keeps.
+    hal::ArduinoSerialPort *_clientPort = nullptr;
+    adapters::SerialTransport<128> *_clientTransport = nullptr;
 
     unsigned long _infraStart                = 0;
     unsigned long _infraWait                 = 30000;  // 30 second timeout for
-    static constexpr size_t _defaultCapacity = 32;
-    static constexpr size_t _maxCapacity     = 128;
 };
 
 extern WifiControl wifiControl;
