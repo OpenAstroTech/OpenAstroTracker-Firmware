@@ -35,7 +35,7 @@ class Declination : public DayTime
     static long celestialToAxisSeconds(long celestialSeconds, bool northernHemisphere);
 
     // Join a Meade-wire magnitude/sign pair into signed celestial arc-seconds.
-    // The declination counterpart of the site join in MeadeCommandProcessor:
+    // The declination counterpart of the site join in MeadeCommandAdapter:
     // a signed degrees component cannot express a coordinate between 0 and -1
     // degree, so the sign has to travel alongside the magnitude down to here.
     static long celestialSecondsFrom(uint16_t degrees, uint8_t minutes, uint8_t seconds, bool negative);

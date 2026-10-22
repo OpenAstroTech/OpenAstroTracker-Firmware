@@ -578,7 +578,7 @@ void setup()
     // Create the command processor singleton
     LOG(DEBUG_ANY, "[SYSTEM]: Initialize LX200 handler...");
     int commandProcessorLine = addConsoleText(F("Init MEADE handler..."));
-    MeadeCommandProcessor::createProcessor(&mount, &lcdMenu);
+    MeadeCommandAdapter::createProcessor(&mount, &lcdMenu);
     updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 
 #if (WIFI_ENABLED == 1)

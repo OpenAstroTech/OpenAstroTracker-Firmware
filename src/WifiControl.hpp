@@ -15,7 +15,7 @@
 // Forward declarations
 class Mount;
 class LcdMenu;
-class MeadeCommandProcessor;
+class MeadeCommandAdapter;
 
 class WifiControl
 {
@@ -37,7 +37,7 @@ class WifiControl
     wl_status_t _status = WL_DISCONNECTED;
     Mount *_mount;
     LcdMenu *_lcdMenu;
-    MeadeCommandProcessor *_cmdProcessor;
+    MeadeCommandAdapter *_cmdProcessor;
 
     WiFiServer *_tcpServer = nullptr;
     WiFiUDP *_udp          = nullptr;

@@ -1,11 +1,11 @@
-#include "inc/Globals.hpp"
+#include "../inc/Globals.hpp"
 #include "../Configuration.hpp"
-#include "Utility.hpp"
-#include "LcdMenu.hpp"
-#include "Mount.hpp"
-#include "MeadeCommandProcessor.hpp"
-#include "WifiControl.hpp"
-#include "Gyro.hpp"
+#include "../Utility.hpp"
+#include "../LcdMenu.hpp"
+#include "../Mount.hpp"
+#include "MeadeCommandAdapter.hpp"
+#include "../WifiControl.hpp"
+#include "../Gyro.hpp"
 #include "core/meade/MeadeParser.hpp"
 
 #include <stdarg.h>
@@ -17,9 +17,9 @@ bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 
 namespace meade = oat::core::meade;
 
-MeadeCommandProcessor *MeadeCommandProcessor::_instance = nullptr;
+MeadeCommandAdapter *MeadeCommandAdapter::_instance = nullptr;
 
-const char *MeadeCommandProcessor::store(oat::core::meade::MeadeResponse &response)
+const char *MeadeCommandAdapter::store(oat::core::meade::MeadeResponse &response)
 {
     _response = response;
     return _response.c_str();
@@ -28,16 +28,16 @@ const char *MeadeCommandProcessor::store(oat::core::meade::MeadeResponse &respon
 /////////////////////////////
 // Create the processor
 /////////////////////////////
-MeadeCommandProcessor *MeadeCommandProcessor::createProcessor(Mount *mount, LcdMenu *lcdMenu)
+MeadeCommandAdapter *MeadeCommandAdapter::createProcessor(Mount *mount, LcdMenu *lcdMenu)
 {
-    _instance = new MeadeCommandProcessor(mount, lcdMenu);
+    _instance = new MeadeCommandAdapter(mount, lcdMenu);
     return _instance;
 }
 
 /////////////////////////////
 // Get the singleton
 /////////////////////////////
-MeadeCommandProcessor *MeadeCommandProcessor::instance()
+MeadeCommandAdapter *MeadeCommandAdapter::instance()
 {
     return _instance;
 }
@@ -45,7 +45,7 @@ MeadeCommandProcessor *MeadeCommandProcessor::instance()
 /////////////////////////////
 // Constructor
 /////////////////////////////
-MeadeCommandProcessor::MeadeCommandProcessor(Mount *mount, LcdMenu *lcdMenu)
+MeadeCommandAdapter::MeadeCommandAdapter(Mount *mount, LcdMenu *lcdMenu)
 {
     _mount = mount;
 
@@ -56,7 +56,7 @@ MeadeCommandProcessor::MeadeCommandProcessor(Mount *mount, LcdMenu *lcdMenu)
 /////////////////////////////
 // INIT
 /////////////////////////////
-void MeadeCommandProcessor::onEnterSerialControl()
+void MeadeCommandAdapter::onEnterSerialControl()
 {
     inSerialControl = true;
     _lcdMenu->setCursor(0, 0);
@@ -70,12 +70,12 @@ void MeadeCommandProcessor::onEnterSerialControl()
 /////////////////////////////
 // ---- IMeadeGetHandlers callbacks ---------------------------------------
 
-const char *MeadeCommandProcessor::onFirmwareVersion()
+const char *MeadeCommandAdapter::onFirmwareVersion()
 {
     return VERSION;
 }
 
-const char *MeadeCommandProcessor::onProductName()
+const char *MeadeCommandAdapter::onProductName()
 {
 #ifdef OAM
     return "OpenAstroMount";
@@ -135,48 +135,48 @@ long siteSecondsFrom(uint16_t degrees, uint8_t minutes, bool negative)
 }
 }  // namespace
 
-meade::RaCoordinate MeadeCommandProcessor::onCurrentRa()
+meade::RaCoordinate MeadeCommandAdapter::onCurrentRa()
 {
     return raFrom(_mount->currentRA());
 }
 
-meade::RaCoordinate MeadeCommandProcessor::onTargetRa()
+meade::RaCoordinate MeadeCommandAdapter::onTargetRa()
 {
     return raFrom(_mount->targetRA());
 }
 
-meade::DecCoordinate MeadeCommandProcessor::onCurrentDec()
+meade::DecCoordinate MeadeCommandAdapter::onCurrentDec()
 {
     return decFrom(_mount->currentDEC());
 }
 
-meade::DecCoordinate MeadeCommandProcessor::onTargetDec()
+meade::DecCoordinate MeadeCommandAdapter::onTargetDec()
 {
     return decFrom(_mount->targetDEC());
 }
 
-const char *MeadeCommandProcessor::onMountStatus()
+const char *MeadeCommandAdapter::onMountStatus()
 {
     _mountStatusScratch = _mount->getStatusString();
     return _mountStatusScratch.c_str();
 }
 
-bool MeadeCommandProcessor::onIsSlewing()
+bool MeadeCommandAdapter::onIsSlewing()
 {
     return _mount->isSlewingRAorDEC();
 }
 
-bool MeadeCommandProcessor::onIsTracking()
+bool MeadeCommandAdapter::onIsTracking()
 {
     return _mount->isSlewingTRK();
 }
 
-bool MeadeCommandProcessor::onIsGuiding()
+bool MeadeCommandAdapter::onIsGuiding()
 {
     return _mount->isGuiding();
 }
 
-meade::MeadeLatitude MeadeCommandProcessor::onSiteLatitude()
+meade::MeadeLatitude MeadeCommandAdapter::onSiteLatitude()
 {
     const Latitude lat = _mount->latitude();
     // getHours() folds the sign into the degrees component, so a site between
@@ -189,7 +189,7 @@ meade::MeadeLatitude MeadeCommandProcessor::onSiteLatitude()
     };
 }
 
-meade::MeadeLongitude MeadeCommandProcessor::onSiteLongitude()
+meade::MeadeLongitude MeadeCommandAdapter::onSiteLongitude()
 {
     const Longitude lon = _mount->longitude();
     const int degrees   = lon.getHours();
@@ -200,12 +200,12 @@ meade::MeadeLongitude MeadeCommandProcessor::onSiteLongitude()
     };
 }
 
-int MeadeCommandProcessor::onUtcOffset()
+int MeadeCommandAdapter::onUtcOffset()
 {
     return -_mount->getLocalUtcOffset();
 }
 
-meade::MeadeLocalTime MeadeCommandProcessor::onLocalTime()
+meade::MeadeLocalTime MeadeCommandAdapter::onLocalTime()
 {
     DayTime time = _mount->getLocalTime();
     return meade::MeadeLocalTime {
@@ -215,7 +215,7 @@ meade::MeadeLocalTime MeadeCommandProcessor::onLocalTime()
     };
 }
 
-meade::MeadeLocalDate MeadeCommandProcessor::onLocalDate()
+meade::MeadeLocalDate MeadeCommandAdapter::onLocalDate()
 {
     ::LocalDate d = _mount->getLocalDate();
     return meade::MeadeLocalDate {
@@ -225,17 +225,17 @@ meade::MeadeLocalDate MeadeCommandProcessor::onLocalDate()
     };
 }
 
-meade::MeadeClockFormat MeadeCommandProcessor::onClockFormat()
+meade::MeadeClockFormat MeadeCommandAdapter::onClockFormat()
 {
     return meade::MeadeClockFormat::Hours24;
 }
 
-meade::MeadeTrackingRate MeadeCommandProcessor::onTrackingRate()
+meade::MeadeTrackingRate MeadeCommandAdapter::onTrackingRate()
 {
     return meade::MeadeTrackingRate::Sidereal;
 }
 
-const char *MeadeCommandProcessor::onSiteName(uint8_t index)
+const char *MeadeCommandAdapter::onSiteName(uint8_t index)
 {
     snprintf(_siteNameScratch, sizeof(_siteNameScratch), "OAT%u", static_cast<unsigned>(index));
     return _siteNameScratch;
@@ -244,7 +244,7 @@ const char *MeadeCommandProcessor::onSiteName(uint8_t index)
 /////////////////////////////
 // GPS CONTROL
 /////////////////////////////
-bool MeadeCommandProcessor::onStartGpsAcquisition(const char *timeoutPayload)
+bool MeadeCommandAdapter::onStartGpsAcquisition(const char *timeoutPayload)
 {
 #if USE_GPS == 1
     unsigned long timeoutLen = 2UL * 60UL * 1000UL;
@@ -272,7 +272,7 @@ bool MeadeCommandProcessor::onStartGpsAcquisition(const char *timeoutPayload)
 /////////////////////////////
 // SYNC CONTROL
 /////////////////////////////
-void MeadeCommandProcessor::onSyncToTarget()
+void MeadeCommandAdapter::onSyncToTarget()
 {
     _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
 }
@@ -280,41 +280,41 @@ void MeadeCommandProcessor::onSyncToTarget()
 /////////////////////////////
 // SET INFO
 /////////////////////////////
-bool MeadeCommandProcessor::onSetTargetDec(meade::DecCoordinate dec)
+bool MeadeCommandAdapter::onSetTargetDec(meade::DecCoordinate dec)
 {
     _mount->targetDEC() = decFromWire(dec);
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
     return true;
 }
 
-bool MeadeCommandProcessor::onSetTargetRa(meade::RaCoordinate ra)
+bool MeadeCommandAdapter::onSetTargetRa(meade::RaCoordinate ra)
 {
     _mount->targetRA().set(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", _mount->targetRA().ToString());
     return true;
 }
 
-bool MeadeCommandProcessor::onSetLocalSiderealTime(meade::MeadeLocalTime lst)
+bool MeadeCommandAdapter::onSetLocalSiderealTime(meade::MeadeLocalTime lst)
 {
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received LST: %u:%u:%u", lst.hours, lst.minutes, lst.seconds);
     _mount->setLST(DayTime(static_cast<int>(lst.hours), static_cast<int>(lst.minutes), static_cast<int>(lst.seconds)));
     return true;
 }
 
-bool MeadeCommandProcessor::onSetHomePoint()
+bool MeadeCommandAdapter::onSetHomePoint()
 {
     _mount->setHome(false);
     return true;
 }
 
-bool MeadeCommandProcessor::onSetHourAngle(uint8_t hours, uint8_t minutes)
+bool MeadeCommandAdapter::onSetHourAngle(uint8_t hours, uint8_t minutes)
 {
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received HA: %u:%u:0", hours, minutes);
     _mount->setHA(DayTime(static_cast<int>(hours), static_cast<int>(minutes), 0));
     return true;
 }
 
-bool MeadeCommandProcessor::onSyncCoordinates(meade::DecCoordinate dec, meade::RaCoordinate ra)
+bool MeadeCommandAdapter::onSyncCoordinates(meade::DecCoordinate dec, meade::RaCoordinate ra)
 {
     Declination decValue = decFromWire(dec);
     DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
@@ -322,7 +322,7 @@ bool MeadeCommandProcessor::onSyncCoordinates(meade::DecCoordinate dec, meade::R
     return true;
 }
 
-bool MeadeCommandProcessor::onSetSiteLatitude(meade::MeadeLatitude lat)
+bool MeadeCommandAdapter::onSetSiteLatitude(meade::MeadeLatitude lat)
 {
     Latitude value;
     value.addSeconds(siteSecondsFrom(lat.degrees, lat.minutes, lat.negative));
@@ -330,7 +330,7 @@ bool MeadeCommandProcessor::onSetSiteLatitude(meade::MeadeLatitude lat)
     return true;
 }
 
-bool MeadeCommandProcessor::onSetSiteLongitude(meade::MeadeLongitude lon)
+bool MeadeCommandAdapter::onSetSiteLongitude(meade::MeadeLongitude lon)
 {
     Longitude value;
     value.addSeconds(siteSecondsFrom(lon.degrees, lon.minutes, lon.negative));
@@ -338,7 +338,7 @@ bool MeadeCommandProcessor::onSetSiteLongitude(meade::MeadeLongitude lon)
     return true;
 }
 
-bool MeadeCommandProcessor::onSetUtcOffset(int hours)
+bool MeadeCommandAdapter::onSetUtcOffset(int hours)
 {
     // Wire value is the local-time offset from UTC; the mount stores the
     // inverse so that "local + offset = UTC".
@@ -346,13 +346,13 @@ bool MeadeCommandProcessor::onSetUtcOffset(int hours)
     return true;
 }
 
-bool MeadeCommandProcessor::onSetLocalTime(meade::MeadeLocalTime t)
+bool MeadeCommandAdapter::onSetLocalTime(meade::MeadeLocalTime t)
 {
     _mount->setLocalStartTime(DayTime(static_cast<int>(t.hours), static_cast<int>(t.minutes), static_cast<int>(t.seconds)));
     return true;
 }
 
-bool MeadeCommandProcessor::onSetLocalDate(meade::MeadeLocalDate d)
+bool MeadeCommandAdapter::onSetLocalDate(meade::MeadeLocalDate d)
 {
     _mount->setLocalStartDate(static_cast<int>(d.year), static_cast<int>(d.month), static_cast<int>(d.day));
     /*
@@ -369,32 +369,32 @@ bool MeadeCommandProcessor::onSetLocalDate(meade::MeadeLocalDate d)
 /////////////////////////////
 // HOME
 /////////////////////////////
-void MeadeCommandProcessor::onPark()
+void MeadeCommandAdapter::onPark()
 {
     _mount->park();
 }
 
-void MeadeCommandProcessor::onSlewToHome()
+void MeadeCommandAdapter::onSlewToHome()
 {
     _mount->startSlewingToHome();
 }
 
-void MeadeCommandProcessor::onUnpark()
+void MeadeCommandAdapter::onUnpark()
 {
     _mount->startSlewing(TRACKING);
 }
 
-void MeadeCommandProcessor::onSetAzAltHome()
+void MeadeCommandAdapter::onSetAzAltHome()
 {
     _mount->setAZALTHome();
 }
 
-void MeadeCommandProcessor::onSetSlewRate(uint8_t rate)
+void MeadeCommandAdapter::onSetSlewRate(uint8_t rate)
 {
     _mount->setSlewRate(static_cast<int>(rate));
 }
 
-bool MeadeCommandProcessor::onIsSlewingRaOrDec()
+bool MeadeCommandAdapter::onIsSlewingRaOrDec()
 {
     return _mount->isSlewingRAorDEC();
 }
@@ -404,12 +404,12 @@ bool MeadeCommandProcessor::onIsSlewingRaOrDec()
 /////////////////////////////
 // ---- IMeadeExtraHandlers overrides ----------------------------------------
 
-void MeadeCommandProcessor::onFactoryReset()
+void MeadeCommandAdapter::onFactoryReset()
 {
     _mount->clearConfiguration();
 }
 
-void MeadeCommandProcessor::onDriftAlignment(int duration)
+void MeadeCommandAdapter::onDriftAlignment(int duration)
 {
 #if SUPPORT_DRIFT_ALIGNMENT == 1
     _lcdMenu->setCursor(0, 0);
@@ -439,95 +439,95 @@ void MeadeCommandProcessor::onDriftAlignment(int duration)
 #endif
 }
 
-float MeadeCommandProcessor::onGetRaStepsPerDegree()
+float MeadeCommandAdapter::onGetRaStepsPerDegree()
 {
     return _mount->getStepsPerDegree(RA_STEPS);
 }
-float MeadeCommandProcessor::onGetDecStepsPerDegree()
+float MeadeCommandAdapter::onGetDecStepsPerDegree()
 {
     return _mount->getStepsPerDegree(DEC_STEPS);
 }
-float MeadeCommandProcessor::onGetAltStepsPerDegree()
+float MeadeCommandAdapter::onGetAltStepsPerDegree()
 {
     return _mount->getStepsPerDegree(ALTITUDE_STEPS);
 }
-float MeadeCommandProcessor::onGetAzStepsPerDegree()
+float MeadeCommandAdapter::onGetAzStepsPerDegree()
 {
     return _mount->getStepsPerDegree(AZIMUTH_STEPS);
 }
 
-oat::core::meade::ExtraDecLimits MeadeCommandProcessor::onGetDecLimits()
+oat::core::meade::ExtraDecLimits MeadeCommandAdapter::onGetDecLimits()
 {
     oat::core::meade::ExtraDecLimits lim;
     _mount->getDecLimitPositions(lim.lo, lim.hi);
     return lim;
 }
 
-float MeadeCommandProcessor::onGetTrackingSpeedCalibration()
+float MeadeCommandAdapter::onGetTrackingSpeedCalibration()
 {
     return _mount->getSpeedCalibration();
 }
-float MeadeCommandProcessor::onGetRemainingSafeTime()
+float MeadeCommandAdapter::onGetRemainingSafeTime()
 {
     return _mount->checkRALimit();
 }
-float MeadeCommandProcessor::onGetTrackingSpeed()
+float MeadeCommandAdapter::onGetTrackingSpeed()
 {
     return _mount->getSpeed(TRACKING);
 }
-int MeadeCommandProcessor::onGetBacklashSteps()
+int MeadeCommandAdapter::onGetBacklashSteps()
 {
     return _mount->getBacklashCorrection();
 }
-const char *MeadeCommandProcessor::onGetAutoHomingStates()
+const char *MeadeCommandAdapter::onGetAutoHomingStates()
 {
     _mountStatusScratch = _mount->getAutoHomingStates();
     return _mountStatusScratch.c_str();
 }
 
-oat::core::meade::ExtraAzAltPositions MeadeCommandProcessor::onGetAzAltPositions()
+oat::core::meade::ExtraAzAltPositions MeadeCommandAdapter::onGetAzAltPositions()
 {
     oat::core::meade::ExtraAzAltPositions p;
     _mount->getAZALTPositions(p.az, p.alt);
     return p;
 }
 
-oat::core::meade::ExtraStepperCoords MeadeCommandProcessor::onGetTargetCoordinatePositions(float raCoord, float decCoord)
+oat::core::meade::ExtraStepperCoords MeadeCommandAdapter::onGetTargetCoordinatePositions(float raCoord, float decCoord)
 {
     oat::core::meade::ExtraStepperCoords pos;
     _mount->calculateStepperPositions(raCoord, decCoord, pos.raPos, pos.decPos);
     return pos;
 }
 
-const char *MeadeCommandProcessor::onGetStepperInfo()
+const char *MeadeCommandAdapter::onGetStepperInfo()
 {
     _mountStatusScratch = _mount->getStepperInfo();
     return _mountStatusScratch.c_str();
 }
-const char *MeadeCommandProcessor::onGetMountHardwareInfo()
+const char *MeadeCommandAdapter::onGetMountHardwareInfo()
 {
     _mountStatusScratch = _mount->getMountHardwareInfo();
     return _mountStatusScratch.c_str();
 }
-const char *MeadeCommandProcessor::onGetLogBuffer()
+const char *MeadeCommandAdapter::onGetLogBuffer()
 {
     _mountStatusScratch = getLogBuffer();
     return _mountStatusScratch.c_str();
 }
-long MeadeCommandProcessor::onGetRaHomingOffset()
+long MeadeCommandAdapter::onGetRaHomingOffset()
 {
     return _mount->getHomingOffset(StepperAxis::RA_STEPS);
 }
-long MeadeCommandProcessor::onGetDecHomingOffset()
+long MeadeCommandAdapter::onGetDecHomingOffset()
 {
     return _mount->getHomingOffset(StepperAxis::DEC_STEPS);
 }
-bool MeadeCommandProcessor::onGetHemisphere()
+bool MeadeCommandAdapter::onGetHemisphere()
 {
     return inNorthernHemisphere;
 }
 
-oat::core::meade::ExtraHms MeadeCommandProcessor::onGetHourAngle()
+oat::core::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
 {
     DayTime ha = _mount->calculateHa();
     oat::core::meade::ExtraHms t;
@@ -537,7 +537,7 @@ oat::core::meade::ExtraHms MeadeCommandProcessor::onGetHourAngle()
     return t;
 }
 
-oat::core::meade::ExtraHms MeadeCommandProcessor::onGetLocalSiderealTime()
+oat::core::meade::ExtraHms MeadeCommandAdapter::onGetLocalSiderealTime()
 {
     DayTime lst = _mount->calculateLst();
     oat::core::meade::ExtraHms t;
@@ -547,7 +547,7 @@ oat::core::meade::ExtraHms MeadeCommandProcessor::onGetLocalSiderealTime()
     return t;
 }
 
-const char *MeadeCommandProcessor::onGetNetworkStatus()
+const char *MeadeCommandAdapter::onGetNetworkStatus()
 {
 #if (WIFI_ENABLED == 1)
     _mountStatusScratch = wifiControl.getStatus();
@@ -557,24 +557,24 @@ const char *MeadeCommandProcessor::onGetNetworkStatus()
 #endif
 }
 
-void MeadeCommandProcessor::onSetRaStepsPerDegree(float v)
+void MeadeCommandAdapter::onSetRaStepsPerDegree(float v)
 {
     _mount->setStepsPerDegree(RA_STEPS, v);
 }
-void MeadeCommandProcessor::onSetDecStepsPerDegree(float v)
+void MeadeCommandAdapter::onSetDecStepsPerDegree(float v)
 {
     _mount->setStepsPerDegree(DEC_STEPS, v);
 }
-void MeadeCommandProcessor::onSetAzStepsPerDegree(float v)
+void MeadeCommandAdapter::onSetAzStepsPerDegree(float v)
 {
     _mount->setStepsPerDegree(AZIMUTH_STEPS, v);
 }
-void MeadeCommandProcessor::onSetAltStepsPerDegree(float v)
+void MeadeCommandAdapter::onSetAltStepsPerDegree(float v)
 {
     _mount->setStepsPerDegree(ALTITUDE_STEPS, v);
 }
 
-void MeadeCommandProcessor::onSetDecLimitLower(bool havePayload, float value)
+void MeadeCommandAdapter::onSetDecLimitLower(bool havePayload, float value)
 {
     if (havePayload)
     {
@@ -585,7 +585,7 @@ void MeadeCommandProcessor::onSetDecLimitLower(bool havePayload, float value)
         _mount->setDecLimitPosition(false);
     }
 }
-void MeadeCommandProcessor::onSetDecLimitUpper(bool havePayload, float value)
+void MeadeCommandAdapter::onSetDecLimitUpper(bool havePayload, float value)
 {
     if (havePayload)
     {
@@ -596,48 +596,48 @@ void MeadeCommandProcessor::onSetDecLimitUpper(bool havePayload, float value)
         _mount->setDecLimitPosition(true);
     }
 }
-void MeadeCommandProcessor::onClearDecLimitLower()
+void MeadeCommandAdapter::onClearDecLimitLower()
 {
     _mount->clearDecLimitPosition(false);
 }
-void MeadeCommandProcessor::onClearDecLimitUpper()
+void MeadeCommandAdapter::onClearDecLimitUpper()
 {
     _mount->clearDecLimitPosition(true);
 }
-void MeadeCommandProcessor::onSetTrackingSpeedCalibration(float v)
+void MeadeCommandAdapter::onSetTrackingSpeedCalibration(float v)
 {
     _mount->setSpeedCalibration(v, true);
 }
-void MeadeCommandProcessor::onSetTrackingStepperPosition(long v)
+void MeadeCommandAdapter::onSetTrackingStepperPosition(long v)
 {
     _mount->setTrackingStepperPos(v);
 }
-void MeadeCommandProcessor::onSetManualSlewMode(bool enable)
+void MeadeCommandAdapter::onSetManualSlewMode(bool enable)
 {
     _mount->setManualSlewMode(enable);
 }
-void MeadeCommandProcessor::onSetRaManualSpeed(float v)
+void MeadeCommandAdapter::onSetRaManualSpeed(float v)
 {
     _mount->setSpeed(RA_STEPS, v);
 }
-void MeadeCommandProcessor::onSetDecManualSpeed(float v)
+void MeadeCommandAdapter::onSetDecManualSpeed(float v)
 {
     _mount->setSpeed(DEC_STEPS, v);
 }
-void MeadeCommandProcessor::onSetBacklashCorrection(int v)
+void MeadeCommandAdapter::onSetBacklashCorrection(int v)
 {
     _mount->setBacklashCorrection(v);
 }
-void MeadeCommandProcessor::onSetRaHomingOffset(long v)
+void MeadeCommandAdapter::onSetRaHomingOffset(long v)
 {
     _mount->setHomingOffset(StepperAxis::RA_STEPS, static_cast<int>(v));
 }
-void MeadeCommandProcessor::onSetDecHomingOffset(long v)
+void MeadeCommandAdapter::onSetDecHomingOffset(long v)
 {
     _mount->setHomingOffset(StepperAxis::DEC_STEPS, static_cast<int>(v));
 }
 
-bool MeadeCommandProcessor::onLevelIsAvailable()
+bool MeadeCommandAdapter::onLevelIsAvailable()
 {
 #if USE_GYRO_LEVEL == 1
     return true;
@@ -646,7 +646,7 @@ bool MeadeCommandProcessor::onLevelIsAvailable()
 #endif
 }
 
-oat::core::meade::ExtraPitchRoll MeadeCommandProcessor::onLevelGetReferenceAngles()
+oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetReferenceAngles()
 {
     oat::core::meade::ExtraPitchRoll pr;
 #if USE_GYRO_LEVEL == 1
@@ -656,7 +656,7 @@ oat::core::meade::ExtraPitchRoll MeadeCommandProcessor::onLevelGetReferenceAngle
     return pr;
 }
 
-oat::core::meade::ExtraPitchRoll MeadeCommandProcessor::onLevelGetCurrentAngles()
+oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetCurrentAngles()
 {
     oat::core::meade::ExtraPitchRoll pr;
 #if USE_GYRO_LEVEL == 1
@@ -667,7 +667,7 @@ oat::core::meade::ExtraPitchRoll MeadeCommandProcessor::onLevelGetCurrentAngles(
     return pr;
 }
 
-float MeadeCommandProcessor::onLevelGetTemperature()
+float MeadeCommandAdapter::onLevelGetTemperature()
 {
 #if USE_GYRO_LEVEL == 1
     return Gyro::getCurrentTemperature();
@@ -676,7 +676,7 @@ float MeadeCommandProcessor::onLevelGetTemperature()
 #endif
 }
 
-void MeadeCommandProcessor::onLevelSetReferencePitch(float v)
+void MeadeCommandAdapter::onLevelSetReferencePitch(float v)
 {
 #if USE_GYRO_LEVEL == 1
     _mount->setPitchCalibrationAngle(v);
@@ -684,7 +684,7 @@ void MeadeCommandProcessor::onLevelSetReferencePitch(float v)
     (void) v;
 #endif
 }
-void MeadeCommandProcessor::onLevelSetReferenceRoll(float v)
+void MeadeCommandAdapter::onLevelSetReferenceRoll(float v)
 {
 #if USE_GYRO_LEVEL == 1
     _mount->setRollCalibrationAngle(v);
@@ -692,13 +692,13 @@ void MeadeCommandProcessor::onLevelSetReferenceRoll(float v)
     (void) v;
 #endif
 }
-void MeadeCommandProcessor::onLevelStartup()
+void MeadeCommandAdapter::onLevelStartup()
 {
 #if USE_GYRO_LEVEL == 1
     Gyro::startup();
 #endif
 }
-void MeadeCommandProcessor::onLevelShutdown()
+void MeadeCommandAdapter::onLevelShutdown()
 {
 #if USE_GYRO_LEVEL == 1
     Gyro::shutdown();
@@ -708,7 +708,7 @@ void MeadeCommandProcessor::onLevelShutdown()
 /////////////////////////////
 // QUIT
 /////////////////////////////
-void MeadeCommandProcessor::onStopAll()
+void MeadeCommandAdapter::onStopAll()
 {
     // :Q# stops all motors but remains in Control mode.
     _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
@@ -718,32 +718,32 @@ void MeadeCommandProcessor::onStopAll()
     _mount->waitUntilAllStopped();
 }
 
-void MeadeCommandProcessor::onStopDirectionalAll()
+void MeadeCommandAdapter::onStopDirectionalAll()
 {
     _mount->stopSlewing(ALL_DIRECTIONS);
 }
 
-void MeadeCommandProcessor::onStopEast()
+void MeadeCommandAdapter::onStopEast()
 {
     _mount->stopSlewing(EAST);
 }
 
-void MeadeCommandProcessor::onStopWest()
+void MeadeCommandAdapter::onStopWest()
 {
     _mount->stopSlewing(WEST);
 }
 
-void MeadeCommandProcessor::onStopNorth()
+void MeadeCommandAdapter::onStopNorth()
 {
     _mount->stopSlewing(NORTH);
 }
 
-void MeadeCommandProcessor::onStopSouth()
+void MeadeCommandAdapter::onStopSouth()
 {
     _mount->stopSlewing(SOUTH);
 }
 
-void MeadeCommandProcessor::onQuitControlMode()
+void MeadeCommandAdapter::onQuitControlMode()
 {
     // :Qq# does not stop motors, just leaves Control mode.
     inSerialControl = false;
@@ -757,7 +757,7 @@ void MeadeCommandProcessor::onQuitControlMode()
 /////////////////////////////
 // FOCUS COMMANDS
 /////////////////////////////
-void MeadeCommandProcessor::onFocusContinuousIn()
+void MeadeCommandAdapter::onFocusContinuousIn()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove IN");
@@ -765,7 +765,7 @@ void MeadeCommandProcessor::onFocusContinuousIn()
 #endif
 }
 
-void MeadeCommandProcessor::onFocusContinuousOut()
+void MeadeCommandAdapter::onFocusContinuousOut()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove OUT");
@@ -773,7 +773,7 @@ void MeadeCommandProcessor::onFocusContinuousOut()
 #endif
 }
 
-void MeadeCommandProcessor::onFocusMoveBy(long steps)
+void MeadeCommandAdapter::onFocusMoveBy(long steps)
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus move by %l steps", steps);
@@ -783,7 +783,7 @@ void MeadeCommandProcessor::onFocusMoveBy(long steps)
 #endif
 }
 
-void MeadeCommandProcessor::onFocusSetSpeedByRate(int rate)
+void MeadeCommandAdapter::onFocusSetSpeedByRate(int rate)
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed %d", rate);
@@ -793,7 +793,7 @@ void MeadeCommandProcessor::onFocusSetSpeedByRate(int rate)
 #endif
 }
 
-void MeadeCommandProcessor::onFocusStop()
+void MeadeCommandAdapter::onFocusStop()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus stop");
@@ -801,7 +801,7 @@ void MeadeCommandProcessor::onFocusStop()
 #endif
 }
 
-long MeadeCommandProcessor::onFocusGetPosition()
+long MeadeCommandAdapter::onFocusGetPosition()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus get stepperPosition");
@@ -811,7 +811,7 @@ long MeadeCommandProcessor::onFocusGetPosition()
 #endif
 }
 
-bool MeadeCommandProcessor::onFocusIsAvailable()
+bool MeadeCommandAdapter::onFocusIsAvailable()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     return true;
@@ -820,7 +820,7 @@ bool MeadeCommandProcessor::onFocusIsAvailable()
 #endif
 }
 
-void MeadeCommandProcessor::onFocusSetPosition(long steps)
+void MeadeCommandAdapter::onFocusSetPosition(long steps)
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus set stepperPosition %d", steps);
@@ -830,7 +830,7 @@ void MeadeCommandProcessor::onFocusSetPosition(long steps)
 #endif
 }
 
-bool MeadeCommandProcessor::onFocusGetState()
+bool MeadeCommandAdapter::onFocusGetState()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus isRunningFocus");
@@ -865,33 +865,33 @@ byte toMountDirection(oat::core::meade::MoveDirection dir)
 }
 }  // namespace
 
-void MeadeCommandProcessor::onStartSlewToTarget()
+void MeadeCommandAdapter::onStartSlewToTarget()
 {
     _mount->startSlewingToTarget();
 }
 
-void MeadeCommandProcessor::onTrackingOn()
+void MeadeCommandAdapter::onTrackingOn()
 {
     _mount->startSlewing(TRACKING);
 }
 
-void MeadeCommandProcessor::onTrackingOff()
+void MeadeCommandAdapter::onTrackingOff()
 {
     _mount->stopSlewing(TRACKING);
 }
 
-void MeadeCommandProcessor::onGuidePulse(oat::core::meade::MoveDirection dir, int durationMs)
+void MeadeCommandAdapter::onGuidePulse(oat::core::meade::MoveDirection dir, int durationMs)
 {
     _mount->guidePulse(toMountDirection(dir), durationMs);
 }
 
-void MeadeCommandProcessor::onMoveAzAltHome()
+void MeadeCommandAdapter::onMoveAzAltHome()
 {
     LOG(DEBUG_MEADE, "[MEADE]: Move AZ and ALT to home");
     _mount->moveAZALTToHome();
 }
 
-void MeadeCommandProcessor::onMoveAzimuth(float arcMinutes)
+void MeadeCommandAdapter::onMoveAzimuth(float arcMinutes)
 {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Move AZ by %f arcmins", arcMinutes);
@@ -901,7 +901,7 @@ void MeadeCommandProcessor::onMoveAzimuth(float arcMinutes)
 #endif
 }
 
-void MeadeCommandProcessor::onMoveAltitude(float arcMinutes)
+void MeadeCommandAdapter::onMoveAltitude(float arcMinutes)
 {
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Move ALT by %f arcmins", arcMinutes);
@@ -911,27 +911,27 @@ void MeadeCommandProcessor::onMoveAltitude(float arcMinutes)
 #endif
 }
 
-void MeadeCommandProcessor::onSlewEast()
+void MeadeCommandAdapter::onSlewEast()
 {
     _mount->startSlewing(EAST);
 }
 
-void MeadeCommandProcessor::onSlewWest()
+void MeadeCommandAdapter::onSlewWest()
 {
     _mount->startSlewing(WEST);
 }
 
-void MeadeCommandProcessor::onSlewNorth()
+void MeadeCommandAdapter::onSlewNorth()
 {
     _mount->startSlewing(NORTH);
 }
 
-void MeadeCommandProcessor::onSlewSouth()
+void MeadeCommandAdapter::onSlewSouth()
 {
     _mount->startSlewing(SOUTH);
 }
 
-void MeadeCommandProcessor::onMoveStepper(oat::core::meade::MovementAxis axis, long steps)
+void MeadeCommandAdapter::onMoveStepper(oat::core::meade::MovementAxis axis, long steps)
 {
     LOG(DEBUG_MEADE, "[MEADE]: MoveStepper: %l steps on axis %d", steps, static_cast<int>(axis));
     switch (axis)
@@ -954,7 +954,7 @@ void MeadeCommandProcessor::onMoveStepper(oat::core::meade::MovementAxis axis, l
     }
 }
 
-bool MeadeCommandProcessor::onHomeRa(int direction, const char *distancePayload)
+bool MeadeCommandAdapter::onHomeRa(int direction, const char *distancePayload)
 {
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
@@ -971,7 +971,7 @@ bool MeadeCommandProcessor::onHomeRa(int direction, const char *distancePayload)
 #endif
 }
 
-bool MeadeCommandProcessor::onHomeDec(int direction, const char *distancePayload)
+bool MeadeCommandAdapter::onHomeDec(int direction, const char *distancePayload)
 {
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
     int distance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
@@ -988,7 +988,7 @@ bool MeadeCommandProcessor::onHomeDec(int direction, const char *distancePayload
 #endif
 }
 
-const char *MeadeCommandProcessor::processCommand(String inCmd)
+const char *MeadeCommandAdapter::processCommand(String inCmd)
 {
     LOG(DEBUG_MEADE, "[MEADE]: Received command   '%s'", inCmd.c_str());
     _mount->commandReceived();

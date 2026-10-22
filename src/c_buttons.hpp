@@ -115,7 +115,7 @@ void loop()
             }
             else if ((lcd_key == btnNONE) && quitSerialOnNextButtonRelease)
             {
-                MeadeCommandProcessor::instance()->processCommand(":Qq#");
+                MeadeCommandAdapter::instance()->processCommand(":Qq#");
                 quitSerialOnNextButtonRelease = false;
             }
         }

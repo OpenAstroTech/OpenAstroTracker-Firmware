@@ -1,7 +1,7 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "WifiControl.hpp"
-#include "MeadeCommandProcessor.hpp"
+#include "adapters/MeadeCommandAdapter.hpp"
 #include "Mount.hpp"
 
 #if (WIFI_ENABLED == 1)
@@ -17,7 +17,7 @@ void WifiControl::setup()
 {
     LOG(DEBUG_WIFI, "[WIFI]: Starting up Wifi As Mode %d\n", WIFI_MODE);
 
-    _cmdProcessor = MeadeCommandProcessor::instance();
+    _cmdProcessor = MeadeCommandAdapter::instance();
 
     switch (WIFI_MODE)
     {

@@ -1,7 +1,7 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "Mount.hpp"
-#include "MeadeCommandProcessor.hpp"
+#include "adapters/MeadeCommandAdapter.hpp"
 
 #if TEST_VERIFY_MODE == 1
 
@@ -336,7 +336,7 @@ void TestMenu::onCommandReceived(String s)
         s = s.substring(0, s.length() - 1);
     }
 
-    const char *reply = MeadeCommandProcessor::instance()->processCommand(s);
+    const char *reply = MeadeCommandAdapter::instance()->processCommand(s);
 
     if (reply[0] != '\0')
     {

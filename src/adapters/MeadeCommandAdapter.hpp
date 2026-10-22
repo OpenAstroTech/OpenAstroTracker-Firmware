@@ -6,15 +6,15 @@
 class Mount;
 class LcdMenu;
 
-class MeadeCommandProcessor : private oat::core::meade::IMeadeHandlers
+class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers
 {
   public:
-    static MeadeCommandProcessor *createProcessor(Mount *mount, LcdMenu *lcdMenu);
-    static MeadeCommandProcessor *instance();
+    static MeadeCommandAdapter *createProcessor(Mount *mount, LcdMenu *lcdMenu);
+    static MeadeCommandAdapter *instance();
     const char *processCommand(String inCmd);
 
   private:
-    MeadeCommandProcessor(Mount *mount, LcdMenu *lcdMenu);
+    MeadeCommandAdapter(Mount *mount, LcdMenu *lcdMenu);
 
     // Persist a freshly-built response across the handler return.
     // The returned pointer is valid until the next call to `store`.
@@ -164,7 +164,7 @@ class MeadeCommandProcessor : private oat::core::meade::IMeadeHandlers
 
     Mount *_mount;
     LcdMenu *_lcdMenu;
-    static MeadeCommandProcessor *_instance;
+    static MeadeCommandAdapter *_instance;
     oat::core::meade::MeadeResponse _response;
 
     // Storage backing the pointer-returning Get callbacks (firmware/product

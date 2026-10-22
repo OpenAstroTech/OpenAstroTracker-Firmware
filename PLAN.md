@@ -487,7 +487,11 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 
 **Prerequisite:** Phase 3 must be substantially complete. The `MeadeCommandProcessor` currently holds a `Mount*` raw pointer and calls Mount methods directly. It can only be re-wired to port-based interfaces once Phase 3's controllers expose those ports.
 
-1. `MeadeCommandProcessor` (current adapter) is already in `src/` root implementing `IMeadeHandlers` → move it to `src/adapters/MeadeCommandAdapter` to match layer conventions.
+1. ✅ `MeadeCommandProcessor` (current adapter) is already in `src/` root implementing `IMeadeHandlers` → moved to `adapters/MeadeCommandAdapter` (`git mv`, class renamed).
+   - The class is now [`adapters/MeadeCommandAdapter`](src/adapters/MeadeCommandAdapter.hpp), and the twelve references across `c_buttons`, `f_serial`, `WifiControl`, `b_setup`, `testmenu`, `a_inits` and one `core/types/Declination.hpp` comment were updated with it. Its own includes went `../`-relative, since it moved a level down.
+   - `[env:native]` excludes it from `build_src_filter` like the other three Arduino-dependent adapters: it reads `String` and drives the legacy `Mount`, so the board builds are its compile check and `native` stays honest about what it covers.
+   - Cost: **−34 B flash, +1 B SRAM** on `ramps` (161556 → 161522 B, 5800 → 5801 B — an alignment byte). No behaviour change; 527 native tests, five board envs and the full `ramps` matrix unchanged.
+   - What it does **not** do: the class still holds `Mount *` and still formats wire bytes inline. Steps 2–5 are the substance — transports, the `PendingReply` table, and dispatch through `MountCoordinator` — and they need the coordinator to expose request methods, which it does not yet.
 2. Introduce `adapters/SerialTransport` + `adapters/WifiTransport` to feed bytes to `core/meade/MeadeParser`; parsed commands dispatch to the adapter.
 3. Remove `Mount* _mount` raw pointer from `MeadeCommandProcessor` — dispatch through `core/MountCoordinator` (`request*` + `state()`) and the port-based controller interfaces from Phase 2/3 (not the god-object).
 4. Split `IMeadeHandlers` into three shapes: **immediate** (read `MountState`), **request/ack** (`coordinator.request*()`), **deferred** (return a correlation id instead of bytes). `MeadeResponse` gains an explicit "deferred, no inline output" outcome and `dispatchMeadeCommand` reports it. `:MS#`/`:MA#` stay request/ack — they already acknowledge immediately and the host polls `:D#`.
@@ -557,8 +561,8 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 - `unit_tests/test_common/hal_fakes/` and `unit_tests/test_adapters/`
 
 ### Phase 5 targets
-- [`src/MeadeCommandProcessor.cpp`](src/MeadeCommandProcessor.cpp), [`src/MeadeCommandProcessor.hpp`](src/MeadeCommandProcessor.hpp) — adapter already bridges parser to `Mount`; move to `src/adapters/` and wire through ports.
-- [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandProcessor::instance()->processCommand()`; becomes `SerialTransport` adapter.
+- [`src/adapters/MeadeCommandAdapter.cpp`](src/adapters/MeadeCommandAdapter.cpp), [`src/adapters/MeadeCommandAdapter.hpp`](src/adapters/MeadeCommandAdapter.hpp) — moved here in Phase 5 step 1 (was `src/MeadeCommandProcessor`); still bridges parser to `Mount` directly and needs wiring through ports.
+- [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandAdapter::instance()->processCommand()`; becomes `SerialTransport` adapter.
 
 ### Infrastructure
 - [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). Phase 2a adds `test_adapters` to `test_filter`, per-board `build_src_filter` HAL exclusions, ETL to `[common].lib_deps` + `[env:native].test_lib_deps`, and the AVR `-std` spike.

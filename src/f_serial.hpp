@@ -8,7 +8,7 @@
 #include "b_setup.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
-    #include "MeadeCommandProcessor.hpp"
+    #include "adapters/MeadeCommandAdapter.hpp"
 
 void processSerialData();
 
@@ -132,7 +132,7 @@ void processSerialData()
                 const String inCmd = String(buffer);
                 LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
 
-                const char *retVal = MeadeCommandProcessor::instance()->processCommand(inCmd);
+                const char *retVal = MeadeCommandAdapter::instance()->processCommand(inCmd);
                 if (retVal[0] != '\0')
                 {
                     LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal);
