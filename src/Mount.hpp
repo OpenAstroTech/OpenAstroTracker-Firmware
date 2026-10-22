@@ -503,7 +503,7 @@ class Mount final : public ports::IMountOptionalAxes
     void focusStop() override;
 
 #if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
-    bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance);
+    bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance) override;
 #endif
     /// Advances whichever hall-sensor homing run is active; a no-op on a board without
     /// one. Called once per tick, so the mount loop needs no `#if` for it.

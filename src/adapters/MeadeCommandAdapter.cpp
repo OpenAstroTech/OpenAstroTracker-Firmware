@@ -955,7 +955,7 @@ bool MeadeCommandAdapter::onHomeRa(int direction, const char *distancePayload)
         distance = clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
         LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
     }
-    return _mount->findHomeByHallSensor(StepperAxis::RA_STEPS, direction, distance);
+    return _motion->findHomeByHallSensor(StepperAxis::RA_STEPS, direction, distance);
 #else
     (void) direction;
     (void) distancePayload;
@@ -972,7 +972,7 @@ bool MeadeCommandAdapter::onHomeDec(int direction, const char *distancePayload)
         distance = clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
         LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", distance);
     }
-    return _mount->findHomeByHallSensor(StepperAxis::DEC_STEPS, direction, distance);
+    return _motion->findHomeByHallSensor(StepperAxis::DEC_STEPS, direction, distance);
 #else
     (void) direction;
     (void) distancePayload;

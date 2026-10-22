@@ -39,6 +39,22 @@ class IMountMotion
 
     virtual bool isSlewingRAorDEC() const = 0;
     virtual bool isSlewingTRK() const     = 0;
+
+    /// Runs the hall-sensor homing search on one axis and reports whether the sensor was found.
+    ///
+    /// It is the one request here that blocks: `core::HomingController` drives the state machine,
+    /// but this legacy entry point waits for the search to finish. A board without a homing sensor
+    /// returns false rather than doing nothing silently.
+    /// Virtual with a "not found" default rather than pure: `Mount` declares it only when the
+    /// build has a hall sensor, so a board without one would otherwise be an abstract class. The
+    /// same null-object shape the level calibration uses.
+    virtual bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance)
+    {
+        (void) axis;
+        (void) initialDirection;
+        (void) searchDistance;
+        return false;
+    }
 };
 
 }  // namespace ports
