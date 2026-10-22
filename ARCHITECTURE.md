@@ -300,8 +300,9 @@ OpenAstroTracker-Firmware/
 
 | Rule | Enforcement |
 |------|-------------|
-| `core/` never includes `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, or a board pin header | CI grep check |
-| `core/` and `ports/` contain zero feature `#ifdef`s | CI grep check |
+| `core/` never includes `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, or a board pin header | `scripts/check_architecture.py`, run by the `architecture` CI job |
+| `core/` and `ports/` contain zero feature `#ifdef`s | `scripts/check_architecture.py`, run by the `architecture` CI job |
+| `core/` and `ports/` never include `hal/` or `adapters/` (the dependency arrow only points down) | `scripts/check_architecture.py`, run by the `architecture` CI job |
 | Time comes from `IClock`; no direct `millis()` below `adapters/` | Interface contract |
 | Logging goes through `ILogger`; no direct `Serial.print()` below `adapters/` | Interface contract |
 | Configuration macros are read only in `app/` | CI grep check |
