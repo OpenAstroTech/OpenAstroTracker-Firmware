@@ -219,6 +219,11 @@ reviewer does not "fix" them back:
    no longer blocks the main loop; the axes decelerate on their own and `:D#` reports. A host
    that relied on `:Q#` taking as long as the deceleration will now see `:D#` answer `|` (still
    slewing) for a moment — which is the honest answer.
+10. **`:gT#` no longer waits for a fix.** It answers `0` ("not ready") after at most 250 ms and
+    the host asks again, instead of holding the whole command layer for up to two minutes. A
+    host that relied on a single long `:gT#` returning `1` must now retry — which is what
+    `MeadeProtocol.hpp` documented for `:gTnnn#` all along. Verify with a cold GPS: repeated
+    `:gT#` must each answer promptly, then start answering `1` once the fix arrives.
 9. **A menu wait no longer runs the mount's update path** (9.5). `Mount::delay()` used to call
    `loop()` while waiting; it is now a plain bounded wait, so during a menu calibration the mount
    keeps *stepping* but no longer processes a slew arrival or a park transition inside the menu
