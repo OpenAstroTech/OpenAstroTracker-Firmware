@@ -733,10 +733,6 @@ class Mount
     unsigned long _lastMountPrint = 0;
     unsigned long _lastDisplayUpdate;
 
-    // Facts the mount publishes (slew started/arrived, parked, ...) live in the
-    // coordinator's queue and are drained once per `loop()`.
-    static const uint8_t kEventQueueDepth = Coordinator::kEventQueueDepth;
-
     char scratchBuffer[24];
     bool _bootComplete;
 
