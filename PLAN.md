@@ -446,7 +446,11 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 
 1. Replace `AZ_STEPPER_TYPE`, `ALT_STEPPER_TYPE`, `FOCUS_STEPPER_TYPE` checks: composition root either constructs the controller and injects it, or injects a **null-object** controller. `core/` code calls unconditionally.
 2. Replace `*_DRIVER_TYPE` checks with selection of the right `IMotorDriver` implementation at composition time (`Tmc2209Driver` vs `NullMotorDriver`).
-3. `USE_HALL_SENSOR_*_AUTOHOME`, `USE_*_END_SWITCH` → presence of a non-null port implementation.
+3. ✅ `USE_HALL_SENSOR_*_AUTOHOME`, `USE_*_END_SWITCH` → presence of a non-null port implementation.
+   - `_raHoming`/`_decHoming`/`_raEndSwitch`/`_decEndSwitch` are declared and initialised on every board, and `EndSwitches` is no longer a conditionally-compiled class.
+   - Readers use `kHasX && ptr != nullptr`: the null test is what the call site reads, and the `kHasX` constant is the compile-time half that lets the compiler drop the branch — and therefore the whole driver, +2.4 KB of AVR flash — on a board without the part. Without that constant the always-compiled `EndSwitch` methods cost 800 B of flash on `ramps` and ~3 KB in the `DEBUG_ANY` shape, for a null check that is always false.
+   - The compile-time decision now survives only where the part is *created* (`setupEndSwitches()`, `findHomeByHallSensor()`) and in the hardware-info string that reports the build's capabilities.
+   - Cost: 8 B of SRAM on AVR (four pointers that only existed when the feature was on). Verified by building `ramps` with all four combinations of hall sensors and end switches.
 4. Truly board-specific code (interrupt registers, board pins) lives **only inside the relevant `hal/<platform>/` backend**; `core/`, `ports/`, and `adapters/` become `#ifdef`-free.
 5. Add a `MountConfig` builder in `app/` that reads the `Configuration*.hpp` macros and produces a runtime config object.
 

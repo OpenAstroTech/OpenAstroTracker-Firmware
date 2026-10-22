@@ -4,7 +4,6 @@
 #include "EndSwitches.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
-#if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
 
 /////////////////////////////////
 //
@@ -178,4 +177,3 @@ void EndSwitch::checkSwitchState()
     }
 }
 
-#endif

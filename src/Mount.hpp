@@ -484,9 +484,10 @@ class Mount
     // Set the speed of the given motor
     void setSpeed(StepperAxis which, float speedDegsPerSec);
 
-#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
+    /// Creates the end switches this board has. A board without them calls a function
+    /// that creates nothing, and every reader below null-checks instead of branching on a
+    /// compile-time flag.
     void setupEndSwitches();
-#endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // Support for moving the mount in azimuth and altitude (requires extra hardware)
@@ -518,6 +519,7 @@ class Mount
     /// Polls the RA/DEC end switches, if this board has them. No-op otherwise.
     void pollEndSwitches();
     String getAutoHomingStates() const;
+    String homingStateText(bool present, const HallSensorHoming *sensor) const;
 
     void setHomingOffset(StepperAxis axis, long offset);
     long getHomingOffset(StepperAxis axis);
@@ -739,19 +741,22 @@ class Mount
     #endif
 #endif
 
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    HallSensorHoming *_raHoming;
-#endif
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    HallSensorHoming *_decHoming;
-#endif
+    // Optional hardware, present at run time or null.
+    //
+    // `kHas*` is the compile-time half: a board that cannot have the part still pays for
+    // these pointers (8 B of SRAM on AVR) but not for the driver code behind them, because
+    // the constant lets the compiler drop the branch entirely. Readers test
+    // `kHasX && ptr != nullptr`, which reads as a presence check at the call site and
+    // still folds to nothing on a board without the part.
+    static constexpr bool kHasRaEndSwitch  = (USE_RA_END_SWITCH == 1);
+    static constexpr bool kHasDecEndSwitch = (USE_DEC_END_SWITCH == 1);
+    static constexpr bool kHasRaHoming     = (USE_HALL_SENSOR_RA_AUTOHOME == 1);
+    static constexpr bool kHasDecHoming    = (USE_HALL_SENSOR_DEC_AUTOHOME == 1);
 
-#if USE_RA_END_SWITCH == 1
-    EndSwitch *_raEndSwitch;
-#endif
-#if USE_DEC_END_SWITCH == 1
-    EndSwitch *_decEndSwitch;
-#endif
+    HallSensorHoming *_raHoming  = nullptr;
+    HallSensorHoming *_decHoming = nullptr;
+    EndSwitch *_raEndSwitch      = nullptr;
+    EndSwitch *_decEndSwitch     = nullptr;
 
     unsigned long _lastMountPrint = 0;
     unsigned long _lastDisplayUpdate;

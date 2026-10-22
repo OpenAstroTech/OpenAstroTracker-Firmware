@@ -3139,8 +3139,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
 /// mount loop calls every tick.
 void Mount::processHomingProgress()
 {
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    if ((_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
+    if (kHasRaHoming && (_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
     {
         _raHoming->processHomingProgress();
         if (_raHoming->isIdleOrComplete())
@@ -3148,10 +3147,8 @@ void Mount::processHomingProgress()
             publishEvent(core::MountEventType::HomingFinished, _raHoming->homingResult() == core::HomingResult::Succeeded);
         }
     }
-#endif
 
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    if ((_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
+    if (kHasDecHoming && (_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
     {
         _decHoming->processHomingProgress();
         if (_decHoming->isIdleOrComplete())
@@ -3159,49 +3156,46 @@ void Mount::processHomingProgress()
             publishEvent(core::MountEventType::HomingFinished, _decHoming->homingResult() == core::HomingResult::Succeeded);
         }
     }
-#endif
 }
 
 /// End switches are polled twice: once to debounce the raw pin, once to act on the
 /// debounced state. On a board without them both calls compile out.
 void Mount::pollEndSwitches()
 {
-#if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch->processEndSwitchState();
-    _raEndSwitch->checkSwitchState();
-#endif
+    if (kHasRaEndSwitch && (_raEndSwitch != nullptr))
+    {
+        _raEndSwitch->processEndSwitchState();
+        _raEndSwitch->checkSwitchState();
+    }
 
-#if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch->processEndSwitchState();
-    _decEndSwitch->checkSwitchState();
-#endif
+    if (kHasDecEndSwitch && (_decEndSwitch != nullptr))
+    {
+        _decEndSwitch->processEndSwitchState();
+        _decEndSwitch->checkSwitchState();
+    }
 }
 
 String Mount::getAutoHomingStates() const
 {
-    String state;
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    if ((_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
-    {
-        state += _raHoming->getHomingState(_raHoming->getHomingState());
-    }
-    else
-    {
-        state += _raHoming->getLastResult();
-    }
-#endif
+    String state = homingStateText(kHasRaHoming && (_raHoming != nullptr), _raHoming);
     state += "|";
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    if ((_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
-    {
-        state += _decHoming->getHomingState(_decHoming->getHomingState());
-    }
-    else
-    {
-        state += _decHoming->getLastResult();
-    }
-#endif
+    state += homingStateText(kHasDecHoming && (_decHoming != nullptr), _decHoming);
     return state;
+}
+
+/// The Meade status fragment for one axis' sensor. A board without the sensor reports the
+/// same "NEVER RUN"/empty shape a sensor that has never homed does.
+String Mount::homingStateText(bool present, const HallSensorHoming *sensor) const
+{
+    if (!present)
+    {
+        return String();
+    }
+    if (!sensor->isIdleOrComplete())
+    {
+        return sensor->getHomingState(sensor->getHomingState());
+    }
+    return sensor->getLastResult();
 }
 
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
@@ -3293,20 +3287,16 @@ void Mount::interruptLoop()
 
     if (_state.test(STATUS_FINDING_HOME))
     {
-    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-        _stepperRA->run();
-        if (_raHoming != nullptr)
+        if (kHasRaHoming && (_raHoming != nullptr))
         {
+            _stepperRA->run();
             _raHoming->processHomingProgress();
         }
-    #endif
-    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-        _stepperDEC->run();
-        if (_decHoming != nullptr)
+        if (kHasDecHoming && (_decHoming != nullptr))
         {
+            _stepperDEC->run();
             _decHoming->processHomingProgress();
         }
-    #endif
     }
 
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -3329,13 +3319,15 @@ void Mount::interruptLoop()
     }
     #endif
 
-    #if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch->processEndSwitchState();
-    #endif
+    if (kHasRaEndSwitch && (_raEndSwitch != nullptr))
+    {
+        _raEndSwitch->processEndSwitchState();
+    }
 
-    #if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch->processEndSwitchState();
-    #endif
+    if (kHasDecEndSwitch && (_decEndSwitch != nullptr))
+    {
+        _decEndSwitch->processEndSwitchState();
+    }
 }
 #endif
 
