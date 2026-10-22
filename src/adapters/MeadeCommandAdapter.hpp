@@ -65,8 +65,8 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
 
     /// Hands the reply to the table instead of writing it inline. The handler's own return value
     /// is then ignored, and `processCommand()` reports "no bytes yet" rather than an empty answer.
-    /// A full table leaves the reply pending and lets the handler answer inline: a host waiting on
-    /// a reply that will never come is worse than an immediate, conventional answer.
+    /// A full table declines the deferral, so the handler's inline answer goes out instead: a host
+    /// waiting on a reply that will never come is worse than an immediate, conventional answer.
     void deferReply(oat::core::meade::ReplyKind kind, ::core::MountEventType completesOn, uint32_t timeoutMs);
 
     /// Formats and writes one deferred reply.
@@ -221,16 +221,16 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     // The mount, as four ports instead of one pointer (PLAN.md Phase 5 step 3). No `Mount *`
     // member: every call site below goes through one of these, which is what makes the command
     // layer's dependency on the mount visible in one place.
-    ports::IMountConfiguration *_config    = nullptr;
-    ports::IMountMotion *_motion           = nullptr;
-    ports::IMountOptionalAxes *_axes       = nullptr;
-    ports::IMountReadModel *_read          = nullptr;
-    ports::IMountSiteTime *_siteTime       = nullptr;
-    ports::IMountEvents *_events           = nullptr;
-    ports::IClock *_clock                  = nullptr;
+    ports::IMountConfiguration *_config = nullptr;
+    ports::IMountMotion *_motion        = nullptr;
+    ports::IMountOptionalAxes *_axes    = nullptr;
+    ports::IMountReadModel *_read       = nullptr;
+    ports::IMountSiteTime *_siteTime    = nullptr;
+    ports::IMountEvents *_events        = nullptr;
+    ports::IClock *_clock               = nullptr;
     // The transport the current command arrived on; null for commands the firmware issues itself.
-    ports::ITransport *_origin       = nullptr;
-    bool _deferredThisCommand        = false;
+    ports::ITransport *_origin = nullptr;
+    bool _deferredThisCommand  = false;
     oat::core::meade::PendingReplies<> _pending;
     LcdMenu *_lcdMenu;
     static MeadeCommandAdapter *_instance;

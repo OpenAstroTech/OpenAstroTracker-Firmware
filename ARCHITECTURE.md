@@ -231,6 +231,8 @@ OpenAstroTracker-Firmware/
 │   │   │   ├── MeadeParser.cpp/.hpp
 │   │   │   ├── MeadeProtocol.hpp
 │   │   │   ├── MeadeParserHelpers.cpp/.hpp
+│   │   │   ├── CommandAssembler.hpp      # byte stream -> whole commands
+│   │   │   ├── PendingReplies.hpp        # deferred replies owed to a host
 │   │   │   └── MeadeParser{Get,Set,Quit,Distance,Init,SyncControl,
 │   │   │       Home,SlewRate,Gps,Focus,Movement,Extra}.cpp
 │   │   ├── types/

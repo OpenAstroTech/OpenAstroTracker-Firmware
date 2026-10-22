@@ -308,7 +308,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
    - ✅ `Tmc2209Driver` (UART + software-serial variants over `TMC2209Stepper`), `NullMotorDriver`. `IMotorDriver` also exposes `testConnection()`/`VACTUAL()`/`shaft()`, which the UART self-test and `connectToDriver()` need. The adapter talks to the library directly rather than through `hal::ITmcDriver`: a HAL wrapper would have to re-export the same 20 registers and would still not be host-testable. Introduce `hal::ITmcDriver` when a second driver family appears.
    - ✅ `TinyGpsAdapter` — its only consumer today is the out-of-scope [`src/c72_menuHA_GPS.hpp`](src/c72_menuHA_GPS.hpp) plus a forward-declared `gpsAqcuisitionComplete()` in [`src/MeadeCommandProcessor.cpp`](src/MeadeCommandProcessor.cpp); the real consumer arrives in Phase 5. It is compile-verified only: the `native` env excludes it (and `Tmc2209Driver`/`ArduinoScheduler`) from `build_src_filter`.
    - **Deferred to Phase 3** (they call `Mount` today and would violate "adapters depend only on ports + HAL"): `HallHomingSensor` (33 `_pMount->` calls), `GpioEndSwitch` (18 `_pMount->` calls), `Ssd1306InfoDisplay` (23 `mount->` calls), `LcdMenuDisplay` (the menu screens call `mount.*` 192 times and instantiate LiquidCrystal/U8g2 inside [`src/LcdMenu.hpp`](src/LcdMenu.hpp)). Phase 3's `HomingController`/`EventBus` supplies the read model they need.
-   - **Deferred to Phase 5:** `SerialTransport` and `WifiTransport` (Phase 5 step 2 introduces both; they feed `core/meade/MeadeParser` and need the Meade execution layer). Their ports (`ITransport`, `IDisplay`, `IInfoDisplay`) are still defined in 2a and stay unimplemented until then.
+   - **Deferred to Phase 5, now done:** `SerialTransport` landed there and is the only transport class — the Wi-Fi path is `SerialTransport<128>`, not a second implementation, because the two must not drift. `IDisplay`/`IInfoDisplay` remain for Phase 6's display work.
 6. ✅ Refactor `Mount` to **hold port pointers** injected at construction instead of owning concrete types. Composition happens in `app/` (currently `b_setup.hpp`).
    - ~~`Mount(LcdMenu *, ports::IClock *, ports::IScheduler *)`~~ — superseded by 2c's `MountDeps` (one aggregate: clock, scheduler, logger, settings, enable pins). 2b shipped the two-pointer constructor with the pointers declared first among the members so the initialiser order stayed warning-clean. `[`src/b_setup.hpp`](src/b_setup.hpp)` constructs `hal::ArduinoSystemClock`, `adapters::ArduinoClock` and `adapters::ArduinoScheduler` before the `mount` global and passes them in.
    - `_stepperRA/_stepperTRK/_stepperDEC/_stepperGUIDE` (+AZ/ALT/Focus) are `ports::IStepperAxis *` on every platform **except AVR**, where they stay concrete `StepperXxx *`. That is a measured decision, not an oversight: the engines are compile-time specialised per axis and each polymorphic wrapper costs a ~50-byte vtable in the 8 KB SRAM (7 engines = ~350 B). Measured on `ramps`, going through the port cost **+551 B RAM and +20 KB flash** (97.8% RAM, 184 B free — not shippable); with the concrete AVR path the cost is **+153 B RAM and +6.7 KB flash** for the remaining adapters. This is PLAN.md's *template-based static dispatch* escape hatch, and the `hal/avr/InterruptStepperMotor` wrapper was dropped because with it every AVR build would pay that vtable bill.
@@ -494,10 +494,16 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 
 **On-hardware suite:** [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) lists the manual tests this refactor needs before it merges — per-subsystem cases, each naming the work it guards, plus the deliberate behaviour changes to confirm and a sign-off table. Nothing in this branch has been run against real hardware yet; that suite is the gate, not a follow-up.
 
-### Phase 5 — Meade execution layer cleanup
+### Phase 5 — Meade execution layer cleanup ✅ COMPLETE
 *The parser is already in `core/`. This phase finishes the Meade slice by refining the executor and transport layers.*
 
-**Prerequisite:** Phase 3 must be substantially complete. The `MeadeCommandProcessor` currently holds a `Mount*` raw pointer and calls Mount methods directly. It can only be re-wired to port-based interfaces once Phase 3's controllers expose those ports.
+**Status:** every step below is landed. Two things are deliberately not claimed: the adapter is still
+excluded from `native`, so the port conversions and the wire bytes they produce are verified by the
+board builds and by [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) §9 (rows 9.1–9.14) rather than by a host
+test; and `setManualSlewMode()` keeps its blocking wait for the reason step 6 records. No command
+defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wire.
+
+**Prerequisite (met):** Phase 3 had to be substantially complete. The `MeadeCommandProcessor` held a `Mount*` raw pointer and called Mount methods directly, and could only be re-wired to port-based interfaces once Phase 3's controllers exposed those ports.
 
 1. ✅ `MeadeCommandProcessor` (current adapter) is already in `src/` root implementing `IMeadeHandlers` → moved to `adapters/MeadeCommandAdapter` (`git mv`, class renamed).
    - The class is now [`adapters/MeadeCommandAdapter`](src/adapters/MeadeCommandAdapter.hpp), and the twelve references across `c_buttons`, `f_serial`, `WifiControl`, `b_setup`, `testmenu`, `a_inits` and one `core/types/Declination.hpp` comment were updated with it. Its own includes went `../`-relative, since it moved a level down.
@@ -608,7 +614,7 @@ Each step: extract → add focused unit tests with faked ports → remove the or
   - Done for RP2040 (`hal/rp2040/Rp2040TimerService`). **Not moved for AVR**: there is no AVR HAL backend (2a step 2, 2b step 6), so the timer/ISR vectors stay in `src/` and are deferred to Phase 4's timer-arbitration work.
 - [`src/a_inits.hpp`](src/a_inits.hpp), [`src/b_setup.hpp`](src/b_setup.hpp), [`src/f_serial.hpp`](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
   - Not started: `src/app/` still holds only a README and [`src/b_setup.hpp`](src/b_setup.hpp) is the composition root (it builds `MountDeps` and the EEPROM/logger/clock graph).
-- Deferred to Phase 3 (they still call `Mount` directly): [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp). Deferred to Phase 5: [`src/WifiControl.cpp`](src/WifiControl.cpp).
+- Deferred to Phase 3 (they still call `Mount` directly): [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp). [`src/WifiControl.cpp`](src/WifiControl.cpp) was deferred to Phase 5 and is done: its TCP path is `SerialTransport<128>` over a `hal::ArduinoSerialPort` around the `WiFiClient`, so it shares framing and the reply write with the serial loop.
 
 ### New files created in Phase 2
 - `src/hal/`: the 13 interfaces + `EepromLayout.hpp`, `InMemoryEeprom.hpp`, `WarningGuard.hpp`, and the `arduino/`, `esp32/`, `rp2040/` backends
@@ -616,9 +622,11 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 - `src/adapters/`: `ArduinoClock`, `ArduinoScheduler`, `SerialLogger`, `NullLogger` (2c), `EepromPersistentStore`, `MountSettingsStore` (2c), `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `TinyGpsAdapter`
 - `unit_tests/test_common/hal_fakes/` and `unit_tests/test_adapters/`
 
-### Phase 5 targets
-- [`src/adapters/MeadeCommandAdapter.cpp`](src/adapters/MeadeCommandAdapter.cpp), [`src/adapters/MeadeCommandAdapter.hpp`](src/adapters/MeadeCommandAdapter.hpp) — moved here in Phase 5 step 1 (was `src/MeadeCommandProcessor`); still bridges parser to `Mount` directly and needs wiring through ports.
-- [`src/f_serial.hpp`](src/f_serial.hpp) — serial framing code that calls `MeadeCommandAdapter::instance()->processCommand()`; becomes `SerialTransport` adapter.
+### Phase 5 targets — ✅ done
+- [`src/adapters/MeadeCommandAdapter.cpp`](src/adapters/MeadeCommandAdapter.cpp), [`src/adapters/MeadeCommandAdapter.hpp`](src/adapters/MeadeCommandAdapter.hpp) — moved here in step 1 (was `src/MeadeCommandProcessor`); now holds no `Mount *` at all, only the six ports in `MeadeCommandPorts`, the deferred-reply table and the transport it was last asked from.
+- [`src/f_serial.hpp`](src/f_serial.hpp) — became the `SerialTransport` pump: framing, the ACK probe and the reply write live in the adapter, and the loop only moves commands to the command layer and ticks the reply deadlines.
+- [`src/core/meade/PendingReplies.hpp`](src/core/meade/PendingReplies.hpp) — new in step 5: the heap-free table of replies still owed to a host.
+- [`src/ports/IMountReadModel.hpp`](src/ports/IMountReadModel.hpp), [`src/ports/IMountSiteTime.hpp`](src/ports/IMountSiteTime.hpp), [`src/ports/IMountEvents.hpp`](src/ports/IMountEvents.hpp) — new in step 3's fifth slice: the read model, the site/clock and the event stream the command layer needs, so it needs nothing else of `Mount`.
 
 ### Infrastructure
 - [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). Phase 2a adds `test_adapters` to `test_filter`, per-board `build_src_filter` HAL exclusions, ETL to `[common].lib_deps` + `[env:native].test_lib_deps`, and the AVR `-std` spike.
