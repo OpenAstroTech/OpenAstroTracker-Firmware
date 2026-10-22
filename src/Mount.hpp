@@ -22,7 +22,7 @@
 #include "ports/IClock.hpp"
 #include "ports/ILogger.hpp"
 #include "ports/IMotorDriver.hpp"
-#include "ports/IMountConfiguration.hpp"
+#include "ports/IMountOptionalAxes.hpp"
 #include "ports/IMountMotion.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
@@ -185,7 +185,7 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class Mount final : public ports::IMountConfiguration
+class Mount final : public ports::IMountOptionalAxes
 {
   public:
     /// The infrastructure ports are injected by the composition root
@@ -346,8 +346,8 @@ class Mount final : public ports::IMountConfiguration
     void startSlewingToHome() override;
 
     // Move AZ and ALT motors to their zero position
-    void moveAZALTToHome();
-    void getAZALTPositions(long &azPos, long &altPos);
+    void moveAZALTToHome() override;
+    void getAZALTPositions(long &azPos, long &altPos) override;
     void setAZALTHome();
 
     // Various status query functions
@@ -361,7 +361,7 @@ class Mount final : public ports::IMountConfiguration
     bool isRunningAZ() const;
     bool isRunningALT() const;
 
-    bool isRunningFocus() const;
+    bool isRunningFocus() const override;
     float getFocusSpeed() const;
 
     // Starts manual slewing in one of eight directions or tracking
@@ -485,21 +485,21 @@ class Mount final : public ports::IMountConfiguration
 
     // Support for moving the mount in azimuth and altitude (requires extra hardware).
     // Each entry point is a no-op when the axis is not present in this build.
-    void moveBy(int direction, float arcMinutes);
+    void moveBy(int direction, float arcMinutes) override;
     void disableAzAltMotors();
     void enableAzMotor();
     void enableAltMotor();
 
     // Support for focus motor (requires extra hardware). Each entry point is a no-op
     // when no focuser is present in this build.
-    void focusSetSpeedByRate(int rate);
-    void focusContinuousMove(FocuserDirection direction);
-    void focusMoveBy(long steps);
-    long focusGetStepperPosition();
-    void focusSetStepperPosition(long steps);
+    void focusSetSpeedByRate(int rate) override;
+    void focusContinuousMove(FocuserDirection direction) override;
+    void focusMoveBy(long steps) override;
+    long focusGetStepperPosition() override;
+    void focusSetStepperPosition(long steps) override;
     void disableFocusMotor();
     void enableFocusMotor();
-    void focusStop();
+    void focusStop() override;
 
 #if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
     bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance);

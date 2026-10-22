@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/meade/MeadeParser.hpp"
-#include "ports/IMountConfiguration.hpp"
+#include "ports/IMountOptionalAxes.hpp"
 #include "ports/IMountMotion.hpp"
 
 // Forward declarations
@@ -169,6 +169,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers
     // `_mount` is still read directly and moves one group at a time (PLAN.md Phase 5 step 3).
     ports::IMountMotion *_motion        = nullptr;
     ports::IMountConfiguration *_config = nullptr;
+    ports::IMountOptionalAxes *_axes    = nullptr;
     LcdMenu *_lcdMenu;
     static MeadeCommandAdapter *_instance;
     oat::core::meade::MeadeResponse _response;

@@ -50,6 +50,7 @@ MeadeCommandAdapter::MeadeCommandAdapter(Mount *mount, LcdMenu *lcdMenu)
     _mount  = mount;
     _motion = mount;
     _config = mount;
+    _axes   = mount;
 
     // In case of DISPLAY_TYPE_NONE mode, the lcdMenu is just an empty shell class to save having to null check everywhere
     _lcdMenu = lcdMenu;
@@ -490,7 +491,7 @@ const char *MeadeCommandAdapter::onGetAutoHomingStates()
 oat::core::meade::ExtraAzAltPositions MeadeCommandAdapter::onGetAzAltPositions()
 {
     oat::core::meade::ExtraAzAltPositions p;
-    _mount->getAZALTPositions(p.az, p.alt);
+    _axes->getAZALTPositions(p.az, p.alt);
     return p;
 }
 
@@ -768,7 +769,7 @@ void MeadeCommandAdapter::onFocusContinuousIn()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove IN");
-    _mount->focusContinuousMove(FOCUS_BACKWARD);
+    _axes->focusContinuousMove(FOCUS_BACKWARD);
 #endif
 }
 
@@ -776,7 +777,7 @@ void MeadeCommandAdapter::onFocusContinuousOut()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove OUT");
-    _mount->focusContinuousMove(FOCUS_FORWARD);
+    _axes->focusContinuousMove(FOCUS_FORWARD);
 #endif
 }
 
@@ -784,7 +785,7 @@ void MeadeCommandAdapter::onFocusMoveBy(long steps)
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus move by %l steps", steps);
-    _mount->focusMoveBy(steps);
+    _axes->focusMoveBy(steps);
 #else
     (void) steps;
 #endif
@@ -794,7 +795,7 @@ void MeadeCommandAdapter::onFocusSetSpeedByRate(int rate)
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus setSpeed %d", rate);
-    _mount->focusSetSpeedByRate(rate);
+    _axes->focusSetSpeedByRate(rate);
 #else
     (void) rate;
 #endif
@@ -804,7 +805,7 @@ void MeadeCommandAdapter::onFocusStop()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus stop");
-    _mount->focusStop();
+    _axes->focusStop();
 #endif
 }
 
@@ -812,7 +813,7 @@ long MeadeCommandAdapter::onFocusGetPosition()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus get stepperPosition");
-    return _mount->focusGetStepperPosition();
+    return _axes->focusGetStepperPosition();
 #else
     return 0L;
 #endif
@@ -831,7 +832,7 @@ void MeadeCommandAdapter::onFocusSetPosition(long steps)
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus set stepperPosition %d", steps);
-    _mount->focusSetStepperPosition(steps);
+    _axes->focusSetStepperPosition(steps);
 #else
     (void) steps;
 #endif
@@ -841,7 +842,7 @@ bool MeadeCommandAdapter::onFocusGetState()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus isRunningFocus");
-    return _mount->isRunningFocus();
+    return _axes->isRunningFocus();
 #else
     return false;
 #endif
@@ -895,14 +896,14 @@ void MeadeCommandAdapter::onGuidePulse(oat::core::meade::MoveDirection dir, int 
 void MeadeCommandAdapter::onMoveAzAltHome()
 {
     LOG(DEBUG_MEADE, "[MEADE]: Move AZ and ALT to home");
-    _mount->moveAZALTToHome();
+    _axes->moveAZALTToHome();
 }
 
 void MeadeCommandAdapter::onMoveAzimuth(float arcMinutes)
 {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Move AZ by %f arcmins", arcMinutes);
-    _mount->moveBy(AZIMUTH_STEPS, arcMinutes);
+    _axes->moveBy(AZIMUTH_STEPS, arcMinutes);
 #else
     (void) arcMinutes;
 #endif
@@ -912,7 +913,7 @@ void MeadeCommandAdapter::onMoveAltitude(float arcMinutes)
 {
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Move ALT by %f arcmins", arcMinutes);
-    _mount->moveBy(ALTITUDE_STEPS, arcMinutes);
+    _axes->moveBy(ALTITUDE_STEPS, arcMinutes);
 #else
     (void) arcMinutes;
 #endif
