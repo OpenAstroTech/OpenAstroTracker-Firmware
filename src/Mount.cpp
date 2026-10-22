@@ -558,11 +558,7 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Requested RA motor rms_current: %d mA", rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
     _driverRA->pdn_disable(1);
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverRA->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverRA->toff(1);
-        #endif
+    _driverRA->toff(adapters::kTmc2209Toff);
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
     _driverRA->microsteps(core::microstepRegisterValue(RA_TRACKING_MICROSTEPPING));  // System starts in tracking mode
@@ -601,11 +597,7 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Requested RA motor rms_current: %d mA", rmscurrent);
     _driverRA->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverRA->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverRA->toff(1);
-        #endif
+    _driverRA->toff(adapters::kTmc2209Toff);
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
     _driverRA->semin(0);                                                             //disable CoolStep so that current is consistent
@@ -652,11 +644,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->pdn_disable(1);
     _driverDEC->iholddelay(15);
     _driverDEC->TPOWERDOWN(255);
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverDEC->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverDEC->toff(1);
-        #endif
+    _driverDEC->toff(adapters::kTmc2209Toff);
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
@@ -695,11 +683,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Requested DEC motor rms_current: %d mA", rmscurrent);
     _driverDEC->rms_current(rmscurrent, 1.0f);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverDEC->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverDEC->toff(1);
-        #endif
+    _driverDEC->toff(adapters::kTmc2209Toff);
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
@@ -743,11 +727,7 @@ void Mount::configureAZdriver(Stream *serial, float rsense, byte driveraddress, 
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Requested AZ motor rms_current: %d mA", rmscurrent);
     _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverAZ->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverAZ->toff(1);
-        #endif
+    _driverAZ->toff(adapters::kTmc2209Toff);
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(core::microstepRegisterValue(AZ_MICROSTEPPING));  // If 1 then disable microstepping
@@ -785,11 +765,7 @@ void Mount::configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Requested AZ motor rms_current: %d mA", rmscurrent);
     _driverAZ->rms_current(rmscurrent, AZ_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverAZ->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverAZ->toff(1);
-        #endif
+    _driverAZ->toff(adapters::kTmc2209Toff);
     _driverAZ->en_spreadCycle(0);
     _driverAZ->blank_time(24);
     _driverAZ->microsteps(core::microstepRegisterValue(AZ_MICROSTEPPING));  // If 1 then disable microstepping
@@ -832,11 +808,7 @@ void Mount::configureALTdriver(Stream *serial, float rsense, byte driveraddress,
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Requested ALT motor rms_current: %d mA", rmscurrent);
     _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverALT->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverALT->toff(1);
-        #endif
+    _driverALT->toff(adapters::kTmc2209Toff);
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
     _driverALT->microsteps(core::microstepRegisterValue(ALT_MICROSTEPPING));  // If 1 then disable microstepping
@@ -874,11 +846,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Requested ALT motor rms_current: %d mA", rmscurrent);
     _driverALT->rms_current(rmscurrent, ALT_MOTOR_HOLD_SETTING / 100.0);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverALT->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverALT->toff(1);
-        #endif
+    _driverALT->toff(adapters::kTmc2209Toff);
     _driverALT->en_spreadCycle(0);
     _driverALT->blank_time(24);
     _driverALT->microsteps(core::microstepRegisterValue(ALT_MICROSTEPPING));  // If 1 then disable microstepping
@@ -923,11 +891,7 @@ void Mount::configureFocusDriver(Stream *serial, float rsense, byte driveraddres
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_FOCUS, "[FOCUS]: Requested Focus motor rms_current: %d mA", rmscurrent);
     _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverFocus->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverFocus->toff(1);
-        #endif
+    _driverFocus->toff(adapters::kTmc2209Toff);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
     _driverFocus->microsteps(core::microstepRegisterValue(FOCUS_MICROSTEPPING));  // If 1 then disable microstepping
@@ -973,11 +937,7 @@ void Mount::configureFocusDriver(
         #endif
     OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_FOCUS, "[FOCUS]: Requested Focus motor rms_current: %d mA", rmscurrent);
     _driverFocus->rms_current(rmscurrent, FOCUSER_MOTOR_HOLD_SETTING / 100.f);  //holdMultiplier = 1 to set ihold = irun
-        #if defined(ARDUINO_ARCH_RP2040)
-    _driverFocus->toff(4);  // toff>=3 required for StealthChop slow-decay phase
-        #else
-    _driverFocus->toff(1);
-        #endif
+    _driverFocus->toff(adapters::kTmc2209Toff);
     _driverFocus->en_spreadCycle(FOCUS_UART_STEALTH_MODE == 0);
     _driverFocus->blank_time(24);
     _driverFocus->microsteps(core::microstepRegisterValue(FOCUS_MICROSTEPPING));  // If 1 then disable microstepping

@@ -10,6 +10,18 @@ class TMC2209Stepper;
 namespace adapters
 {
 
+/// The `toff` (off-time) the TMC2209 is configured with.
+///
+/// StealthChop needs `toff >= 3` for its slow-decay phase, but the boards do not agree on the
+/// value: the RP2040 boards run 4, every other board 1. That used to be a `#if
+/// defined(ARDUINO_ARCH_RP2040)` pair repeated once per driver in `Mount.cpp`; it is one
+/// platform fact, so it is stated once here.
+#if defined(ARDUINO_ARCH_RP2040)
+static constexpr uint8_t kTmc2209Toff = 4;
+#else
+static constexpr uint8_t kTmc2209Toff = 1;
+#endif
+
 /// `ports::IMotorDriver` over a TMC2209, in either UART wiring.
 ///
 /// Two constructors rather than a flag: a driver behind a shared `Stream` (hardware
