@@ -22,6 +22,7 @@
 #include "ports/IClock.hpp"
 #include "ports/ILogger.hpp"
 #include "ports/IMotorDriver.hpp"
+#include "ports/IMountMotion.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
 #include "ports/IStepperAxis.hpp"
@@ -183,7 +184,7 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class Mount
+class Mount final : public ports::IMountMotion
 {
   public:
     /// The infrastructure ports are injected by the composition root
@@ -338,10 +339,10 @@ class Mount
 
     // Calculates movement parameters and program steppers to move
     // there. Must call loop() frequently to actually move.
-    void startSlewingToTarget();
+    void startSlewingToTarget() override;
 
     // Sends the mount to the home position
-    void startSlewingToHome();
+    void startSlewingToHome() override;
 
     // Move AZ and ALT motors to their zero position
     void moveAZALTToHome();
@@ -349,9 +350,9 @@ class Mount
     void setAZALTHome();
 
     // Various status query functions
-    bool isSlewingRAorDEC() const;
+    bool isSlewingRAorDEC() const override;
     bool isSlewingIdle() const;
-    bool isSlewingTRK() const;
+    bool isSlewingTRK() const override;
     bool isParking() const;
     bool isGuiding() const;
     bool isFindingHome() const;
@@ -363,11 +364,11 @@ class Mount
     float getFocusSpeed() const;
 
     // Starts manual slewing in one of eight directions or tracking
-    void startSlewing(int direction);
+    void startSlewing(int direction) override;
 
     // Stop manual slewing in one of two directions or tracking. NS is the same. EW is the same
-    void stopSlewing(int direction);
-    void stopSlewing(StepperAxis axis);
+    void stopSlewing(int direction) override;
+    void stopSlewing(StepperAxis axis) override;
 
     // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
     void waitUntilStopped(byte direction);
@@ -408,10 +409,10 @@ class Mount
     void getDecLimitPositions(float &lowerLimit, float &upperLimit);
 
     // Asynchronously parks the mount. Moves to the home position and stops all motors.
-    void park();
+    void park() override;
 
     // Runs the RA motor at twice the speed (or stops it), or the DEC motor at tracking speed for the given duration in ms.
-    void guidePulse(byte direction, int duration);
+    void guidePulse(byte direction, int duration) override;
 
     // Stops given guide operations in progress.
     void stopGuiding(bool ra = true, bool dec = true);
@@ -515,7 +516,7 @@ class Mount
     long getHomingOffset(StepperAxis axis);
 
     // Move the given stepper motor by the given amount of steps.
-    void moveStepperBy(StepperAxis which, long steps);
+    void moveStepperBy(StepperAxis which, long steps) override;
 
     // Move the given stepper motor to the given step position.
     void moveStepperTo(StepperAxis which, long position);

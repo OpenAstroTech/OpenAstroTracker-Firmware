@@ -47,7 +47,8 @@ MeadeCommandAdapter *MeadeCommandAdapter::instance()
 /////////////////////////////
 MeadeCommandAdapter::MeadeCommandAdapter(Mount *mount, LcdMenu *lcdMenu)
 {
-    _mount = mount;
+    _mount  = mount;
+    _motion = mount;
 
     // In case of DISPLAY_TYPE_NONE mode, the lcdMenu is just an empty shell class to save having to null check everywhere
     _lcdMenu = lcdMenu;
@@ -163,12 +164,12 @@ const char *MeadeCommandAdapter::onMountStatus()
 
 bool MeadeCommandAdapter::onIsSlewing()
 {
-    return _mount->isSlewingRAorDEC();
+    return _motion->isSlewingRAorDEC();
 }
 
 bool MeadeCommandAdapter::onIsTracking()
 {
-    return _mount->isSlewingTRK();
+    return _motion->isSlewingTRK();
 }
 
 bool MeadeCommandAdapter::onIsGuiding()
@@ -371,17 +372,17 @@ bool MeadeCommandAdapter::onSetLocalDate(meade::MeadeLocalDate d)
 /////////////////////////////
 void MeadeCommandAdapter::onPark()
 {
-    _mount->park();
+    _motion->park();
 }
 
 void MeadeCommandAdapter::onSlewToHome()
 {
-    _mount->startSlewingToHome();
+    _motion->startSlewingToHome();
 }
 
 void MeadeCommandAdapter::onUnpark()
 {
-    _mount->startSlewing(TRACKING);
+    _motion->startSlewing(TRACKING);
 }
 
 void MeadeCommandAdapter::onSetAzAltHome()
@@ -396,7 +397,7 @@ void MeadeCommandAdapter::onSetSlewRate(uint8_t rate)
 
 bool MeadeCommandAdapter::onIsSlewingRaOrDec()
 {
-    return _mount->isSlewingRAorDEC();
+    return _motion->isSlewingRAorDEC();
 }
 
 /////////////////////////////
@@ -416,7 +417,7 @@ void MeadeCommandAdapter::onDriftAlignment(int duration)
     _lcdMenu->printMenu(F(">Drift Alignment"));
     _lcdMenu->setCursor(0, 1);
     _lcdMenu->printMenu(F("Pause 1.5s...."));
-    _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
+    _motion->stopSlewing(ALL_DIRECTIONS | TRACKING);
     _mount->waitUntilStopped(ALL_DIRECTIONS);
     _mount->delay(1500);
     _lcdMenu->setCursor(0, 1);
@@ -433,7 +434,7 @@ void MeadeCommandAdapter::onDriftAlignment(int duration)
     _lcdMenu->printMenu(F("Reset _mount->.."));
     _mount->runDriftAlignmentPhase(0, duration);
     _lcdMenu->setCursor(0, 1);
-    _mount->startSlewing(TRACKING);
+    _motion->startSlewing(TRACKING);
 #else
     (void) duration;
 #endif
@@ -711,36 +712,41 @@ void MeadeCommandAdapter::onLevelShutdown()
 void MeadeCommandAdapter::onStopAll()
 {
     // :Q# stops all motors but remains in Control mode.
-    _mount->stopSlewing(ALL_DIRECTIONS | TRACKING);
-    _mount->stopSlewing(AZIMUTH_STEPS);
-    _mount->stopSlewing(ALTITUDE_STEPS);
-    _mount->stopSlewing(FOCUS_STEPS);
-    _mount->waitUntilAllStopped();
+    //
+    // It used to block here until every axis had finished decelerating. That made an abort take
+    // as long as the slowest ramp, with the main loop inside `waitUntilAllStopped()` and no
+    // telemetry answered — a host that sends :Q# and then polls :D# was waiting for a reply the
+    // mount could not give until it stopped. The axes decelerate on their own now and :D#
+    // answers from MountState.
+    _motion->stopSlewing(ALL_DIRECTIONS | TRACKING);
+    _motion->stopSlewing(AZIMUTH_STEPS);
+    _motion->stopSlewing(ALTITUDE_STEPS);
+    _motion->stopSlewing(FOCUS_STEPS);
 }
 
 void MeadeCommandAdapter::onStopDirectionalAll()
 {
-    _mount->stopSlewing(ALL_DIRECTIONS);
+    _motion->stopSlewing(ALL_DIRECTIONS);
 }
 
 void MeadeCommandAdapter::onStopEast()
 {
-    _mount->stopSlewing(EAST);
+    _motion->stopSlewing(EAST);
 }
 
 void MeadeCommandAdapter::onStopWest()
 {
-    _mount->stopSlewing(WEST);
+    _motion->stopSlewing(WEST);
 }
 
 void MeadeCommandAdapter::onStopNorth()
 {
-    _mount->stopSlewing(NORTH);
+    _motion->stopSlewing(NORTH);
 }
 
 void MeadeCommandAdapter::onStopSouth()
 {
-    _mount->stopSlewing(SOUTH);
+    _motion->stopSlewing(SOUTH);
 }
 
 void MeadeCommandAdapter::onQuitControlMode()
@@ -867,22 +873,22 @@ byte toMountDirection(oat::core::meade::MoveDirection dir)
 
 void MeadeCommandAdapter::onStartSlewToTarget()
 {
-    _mount->startSlewingToTarget();
+    _motion->startSlewingToTarget();
 }
 
 void MeadeCommandAdapter::onTrackingOn()
 {
-    _mount->startSlewing(TRACKING);
+    _motion->startSlewing(TRACKING);
 }
 
 void MeadeCommandAdapter::onTrackingOff()
 {
-    _mount->stopSlewing(TRACKING);
+    _motion->stopSlewing(TRACKING);
 }
 
 void MeadeCommandAdapter::onGuidePulse(oat::core::meade::MoveDirection dir, int durationMs)
 {
-    _mount->guidePulse(toMountDirection(dir), durationMs);
+    _motion->guidePulse(toMountDirection(dir), durationMs);
 }
 
 void MeadeCommandAdapter::onMoveAzAltHome()
@@ -913,22 +919,22 @@ void MeadeCommandAdapter::onMoveAltitude(float arcMinutes)
 
 void MeadeCommandAdapter::onSlewEast()
 {
-    _mount->startSlewing(EAST);
+    _motion->startSlewing(EAST);
 }
 
 void MeadeCommandAdapter::onSlewWest()
 {
-    _mount->startSlewing(WEST);
+    _motion->startSlewing(WEST);
 }
 
 void MeadeCommandAdapter::onSlewNorth()
 {
-    _mount->startSlewing(NORTH);
+    _motion->startSlewing(NORTH);
 }
 
 void MeadeCommandAdapter::onSlewSouth()
 {
-    _mount->startSlewing(SOUTH);
+    _motion->startSlewing(SOUTH);
 }
 
 void MeadeCommandAdapter::onMoveStepper(oat::core::meade::MovementAxis axis, long steps)
@@ -937,19 +943,19 @@ void MeadeCommandAdapter::onMoveStepper(oat::core::meade::MovementAxis axis, lon
     switch (axis)
     {
         case oat::core::meade::MovementAxis::Ra:
-            _mount->moveStepperBy(RA_STEPS, steps);
+            _motion->moveStepperBy(RA_STEPS, steps);
             break;
         case oat::core::meade::MovementAxis::Dec:
-            _mount->moveStepperBy(DEC_STEPS, steps);
+            _motion->moveStepperBy(DEC_STEPS, steps);
             break;
         case oat::core::meade::MovementAxis::Azimuth:
-            _mount->moveStepperBy(AZIMUTH_STEPS, steps);
+            _motion->moveStepperBy(AZIMUTH_STEPS, steps);
             break;
         case oat::core::meade::MovementAxis::Altitude:
-            _mount->moveStepperBy(ALTITUDE_STEPS, steps);
+            _motion->moveStepperBy(ALTITUDE_STEPS, steps);
             break;
         case oat::core::meade::MovementAxis::Focus:
-            _mount->moveStepperBy(FOCUS_STEPS, steps);
+            _motion->moveStepperBy(FOCUS_STEPS, steps);
             break;
     }
 }

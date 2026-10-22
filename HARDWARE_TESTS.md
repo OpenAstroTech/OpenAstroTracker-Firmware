@@ -213,6 +213,10 @@ reviewer does not "fix" them back:
    They come from `app::buildMountConfig()` at boot instead of being compile-time constants.
    Externally identical — but it is why 8.2/8.3 deserve attention: a wrong value there is now
    a boot-time value rather than a build-time one.
+8. **`:Q#` returns immediately instead of waiting for the axes to stop** (3.3, 9.1). The abort
+   no longer blocks the main loop; the axes decelerate on their own and `:D#` reports. A host
+   that relied on `:Q#` taking as long as the deceleration will now see `:D#` answer `|` (still
+   slewing) for a moment — which is the honest answer.
 
 ## 12. What cannot be covered here
 

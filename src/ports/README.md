@@ -20,6 +20,7 @@ Adapters in [`../adapters/`](../adapters/) implement these ports on top of [`../
 | `IMountSettings.hpp` | the persisted settings as typed values (HA time, steps/degree, latitude, limits, …) |
 | `IStepperAxis.hpp` | one stepper axis; `AxisSnapshot` is the ISR-safe read |
 | `IMotorDriver.hpp` | driver current/chopper/stall-guard configuration |
+| `IMountMotion.hpp` | the motion requests the command layer makes (slew, stop, park, guide, move-by) |
 | `IHomingSensor.hpp` | "the magnet is here" |
 | `IEndSwitch.hpp` | "the carriage hit this end" |
 | `IDisplay.hpp` | the menu's text grid and backlight |
