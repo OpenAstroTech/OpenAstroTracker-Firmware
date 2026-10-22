@@ -10,6 +10,7 @@
 #include "core/Microsteps.hpp"
 #include "core/MountRequests.hpp"
 #include "core/MountState.hpp"
+#include "core/ParkingController.hpp"
 #include "core/SlewCompletion.hpp"
 #include "core/SlewController.hpp"
 #include "core/GuidingController.hpp"
@@ -594,6 +595,9 @@ class Mount
 
     void publishEvent(core::MountEventType type, bool succeeded = false);
 
+    /// Rewrites `STATUS_PARKING`/`STATUS_PARKING_POS` from `_parking`'s phase.
+    void applyParkingStatus();
+
     /// Snapshot of the state the admission rules read. See `core/MountRequests.hpp`.
     core::MountActivityFacts activityFacts() const;
     bool admit(core::MountRequest request) const;
@@ -757,6 +761,10 @@ class Mount
 
     // What slew, if any, is in flight, plus the bookkeeping the arrival sequence needs.
     core::SlewController _slew;
+
+    // The park sequence's phase. `STATUS_PARKING`/`STATUS_PARKING_POS` are rendered from
+    // it by applyParkingStatus(), so the bits and the phase cannot disagree.
+    core::ParkingController _parking;
 
     // Facts the mount publishes (slew started/arrived, parked, ...). Drained once per
     // `loop()`, so a subscriber is never called from inside the publisher.

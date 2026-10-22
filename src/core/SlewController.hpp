@@ -20,7 +20,6 @@ enum class SlewIntent : uint8_t
 /// needs back.
 struct SlewSnapshot {
     SlewIntent intent;
-    bool toParkPosition;
 };
 
 /// The slew's bookkeeping.
@@ -58,18 +57,6 @@ class SlewController
     bool isActive() const
     {
         return _intent != SlewIntent::None;
-    }
-
-    /// True while the mount is on the second leg of a park: it has homed and is now
-    /// moving to the configured park position.
-    bool headingToParkPosition() const
-    {
-        return _toParkPosition;
-    }
-
-    void setHeadingToParkPosition(bool value)
-    {
-        _toParkPosition = value;
     }
 
     /// Distance the axes had to travel, kept so a display can show a percentage.
@@ -128,22 +115,19 @@ class SlewController
     SlewSnapshot snapshot() const
     {
         SlewSnapshot saved;
-        saved.intent         = _intent;
-        saved.toParkPosition = _toParkPosition;
+        saved.intent = _intent;
         return saved;
     }
 
     void restore(const SlewSnapshot &saved)
     {
-        _intent         = saved.intent;
-        _toParkPosition = saved.toParkPosition;
+        _intent = saved.intent;
     }
 
   private:
     SlewIntent _intent   = SlewIntent::None;
     float _totalRaSteps  = 0.0f;
     float _totalDecSteps = 0.0f;
-    bool _toParkPosition = false;
     bool _wasRunning     = false;
     bool _backlashOwed   = false;
 };

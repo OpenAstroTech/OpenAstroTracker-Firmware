@@ -168,7 +168,8 @@ void Mount::initializeVariables()
     _backlashCorrectionSteps = 0;
     _slew.clearBacklashCorrection();
     _slew.end();
-    _slew.setHeadingToParkPosition(false);
+    _parking.clear();
+    applyParkingStatus();
     _decLowerLimit = 0;
     _decUpperLimit = 0;
 
@@ -2171,8 +2172,9 @@ void Mount::park()
     stopGuiding();
     stopSlewing(ALL_DIRECTIONS | TRACKING);
     waitUntilStopped(ALL_DIRECTIONS);
+    _parking.beginHoming();
     startSlewingToHome();
-    setStatusFlag(STATUS_PARKING);
+    applyParkingStatus();
     publishEvent(core::MountEventType::ParkingStarted);
 }
 
@@ -2702,7 +2704,17 @@ bool Mount::isSlewingTRK() const
 /////////////////////////////////
 bool Mount::isParking() const
 {
-    return _state.test(STATUS_PARKING | STATUS_PARKING_POS);
+    return _parking.isParking();
+}
+
+void Mount::applyParkingStatus()
+{
+    clearStatusFlag(STATUS_PARKING | STATUS_PARKING_POS);
+    const uint16_t bit = core::ParkingController::statusBitFor(_parking.phase());
+    if (bit != 0)
+    {
+        setStatusFlag(bit);
+    }
 }
 
 /////////////////////////////////
@@ -3469,7 +3481,7 @@ void Mount::loop()
             core::ArrivalFacts facts;
             facts.intent                    = _slew.intent();
             facts.parking                   = isParking();
-            facts.headingToParkPosition     = _slew.headingToParkPosition();
+            facts.headingToParkPosition     = _parking.headingToPosition();
             facts.findingHome               = isFindingHome();
             facts.compensationPending       = _tracking.compensationPending();
             facts.backlashOwed              = _slew.backlashOwed();
@@ -3566,8 +3578,8 @@ void Mount::loop()
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
-                clearStatusFlag(STATUS_PARKING);
-                _slew.setHeadingToParkPosition(true);
+                _parking.beginPositionLeg();
+                applyParkingStatus();
                 _stepperRA->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
                 _stepperDEC->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
                 _slew.setTotalMove(1.0f * _stepperRA->distanceToGo(), 1.0f * _stepperDEC->distanceToGo());
@@ -3615,7 +3627,8 @@ void Mount::loop()
                 setStatus(STATUS_PARKED);
                 interrupts();
                 publishEvent(core::MountEventType::Parked);
-                _slew.setHeadingToParkPosition(false);
+                _parking.markParked();
+                applyParkingStatus();
             }
 
             if (plan.endSlew)
@@ -3838,7 +3851,13 @@ void Mount::setHome(bool clearZeroPos)
 
     _targetRA = currentRA();
     _slew.end();
-    _slew.setHeadingToParkPosition(false);
+    // `setHome()` is also called by the park sequence itself, which re-establishes its
+    // phase straight afterwards; clearing here only affects a hand-driven home.
+    if (_parking.isParked())
+    {
+        _parking.clear();
+        applyParkingStatus();
+    }
 
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: currentRA is %s", currentRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: zeroPos is %s", _zeroPosRA.ToString());

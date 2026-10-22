@@ -10,7 +10,6 @@ TEST(SlewControllerTest, StartsIdle)
     EXPECT_EQ(core::SlewIntent::None, slew.intent());
     EXPECT_FALSE(slew.wasRunning());
     EXPECT_FALSE(slew.backlashOwed());
-    EXPECT_FALSE(slew.headingToParkPosition());
     EXPECT_FLOAT_EQ(0.0f, slew.totalRaSteps());
     EXPECT_FLOAT_EQ(0.0f, slew.totalDecSteps());
 }
@@ -26,21 +25,6 @@ TEST(SlewControllerTest, ABegunSlewIsActiveUntilItEnds)
     slew.end();
     EXPECT_FALSE(slew.isActive());
     EXPECT_EQ(core::SlewIntent::None, slew.intent());
-}
-
-TEST(SlewControllerTest, TheTwoParkFlagsAreIndependent)
-{
-    // Parking first homes, then moves to the park position: the arrival sequence sees
-    // "intent is Home" and "heading to the park position" at the same time.
-    core::SlewController slew;
-    slew.begin(core::SlewIntent::Home);
-    slew.setHeadingToParkPosition(true);
-
-    EXPECT_EQ(core::SlewIntent::Home, slew.intent());
-    EXPECT_TRUE(slew.headingToParkPosition());
-
-    slew.end();
-    EXPECT_TRUE(slew.headingToParkPosition());  // ending the home leg does not clear it
 }
 
 TEST(SlewControllerTest, TotalMoveIsKeptForProgressReporting)
@@ -96,31 +80,13 @@ TEST(SlewControllerTest, SnapshotAndRestoreSurviveSetHome)
     // needs its intent back afterwards, which is what the snapshot is for.
     core::SlewController slew;
     slew.begin(core::SlewIntent::Home);
-    slew.setHeadingToParkPosition(false);
     const core::SlewSnapshot saved = slew.snapshot();
 
     slew.end();
-    slew.setHeadingToParkPosition(false);
 
     slew.restore(saved);
 
     EXPECT_EQ(core::SlewIntent::Home, slew.intent());
-    EXPECT_FALSE(slew.headingToParkPosition());
-}
-
-TEST(SlewControllerTest, RestoringAParkSnapshotKeepsTheSecondLeg)
-{
-    core::SlewController slew;
-    slew.begin(core::SlewIntent::Home);
-    slew.setHeadingToParkPosition(true);
-    const core::SlewSnapshot saved = slew.snapshot();
-
-    slew.end();
-    slew.setHeadingToParkPosition(false);
-    slew.restore(saved);
-
-    EXPECT_EQ(core::SlewIntent::Home, slew.intent());
-    EXPECT_TRUE(slew.headingToParkPosition());
 }
 
 TEST(SlewControllerTest, SnapshotDoesNotCarryTheMoveTotals)
