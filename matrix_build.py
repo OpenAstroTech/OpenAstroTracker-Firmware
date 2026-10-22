@@ -146,24 +146,30 @@ BOARD_SUPPORT = {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
         "DISPLAY_TYPE": [
-            "DISPLAY_TYPE_NONE",
-            "DISPLAY_TYPE_LCD_KEYPAD"
+            # TEMPORARY: Configuration.hpp forces DISPLAY_TYPE_NONE on AVR, so the
+            # other variants would build identical firmware. Restore this list
+            # together with that override.
+            "DISPLAY_TYPE_NONE"
         ],
     }),
     "mksgenlv2": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
         "DISPLAY_TYPE": [
-            "DISPLAY_TYPE_NONE",
-            "DISPLAY_TYPE_LCD_KEYPAD"
+            # TEMPORARY: Configuration.hpp forces DISPLAY_TYPE_NONE on AVR, so the
+            # other variants would build identical firmware. Restore this list
+            # together with that override.
+            "DISPLAY_TYPE_NONE"
         ],
     }),
     "mksgenlv1": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
         "DISPLAY_TYPE": [
-            "DISPLAY_TYPE_NONE",
-            "DISPLAY_TYPE_LCD_KEYPAD"
+            # TEMPORARY: Configuration.hpp forces DISPLAY_TYPE_NONE on AVR, so the
+            # other variants would build identical firmware. Restore this list
+            # together with that override.
+            "DISPLAY_TYPE_NONE"
         ],
         "FOCUS_DRIVER_TYPE": [
             "DRIVER_TYPE_NONE"
@@ -176,8 +182,10 @@ BOARD_SUPPORT = {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
         "DISPLAY_TYPE": [
-            "DISPLAY_TYPE_NONE",
-            "DISPLAY_TYPE_LCD_KEYPAD"
+            # TEMPORARY: Configuration.hpp forces DISPLAY_TYPE_NONE on AVR, so the
+            # other variants would build identical firmware. Restore this list
+            # together with that override.
+            "DISPLAY_TYPE_NONE"
         ],
     }),
     "rp2040_jackw01": update_dict(BUILD_FLAGS, {

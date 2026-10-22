@@ -57,6 +57,25 @@
     #define DISPLAY_TYPE DISPLAY_TYPE_NONE
 #endif
 
+/**
+ * @brief TEMPORARY: AVR display support is switched off.
+ *
+ * The ATmega2560 builds are within a few KB of their flash ceiling, and the Phase 4
+ * refactor needs the room. Deleting this block restores the user's DISPLAY_TYPE — the
+ * setting in the local configuration is not modified, only overridden here, so
+ * restoring it needs no configuration change on any board.
+ *
+ * Affected: every `__AVR_ATmega2560__` build (ramps, mksgenlv1/v2/v21). ESP32 and RP2040
+ * are untouched. See PLAN.md for the flash measurements behind this.
+ */
+#if defined(__AVR_ATmega2560__) && ((DISPLAY_TYPE != DISPLAY_TYPE_NONE) || (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE))
+    #warning "AVR display support is temporarily disabled to fit the flash budget; the board boots headless."
+    #undef DISPLAY_TYPE
+    #undef INFO_DISPLAY_TYPE
+    #define DISPLAY_TYPE DISPLAY_TYPE_NONE
+    #define INFO_DISPLAY_TYPE INFO_DISPLAY_TYPE_NONE
+#endif
+
 #ifndef INFO_DISPLAY_TYPE
     #define INFO_DISPLAY_TYPE INFO_DISPLAY_TYPE_NONE
 #elif (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
