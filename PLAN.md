@@ -482,6 +482,8 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 
 **Verify:** `core/` and `ports/` contain zero `#ifdef` for features (CI grep check); all board-env builds in the CI matrix still pass (toolchain enforces flash limits).
 
+**On-hardware suite:** [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) lists the manual tests this refactor needs before it merges — per-subsystem cases, each naming the work it guards, plus the deliberate behaviour changes to confirm and a sign-off table. Nothing in this branch has been run against real hardware yet; that suite is the gate, not a follow-up.
+
 ### Phase 5 — Meade execution layer cleanup
 *The parser is already in `core/`. This phase finishes the Meade slice by refining the executor and transport layers.*
 
