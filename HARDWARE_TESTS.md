@@ -160,7 +160,7 @@ Fill in §10 as you go. A case is only "pass" when the *expected* column matches
 
 | # | Case | Steps | Expected | Guards |
 |---|---|---|---|---|
-| 9.1 | Serial framing | Send `:GR#`, a command with trailing junk, a 30-character command, and `0x06` | Normal replies; too-long command is discarded (as before); `0x06` answers `P` | `core::CommandAssembler` / `adapters::SerialTransport` (Phase 5) |
+| 9.1 | Serial framing | Send `:GR#`, a command with trailing CR/LF, a 30-character command, and `0x06` | Normal replies; the 30-character command is **discarded whole** (see §11.5 — the old code executed its tail); `0x06` answers `P`, and answers nothing when the debug log shares the port | `core::meade::CommandAssembler`, `adapters::SerialTransport` (Phase 5) |
 | 9.2 | Wi-Fi transport | Connect to the mount's AP, send the same commands | Identical replies to 9.1; serial and Wi-Fi replies never cross | `WifiControl`, Phase 5 transports |
 | 9.3 | Both transports at once | Serial and Wi-Fi simultaneously | Each peer gets only its own replies | `PendingReply` routing (Phase 5) |
 | 9.4 | Status display | Run a slew and a park on a board with the info display | Display updates, no flicker/lockup; events arrive once per transition | `EventBus`, `updateInfoDisplay()` |
@@ -200,6 +200,11 @@ reviewer does not "fix" them back:
    before any controller is polled, and a guide pulse owns the tick (4.8–4.12).
 4. **A board without an optional axis or focuser is a runtime no-op**, not compiled-out code
    (7.4, 7.8). Externally identical; internally the pointer is null.
+5. **An over-long serial command is discarded up to its `#`** (9.1). The old loop restarted
+   its buffer at the overflow point and then dispatched whatever tail arrived before the
+   terminator, so a too-long command could run as a shorter valid one. If a host driver turns
+   out to rely on that, it was relying on a bug — but note it, because it is the only change
+   here that alters what a command *does*.
 
 ## 12. What cannot be covered here
 

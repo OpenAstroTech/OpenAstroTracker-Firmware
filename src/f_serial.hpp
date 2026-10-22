@@ -9,6 +9,8 @@
 
 #if SUPPORT_SERIAL_CONTROL == 1
     #include "adapters/MeadeCommandAdapter.hpp"
+    #include "adapters/SerialTransport.hpp"
+    #include "hal/arduino/ArduinoSerialPort.hpp"
 
 void processSerialData();
 
@@ -106,57 +108,48 @@ void processSerialData()
     processTestState();
 }
     #else
+/// The serial control path as a transport: framing, the ACK probe and the reply write live in
+/// `adapters::SerialTransport`, so the loop below only moves commands to the adapter.
+///
+/// The ACK reply is suppressed when the debug log shares this port, which is the `#if` this
+/// used to carry inline; with the log on the same wire a stray `P` would interleave with a
+/// log line.
+adapters::SerialTransport &serialTransport()
+{
+    static hal::ArduinoSerialPort port(Serial);
+    static adapters::SerialTransport transport(port, (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1));
+    return transport;
+}
+
 // ESP needs to call this in a loop :_(
 void processSerialData()
 {
-    static char buffer[20];
-    static unsigned int index = 0;
-    while (Serial.available() > 0)
-    {
-        if (Serial.readBytes((buffer + index), 1) == 1)
-        {
-            if (buffer[index] == 0x06)
-            {
-                LOG(DEBUG_SERIAL, "[SERIAL]: Received: ACK request, replying P");
-                    // When not debugging, print the result to the serial port .
-                    // When debugging, only print the result to Serial if we're on seperate ports.
-        #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
-                Serial.print('P');
-        #endif
-                index = 0;
-            }
-            else if (buffer[index] == '#')
-            {
-                // Ignoring trailing hash
-                buffer[index]      = '\0';
-                const String inCmd = String(buffer);
-                LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
+    adapters::SerialTransport &transport = serialTransport();
 
-                const char *retVal = MeadeCommandAdapter::instance()->processCommand(inCmd);
-                if (retVal[0] != '\0')
-                {
-                    LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal);
-                        // When not debugging, print the result to the serial port .
-                        // When debugging, only print the result to Serial if we're on seperate ports.
-        #if (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1)
-                    Serial.print(retVal);
-        #endif
-                }
-                // Wait for next command
-                index = 0;
-            }
-            else if (buffer[index] >= ' ')
-            {
-                index++;
-                if (index >= sizeof(buffer))
-                {
-                    LOG(DEBUG_SERIAL, "[SERIAL]: Command buffer overflow! Ignoring received data.");
-                    index = 0;
-                }
-            }
+    while (transport.hasCommand())
+    {
+        char buffer[adapters::SerialTransport::kCommandCapacity] = {0};
+        const size_t length                                      = transport.readCommand(buffer, sizeof(buffer));
+        if (length == 0)
+        {
+            // The command did not fit the buffer; the transport already dropped it.
+            continue;
         }
 
-        mount.loop();
+        const String inCmd = String(buffer);
+        LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
+
+        const char *retVal = MeadeCommandAdapter::instance()->processCommand(inCmd);
+        if (retVal[0] != '\0')
+        {
+            LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal);
+            transport.writeResponse(retVal);
+        }
+    }
+
+    if (transport.takeOverflow())
+    {
+        LOG(DEBUG_SERIAL, "[SERIAL]: Command buffer overflow! Ignoring received data.");
     }
 }
 

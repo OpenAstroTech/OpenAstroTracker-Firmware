@@ -16,6 +16,7 @@ Thin glue binding domain [`../ports/`](../ports/) to [`../hal/`](../hal/) backen
 | `NullMotorDriver` | `IMotorDriver` | nothing — the null object for non-UART drivers |
 | `TinyGpsAdapter` | `IGps` | `TinyGPSPlus` + a `Stream` |
 | `MeadeCommandAdapter` | `oat::core::meade::IMeadeHandlers` | the parser in [`../core/meade/`](../core/meade/) |
+| `SerialTransport` | `ITransport` | `hal::ISerialPort` + `core::meade::CommandAssembler` |
 
 Four of them (`Tmc2209Driver`, `TinyGpsAdapter`, `ArduinoScheduler`, `MeadeCommandAdapter`)
 need Arduino or a hardware library, so the `native` env excludes them from its
@@ -33,9 +34,11 @@ Still missing on purpose:
 - `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay` — they
   call `Mount` today, so they would violate the "adapters depend on ports + HAL only"
   rule. They arrive with Phase 3's `HomingController`/`EventBus` read model.
-- `SerialTransport`, `WifiTransport` — Phase 5, together with the rest of the Meade
-  execution layer (`MeadeCommandAdapter` has moved here, but it still takes a `Mount*`
-  and reads `String`, so it is not yet reachable from `native`).
+- `WifiTransport` — Phase 5. `SerialTransport` is here and host-tested; the Wi-Fi path still
+  frames commands inline in [`../WifiControl.cpp`](../WifiControl.cpp) over `WiFiClient`, and
+  moving it needs the same `CommandAssembler` plus a decision about the UDP side.
+- `MeadeCommandAdapter` still takes a `Mount*` and reads `String`, so it is not reachable from
+  `native`; the transports are, because they only touch `ITransport` and the HAL.
 - `StepperAxis` is one adapter for every platform: the AVR difference (`run()`/
   `runSpeed()` are stubs, the engine steps from its own timer ISR) lives in the engine,
   not here. There is deliberately no `AccelStepperAxis` and no
