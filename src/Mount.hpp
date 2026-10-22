@@ -469,7 +469,8 @@ class Mount final : public ports::IMountOptionalAxes
 
 #if SUPPORT_DRIFT_ALIGNMENT == 1
     // Runs a phase of the drift alignment procedure
-    void runDriftAlignmentPhase(int direction, int durationSecs);
+    void startDriftAlignment(int durationSecs);
+    void updateDriftAlignment(unsigned long now);
 #endif
 
     // Toggle the state where we run the motors at a constant speed

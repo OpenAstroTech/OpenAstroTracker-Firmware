@@ -1906,49 +1906,61 @@ void Mount::commandReceived()
 #if SUPPORT_DRIFT_ALIGNMENT == 1
 /////////////////////////////////
 //
-// runDriftAlignmentPhase
+// startDriftAlignment / updateDriftAlignment
 //
-// Runs one of the phases of the Drift alignment
-// This runs the RA motor 400 steps (about 5.3 arcminutes) in the given duration
-// This function should be callsed 3 times:
-// The first time with EAST, second with WEST and then with 0.
+// The drift-alignment sequence is a phase machine in core/DriftAlignmentController: it used to be
+// three synchronous passes with three 1.5 s delays between them, which left the mount answering
+// nothing for about 90 seconds. Here the sequence is started, and `loop()` ticks it — every wait is
+// either a clock deadline or "the axis stopped", which the loop already knows.
 /////////////////////////////////
-void Mount::runDriftAlignmentPhase(int direction, int durationSecs)
+void Mount::startDriftAlignment(int durationSecs)
 {
-    float const numArcMinutes(5.3);
-    long numSteps = floorf((_stepsPerRADegree * (numArcMinutes / 60.0f)));  // u-steps/deg * minutes / (minutes/deg) = u-steps
+    _coordinator.drift().begin(durationSecs, _stepsPerRADegree);
+}
 
-    // Calculate the speed at which it takes the given duration to cover the steps.
-    float speed = numSteps / durationSecs;
-    switch (direction)
+void Mount::updateDriftAlignment(unsigned long now)
+{
+    if (!_coordinator.drift().isActive())
     {
-        case EAST:
-            // Move steps east at the calculated speed, synchronously
-            _stepperRA->setMaxSpeed(speed);
-            _stepperRA->move(numSteps);
-            _stepperRA->runToPosition();
+        return;
+    }
 
-            // Overcome the gearing gap
-            _stepperRA->setMaxSpeed(300);
-            _stepperRA->move(-20);
-            _stepperRA->runToPosition();
+    const bool raRunning  = _stepperRA->isRunning();
+    const bool decRunning = _stepperDEC->isRunning();
+
+    switch (_coordinator.drift().update(!raRunning && !decRunning, now))
+    {
+        case core::DriftAction::None:
             break;
 
-        case WEST:
-            // Move steps west at the calculated speed, synchronously
-            _stepperRA->setMaxSpeed(speed);
-            _stepperRA->move(-numSteps);
-            _stepperRA->runToPosition();
+        case core::DriftAction::StopAxes:
+            stopSlewing(ALL_DIRECTIONS | TRACKING);
             break;
 
-        case 0:
-            // Fix the gearing to go back the other way
-            _stepperRA->setMaxSpeed(300);
-            _stepperRA->move(20);
-            _stepperRA->runToPosition();
+        case core::DriftAction::MoveEastPass:
+            _stepperRA->setMaxSpeed(_coordinator.drift().passSpeed());
+            _stepperRA->move(_coordinator.drift().passSteps());
+            break;
 
-            // Re-configure the stepper to the correct parameters.
+        case core::DriftAction::MoveEastGap:
+            _stepperRA->setMaxSpeed(core::DriftAlignmentController::kGapSpeedStepsSec);
+            _stepperRA->move(-core::DriftAlignmentController::kGearingGapSteps);
+            break;
+
+        case core::DriftAction::MoveWestPass:
+            _stepperRA->setMaxSpeed(_coordinator.drift().passSpeed());
+            _stepperRA->move(-_coordinator.drift().passSteps());
+            break;
+
+        case core::DriftAction::ResetGap:
+            _stepperRA->setMaxSpeed(core::DriftAlignmentController::kGapSpeedStepsSec);
+            _stepperRA->move(core::DriftAlignmentController::kGearingGapSteps);
+            break;
+
+        case core::DriftAction::ResumeTracking:
+            // Put the stepper back into its configured slew parameters before tracking resumes.
             _stepperRA->setMaxSpeed(_maxRASpeed);
+            startSlewing(TRACKING);
             break;
     }
 }
@@ -3508,6 +3520,10 @@ void Mount::loop()
             displayStepperPosition();
         }
     }
+
+#if SUPPORT_DRIFT_ALIGNMENT == 1
+    updateDriftAlignment(now);
+#endif
 
     if (_coordinator.state().test(STATUS_FINDING_HOME))
     {

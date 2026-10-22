@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "core/AzAltController.hpp"
+#include "core/DriftAlignmentController.hpp"
 #include "core/EventBus.hpp"
 #include "core/FocusController.hpp"
 #include "core/GuidingController.hpp"
@@ -135,6 +136,11 @@ template <typename TrackingAxis = ports::IStepperAxis, typename FocusAxis = port
         return _azAlt;
     }
 
+    DriftAlignmentController &drift()
+    {
+        return _drift;
+    }
+
     const AzAltController &azAlt() const
     {
         return _azAlt;
@@ -233,6 +239,7 @@ template <typename TrackingAxis = ports::IStepperAxis, typename FocusAxis = port
     GuidingController _guiding;
     FocusController<FocusAxis> _focus;
     AzAltController _azAlt;
+    DriftAlignmentController _drift;
     MountState _state;
     SlewController _slew;
     ParkingController _parking;

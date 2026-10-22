@@ -415,28 +415,12 @@ void MeadeCommandAdapter::onFactoryReset()
 void MeadeCommandAdapter::onDriftAlignment(int duration)
 {
 #if SUPPORT_DRIFT_ALIGNMENT == 1
+    // The sequence used to run here, synchronously: stop, three 1.5 s delays and three blocking
+    // passes, i.e. ~90 s in which the mount answered nothing because the main loop was inside this
+    // handler. It is a phase machine in core/DriftAlignmentController now, ticked from Mount::loop.
     _lcdMenu->setCursor(0, 0);
     _lcdMenu->printMenu(F(">Drift Alignment"));
-    _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu(F("Pause 1.5s...."));
-    _motion->stopSlewing(ALL_DIRECTIONS | TRACKING);
-    _mount->waitUntilStopped(ALL_DIRECTIONS);
-    _mount->delay(1500);
-    _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu(F("Eastward pass..."));
-    _mount->runDriftAlignmentPhase(EAST, duration);
-    _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu(F("Pause 1.5s...."));
-    _mount->delay(1500);
-    _lcdMenu->printMenu(F("Westward pass..."));
-    _mount->runDriftAlignmentPhase(WEST, duration);
-    _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu(F("Pause 1.5s...."));
-    _mount->delay(1500);
-    _lcdMenu->printMenu(F("Reset _mount->.."));
-    _mount->runDriftAlignmentPhase(0, duration);
-    _lcdMenu->setCursor(0, 1);
-    _motion->startSlewing(TRACKING);
+    _mount->startDriftAlignment(duration);
 #else
     (void) duration;
 #endif

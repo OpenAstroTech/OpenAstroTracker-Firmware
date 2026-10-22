@@ -378,29 +378,12 @@ bool processCalibrationKeys()
         #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == DRIFT_CALIBRATION_RUNNING)
     {
+        // The sequence is a phase machine now, ticked from Mount::loop(): it used to block the
+        // menu for ~90 s (three 1.5 s delays and three synchronous passes). The mount resumes
+        // tracking on its own when the last phase is done, so the menu only has to start it.
         lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu(F("Pause 1.5s ..."));
-        mount.stopSlewing(TRACKING);
-        mount.delay(1500);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu(F("Eastward pass..."));
-        mount.runDriftAlignmentPhase(EAST, driftDuration);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu(F("Pause 1.5s ..."));
-        mount.delay(1500);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu(F("Westward pass..."));
-        mount.runDriftAlignmentPhase(WEST, driftDuration);
-
-        lcdMenu.setCursor(0, 1);
-        lcdMenu.printMenu(F("Done. Pause 1.5s"));
-        mount.delay(1500);
-        mount.runDriftAlignmentPhase(0, 0);
-
-        mount.startSlewing(TRACKING);
+        lcdMenu.printMenu(F("Drift alignment..."));
+        mount.startDriftAlignment(driftDuration);
         calState = HIGHLIGHT_DRIFT;
     }
         #endif

@@ -91,6 +91,8 @@ Fill in §10 as you go. A case is only "pass" when the *expected* column matches
 | 4.10 | Guide pulse expiry | Start a pulse, do not stop it | Stops on its own at the deadline | `GuidingController` deadlines |
 | 4.11 | Guide while not tracking | Send a pulse with tracking off | Ignored, no motion | `MountRequests` (`RefusedWhileNotTracking`) |
 | 4.12 | Guiding during slew | Start a go-to, then pulse | Pulse refused/ignored; no axis fight | `MountRequests`, tick order (guiding owns the tick) |
+| 4.13 | **Drift alignment does not freeze the mount** | On a board with a display (`SUPPORT_DRIFT_ALIGNMENT=1`): start drift alignment from the CAL menu and from `:XDnnn#`, then send `:GX#`/`:D#` while it runs | The sequence runs (east pass, west pass, reset) **and the mount keeps answering** throughout — it used to block for ~90 s. Tracking resumes at the end. Run it twice; aborting with `:Q#` mid-sequence must not leave the gearing off | `core::DriftAlignmentController`, `Mount::updateDriftAlignment()` |
+| 4.14 | Drift alignment abort | Start one, then `:Q#` | Axes stop; the mount accepts the next command; no further pass starts | same |
 
 ---
 
