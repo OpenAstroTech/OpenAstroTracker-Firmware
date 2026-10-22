@@ -9,6 +9,7 @@
 #include "core/EventBus.hpp"
 #include "core/FocusController.hpp"
 #include "core/Microsteps.hpp"
+#include "core/MountCoordinator.hpp"
 #include "core/MountRequests.hpp"
 #include "core/MountState.hpp"
 #include "core/ParkingController.hpp"
@@ -611,15 +612,16 @@ class Mount
     // initialiser order is the declaration order (and therefore warning-free).
     MountDeps _deps;
 
-    // Sidereal tracking. The axis is attached by configureRAStepper().
+    // Every controller the mount owns, in one object: `core::MountCoordinator` states
+    // which of them exist and, from here on, in what order a tick touches them. The AVR
+    // build keeps its concrete tracking engine rather than an interface, so the
+    // coordinator is instantiated over that type.
 #ifdef ARDUINO_AVR_ATmega2560
-    core::TrackingController<StepperRaTrk> _tracking;
+    using Coordinator = core::MountCoordinator<StepperRaTrk>;
 #else
-    core::TrackingController<ports::IStepperAxis> _tracking;
+    using Coordinator = core::MountCoordinator<ports::IStepperAxis>;
 #endif
-
-    // Guide-pulse rates and pulse deadlines.
-    core::GuidingController _guiding;
+    Coordinator _coordinator;
 
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
@@ -689,8 +691,6 @@ class Mount
     ports::IMotorDriver *_driverDEC;
 #endif
 
-    core::AzAltController _azAlt;
-
     // Optional axes: present at run time or null. Every caller guards with kHasXStepper.
     ports::IStepperAxis *_stepperAZ = nullptr;
     float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
@@ -703,9 +703,8 @@ class Mount
     ports::IMotorDriver *_driverALT;
 #endif
 
-    // Focus motion and its selected rate. The axis is attached by configureFocusStepper(),
-    // and stays null when this build has no focuser.
-    core::FocusController<ports::IStepperAxis> _focus;
+    // The axis is attached by configureFocusStepper(), and stays null when this build has
+    // no focuser.
     ports::IStepperAxis *_stepperFocus = nullptr;
 #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverFocus;
@@ -734,20 +733,9 @@ class Mount
     unsigned long _lastMountPrint = 0;
     unsigned long _lastDisplayUpdate;
 
-    // The mount's status bitfield. `core::MountState` documents its threading contract.
-    core::MountState _state;
-
-    // What slew, if any, is in flight, plus the bookkeeping the arrival sequence needs.
-    core::SlewController _slew;
-
-    // The park sequence's phase. `STATUS_PARKING`/`STATUS_PARKING_POS` are rendered from
-    // it by applyParkingStatus(), so the bits and the phase cannot disagree.
-    core::ParkingController _parking;
-
-    // Facts the mount publishes (slew started/arrived, parked, ...). Drained once per
-    // `loop()`, so a subscriber is never called from inside the publisher.
-    static const uint8_t kEventQueueDepth = 4;
-    core::EventBus<kEventQueueDepth> _events;
+    // Facts the mount publishes (slew started/arrived, parked, ...) live in the
+    // coordinator's queue and are drained once per `loop()`.
+    static const uint8_t kEventQueueDepth = Coordinator::kEventQueueDepth;
 
     char scratchBuffer[24];
     bool _bootComplete;

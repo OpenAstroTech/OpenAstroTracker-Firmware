@@ -100,7 +100,7 @@ Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps)
     : _deps(deps),
       // Tracking runs at the finer microstep rate while the steps-per-degree value is
       // the slew-mode one, hence the integer ratio (as the inline expression had it).
-      _tracking(SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING), _guiding(deps.clock), _azAlt(),
+      _coordinator(deps.clock, SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING),
       _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360), _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
 
 {
@@ -122,16 +122,16 @@ void Mount::initializeVariables()
     _stepsPerRADegree  = RA_STEPS_PER_DEGREE;   // u-steps per degree when slewing
     _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
 
-    _state.reset(0);
+    _coordinator.state().reset(0);
     _lastDisplayUpdate = 0;
-    _slew.noteRunning(false);
+    _coordinator.slew().noteRunning(false);
 
     // Created by the configure* methods below; null until then.
     _stepperRA    = nullptr;
     _stepperTRK   = nullptr;
     _stepperDEC   = nullptr;
     _stepperGUIDE = nullptr;
-    _tracking.detach();
+    _coordinator.tracking().detach();
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     _driverRA = nullptr;
 #endif
@@ -141,7 +141,7 @@ void Mount::initializeVariables()
     _stepperAZ    = nullptr;
     _stepperALT   = nullptr;
     _stepperFocus = nullptr;
-    _focus.detach();
+    _coordinator.focus().detach();
 #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     _driverAZ = nullptr;
 #endif
@@ -156,12 +156,12 @@ void Mount::initializeVariables()
     _longitude  = Longitude(100.0);
     _zeroPosDEC = 0.0f;
 
-    _slew.clearTotalMove();
+    _coordinator.slew().clearTotalMove();
     _moveRate                = 4;
     _backlashCorrectionSteps = 0;
-    _slew.clearBacklashCorrection();
-    _slew.end();
-    _parking.clear();
+    _coordinator.slew().clearBacklashCorrection();
+    _coordinator.slew().end();
+    _coordinator.parking().clear();
     applyParkingStatus();
     _decLowerLimit = 0;
     _decUpperLimit = 0;
@@ -372,7 +372,7 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
     _stepperTRK->setMaxSpeed(5000);
     _stepperTRK->setAcceleration(15000);
 
-    _tracking.attach(_stepperTRK);
+    _coordinator.tracking().attach(_stepperTRK);
 }
 
 /////////////////////////////////
@@ -468,8 +468,8 @@ void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcc
     _stepperFocus->setCurrentPosition(50000);
     _maxFocusSpeed        = maxSpeed;
     _maxFocusAcceleration = maxAcceleration;
-    _focus.attach(_stepperFocus);
-    _focus.initialize(maxSpeed);
+    _coordinator.focus().attach(_stepperFocus);
+    _coordinator.focus().initialize(maxSpeed);
 }
 #endif
 
@@ -1007,7 +1007,7 @@ void Mount::configureFocusDriver(
 /////////////////////////////////
 float Mount::getSpeedCalibration()
 {
-    return _tracking.calibration();
+    return _coordinator.tracking().calibration();
 }
 
 /////////////////////////////////
@@ -1017,26 +1017,30 @@ float Mount::getSpeedCalibration()
 /////////////////////////////////
 void Mount::setSpeedCalibration(float val, bool saveToStorage)
 {
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _tracking.calibration(), val);
-    _tracking.setCalibration(val);
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Updating speed calibration from %f to %f", _coordinator.tracking().calibration(), val);
+    _coordinator.tracking().setCalibration(val);
 
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _tracking.speed());
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _coordinator.tracking().speed());
 
     // The tracking rate is derived from the slewing geometry; see core/TrackingController.hpp.
-    _tracking.setStepsPerDegree(_stepsPerRADegree);
+    _coordinator.tracking().setStepsPerDegree(_stepsPerRADegree);
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _tracking.speed());
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _coordinator.tracking().speed());
 
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: FactorToSpeed : %s, %s", String(val, 6).c_str(), String(_tracking.speed(), 6).c_str());
+    OAT_LOG(_deps.logger,
+            DEBUG_MOUNT,
+            "[MOUNT]: FactorToSpeed : %s, %s",
+            String(val, 6).c_str(),
+            String(_coordinator.tracking().speed(), 6).c_str());
 
     if (saveToStorage)
-        _deps.settings->storeSpeedFactor(_tracking.calibration());
+        _deps.settings->storeSpeedFactor(_coordinator.tracking().calibration());
 
     // If we are currently tracking, update the speed. No need to update microstepping mode
     if (isSlewingTRK())
     {
-        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: SpeedCalibration TRK.setSpeed(%f)", _tracking.speed());
-        _tracking.applySpeed();
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: SpeedCalibration TRK.setSpeed(%f)", _coordinator.tracking().speed());
+        _coordinator.tracking().applySpeed();
     }
 }
 
@@ -1130,7 +1134,7 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
     {
         _stepsPerRADegree = steps;
         _deps.settings->storeRAStepsPerDegree(_stepsPerRADegree);
-        setSpeedCalibration(_tracking.calibration(), false);
+        setSpeedCalibration(_coordinator.tracking().calibration(), false);
     }
     else if (kHasAzStepper && which == AZIMUTH_STEPS)
     {
@@ -1616,23 +1620,24 @@ void Mount::startSlewingToTarget()
         {
             OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
             stopSlewing(TRACKING);
-            _tracking.noteStopped(_deps.clock->now());
+            _coordinator.tracking().noteStopped(_deps.clock->now());
         }
 
         // Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
         setRaMicrosteps(RA_SLEW_MICROSTEPPING);
 
-        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %ldms", _tracking.stoppedAt());
+        OAT_LOG(
+            _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
     }
 
-    _slew.begin(core::SlewIntent::Target);
+    _coordinator.slew().begin(core::SlewIntent::Target);
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
     publishEvent(core::MountEventType::SlewStarted);
     // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
     setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
-    _slew.noteRunning(true);
+    _coordinator.slew().noteRunning(true);
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _slew.setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
+    _coordinator.slew().setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA Dist: %ld,   DEC Dist: %ld", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 }
 
@@ -1658,7 +1663,7 @@ void Mount::startSlewingToHome()
     long targetRAPosition        = 0;
     const long targetDECPosition = 0;
 
-    _slew.begin(core::SlewIntent::Home);
+    _coordinator.slew().begin(core::SlewIntent::Home);
     // Take tracking into account
     const long trackingOffset = _stepperTRK->currentPosition() * RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING;
     targetRAPosition -= trackingOffset;
@@ -1676,21 +1681,21 @@ void Mount::startSlewingToHome()
         // mount::loop() code won't detect the end of the slewing operation...
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
         stopSlewing(TRACKING);
-        _tracking.noteStopped(_deps.clock->now());
+        _coordinator.tracking().noteStopped(_deps.clock->now());
 
         // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
         setRaMicrosteps(RA_SLEW_MICROSTEPPING);
 
-        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %ldms", _tracking.stoppedAt());
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
     }
 
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
     publishEvent(core::MountEventType::SlewStarted);
     // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
     setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
-    _slew.noteRunning(true);
+    _coordinator.slew().noteRunning(true);
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _slew.setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
+    _coordinator.slew().setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA Dist: %ld,   DEC Dist: %ld", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
 }
 
@@ -1705,17 +1710,18 @@ void Mount::stopGuiding(bool ra, bool dec)
         return;
 
     // Stop RA guide first, since it's just a speed change back to tracking speed
-    if (ra && _state.test(STATUS_GUIDE_PULSE_RA))
+    if (ra && _coordinator.state().test(STATUS_GUIDE_PULSE_RA))
     {
         OAT_LOG(
             _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK stop guide at  : %ld", _stepperTRK->currentPosition());
-        _tracking.applySpeed();
-        OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK speed set to   : %f", _tracking.speed());
-        _guiding.clearRa();
+        _coordinator.tracking().applySpeed();
+        OAT_LOG(
+            _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK speed set to   : %f", _coordinator.tracking().speed());
+        _coordinator.guiding().clearRa();
         clearStatusFlag(STATUS_GUIDE_PULSE_RA);
     }
 
-    if (dec && _state.test(STATUS_GUIDE_PULSE_DEC))
+    if (dec && _coordinator.state().test(STATUS_GUIDE_PULSE_DEC))
     {
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS | DEBUG_GUIDE,
@@ -1733,12 +1739,12 @@ void Mount::stopGuiding(bool ra, bool dec)
         }
 #endif
 
-        _guiding.clearDec();
+        _coordinator.guiding().clearDec();
         clearStatusFlag(STATUS_GUIDE_PULSE_DEC);
     }
 
     //disable pulse state if no direction is active
-    if (!_state.test(STATUS_GUIDE_PULSE_DIR))
+    if (!_coordinator.state().test(STATUS_GUIDE_PULSE_DIR))
     {
         OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: Clear guiding state");
         clearStatusFlag(STATUS_GUIDE_PULSE_MASK);
@@ -1765,7 +1771,7 @@ void Mount::guidePulse(byte direction, int duration)
             "[GUIDE]: guidePulse: > Guide Pulse %c for %dms requested",
             directionName[direction],
             duration);
-    const bool wasGuiding = _state.test(STATUS_GUIDE_PULSE);
+    const bool wasGuiding = _coordinator.state().test(STATUS_GUIDE_PULSE);
 
     if (!admit(core::MountRequest::Guide))
     {
@@ -1837,7 +1843,7 @@ void Mount::guidePulse(byte direction, int duration)
                                 pulse.targetSpeed);
                         _stepperGUIDE->setSpeed(pulse.targetSpeed);
                         setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
-                        _guiding.startDec(duration);
+                        _coordinator.guiding().startDec(duration);
                     }
                 }
                 break;
@@ -1867,7 +1873,7 @@ void Mount::guidePulse(byte direction, int duration)
                                 pulse.targetSpeed);
                         _stepperGUIDE->setSpeed(pulse.targetSpeed);
                         setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
-                        _guiding.startDec(duration);
+                        _coordinator.guiding().startDec(duration);
                     }
                 }
                 break;
@@ -1876,12 +1882,12 @@ void Mount::guidePulse(byte direction, int duration)
                 {
                     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
                     const core::RaPulse pulse
-                        = core::GuidingController::raPulse(true, raGeometry, siderealDegreesInHour, _tracking.calibration());
+                        = core::GuidingController::raPulse(true, raGeometry, siderealDegreesInHour, _coordinator.tracking().calibration());
                     OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", pulse.baseSpeed);
                     OAT_LOG(_deps.logger,
                             DEBUG_STEPPERS | DEBUG_GUIDE,
                             "[GUIDE]: guidePulse:   RA  speed factor    : %f",
-                            _tracking.calibration());
+                            _coordinator.tracking().calibration());
                     OAT_LOG(
                         _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", pulse.adjustedSpeed);
                     OAT_LOG(_deps.logger,
@@ -1891,7 +1897,7 @@ void Mount::guidePulse(byte direction, int duration)
                             RA_PULSE_MULTIPLIER);
                     _stepperTRK->setSpeed(pulse.targetSpeed);  // Faster than siderael
                     setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
-                    _guiding.startRa(duration);
+                    _coordinator.guiding().startRa(duration);
                 }
                 break;
 
@@ -1899,12 +1905,12 @@ void Mount::guidePulse(byte direction, int duration)
                 {
                     // We were in tracking mode before guiding, so no need to update microstepping mode on RA driver
                     const core::RaPulse pulse
-                        = core::GuidingController::raPulse(false, raGeometry, siderealDegreesInHour, _tracking.calibration());
+                        = core::GuidingController::raPulse(false, raGeometry, siderealDegreesInHour, _coordinator.tracking().calibration());
                     OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  base speed      : %f", pulse.baseSpeed);
                     OAT_LOG(_deps.logger,
                             DEBUG_STEPPERS | DEBUG_GUIDE,
                             "[GUIDE]: guidePulse:   RA  speed factor    : %f",
-                            _tracking.calibration());
+                            _coordinator.tracking().calibration());
                     OAT_LOG(
                         _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  adjusted speed  : %f", pulse.adjustedSpeed);
                     OAT_LOG(_deps.logger,
@@ -1914,12 +1920,12 @@ void Mount::guidePulse(byte direction, int duration)
                             (2.0 - RA_PULSE_MULTIPLIER));
                     _stepperTRK->setSpeed(pulse.targetSpeed);  // Slower than siderael
                     setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
-                    _guiding.startRa(duration);
+                    _coordinator.guiding().startRa(duration);
                 }
                 break;
         }
     }
-    if (!wasGuiding && _state.test(STATUS_GUIDE_PULSE))
+    if (!wasGuiding && _coordinator.state().test(STATUS_GUIDE_PULSE))
     {
         publishEvent(core::MountEventType::GuidingStarted);
     }
@@ -2089,7 +2095,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
                     "[FOCUS]: Mount:setSpeed(): Enabling motor, setting speed to %f. Continuous",
                     speedDegsPerSec);
             enableFocusMotor();
-            _focus.runAtSpeed(speedDegsPerSec);
+            _coordinator.focus().runAtSpeed(speedDegsPerSec);
             publishEvent(core::MountEventType::FocusMoving);
         }
         else
@@ -2146,7 +2152,7 @@ void Mount::park()
     stopGuiding();
     stopSlewing(ALL_DIRECTIONS | TRACKING);
     waitUntilStopped(ALL_DIRECTIONS);
-    _parking.beginHoming();
+    _coordinator.parking().beginHoming();
     startSlewingToHome();
     applyParkingStatus();
     publishEvent(core::MountEventType::ParkingStarted);
@@ -2279,7 +2285,7 @@ void Mount::enableAzMotor()
     _deps.azEnablePin->write(hal::PinLevel::Low);  // Logic LOW to enable driver
     // Let loop() disable the driver again, even if the move turns out to be zero steps
     // (e.g. move to home while already at home), so it never stays powered.
-    _azAlt.update(true);
+    _coordinator.azAlt().update(true);
 }
 
 void Mount::enableAltMotor()
@@ -2290,7 +2296,7 @@ void Mount::enableAltMotor()
     }
     _deps.altEnablePin->write(hal::PinLevel::Low);  // Logic LOW to enable driver
     // See enableAzMotor()
-    _azAlt.update(true);
+    _coordinator.azAlt().update(true);
 }
 
 /////////////////////////////////
@@ -2300,7 +2306,7 @@ void Mount::enableAltMotor()
 /////////////////////////////////
 bool Mount::isRunningFocus() const
 {
-    return _focus.isRunning();
+    return _coordinator.focus().isRunning();
 }
 
 /////////////////////////////////
@@ -2310,7 +2316,7 @@ bool Mount::isRunningFocus() const
 /////////////////////////////////
 float Mount::getFocusSpeed() const
 {
-    return _focus.speed();
+    return _coordinator.focus().speed();
 }
 
 /////////////////////////////////
@@ -2320,19 +2326,19 @@ float Mount::getFocusSpeed() const
 /////////////////////////////////
 void Mount::focusSetSpeedByRate(int rate)
 {
-    _focus.setRate(rate, _maxFocusSpeed);
+    _coordinator.focus().setRate(rate, _maxFocusSpeed);
     OAT_LOG(_deps.logger,
             DEBUG_FOCUS,
             "[FOCUS]: focusSetSpeedByRate: rate is %d, factor %f, maxspeed %f -> %f",
-            _focus.rate(),
-            _focus.rateFactor(),
+            _coordinator.focus().rate(),
+            _coordinator.focus().rateFactor(),
             _maxFocusSpeed,
-            _focus.maxRateSpeed());
+            _coordinator.focus().maxRateSpeed());
 
-    if (_focus.isRunning())
+    if (_coordinator.focus().isRunning())
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusSetSpeedByRate: stepper is already running so should adjust speed?");
-        //_stepperFocus->setSpeed(_focus.rateFactor() * _maxFocusSpeed);
+        //_stepperFocus->setSpeed(_coordinator.focus().rateFactor() * _maxFocusSpeed);
     }
 }
 
@@ -2344,8 +2350,12 @@ void Mount::focusSetSpeedByRate(int rate)
 void Mount::focusContinuousMove(FocuserDirection direction)
 {
     // maxSpeed is set to what the rate dictates
-    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusContinuousMove: direction is %d, maxspeed %f", direction, _focus.maxRateSpeed());
-    setSpeed(FOCUS_STEPS, static_cast<int>(direction) * _focus.maxRateSpeed());
+    OAT_LOG(_deps.logger,
+            DEBUG_FOCUS,
+            "[FOCUS]: focusContinuousMove: direction is %d, maxspeed %f",
+            direction,
+            _coordinator.focus().maxRateSpeed());
+    setSpeed(FOCUS_STEPS, static_cast<int>(direction) * _coordinator.focus().maxRateSpeed());
 }
 
 /////////////////////////////////
@@ -2355,9 +2365,13 @@ void Mount::focusContinuousMove(FocuserDirection direction)
 /////////////////////////////////
 void Mount::focusMoveBy(long steps)
 {
-    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusMoveBy: move by %ld steps to %ld. Target Mode.", steps, _focus.position() + steps);
+    OAT_LOG(_deps.logger,
+            DEBUG_FOCUS,
+            "[FOCUS]: focusMoveBy: move by %ld steps to %ld. Target Mode.",
+            steps,
+            _coordinator.focus().position() + steps);
     enableFocusMotor();
-    _focus.moveBy(steps);
+    _coordinator.focus().moveBy(steps);
     publishEvent(core::MountEventType::FocusMoving);
 }
 
@@ -2368,7 +2382,7 @@ void Mount::focusMoveBy(long steps)
 /////////////////////////////////
 long Mount::focusGetStepperPosition()
 {
-    return _focus.position();
+    return _coordinator.focus().position();
 }
 
 /////////////////////////////////
@@ -2378,7 +2392,7 @@ long Mount::focusGetStepperPosition()
 /////////////////////////////////
 void Mount::focusSetStepperPosition(long steps)
 {
-    _focus.setPosition(steps);
+    _coordinator.focus().setPosition(steps);
 }
 
 /////////////////////////////////
@@ -2417,7 +2431,7 @@ void Mount::enableFocusMotor()
 void Mount::focusStop()
 {
     OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusStop: stopping motor.");
-    _focus.stop();
+    _coordinator.focus().stop();
 }
 
 /////////////////////////////////
@@ -2432,12 +2446,12 @@ void Mount::setTrackingStepperPos(long stepPos)
 
 void Mount::setEventSink(core::IEventSink *sink)
 {
-    _events.subscribe(sink);
+    _coordinator.events().subscribe(sink);
 }
 
 void Mount::clearEventSink()
 {
-    _events.unsubscribe();
+    _coordinator.events().unsubscribe();
 }
 
 /// Records a fact for the tick boundary. The next `loop()` delivers it, so a subscriber
@@ -2447,27 +2461,27 @@ void Mount::publishEvent(core::MountEventType type, bool succeeded)
     core::MountEvent event;
     event.type      = type;
     event.succeeded = succeeded;
-    _events.publish(event);
+    _coordinator.events().publish(event);
 }
 
 void Mount::setStatus(int state)
 {
     noInterrupts();
-    _state.reset((uint16_t) state);
+    _coordinator.state().reset((uint16_t) state);
     interrupts();
 }
 
 void Mount::setStatusFlag(int flag)
 {
     noInterrupts();
-    _state.set((uint16_t) flag);
+    _coordinator.state().set((uint16_t) flag);
     interrupts();
 }
 
 void Mount::clearStatusFlag(int flag)
 {
     noInterrupts();
-    _state.clear((uint16_t) flag);
+    _coordinator.state().clear((uint16_t) flag);
     interrupts();
 }
 
@@ -2479,11 +2493,11 @@ void Mount::clearStatusFlag(int flag)
 String Mount::getStatusStateString()
 {
     String status;
-    if (_state.isParked())
+    if (_coordinator.state().isParked())
     {
         status = F("Parked");
     }
-    else if (_state.test(STATUS_PARKING) || _state.test(STATUS_PARKING_POS))
+    else if (_coordinator.state().test(STATUS_PARKING) || _coordinator.state().test(STATUS_PARKING_POS))
     {
         status = F("Parking");
     }
@@ -2497,15 +2511,15 @@ String Mount::getStatusStateString()
     }
     else if (slewStatus() & SLEW_MASK_ANY)
     {
-        if (_state.test(STATUS_SLEWING_TO_TARGET))
+        if (_coordinator.state().test(STATUS_SLEWING_TO_TARGET))
         {
             status = F("SlewToTarget");
         }
-        else if (_state.test(STATUS_SLEWING_FREE))
+        else if (_coordinator.state().test(STATUS_SLEWING_FREE))
         {
             status = F("FreeSlew");
         }
-        else if (_state.test(STATUS_SLEWING_MANUAL))
+        else if (_coordinator.state().test(STATUS_SLEWING_MANUAL))
         {
             status = F("ManualSlew");
         }
@@ -2530,7 +2544,7 @@ String Mount::getStatusString()
     String status = getStatusStateString() + ",";
 
     String disp = F("------,");
-    if (_state.test(STATUS_SLEWING))
+    if (_coordinator.state().test(STATUS_SLEWING))
     {
         byte slew = slewStatus();
         if (slew & SLEWING_RA)
@@ -2583,7 +2597,7 @@ String Mount::getStatusString()
 /////////////////////////////////
 byte Mount::slewStatus() const
 {
-    if (_state.isParked())
+    if (_coordinator.state().isParked())
     {
         return NOT_SLEWING;
     }
@@ -2594,13 +2608,13 @@ byte Mount::slewStatus() const
     byte slewState = _stepperRA->isRunning() ? SLEWING_RA : NOT_SLEWING;
     slewState |= _stepperDEC->isRunning() ? SLEWING_DEC : NOT_SLEWING;
 
-    slewState |= _state.test(STATUS_TRACKING) ? SLEWING_TRACKING : NOT_SLEWING;
+    slewState |= _coordinator.state().test(STATUS_TRACKING) ? SLEWING_TRACKING : NOT_SLEWING;
     return slewState;
 }
 
 byte Mount::mountStatus() const
 {
-    return (byte) _state.value();
+    return (byte) _coordinator.state().value();
 }
 
 /////////////////////////////////
@@ -2610,7 +2624,7 @@ byte Mount::mountStatus() const
 /////////////////////////////////
 bool Mount::isGuiding() const
 {
-    return _state.test(STATUS_GUIDE_PULSE);
+    return _coordinator.state().test(STATUS_GUIDE_PULSE);
 }
 
 /////////////////////////////////
@@ -2654,13 +2668,13 @@ bool Mount::isSlewingTRK() const
 /////////////////////////////////
 bool Mount::isParking() const
 {
-    return _parking.isParking();
+    return _coordinator.parking().isParking();
 }
 
 void Mount::applyParkingStatus()
 {
     clearStatusFlag(STATUS_PARKING | STATUS_PARKING_POS);
-    const uint16_t bit = core::ParkingController::statusBitFor(_parking.phase());
+    const uint16_t bit = core::ParkingController::statusBitFor(_coordinator.parking().phase());
     if (bit != 0)
     {
         setStatusFlag(bit);
@@ -2674,23 +2688,17 @@ void Mount::applyParkingStatus()
 /////////////////////////////////
 bool Mount::isFindingHome() const
 {
-    return _state.test(STATUS_FINDING_HOME);
+    return _coordinator.state().test(STATUS_FINDING_HOME);
 }
 
 core::MountActivityFacts Mount::activityFacts() const
 {
-    core::MountActivityFacts facts;
-    facts.parking     = isParking();
-    facts.tracking    = isSlewingTRK();
-    facts.guiding     = isGuiding();
-    facts.slewing     = _state.test(STATUS_SLEWING);
-    facts.findingHome = isFindingHome();
-    return facts;
+    return _coordinator.activityFacts();
 }
 
 bool Mount::admit(core::MountRequest request) const
 {
-    return core::MountRequests::admit(request, activityFacts()) == core::Admission::Allowed;
+    return _coordinator.admit(request) == core::Admission::Allowed;
 }
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -2739,7 +2747,7 @@ void Mount::startSlewing(int direction)
         {
             // Start tracking
             setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
-            _tracking.applySpeed();
+            _coordinator.tracking().applySpeed();
 
             // Turn on tracking
             setStatusFlag(STATUS_TRACKING);
@@ -2755,8 +2763,8 @@ void Mount::startSlewing(int direction)
             if (isSlewingTRK())
             {
                 stopSlewing(TRACKING);
-                _tracking.noteStopped(_deps.clock->now());
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %ld", _tracking.stoppedAt());
+                _coordinator.tracking().noteStopped(_deps.clock->now());
+                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %ld", _coordinator.tracking().stoppedAt());
             }
 
             // Change microstep mode for slewing
@@ -2850,7 +2858,7 @@ void Mount::stopSlewing(int direction)
         publishEvent(core::MountEventType::TrackingStopped);
 
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: TRK stepper stop()");
-        _tracking.stop();
+        _coordinator.tracking().stop();
     }
 
     if ((direction & (NORTH | SOUTH)) != 0)
@@ -2912,7 +2920,7 @@ void Mount::stopSlewing(StepperAxis axis)
 void Mount::waitUntilStopped(byte direction)
 {
     while (((direction & (EAST | WEST)) && _stepperRA->isRunning()) || ((direction & (NORTH | SOUTH)) && _stepperDEC->isRunning())
-           || ((direction & TRACKING) && ((!_state.test(STATUS_TRACKING)) && _stepperTRK->isRunning()))
+           || ((direction & TRACKING) && ((!_coordinator.state().test(STATUS_TRACKING)) && _stepperTRK->isRunning()))
            || ((direction & FOCUSING) && kHasFocusStepper && _stepperFocus->isRunning()))
     {
         loop();
@@ -2928,7 +2936,8 @@ void Mount::waitUntilStopped(byte direction)
 // Block until all steppers are stopped
 void Mount::waitUntilAllStopped()
 {
-    while (_stepperRA->isRunning() || _stepperDEC->isRunning() || ((!_state.test(STATUS_TRACKING)) && _stepperTRK->isRunning())
+    while (_stepperRA->isRunning() || _stepperDEC->isRunning()
+           || ((!_coordinator.state().test(STATUS_TRACKING)) && _stepperTRK->isRunning())
            || (kHasFocusStepper && _stepperFocus->isRunning()) || (kHasAzStepper && _stepperAZ->isRunning())
            || (kHasAltStepper && _stepperALT->isRunning()))
     {
@@ -3191,24 +3200,24 @@ void Mount::delay(int ms)
 void Mount::interruptLoop()
 {
     // Only process guide pulses if we are tracking.
-    if (_state.test(STATUS_GUIDE_PULSE) && _state.test(STATUS_TRACKING))
+    if (_coordinator.state().test(STATUS_GUIDE_PULSE) && _coordinator.state().test(STATUS_TRACKING))
     {
         _stepperTRK->runSpeed();
-        if (_state.test(STATUS_GUIDE_PULSE_DEC))
+        if (_coordinator.state().test(STATUS_GUIDE_PULSE_DEC))
         {
             _stepperGUIDE->runSpeed();
         }
         return;
     }
 
-    if (_state.test(STATUS_TRACKING))
+    if (_coordinator.state().test(STATUS_TRACKING))
     {
         _stepperTRK->runSpeed();
     }
 
-    if (_state.test(STATUS_SLEWING))
+    if (_coordinator.state().test(STATUS_SLEWING))
     {
-        if (_state.test(STATUS_SLEWING_MANUAL))
+        if (_coordinator.state().test(STATUS_SLEWING_MANUAL))
         {
             _stepperDEC->runSpeed();
             _stepperRA->runSpeed();
@@ -3219,7 +3228,7 @@ void Mount::interruptLoop()
             _stepperRA->run();
         }
     }
-    else if (!_state.test(STATUS_TRACKING) && (_stepperTRK->isRunning()))
+    else if (!_coordinator.state().test(STATUS_TRACKING) && (_stepperTRK->isRunning()))
     {
         // If we are not tracking, but the tracking stepper is running, we need to let it move.
         // This can happen when we need to compensate for a slew (during which the tracker is
@@ -3230,7 +3239,7 @@ void Mount::interruptLoop()
         _stepperTRK->run();
     }
 
-    if (_state.test(STATUS_FINDING_HOME))
+    if (_coordinator.state().test(STATUS_FINDING_HOME))
     {
         if (kHasRaHoming && (_raHoming != nullptr))
         {
@@ -3255,11 +3264,11 @@ void Mount::interruptLoop()
 
     // `FocusMode::Continuous` is kept from the original, which never selected it: a
     // continuous run targets a far position and therefore uses `run()`.
-    if (kHasFocusStepper && _focus.mode() == core::FocusMode::ToTarget)
+    if (kHasFocusStepper && _coordinator.focus().mode() == core::FocusMode::ToTarget)
     {
         _stepperFocus->run();
     }
-    else if (kHasFocusStepper && _focus.mode() == core::FocusMode::Continuous)
+    else if (kHasFocusStepper && _coordinator.focus().mode() == core::FocusMode::Continuous)
     {
         _stepperFocus->runSpeed();
     }
@@ -3286,7 +3295,7 @@ void Mount::loop()
 {
     // Facts published during the previous tick reach the display here, never from inside
     // the code that published them.
-    _events.dispatch();
+    _coordinator.events().dispatch();
 
     bool raStillRunning  = false;
     bool decStillRunning = false;
@@ -3311,7 +3320,7 @@ void Mount::loop()
         oneIsRunning |= _stepperALT->isRunning();
     }
 
-    if (_azAlt.update(oneIsRunning) == core::AzAltUpdate::JustStopped)
+    if (_coordinator.azAlt().update(oneIsRunning) == core::AzAltUpdate::JustStopped)
     {
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
@@ -3327,12 +3336,12 @@ void Mount::loop()
 
     // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _stepperFocus->isRunning());
 
-    if (_focus.isRunning())
+    if (_coordinator.focus().isRunning())
     {
-        OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser running at speed %f", _focus.speed());
+        OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser running at speed %f", _coordinator.focus().speed());
     }
 
-    if (_focus.update() == core::FocusUpdate::Stopped)
+    if (_coordinator.focus().update() == core::FocusUpdate::Stopped)
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running ");
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running, disabling");
@@ -3343,16 +3352,16 @@ void Mount::loop()
     if (isGuiding())
     {
         now                 = _deps.clock->now();
-        bool stopRaGuiding  = _guiding.raExpired();
-        bool stopDecGuiding = _guiding.decExpired();
+        bool stopRaGuiding  = _coordinator.guiding().raExpired();
+        bool stopDecGuiding = _coordinator.guiding().decExpired();
         if (stopRaGuiding || stopDecGuiding)
         {
             OAT_LOG(_deps.logger,
                     DEBUG_GUIDE,
                     "[MOUNT]: Loop: StopGuiding. Now: %ld, RA End: %ld, DEC End: %ld",
                     now,
-                    _guiding.raDeadline(),
-                    _guiding.decDeadline());
+                    _coordinator.guiding().raDeadline(),
+                    _coordinator.guiding().decDeadline());
             stopGuiding(stopRaGuiding, stopDecGuiding);
         }
         else
@@ -3389,7 +3398,7 @@ void Mount::loop()
         //
         clearStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET | STATUS_SLEWING_MANUAL);
 
-        if (_slew.wasRunning())
+        if (_coordinator.slew().wasRunning())
         {
             publishEvent(core::MountEventType::SlewArrived);
             OAT_LOG(_deps.logger,
@@ -3401,12 +3410,12 @@ void Mount::loop()
             // The rules for what happens at the end of a slew live in
             // core/SlewCompletion.hpp, as a plan this loop executes in order.
             core::ArrivalFacts facts;
-            facts.intent                    = _slew.intent();
+            facts.intent                    = _coordinator.slew().intent();
             facts.parking                   = isParking();
-            facts.headingToParkPosition     = _parking.headingToPosition();
+            facts.headingToParkPosition     = _coordinator.parking().headingToPosition();
             facts.findingHome               = isFindingHome();
-            facts.compensationPending       = _tracking.compensationPending();
-            facts.backlashOwed              = _slew.backlashOwed();
+            facts.compensationPending       = _coordinator.tracking().compensationPending();
+            facts.backlashOwed              = _coordinator.slew().backlashOwed();
             const core::CompletionPlan plan = core::SlewCompletion::plan(facts);
 
             // Set once the park leg is programmed: true when there is nowhere to go.
@@ -3422,13 +3431,13 @@ void Mount::loop()
             {
                 // setHome() resets the slew, and the rest of this block still needs to
                 // know what the slew was for.
-                const core::SlewSnapshot savedSlew = _slew.snapshot();
+                const core::SlewSnapshot savedSlew = _coordinator.slew().snapshot();
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Was Parking, not slewing to park so stop tracking and set home. SlewToHome: %d",
-                        _slew.intent() == core::SlewIntent::Home);
+                        _coordinator.slew().intent() == core::SlewIntent::Home);
                 setHome(false);
-                _slew.restore(savedSlew);
+                _coordinator.slew().restore(savedSlew);
             }
 
             _currentRAStepperPosition = _stepperRA->currentPosition();
@@ -3440,14 +3449,14 @@ void Mount::loop()
             if (plan.compensateTracker)
             {
                 now                          = _deps.clock->now();
-                const long compensationSteps = _tracking.compensationSteps(now);
+                const long compensationSteps = _coordinator.tracking().compensationSteps(now);
                 OAT_LOG(_deps.logger,
                         DEBUG_STEPPERS,
                         "[STEPPERS]: loop: Arrived at %ldms. Tracking was off for %ldms (%ld steps), compensating.",
                         now,
-                        now - _tracking.stoppedAt(),
+                        now - _coordinator.tracking().stoppedAt(),
                         compensationSteps);
-                _tracking.applyCompensation(compensationSteps);
+                _coordinator.tracking().applyCompensation(compensationSteps);
 
                 OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
             }
@@ -3473,7 +3482,7 @@ void Mount::loop()
                         _backlashCorrectionSteps);
                 _currentRAStepperPosition += _backlashCorrectionSteps;
                 _stepperRA->runToNewPosition(_currentRAStepperPosition);
-                _slew.clearBacklashCorrection();
+                _coordinator.slew().clearBacklashCorrection();
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Backlash correction done. Pos: %d",
@@ -3500,18 +3509,18 @@ void Mount::loop()
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
-                _parking.beginPositionLeg();
+                _coordinator.parking().beginPositionLeg();
                 applyParkingStatus();
                 _stepperRA->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
                 _stepperDEC->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
-                _slew.setTotalMove(1.0f * _stepperRA->distanceToGo(), 1.0f * _stepperDEC->distanceToGo());
+                _coordinator.slew().setTotalMove(1.0f * _stepperRA->distanceToGo(), 1.0f * _stepperDEC->distanceToGo());
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Park Position is R:%ld  D:%ld, TotalMove is R:%f, D:%f",
                         -getHomingOffset(StepperAxis::RA_STEPS),
                         -getHomingOffset(StepperAxis::DEC_STEPS),
-                        _slew.totalRaSteps(),
-                        _slew.totalDecSteps());
+                        _coordinator.slew().totalRaSteps(),
+                        _coordinator.slew().totalDecSteps());
                 parkLegIsNoOp = core::SlewCompletion::parkLegIsNoOp(_stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
                 if (parkLegIsNoOp)
                 {
@@ -3549,29 +3558,29 @@ void Mount::loop()
                 setStatus(STATUS_PARKED);
                 interrupts();
                 publishEvent(core::MountEventType::Parked);
-                _parking.markParked();
+                _coordinator.parking().markParked();
                 applyParkingStatus();
             }
 
             if (plan.endSlew)
             {
-                _slew.end();
+                _coordinator.slew().end();
             }
-            _slew.clearTotalMove();
+            _coordinator.slew().clearTotalMove();
 
             // Make sure we do one last update when the steppers have stopped.
             displayStepperPosition();
         }
     }
 
-    if (_state.test(STATUS_FINDING_HOME))
+    if (_coordinator.state().test(STATUS_FINDING_HOME))
     {
         processHomingProgress();
     }
 
     pollEndSwitches();
 
-    _slew.noteRunning(raStillRunning || decStillRunning);
+    _coordinator.slew().noteRunning(raStillRunning || decStillRunning);
     updateInfoDisplay();
 }
 
@@ -3772,12 +3781,12 @@ void Mount::setHome(bool clearZeroPos)
     _stepperGUIDE->setCurrentPosition(0);
 
     _targetRA = currentRA();
-    _slew.end();
+    _coordinator.slew().end();
     // `setHome()` is also called by the park sequence itself, which re-establishes its
     // phase straight afterwards; clearing here only affects a hand-driven home.
-    if (_parking.isParked())
+    if (_coordinator.parking().isParked())
     {
-        _parking.clear();
+        _coordinator.parking().clear();
         applyParkingStatus();
     }
 
@@ -3796,7 +3805,7 @@ float Mount::getSpeed(int direction)
 {
     if (direction & TRACKING)
     {
-        return _tracking.speed();
+        return _coordinator.tracking().speed();
     }
     if (direction & (NORTH | SOUTH))
     {
@@ -4013,7 +4022,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
 void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxis direction)
 {  // Units are u-steps (in slew mode)
     // Show time: tell the steppers where to go!
-    _slew.clearBacklashCorrection();
+    _coordinator.slew().clearBacklashCorrection();
     OAT_LOG(
         _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: RA  From: %ld  To: %f", _stepperRA->currentPosition(), targetRASteps);
     OAT_LOG(
@@ -4025,7 +4034,7 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
         {
             OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: Needs backlash correction of %d!", _backlashCorrectionSteps);
             targetRASteps -= _backlashCorrectionSteps;
-            _slew.requestBacklashCorrection();
+            _coordinator.slew().requestBacklashCorrection();
         }
 
         _stepperRA->moveTo(targetRASteps);
@@ -4083,8 +4092,11 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 {
                     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Stop tracking (NEMA steppers)");
                     stopSlewing(TRACKING);
-                    _tracking.noteStopped(_deps.clock->now());
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: TRK stopped at %ldms", _tracking.stoppedAt());
+                    _coordinator.tracking().noteStopped(_deps.clock->now());
+                    OAT_LOG(_deps.logger,
+                            DEBUG_STEPPERS,
+                            "[STEPPERS]: moveStepperBy: TRK stopped at %ldms",
+                            _coordinator.tracking().stoppedAt());
                 }
             }
 
@@ -4092,9 +4104,9 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             setRaMicrosteps(RA_SLEW_MICROSTEPPING);
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             publishEvent(core::MountEventType::SlewStarted);
-            _slew.noteRunning(true);
+            _coordinator.slew().noteRunning(true);
             moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
-            _slew.setTotalMove(1.0f * _stepperRA->distanceToGo(), _slew.totalDecSteps());
+            _coordinator.slew().setTotalMove(1.0f * _stepperRA->distanceToGo(), _coordinator.slew().totalDecSteps());
             break;
 
         case DEC_STEPS:
@@ -4103,9 +4115,9 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 publishEvent(core::MountEventType::SlewStarted);
                 // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
                 setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
-                _slew.noteRunning(true);
+                _coordinator.slew().noteRunning(true);
                 moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
-                _slew.setTotalMove(_slew.totalRaSteps(), 1.0f * _stepperDEC->distanceToGo());
+                _coordinator.slew().setTotalMove(_coordinator.slew().totalRaSteps(), 1.0f * _stepperDEC->distanceToGo());
             }
             break;
 
@@ -4167,21 +4179,21 @@ bool Mount::getStepperProgress(int &raPercentage, int &decPercentage)
     bool slewInProgress = true;
     decPercentage       = 100;
     raPercentage        = 100;
-    if ((fabsf(_slew.totalDecSteps()) > 0.001f) && (fabsf(_slew.totalRaSteps()) > 0.001f))
+    if ((fabsf(_coordinator.slew().totalDecSteps()) > 0.001f) && (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f))
     {
         // Both axes moving to target
-        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _slew.totalDecSteps());
-        raPercentage  = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _slew.totalRaSteps());
+        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps());
+        raPercentage  = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps());
     }
-    else if (fabsf(_slew.totalDecSteps()) > 0.001f)
+    else if (fabsf(_coordinator.slew().totalDecSteps()) > 0.001f)
     {
         // Only DEC moving to target
-        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _slew.totalDecSteps());
+        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps());
     }
-    else if (fabsf(_slew.totalRaSteps()) > 0.001f)
+    else if (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f)
     {
         // Only RA is moving to target
-        raPercentage = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _slew.totalRaSteps());
+        raPercentage = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps());
     }
     else
     {
@@ -4201,11 +4213,11 @@ void Mount::displayStepperPosition()
 
     String disp;
 
-    if ((fabsf(_slew.totalDecSteps()) > 0.001f) && (fabsf(_slew.totalRaSteps()) > 0.001f))
+    if ((fabsf(_coordinator.slew().totalDecSteps()) > 0.001f) && (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f))
     {
         // Both axes moving to target
-        float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _slew.totalDecSteps();
-        float raDist  = 100.0f - 100.0f * _stepperRA->distanceToGo() / _slew.totalRaSteps();
+        float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps();
+        float raDist  = 100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps();
 
         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
         _lcdMenu->setCursor(0, 0);
@@ -4216,18 +4228,18 @@ void Mount::displayStepperPosition()
         return;
     }
 
-    if (fabsf(_slew.totalDecSteps()) > 0.001f)
+    if (fabsf(_coordinator.slew().totalDecSteps()) > 0.001f)
     {
         // Only DEC moving to target
-        float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _slew.totalDecSteps();
+        float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps();
         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
         _lcdMenu->setCursor(0, 1);
         _lcdMenu->printMenu(String(scratchBuffer));
     }
-    else if (fabsf(_slew.totalRaSteps()) > 0.001f)
+    else if (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f)
     {
         // Only RAmoving to target
-        float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _slew.totalRaSteps();
+        float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps();
         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
         disp = disp + String(scratchBuffer);
         _lcdMenu->setCursor(0, inSerialControl ? 0 : 1);
@@ -4552,7 +4564,7 @@ void Mount::testUART_vactual(ports::IMotorDriver *driver, int _speed, int _durat
 
 float Mount::getTrackedHours() const
 {
-    return _tracking.trackedHours();
+    return _coordinator.tracking().trackedHours();
 }
 
 /////////////////////////////////
