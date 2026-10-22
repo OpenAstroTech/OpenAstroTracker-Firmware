@@ -17,7 +17,7 @@ POP_NO_WARNINGS
 #endif
 
 #ifndef NEW_STEPPER_LIB
-    #include "InterruptCallback.hpp"
+    #include "hal/InterruptCallback.hpp"
 #endif
 
 #include "Utility.hpp"

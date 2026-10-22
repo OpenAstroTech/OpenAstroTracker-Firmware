@@ -11,7 +11,7 @@
 
 PUSH_NO_WARNINGS
         #include "Stepper.h"
-        #include "InterruptAccelStepper.h"
+        #include "hal/avr/InterruptAccelStepper.h"
 POP_NO_WARNINGS
     #endif
 

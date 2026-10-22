@@ -58,18 +58,22 @@
 #endif
 
 /**
- * @brief TEMPORARY: AVR display support is switched off.
+ * @brief AVR builds are headless by design.
  *
- * The ATmega2560 builds are within a few KB of their flash ceiling, and the Phase 4
- * refactor needs the room. Deleting this block restores the user's DISPLAY_TYPE — the
- * setting in the local configuration is not modified, only overridden here, so
- * restoring it needs no configuration change on any board.
+ * An ATmega2560 build with a display runs at 94.9 % of its 255 KB of flash before the
+ * application does anything else, which is what made the Phase 4 work impossible to land.
+ * Measured on `ramps`: dropping `DISPLAY_TYPE` + `INFO_DISPLAY_TYPE` frees 28.2 KB
+ * (`DEBUG_NONE`) to 32.6 KB (`DEBUG_ANY`) of flash and 0.9 KB of SRAM.
+ *
+ * This overrides the *computed* value only; the setting in the local configuration is left
+ * alone, so a board that wants its display back is one deletion away — and needs the flash
+ * found elsewhere first (GPS is −8.5 KB, the gyro −7.8 KB, both measured).
  *
  * Affected: every `__AVR_ATmega2560__` build (ramps, mksgenlv1/v2/v21). ESP32 and RP2040
- * are untouched. See PLAN.md for the flash measurements behind this.
+ * are untouched and keep their displays. See PLAN.md for the measurements.
  */
 #if defined(__AVR_ATmega2560__) && ((DISPLAY_TYPE != DISPLAY_TYPE_NONE) || (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE))
-    #warning "AVR display support is temporarily disabled to fit the flash budget; the board boots headless."
+    #warning "AVR builds are headless by design: this board would have a display, but the ATmega2560 flash budget does not allow it."
     #undef DISPLAY_TYPE
     #undef INFO_DISPLAY_TYPE
     #define DISPLAY_TYPE DISPLAY_TYPE_NONE

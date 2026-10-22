@@ -23,8 +23,8 @@ than at "the mount".
 | ESP32 (`esp32`) | the FreeRTOS stepper-task path, Wi-Fi transport |
 | RP2040 (`rp2040_skr_pico`) | the PIO/timer path |
 
-Build with `pio run -e <env> -t upload`. Note that AVR currently builds **without display
-support** (see §7.3) — that is expected on this branch.
+Build with `pio run -e <env> -t upload`. AVR builds are **headless by design** (§11.6) —
+no LCD, no info display. ESP32 and RP2040 keep theirs, so run §9.4/§9.5 on those.
 
 ### 1.2 Rig
 
@@ -167,7 +167,7 @@ Fill in §10 as you go. A case is only "pass" when the *expected* column matches
 | 9.5 | LCD menu | Navigate every menu, start a slew and a park from the menu | No lockup; state matches the Meade view | menu screens (out of scope for the refactor — smoke only) |
 | 9.6 | ESP32 stepper task | On ESP32: track continuously for 10 min while polling `:D#` | No missed steps, no watchdog reset, serial stays responsive | `stepperControlTask`, `MountCoordinator::tick()` order |
 | 9.7 | RP2040 stepping | On RP2040: same as 9.6 | same | `hal/rp2040` timer service |
-| 9.8 | AVR timer stepping | On AVR: 10 min tracking, then a long slew | No stutter, no reset | `interruptLoop()` / engine ISR split |
+| 9.8 | AVR timer stepping | On AVR: 10 min tracking, then a long slew, then guide pulses | No stutter, no reset, no dropped steps. **Highest-risk untested change in the branch:** the TIMER1/3/4/5 vectors moved out of `Core.cpp` into `src/hal/avr/TimerIsrVectors.cpp`. The code is character-identical, but no host test can execute an interrupt vector | `hal/avr/TimerIsrVectors.cpp`, engine ISR split |
 | 9.9 | GPS (if fitted) | `:gT#` with a fix | Time and site set | `TinyGpsAdapter` |
 | 9.10 | Gyro/level (if fitted) | Menu level function | Reports tilt | untouched, smoke only |
 
@@ -205,6 +205,14 @@ reviewer does not "fix" them back:
    terminator, so a too-long command could run as a shorter valid one. If a host driver turns
    out to rely on that, it was relying on a bug — but note it, because it is the only change
    here that alters what a command *does*.
+6. **AVR has no display** (all sections). `DISPLAY_TYPE` and `INFO_DISPLAY_TYPE` are forced to
+   `NONE` on `__AVR_ATmega2560__` builds: the display stack does not fit beside the refactor's
+   runtime configuration, and with it restored the board sat at 94.9 % of flash. Run every
+   display case on ESP32/RP2040, and treat a headless AVR board as correct.
+7. **The microstep rates and steps-per-degree defaults are runtime data** (8.2, 8.3, 2.1).
+   They come from `app::buildMountConfig()` at boot instead of being compile-time constants.
+   Externally identical — but it is why 8.2/8.3 deserve attention: a wrong value there is now
+   a boot-time value rather than a build-time one.
 
 ## 12. What cannot be covered here
 

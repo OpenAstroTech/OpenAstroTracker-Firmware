@@ -38,7 +38,7 @@ ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
 PUSH_NO_WARNINGS
 #ifdef NEW_STEPPER_LIB
     #ifdef __AVR_ATmega2560__
-        #include "InterruptAccelStepper.h"
+        #include "hal/avr/InterruptAccelStepper.h"
         #include "StepperConfiguration.hpp"
     #endif
 #endif

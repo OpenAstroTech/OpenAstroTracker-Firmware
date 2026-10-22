@@ -1,5 +1,5 @@
-#include "../Configuration.hpp"
-#include "Utility.hpp"
+#include "../../Configuration.hpp"
+#include "../Utility.hpp"
 #include "InterruptCallback.hpp"
 
 //////////////////////////////////////
@@ -18,7 +18,7 @@
         #define USE_TIMER_4 false
         #define USE_TIMER_5 false
 PUSH_NO_WARNINGS
-        #include "libs/TimerInterrupt/TimerInterrupt.h"
+        #include "../libs/TimerInterrupt/TimerInterrupt.h"
 POP_NO_WARNINGS
     #elif defined(ARDUINO_ARCH_RP2040)
         // Earle Philhower arduino-pico core exposes the Pico SDK alarm API.
