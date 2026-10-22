@@ -20,27 +20,82 @@ namespace core
 /// worth showing.
 ///
 /// Nothing here allocates, locks or blocks, so the same object works on every platform.
-template <uint8_t Capacity> class EventBus
+///
+/// `Sinks` is a fixed slot count rather than one pointer: there are two consumers now, the
+/// command layer (waiting for a slew, homing or focus move to finish so it can answer a
+/// deferred Meade reply) and, since Phase 6, the status display. A single-sink bus would let
+/// the second `subscribe()` silently displace the first, and the loss would be invisible:
+/// the displaced subscriber simply never hears anything again.
+template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
 {
     static_assert(Capacity != 0, "an event bus needs room for at least one event");
     static_assert((Capacity & (Capacity - 1)) == 0, "capacity must be a power of two");
+    static_assert(Sinks != 0, "an event bus needs room for at least one subscriber");
 
   public:
-    /// One subscriber. Mount has exactly one consumer today (the status display), so the
-    /// bus keeps a single pointer instead of a list.
+    /// Adds a subscriber. The same sink twice is a no-op rather than a duplicate delivery, and
+    /// a full bus drops the newcomer: a subscriber that cannot be registered is a
+    /// configuration mistake the caller sees through `hasSubscriber()`, not a runtime fault.
     void subscribe(IEventSink *sink)
     {
-        _sink = sink;
+        if ((sink == nullptr) || hasSubscriber(sink))
+        {
+            return;
+        }
+
+        for (uint8_t i = 0; i < Sinks; i++)
+        {
+            if (_sinks[i] == nullptr)
+            {
+                _sinks[i] = sink;
+                return;
+            }
+        }
     }
 
+    /// Removes one subscriber, leaving the others in place.
+    void unsubscribe(IEventSink *sink)
+    {
+        for (uint8_t i = 0; i < Sinks; i++)
+        {
+            if (_sinks[i] == sink)
+            {
+                _sinks[i] = nullptr;
+            }
+        }
+    }
+
+    /// Removes every subscriber. Used by the composition root when the whole graph goes away.
     void unsubscribe()
     {
-        _sink = nullptr;
+        for (uint8_t i = 0; i < Sinks; i++)
+        {
+            _sinks[i] = nullptr;
+        }
     }
 
     bool hasSubscriber() const
     {
-        return _sink != nullptr;
+        for (uint8_t i = 0; i < Sinks; i++)
+        {
+            if (_sinks[i] != nullptr)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool hasSubscriber(const IEventSink *sink) const
+    {
+        for (uint8_t i = 0; i < Sinks; i++)
+        {
+            if (_sinks[i] == sink)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     void publish(const MountEvent &event)
@@ -58,7 +113,7 @@ template <uint8_t Capacity> class EventBus
     /// Delivers everything queued. Called once per main-loop tick, never from an ISR.
     void dispatch()
     {
-        if ((_sink == nullptr) || _dispatching)
+        if (!hasSubscriber() || _dispatching)
         {
             return;
         }
@@ -74,7 +129,13 @@ template <uint8_t Capacity> class EventBus
             const MountEvent event = _queue[_head];
             _head                  = next(_head);
             _count--;
-            _sink->onMountEvent(event);
+            for (uint8_t i = 0; i < Sinks; i++)
+            {
+                if (_sinks[i] != nullptr)
+                {
+                    _sinks[i]->onMountEvent(event);
+                }
+            }
         }
         _dispatching = false;
     }
@@ -94,7 +155,7 @@ template <uint8_t Capacity> class EventBus
     uint8_t _head               = 0;
     uint8_t _tail               = 0;
     uint8_t _count              = 0;
-    IEventSink *_sink           = nullptr;
+    IEventSink *_sinks[Sinks]   = {};
     bool _dispatching           = false;
 };
 

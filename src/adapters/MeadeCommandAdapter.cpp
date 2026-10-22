@@ -28,9 +28,9 @@ const char *MeadeCommandAdapter::store(oat::core::meade::MeadeResponse &response
 /////////////////////////////
 // Create the processor
 /////////////////////////////
-MeadeCommandAdapter *MeadeCommandAdapter::createProcessor(Mount *mount, LcdMenu *lcdMenu)
+MeadeCommandAdapter *MeadeCommandAdapter::createProcessor(const MeadeCommandPorts &ports, LcdMenu *lcdMenu)
 {
-    _instance = new MeadeCommandAdapter(mount, lcdMenu);
+    _instance = new MeadeCommandAdapter(ports, lcdMenu);
     return _instance;
 }
 
@@ -45,15 +45,107 @@ MeadeCommandAdapter *MeadeCommandAdapter::instance()
 /////////////////////////////
 // Constructor
 /////////////////////////////
-MeadeCommandAdapter::MeadeCommandAdapter(Mount *mount, LcdMenu *lcdMenu)
+MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, LcdMenu *lcdMenu)
 {
-    _mount  = mount;
-    _motion = mount;
-    _config = mount;
-    _axes   = mount;
+    _config   = ports.configuration;
+    _motion   = ports.configuration;  // IMinountConfiguration extends IMountMotion
+    _axes     = ports.axes;
+    _read     = ports.readModel;
+    _siteTime = ports.siteTime;
+    _events   = ports.events;
+    _clock    = ports.clock;
+
+    // Deferred replies complete on mount events, so the command layer is a subscriber like the
+    // status display.
+    if (_events != nullptr)
+    {
+        _events->subscribe(this);
+    }
 
     // In case of DISPLAY_TYPE_NONE mode, the lcdMenu is just an empty shell class to save having to null check everywhere
     _lcdMenu = lcdMenu;
+}
+
+MeadeCommandAdapter::~MeadeCommandAdapter()
+{
+    if (_events != nullptr)
+    {
+        _events->unsubscribe(this);
+    }
+}
+
+void MeadeCommandAdapter::deferReply(oat::core::meade::ReplyKind kind, ::core::MountEventType completesOn, uint32_t timeoutMs)
+{
+    if (_origin == nullptr)
+    {
+        return;  // nobody to answer: an internally issued command answers inline
+    }
+
+    const uint32_t deadline = _clock->now() + timeoutMs;
+    if (_pending.add(_origin, kind, completesOn, deadline) == 0)
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Deferred reply table full, answering inline");
+        return;
+    }
+
+    _deferredThisCommand = true;
+    LOG(DEBUG_MEADE, "[MEADE]: Reply deferred, %lu ms budget", static_cast<unsigned long>(timeoutMs));
+}
+
+void MeadeCommandAdapter::sendPendingReply(const oat::core::meade::PendingReply &reply, bool succeeded)
+{
+    if (reply.out == nullptr)
+    {
+        return;
+    }
+
+    switch (reply.kind)
+    {
+        case oat::core::meade::ReplyKind::SuccessFlag:
+            reply.out->writeResponse(succeeded ? "1" : "0");
+            break;
+
+        case oat::core::meade::ReplyKind::Silent:
+            break;  // the slot existed to hold the transport and the deadline, not to say anything
+    }
+}
+
+void MeadeCommandAdapter::onMountEvent(const ::core::MountEvent &event)
+{
+    oat::core::meade::PendingReply reply;
+    while (_pending.takeCompleted(event.type, reply))
+    {
+        // A homing failure is the one event that reports its own outcome; the rest completing at
+        // all is the success.
+        const bool succeeded = (event.type == ::core::MountEventType::HomingFinished) ? event.succeeded : true;
+        LOG(DEBUG_MEADE, "[MEADE]: Deferred reply %u due (%s)", static_cast<unsigned>(reply.correlation), succeeded ? "ok" : "failed");
+        sendPendingReply(reply, succeeded);
+    }
+}
+
+void MeadeCommandAdapter::tick()
+{
+    if (_clock == nullptr)
+    {
+        return;
+    }
+
+    oat::core::meade::PendingReply reply;
+    while (_pending.takeExpired(_clock->now(), reply))
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: Deferred reply %u timed out", static_cast<unsigned>(reply.correlation));
+        sendPendingReply(reply, false);
+    }
+}
+
+void MeadeCommandAdapter::transportGone(ports::ITransport *transport)
+{
+    _pending.clearFor(transport);
+}
+
+uint8_t MeadeCommandAdapter::pendingReplies() const
+{
+    return _pending.size();
 }
 
 /////////////////////////////
@@ -91,7 +183,7 @@ const char *MeadeCommandAdapter::onProductName()
 
 namespace
 {
-meade::RaCoordinate raFrom(const DayTime &t)
+meade::RaCoordinate raFrom(const core::DayTime &t)
 {
     return meade::RaCoordinate {
         static_cast<uint8_t>(t.getHours()),
@@ -100,16 +192,17 @@ meade::RaCoordinate raFrom(const DayTime &t)
     };
 }
 
-meade::DecCoordinate decFrom(const Declination &d)
+meade::DecCoordinate decFrom(const core::Declination &d)
 {
     // The mount stores DEC as an axis coordinate (0 = pole above the mount);
     // Meade clients expect celestial declination. Apply the hemisphere
     // correction before splitting into components.
+    //
+    // The split folds the sign into `deg`, where anything between 0 and -1
+    // degrees comes back as +0. Read the sign off the undivided total.
+    const long celestialSeconds = core::Declination::axisToCelestialSeconds(d.getTotalSeconds(), inNorthernHemisphere);
     int deg, min, sec;
-    d.getCelestialDegrees(deg, min, sec);
-    // getCelestialDegrees folds the sign into `deg`, where anything between 0
-    // and -1 degrees comes back as +0. Read the sign off the undivided total.
-    const long celestialSeconds = Declination::axisToCelestialSeconds(d.getTotalSeconds(), inNorthernHemisphere);
+    core::DayTime::splitSeconds(celestialSeconds, deg, min, sec);
     return meade::DecCoordinate {
         static_cast<uint16_t>(deg < 0 ? -deg : deg),
         static_cast<uint8_t>(min),
@@ -140,28 +233,27 @@ long siteSecondsFrom(uint16_t degrees, uint8_t minutes, bool negative)
 
 meade::RaCoordinate MeadeCommandAdapter::onCurrentRa()
 {
-    return raFrom(_mount->currentRA());
+    return raFrom(_read->currentRA());
 }
 
 meade::RaCoordinate MeadeCommandAdapter::onTargetRa()
 {
-    return raFrom(_mount->targetRA());
+    return raFrom(_read->targetRA());
 }
 
 meade::DecCoordinate MeadeCommandAdapter::onCurrentDec()
 {
-    return decFrom(_mount->currentDEC());
+    return decFrom(_read->currentDEC());
 }
 
 meade::DecCoordinate MeadeCommandAdapter::onTargetDec()
 {
-    return decFrom(_mount->targetDEC());
+    return decFrom(_read->targetDEC());
 }
 
 const char *MeadeCommandAdapter::onMountStatus()
 {
-    _mountStatusScratch = _mount->getStatusString();
-    return _mountStatusScratch.c_str();
+    return _read->getStatusString();
 }
 
 bool MeadeCommandAdapter::onIsSlewing()
@@ -176,12 +268,12 @@ bool MeadeCommandAdapter::onIsTracking()
 
 bool MeadeCommandAdapter::onIsGuiding()
 {
-    return _mount->isGuiding();
+    return _read->isGuiding();
 }
 
 meade::MeadeLatitude MeadeCommandAdapter::onSiteLatitude()
 {
-    const Latitude lat = _mount->latitude();
+    const core::Latitude lat = _siteTime->latitude();
     // getHours() folds the sign into the degrees component, so a site between
     // 0 and -1 degrees reports as +0. Read the sign off the total instead.
     const int degrees = lat.getHours();
@@ -194,7 +286,7 @@ meade::MeadeLatitude MeadeCommandAdapter::onSiteLatitude()
 
 meade::MeadeLongitude MeadeCommandAdapter::onSiteLongitude()
 {
-    const Longitude lon = _mount->longitude();
+    const core::Longitude lon = _siteTime->longitude();
     const int degrees   = lon.getHours();
     return meade::MeadeLongitude {
         static_cast<uint16_t>(degrees < 0 ? -degrees : degrees),
@@ -205,12 +297,12 @@ meade::MeadeLongitude MeadeCommandAdapter::onSiteLongitude()
 
 int MeadeCommandAdapter::onUtcOffset()
 {
-    return -_mount->getLocalUtcOffset();
+    return -_siteTime->getLocalUtcOffset();
 }
 
 meade::MeadeLocalTime MeadeCommandAdapter::onLocalTime()
 {
-    DayTime time = _mount->getLocalTime();
+    core::DayTime time = _siteTime->getLocalTime();
     return meade::MeadeLocalTime {
         static_cast<uint8_t>(time.getHours()),
         static_cast<uint8_t>(time.getMinutes()),
@@ -220,7 +312,7 @@ meade::MeadeLocalTime MeadeCommandAdapter::onLocalTime()
 
 meade::MeadeLocalDate MeadeCommandAdapter::onLocalDate()
 {
-    ::LocalDate d = _mount->getLocalDate();
+    LocalDate d = _siteTime->getLocalDate();
     return meade::MeadeLocalDate {
         static_cast<uint8_t>(d.month),
         static_cast<uint8_t>(d.day),
@@ -289,7 +381,7 @@ bool MeadeCommandAdapter::onStartGpsAcquisition(const char *timeoutPayload)
 /////////////////////////////
 void MeadeCommandAdapter::onSyncToTarget()
 {
-    _mount->syncPosition(_mount->targetRA(), _mount->targetDEC());
+    _motion->syncPosition(_read->targetRA(), _read->targetDEC());
 }
 
 /////////////////////////////
@@ -297,35 +389,35 @@ void MeadeCommandAdapter::onSyncToTarget()
 /////////////////////////////
 bool MeadeCommandAdapter::onSetTargetDec(meade::DecCoordinate dec)
 {
-    _mount->targetDEC() = decFromWire(dec);
-    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", _mount->targetDEC().ToString());
+    _read->targetDEC() = decFromWire(dec);
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", Declination(_read->targetDEC()).ToString());
     return true;
 }
 
 bool MeadeCommandAdapter::onSetTargetRa(meade::RaCoordinate ra)
 {
-    _mount->targetRA().set(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
-    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", _mount->targetRA().ToString());
+    _read->targetRA().set(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", DayTime(_read->targetRA()).ToString());
     return true;
 }
 
 bool MeadeCommandAdapter::onSetLocalSiderealTime(meade::MeadeLocalTime lst)
 {
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received LST: %u:%u:%u", lst.hours, lst.minutes, lst.seconds);
-    _mount->setLST(DayTime(static_cast<int>(lst.hours), static_cast<int>(lst.minutes), static_cast<int>(lst.seconds)));
+    _siteTime->setLST(core::DayTime(static_cast<int>(lst.hours), static_cast<int>(lst.minutes), static_cast<int>(lst.seconds)));
     return true;
 }
 
 bool MeadeCommandAdapter::onSetHomePoint()
 {
-    _mount->setHome(false);
+    _motion->setHome(false);
     return true;
 }
 
 bool MeadeCommandAdapter::onSetHourAngle(uint8_t hours, uint8_t minutes)
 {
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received HA: %u:%u:0", hours, minutes);
-    _mount->setHA(DayTime(static_cast<int>(hours), static_cast<int>(minutes), 0));
+    _siteTime->setHA(core::DayTime(static_cast<int>(hours), static_cast<int>(minutes), 0));
     return true;
 }
 
@@ -333,7 +425,7 @@ bool MeadeCommandAdapter::onSyncCoordinates(meade::DecCoordinate dec, meade::RaC
 {
     Declination decValue = decFromWire(dec);
     DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
-    _mount->syncPosition(raValue, decValue);
+    _motion->syncPosition(raValue, decValue);
     return true;
 }
 
@@ -341,7 +433,7 @@ bool MeadeCommandAdapter::onSetSiteLatitude(meade::MeadeLatitude lat)
 {
     Latitude value;
     value.addSeconds(siteSecondsFrom(lat.degrees, lat.minutes, lat.negative));
-    _mount->setLatitude(value);
+    _siteTime->setLatitude(value);
     return true;
 }
 
@@ -349,7 +441,7 @@ bool MeadeCommandAdapter::onSetSiteLongitude(meade::MeadeLongitude lon)
 {
     Longitude value;
     value.addSeconds(siteSecondsFrom(lon.degrees, lon.minutes, lon.negative));
-    _mount->setLongitude(value);
+    _siteTime->setLongitude(value);
     return true;
 }
 
@@ -357,19 +449,19 @@ bool MeadeCommandAdapter::onSetUtcOffset(int hours)
 {
     // Wire value is the local-time offset from UTC; the mount stores the
     // inverse so that "local + offset = UTC".
-    _mount->setLocalUtcOffset(-hours);
+    _siteTime->setLocalUtcOffset(-hours);
     return true;
 }
 
 bool MeadeCommandAdapter::onSetLocalTime(meade::MeadeLocalTime t)
 {
-    _mount->setLocalStartTime(DayTime(static_cast<int>(t.hours), static_cast<int>(t.minutes), static_cast<int>(t.seconds)));
+    _siteTime->setLocalStartTime(core::DayTime(static_cast<int>(t.hours), static_cast<int>(t.minutes), static_cast<int>(t.seconds)));
     return true;
 }
 
 bool MeadeCommandAdapter::onSetLocalDate(meade::MeadeLocalDate d)
 {
-    _mount->setLocalStartDate(static_cast<int>(d.year), static_cast<int>(d.month), static_cast<int>(d.day));
+    _siteTime->setLocalStartDate(static_cast<int>(d.year), static_cast<int>(d.month), static_cast<int>(d.day));
     /*
     From https://www.astro.louisville.edu/software/xmtel/archive/xmtel-indi-6.0/xmtel-6.0l/support/lx200/CommandSet.html :
     SC: Calendar: If the date is valid 2 <string>s are returned, each string is 31 bytes long.
@@ -401,7 +493,7 @@ void MeadeCommandAdapter::onUnpark()
 
 void MeadeCommandAdapter::onSetAzAltHome()
 {
-    _mount->setAZALTHome();
+    _axes->setAZALTHome();
 }
 
 void MeadeCommandAdapter::onSetSlewRate(uint8_t rate)
@@ -421,7 +513,7 @@ bool MeadeCommandAdapter::onIsSlewingRaOrDec()
 
 void MeadeCommandAdapter::onFactoryReset()
 {
-    _mount->clearConfiguration();
+    _config->clearConfiguration();
 }
 
 void MeadeCommandAdapter::onDriftAlignment(int duration)
@@ -432,7 +524,7 @@ void MeadeCommandAdapter::onDriftAlignment(int duration)
     // handler. It is a phase machine in core/DriftAlignmentController now, ticked from Mount::loop.
     _lcdMenu->setCursor(0, 0);
     _lcdMenu->printMenu(F(">Drift Alignment"));
-    _mount->startDriftAlignment(duration);
+    _motion->startDriftAlignment(duration);
 #else
     (void) duration;
 #endif
@@ -468,7 +560,7 @@ float MeadeCommandAdapter::onGetTrackingSpeedCalibration()
 }
 float MeadeCommandAdapter::onGetRemainingSafeTime()
 {
-    return _mount->checkRALimit();
+    return _read->checkRALimit();
 }
 float MeadeCommandAdapter::onGetTrackingSpeed()
 {
@@ -480,8 +572,7 @@ int MeadeCommandAdapter::onGetBacklashSteps()
 }
 const char *MeadeCommandAdapter::onGetAutoHomingStates()
 {
-    _mountStatusScratch = _mount->getAutoHomingStates();
-    return _mountStatusScratch.c_str();
+    return _read->getAutoHomingStates();
 }
 
 oat::core::meade::ExtraAzAltPositions MeadeCommandAdapter::onGetAzAltPositions()
@@ -494,19 +585,17 @@ oat::core::meade::ExtraAzAltPositions MeadeCommandAdapter::onGetAzAltPositions()
 oat::core::meade::ExtraStepperCoords MeadeCommandAdapter::onGetTargetCoordinatePositions(float raCoord, float decCoord)
 {
     oat::core::meade::ExtraStepperCoords pos;
-    _mount->calculateStepperPositions(raCoord, decCoord, pos.raPos, pos.decPos);
+    _read->calculateStepperPositions(raCoord, decCoord, pos.raPos, pos.decPos);
     return pos;
 }
 
 const char *MeadeCommandAdapter::onGetStepperInfo()
 {
-    _mountStatusScratch = _mount->getStepperInfo();
-    return _mountStatusScratch.c_str();
+    return _read->getStepperInfo();
 }
 const char *MeadeCommandAdapter::onGetMountHardwareInfo()
 {
-    _mountStatusScratch = _mount->getMountHardwareInfo();
-    return _mountStatusScratch.c_str();
+    return _read->getMountHardwareInfo();
 }
 const char *MeadeCommandAdapter::onGetLogBuffer()
 {
@@ -528,7 +617,7 @@ bool MeadeCommandAdapter::onGetHemisphere()
 
 oat::core::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
 {
-    DayTime ha = _mount->calculateHa();
+    core::DayTime ha = _read->calculateHa();
     oat::core::meade::ExtraHms t;
     t.hours   = ha.getHours();
     t.minutes = ha.getMinutes();
@@ -538,7 +627,7 @@ oat::core::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
 
 oat::core::meade::ExtraHms MeadeCommandAdapter::onGetLocalSiderealTime()
 {
-    DayTime lst = _mount->calculateLst();
+    core::DayTime lst = _read->calculateLst();
     oat::core::meade::ExtraHms t;
     t.hours   = lst.getHours();
     t.minutes = lst.getMinutes();
@@ -609,11 +698,11 @@ void MeadeCommandAdapter::onSetTrackingSpeedCalibration(float v)
 }
 void MeadeCommandAdapter::onSetTrackingStepperPosition(long v)
 {
-    _mount->setTrackingStepperPos(v);
+    _motion->setTrackingStepperPos(v);
 }
 void MeadeCommandAdapter::onSetManualSlewMode(bool enable)
 {
-    _mount->setManualSlewMode(enable);
+    _config->setManualSlewMode(enable);
 }
 void MeadeCommandAdapter::onSetRaManualSpeed(float v)
 {
@@ -992,19 +1081,21 @@ bool MeadeCommandAdapter::onHomeDec(int direction, const char *distancePayload)
 #endif
 }
 
-const char *MeadeCommandAdapter::processCommand(String inCmd)
+const char *MeadeCommandAdapter::processCommand(String inCmd, ports::ITransport *origin)
 {
     LOG(DEBUG_MEADE, "[MEADE]: Received command   '%s'", inCmd.c_str());
-    _mount->commandReceived();
+    _read->commandReceived();
+    _origin              = origin;
+    _deferredThisCommand = false;
     _response.clearDeferral();  // the response object is reused between commands
     meade::dispatchMeadeCommand(_response, inCmd.c_str(), *this);
 
-    if (_response.deferred())
+    if (_deferredThisCommand || _response.deferred())
     {
-        // The handler took ownership of the reply: it will write the bytes through its transport
-        // when the work finishes. Returning an empty string here is not the same as "no reply" --
-        // the transports treat both as nothing to send, but the deferral is what tells the caller
-        // a reply is still owed.
+        // The handler took ownership of the reply: it will write the bytes through the transport
+        // it arrived on when the work finishes. Returning an empty string here is not the same as
+        // "no reply" -- the transports treat both as nothing to send, but the deferral is what
+        // tells the caller a reply is still owed.
         LOG(DEBUG_MEADE, "[MEADE]: Deferred reply owed for '%s'", inCmd.c_str());
         return "";
     }

@@ -256,7 +256,7 @@ void printStepperInfo(StepperAxis axis, String info)
 void TestMenu::listHardware() const
 {
     Serial.println(F("Firmware is configured to support these hardware components:"));
-    String *hw = splitStringBy(mount.getMountHardwareInfo(), ',');
+    String *hw = splitStringBy(String(mount.getMountHardwareInfo()), ',');
     String *p  = hw;
     int index  = 0;
     Serial.print(F("              Mount: "));

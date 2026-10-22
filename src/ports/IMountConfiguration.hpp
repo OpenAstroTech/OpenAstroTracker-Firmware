@@ -72,6 +72,13 @@ class IMountConfiguration : public IMountMotion
 
     virtual void setBacklashCorrection(int steps) = 0;
     virtual int getBacklashCorrection()           = 0;
+
+    /// Switches between sidereal tracking and a constant manual slew, stopping the axes first:
+    /// the RA microstep rate changes underneath, which must not happen to a moving axis.
+    virtual void setManualSlewMode(bool enable) = 0;
+
+    /// Wipes every stored value and reloads the compile-time defaults (`:XFR#`).
+    virtual void clearConfiguration() = 0;
 };
 
 }  // namespace ports

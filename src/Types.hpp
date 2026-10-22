@@ -11,4 +11,13 @@ enum StepperAxis
     FOCUS_STEPS
 };
 
+/// A calendar date as the mount keeps it: the local date the operator entered, or the one the
+/// GPS reported. A plain value with no Arduino dependency, so a port can hand it out.
+struct LocalDate
+{
+    int year;
+    int month;
+    int day;
+};
+
 #endif

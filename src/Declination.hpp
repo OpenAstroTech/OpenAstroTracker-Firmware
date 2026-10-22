@@ -13,6 +13,13 @@ class Declination : public core::Declination
   public:
     using core::Declination::Declination;
 
+    /// Copies the pure value. Used where a port hands back a `core::Declination` and the
+    /// caller holds the Arduino-aware overlay — the same convenience `DayTime` and
+    /// `Latitude` already carry.
+    Declination(const core::Declination &other) : core::Declination(other)
+    {
+    }
+
     // Convert to a standard string (like +54:45:06)
     virtual const char *ToString() const;
     virtual const char *formatString(char *targetBuffer, const char *format, long *pSeconds = nullptr) const;

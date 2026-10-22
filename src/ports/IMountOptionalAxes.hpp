@@ -33,6 +33,10 @@ class IMountOptionalAxes : public IMountConfiguration
 
     // --- azimuth / altitude ---
     virtual void moveBy(int direction, float arcMinutes)                    = 0;
+
+    /// Declares the current AZ/ALT position to be the home position. A no-op on a board without
+    /// the axes, like every other entry point here.
+    virtual void setAZALTHome() = 0;
     virtual void moveAZALTToHome()                                          = 0;
     virtual void getAZALTPositions(long &azimuthSteps, long &altitudeSteps) = 0;
 };

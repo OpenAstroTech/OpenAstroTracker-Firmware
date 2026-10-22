@@ -574,12 +574,19 @@ void setup()
 
 #endif  // DISPLAY_TYPE > 0
 
-    LOG(DEBUG_ANY, "[SYSTEM]: Hardware: %s", mount.getMountHardwareInfo().c_str());
+    LOG(DEBUG_ANY, "[SYSTEM]: Hardware: %s", mount.getMountHardwareInfo());
 
     // Create the command processor singleton
     LOG(DEBUG_ANY, "[SYSTEM]: Initialize LX200 handler...");
     int commandProcessorLine = addConsoleText(F("Init MEADE handler..."));
-    MeadeCommandAdapter::createProcessor(&mount, &lcdMenu);
+    MeadeCommandPorts commandPorts;
+    commandPorts.configuration = &mount;
+    commandPorts.axes          = &mount;
+    commandPorts.readModel     = &mount;
+    commandPorts.siteTime      = &mount;
+    commandPorts.events        = &mount;
+    commandPorts.clock         = &clockPort;
+    MeadeCommandAdapter::createProcessor(commandPorts, &lcdMenu);
     updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 
 #if (WIFI_ENABLED == 1)

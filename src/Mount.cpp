@@ -1119,7 +1119,7 @@ int Mount::getBacklashCorrection()
 // getMountHardwareInfo
 //
 /////////////////////////////////
-String Mount::getStepperInfo()
+const char *Mount::getStepperInfo()
 {
     String ret = "";
 
@@ -1157,7 +1157,8 @@ String Mount::getStepperInfo()
 
     ret += "|";
 
-    return ret;
+    _readoutScratch = ret;
+    return _readoutScratch.c_str();
 }
 
 /////////////////////////////////
@@ -1165,7 +1166,7 @@ String Mount::getStepperInfo()
 // getMountHardwareInfo
 //
 /////////////////////////////////
-String Mount::getMountHardwareInfo()
+const char *Mount::getMountHardwareInfo()
 {
     String ret = F("Unknown,");
 #if defined(ESP32)
@@ -1259,7 +1260,8 @@ String Mount::getMountHardwareInfo()
     ret += F("NO_ENDSW,");
 #endif
 
-    return ret;
+    _readoutScratch = ret;
+    return _readoutScratch.c_str();
 }
 
 /////////////////////////////////
@@ -1305,9 +1307,9 @@ int Mount::getSlewRate()
 // setHA
 //
 /////////////////////////////////
-void Mount::setHA(const DayTime &haTime)
+void Mount::setHA(const core::DayTime &haTime)
 {
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setHA:  HA is %s", haTime.ToString());
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setHA:  HA is %s", DayTime(haTime).ToString());
     DayTime lst = DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
     lst.addTime(haTime);
     setLST(lst);
@@ -1334,7 +1336,7 @@ const DayTime Mount::HA() const
 // setLST
 //
 /////////////////////////////////
-void Mount::setLST(const DayTime &lst)
+void Mount::setLST(const core::DayTime &lst)
 {
     _LST       = lst;
     _zeroPosRA = lst;
@@ -1349,7 +1351,7 @@ void Mount::setLST(const DayTime &lst)
 // setLatitude
 //
 /////////////////////////////////
-void Mount::setLatitude(Latitude latitude)
+void Mount::setLatitude(const core::Latitude &latitude)
 {
     OAT_LOG(_deps.logger, DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", latitude.getTotalHours());
     _latitude = latitude;
@@ -1362,7 +1364,7 @@ void Mount::setLatitude(Latitude latitude)
 // setLongitude
 //
 /////////////////////////////////
-void Mount::setLongitude(Longitude longitude)
+void Mount::setLongitude(const core::Longitude &longitude)
 {
     OAT_LOG(_deps.logger, DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", longitude.getTotalHours());
     _longitude = longitude;
@@ -1376,7 +1378,7 @@ void Mount::setLongitude(Longitude longitude)
 // latitude
 //
 /////////////////////////////////
-const Latitude Mount::latitude() const
+core::Latitude Mount::latitude() const
 {
     return _latitude;
 }
@@ -1385,7 +1387,7 @@ const Latitude Mount::latitude() const
 // longitude
 //
 /////////////////////////////////
-const Longitude Mount::longitude() const
+core::Longitude Mount::longitude() const
 {
     return _longitude;
 }
@@ -1396,7 +1398,7 @@ const Longitude Mount::longitude() const
 //
 /////////////////////////////////
 // Get a reference to the target RA value.
-DayTime &Mount::targetRA()
+core::DayTime &Mount::targetRA()
 {
     return _targetRA;
 }
@@ -1407,7 +1409,7 @@ DayTime &Mount::targetRA()
 //
 /////////////////////////////////
 // Get a reference to the target DEC value.
-Declination &Mount::targetDEC()
+core::Declination &Mount::targetDEC()
 {
     return _targetDEC;
 }
@@ -1418,7 +1420,7 @@ Declination &Mount::targetDEC()
 //
 /////////////////////////////////
 // Get current RA value.
-const DayTime Mount::currentRA() const
+core::DayTime Mount::currentRA() const
 {
     // How many steps moves the RA ring one sidereal hour along. One sidereal hour moves just shy of 15 degrees
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
@@ -1449,7 +1451,7 @@ const DayTime Mount::currentRA() const
 //
 /////////////////////////////////
 // Get current DEC value.
-const Declination Mount::currentDEC() const
+core::Declination Mount::currentDEC() const
 {
     // u-steps / u-steps/deg = deg
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
@@ -1465,11 +1467,11 @@ const Declination Mount::currentDEC() const
 /////////////////////////////////
 // Set the current RA and DEC position to be the given coordinate. We do this by setting the stepper motor coordinate
 // to be at the calculated positions (that they would be if we were slewing there).
-void Mount::syncPosition(DayTime ra, Declination dec)
+void Mount::syncPosition(const core::DayTime &ra, const core::Declination &dec)
 {
     long solutions[6];
-    _targetDEC = dec;
-    _targetRA  = ra;
+    _targetDEC = Declination(dec);
+    _targetRA  = DayTime(ra);
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: syncPosition: Target Sync is RA: %f  and DEC: %f",
@@ -2417,9 +2419,19 @@ void Mount::setEventSink(core::IEventSink *sink)
     _coordinator.events().subscribe(sink);
 }
 
-void Mount::clearEventSink()
+void Mount::clearEventSink(core::IEventSink *sink)
 {
-    _coordinator.events().unsubscribe();
+    _coordinator.events().unsubscribe(sink);
+}
+
+void Mount::subscribe(core::IEventSink *sink)
+{
+    setEventSink(sink);
+}
+
+void Mount::unsubscribe(core::IEventSink *sink)
+{
+    clearEventSink(sink);
 }
 
 /// Records a fact for the tick boundary. The next `loop()` delivers it, so a subscriber
@@ -2507,7 +2519,7 @@ String Mount::getStatusStateString()
 // getStatusString
 //
 /////////////////////////////////
-String Mount::getStatusString()
+const char *Mount::getStatusString()
 {
     String status = getStatusStateString() + ",";
 
@@ -2553,7 +2565,8 @@ String Mount::getStatusString()
     status += DECString(COMPACT_STRING | CURRENT_STRING) + ",";
     status += kHasFocusStepper ? String(_stepperFocus->currentPosition()) + "," : String(",");
 
-    return status;
+    _readoutScratch = status;
+    return _readoutScratch.c_str();
 }
 
 /////////////////////////////////
@@ -3084,12 +3097,13 @@ void Mount::pollEndSwitches()
     }
 }
 
-String Mount::getAutoHomingStates() const
+const char *Mount::getAutoHomingStates() const
 {
     String state = homingStateText(kHasRaHoming && (_raHoming != nullptr), _raHoming);
     state += "|";
     state += homingStateText(kHasDecHoming && (_decHoming != nullptr), _decHoming);
-    return state;
+    _readoutScratch = state;
+    return _readoutScratch.c_str();
 }
 
 /// The Meade status fragment for one axis' sensor. A board without the sensor reports the
@@ -4270,7 +4284,7 @@ String Mount::DECString(byte type, byte active)
     }
     else
     {
-        dec = currentDEC();
+        dec = Declination(currentDEC());
     }
 
     core::formatDEC(scratchBuffer, dec, formatStringsDEC[type & FORMAT_STRING_MASK]);
@@ -4326,7 +4340,7 @@ DayTime Mount::getUtcTime()
 // localTime
 //
 /////////////////////////////////
-DayTime Mount::getLocalTime()
+core::DayTime Mount::getLocalTime()
 {
     DayTime timeLocal = _localStartTime;
     timeLocal.addSeconds((_deps.clock->now() - _localStartTimeSetMillis) / 1000);
@@ -4383,9 +4397,9 @@ void Mount::setLocalStartDate(int year, int month, int day)
 // setLocalStartTime
 //
 /////////////////////////////////
-void Mount::setLocalStartTime(DayTime localTime)
+void Mount::setLocalStartTime(const core::DayTime &localTime)
 {
-    _localStartTime          = localTime;
+    _localStartTime          = DayTime(localTime);
     _localStartTimeSetMillis = _deps.clock->now();
 
     autoCalcHa();
@@ -4419,7 +4433,7 @@ void Mount::autoCalcHa()
 // calculateLst
 //
 /////////////////////////////////
-DayTime Mount::calculateLst()
+core::DayTime Mount::calculateLst()
 {
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
@@ -4443,7 +4457,7 @@ DayTime Mount::calculateLst()
 // calculateHa
 //
 /////////////////////////////////
-DayTime Mount::calculateHa()
+core::DayTime Mount::calculateHa()
 {
     DayTime lst = calculateLst();
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());

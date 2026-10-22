@@ -208,3 +208,71 @@ TEST(EventBusTest, DispatchWithoutAPendingEventDoesNothing)
 
     EXPECT_TRUE(sink.events().empty());
 }
+
+TEST(EventBusTest, DeliversToEverySubscriber)
+{
+    // Two consumers exist: the command layer waiting on a deferred reply and the status
+    // display. A single-sink bus would let the second subscribe silently displace the first.
+    core::EventBus<4> bus;
+    RecordingSink first;
+    RecordingSink second;
+    bus.subscribe(&first);
+    bus.subscribe(&second);
+
+    bus.publish(event(core::MountEventType::SlewArrived));
+    bus.dispatch();
+
+    ASSERT_EQ(1u, first.events().size());
+    ASSERT_EQ(1u, second.events().size());
+    EXPECT_EQ(core::MountEventType::SlewArrived, second.events()[0].type);
+}
+
+TEST(EventBusTest, SubscribingTheSameSinkTwiceDeliversOnce)
+{
+    core::EventBus<4> bus;
+    RecordingSink sink;
+    bus.subscribe(&sink);
+    bus.subscribe(&sink);
+
+    bus.publish(event(core::MountEventType::Parked));
+    bus.dispatch();
+
+    EXPECT_EQ(1u, sink.events().size());
+}
+
+TEST(EventBusTest, UnsubscribingOneSinkLeavesTheOther)
+{
+    core::EventBus<4> bus;
+    RecordingSink leaver;
+    RecordingSink stayer;
+    bus.subscribe(&leaver);
+    bus.subscribe(&stayer);
+
+    bus.unsubscribe(&leaver);
+    bus.publish(event(core::MountEventType::Parked));
+    bus.dispatch();
+
+    EXPECT_TRUE(leaver.events().empty());
+    EXPECT_EQ(1u, stayer.events().size());
+    EXPECT_TRUE(bus.hasSubscriber());
+}
+
+TEST(EventBusTest, TheSlotsAreBoundedAndTheFirstSubscribersWin)
+{
+    core::EventBus<4, 2> bus;
+    RecordingSink first;
+    RecordingSink second;
+    RecordingSink third;
+    bus.subscribe(&first);
+    bus.subscribe(&second);
+    bus.subscribe(&third);  // no room
+
+    EXPECT_FALSE(bus.hasSubscriber(&third));
+
+    bus.publish(event(core::MountEventType::Parked));
+    bus.dispatch();
+
+    EXPECT_EQ(1u, first.events().size());
+    EXPECT_EQ(1u, second.events().size());
+    EXPECT_TRUE(third.events().empty());
+}

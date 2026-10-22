@@ -21,6 +21,13 @@ void serialLoop()
     mount.loop();
     mount.displayStepperPositionThrottled();
 
+    // Deferred Meade replies whose deadline ran out while nothing else was talking. The
+    // event-driven half is delivered by `mount.loop()` above.
+    if (MeadeCommandAdapter *processor = MeadeCommandAdapter::instance())
+    {
+        processor->tick();
+    }
+
     #if defined(ESP32)
     processSerialData();
     #endif
@@ -139,7 +146,7 @@ void processSerialData()
         const String inCmd = String(buffer);
         LOG(DEBUG_SERIAL, "[SERIAL]: ReceivedCommand(%d chars): [%s]", inCmd.length(), inCmd.c_str());
 
-        const char *retVal = MeadeCommandAdapter::instance()->processCommand(inCmd);
+        const char *retVal = MeadeCommandAdapter::instance()->processCommand(inCmd, &transport);
         if (retVal[0] != '\0')
         {
             LOG(DEBUG_SERIAL, "[SERIAL]: RepliedWith:  [%s]", retVal);

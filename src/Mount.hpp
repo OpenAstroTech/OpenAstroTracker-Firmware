@@ -24,6 +24,9 @@
 #include "ports/IMotorDriver.hpp"
 #include "ports/IMountOptionalAxes.hpp"
 #include "ports/IMountMotion.hpp"
+#include "ports/IMountEvents.hpp"
+#include "ports/IMountReadModel.hpp"
+#include "ports/IMountSiteTime.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
 #include "ports/IStepperAxis.hpp"
@@ -145,12 +148,6 @@ class EndSwitch;
 #define STATUS_GUIDE_PULSE_MASK  ((uint16_t) core::StatusBit::GuidePulseMask)
 #define STATUS_FINDING_HOME      ((uint16_t) core::StatusBit::FindingHome)
 
-struct LocalDate {
-    int year;
-    int month;
-    int day;
-};
-
 // Focuser support
 // The focuser's direction and mode are domain vocabulary, so they live in `core/` with
 // the controller that acts on them. The aliases keep the public menu and Meade names.
@@ -185,7 +182,10 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class Mount final : public ports::IMountOptionalAxes
+class Mount final : public ports::IMountOptionalAxes,
+                    public ports::IMountReadModel,
+                    public ports::IMountSiteTime,
+                    public ports::IMountEvents
 {
   public:
     /// The infrastructure ports are injected by the composition root
@@ -310,33 +310,33 @@ class Mount final : public ports::IMountOptionalAxes
     float getTrackedHours() const;
 
     // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
-    void setHA(const DayTime &haTime);
+    void setHA(const core::DayTime &haTime) override;
     const DayTime HA() const;
 
     // Set the LST time (HA is derived from LST)
-    void setLST(const DayTime &haTime);
+    void setLST(const core::DayTime &haTime) override;
 
-    void setLatitude(Latitude lat);
-    void setLongitude(Longitude lon);
-    const Latitude latitude() const;
-    const Longitude longitude() const;
+    void setLatitude(const core::Latitude &lat) override;
+    void setLongitude(const core::Longitude &lon) override;
+    core::Latitude latitude() const override;
+    core::Longitude longitude() const override;
 
     // Get a reference to the target RA value.
-    DayTime &targetRA();
+    core::DayTime &targetRA() override;
 
     // Get a reference to the target DEC value.
-    Declination &targetDEC();
+    core::Declination &targetDEC() override;
 
     // Get current RA value.
-    const DayTime currentRA() const;
+    core::DayTime currentRA() const override;
 
     // Get current DEC value.
-    const Declination currentDEC() const;
+    core::Declination currentDEC() const override;
 
     // Set the current RA and DEC position to be the given coordinates
-    void syncPosition(DayTime ra, Declination dec);
+    void syncPosition(const core::DayTime &ra, const core::Declination &dec) override;
 
-    void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
+    void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos) override;
 
     // Calculates movement parameters and program steppers to move
     // there. Must call loop() frequently to actually move.
@@ -348,14 +348,14 @@ class Mount final : public ports::IMountOptionalAxes
     // Move AZ and ALT motors to their zero position
     void moveAZALTToHome() override;
     void getAZALTPositions(long &azPos, long &altPos) override;
-    void setAZALTHome();
+    void setAZALTHome() override;
 
     // Various status query functions
     bool isSlewingRAorDEC() const override;
     bool isSlewingIdle() const;
     bool isSlewingTRK() const override;
     bool isParking() const;
-    bool isGuiding() const;
+    bool isGuiding() const override;
     bool isFindingHome() const;
     bool isAxisRunning(StepperAxis axis);
     bool isRunningAZ() const;
@@ -385,7 +385,7 @@ class Mount final : public ports::IMountOptionalAxes
     long getCurrentStepperPosition(StepperAxis axis);
 
     // Set the tracking stepper position
-    void setTrackingStepperPos(long stepPos);
+    void setTrackingStepperPos(long stepPos) override;
 
     // Process any stepper movement.
     void loop();
@@ -396,7 +396,7 @@ class Mount final : public ports::IMountOptionalAxes
 #endif
 
     // Set the current stepper positions to be home.
-    void setHome(bool clearZeroPos);
+    void setHome(bool clearZeroPos) override;
 
     // Set the DEC limit position to the given angle in degrees (saved as DEC steps).
     // If upper is true, sets the upper limit, else the lower limit.
@@ -428,17 +428,23 @@ class Mount final : public ports::IMountOptionalAxes
     String getStatusStateString();
 
     // Returns a comma-delimited string with all the mounts' information
-    String getStatusString();
+    const char *getStatusString() override;
 
     void setStatus(int state);
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
 
-    /// Registers the single observer of mount events (the info display). Events are
-    /// drained once per `loop()`, so the observer is never called from inside the code
-    /// that published.
+    /// Registers an observer of mount events: the command layer (deferred replies) and the
+    /// info display. Events are drained once per `loop()`, so an observer is never called
+    /// from inside the code that published. Registration is per sink, so removing one leaves
+    /// the other in place.
     void setEventSink(core::IEventSink *sink);
-    void clearEventSink();
+    void clearEventSink(core::IEventSink *sink);
+
+    // `ports::IMountEvents`: the command layer subscribes to completions so a deferred reply can
+    // be sent when the work behind it finishes.
+    void subscribe(core::IEventSink *sink) override;
+    void unsubscribe(core::IEventSink *sink) override;
 
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction) override;
@@ -461,20 +467,20 @@ class Mount final : public ports::IMountOptionalAxes
     void updateInfoDisplay();
 
     // Called by Meade processor every time a command is received.
-    void commandReceived();
-    long getNumCommandsReceived()
+    void commandReceived() override;
+    long getNumCommandsReceived() override
     {
         return _commandReceived;
     }
 
 #if SUPPORT_DRIFT_ALIGNMENT == 1
-    // Runs a phase of the drift alignment procedure
-    void startDriftAlignment(int durationSecs);
+    // Starts the drift alignment phase machine; `loop()` ticks it.
+    void startDriftAlignment(int durationSecs) override;
     void updateDriftAlignment(unsigned long now);
 #endif
 
     // Toggle the state where we run the motors at a constant speed
-    void setManualSlewMode(bool state);
+    void setManualSlewMode(bool state) override;
 
     // Set the speed of the given motor
     void setSpeed(StepperAxis which, float speedDegsPerSec) override;
@@ -511,7 +517,7 @@ class Mount final : public ports::IMountOptionalAxes
 
     /// Polls the RA/DEC end switches, if this board has them. No-op otherwise.
     void pollEndSwitches();
-    String getAutoHomingStates() const;
+    const char *getAutoHomingStates() const override;
     String homingStateText(bool present, const HallSensorHoming *sensor) const;
 
     void setHomingOffset(StepperAxis axis, long offset) override;
@@ -533,13 +539,13 @@ class Mount final : public ports::IMountOptionalAxes
     void readConfiguration();
 
     // Clear all saved configuration data from persistent storage
-    void clearConfiguration();
+    void clearConfiguration() override;
 
     // Get Mount configuration data
-    String getMountHardwareInfo();
+    const char *getMountHardwareInfo() override;
 
     // Get info about the configured steppers and drivers
-    String getStepperInfo();
+    const char *getStepperInfo() override;
 
     // Returns a flag indicating whether the mount is fully booted.
     bool isBootComplete();
@@ -548,24 +554,24 @@ class Mount final : public ports::IMountOptionalAxes
     void bootComplete();
 
     DayTime getUtcTime();
-    DayTime getLocalTime();
-    LocalDate getLocalDate();
+    core::DayTime getLocalTime() override;
+    LocalDate getLocalDate() override;
 
-    int getLocalUtcOffset() const;
+    int getLocalUtcOffset() const override;
 
-    void setLocalStartDate(int year, int month, int day);
-    void setLocalStartTime(DayTime localTime);
-    void setLocalUtcOffset(int offset);
+    void setLocalStartDate(int year, int month, int day) override;
+    void setLocalStartTime(const core::DayTime &localTime) override;
+    void setLocalUtcOffset(int offset) override;
 
-    DayTime calculateLst();
-    DayTime calculateHa();
+    core::DayTime calculateLst() override;
+    core::DayTime calculateHa() override;
 
     // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
     byte slewStatus() const;
     byte mountStatus() const;
 
     // Returns the remaining tracking time available and stops tracking if it reaches zero.
-    float checkRALimit();
+    float checkRALimit() override;
 
     // Calculate the stepper positions for the current target coordinates
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
@@ -673,6 +679,11 @@ class Mount final : public ports::IMountOptionalAxes
     Latitude _latitude;
     Longitude _longitude;
     long _commandReceived;
+
+    /// Backing store for the `const char *` readouts, which the protocol sends and the info
+    /// display shows. A member rather than a local so the pointer survives the return; the value
+    /// is valid until the next call to the method that filled it.
+    mutable String _readoutScratch;
 
     // Stepper control for RA, DEC and TRK.
     //

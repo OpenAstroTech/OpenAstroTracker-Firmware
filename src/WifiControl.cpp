@@ -212,6 +212,8 @@ void WifiControl::tcpLoop()
     if (!client.connected())
     {
         _clientTransport->reset();
+        // Replies still owed to the peer that just left have nowhere to go.
+        _cmdProcessor->transportGone(_clientTransport);
         client = _tcpServer->accept();
         if (!client.connected())
             return;
@@ -229,7 +231,7 @@ void WifiControl::tcpLoop()
         }
 
         LOG(DEBUG_WIFI, "[WIFITCP]: Query <-- %s", buffer);
-        const char *retVal = _cmdProcessor->processCommand(String(buffer));
+        const char *retVal = _cmdProcessor->processCommand(String(buffer), _clientTransport);
 
         if (retVal[0] != '\0')
         {

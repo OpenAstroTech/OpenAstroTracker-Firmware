@@ -3,6 +3,8 @@
 #include <stdint.h>
 
 #include "Types.hpp"
+#include "core/types/DayTime.hpp"
+#include "core/types/Declination.hpp"
 
 namespace ports
 {
@@ -39,6 +41,29 @@ class IMountMotion
 
     virtual bool isSlewingRAorDEC() const = 0;
     virtual bool isSlewingTRK() const     = 0;
+
+    /// Re-anchors every coordinate to where the axes are now. Blocking: it stops the axes and
+    /// waits for them, because the position it records would be wrong if taken while they moved.
+    /// The protocol's `:CM#` sync is the caller.
+    virtual void setHome(bool clearZeroPos) = 0;
+
+    /// Declares the current position to be the given coordinates (`:CM#` / `:CS#`), without
+    /// moving. The mirror image of `setHome()`: one re-anchors the coordinates to where the axes
+    /// are, the other the axes to where the coordinates are.
+    virtual void syncPosition(const core::DayTime &ra, const core::Declination &dec) = 0;
+
+    /// Moves the tracking engine's idea of its own position, for the `:XT#` calibration.
+    virtual void setTrackingStepperPos(long stepPos) = 0;
+
+    /// Starts the drift-alignment phase machine. It returns immediately; the controller is
+    /// ticked from `Mount::loop()`.
+    ///
+    /// Virtual with an empty default rather than pure: `Mount` declares it only under
+    /// `SUPPORT_DRIFT_ALIGNMENT`, so a board without the feature would otherwise be an abstract
+    /// class. The null-object shape again, with no `#if` in a port header.
+    virtual void startDriftAlignment(int)
+    {
+    }
 
     /// Runs the hall-sensor homing search on one axis and reports whether the sensor was found.
     ///
