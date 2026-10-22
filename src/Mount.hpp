@@ -32,7 +32,6 @@
 #include "ports/IStepperAxis.hpp"
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-class InfoDisplayRender;
 #endif
 
 #ifdef NEW_STEPPER_LIB
@@ -435,7 +434,7 @@ class Mount final : public ports::IMountOptionalAxes,
     void clearStatusFlag(int flag);
 
     /// Registers an observer of mount events: the command layer (deferred replies) and the
-    /// info display. Events are drained once per `loop()`, so an observer is never called
+    /// status panel. Events are drained once per `loop()`, so an observer is never called
     /// from inside the code that published. Registration is per sink, so removing one leaves
     /// the other in place.
     void setEventSink(core::IEventSink *sink);
@@ -452,19 +451,11 @@ class Mount final : public ports::IMountOptionalAxes,
     // See if a slew to target is in progress and return the percentage along the path
     bool getStepperProgress(int &raPercentage, int &decPercentage);
 
-    // Displays the current location of the mount every n ms, where n is defined in Globals.h as DISPLAY_UPDATE_TIME
-    void displayStepperPositionThrottled();
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    void setupInfoDisplay();
-    InfoDisplayRender *getInfoDisplay();
-    long _lastInfoUpdate = 0;  // Last time the info display was updated
-#endif
-    /// Refreshes the info display if the board has one, otherwise does nothing.
-    ///
-    /// Unconditionally declared and callable so the code paths that drive the mount do
-    /// not carry an `#if` for a peripheral that only reports on them. A board without the
-    /// panel pays one inlined no-op.
-    void updateInfoDisplay();
+    /// How far each axis was asked to move by the slew in flight. Only the progress display reads
+    /// these, to decide which of the two axes it should show a bar for; ``getStepperProgress``
+    /// already folds them into percentages.
+    float plannedRaSteps() const;
+    float plannedDecSteps() const;
 
     // Called by Meade processor every time a command is received.
     void commandReceived() override;
@@ -612,7 +603,6 @@ class Mount final : public ports::IMountOptionalAxes,
     void setRaMicrosteps(int microsteps);
     void setDecMicrosteps(int microsteps);
 
-    void displayStepperPosition();
     void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);
 
     void autoCalcHa();
@@ -639,7 +629,6 @@ class Mount final : public ports::IMountOptionalAxes,
 
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    InfoDisplayRender *infoDisplay;
 #endif
     float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
     float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
@@ -742,7 +731,6 @@ class Mount final : public ports::IMountOptionalAxes,
     EndSwitch *_decEndSwitch     = nullptr;
 
     unsigned long _lastMountPrint = 0;
-    unsigned long _lastDisplayUpdate;
 
     char scratchBuffer[24];
     bool _bootComplete;

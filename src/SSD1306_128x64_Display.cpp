@@ -88,9 +88,9 @@ void SDD1306OLED128x64::drawScreen()
 }
 
 // Build the display from the mount
-void SDD1306OLED128x64::renderScreen(void *mount)
+void SDD1306OLED128x64::renderScreen(Mount &mount)
 {
-    _mount = (Mount *) mount;
+    _mount = &mount;
     // Call the base
     this->InfoDisplayRender::render(renderCallback);
 };

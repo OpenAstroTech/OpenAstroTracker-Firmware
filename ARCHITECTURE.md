@@ -86,10 +86,10 @@ objects constructed in the composition root, never as different code paths in th
 
 | Layer | Directory | May depend on | Contains | Test strategy |
 |-------|-----------|---------------|----------|---------------|
-| **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `MountCoordinator`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
+| **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`, `RaTrackingLimit`, `SlewProgressReport`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `MountCoordinator`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
 | **Ports** | `src/ports/` | the pure value types in `core/types/`, nothing else | `IClock`, `IScheduler`, `ILogger` (+ `LogFormat`), `IPersistentStore`, `IMountSettings`, `IStepperAxis` (+ `AxisSnapshot`), `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay` (+ `InfoDisplayState`), `ITransport`, `IGps`, `IGyro`, `IMountMotion`, `IMountConfiguration`, `IMountOptionalAxes`, `IMountReadModel`, `IMountSiteTime`, `IMountEvents` | Interfaces only — nothing to test. |
-| **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `NullLogger`, `EepromPersistentStore`, `MountSettingsStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
-| **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor` (motion engine), `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`), `InMemoryEeprom`, plus per-platform backends (`arduino/`, `esp32/`, `rp2040/`). AVR has no stepper backend: it keeps the concrete timer-ISR engines, because a vtable per engine costs ~50 B of the 8 KB SRAM | Not host-tested; verified on hardware. |
+| **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `ArduinoScheduler`, `SerialLogger`, `NullLogger`, `EepromPersistentStore`, `MountSettingsStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `SerialTransport` (both transports — the Wi-Fi path is `SerialTransport<128>`), `TinyGpsAdapter`, `MeadeCommandAdapter`, `InfoDisplayPanel` | Integration tests against a faked HAL (`test_adapters`). The Arduino-dependent adapters (`MeadeCommandAdapter`, `SerialLogger`, `TinyGpsAdapter`, `Tmc2209Driver`, `InfoDisplayPanel`, the clock/scheduler) are compile-verified by the board builds instead, and `[env:native]` excludes them so the coverage number stays honest. |
+| **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor` (motion engine), `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`), `InterruptCallback` (the ISR-to-function trampoline), `EepromLayout.hpp`, `InMemoryEeprom`, `WarningGuard.hpp`, plus per-platform backends (`arduino/`, `esp32/`, `rp2040/`). AVR has no stepper backend: it keeps the concrete timer-ISR engines, because a vtable per engine costs ~50 B of the 8 KB SRAM | Not host-tested; verified on hardware. |
 | **App** | `src/app/` | all layers | Composition root: reads `Configuration*.hpp` into `MountConfig`, selects HAL backends, constructs adapters and controllers, owns the entry point | On-device smoke tests. |
 
 ### Dependency direction
@@ -122,6 +122,20 @@ from `core/types/` when that type *is* the vocabulary (`IMountSettings` returns 
 `core::Latitude`, a `core::Longitude`). Those headers are pure data with no behaviour that could call
 back into the domain, so the arrow `core/ → ports/` is not cycled at the file level. A port must not
 include a `core/` header that has behaviour.
+
+### What still sits outside this layering
+
+The refactor is finished for the command path, the motion path and the controllers. What is left is
+UI and two peripherals, and it is left deliberately rather than by oversight — each item is listed
+with what would finish it:
+
+| Still outside | Why it is still there | What would finish it |
+|---|---|---|
+| `LcdMenu`, `LcdButtons`, `c7*_menu*.hpp` | ~170 `mount.*` call sites; a menu is a transaction against live mount state, and every path needs a bench session to check | a UI pass that talks to `MountCoordinator` requests plus `MountState` reads, done screen by screen |
+| `SSD1306_128x64_Display` | renders from `Mount` (pull) behind `InfoDisplayPanel` (push): `Mount` no longer calls it, but it still reads it | render from `ports::IInfoDisplay`'s snapshot struct instead of the mount |
+| `EPROMStore` | static facade kept for the menu screens; `Mount` already uses `ports::IMountSettings` | delete once the menus use the typed store |
+| `Gyro`, `HallSensorHoming`, `EndSwitches` | hardware-coupled helpers `Mount` still calls directly; the `IGyro`, `IHomingSensor` and `IEndSwitch` ports exist but nothing implements them yet | adapters over `hal::II2cBus` / `hal::IGpioPin` — the homing one needs the polling-rate decision recorded in `core/HomingController` |
+| `b_setup.hpp`, `a_inits.hpp`, `c_buttons.hpp`, `f_serial.hpp` | they are the composition root and the loop, but in `src/` instead of `app/` | move wholesale; no design change |
 
 ---
 
@@ -169,13 +183,13 @@ OpenAstroTracker-Firmware/
 │   │   ├── Tmc2209Driver.hpp/.cpp       # IMotorDriver      <- TMCStepper            (done)
 │   │   ├── NullMotorDriver.hpp          # IMotorDriver      null object for non-TMC builds (done)
 │   │   ├── TinyGpsAdapter.hpp/.cpp      # IGps              <- TinyGPS++ + Stream    (done)
-│   │   ├── HallHomingSensor.hpp/.cpp    # IHomingSensor     <- IGpioPin              (Phase 3)
-│   │   ├── GpioEndSwitch.hpp/.cpp       # IEndSwitch        <- IGpioPin              (Phase 3)
-│   │   ├── LcdMenuDisplay.hpp/.cpp      # IDisplay          <- ICharLcd / IButtonMatrix (Phase 3)
-│   │   ├── Ssd1306InfoDisplay.hpp/.cpp  # IInfoDisplay      <- IOledPanel            (Phase 3)
-│   │   ├── SerialTransport.hpp/.cpp     # ITransport        <- ISerialPort           (Phase 5)
-│   │   ├── WifiTransport.hpp/.cpp       # ITransport        <- IWifiStack            (Phase 5)
-│   │   └── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- ITransport + coordinator (Phase 5)
+│   │   ├── SerialTransport.hpp          # ITransport        <- ISerialPort (serial + Wi-Fi) (done)
+│   │   ├── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- the six mount ports (done)
+│   │   ├── InfoDisplayPanel.hpp/.cpp    # IEventSink        -> InfoDisplayRender     (done)
+│   │   ├── HallHomingSensor.hpp/.cpp    # IHomingSensor     <- IGpioPin              (not built)
+│   │   ├── GpioEndSwitch.hpp/.cpp       # IEndSwitch        <- IGpioPin              (not built)
+│   │   ├── LcdMenuDisplay.hpp/.cpp      # IDisplay          <- ICharLcd / IButtonMatrix (not built)
+│   │   └── Ssd1306InfoDisplay.hpp/.cpp  # IInfoDisplay      <- IOledPanel            (not built)
 │   │
 │   ├── ports/                           # DOMAIN INTERFACES
 │   │   ├── IClock.hpp
@@ -319,7 +333,7 @@ OpenAstroTracker-Firmware/
 | AVR builds link `-lprintf_flt` (`[avr_float_printf]` in `platformio.ini`) so `ILogger` still prints `%f` | Build config |
 | String literals that outlive one call go in flash on AVR: `F("…")` for `String`/`print` paths and `OAT_SNPRINTF(buf, size, "…", …)` for printf paths — a plain literal is linked into `.data`, i.e. SRAM | Code review; `ramps` RAM budget (see PLAN.md) |
 | Board-specific code (interrupt registers, pin mappings) lives only in `hal/<platform>/` | Code review |
-| `Mount`, where retained for Meade back-compat, is a facade only and holds no domain logic | Code review |
+| `Mount` is a legacy executor: it may hold sequencing and hardware writes, but every *decision* it makes belongs in `core/`. Its method list may only shrink, and the command layer no longer depends on it at all | Code review |
 | Command handlers never block (`waitUntil*`, `Mount::delay()`, `while (millis() < …)`) | CI grep check |
 | A controller mutates only its own `MountState` fields and never calls a peer controller | Code review |
 
@@ -387,11 +401,11 @@ the old one dissolving into it one responsibility at a time.
 | | `MountCoordinator` | `Mount` |
 |---|---|---|
 | Layer / path | `core/` — part of the final layering | legacy root (`src/Mount.*`) — outside it |
-| Lifetime | permanent; the domain entry point | temporary; until the last legacy call site is migrated (Phase 6) |
+| Lifetime | permanent; the domain entry point | legacy; it survives for the menu screens and the status panel, which are the last UI call sites |
 | Owns | controllers, `MountState`, `EventBus` wiring, axis grants, deadlines | nothing |
 | Drives time | `update(now)`, exactly once per app tick | never |
 | API | `request*`, `update`, `state()` | only the methods legacy call sites still use |
-| Called by | `app`, `MeadeCommandAdapter` | menus, `SSD1306_128x64_Display`, the `EPROMStore` overlay, `testmenu` |
+| Called by | `app`, and through its ports `MeadeCommandAdapter` | menus, `SSD1306_128x64_Display` (through `InfoDisplayPanel`), the `EPROMStore` overlay, `testmenu` |
 | Logic | admission, ordering, completion, timeouts | none — one delegating line per method |
 | State | authoritative | none; `_mountStatus`, `_stepper*`, `_driver*` all move out |
 
@@ -400,21 +414,22 @@ Four rules keep them from collapsing into each other:
 1. The coordinator exposes nothing but requests, `update()` and `state()`.
 2. The facade holds no members beyond its dependencies, validates nothing and sequences nothing.
 3. New code calls the coordinator; the facade's method list may only shrink.
-4. If the facade's surface starts mirroring the coordinator, delete it — that is the Phase 6
-   outcome. The only reason it survives until then is the ~170 `mount.*` call sites in the menu
-   screens.
+4. If the facade's surface starts mirroring the coordinator, delete it. The reason it is still here
+   is the ~170 `mount.*` call sites in the menu screens: deleting it means rewriting ten menu files
+   in one change, which is a UI refactor rather than a cleanup, and every one of those paths needs a
+   bench session to verify.
 
 The 116 public methods of `Mount` are redistributed, not renamed:
 
 | Cluster today | New home |
 |---|---|
 | motion commands (`startSlewing*`, `park`, `guidePulse`, `stop*`, `focus*`, `moveAZALTToHome`, `findHomeByHallSensor`) | coordinator requests → controllers |
-| status queries (`isSlewing*`, `isGuiding`, `mountStatus`, `getStepperProgress`) | `MountState` reads |
-| coordinate math / formatting (`calculateLst`, `calculateRAandDECSteppers`, `RAString`, `getLocalDate`) | `core/` algorithms (partly done in Phase 1) |
+| status queries (`isSlewing*`, `isGuiding`, `mountStatus`, `getStepperProgress`) | `MountState` reads; the progress arithmetic is already `core::SlewProgressReport` |
+| coordinate math / formatting (`calculateLst`, `calculateRAandDECSteppers`, `RAString`, `getLocalDate`) | `core/` algorithms (done in Phase 1; `checkRALimit` joined them in Phase 6 as `core::RaTrackingLimit`) |
 | configuration and persistence (`readConfiguration`, `setStepsPerDegree`, limits, calibration, homing offset) | `IPersistentStore` + `MountConfig` |
 | hardware bring-up (`configure*Stepper`, `configure*driver`, `connectToDriver`, `setupEndSwitches`, `testRA_UART_TX`) | `app/` composition root + `hal/` |
 | loop and ISR (`loop`, `interruptLoop`, `delay`, `waitUntil*`) | `update()`, the platform ISR, or deleted |
-| UI and diagnostics (`updateInfoDisplay`, `getStatusString`, `getMountHardwareInfo`, `getNumCommandsReceived`) | display adapters, `EventBus` subscribers, `MountState` |
+| UI and diagnostics (`getStatusString`, `getMountHardwareInfo`, `getNumCommandsReceived`) | display adapters, `EventBus` subscribers, `MountState`. The panel is already off this list: `InfoDisplayPanel` owns it and ticks it from the loop |
 
 ### Waiting and answering
 
@@ -475,8 +490,8 @@ and the driver enable pins this board compiles in. Nothing below it constructs a
 Serial or Wi-Fi bytes
    │
    ▼
-adapters/SerialTransport  ──(ITransport)──┐
-adapters/WifiTransport    ──(ITransport)──┘
+adapters/SerialTransport  ──(ITransport)──┐   (the Wi-Fi path is SerialTransport<128>)
+adapters/SerialTransport  ──(ITransport)──┘
    │
    ▼
 core/meade/MeadeParser            # pure: classifies the command, parses suffixes
@@ -507,20 +522,27 @@ controllers either: they subscribe to `core/EventBus`.
 
 ## 8. Adding to the architecture
 
-**A new Meade command** — add the handler method to the relevant `IMeade*Handlers` interface in
-`core/meade/MeadeParser.hpp`, implement parsing in the matching `MeadeParser*.cpp`, add a test in
-`unit_tests/test_core/meade/`, then implement the method in `MeadeCommandAdapter`. The first three
-steps involve no Arduino code. Pick the handler shape first (§6): immediate if the answer already
-exists in `MountState`, request/ack if the host can poll, deferred only if the protocol requires the
-answer at completion.
+Where a change goes, by kind. The rule behind every row is the same: **decide in `core/`, describe
+the need in `ports/`, touch hardware only in `hal/` and `adapters/`, and wire the last step in
+`app/`.**
 
-**A new domain behaviour** — put the decision in a `core/` controller, express any hardware need as
-a port in `src/ports/`, and fake that port in the unit test. Never call HAL from `core/`. If the
-behaviour conflicts with another controller, add a row to the coordinator's admission table and a
-test for it rather than calling the peer directly.
+| You are adding | Put it in | Test it with |
+|---|---|---|
+| A **Meade command** | the family handler in `core/meade/MeadeParser*.cpp` + a method on the matching `IMeade*Handlers`, then the method body in `MeadeCommandAdapter` | `unit_tests/test_core/meade/` (wire bytes) and `test_adapters/test_meade_pipeline.cpp` (a whole command) |
+| A **domain decision** (a rule, a state machine, an algorithm) | a `core/` class or a static function on one; no Arduino, no ports unless it needs time or hardware | `unit_tests/test_core/`, with fakes from `test_common/hal_fakes/` |
+| A **hardware capability** | an interface in `src/hal/`, plus one backend per platform under `hal/<platform>/` | the board builds; behaviour on the bench |
+| A **port → hardware binding** | an adapter in `src/adapters/`, `final`, holding HAL references | `unit_tests/test_adapters/` over `fakes::Fake*` |
+| A **persisted setting** | a field in `hal/EepromLayout.hpp`, an accessor pair on `ports::IMountSettings`, the read/write in `EepromPersistentStore` + `MountSettingsStore` | `test_hal/test_eeprom_layout.cpp` (layout), `test_adapters` (round-trip) |
+| An **optional axis or peripheral** | a port entry that is a no-op when absent (the null-object shape), not an `#if` | the null object's no-op behaviour, plus the board that has it |
+| A **status panel / display element** | a `core::IEventSink` subscriber fed by `core::EventBus`, ticked from the loop — never called by `Mount` | the board with the panel; the event contract in `test_event_bus` |
+| A **board** | `boards/<board>/pins_<board>.h`, `Configuration_local_<board>.hpp`, a PIO env, and the branch in `src/b_setup.hpp` | `python matrix_build.py -b <board>` |
 
-**A new peripheral** — define or reuse a HAL interface in `src/hal/`, implement it for each platform
-that has the peripheral, write the adapter that satisfies the port, and construct it in `app/`.
+Two things never move inwards: a library name (belongs in `hal/`) and a wire format (belongs in
+`core/meade/`). One thing never moves outwards: a decision.
 
-**A new board** — add `boards/<board>/pins_<board>.h`, a `Configuration_local_<board>.hpp`, a PIO
-env, and a branch in the composition root. Nothing in `core/`, `ports/`, or `adapters/` changes.
+**Pick the handler shape before writing a Meade command** (§6): *immediate* when the answer already
+exists in `MountState`, *request/ack* when the host can poll `:D#`, *deferred* only when the
+protocol wants the answer at completion and there is something to complete it.
+
+**When a rule conflicts with another controller**, add a row to the coordinator's admission table
+and a test for it; do not call the peer controller directly.

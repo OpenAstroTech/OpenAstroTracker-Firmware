@@ -2,6 +2,12 @@
 # Run pio test and auto-generate coverage report.
 # Usage: ./scripts/test-coverage.sh [-e <env>] [extra pio test args...]
 #
+# The report is informational; the gate is not. `src/core/` carries a
+# --fail-under-line threshold (CORE_COVERAGE_MIN below) because it is the layer
+# the refactor exists to make testable: a change that adds untested domain
+# decisions should fail CI, not quietly lower a number nobody reads. The
+# threshold is the ratchet PLAN.md Phase 6 records — raise it, never lower it.
+#
 # This wrapper is needed because pio test spawns the test binary as a
 # subprocess — coverage data (.gcda files) is only flushed when that
 # subprocess exits, so we can't generate the report from inside the
@@ -40,6 +46,10 @@ if [ $TEST_EXIT -ne 0 ]; then
     exit $TEST_EXIT
 fi
 
+# The gate for `src/core/`, in percent of lines. The Phase 6 ratchet: 85 % was the plan's target
+# and core/ sits well above it, so this keeps the target while leaving room for a thin new file.
+CORE_COVERAGE_MIN=85
+
 # Determine gcov executable
 if [ "$(uname -s)" = "Darwin" ]; then
     GCOV_TOOL="llvm-cov gcov"
@@ -70,6 +80,26 @@ gcovr \
     --gcov-ignore-errors=no_working_dir_found \
     --gcov-ignore-errors=source_not_found \
     --print-summary
+
+echo ""
+echo "Checking the core/ coverage gate (CORE_COVERAGE_MIN=$CORE_COVERAGE_MIN)..."
+if gcovr \
+    --root . \
+    --gcov-executable "$GCOV_TOOL" \
+    --filter 'src/core/' \
+    --exclude '.pio/*' \
+    --exclude 'unit_tests/*' \
+    --gcov-ignore-errors=no_working_dir_found \
+    --gcov-ignore-errors=source_not_found \
+    --fail-under-line "$CORE_COVERAGE_MIN"; then
+    echo "✅ core/ coverage is at or above the gate"
+else
+    echo ""
+    echo "❌ core/ coverage is below the gate ($CORE_COVERAGE_MIN%)."
+    echo "   The refactor exists to make core/ testable — add a behavioural test for the"
+    echo "   decision you added, rather than lowering CORE_COVERAGE_MIN in this script."
+    exit 1
+fi
 
 echo ""
 echo "✅ Coverage report: $OUTPUT_DIR/index.html"

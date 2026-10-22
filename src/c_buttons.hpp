@@ -79,6 +79,14 @@ void loop()
 
     // Give the mount a time slice to do its thing...
     mount.loop();
+    serviceInfoDisplay();
+
+    // The slew progress view owns the screen only while an axis is moving; the rest of the time
+    // the menu draws it. This used to be a call from inside `Mount::loop()`.
+    if (mount.isAxisRunning(RA_STEPS) || mount.isAxisRunning(DEC_STEPS))
+    {
+        displayLcdSlewStatusThrottled(mount, lcdMenu);
+    }
 
     // Update the LCD display
     unsigned long now = millis();
@@ -200,6 +208,7 @@ void loop()
 
                     // Make sure tracker can still run while fiddling with menus....
                     mount.loop();
+                    serviceInfoDisplay();
                 } while (true);
             }
         }

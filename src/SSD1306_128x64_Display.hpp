@@ -73,7 +73,7 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     void drawHeader();
 
     // Build the display from the mount
-    void renderScreen(void *mount);
+    void renderScreen(Mount &mount);
 
     // Display the tiem left before tracking hits the limit
     void drawTime(Mount *mount, String label, const DayTime &time);

@@ -23,6 +23,7 @@ POP_NO_WARNINGS
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
 #include "app/MountConfigBuilder.hpp"
+#include "LcdSlewStatus.hpp"
 #include "a_inits.hpp"
 #include "LcdMenu.hpp"
 #include "LcdButtons.hpp"
@@ -32,6 +33,7 @@ POP_NO_WARNINGS
 #include "adapters/ArduinoClock.hpp"
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/EepromPersistentStore.hpp"
+#include "adapters/InfoDisplayPanel.hpp"
 #include "adapters/MountSettingsStore.hpp"
 #include "adapters/NullLogger.hpp"
 #include "adapters/SerialLogger.hpp"
@@ -142,6 +144,14 @@ DRAM_ATTR Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig());
 Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig());
 #endif
 
+// The optional status panel is owned here, not by the mount: the mount publishes events and the
+// loop ticks the panel (Phase 6). A board without the panel compiles none of this and the helpers
+// below are empty.
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+InfoDisplayRender *infoDisplay               = nullptr;
+adapters::InfoDisplayPanel *infoDisplayPanel = nullptr;
+#endif
+
 #if (WIFI_ENABLED == 1)
     #include "WifiControl.hpp"
 WifiControl wifiControl(&mount, &lcdMenu);
@@ -194,7 +204,7 @@ void stepperControlTimerCallback(void *payload)
 int addConsoleText(String text)
 {
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    return mount.getInfoDisplay()->addConsoleText(text, false);
+    return (infoDisplay != nullptr) ? infoDisplay->addConsoleText(text, false) : -1;
 #else
     return -1;
 #endif
@@ -203,7 +213,22 @@ int addConsoleText(String text)
 void updateConsoleText(int line, String newText)
 {
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    mount.getInfoDisplay()->updateConsoleText(line, newText);
+    if (infoDisplay != nullptr)
+    {
+        infoDisplay->updateConsoleText(line, newText);
+    }
+#endif
+}
+
+/// Gives the status panel its turn. A no-op on a board without one, so the main loop calls it
+/// unconditionally rather than carrying an `#if` for a peripheral.
+void serviceInfoDisplay()
+{
+#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
+    if (infoDisplayPanel != nullptr)
+    {
+        infoDisplayPanel->tick();
+    }
 #endif
 }
 
@@ -272,8 +297,20 @@ void setup()
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
-    mount.setupInfoDisplay();
-    addConsoleText(F("BOOTING " VERSION));
+    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    LOG(DEBUG_DISPLAY, "[DISPLAY]: Create SSD1306 OLED class...");
+    infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
+    LOG(DEBUG_ANY, "[SYSTEM]: SSD1306 OLED created... initializing");
+    infoDisplay->init();
+    infoDisplay->setConsoleMode(true);
+    LOG(DEBUG_DISPLAY, "[DISPLAY]: Created and initialized SSD1306 OLED class...");
+    #endif
+    if (infoDisplay != nullptr)
+    {
+        infoDisplayPanel = new adapters::InfoDisplayPanel(mount, *infoDisplay, clockPort, mount);
+        infoDisplayPanel->begin();
+        addConsoleText(F("BOOTING " VERSION));
+    }
     LOG(DEBUG_ANY, "[SYSTEM]: OLED info screen ready!");
 #endif
 
@@ -803,7 +840,10 @@ void setup()
     addConsoleText(F("BOOT COMPLETE!"));
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     delay(500);
-    mount.getInfoDisplay()->setConsoleMode(false);
+    if (infoDisplay != nullptr)
+    {
+        infoDisplay->setConsoleMode(false);
+    }
 #endif
 
 #if TEST_VERIFY_MODE == 1

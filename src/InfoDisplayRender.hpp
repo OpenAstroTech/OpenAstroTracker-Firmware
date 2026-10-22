@@ -1,8 +1,16 @@
 #pragma once
+#include "hal/WarningGuard.hpp"
+
+// The Arduino core headers and the OLED library are not warning-clean under this project's flag
+// set; the pragmas come from `macros/gcc/Macros.hpp`, which PlatformIO force-includes.
+PUSH_NO_WARNINGS
 #include <Arduino.h>
 #include "OLEDDisplay.h"
+POP_NO_WARNINGS
 #include "fonts128x64.h"
 #include "../Configuration.hpp"
+
+class Mount;
 
 // Base class to implement a
 class InfoDisplayRender
@@ -50,7 +58,9 @@ class InfoDisplayRender
         return _display;
     };
 
-    virtual void renderScreen(void *context) = 0;
+    /// Draws one frame of mount state. Typed on `Mount` rather than `void *`: the only caller was
+    /// an unchecked cast out of `Mount::loop()`, which is where that cast used to live.
+    virtual void renderScreen(Mount &mount) = 0;
 
     // Build the display from the mount
     virtual void render(void (*drawContentFunction)(void *))

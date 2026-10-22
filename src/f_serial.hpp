@@ -19,7 +19,8 @@ void processSerialData();
 void serialLoop()
 {
     mount.loop();
-    mount.displayStepperPositionThrottled();
+    displayLcdSlewStatusThrottled(mount, lcdMenu);
+    serviceInfoDisplay();
 
     // Deferred Meade replies whose deadline ran out while nothing else was talking. The
     // event-driven half is delivered by `mount.loop()` above.

@@ -9,6 +9,8 @@
 #include "core/CalendarMath.hpp"
 #include "core/CoordinateFormatter.hpp"
 #include "core/CoordinateMath.hpp"
+#include "core/RaTrackingLimit.hpp"
+#include "core/SlewProgressReport.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
 #include "adapters/NullMotorDriver.hpp"
@@ -110,9 +112,6 @@ Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &c
 {
     _commandReceived = 0;
 
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-    _lastInfoUpdate = _deps.clock->now();
-#endif
     _lcdMenu = lcdMenu;
     initializeVariables();
 }
@@ -127,7 +126,6 @@ void Mount::initializeVariables()
     _stepsPerDECDegree = _config.defaultDecStepsPerDegree;  // u-steps per degree when slewing
 
     _coordinator.state().reset(0);
-    _lastDisplayUpdate = 0;
     _coordinator.slew().noteRunning(false);
 
     // Created by the configure* methods below; null until then.
@@ -1888,9 +1886,6 @@ void Mount::guidePulse(byte direction, int duration)
         publishEvent(core::MountEventType::GuidingStarted);
     }
 
-    // Since we will not be updating the display during a guide pulse, update the display here.
-    updateInfoDisplay();
-
     OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: < Guide Pulse");
 }
 
@@ -3337,10 +3332,6 @@ void Mount::loop()
                     _coordinator.guiding().decDeadline());
             stopGuiding(tick.guidingRaExpired, tick.guidingDecExpired);
         }
-        else
-        {
-            updateInfoDisplay();
-        }
         return;
     }
 
@@ -3354,11 +3345,6 @@ void Mount::loop()
         raStillRunning = true;
     }
 
-    if (raStillRunning || decStillRunning)
-    {
-        displayStepperPositionThrottled();
-    }
-    else
     {
         // Check whether we should stop tracking every 5 seconds
         if (now - _lastTRKCheck > 5000)
@@ -3534,9 +3520,6 @@ void Mount::loop()
                 _coordinator.slew().end();
             }
             _coordinator.slew().clearTotalMove();
-
-            // Make sure we do one last update when the steppers have stopped.
-            displayStepperPosition();
         }
     }
 
@@ -3552,66 +3535,7 @@ void Mount::loop()
     pollEndSwitches();
 
     _coordinator.finishTick(raStillRunning, decStillRunning);
-    updateInfoDisplay();
 }
-
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-void Mount::setupInfoDisplay()
-{
-    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
-    OAT_LOG(_deps.logger, DEBUG_DISPLAY, "[DISPLAY]: Create SSD1306 OLED class...");
-    infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
-    OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: SSD1306 OLED created... initializing");
-    infoDisplay->init();
-    infoDisplay->setConsoleMode(true);
-    OAT_LOG(_deps.logger, DEBUG_DISPLAY, "[DISPLAY]: Created and initialized SSD1306 OLED class...");
-    #endif
-}
-#endif
-
-void Mount::updateInfoDisplay()
-{
-#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_NONE)
-    // No panel on this board: the call sites below stay unconditional so the mount code
-    // does not have to know whether anything is listening.
-    return;
-#else
-    // If we update this display too often while slewing, the serial port is unable to process commands fast enough. Which makes the driver
-    // timeout, causing ASCOM errors.
-    // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
-
-    int refreshRateHz       = 30;
-    #if defined(ARDUINO_ARCH_RP2040)
-    const bool isSlewingAny = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
-    refreshRateHz           = isSlewingAny ? 15 : 30;
-    #else
-    const bool isSlewingRAandDEC = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == (SLEWING_DEC | SLEWING_RA);
-    if (isSlewingRAandDEC)
-    {
-        return;  // Do not update the display
-    }
-    else if (isSlewingRAorDEC())
-    {
-        refreshRateHz = 5;  // Update the display slower
-    }
-    #endif
-    const long now          = _deps.clock->now();
-    if (now - _lastInfoUpdate > (1000 / refreshRateHz))
-    {
-        OAT_LOG(_deps.logger, DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
-        infoDisplay->renderScreen((void *) this);
-        OAT_LOG(_deps.logger, DEBUG_DISPLAY, "[DISPLAY]: Rendered state to OLED ...");
-        _lastInfoUpdate = now;
-    }
-#endif
-}
-
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-InfoDisplayRender *Mount::getInfoDisplay()
-{
-    return infoDisplay;
-}
-#endif
 
 /////////////////////////////////
 //
@@ -4147,134 +4071,23 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
 /////////////////////////////////
 bool Mount::getStepperProgress(int &raPercentage, int &decPercentage)
 {
-    bool slewInProgress = true;
-    decPercentage       = 100;
-    raPercentage        = 100;
-    if ((fabsf(_coordinator.slew().totalDecSteps()) > 0.001f) && (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f))
-    {
-        // Both axes moving to target
-        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps());
-        raPercentage  = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps());
-    }
-    else if (fabsf(_coordinator.slew().totalDecSteps()) > 0.001f)
-    {
-        // Only DEC moving to target
-        decPercentage = (int) round(100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps());
-    }
-    else if (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f)
-    {
-        // Only RA is moving to target
-        raPercentage = (int) round(100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps());
-    }
-    else
-    {
-        // Nothing is slewing
-        slewInProgress = false;
-    }
-    return slewInProgress;
+    // The rules live in core::SlewProgressReport; this gathers the four numbers it needs.
+    const core::SlewProgress progress = core::SlewProgressReport::evaluate(
+        _coordinator.slew().totalRaSteps(), _coordinator.slew().totalDecSteps(), _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
+    raPercentage  = progress.raPercent;
+    decPercentage = progress.decPercent;
+    return progress.inProgress;
 }
-/////////////////////////////////
-//
-// displayStepperPosition
-//
-/////////////////////////////////
-void Mount::displayStepperPosition()
+float Mount::plannedRaSteps() const
 {
-#if DISPLAY_TYPE > 0
-
-    String disp;
-
-    if ((fabsf(_coordinator.slew().totalDecSteps()) > 0.001f) && (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f))
-    {
-        // Both axes moving to target
-        float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps();
-        float raDist  = 100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps();
-
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
-        _lcdMenu->setCursor(0, 0);
-        _lcdMenu->printMenu(String(scratchBuffer));
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
-        _lcdMenu->setCursor(0, 1);
-        _lcdMenu->printMenu(String(scratchBuffer));
-        return;
-    }
-
-    if (fabsf(_coordinator.slew().totalDecSteps()) > 0.001f)
-    {
-        // Only DEC moving to target
-        float decDist = 100.0f - 100.0f * _stepperDEC->distanceToGo() / _coordinator.slew().totalDecSteps();
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", DECString(LCD_STRING | CURRENT_STRING).c_str(), (int) decDist);
-        _lcdMenu->setCursor(0, 1);
-        _lcdMenu->printMenu(String(scratchBuffer));
-    }
-    else if (fabsf(_coordinator.slew().totalRaSteps()) > 0.001f)
-    {
-        // Only RAmoving to target
-        float raDist = 100.0f - 100.0f * _stepperRA->distanceToGo() / _coordinator.slew().totalRaSteps();
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", RAString(LCD_STRING | CURRENT_STRING).c_str(), (int) raDist);
-        disp = disp + String(scratchBuffer);
-        _lcdMenu->setCursor(0, inSerialControl ? 0 : 1);
-        _lcdMenu->printMenu(String(scratchBuffer));
-    }
-    else
-    {
-        // Nothing moving
-    #if SUPPORT_SERIAL_CONTROL == 1
-        if (inSerialControl)
-        {
-            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " RA: %s", RAString(LCD_STRING | CURRENT_STRING).c_str());
-            _lcdMenu->setCursor(0, 0);
-            _lcdMenu->printMenu(scratchBuffer);
-            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "DEC: %s", DECString(LCD_STRING | CURRENT_STRING).c_str());
-            _lcdMenu->setCursor(0, 1);
-            _lcdMenu->printMenu(scratchBuffer);
-        }
-        else
-        {
-            OAT_SNPRINTF(scratchBuffer,
-                         sizeof(scratchBuffer),
-                         "R%s D%s",
-                         RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
-                         DECString(COMPACT_STRING | CURRENT_STRING).c_str());
-            _lcdMenu->setCursor(0, 1);
-            _lcdMenu->printMenu(scratchBuffer);
-        }
-    #else
-        OAT_SNPRINTF(scratchBuffer,
-                     sizeof(scratchBuffer),
-                     "R%s D%s",
-                     RAString(COMPACT_STRING | CURRENT_STRING).c_str(),
-                     DECString(COMPACT_STRING | CURRENT_STRING).c_str());
-        _lcdMenu->setCursor(0, 1);
-        _lcdMenu->printMenu(scratchBuffer);
-    #endif
-    }
-#endif
+    return _coordinator.slew().totalRaSteps();
 }
 
-/////////////////////////////////
-//
-// displayStepperPositionThrottled
-//
-/////////////////////////////////
-void Mount::displayStepperPositionThrottled()
+float Mount::plannedDecSteps() const
 {
-#if DISPLAY_TYPE > 0
-    long elapsed = _deps.clock->now() - _lastDisplayUpdate;
-    if (elapsed > DISPLAY_UPDATE_TIME)
-    {
-        displayStepperPosition();
-        _lastDisplayUpdate = _deps.clock->now();
-    }
-#endif
+    return _coordinator.slew().totalDecSteps();
 }
 
-/////////////////////////////////
-//
-// DECString
-//
-// Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
-/////////////////////////////////
 String Mount::DECString(byte type, byte active)
 {
     Declination dec;
@@ -4549,47 +4362,36 @@ float Mount::getTrackedHours() const
 /////////////////////////////////
 float Mount::checkRALimit()
 {
-    const float trackedHours = getTrackedHours();
-    const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
-    const float RALimit      = RA_TRACKING_LIMIT;
+    // The arithmetic and the folding live in core::RaTrackingLimit; the side effect — stopping the
+    // tracker — stays here, because it owns the axes.
+    core::RaLimitFacts facts;
+    facts.homeRaHours        = _zeroPosRA.getTotalHours() + getTrackedHours();
+    facts.currentRaHours     = currentRA().getTotalHours();
+    facts.decAxisDegrees     = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
+    facts.northernHemisphere = inNorthernHemisphere;
+    facts.limitHours         = RA_TRACKING_LIMIT;
+
+    const core::RaLimitResult result = core::RaTrackingLimit::evaluate(facts);
+
     OAT_LOG(_deps.logger,
             DEBUG_MOUNT_VERBOSE,
-            "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)",
-            homeRA,
+            "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f), remaining: %f",
+            facts.homeRaHours,
             _zeroPosRA.getTotalHours(),
-            trackedHours);
-    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    float hourPos         = currentRA().getTotalHours();
-    OAT_LOG(_deps.logger, DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: degreePosDec: %f , RA hourpos : %f)", degreePos, hourPos);
-    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
-    {
-        hourPos -= 12;
-        if (hourPos < 0)
-            hourPos += 24;
-        OAT_LOG(_deps.logger, DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: switching RA hourPos to: %f", hourPos);
-    }
-    OAT_LOG(_deps.logger, DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: RA hourPos (adjusted): %f", hourPos);
-    float homeCurrentDeltaRA = homeRA - hourPos;
-    OAT_LOG(
-        _deps.logger, DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: DeltaRA: %f (home:%f - hour:%f)", homeCurrentDeltaRA, homeRA, hourPos);
-    while (homeCurrentDeltaRA > 12)
-        homeCurrentDeltaRA -= 24;
-    while (homeCurrentDeltaRA < -12)
-        homeCurrentDeltaRA += 24;
-    OAT_LOG(_deps.logger, DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: deltaRA: %f => Check against %f", homeCurrentDeltaRA, RALimit);
+            getTrackedHours(),
+            result.remainingHours);
 
-    if (homeCurrentDeltaRA > RALimit)
+    if (result.limitReached)
     {
         OAT_LOG(_deps.logger,
                 DEBUG_MOUNT,
-                "[MOUNT]: checkRALimit: Tracking limit reached. deltaRA: %f > RALimit:%f.  TrackedHrs:%f, HomeRA:%f, ",
-                homeCurrentDeltaRA,
-                RALimit,
-                trackedHours,
-                homeRA);
+                "[MOUNT]: checkRALimit: Tracking limit reached. TrkHrs:%f, HomeRA:%f, remaining:%f",
+                getTrackedHours(),
+                facts.homeRaHours,
+                result.remainingHours);
         stopSlewing(TRACKING);
     }
     _lastTRKCheck = _deps.clock->now();
 
-    return RALimit - homeCurrentDeltaRA;
+    return result.remainingHours;
 }

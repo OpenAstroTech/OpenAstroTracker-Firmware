@@ -176,6 +176,8 @@ Fill in §10 as you go. A case is only "pass" when the *expected* column matches
 | 9.12 | Site and clock round-trip | `:St14:30:00#`, `:SH10:15#`, then `:Gt#`, `:GG#`, `:Ga#`, `:GL#`, `:GC#`; `:Sg30:15#`, `:SG-090:00#`, `:SL14:30:00#`, `:SC07/04/24#`, then `:Gg#`, `:Gt#`, `:Gd#` | Each value round-trips in the same units the request used; `:GG#` is the negated sign convention of `:SG#`; a longitude change re-derives HA (the mount's LST moves) | `ports::IMountSiteTime` (Phase 5 step 3) |
 | 9.13 | Status and configuration read-back | `:D#`, `:XG#`, `:XGR#`, `:XGM#`, `:XGR#`, `:XGL#`, `:XGT#`, `:XGB#` while idle, tracking, slewing and parked | Non-empty, comma-delimited, and the same *shape* as before the refactor — a host driver parses these field by field | `ports::IMountReadModel` status readouts (string scratch buffer) |
 | 9.14 | Deferred-reply machinery is idle | Watch the serial log at `DEBUG_MEADE` during a park and a go-to | No "Reply deferred" lines: no command defers today. The table, the event subscription and the deadline sweep exist but stay empty, which is what keeps them from affecting the wire | `core::meade::PendingReplies`, `MeadeCommandAdapter::tick()` |
+| 9.15 | Status panel framing | On a board with the info panel: start a two-axis go-to, then a one-axis go-to, then guide | Two-axis slew: the panel holds its last frame (no flicker, serial stays responsive). One axis: it updates a few times a second. Guide pulse: one frame at the start, then still. After arrival: the final frame shows the new position | `adapters::InfoDisplayPanel` (Phase 6). This is the refresh policy that used to live in `Mount::loop()`, and it exists to protect the serial ring buffer |
+| 9.16 | LCD progress view | On a board with the character/OLED menu: go-to from the menu and watch the two progress lines | Both lines count up while both axes move; the correct single line while one moves; the final value appears within ~200 ms of the axes stopping | `displayLcdSlewStatus*()` (Phase 6) — the paint moved out of `Mount::loop()` |
 
 ---
 
@@ -223,16 +225,21 @@ reviewer does not "fix" them back:
    no longer blocks the main loop; the axes decelerate on their own and `:D#` reports. A host
    that relied on `:Q#` taking as long as the deceleration will now see `:D#` answer `|` (still
    slewing) for a moment — which is the honest answer.
-10. **`:gT#` no longer waits for a fix.** It answers `0` ("not ready") after at most 250 ms and
+9. **`:gT#` no longer waits for a fix.** It answers `0` ("not ready") after at most 250 ms and
     the host asks again, instead of holding the whole command layer for up to two minutes. A
     host that relied on a single long `:gT#` returning `1` must now retry — which is what
     `MeadeProtocol.hpp` documented for `:gTnnn#` all along. Verify with a cold GPS: repeated
     `:gT#` must each answer promptly, then start answering `1` once the fix arrives.
-9. **A menu wait no longer runs the mount's update path** (9.5). `Mount::delay()` used to call
+10. **A menu wait no longer runs the mount's update path** (9.5). `Mount::delay()` used to call
    `loop()` while waiting; it is now a plain bounded wait, so during a menu calibration the mount
    keeps *stepping* but no longer processes a slew arrival or a park transition inside the menu
    handler. Watch a menu-driven calibration while the mount is close to finishing a move: nothing
    should interleave. If a menu case now behaves differently, this is why.
+11. **The LCD progress view repaints on the loop's schedule** (9.16). `Mount::loop()` used to paint
+    the slew progress itself, including one frame the instant the axes stopped; the paint now runs
+    from the main loop at most every `DISPLAY_UPDATE_TIME` (200 ms) and only while an axis is
+    running, so the last frame can land up to 200 ms after arrival. The frames are otherwise
+    identical — same strings, same percentages, same cursor positions.
 
 ## 12. What cannot be covered here
 

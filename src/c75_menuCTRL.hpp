@@ -233,7 +233,7 @@ void printControlSubmenu()
             }
             break;
         default:
-            mount.displayStepperPositionThrottled();
+            displayLcdSlewStatusThrottled(mount, lcdMenu);
             break;
     }
 }
