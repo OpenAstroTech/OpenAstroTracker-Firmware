@@ -3134,13 +3134,18 @@ void Mount::setupEndSwitches()
 /////////////////////////////////
 void Mount::delay(int ms)
 {
-    // Keeps the mount loop running, so tracking does not stop while waiting. The
-    // deadline comes from the clock port and the yield from the scheduler port, so
-    // this needs no direct millis()/yield().
-    const unsigned long now = _deps.clock->now();
-    while (_deps.clock->now() - now < (unsigned long) ms)
+    // A bounded wait: the deadline comes from the clock port and the yield from the scheduler
+    // port, so this needs no direct millis()/yield().
+    //
+    // It deliberately does **not** call `loop()` any more. Every caller is a menu screen, i.e.
+    // already inside a tick, so re-entering the update path from here ran the arrival sequence and
+    // the coordinator's tick from inside a handler — re-entrancy nobody could reason about, and
+    // the reason a menu calibration could interleave with a slew arriving. The steppers still step
+    // (the AVR timer ISR, or the ESP32 stepper task), so a wait does not stop motion; what it no
+    // longer does is run the mount's bookkeeping behind the menu's back.
+    const unsigned long start = _deps.clock->now();
+    while (_deps.clock->now() - start < (unsigned long) ms)
     {
-        loop();
         _deps.scheduler->yield();
     }
 }

@@ -219,6 +219,11 @@ reviewer does not "fix" them back:
    no longer blocks the main loop; the axes decelerate on their own and `:D#` reports. A host
    that relied on `:Q#` taking as long as the deceleration will now see `:D#` answer `|` (still
    slewing) for a moment — which is the honest answer.
+9. **A menu wait no longer runs the mount's update path** (9.5). `Mount::delay()` used to call
+   `loop()` while waiting; it is now a plain bounded wait, so during a menu calibration the mount
+   keeps *stepping* but no longer processes a slew arrival or a park transition inside the menu
+   handler. Watch a menu-driven calibration while the mount is close to finishing a move: nothing
+   should interleave. If a menu case now behaves differently, this is why.
 
 ## 12. What cannot be covered here
 
