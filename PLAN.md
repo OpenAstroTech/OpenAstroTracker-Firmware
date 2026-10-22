@@ -129,11 +129,19 @@ All seven Phase 1 modules exist under `src/core/`, plus `src/hal/EepromLayout.hp
 3. ✅ `Mount::RAString()`/`DECString()` call `core::formatRA()`/`core::formatDEC()`. `formatRA` gained a `bufSize` argument (it previously hard-coded `snprintf(..., 32, ...)` against `Mount`'s 24-byte `scratchBuffer`) and no longer forces `abs()`, matching the legacy `sprintf` output exactly.
 4. ✅ `src/hal/EepromLayout.hpp` is now the single source of truth for magic markers, item flags, item addresses and `SteppingStorageNormalized`. It exposes them as `hal::eeprom::*` (a namespace rather than a struct, so unscoped enumerators can be brought into `EPROMStore.cpp` with one `using namespace` on pre-C++20 toolchains), `EEPROMStore`'s private aliases point at it, and `test_hal/test_eeprom_layout.cpp` pins the on-device layout on the host.
 
-### What remains (Phase 2 onward)
+### Where it stands after Phase 6
 
-The parser is pure and tested. The executor (`MeadeCommandProcessor`) is an adapter that still couples to `Mount*` and `LcdMenu*` directly. The `Mount` god-object still contains all domain logic (slewing, tracking, guiding, parking, homing, focus, coordinate math).
+All six phases have landed. The domain decisions live in `core/` (600 host tests, 92.5 % of its
+lines exercised), the hardware coupling sits in `adapters/` and `hal/`, and the composition root is
+still `src/b_setup.hpp` rather than `src/app/`. The Meade command layer holds no `Mount *` at all —
+it is driven through six ports — and `Mount` no longer drives either display.
 
-Phase 2a (contracts), 2b (adapters + injection) and 2c (call-site cleanup) have all landed — see the status markers on the Phase 2 steps below. `src/ports/` holds the 14 domain interfaces, `src/hal/` the 13 HAL interfaces plus the per-platform backends, `src/adapters/` the ten adapters (the eight from 2b plus `MountSettingsStore` and `NullLogger` from 2c), and `unit_tests/test_common/hal_fakes/` the hand-written fakes. `Mount` holds ports: clock, scheduler, logger and settings are injected through `MountDeps`, its axes and drivers are created as adapters, `EEPROMStore` writes through the injected `IPersistentStore` instead of the Arduino EEPROM API, and no `LOG()`, `millis()`, `digitalWrite()` or `EEPROMStore::` call site is left inside `Mount`. `src/app/` still holds only a README: the composition root is `src/b_setup.hpp` until Phase 4/5 moves it.
+What is left is UI, and it is listed with its exit in
+[`ARCHITECTURE.md`](ARCHITECTURE.md) §3 "What still sits outside this layering": the menu screens
+(~170 `mount.*` call sites), the SSD1306 renderer's pull side, `EPROMStore`'s static facade, three
+hardware helpers (`Gyro`, `HallSensorHoming`, `EndSwitches`) whose ports exist but have no adapter,
+and the four composition-root/loop files that should move to `src/app/`. None of them is a design
+question any more; each is a bounded piece of work with a bench session attached.
 
 ---
 
