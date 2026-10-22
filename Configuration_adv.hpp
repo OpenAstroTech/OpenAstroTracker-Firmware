@@ -739,3 +739,28 @@
         #error "Debugging not supported on this platform"
     #endif
 #endif
+
+// Builds without the optional axes compile their tuning macros out, but the code that reads
+// them is unconditional (it branches on the kHas* presence constants instead). Give them
+// inert defaults so a board without the hardware still compiles.
+#ifndef AZIMUTH_STEPS_PER_REV
+    #define AZIMUTH_STEPS_PER_REV 0
+#endif
+#ifndef AZIMUTH_STEPS_PER_ARC_MINUTE
+    #define AZIMUTH_STEPS_PER_ARC_MINUTE 0
+#endif
+#ifndef AZ_ALWAYS_ON
+    #define AZ_ALWAYS_ON 0
+#endif
+#ifndef ALTITUDE_STEPS_PER_REV
+    #define ALTITUDE_STEPS_PER_REV 0
+#endif
+#ifndef ALTITUDE_STEPS_PER_ARC_MINUTE
+    #define ALTITUDE_STEPS_PER_ARC_MINUTE 0
+#endif
+#ifndef ALT_ALWAYS_ON
+    #define ALT_ALWAYS_ON 0
+#endif
+#ifndef FOCUSER_ALWAYS_ON
+    #define FOCUSER_ALWAYS_ON 0
+#endif

@@ -15,20 +15,20 @@
 #include "adapters/StepperAxis.hpp"
 #include "adapters/Tmc2209Driver.hpp"
 
-#ifndef ARDUINO_AVR_ATmega2560
+#ifdef ARDUINO_AVR_ATmega2560
+    #include "hal/avr/InterruptStepperMotor.hpp"
+#else
     #include "hal/arduino/AccelStepperMotor.hpp"
 #endif
 
 namespace
 {
-#ifndef ARDUINO_AVR_ATmega2560
 /// Wraps a motion engine in its axis adapter. Both objects live for the lifetime of
 /// the program, exactly like the concrete steppers they replace.
 ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
 {
     return new adapters::StepperAxis(motor);
 }
-#endif
 }  // namespace
 
 PUSH_NO_WARNINGS
@@ -50,6 +50,16 @@ PUSH_NO_WARNINGS
     #include <TMCStepper.h>  // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
 #endif
 POP_NO_WARNINGS
+
+#ifdef ARDUINO_AVR_ATmega2560
+/// The optional AVR engines are the only ones that go through the port; RA, DEC, TRK and
+/// GUIDE are always present and keep their concrete engines. See
+/// `hal/avr/InterruptStepperMotor.hpp`.
+template <typename Engine> ports::IStepperAxis *makeInterruptAxis(uint8_t interfaceType, uint8_t pin1, uint8_t pin2)
+{
+    return makeAxis(*new hal::InterruptStepperMotor<Engine>(*new Engine(interfaceType, pin1, pin2)));
+}
+#endif
 
 // slewStatus()
 #define SLEWING_DEC      B00000010
@@ -90,19 +100,8 @@ Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps)
     : _deps(deps),
       // Tracking runs at the finer microstep rate while the steps-per-degree value is
       // the slew-mode one, hence the integer ratio (as the inline expression had it).
-      _tracking(SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING), _guiding(deps.clock)
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      ,
-      _azAlt()
-#endif
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      ,
-      _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360)
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-      ,
-      _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
-#endif
+      _tracking(SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING), _guiding(deps.clock), _azAlt(),
+      _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360), _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
 
 {
     _commandReceived = 0;
@@ -139,24 +138,18 @@ void Mount::initializeVariables()
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     _driverDEC = nullptr;
 #endif
-#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-    _stepperAZ = nullptr;
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverAZ = nullptr;
-    #endif
-#endif
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-    _stepperALT = nullptr;
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverALT = nullptr;
-    #endif
-#endif
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    _stepperAZ    = nullptr;
+    _stepperALT   = nullptr;
     _stepperFocus = nullptr;
     _focus.detach();
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    _driverAZ = nullptr;
+#endif
+#if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    _driverALT = nullptr;
+#endif
+#if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     _driverFocus = nullptr;
-    #endif
 #endif
 
     _latitude   = Latitude(inNorthernHemisphere ? 45.0f : -45.0f);
@@ -252,15 +245,17 @@ void Mount::readPersistentData()
     _stepsPerDECDegree = _deps.settings->getDECStepsPerDegree();
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: DEC steps/deg is %f", _stepsPerDECDegree);
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepsPerAZDegree = _deps.settings->getAZStepsPerDegree();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _stepsPerAZDegree);
-#endif
+    if (kHasAzStepper)
+    {
+        _stepsPerAZDegree = _deps.settings->getAZStepsPerDegree();
+        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _stepsPerAZDegree);
+    }
 
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepsPerALTDegree = _deps.settings->getALTStepsPerDegree();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _stepsPerALTDegree);
-#endif
+    if (kHasAltStepper)
+    {
+        _stepsPerALTDegree = _deps.settings->getALTStepsPerDegree();
+        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _stepsPerALTDegree);
+    }
     float speed = _deps.settings->getSpeedFactor();
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", speed);
     setSpeedCalibration(speed, false);
@@ -297,15 +292,17 @@ void Mount::readPersistentData()
     }
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %ld -> %ld", _decLowerLimit, _decUpperLimit);
 
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    long altPos = _deps.settings->getALTPosition();
-    _stepperALT->setCurrentPosition(altPos);
-#endif
+    if (kHasAltStepper)
+    {
+        long altPos = _deps.settings->getALTPosition();
+        _stepperALT->setCurrentPosition(altPos);
+    }
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    long azPos = _deps.settings->getAZPosition();
-    _stepperAZ->setCurrentPosition(azPos);
-#endif
+    if (kHasAzStepper)
+    {
+        long azPos = _deps.settings->getAZPosition();
+        _stepperAZ->setCurrentPosition(azPos);
+    }
 
     configureHemisphere(_latitude.getTotalHours() > 0);
 }
@@ -420,7 +417,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     #ifdef ARDUINO_AVR_ATmega2560
-    _stepperAZ = new StepperAzSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = makeInterruptAxis<StepperAzSlew>(AccelStepper::DRIVER, pin1, pin2);
     #else
     _stepperAZ = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
@@ -438,7 +435,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     #ifdef ARDUINO_AVR_ATmega2560
-    _stepperALT = new StepperAltSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = makeInterruptAxis<StepperAltSlew>(AccelStepper::DRIVER, pin1, pin2);
     #else
     _stepperALT = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
@@ -461,7 +458,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     #ifdef ARDUINO_AVR_ATmega2560
-    _stepperFocus = new StepperFocusSlew(AccelStepper::DRIVER, pin1, pin2);
+    _stepperFocus = makeInterruptAxis<StepperFocusSlew>(AccelStepper::DRIVER, pin1, pin2);
     #else
     _stepperFocus = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
@@ -1106,19 +1103,11 @@ float Mount::getStepsPerDegree(StepperAxis which)
     }
     if (which == AZIMUTH_STEPS)
     {
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        return _stepsPerAZDegree;  // u-steps/degree
-#else
-        return 1;
-#endif
+        return kHasAzStepper ? _stepsPerAZDegree : 1;  // u-steps/degree
     }
     if (which == ALTITUDE_STEPS)
     {
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        return _stepsPerALTDegree;  // u-steps/degree
-#else
-        return 1;
-#endif
+        return kHasAltStepper ? _stepsPerALTDegree : 1;  // u-steps/degree
     }
 
     return 0;
@@ -1143,20 +1132,16 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
         _deps.settings->storeRAStepsPerDegree(_stepsPerRADegree);
         setSpeedCalibration(_tracking.calibration(), false);
     }
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == AZIMUTH_STEPS)
+    else if (kHasAzStepper && which == AZIMUTH_STEPS)
     {
         _stepsPerAZDegree = steps;
         _deps.settings->storeAZStepsPerDegree(_stepsPerAZDegree);
     }
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == ALTITUDE_STEPS)
+    else if (kHasAltStepper && which == ALTITUDE_STEPS)
     {
         _stepsPerALTDegree = steps;
         _deps.settings->storeALTStepsPerDegree(_stepsPerALTDegree);
     }
-#endif
 }
 
 /////////////////////////////////
@@ -2074,8 +2059,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
         // TODO: Are we already in slew mode?
         _stepperDEC->setSpeed(stepsPerSec);
     }
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == AZIMUTH_STEPS)
+    else if (kHasAzStepper && which == AZIMUTH_STEPS)
     {
         float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;  // deg/sec * u-steps/deg = u-steps/sec
         OAT_LOG(_deps.logger,
@@ -2085,9 +2069,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
                 stepsPerSec);
         _stepperAZ->setSpeed(stepsPerSec);
     }
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == ALTITUDE_STEPS)
+    else if (kHasAltStepper && which == ALTITUDE_STEPS)
     {
         float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;  // deg/sec * u-steps/deg = u-steps/sec
         OAT_LOG(_deps.logger,
@@ -2097,10 +2079,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
                 stepsPerSec);
         _stepperALT->setSpeed(stepsPerSec);
     }
-#endif
-
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    else if (which == FOCUS_STEPS)
+    else if (kHasFocusStepper && which == FOCUS_STEPS)
     {
         OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_FOCUS, "[FOCUS]: setSpeed() Focuser setSpeed %f", speedDegsPerSec);
         if (speedDegsPerSec != 0)
@@ -2119,45 +2098,40 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
             _stepperFocus->stop();
         }
     }
-#endif
 }
 
 void Mount::getAZALTPositions(long &azPos, long &altPos)
 {
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    azPos = _stepperAZ->currentPosition();
-#else
-    azPos = 0;
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    altPos = _stepperALT->currentPosition();
-#else
-    altPos = 0;
-#endif
+    azPos  = kHasAzStepper ? _stepperAZ->currentPosition() : 0;
+    altPos = kHasAltStepper ? _stepperALT->currentPosition() : 0;
 }
 
 void Mount::moveAZALTToHome()
 {
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    enableAzMotor();
-    _stepperAZ->moveTo(0);
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    enableAltMotor();
-    _stepperALT->moveTo(0);
-#endif
+    if (kHasAzStepper)
+    {
+        enableAzMotor();
+        _stepperAZ->moveTo(0);
+    }
+    if (kHasAltStepper)
+    {
+        enableAltMotor();
+        _stepperALT->moveTo(0);
+    }
 }
 
 void Mount::setAZALTHome()
 {
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperAZ->setCurrentPosition(0);
-    _deps.settings->storeAZPosition(0);
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperALT->setCurrentPosition(0);
-    _deps.settings->storeALTPosition(0);
-#endif
+    if (kHasAzStepper)
+    {
+        _stepperAZ->setCurrentPosition(0);
+        _deps.settings->storeAZPosition(0);
+    }
+    if (kHasAltStepper)
+    {
+        _stepperALT->setCurrentPosition(0);
+        _deps.settings->storeALTPosition(0);
+    }
 }
 
 /////////////////////////////////
@@ -2186,25 +2160,27 @@ bool Mount::isAxisRunning(StepperAxis axis)
             return _stepperRA->isRunning();
         case DEC_STEPS:
             return _stepperDEC->isRunning();
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        case ALTITUDE_STEPS:
-            return _stepperALT->isRunning();
-#endif
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        case AZIMUTH_STEPS:
-            return _stepperAZ->isRunning();
-#endif
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        case FOCUS_STEPS:
-            return _stepperFocus->isRunning();
-#endif
+            if (kHasAltStepper)
+            {
+                case ALTITUDE_STEPS:
+                    return _stepperALT->isRunning();
+            }
+            if (kHasAzStepper)
+            {
+                case AZIMUTH_STEPS:
+                    return _stepperAZ->isRunning();
+            }
+            if (kHasFocusStepper)
+            {
+                case FOCUS_STEPS:
+                    return _stepperFocus->isRunning();
+            }
         default:
             break;
     }
     return false;
 }
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
 // isRunningAZ
@@ -2212,12 +2188,9 @@ bool Mount::isAxisRunning(StepperAxis axis)
 /////////////////////////////////
 bool Mount::isRunningAZ() const
 {
-    return _stepperAZ->isRunning();
+    return kHasAzStepper && _stepperAZ->isRunning();
 }
 
-#endif
-
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
 // isRunningALT
@@ -2225,11 +2198,9 @@ bool Mount::isRunningAZ() const
 /////////////////////////////////
 bool Mount::isRunningALT() const
 {
-    return _stepperALT->isRunning();
+    return kHasAltStepper && _stepperALT->isRunning();
 }
-#endif
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
 // moveBy
@@ -2237,22 +2208,18 @@ bool Mount::isRunningALT() const
 /////////////////////////////////
 void Mount::moveBy(int direction, float arcMinutes)
 {
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (direction == AZIMUTH_STEPS)
+    if (kHasAzStepper && direction == AZIMUTH_STEPS)
     {
         enableAzMotor();
         long stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
         _stepperAZ->move(stepsToMove);
     }
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (direction == ALTITUDE_STEPS)
+    if (kHasAltStepper && direction == ALTITUDE_STEPS)
     {
         enableAltMotor();
         long stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
         _stepperALT->move(stepsToMove);
     }
-    #endif
 }
 
 /////////////////////////////////
@@ -2262,38 +2229,40 @@ void Mount::moveBy(int direction, float arcMinutes)
 /////////////////////////////////
 void Mount::disableAzAltMotors()
 {
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperAZ->stop();
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperALT->stop();
-    #endif
-
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    while (_stepperAZ->isRunning())
+    if (kHasAzStepper)
     {
-        loop();
+        _stepperAZ->stop();
     }
-    #endif
-
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    while (_stepperALT->isRunning())
+    if (kHasAltStepper)
     {
-        loop();
+        _stepperALT->stop();
     }
-    #endif
 
-    #if AZ_ALWAYS_ON == 0
-        #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _deps.azEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
-        #endif
-    #endif
+    if (kHasAzStepper)
+    {
+        while (_stepperAZ->isRunning())
+        {
+            loop();
+        }
+    }
 
-    #if ALT_ALWAYS_ON == 0
-        #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _deps.altEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
-        #endif
-    #endif
+    if (kHasAltStepper)
+    {
+        while (_stepperALT->isRunning())
+        {
+            loop();
+        }
+    }
+
+    if (AZ_ALWAYS_ON == 0 && kHasAzStepper)
+    {
+        _deps.azEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
+    }
+
+    if (ALT_ALWAYS_ON == 0 && kHasAltStepper)
+    {
+        _deps.altEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
+    }
 }
 
 /////////////////////////////////
@@ -2303,26 +2272,27 @@ void Mount::disableAzAltMotors()
 /////////////////////////////////
 void Mount::enableAzMotor()
 {
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    if (!kHasAzStepper)
+    {
+        return;
+    }
     _deps.azEnablePin->write(hal::PinLevel::Low);  // Logic LOW to enable driver
     // Let loop() disable the driver again, even if the move turns out to be zero steps
     // (e.g. move to home while already at home), so it never stays powered.
     _azAlt.update(true);
-    #endif
 }
 
 void Mount::enableAltMotor()
 {
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    if (!kHasAltStepper)
+    {
+        return;
+    }
     _deps.altEnablePin->write(hal::PinLevel::Low);  // Logic LOW to enable driver
     // See enableAzMotor()
     _azAlt.update(true);
-    #endif
 }
 
-#endif
-
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 /////////////////////////////////
 //
 // isRunningFocus
@@ -2422,18 +2392,10 @@ void Mount::disableFocusMotor()
     _stepperFocus->stop();
     waitUntilStopped(FOCUSING);
 
-    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #if FOCUSER_ALWAYS_ON == 0
-            #if (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-
-    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: disableFocusMotor: TMC2209U disabling enable pin");
-    _deps.focusEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
-            #else
-    OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: disableFocusMotor: non-TMC2209U disabling enable pin");
-    _deps.focusEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
-            #endif
-        #endif
-    #endif
+    if (FOCUSER_ALWAYS_ON == 0 && kHasFocusStepper)
+    {
+        _deps.focusEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
+    }
 }
 
 /////////////////////////////////
@@ -2457,8 +2419,6 @@ void Mount::focusStop()
     OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusStop: stopping motor.");
     _focus.stop();
 }
-
-#endif
 
 /////////////////////////////////
 //
@@ -2590,23 +2550,17 @@ String Mount::getStatusString()
     {
         disp[2] = 'T';
     }
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (_stepperAZ->isRunning())
+    if (kHasAzStepper && _stepperAZ->isRunning())
     {
         disp[3] = _stepperAZ->targetPosition() < _stepperAZ->currentPosition() ? 'Z' : 'z';
     }
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (_stepperALT->isRunning())
+    if (kHasAltStepper && _stepperALT->isRunning())
     {
         disp[4] = _stepperALT->targetPosition() < _stepperALT->currentPosition() ? 'A' : 'a';
     }
-#endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    if (_stepperFocus->isRunning())
+    if (kHasFocusStepper && _stepperFocus->isRunning())
         disp[5] = _stepperFocus->targetPosition() < _stepperFocus->currentPosition() ? 'F' : 'f';
-#endif
 
     status += disp;
     status += String(_stepperRA->currentPosition()) + ",";
@@ -2615,11 +2569,7 @@ String Mount::getStatusString()
 
     status += RAString(COMPACT_STRING | CURRENT_STRING) + ",";
     status += DECString(COMPACT_STRING | CURRENT_STRING) + ",";
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    status += String(_stepperFocus->currentPosition()) + ",";
-#else
-    status += ",";
-#endif
+    status += kHasFocusStepper ? String(_stepperFocus->currentPosition()) + "," : String(",");
 
     return status;
 }
@@ -2932,21 +2882,24 @@ void Mount::stopSlewing(StepperAxis axis)
     }
     else if (axis == AZIMUTH_STEPS)
     {
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        _stepperAZ->stop();
-#endif
+        if (kHasAzStepper)
+        {
+            _stepperAZ->stop();
+        }
     }
     else if (axis == ALTITUDE_STEPS)
     {
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        _stepperALT->stop();
-#endif
+        if (kHasAltStepper)
+        {
+            _stepperALT->stop();
+        }
     }
     else if (axis == FOCUS_STEPS)
     {
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        _stepperFocus->stop();
-#endif
+        if (kHasFocusStepper)
+        {
+            _stepperFocus->stop();
+        }
     }
 }
 
@@ -2960,10 +2913,7 @@ void Mount::waitUntilStopped(byte direction)
 {
     while (((direction & (EAST | WEST)) && _stepperRA->isRunning()) || ((direction & (NORTH | SOUTH)) && _stepperDEC->isRunning())
            || ((direction & TRACKING) && ((!_state.test(STATUS_TRACKING)) && _stepperTRK->isRunning()))
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-           || ((direction & FOCUSING) && _stepperFocus->isRunning())
-#endif
-    )
+           || ((direction & FOCUSING) && kHasFocusStepper && _stepperFocus->isRunning()))
     {
         loop();
         yield();
@@ -2979,16 +2929,8 @@ void Mount::waitUntilStopped(byte direction)
 void Mount::waitUntilAllStopped()
 {
     while (_stepperRA->isRunning() || _stepperDEC->isRunning() || ((!_state.test(STATUS_TRACKING)) && _stepperTRK->isRunning())
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-           || _stepperFocus->isRunning()
-#endif
-#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-           || _stepperAZ->isRunning()
-#endif
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-           || _stepperALT->isRunning()
-#endif
-    )
+           || (kHasFocusStepper && _stepperFocus->isRunning()) || (kHasAzStepper && _stepperAZ->isRunning())
+           || (kHasAltStepper && _stepperALT->isRunning()))
     {
         loop();
         yield();
@@ -3029,21 +2971,24 @@ long Mount::getCurrentStepperPosition(StepperAxis axis)
     }
     if (axis == StepperAxis::FOCUS_STEPS)
     {
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        return _stepperFocus->currentPosition();
-#endif
+        if (kHasFocusStepper)
+        {
+            return _stepperFocus->currentPosition();
+        }
     }
     if (axis == StepperAxis::ALTITUDE_STEPS)
     {
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        return _stepperALT->currentPosition();
-#endif
+        if (kHasAltStepper)
+        {
+            return _stepperALT->currentPosition();
+        }
     }
     if (axis == StepperAxis::AZIMUTH_STEPS)
     {
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        return _stepperAZ->currentPosition();
-#endif
+        if (kHasAzStepper)
+        {
+            return _stepperAZ->currentPosition();
+        }
     }
     return 0;
 }
@@ -3299,25 +3244,25 @@ void Mount::interruptLoop()
         }
     }
 
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperAZ->run();
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    _stepperALT->run();
-    #endif
+    if (kHasAzStepper)
+    {
+        _stepperAZ->run();
+    }
+    if (kHasAltStepper)
+    {
+        _stepperALT->run();
+    }
 
-    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // `FocusMode::Continuous` is kept from the original, which never selected it: a
     // continuous run targets a far position and therefore uses `run()`.
-    if (_focus.mode() == core::FocusMode::ToTarget)
+    if (kHasFocusStepper && _focus.mode() == core::FocusMode::ToTarget)
     {
         _stepperFocus->run();
     }
-    else if (_focus.mode() == core::FocusMode::Continuous)
+    else if (kHasFocusStepper && _focus.mode() == core::FocusMode::Continuous)
     {
         _stepperFocus->runSpeed();
     }
-    #endif
 
     if (kHasRaEndSwitch && (_raEndSwitch != nullptr))
     {
@@ -3356,29 +3301,30 @@ void Mount::loop()
     }
 #endif
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool oneIsRunning = false;
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    oneIsRunning |= _stepperAZ->isRunning();
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    oneIsRunning |= _stepperALT->isRunning();
-    #endif
+    if (kHasAzStepper)
+    {
+        oneIsRunning |= _stepperAZ->isRunning();
+    }
+    if (kHasAltStepper)
+    {
+        oneIsRunning |= _stepperALT->isRunning();
+    }
 
     if (_azAlt.update(oneIsRunning) == core::AzAltUpdate::JustStopped)
     {
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        _deps.settings->storeAZPosition(_stepperAZ->currentPosition());
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        _deps.settings->storeALTPosition(_stepperALT->currentPosition());
-    #endif
+        if (kHasAzStepper)
+        {
+            _deps.settings->storeAZPosition(_stepperAZ->currentPosition());
+        }
+        if (kHasAltStepper)
+        {
+            _deps.settings->storeALTPosition(_stepperALT->currentPosition());
+        }
     }
-#endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _stepperFocus->isRunning());
 
     if (_focus.isRunning())
@@ -3393,8 +3339,6 @@ void Mount::loop()
         disableFocusMotor();
         publishEvent(core::MountEventType::FocusStopped);
     }
-
-#endif
 
     if (isGuiding())
     {
@@ -4167,32 +4111,35 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
 
         case FOCUS_STEPS:
             {
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-                focusMoveBy(steps);
-#endif
+                if (kHasFocusStepper)
+                {
+                    focusMoveBy(steps);
+                }
             }
             break;
 
         case AZIMUTH_STEPS:
             {
-#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-                enableAzMotor();
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS,
-                        "[STEPPERS]: moveStepperBy: AZ from %ld to %ld",
-                        _stepperAZ->currentPosition(),
-                        _stepperAZ->currentPosition() + steps);
-                _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
-#endif
+                if (kHasAzStepper)
+                {
+                    enableAzMotor();
+                    OAT_LOG(_deps.logger,
+                            DEBUG_STEPPERS,
+                            "[STEPPERS]: moveStepperBy: AZ from %ld to %ld",
+                            _stepperAZ->currentPosition(),
+                            _stepperAZ->currentPosition() + steps);
+                    _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
+                }
             }
             break;
 
         case ALTITUDE_STEPS:
             {
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-                enableAltMotor();
-                _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
-#endif
+                if (kHasAltStepper)
+                {
+                    enableAltMotor();
+                    _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
+                }
             }
             break;
     }

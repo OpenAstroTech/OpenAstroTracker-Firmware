@@ -175,15 +175,10 @@ struct MountDeps {
 #if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
     hal::IGpioPin *decEnablePin;
 #endif
-#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-    hal::IGpioPin *azEnablePin;
-#endif
-#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-    hal::IGpioPin *altEnablePin;
-#endif
-#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-    hal::IGpioPin *focusEnablePin;
-#endif
+    // Optional-axis driver enable pins. Null on a board without the axis.
+    hal::IGpioPin *azEnablePin    = nullptr;
+    hal::IGpioPin *altEnablePin   = nullptr;
+    hal::IGpioPin *focusEnablePin = nullptr;
 };
 
 class Mount
@@ -359,17 +354,11 @@ class Mount
     bool isGuiding() const;
     bool isFindingHome() const;
     bool isAxisRunning(StepperAxis axis);
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool isRunningAZ() const;
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool isRunningALT() const;
-#endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     bool isRunningFocus() const;
     float getFocusSpeed() const;
-#endif
 
     // Starts manual slewing in one of eight directions or tracking
     void startSlewing(int direction);
@@ -490,16 +479,15 @@ class Mount
     /// compile-time flag.
     void setupEndSwitches();
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    // Support for moving the mount in azimuth and altitude (requires extra hardware)
+    // Support for moving the mount in azimuth and altitude (requires extra hardware).
+    // Each entry point is a no-op when the axis is not present in this build.
     void moveBy(int direction, float arcMinutes);
     void disableAzAltMotors();
     void enableAzMotor();
     void enableAltMotor();
-#endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    // Support for focus motor (requires extra hardware)
+    // Support for focus motor (requires extra hardware). Each entry point is a no-op
+    // when no focuser is present in this build.
     void focusSetSpeedByRate(int rate);
     void focusContinuousMove(FocuserDirection direction);
     void focusMoveBy(long steps);
@@ -508,7 +496,6 @@ class Mount
     void disableFocusMotor();
     void enableFocusMotor();
     void focusStop();
-#endif
 
 #if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
     bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance);
@@ -702,44 +689,26 @@ class Mount
     ports::IMotorDriver *_driverDEC;
 #endif
 
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     core::AzAltController _azAlt;
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #ifdef ARDUINO_AVR_ATmega2560
-    StepperAzSlew *_stepperAZ;
-        #else
-    ports::IStepperAxis *_stepperAZ;
-        #endif
+
+    // Optional axes: present at run time or null. Every caller guards with kHasXStepper.
+    ports::IStepperAxis *_stepperAZ = nullptr;
     float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
-        #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverAZ;
-        #endif
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-        #ifdef ARDUINO_AVR_ATmega2560
-    StepperAltSlew *_stepperALT;
-        #else
-    ports::IStepperAxis *_stepperALT;
-        #endif
+#endif
+    ports::IStepperAxis *_stepperALT = nullptr;
     float _stepsPerALTDegree;  // u-steps/degree (from CTOR)
-        #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+#if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverALT;
-        #endif
-    #endif
 #endif
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    // Focus motion and its selected rate. The axis is attached by configureFocusStepper().
-    #ifdef ARDUINO_AVR_ATmega2560
-    core::FocusController<StepperFocusSlew> _focus;
-    StepperFocusSlew *_stepperFocus;
-    #else
+    // Focus motion and its selected rate. The axis is attached by configureFocusStepper(),
+    // and stays null when this build has no focuser.
     core::FocusController<ports::IStepperAxis> _focus;
-    ports::IStepperAxis *_stepperFocus;
-    #endif
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    ports::IStepperAxis *_stepperFocus = nullptr;
+#if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverFocus;
-    #endif
 #endif
 
     // Optional hardware, present at run time or null.
@@ -749,6 +718,9 @@ class Mount
     // the constant lets the compiler drop the branch entirely. Readers test
     // `kHasX && ptr != nullptr`, which reads as a presence check at the call site and
     // still folds to nothing on a board without the part.
+    static constexpr bool kHasAzStepper    = (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE);
+    static constexpr bool kHasAltStepper   = (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE);
+    static constexpr bool kHasFocusStepper = (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE);
     static constexpr bool kHasRaEndSwitch  = (USE_RA_END_SWITCH == 1);
     static constexpr bool kHasDecEndSwitch = (USE_DEC_END_SWITCH == 1);
     static constexpr bool kHasRaHoming     = (USE_HALL_SENSOR_RA_AUTOHOME == 1);
