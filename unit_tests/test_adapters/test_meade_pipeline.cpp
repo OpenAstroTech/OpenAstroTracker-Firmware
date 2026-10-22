@@ -27,9 +27,9 @@ namespace
 {
 using Transport = adapters::SerialTransport<20>;
 
-/// The pipeline under test: one transport, one parser, one handler set, and the reply table the
-/// adapter keeps. It mirrors `MeadeCommandAdapter::processCommand()` line for line where it
-/// matters: dispatch into a response object, publish the bytes unless the handler deferred.
+/// The pipeline under test: one transport, one parser, one handler set. It mirrors
+/// `MeadeCommandAdapter::processCommand()` line for line where it matters — dispatch into a
+/// response object, publish the bytes unless the handler deferred.
 class Pipeline
 {
   public:
@@ -71,53 +71,9 @@ class Pipeline
         }
     }
 
-    void deliverEvent(::core::MountEventType type, bool succeeded = false)
-    {
-        ::core::MountEvent event;
-        event.type      = type;
-        event.succeeded = succeeded;
-
-        meade::PendingReply reply;
-        while (_pending.takeCompleted(event.type, reply))
-        {
-            writeReply(reply, succeeded);
-        }
-    }
-
-    void advanceTo(uint32_t nowMs)
-    {
-        meade::PendingReply reply;
-        while (_pending.takeExpired(nowMs, reply))
-        {
-            writeReply(reply, false);
-        }
-    }
-
-    void writeReply(const meade::PendingReply &reply, bool succeeded)
-    {
-        switch (reply.kind)
-        {
-            case meade::ReplyKind::SuccessFlag:
-                reply.out->writeResponse(succeeded ? "1" : "0");
-                break;
-            case meade::ReplyKind::Silent:
-                break;
-        }
-    }
-
-    fakes::FakeSerialPort &port()
-    {
-        return _port;
-    }
-
     fakes::StubMeadeHandlers &handlers()
     {
         return _handlers;
-    }
-
-    meade::PendingReplies<> &pending()
-    {
-        return _pending;
     }
 
     Transport &transport()
@@ -129,7 +85,6 @@ class Pipeline
     fakes::FakeSerialPort _port;
     Transport _transport;
     fakes::StubMeadeHandlers _handlers;
-    meade::PendingReplies<> _pending;
     meade::MeadeResponse _response;
 };
 
