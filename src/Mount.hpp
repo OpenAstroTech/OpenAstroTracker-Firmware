@@ -5,6 +5,7 @@
 #include "Latitude.hpp"
 #include "Longitude.hpp"
 #include "Types.hpp"
+#include "core/AzAltController.hpp"
 #include "core/EventBus.hpp"
 #include "core/FocusController.hpp"
 #include "core/Microsteps.hpp"
@@ -702,7 +703,7 @@ class Mount
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    bool _azAltWasRunning;
+    core::AzAltController _azAlt;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         #ifdef ARDUINO_AVR_ATmega2560
     StepperAzSlew *_stepperAZ;

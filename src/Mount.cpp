@@ -93,7 +93,7 @@ Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps)
       _tracking(SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING), _guiding(deps.clock)
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) || (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
       ,
-      _azAltWasRunning(false)
+      _azAlt()
 #endif
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
       ,
@@ -2307,7 +2307,7 @@ void Mount::enableAzMotor()
     _deps.azEnablePin->write(hal::PinLevel::Low);  // Logic LOW to enable driver
     // Let loop() disable the driver again, even if the move turns out to be zero steps
     // (e.g. move to home while already at home), so it never stays powered.
-    _azAltWasRunning = true;
+    _azAlt.update(true);
     #endif
 }
 
@@ -2316,7 +2316,7 @@ void Mount::enableAltMotor()
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     _deps.altEnablePin->write(hal::PinLevel::Low);  // Logic LOW to enable driver
     // See enableAzMotor()
-    _azAltWasRunning = true;
+    _azAlt.update(true);
     #endif
 }
 
@@ -3365,30 +3365,16 @@ void Mount::loop()
     oneIsRunning |= _stepperALT->isRunning();
     #endif
 
-    if (!oneIsRunning && _azAltWasRunning)
+    if (_azAlt.update(oneIsRunning) == core::AzAltUpdate::JustStopped)
     {
         // One of the motors was running last time through the loop, but not anymore, so shutdown the outputs.
         disableAzAltMotors();
-        _azAltWasRunning = false;
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         _deps.settings->storeAZPosition(_stepperAZ->currentPosition());
     #endif
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         _deps.settings->storeALTPosition(_stepperALT->currentPosition());
     #endif
-    }
-
-    oneIsRunning = false;
-    #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    oneIsRunning |= _stepperAZ->isRunning();
-    #endif
-    #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    oneIsRunning |= _stepperALT->isRunning();
-    #endif
-
-    if (oneIsRunning)
-    {
-        _azAltWasRunning = true;
     }
 #endif
 
