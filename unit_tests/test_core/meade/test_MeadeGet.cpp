@@ -513,3 +513,25 @@ TEST(MeadeGet, unknown_suffix_returns_empty)
     EXPECT_STREQ("", dispatch("", h));
     EXPECT_EQ(nullptr, h.lastCall);
 }
+
+// A deferred command has started something and will send its bytes later. "No bytes now" and "no
+// bytes at all" are different answers on this protocol — `:Q#` legitimately replies with nothing —
+// so the response has to carry the distinction rather than leaving the caller to guess from an
+// empty string.
+TEST(MeadeResponseDeferralTest, DeferralIsVisibleAndClearedByAFreshAssignment)
+{
+    oat::core::meade::MeadeResponse response;
+
+    EXPECT_FALSE(response.deferred());
+
+    response.defer();
+    EXPECT_TRUE(response.deferred());
+
+    response.assign("1");
+    EXPECT_FALSE(response.deferred()) << "a new command must not inherit the previous deferral";
+    EXPECT_STREQ("1", response.c_str());
+
+    response.defer();
+    response.clear();
+    EXPECT_FALSE(response.deferred());
+}

@@ -73,6 +73,7 @@ class MeadeResponse
 
     void assign(const char *s)
     {
+        _deferred = false;
         if (s == nullptr)
         {
             _data[0] = '\0';
@@ -107,13 +108,41 @@ class MeadeResponse
 
     void clear()
     {
-        _length  = 0;
-        _data[0] = '\0';
+        _length   = 0;
+        _data[0]  = '\0';
+        _deferred = false;
+    }
+
+    /// Marks the command as answered **later**: the handler has started something and will send
+    /// the bytes through its transport when it finishes. The dispatch layer then reports no inline
+    /// output, and the caller must not send an empty response in its place — an empty reply is a
+    /// valid answer for several commands (`:Q#`), so "no bytes" and "no bytes yet" have to be
+    /// distinguishable.
+    ///
+    /// This is the contract Phase 5 step 5's `PendingReply` table spends: today nothing defers,
+    /// but the wire protocol already has commands that must (`:gT#` blocks for up to two minutes
+    /// looking for a fix).
+    void defer()
+    {
+        _deferred = true;
+    }
+
+    bool deferred() const
+    {
+        return _deferred;
+    }
+
+    /// Drops a previous command's deferral without touching the bytes. Used at the top of a
+    /// dispatch, because the response object is reused between commands.
+    void clearDeferral()
+    {
+        _deferred = false;
     }
 
   private:
     char _data[Capacity];
     size_t _length;
+    bool _deferred = false;
 };
 
 /** @brief Result of `parseMeadeCommand`. */

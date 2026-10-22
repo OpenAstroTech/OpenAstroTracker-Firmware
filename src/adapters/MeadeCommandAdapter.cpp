@@ -984,6 +984,18 @@ const char *MeadeCommandAdapter::processCommand(String inCmd)
 {
     LOG(DEBUG_MEADE, "[MEADE]: Received command   '%s'", inCmd.c_str());
     _mount->commandReceived();
+    _response.clearDeferral();  // the response object is reused between commands
     meade::dispatchMeadeCommand(_response, inCmd.c_str(), *this);
+
+    if (_response.deferred())
+    {
+        // The handler took ownership of the reply: it will write the bytes through its transport
+        // when the work finishes. Returning an empty string here is not the same as "no reply" --
+        // the transports treat both as nothing to send, but the deferral is what tells the caller
+        // a reply is still owed.
+        LOG(DEBUG_MEADE, "[MEADE]: Deferred reply owed for '%s'", inCmd.c_str());
+        return "";
+    }
+
     return _response.c_str();
 }
