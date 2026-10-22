@@ -5,7 +5,6 @@
 
 namespace ports
 {
-
 /// The axes a board may not have: the focuser and the AZ/ALT pair.
 ///
 /// Phase 4 made all three runtime-present — a board without them holds a null axis, and every
@@ -32,11 +31,11 @@ class IMountOptionalAxes : public IMountConfiguration
     virtual bool isRunningFocus() const                                = 0;
 
     // --- azimuth / altitude ---
-    virtual void moveBy(int direction, float arcMinutes)                    = 0;
+    virtual void moveBy(int direction, float arcMinutes) = 0;
 
     /// Declares the current AZ/ALT position to be the home position. A no-op on a board without
     /// the axes, like every other entry point here.
-    virtual void setAZALTHome() = 0;
+    virtual void setAZALTHome()                                             = 0;
     virtual void moveAZALTToHome()                                          = 0;
     virtual void getAZALTPositions(long &azimuthSteps, long &altitudeSteps) = 0;
 };

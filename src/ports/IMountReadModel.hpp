@@ -7,7 +7,6 @@
 
 namespace ports
 {
-
 /// What the command layer reads back from the mount.
 ///
 /// This is the second of the three surfaces Phase 5 step 3 identified (motion, read model,
@@ -27,12 +26,12 @@ class IMountReadModel
     {
     }
 
-    virtual core::DayTime currentRA() const     = 0;
+    virtual core::DayTime currentRA() const      = 0;
     virtual core::Declination currentDEC() const = 0;
 
     /// Mutable references: `:Sr#` / `:Sd#` write the target in place, and the mount has always
     /// exposed it that way. A setter pair would need the same storage and one more entry point.
-    virtual core::DayTime &targetRA()     = 0;
+    virtual core::DayTime &targetRA()      = 0;
     virtual core::Declination &targetDEC() = 0;
 
     /// Hour angle and local sidereal time, both derived from the clock and the site.
@@ -53,9 +52,9 @@ class IMountReadModel
     /// same method: the alternative — filling a caller buffer — would mean either duplicating
     /// four `String`-building methods or moving them into the adapter, and the wire format of
     /// `:D#` is parsed by every host driver on the planet.
-    virtual const char *getStatusString()      = 0;
-    virtual const char *getStepperInfo()       = 0;
-    virtual const char *getMountHardwareInfo() = 0;
+    virtual const char *getStatusString()           = 0;
+    virtual const char *getStepperInfo()            = 0;
+    virtual const char *getMountHardwareInfo()      = 0;
     virtual const char *getAutoHomingStates() const = 0;
 
     /// The command counter a status screen shows. The command layer is its only writer, which is

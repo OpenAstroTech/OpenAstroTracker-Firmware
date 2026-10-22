@@ -15,7 +15,6 @@
 
 namespace fakes
 {
-
 namespace meade = oat::core::meade;
 using namespace meade;  // the handler vocabulary (RaCoordinate, MoveDirection, ...)
 
@@ -138,7 +137,7 @@ class StubMeadeHandlers : public oat::core::meade::IMeadeHandlers
         return MeadeTrackingRate::Sidereal;
     }
 
-    const char * onSiteName(uint8_t) override
+    const char *onSiteName(uint8_t) override
     {
         lastCall = "onSiteName";
         return "";

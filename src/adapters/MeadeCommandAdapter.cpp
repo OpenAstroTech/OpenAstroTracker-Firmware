@@ -48,7 +48,7 @@ MeadeCommandAdapter *MeadeCommandAdapter::instance()
 MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, LcdMenu *lcdMenu)
 {
     _config   = ports.configuration;
-    _motion   = ports.configuration;  // IMinountConfiguration extends IMountMotion
+    _motion   = ports.configuration;  // IMountConfiguration extends IMountMotion
     _axes     = ports.axes;
     _read     = ports.readModel;
     _siteTime = ports.siteTime;
@@ -287,7 +287,7 @@ meade::MeadeLatitude MeadeCommandAdapter::onSiteLatitude()
 meade::MeadeLongitude MeadeCommandAdapter::onSiteLongitude()
 {
     const core::Longitude lon = _siteTime->longitude();
-    const int degrees   = lon.getHours();
+    const int degrees         = lon.getHours();
     return meade::MeadeLongitude {
         static_cast<uint16_t>(degrees < 0 ? -degrees : degrees),
         static_cast<uint8_t>(lon.getMinutes()),

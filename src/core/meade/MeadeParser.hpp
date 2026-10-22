@@ -30,7 +30,6 @@ namespace core
 {
 namespace meade
 {
-
 /**
  * @brief Fixed-capacity NUL-terminated Meade buffer value type.
  *
@@ -826,6 +825,40 @@ void handleMeadeExtra(MeadeResponse &r, const char *suffix, IMeadeExtraHandlers 
 // `dispatchMeadeCommand` takes this aggregate and handles the top-level
 // family switch internally — callers pass the raw command (after `:`, before
 // `#`) and receive a complete `MeadeResponse`.
+//
+// ---------------------------------------------------------------------------
+// The three handler shapes (PLAN.md Phase 5 step 4)
+// ---------------------------------------------------------------------------
+// Every one of the 115 callbacks below belongs to exactly one of three shapes.
+// The shape is a property of the *command*, not of the implementation, so it is
+// recorded here, family by family, and the adapter is written against it:
+//
+// * **Immediate** — the answer already exists, so the handler returns a typed
+//   value and the parser writes the bytes. Never blocks, never defers.
+//     `G` (all reads: coordinates, status, site, time, model), `XG`/`XL`
+//     (configuration read-back, positions, sensors), `XGm`-style extras,
+//     `D` (distance), `M` only where it is a pure query.
+//
+// * **Request/ack** — the command changes the mount, so it is acknowledged now
+//   and the host polls `:D#` for progress. The handler issues a request to the
+//   coordinator or an axis and returns the acknowledgement.
+//     `S` (targets, site, time), `MS`/`MA` (slew, move), `Q` (stop),
+//     `h` (park, home, unpark), `R` (slew rate), `C` (sync), `I` (init),
+//     `XF`/`XD`/`XT`-style writes.
+//
+// * **Deferred** — the protocol wants the answer at completion and there is
+//   nothing to poll. The handler takes a `PendingReply` slot and returns no
+//   inline bytes; `MeadeResponse::defer()` records that a reply is still owed.
+//     `gT` (GPS fix) is the only command that *wants* this shape; today it
+//     answers "not yet" within a bounded budget instead, because the GPS is
+//     pumped by the menu and there is nothing to complete the deferral when
+//     the menu is not on screen (PLAN.md Phase 5 step 6).
+//
+// The shapes are honoured by construction, not by inspection: an immediate
+// handler cannot block (it has nowhere to), a request/ack handler returns only
+// the acknowledgement, and a deferred handler must go through the table —
+// returning an empty string without a slot would look to the host like a
+// command that has no reply at all.
 // ---------------------------------------------------------------------------
 
 class IMeadeHandlers : public IMeadeGetHandlers,

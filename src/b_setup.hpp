@@ -358,9 +358,9 @@ void setup()
         #ifdef OAE
     RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
         #elif defined(ARDUINO_ARCH_RP2040)
-    RA_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
+    RA_SERIAL_PORT.begin(115200);   // TMCStepper requires 115200 baud on RP2040
         #else
-    RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
         #endif
     //
     #endif
@@ -416,7 +416,7 @@ void setup()
             #if defined(ARDUINO_ARCH_RP2040)
     AZ_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
             #else
-    AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    AZ_SERIAL_PORT.begin(57600);     // Start HardwareSerial comms with driver
             #endif
         #endif
     #endif
@@ -437,7 +437,7 @@ void setup()
             #if defined(ARDUINO_ARCH_RP2040)
     ALT_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
             #else
-    ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    ALT_SERIAL_PORT.begin(57600);    // Start HardwareSerial comms with driver
             #endif
         #endif
     #endif

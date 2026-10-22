@@ -137,17 +137,20 @@ class Pipeline
 class DeferredHandlers : public fakes::StubMeadeHandlers
 {
   public:
-    DeferredHandlers(meade::PendingReplies<> &pending, ports::ITransport &out, meade::ReplyKind kind,
-                     ::core::MountEventType completesOn, uint32_t deadlineMs)
+    DeferredHandlers(meade::PendingReplies<> &pending,
+                     ports::ITransport &out,
+                     meade::ReplyKind kind,
+                     ::core::MountEventType completesOn,
+                     uint32_t deadlineMs)
         : _pending(pending), _out(out), _kind(kind), _completesOn(completesOn), _deadlineMs(deadlineMs)
     {
     }
 
     void onPark() override
     {
-        lastCall       = "onPark";
-        deferred       = true;
-        _correlation   = _pending.add(&_out, _kind, _completesOn, _deadlineMs);
+        lastCall     = "onPark";
+        deferred     = true;
+        _correlation = _pending.add(&_out, _kind, _completesOn, _deadlineMs);
     }
 
     uint16_t correlation() const
@@ -305,8 +308,9 @@ TEST(MeadePipelineTest, ADeferredReplyForOnePeerNeverReachesAnother)
     Transport wifiTransport(wifiPort, false);
     meade::PendingReplies<> pending;
 
-    const uint16_t serialCorrelation = pending.add(&serialTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::SlewArrived, 5000);
-    const uint16_t wifiCorrelation   = pending.add(&wifiTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::SlewArrived, 5000);
+    const uint16_t serialCorrelation
+        = pending.add(&serialTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::SlewArrived, 5000);
+    const uint16_t wifiCorrelation = pending.add(&wifiTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::SlewArrived, 5000);
     ASSERT_NE(serialCorrelation, wifiCorrelation);
 
     meade::PendingReply reply;

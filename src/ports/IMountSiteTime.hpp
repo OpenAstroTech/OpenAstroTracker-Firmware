@@ -9,7 +9,6 @@
 
 namespace ports
 {
-
 /// The mount's site and clock: where it is and what time it thinks it is.
 ///
 /// Separate from `IMountConfiguration` because these are not calibration values: they change at
@@ -39,11 +38,11 @@ class IMountSiteTime
 
     /// The offset the mount adds to local time to reach UTC. The Meade wire carries the inverse
     /// (`:GG#` is UTC-offset, not UTC-to-local), which the adapter flips in one place.
-    virtual int getLocalUtcOffset() const       = 0;
+    virtual int getLocalUtcOffset() const      = 0;
     virtual void setLocalUtcOffset(int offset) = 0;
 
-    virtual void setLocalStartTime(const core::DayTime &time)     = 0;
-    virtual void setLocalStartDate(int year, int month, int day)  = 0;
+    virtual void setLocalStartTime(const core::DayTime &time)    = 0;
+    virtual void setLocalStartDate(int year, int month, int day) = 0;
 
     /// Sets the local sidereal time (`:St#`) / the hour angle (`:SH#`) and re-derives the
     /// mount's internal clock from it.

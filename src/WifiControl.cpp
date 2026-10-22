@@ -224,7 +224,7 @@ void WifiControl::tcpLoop()
     while (_clientTransport->hasCommand())
     {
         char buffer[adapters::SerialTransport<128>::kCommandCapacity] = {0};
-        const size_t length = _clientTransport->readCommand(buffer, sizeof(buffer));
+        const size_t length                                           = _clientTransport->readCommand(buffer, sizeof(buffer));
         if (length == 0)
         {
             continue;

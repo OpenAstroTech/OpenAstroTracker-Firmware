@@ -11,7 +11,6 @@ namespace core
 {
 namespace meade
 {
-
 /// What a deferred command owes its host when the work behind it finishes.
 ///
 /// The table stores the *shape* of the answer, not the answer: formatting the bytes is the
@@ -75,7 +74,7 @@ template <uint8_t Capacity = 4> class PendingReplies
                 continue;
             }
 
-            _nextCorrelation = (_nextCorrelation == 0xFFFFu) ? 1u : (uint16_t) (_nextCorrelation + 1u);
+            _nextCorrelation    = (_nextCorrelation == 0xFFFFu) ? 1u : (uint16_t) (_nextCorrelation + 1u);
             PendingReply &entry = _entries[i];
             entry.correlation   = _nextCorrelation;
             entry.out           = out;

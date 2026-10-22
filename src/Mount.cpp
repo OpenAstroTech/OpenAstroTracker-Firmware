@@ -415,7 +415,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef ARDUINO_AVR_ATmega2560
     _stepperAZ = makeInterruptAxis<StepperAzSlew>(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperAZ = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
+    _stepperAZ    = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -433,7 +433,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef ARDUINO_AVR_ATmega2560
     _stepperALT = makeInterruptAxis<StepperAltSlew>(AccelStepper::DRIVER, pin1, pin2);
     #else
-    _stepperALT = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
+    _stepperALT   = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -829,7 +829,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver("ALT");
+    UART_Rx_connected = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         // Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
@@ -920,7 +920,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected      = connectToDriver("FOC");
+    UART_Rx_connected = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
         // Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
@@ -3275,7 +3275,7 @@ void Mount::loop()
 #if (DEBUG_LEVEL & DEBUG_MOUNT) && (DEBUG_LEVEL & DEBUG_VERBOSE)
     if (now - _lastMountPrint > 2000)
     {
-        OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Status -> %s", getStatusString().c_str());
+        OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Status -> %s", getStatusString());
         _lastMountPrint = now;
     }
 #endif
@@ -3580,7 +3580,7 @@ void Mount::updateInfoDisplay()
     // timeout, causing ASCOM errors.
     // We will update at 30Hz when idle, 5Hz when slewing one axis and skip updates when slewing both.
 
-    int refreshRateHz = 30;
+    int refreshRateHz       = 30;
     #if defined(ARDUINO_ARCH_RP2040)
     const bool isSlewingAny = (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
     refreshRateHz           = isSlewingAny ? 15 : 30;
@@ -3595,7 +3595,7 @@ void Mount::updateInfoDisplay()
         refreshRateHz = 5;  // Update the display slower
     }
     #endif
-    const long now = _deps.clock->now();
+    const long now          = _deps.clock->now();
     if (now - _lastInfoUpdate > (1000 / refreshRateHz))
     {
         OAT_LOG(_deps.logger, DEBUG_DISPLAY, "[DISPLAY]: Render state to OLED ...");
@@ -3817,8 +3817,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersPre: Current : RA: %s, DEC: %s",
-            currentRA().ToString(),
-            currentDEC().ToString());
+            DayTime(currentRA()).ToString(),
+            Declination(currentDEC()).ToString());
     OAT_LOG(
         _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s", _targetRA.ToString(), _targetDEC.ToString());
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", _zeroPosRA.ToString());

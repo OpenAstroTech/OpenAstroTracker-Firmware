@@ -6,7 +6,6 @@
 
 namespace core
 {
-
 /// A fixed-capacity, heap-free queue of mount events, delivered at the tick boundary.
 ///
 /// Why a queue at all: a subscriber must never be able to re-enter the code that just

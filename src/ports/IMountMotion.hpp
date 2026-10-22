@@ -8,7 +8,6 @@
 
 namespace ports
 {
-
 /// What the command layer may ask the mount to move.
 ///
 /// The command layer is the only caller of these (the menus call `Mount` directly today), so this

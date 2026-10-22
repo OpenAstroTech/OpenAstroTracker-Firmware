@@ -7,7 +7,6 @@
 
 namespace ports
 {
-
 /// The mount's *adjustable* configuration, as a host or a menu sets it.
 ///
 /// Steps-per-degree, the slew speed, the two calibration angles, the DEC soft limits, the homing

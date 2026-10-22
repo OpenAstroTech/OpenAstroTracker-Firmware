@@ -136,7 +136,7 @@ void processSerialData()
     while (transport.hasCommand())
     {
         char buffer[adapters::SerialTransport<>::kCommandCapacity] = {0};
-        const size_t length                                      = transport.readCommand(buffer, sizeof(buffer));
+        const size_t length                                        = transport.readCommand(buffer, sizeof(buffer));
         if (length == 0)
         {
             // The command did not fit the buffer; the transport already dropped it.

@@ -2,14 +2,12 @@
 
 namespace core
 {
-
 class IEventSink;
 
 }  // namespace core
 
 namespace ports
 {
-
 /// The mount's event stream, as the command layer sees it.
 ///
 /// Deferred Meade replies complete on mount events (`SlewArrived`, `Parked`, `FocusStopped`,
@@ -23,7 +21,7 @@ class IMountEvents
     {
     }
 
-    virtual void subscribe(::core::IEventSink *sink) = 0;
+    virtual void subscribe(::core::IEventSink *sink)   = 0;
     virtual void unsubscribe(::core::IEventSink *sink) = 0;
 };
 

@@ -87,7 +87,7 @@ objects constructed in the composition root, never as different code paths in th
 | Layer | Directory | May depend on | Contains | Test strategy |
 |-------|-----------|---------------|----------|---------------|
 | **Core** | `src/core/` | `src/ports/` | Controllers (`SlewController`, `TrackingController`, `GuidingController`, `HomingController`, `ParkingController`, `FocusController`, `AzAltController`), algorithms (`SiderealClock`, `CoordinateMath`, `CalendarMath`, `CoordinateFormatter`), value types (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`), `MeadeParser`, `MountState`, `MountCoordinator`, `EventBus`, `MountConfig` | Host unit tests with faked ports in the `native` PIO env. No hardware, no Arduino. |
-| **Ports** | `src/ports/` | the pure value types in `core/types/`, nothing else | `IClock`, `IScheduler`, `ILogger` (+ `LogFormat`), `IPersistentStore`, `IMountSettings`, `IStepperAxis` (+ `AxisSnapshot`), `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay` (+ `InfoDisplayState`), `ITransport`, `IGps`, `IGyro` | Interfaces only — nothing to test. |
+| **Ports** | `src/ports/` | the pure value types in `core/types/`, nothing else | `IClock`, `IScheduler`, `ILogger` (+ `LogFormat`), `IPersistentStore`, `IMountSettings`, `IStepperAxis` (+ `AxisSnapshot`), `IMotorDriver`, `IHomingSensor`, `IEndSwitch`, `IDisplay`, `IInfoDisplay` (+ `InfoDisplayState`), `ITransport`, `IGps`, `IGyro`, `IMountMotion`, `IMountConfiguration`, `IMountOptionalAxes`, `IMountReadModel`, `IMountSiteTime`, `IMountEvents` | Interfaces only — nothing to test. |
 | **Adapters** | `src/adapters/` | `src/ports/` + `src/hal/` | `ArduinoClock`, `SerialLogger`, `NullLogger`, `EepromPersistentStore`, `MountSettingsStore`, `StepperAxis`, `Tmc2209Driver`, `NullMotorDriver`, `HallHomingSensor`, `GpioEndSwitch`, `LcdMenuDisplay`, `Ssd1306InfoDisplay`, `SerialTransport`, `WifiTransport`, `TinyGpsAdapter`, `MeadeCommandAdapter` | Integration tests against a faked HAL. |
 | **HAL** | `src/hal/` | hardware libraries | Interfaces (`IGpioPin`, `ISerialPort`, `ISpiBus`, `II2cBus`, `IEeprom`, `IStepperMotor` (motion engine), `ITmcDriver`, `IOledPanel`, `ICharLcd`, `IButtonMatrix`, `ITimerService`, `ISystemClock`, `IWifiStack`), `InMemoryEeprom`, plus per-platform backends (`arduino/`, `esp32/`, `rp2040/`). AVR has no stepper backend: it keeps the concrete timer-ISR engines, because a vtable per engine costs ~50 B of the 8 KB SRAM | Not host-tested; verified on hardware. |
 | **App** | `src/app/` | all layers | Composition root: reads `Configuration*.hpp` into `MountConfig`, selects HAL backends, constructs adapters and controllers, owns the entry point | On-device smoke tests. |
@@ -190,9 +190,15 @@ OpenAstroTracker-Firmware/
 │   │   ├── IEndSwitch.hpp
 │   │   ├── IDisplay.hpp
 │   │   ├── IInfoDisplay.hpp             # + InfoDisplayState
-│   │   ├── ITransport.hpp
+│   │   ├── ITransport.hpp               # + writeResponse (egress for deferred replies)
 │   │   ├── IGps.hpp                     # + GpsFix
-│   │   └── IGyro.hpp                    # + GyroAngles
+│   │   ├── IGyro.hpp                    # + GyroAngles
+│   │   ├── IMountMotion.hpp             # what the command layer may ask the mount to do
+│   │   ├── IMountConfiguration.hpp      # + IMountMotion: the adjustable settings
+│   │   ├── IMountOptionalAxes.hpp       # focuser, AZ/ALT — no-ops when absent
+│   │   ├── IMountReadModel.hpp          # coordinates, derived HA/LST, status strings
+│   │   ├── IMountSiteTime.hpp           # latitude, longitude, clock (core:: types)
+│   │   └── IMountEvents.hpp             # subscribe/unsubscribe (deferred replies)
 │   │
 │   ├── hal/                             # HARDWARE CAPABILITIES
 │   │   ├── IGpioPin.hpp
@@ -419,16 +425,29 @@ The LX200 protocol is poll-based: `:MS#`/`:MA#` acknowledge and the host observe
 | **Request/ack** | accepted or protocol error now; completion polled | `coordinator.request*()` (`:MS#`, `:PS#`, `:Q#`) |
 | **Deferred reply** | only at completion | `PendingReply` slot (`:gT#` GPS, drift alignment) |
 
-A deferred handler returns a correlation id instead of bytes, and `MeadeResponse` records "deferred,
-no inline output". `adapters/MeadeCommandAdapter` owns a fixed-capacity (4) table of
-`{correlation, ITransport *out, OpKind, deadlineMs}`, subscribes to completion events, formats the
-wire bytes and writes them through `ITransport::write()`. Keeping the requesting transport in the
-entry is what lets serial and Wi-Fi coexist. Every entry has an `IClock` deadline; expiry produces
-the protocol's failure reply, so a host never hangs, and `:Q#` aborts an outstanding request.
+A deferred handler takes a slot in `core/meade/PendingReplies` instead of answering, and the
+adapter reports "no bytes yet" rather than "no bytes". The table is a fixed-capacity (4),
+heap-free array of `{correlation, ITransport *out, MountEventType completesOn, ReplyKind kind,
+deadlineMs}`; `adapters/MeadeCommandAdapter` subscribes to the mount's event stream
+(`ports::IMountEvents`), formats the wire bytes for the entry a completion event matches, and
+writes them through `ITransport::writeResponse()`. Keeping the requesting transport in the entry
+is what lets serial and Wi-Fi coexist — `transportGone()` drops a peer's entries when its
+connection closes. Matching is by event rather than by correlation because `MountEvent` is two
+bytes and carries no id; two entries waiting on the same event complete oldest-first.
+
+Every entry has an `IClock` deadline, checked on each main-loop tick; expiry produces the
+protocol's failure reply, so a host never hangs.
 
 Handlers never block — no `waitUntilStopped`, no `waitUntilAllStopped`, no `Mount::delay()`, no
 `while (millis() < …)`. Blocking does not stop stepping (the ISR or the ESP32 task owns that), but it
 starves the AVR serial ring buffer, freezes the display and skips coordinator ticks.
+
+**One bounded exception, and it is not a wait loop for the mount.** `:gTnnn#` (GPS) probes the GPS
+once and gives up after at most 250 ms, answering `0` for "not ready yet" — which
+`MeadeProtocol.hpp` documents as the answer to retry on. It cannot become deferred: the GPS is
+pumped by the Ha/GPS menu screen, so in serial control there is nothing to produce the fix and the
+reply would only ever arrive on its deadline. Making it truly asynchronous needs a GPS tick in the
+main loop, which is a separate change and unverifiable without the hardware.
 
 ### What the composition root wires today
 
