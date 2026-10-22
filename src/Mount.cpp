@@ -23,6 +23,10 @@
 
 namespace
 {
+/// Stands in for a driver that has no registers to talk to (A4988, or a TMC2209 strapped to
+/// standalone), so every `_driverX` is non-null and its call sites stay unguarded.
+adapters::NullMotorDriver nullDriver;
+
 /// Wraps a motion engine in its axis adapter. Both objects live for the lifetime of
 /// the program, exactly like the concrete steppers they replace.
 ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
@@ -96,12 +100,12 @@ const float siderealDegreesInHour = 14.95904348958;
 // CTOR
 //
 /////////////////////////////////
-Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps)
-    : _deps(deps),
+Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config)
+    : _deps(deps), _config(config),
       // Tracking runs at the finer microstep rate while the steps-per-degree value is
       // the slew-mode one, hence the integer ratio (as the inline expression had it).
-      _coordinator(deps.clock, SIDEREAL_SECONDS_PER_DAY, RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING),
-      _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360), _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
+      _coordinator(deps.clock, SIDEREAL_SECONDS_PER_DAY, config.trackingMicrostepRatio()), _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
+      _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
 
 {
     _commandReceived = 0;
@@ -119,8 +123,8 @@ void Mount::initializeVariables()
     // at runtime when the Latitude is received via Meade command.
     inNorthernHemisphere = NORTHERN_HEMISPHERE == 1;
 
-    _stepsPerRADegree  = RA_STEPS_PER_DEGREE;   // u-steps per degree when slewing
-    _stepsPerDECDegree = DEC_STEPS_PER_DEGREE;  // u-steps per degree when slewing
+    _stepsPerRADegree  = _config.defaultRaStepsPerDegree;   // u-steps per degree when slewing
+    _stepsPerDECDegree = _config.defaultDecStepsPerDegree;  // u-steps per degree when slewing
 
     _coordinator.state().reset(0);
     _lastDisplayUpdate = 0;
@@ -132,25 +136,17 @@ void Mount::initializeVariables()
     _stepperDEC   = nullptr;
     _stepperGUIDE = nullptr;
     _coordinator.tracking().detach();
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverRA = nullptr;
-#endif
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverDEC = nullptr;
-#endif
     _stepperAZ    = nullptr;
     _stepperALT   = nullptr;
     _stepperFocus = nullptr;
     _coordinator.focus().detach();
-#if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverAZ = nullptr;
-#endif
-#if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverALT = nullptr;
-#endif
-#if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    _driverFocus = nullptr;
-#endif
+
+    // Replaced by configure*Driver() when the build actually has UART drivers.
+    _driverRA    = &nullDriver;
+    _driverDEC   = &nullDriver;
+    _driverAZ    = &nullDriver;
+    _driverALT   = &nullDriver;
+    _driverFocus = &nullDriver;
 
     _latitude   = Latitude(inNorthernHemisphere ? 45.0f : -45.0f);
     _longitude  = Longitude(100.0);
@@ -561,7 +557,7 @@ void Mount::configureRAdriver(Stream *serial, float rsense, byte driveraddress, 
     _driverRA->toff(adapters::kTmc2209Toff);
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
-    _driverRA->microsteps(core::microstepRegisterValue(RA_TRACKING_MICROSTEPPING));  // System starts in tracking mode
+    _driverRA->microsteps(core::microstepRegisterValue(_config.raTrackingMicrosteps()));  // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->semin(0);            //disable CoolStep so that current is consistent
@@ -600,8 +596,8 @@ void Mount::configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense
     _driverRA->toff(adapters::kTmc2209Toff);
     _driverRA->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     _driverRA->blank_time(24);
-    _driverRA->semin(0);                                                             //disable CoolStep so that current is consistent
-    _driverRA->microsteps(core::microstepRegisterValue(RA_TRACKING_MICROSTEPPING));  // System starts in tracking mode
+    _driverRA->semin(0);                                                                  //disable CoolStep so that current is consistent
+    _driverRA->microsteps(core::microstepRegisterValue(_config.raTrackingMicrosteps()));  // System starts in tracking mode
     _driverRA->fclktrim(4);
     _driverRA->TCOOLTHRS(0xFFFFF);  //xFFFFF);
     _driverRA->SGTHRS(stallvalue);
@@ -648,7 +644,7 @@ void Mount::configureDECdriver(Stream *serial, float rsense, byte driveraddress,
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
-        core::microstepRegisterValue(DEC_GUIDE_MICROSTEPPING));  // If 1 then disable microstepping. Start with Guide microsteps.
+        core::microstepRegisterValue(_config.decGuidingMicrosteps()));  // If 1 then disable microstepping. Start with Guide microsteps.
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -687,7 +683,7 @@ void Mount::configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rse
     _driverDEC->en_spreadCycle(DEC_UART_STEALTH_MODE == 0);
     _driverDEC->blank_time(24);
     _driverDEC->microsteps(
-        core::microstepRegisterValue(DEC_GUIDE_MICROSTEPPING));  // If 1 then disable microstepping. Start with Guide microsteps
+        core::microstepRegisterValue(_config.decGuidingMicrosteps()));  // If 1 then disable microstepping. Start with Guide microsteps
     _driverDEC->TCOOLTHRS(0xFFFFF);
     _driverDEC->semin(0);  //disable CoolStep so that current is consistent
     _driverDEC->SGTHRS(stallvalue);
@@ -1138,9 +1134,9 @@ String Mount::getStepperInfo()
 #endif
 
     ret += ",";
-    ret += String(RA_SLEW_MICROSTEPPING);
+    ret += String(_config.raSlewMicrosteps);
     ret += ",";
-    ret += String(RA_TRACKING_MICROSTEPPING);
+    ret += String(_config.raTrackingMicrosteps());
 
     ret += "|";
 
@@ -1155,9 +1151,9 @@ String Mount::getStepperInfo()
 #endif
 
     ret += ",";
-    ret += String(DEC_SLEW_MICROSTEPPING);
+    ret += String(_config.decSlewMicrosteps);
     ret += ",";
-    ret += String(DEC_GUIDE_MICROSTEPPING);
+    ret += String(_config.decGuidingMicrosteps());
 
     ret += "|";
 
@@ -1584,7 +1580,7 @@ void Mount::startSlewingToTarget()
         }
 
         // Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
-        setRaMicrosteps(RA_SLEW_MICROSTEPPING);
+        setRaMicrosteps(_config.raSlewMicrosteps);
 
         OAT_LOG(
             _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
@@ -1594,7 +1590,7 @@ void Mount::startSlewingToTarget()
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
     publishEvent(core::MountEventType::SlewStarted);
     // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
-    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
+    setDecMicrosteps(_config.decSlewMicrosteps);
     _coordinator.slew().noteRunning(true);
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _coordinator.slew().setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
@@ -1625,7 +1621,7 @@ void Mount::startSlewingToHome()
 
     _coordinator.slew().begin(core::SlewIntent::Home);
     // Take tracking into account
-    const long trackingOffset = _stepperTRK->currentPosition() * RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING;
+    const long trackingOffset = _stepperTRK->currentPosition() * _config.raSlewMicrosteps / _config.raTrackingMicrosteps();
     targetRAPosition -= trackingOffset;
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
@@ -1644,7 +1640,7 @@ void Mount::startSlewingToHome()
         _coordinator.tracking().noteStopped(_deps.clock->now());
 
         // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-        setRaMicrosteps(RA_SLEW_MICROSTEPPING);
+        setRaMicrosteps(_config.raSlewMicrosteps);
 
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
     }
@@ -1652,7 +1648,7 @@ void Mount::startSlewingToHome()
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
     publishEvent(core::MountEventType::SlewStarted);
     // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
-    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
+    setDecMicrosteps(_config.decSlewMicrosteps);
     _coordinator.slew().noteRunning(true);
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _coordinator.slew().setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
@@ -1749,7 +1745,7 @@ void Mount::guidePulse(byte direction, int duration)
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   DEC Microstep ratio : %f",
-                    (1.0 * DEC_GUIDE_MICROSTEPPING / DEC_SLEW_MICROSTEPPING));
+                    (1.0 * _config.decGuidingMicrosteps() / _config.decSlewMicrosteps));
         }
         else
         {
@@ -1761,16 +1757,16 @@ void Mount::guidePulse(byte direction, int duration)
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   RA  Microstep ratio : %f",
-                    (1.0 * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING));
+                    (1.0 * _config.raTrackingMicrosteps() / _config.raSlewMicrosteps));
         }
 
         // DEC stepper moves at sidereal rate in both directions
         // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
         // Also compensate for microstepping mode change between slew & guiding/tracking
         const core::GuideAxisGeometry raGeometry
-            = {_stepsPerRADegree, RA_TRACKING_MICROSTEPPING, RA_SLEW_MICROSTEPPING, RA_PULSE_MULTIPLIER};
+            = {_stepsPerRADegree, _config.raTrackingMicrosteps(), _config.raSlewMicrosteps, RA_PULSE_MULTIPLIER};
         const core::GuideAxisGeometry decGeometry
-            = {_stepsPerDECDegree, DEC_GUIDE_MICROSTEPPING, DEC_SLEW_MICROSTEPPING, DEC_PULSE_MULTIPLIER};
+            = {_stepsPerDECDegree, _config.decGuidingMicrosteps(), _config.decSlewMicrosteps, DEC_PULSE_MULTIPLIER};
 
         // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
         // If so, we need to remember where we were when we started the guide pulse. Then at the end,
@@ -1971,7 +1967,7 @@ void Mount::setManualSlewMode(bool state)
         stopSlewing(TRACKING);
         waitUntilStopped(ALL_DIRECTIONS);
         setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_MANUAL);
-        setRaMicrosteps(RA_SLEW_MICROSTEPPING);
+        setRaMicrosteps(_config.raSlewMicrosteps);
     }
     else
     {
@@ -2661,32 +2657,19 @@ bool Mount::admit(core::MountRequest request) const
     return _coordinator.admit(request) == core::Admission::Allowed;
 }
 
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+// A board whose driver takes its microsteps from pin strapping holds the null driver, whose
+// `microsteps()` does nothing, so these are the same code on every board.
 void Mount::setRaMicrosteps(int microsteps)
 {
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: RA driver setMicrosteps(%d)", microsteps);
     _driverRA->microsteps(core::microstepRegisterValue(microsteps));
 }
-#else
-void Mount::setRaMicrosteps(int microsteps)
-{
-    // This board's driver reads its microsteps from pin strapping.
-    (void) microsteps;
-}
-#endif
 
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void Mount::setDecMicrosteps(int microsteps)
 {
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: DEC driver setMicrosteps(%d)", microsteps);
     _driverDEC->microsteps(core::microstepRegisterValue(microsteps));
 }
-#else
-void Mount::setDecMicrosteps(int microsteps)
-{
-    (void) microsteps;
-}
-#endif
 
 /////////////////////////////////
 //
@@ -2706,7 +2689,7 @@ void Mount::startSlewing(int direction)
         if (direction & TRACKING)
         {
             // Start tracking
-            setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
+            setRaMicrosteps(_config.raTrackingMicrosteps());
             _coordinator.tracking().applySpeed();
 
             // Turn on tracking
@@ -2728,9 +2711,9 @@ void Mount::startSlewing(int direction)
             }
 
             // Change microstep mode for slewing
-            setRaMicrosteps(RA_SLEW_MICROSTEPPING);
+            setRaMicrosteps(_config.raSlewMicrosteps);
             // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
-            setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
+            setDecMicrosteps(_config.decSlewMicrosteps);
 
             if (direction & NORTH)
             {
@@ -3396,7 +3379,7 @@ void Mount::loop()
             _currentRAStepperPosition = _stepperRA->currentPosition();
             if (plan.raTrackingMicrosteps)  // RA stays in slew configuration while homing
             {
-                setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
+                setRaMicrosteps(_config.raTrackingMicrosteps());
             }
 
             if (plan.compensateTracker)
@@ -3423,7 +3406,7 @@ void Mount::loop()
             // Guiding is always ready again once the slew is over.
             if (plan.decGuideMicrosteps)
             {
-                setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
+                setDecMicrosteps(_config.decGuidingMicrosteps());
             }
 
             if (plan.correctBacklash)
@@ -3458,7 +3441,7 @@ void Mount::loop()
             if (plan.startParkPositionLeg)
             {
                 // Home is known; now go to the configured park position.
-                setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
+                setDecMicrosteps(_config.decSlewMicrosteps);
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
@@ -3496,7 +3479,7 @@ void Mount::loop()
 
             if (plan.decGuideAfterHome)
             {
-                setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
+                setDecMicrosteps(_config.decGuidingMicrosteps());
             }
 
             if (plan.parkComplete)
@@ -4054,7 +4037,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             }
 
             // Slew microsteps once the TRK stepper has stopped.
-            setRaMicrosteps(RA_SLEW_MICROSTEPPING);
+            setRaMicrosteps(_config.raSlewMicrosteps);
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             publishEvent(core::MountEventType::SlewStarted);
             _coordinator.slew().noteRunning(true);
@@ -4067,7 +4050,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
                 publishEvent(core::MountEventType::SlewStarted);
                 // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
-                setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
+                setDecMicrosteps(_config.decSlewMicrosteps);
                 _coordinator.slew().noteRunning(true);
                 moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
                 _coordinator.slew().setTotalMove(_coordinator.slew().totalRaSteps(), 1.0f * _stepperDEC->distanceToGo());
@@ -4461,15 +4444,17 @@ void Mount::testRA_UART_TX()
     const int speed = (RA_STEPPER_SPEED / 2) / 0.715255737f;
     //Duration in ms to move X degrees at half of the max speed
     const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerRADegree / (RA_STEPPER_SPEED / 2)) * 1000;
-    OAT_LOG(
-        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) for UART test", RA_SLEW_MICROSTEPPING);
-    setRaMicrosteps(RA_SLEW_MICROSTEPPING);
+    OAT_LOG(_deps.logger,
+            DEBUG_STEPPERS,
+            "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) for UART test",
+            _config.raSlewMicrosteps);
+    setRaMicrosteps(_config.raSlewMicrosteps);
     testUART_vactual(_driverRA, speed, duration);
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) after UART test",
-            RA_TRACKING_MICROSTEPPING);
-    setRaMicrosteps(RA_TRACKING_MICROSTEPPING);
+            _config.raTrackingMicrosteps());
+    setRaMicrosteps(_config.raTrackingMicrosteps());
 }
     #endif
 
@@ -4480,15 +4465,17 @@ void Mount::testDEC_UART_TX()
     const int speed = (DEC_STEPPER_SPEED / 2) / 0.715255737f;
     //Duration in ms to move X degrees at half of the max speed
     const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerDECDegree / (DEC_STEPPER_SPEED / 2)) * 1000;
-    OAT_LOG(
-        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test", DEC_SLEW_MICROSTEPPING);
-    setDecMicrosteps(DEC_SLEW_MICROSTEPPING);
+    OAT_LOG(_deps.logger,
+            DEBUG_STEPPERS,
+            "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test",
+            _config.decSlewMicrosteps);
+    setDecMicrosteps(_config.decSlewMicrosteps);
     testUART_vactual(_driverDEC, speed, duration);
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) after UART test",
-            DEC_GUIDE_MICROSTEPPING);
-    setDecMicrosteps(DEC_GUIDE_MICROSTEPPING);
+            _config.decGuidingMicrosteps());
+    setDecMicrosteps(_config.decGuidingMicrosteps());
 }
     #endif
 

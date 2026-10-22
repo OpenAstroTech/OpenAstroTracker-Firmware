@@ -22,6 +22,7 @@ POP_NO_WARNINGS
 
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
+#include "app/MountConfigBuilder.hpp"
 #include "a_inits.hpp"
 #include "LcdMenu.hpp"
 #include "LcdButtons.hpp"
@@ -136,9 +137,9 @@ MountDeps makeMountDeps()
 }  // namespace
 
 #ifdef ESP32
-DRAM_ATTR Mount mount(&lcdMenu, makeMountDeps());
+DRAM_ATTR Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig());
 #else
-Mount mount(&lcdMenu, makeMountDeps());
+Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig());
 #endif
 
 #if (WIFI_ENABLED == 1)

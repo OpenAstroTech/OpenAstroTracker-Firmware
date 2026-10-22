@@ -9,6 +9,7 @@
 #include "core/EventBus.hpp"
 #include "core/FocusController.hpp"
 #include "core/Microsteps.hpp"
+#include "core/MountConfig.hpp"
 #include "core/MountCoordinator.hpp"
 #include "core/MountRequests.hpp"
 #include "core/MountState.hpp"
@@ -189,7 +190,7 @@ class Mount
     /// (`src/b_setup.hpp` today). The axes and drivers are created in the
     /// `configure*` methods and owned by the mount for the lifetime of the program,
     /// exactly as the concrete steppers used to be.
-    Mount(LcdMenu *lcdMenu, const MountDeps &deps);
+    Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config);
 
     void initializeVariables();
 
@@ -612,6 +613,10 @@ class Mount
     // initialiser order is the declaration order (and therefore warning-free).
     MountDeps _deps;
 
+    // The motion shape the board was built with: microstep rates and the steps-per-degree
+    // defaults. Filled once by the composition root (`app::buildMountConfig()`).
+    core::MountConfig _config;
+
     // Every controller the mount owns, in one object: `core::MountCoordinator` states
     // which of them exist and, from here on, in what order a tick touches them. The AVR
     // build keeps its concrete tracking engine rather than an interface, so the
@@ -684,31 +689,23 @@ class Mount
     ports::IStepperAxis *_stepperDEC;
     ports::IStepperAxis *_stepperGUIDE;
 #endif
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    // Driver ports. Always set: a board whose driver has no registers behind it holds the
+    // null object, so the call sites below need no guard.
     ports::IMotorDriver *_driverRA;
-#endif
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverDEC;
-#endif
 
     // Optional axes: present at run time or null. Every caller guards with kHasXStepper.
     ports::IStepperAxis *_stepperAZ = nullptr;
     float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
-#if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverAZ;
-#endif
     ports::IStepperAxis *_stepperALT = nullptr;
     float _stepsPerALTDegree;  // u-steps/degree (from CTOR)
-#if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverALT;
-#endif
 
     // The axis is attached by configureFocusStepper(), and stays null when this build has
     // no focuser.
     ports::IStepperAxis *_stepperFocus = nullptr;
-#if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     ports::IMotorDriver *_driverFocus;
-#endif
 
     // Optional hardware, present at run time or null.
     //
