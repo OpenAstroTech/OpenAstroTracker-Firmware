@@ -14,6 +14,7 @@
 #include "core/SlewController.hpp"
 #include "core/TrackingController.hpp"
 #include "ports/IClock.hpp"
+#include "ports/IMountEvents.hpp"
 #include "ports/IStepperAxis.hpp"
 
 namespace core
@@ -51,7 +52,8 @@ struct TickOutcome {
 /// build keeps its compile-time interrupt-stepper engine rather than an interface.
 /// `FocusAxis` is fixed to `ports::IStepperAxis` on every board since the optional axes
 /// became runtime-present.
-template <typename TrackingAxis = ports::IStepperAxis, typename FocusAxis = ports::IStepperAxis> class MountCoordinator
+template <typename TrackingAxis = ports::IStepperAxis, typename FocusAxis = ports::IStepperAxis>
+class MountCoordinator : public ports::IMountEvents
 {
   public:
     /// Four is enough for one tick's worth of facts and keeps the ring in SRAM: the AVR
@@ -94,6 +96,19 @@ template <typename TrackingAxis = ports::IStepperAxis, typename FocusAxis = port
     const ParkingController &parking() const
     {
         return _parking;
+    }
+
+    /// `ports::IMountEvents`: the command layer subscribes so a deferred reply can be sent when
+    /// the work behind it finishes. The bus is the coordinator's, so it serves the port itself
+    /// rather than making every consumer go through the mount facade.
+    void subscribe(::core::IEventSink *sink) override
+    {
+        _events.subscribe(sink);
+    }
+
+    void unsubscribe(::core::IEventSink *sink) override
+    {
+        _events.unsubscribe(sink);
     }
 
     EventBus<kEventQueueDepth> &events()

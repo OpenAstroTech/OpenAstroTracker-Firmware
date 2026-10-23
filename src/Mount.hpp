@@ -115,7 +115,6 @@ struct MountDeps {
 class Mount final : public ports::IMountOptionalAxes,
                     public ports::IMountReadModel,
                     public ports::IMountSiteTime,
-                    public ports::IMountEvents,
                     public ports::IInfoDisplaySource,
                     public ports::IStatusFlags
 {
@@ -388,11 +387,6 @@ class Mount final : public ports::IMountOptionalAxes,
     /// the other in place.
     void setEventSink(core::IEventSink *sink);
     void clearEventSink(core::IEventSink *sink);
-
-    // `ports::IMountEvents`: the command layer subscribes to completions so a deferred reply can
-    // be sent when the work behind it finishes.
-    void subscribe(core::IEventSink *sink) override;
-    void unsubscribe(core::IEventSink *sink) override;
 
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction) override;

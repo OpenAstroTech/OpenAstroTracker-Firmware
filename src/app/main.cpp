@@ -426,7 +426,7 @@ void setup()
     commandPorts.axes          = &mount;
     commandPorts.readModel     = &mount;
     commandPorts.siteTime      = &mount;
-    commandPorts.events        = &mount;
+    commandPorts.events        = &mountCoordinator;
     commandPorts.clock         = &clockPort;
     commandPorts.gyro          = gyro;
     MeadeCommandAdapter::createProcessor(commandPorts, &lcdMenu);

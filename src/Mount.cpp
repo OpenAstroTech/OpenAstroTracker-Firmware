@@ -1867,22 +1867,12 @@ void Mount::setTrackingStepperPos(long stepPos)
 
 void Mount::setEventSink(core::IEventSink *sink)
 {
-    _coordinator.events().subscribe(sink);
+    _coordinator.subscribe(sink);
 }
 
 void Mount::clearEventSink(core::IEventSink *sink)
 {
-    _coordinator.events().unsubscribe(sink);
-}
-
-void Mount::subscribe(core::IEventSink *sink)
-{
-    setEventSink(sink);
-}
-
-void Mount::unsubscribe(core::IEventSink *sink)
-{
-    clearEventSink(sink);
+    _coordinator.unsubscribe(sink);
 }
 
 /// Records a fact for the tick boundary. The next `loop()` delivers it, so a subscriber
