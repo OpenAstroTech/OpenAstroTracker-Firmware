@@ -12,6 +12,7 @@
 #include "core/ActivityState.hpp"
 #include "core/meade/MountStatusReport.hpp"
 #include "core/CoordinateRead.hpp"
+#include "core/DecLimitClamp.hpp"
 #include "core/SiderealClock.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
@@ -3935,35 +3936,24 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
 
     if ((direction == RA_AND_DEC_STEPS) || (direction == DEC_STEPS))
     {
-        if (_settings.decUpperLimitSteps() != 0)
+        const core::DecLimitResult limited
+            = core::clampDecStepsToLimits(targetDECSteps, _settings.decLowerLimitSteps(), _settings.decUpperLimitSteps());
+        if (limited.clampedToUpper)
         {
-#if DEBUG_LEVEL != 0
-            if (targetDECSteps > (float) _settings.decUpperLimitSteps())
-            {
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS,
-                        "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %ld",
-                        _settings.decUpperLimitSteps());
-            }
-#endif
-            targetDECSteps = min(targetDECSteps, (float) _settings.decUpperLimitSteps());
+            OAT_LOG(_deps.logger,
+                    DEBUG_STEPPERS,
+                    "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %ld",
+                    _settings.decUpperLimitSteps());
+        }
+        if (limited.clampedToLower)
+        {
+            OAT_LOG(_deps.logger,
+                    DEBUG_STEPPERS,
+                    "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %ld",
+                    _settings.decLowerLimitSteps());
         }
 
-        if (_settings.decLowerLimitSteps() != 0)
-        {
-#if DEBUG_LEVEL != 0
-            if (targetDECSteps < (float) _settings.decLowerLimitSteps())
-            {
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS,
-                        "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %ld",
-                        _settings.decLowerLimitSteps());
-            }
-#endif
-            targetDECSteps = max(targetDECSteps, (float) _settings.decLowerLimitSteps());
-        }
-
-        _stepperDEC->moveTo(targetDECSteps);
+        _stepperDEC->moveTo(limited.steps);
     }
 }
 
