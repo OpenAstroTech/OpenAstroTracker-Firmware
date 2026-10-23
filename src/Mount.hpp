@@ -159,6 +159,18 @@ class Mount final : public ports::IMountOptionalAxes,
     /// Takes the drivers `app/DriverWiring.cpp` built and programmed.
     void attachDrivers(const Drivers &drivers);
 
+    /// The end switches and hall sensors the composition root built, null where this board has
+    /// none. `app/SensorWiring.cpp` creates them once; the homing state machine restarts itself
+    /// on each run, so a single instance per axis is enough.
+    struct Sensors {
+        EndSwitch *raEndSwitch      = nullptr;
+        EndSwitch *decEndSwitch     = nullptr;
+        HallSensorHoming *raHoming  = nullptr;
+        HallSensorHoming *decHoming = nullptr;
+    };
+
+    void attachSensors(const Sensors &sensors);
+
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -429,7 +441,6 @@ class Mount final : public ports::IMountOptionalAxes,
     /// Creates the end switches this board has. A board without them calls a function
     /// that creates nothing, and every reader below null-checks instead of branching on a
     /// compile-time flag.
-    void setupEndSwitches();
 
     // Support for moving the mount in azimuth and altitude (requires extra hardware).
     // Each entry point is a no-op when the axis is not present in this build.

@@ -85,6 +85,8 @@ String HallSensorHoming::getLastResult() const
 HallSensorHoming::HallSensorHoming(app::UiPorts &ports, ports::IStatusFlags &status, StepperAxis axis, ports::IHomingSensor &sensor)
     : _ui(ports), _status(status), _axis(axis), _sensor(sensor), _savedRate(0), _wasTracking(ports.motion->isSlewingTRK())
 {
+    // `_wasTracking` is re-read at the start of every run; see findHomeByHallSensor(), because one
+    // instance now serves every homing attempt instead of one per attempt.
 }
 
 /////////////////////////////////
@@ -96,6 +98,10 @@ bool HallSensorHoming::findHomeByHallSensor(int initialDirection, int searchDist
 {
     const long stepsPerDegree = (long) _ui.config->getStepsPerDegree(_axis);
     _savedRate                = (uint8_t) _ui.config->getSlewRate();
+    // Whether tracking was on when the run began decides whether it is restarted afterwards. The
+    // object used to be rebuilt per attempt, so this was captured in the constructor; capture it
+    // per run now that a single instance is reused.
+    _wasTracking = _ui.motion->isSlewingTRK();
     _controller.start(initialDirection,
                       searchDistance,
                       stepsPerDegree,

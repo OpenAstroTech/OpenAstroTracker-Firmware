@@ -57,10 +57,11 @@ bool testDriverConnection(ports::IMotorDriver *driver, const char *driverKind, u
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if SW_SERIAL_UART == 0
-ports::IMotorDriver *buildRADriver(const core::MountConfig &config, Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+ports::IMotorDriver *buildRADriver(
+    const core::MountConfig &config, Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *raDriver = nullptr;
-    raDriver = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
+    raDriver                      = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     raDriver->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -97,10 +98,11 @@ ports::IMotorDriver *buildRADriver(const core::MountConfig &config, Stream *seri
 
     #elif SW_SERIAL_UART == 1
 
-ports::IMotorDriver *buildRADriver(const core::MountConfig &config, uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+ports::IMotorDriver *buildRADriver(
+    const core::MountConfig &config, uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *raDriver = nullptr;
-    raDriver = new adapters::Tmc2209Driver(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
+    raDriver                      = new adapters::Tmc2209Driver(RA_SW_RX, RA_SW_TX, rsense, driveraddress);
     raDriver->beginSerial(19200);
     raDriver->mstep_reg_select(true);
     raDriver->pdn_disable(true);
@@ -122,7 +124,7 @@ ports::IMotorDriver *buildRADriver(const core::MountConfig &config, uint16_t RA_
     raDriver->toff(adapters::kTmc2209Toff);
     raDriver->en_spreadCycle(RA_UART_STEALTH_MODE == 0);
     raDriver->blank_time(24);
-    raDriver->semin(0);                                                                  //disable CoolStep so that current is consistent
+    raDriver->semin(0);                                                                 //disable CoolStep so that current is consistent
     raDriver->microsteps(core::microstepRegisterValue(config.raTrackingMicrosteps()));  // System starts in tracking mode
     raDriver->fclktrim(4);
     raDriver->TCOOLTHRS(0xFFFFF);  //xFFFFF);
@@ -145,10 +147,11 @@ ports::IMotorDriver *buildRADriver(const core::MountConfig &config, uint16_t RA_
 /////////////////////////////////
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if SW_SERIAL_UART == 0
-ports::IMotorDriver *buildDECDriver(const core::MountConfig &config, Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+ports::IMotorDriver *buildDECDriver(
+    const core::MountConfig &config, Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *decDriver = nullptr;
-    decDriver = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
+    decDriver                      = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     decDriver->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -187,10 +190,16 @@ ports::IMotorDriver *buildDECDriver(const core::MountConfig &config, Stream *ser
 
     #elif SW_SERIAL_UART == 1
 
-ports::IMotorDriver *buildDECDriver(const core::MountConfig &config, uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+ports::IMotorDriver *buildDECDriver(const core::MountConfig &config,
+                                    uint16_t DEC_SW_RX,
+                                    uint16_t DEC_SW_TX,
+                                    float rsense,
+                                    byte driveraddress,
+                                    int rmscurrent,
+                                    int stallvalue)
 {
     ports::IMotorDriver *decDriver = nullptr;
-    decDriver = new adapters::Tmc2209Driver(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
+    decDriver                      = new adapters::Tmc2209Driver(DEC_SW_RX, DEC_SW_TX, rsense, driveraddress);
     decDriver->beginSerial(19200);
     decDriver->mstep_reg_select(true);
     decDriver->pdn_disable(true);
@@ -238,7 +247,7 @@ ports::IMotorDriver *buildDECDriver(const core::MountConfig &config, uint16_t DE
 ports::IMotorDriver *buildAZDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *azDriver = nullptr;
-    azDriver = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
+    azDriver                      = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     azDriver->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -276,7 +285,7 @@ ports::IMotorDriver *buildAZDriver(Stream *serial, float rsense, byte driveraddr
 ports::IMotorDriver *buildAZDriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *azDriver = nullptr;
-    azDriver = new adapters::Tmc2209Driver(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
+    azDriver                      = new adapters::Tmc2209Driver(AZ_SW_RX, AZ_SW_TX, rsense, driveraddress);
     azDriver->beginSerial(19200);
     azDriver->mstep_reg_select(true);
     azDriver->pdn_disable(true);
@@ -323,7 +332,7 @@ ports::IMotorDriver *buildAZDriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float r
 ports::IMotorDriver *buildALTDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *altDriver = nullptr;
-    altDriver = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
+    altDriver                      = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     altDriver->begin();
     bool UART_Rx_connected = false;
         #if UART_CONNECTION_TEST_TXRX == 1
@@ -358,10 +367,11 @@ ports::IMotorDriver *buildALTDriver(Stream *serial, float rsense, byte driveradd
 
     #elif SW_SERIAL_UART == 1
 
-ports::IMotorDriver *buildALTDriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
+ports::IMotorDriver *buildALTDriver(
+    uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *altDriver = nullptr;
-    altDriver = new adapters::Tmc2209Driver(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
+    altDriver                      = new adapters::Tmc2209Driver(ALT_SW_RX, ALT_SW_TX, rsense, driveraddress);
     altDriver->beginSerial(19200);
     altDriver->mstep_reg_select(true);
     altDriver->pdn_disable(true);
@@ -410,7 +420,7 @@ ports::IMotorDriver *buildALTDriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, floa
 ports::IMotorDriver *buildFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *focusDriver = nullptr;
-    focusDriver = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
+    focusDriver                      = new adapters::Tmc2209Driver(serial, rsense, driveraddress);
     focusDriver->begin();
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
@@ -456,7 +466,7 @@ ports::IMotorDriver *buildFocusDriver(
     uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue)
 {
     ports::IMotorDriver *focusDriver = nullptr;
-    focusDriver = new adapters::Tmc2209Driver(FOCUS_SW_RX, FOCUS_SW_TX, rsense, driveraddress);
+    focusDriver                      = new adapters::Tmc2209Driver(FOCUS_SW_RX, FOCUS_SW_TX, rsense, driveraddress);
     focusDriver->beginSerial(19200);
     focusDriver->mstep_reg_select(true);
     focusDriver->pdn_disable(true);
@@ -511,7 +521,6 @@ void attachDrivers(Mount &mount)
 
     (void) config;  // only the UART builds read it
 
-
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if SW_SERIAL_UART == 0
     drivers.ra = buildRADriver(config, &RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
@@ -523,7 +532,8 @@ void attachDrivers(Mount &mount)
     #if SW_SERIAL_UART == 0
     drivers.dec = buildDECDriver(config, &DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
-    drivers.dec = buildDECDriver(config, DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
+    drivers.dec
+        = buildDECDriver(config, DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #endif
 #endif
 

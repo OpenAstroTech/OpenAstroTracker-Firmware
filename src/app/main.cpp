@@ -10,6 +10,7 @@
 #include "BoardWiring.hpp"
 #include "DriverWiring.hpp"
 #include "MotorWiring.hpp"
+#include "SensorWiring.hpp"
 
 #include "../a_inits.hpp"
 #if defined(OAT_DEBUG_BUILD)
@@ -154,9 +155,12 @@ void setup()
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
     int endSwitchesLine = addConsoleText(F("Init End Switches..."));
     LOG(DEBUG_ANY, "[SYSTEM]: Init EndSwitches...");
-    mount.setupEndSwitches();
     updateConsoleText(endSwitchesLine, F("Init End Switches... OK"));
 #endif
+
+    // End switches and hall sensors are built by the composition root; a board may have either,
+    // both or neither, so the call itself is unconditional.
+    app::attachSensors(mount);
 
     /////////////////////////////////
     //   RP2040: UART pin remapping

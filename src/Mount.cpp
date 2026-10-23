@@ -33,30 +33,6 @@ namespace
 /// standalone), so every `_driverX` is non-null and its call sites stay unguarded.
 adapters::NullMotorDriver nullDriver;
 
-/// One input pin as a domain switch. The pin object lives for the lifetime of the program;
-/// polarity is the adapter's business.
-hal::PinLevel toPinLevel(int activeState)
-{
-    return (activeState == LOW) ? hal::PinLevel::Low : hal::PinLevel::High;
-}
-
-#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
-ports::IEndSwitch &makeEndSwitch(uint8_t pin, int activeState)
-{
-    hal::ArduinoGpioPin *gpio = new hal::ArduinoGpioPin(pin);
-    gpio->configure(hal::PinMode::InputPullup);
-    return *new adapters::GpioEndSwitch(*gpio, toPinLevel(activeState));
-}
-#endif
-
-#if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
-ports::IHomingSensor &makeHomingSensor(uint8_t pin, int activeState)
-{
-    hal::ArduinoGpioPin *gpio = new hal::ArduinoGpioPin(pin);
-    gpio->configure(hal::PinMode::InputPullup);
-    return *new adapters::HallHomingSensor(*gpio, toPinLevel(activeState));
-}
-#endif
 }  // namespace
 
 PUSH_NO_WARNINGS
@@ -385,6 +361,20 @@ void Mount::attachDrivers(const Drivers &drivers)
     _driverAZ    = drivers.az != nullptr ? drivers.az : &nullDriver;
     _driverALT   = drivers.alt != nullptr ? drivers.alt : &nullDriver;
     _driverFocus = drivers.focus != nullptr ? drivers.focus : &nullDriver;
+}
+
+/////////////////////////////////
+//
+// attachSensors
+//
+/////////////////////////////////
+// The switches and sensors arrive from `app/SensorWiring.cpp`, already bound to their pins.
+void Mount::attachSensors(const Sensors &sensors)
+{
+    _raEndSwitch  = sensors.raEndSwitch;
+    _decEndSwitch = sensors.decEndSwitch;
+    _raHoming     = sensors.raHoming;
+    _decHoming    = sensors.decHoming;
 }
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
@@ -2477,11 +2467,10 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
     #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     if (axis == StepperAxis::RA_STEPS)
     {
-        if (_raHoming != nullptr)
+        if (_raHoming == nullptr)
         {
-            delete _raHoming;
+            return false;
         }
-        _raHoming          = new HallSensorHoming(ui, *this, axis, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -2494,11 +2483,10 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
     #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
     if (axis == StepperAxis::DEC_STEPS)
     {
-        if (_decHoming != nullptr)
+        if (_decHoming == nullptr)
         {
-            delete _decHoming;
+            return false;
         }
-        _decHoming         = new HallSensorHoming(ui, *this, axis, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -2585,23 +2573,6 @@ String Mount::homingStateText(bool present, const HallSensorHoming *sensor) cons
 //
 // End Switches RA/DEC
 //
-/////////////////////////////////
-void Mount::setupEndSwitches()
-{
-    #if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch = new EndSwitch(ui,
-                                 StepperAxis::RA_STEPS,
-                                 makeEndSwitch(RA_ENDSWITCH_EAST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE),
-                                 makeEndSwitch(RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE));
-    #endif
-
-    #if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch = new EndSwitch(ui,
-                                  StepperAxis::DEC_STEPS,
-                                  makeEndSwitch(DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE),
-                                  makeEndSwitch(DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE));
-    #endif
-}
 #endif
 
 /////////////////////////////////
