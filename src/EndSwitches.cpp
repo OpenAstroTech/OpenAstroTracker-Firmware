@@ -1,6 +1,7 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
+#include "Mount.hpp"
 #include "EndSwitches.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
@@ -10,19 +11,14 @@
 // EndSwitch ctor
 //
 /////////////////////////////////
-EndSwitch::EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin, int activeState)
+EndSwitch::EndSwitch(Mount *mount, StepperAxis axis, ports::IEndSwitch &minSwitch, ports::IEndSwitch &maxSwitch)
+    : _minSwitch(minSwitch), _maxSwitch(maxSwitch)
 {
     _state            = EndSwitchState::SWITCH_NOT_ACTIVE;
     _pMount           = mount;
-    _activeState      = activeState;
-    _inactiveState    = activeState == HIGH ? LOW : HIGH;
     _axis             = axis;
     _dir              = (_axis == StepperAxis::RA_STEPS) ? (EAST | WEST) : (NORTH | SOUTH);
-    _minPin           = minPin;
-    _maxPin           = maxPin;
     _posWhenTriggered = 0;
-    pinMode(_minPin, INPUT_PULLUP);
-    pinMode(_maxPin, INPUT_PULLUP);
 }
 
 /////////////////////////////////
@@ -40,7 +36,7 @@ void EndSwitch::processEndSwitchState()
     {
         case EndSwitchState::SWITCH_NOT_ACTIVE:
             {
-                if (digitalRead(_minPin) == _activeState)
+                if (_minSwitch.isTriggered())
                 {
                     _state            = EndSwitchState::SWITCH_AT_MINIMUM;
                     _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
@@ -52,7 +48,7 @@ void EndSwitch::processEndSwitchState()
                         _pMount->mountStatus());
                 }
 
-                if (digitalRead(_maxPin) == _activeState)
+                if (_maxSwitch.isTriggered())
                 {
                     _state            = EndSwitchState::SWITCH_AT_MAXIMUM;
                     _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
@@ -74,7 +70,7 @@ void EndSwitch::processEndSwitchState()
 
         case EndSwitchState::SWITCH_SLEWING_OFF_MINIMUM:
             {
-                if (digitalRead(_minPin) == _inactiveState)
+                if (!_minSwitch.isTriggered())
                 {
                     _state = EndSwitchState::SWITCH_NOT_ACTIVE;
                     LOG(DEBUG_MOUNT,
@@ -85,7 +81,7 @@ void EndSwitch::processEndSwitchState()
             break;
         case EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM:
             {
-                if (digitalRead(_maxPin) == _inactiveState)
+                if (!_maxSwitch.isTriggered())
                 {
                     _state = EndSwitchState::SWITCH_NOT_ACTIVE;
                     LOG(DEBUG_MOUNT,

@@ -3,6 +3,7 @@
 
 #include "Types.hpp"
 #include "core/HomingController.hpp"
+#include "ports/IHomingSensor.hpp"
 
 class Mount;
 
@@ -23,13 +24,12 @@ class HallSensorHoming
     core::HomingController _controller;
     Mount *_pMount;
     StepperAxis _axis;
-    uint8_t _sensorPin;
-    uint8_t _activeState;
+    ports::IHomingSensor &_sensor;
     uint8_t _savedRate;
     bool _wasTracking;
 
   public:
-    HallSensorHoming(Mount *mount, StepperAxis axis, int sensorPin, int activeState);
+    HallSensorHoming(Mount *mount, StepperAxis axis, ports::IHomingSensor &sensor);
 
     bool findHomeByHallSensor(int initialDirection, int searchDistanceDegrees);
     void processHomingProgress();

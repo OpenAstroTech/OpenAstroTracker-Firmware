@@ -82,8 +82,8 @@ String HallSensorHoming::getLastResult() const
 // CTOR
 //
 /////////////////////////////////
-HallSensorHoming::HallSensorHoming(Mount *mount, StepperAxis axis, int sensorPin, int activeState)
-    : _pMount(mount), _axis(axis), _sensorPin((uint8_t) sensorPin), _activeState((uint8_t) activeState), _savedRate(0),
+HallSensorHoming::HallSensorHoming(Mount *mount, StepperAxis axis, ports::IHomingSensor &sensor)
+    : _pMount(mount), _axis(axis), _sensor(sensor), _savedRate(0),
       _wasTracking(mount->isSlewingTRK())
 {
 }
@@ -181,7 +181,7 @@ bool HallSensorHoming::isIdleOrComplete() const
 
 bool HallSensorHoming::sensorIsActive() const
 {
-    return digitalRead(_sensorPin) == _activeState;
+    return _sensor.isTriggered();
 }
 
 /// One line per state change, carrying the action that change produced. The state names

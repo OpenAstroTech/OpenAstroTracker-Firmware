@@ -13,9 +13,13 @@
 #include "core/SlewProgressReport.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
+#include "adapters/GpioEndSwitch.hpp"
+#include "adapters/HallHomingSensor.hpp"
 #include "adapters/NullMotorDriver.hpp"
 #include "adapters/StepperAxis.hpp"
 #include "adapters/Tmc2209Driver.hpp"
+
+#include "hal/arduino/ArduinoGpioPin.hpp"
 
 #ifdef ARDUINO_AVR_ATmega2560
     #include "hal/avr/InterruptStepperFactory.hpp"
@@ -35,6 +39,31 @@ ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
 {
     return new adapters::StepperAxis(motor);
 }
+
+/// One input pin as a domain switch. The pin object lives for the lifetime of the program,
+/// like the engines above; polarity is the adapter's business.
+hal::PinLevel toPinLevel(int activeState)
+{
+    return (activeState == LOW) ? hal::PinLevel::Low : hal::PinLevel::High;
+}
+
+#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
+ports::IEndSwitch &makeEndSwitch(uint8_t pin, int activeState)
+{
+    hal::ArduinoGpioPin *gpio = new hal::ArduinoGpioPin(pin);
+    gpio->configure(hal::PinMode::InputPullup);
+    return *new adapters::GpioEndSwitch(*gpio, toPinLevel(activeState));
+}
+#endif
+
+#if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
+ports::IHomingSensor &makeHomingSensor(uint8_t pin, int activeState)
+{
+    hal::ArduinoGpioPin *gpio = new hal::ArduinoGpioPin(pin);
+    gpio->configure(hal::PinMode::InputPullup);
+    return *new adapters::HallHomingSensor(*gpio, toPinLevel(activeState));
+}
+#endif
 }  // namespace
 
 PUSH_NO_WARNINGS
@@ -2993,7 +3022,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _raHoming;
         }
-        _raHoming          = new HallSensorHoming(this, axis, RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE);
+        _raHoming = new HallSensorHoming(this, axis, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -3010,7 +3039,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _decHoming;
         }
-        _decHoming         = new HallSensorHoming(this, axis, DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE);
+        _decHoming = new HallSensorHoming(this, axis, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -3101,13 +3130,17 @@ String Mount::homingStateText(bool present, const HallSensorHoming *sensor) cons
 void Mount::setupEndSwitches()
 {
     #if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch = new EndSwitch(
-        this, StepperAxis::RA_STEPS, RA_ENDSWITCH_EAST_SENSOR_PIN, RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE);
+    _raEndSwitch = new EndSwitch(this,
+                                 StepperAxis::RA_STEPS,
+                                 makeEndSwitch(RA_ENDSWITCH_EAST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE),
+                                 makeEndSwitch(RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE));
     #endif
 
     #if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch = new EndSwitch(
-        this, StepperAxis::DEC_STEPS, DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE);
+    _decEndSwitch = new EndSwitch(this,
+                                  StepperAxis::DEC_STEPS,
+                                  makeEndSwitch(DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE),
+                                  makeEndSwitch(DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE));
     #endif
 }
 #endif

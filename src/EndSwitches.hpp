@@ -2,7 +2,7 @@
 #define _ENDSWITCHES_HPP
 
 #include "Types.hpp"
-#include "Mount.hpp"
+#include "ports/IEndSwitch.hpp"
 
 /// Polls one axis' two end switches.
 ///
@@ -34,14 +34,12 @@ class EndSwitch
     Mount *_pMount;
     StepperAxis _axis;
     volatile long _posWhenTriggered;
-    int _activeState;
-    int _inactiveState;
     int _dir;
-    int _minPin;
-    int _maxPin;
+    ports::IEndSwitch &_minSwitch;
+    ports::IEndSwitch &_maxSwitch;
 
   public:
-    EndSwitch(Mount *mount, StepperAxis axis, int minPin, int maxPin, int activeState);
+    EndSwitch(Mount *mount, StepperAxis axis, ports::IEndSwitch &minSwitch, ports::IEndSwitch &maxSwitch);
     void processEndSwitchState();
     void checkSwitchState();
 };
