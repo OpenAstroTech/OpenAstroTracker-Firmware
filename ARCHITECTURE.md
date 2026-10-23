@@ -264,6 +264,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── CoordinateMath.cpp/.hpp      # RA/DEC -> stepper positions
 │   │   ├── CalendarMath.cpp/.hpp        # date arithmetic, local -> UTC date
 │   │   ├── CoordinateFormatter.cpp/.hpp # RA/DEC text formatting
+│   │   ├── CoordinateRead.cpp/.hpp      # stepper positions -> RA/DEC
 │   │   ├── TrackingController.hpp/.cpp  # sidereal rate, tracker-stop compensation
 │   │   ├── SlewController.hpp/.cpp      # slew state machine
 │   │   ├── GuidingController.hpp/.cpp   # guide-pulse math and timing
