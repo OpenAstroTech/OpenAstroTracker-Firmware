@@ -8,6 +8,7 @@
 #include "../Mount.hpp"
 
 #include "BoardWiring.hpp"
+#include "DriverWiring.hpp"
 #include "MotorWiring.hpp"
 
 #include "../a_inits.hpp"
@@ -443,56 +444,9 @@ void setup()
     // Every axis engine is built by the composition root's wiring module; see app/MotorWiring.cpp.
     app::attachSteppers(mount);
 
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA driver TMC2209 UART...");
-    #if SW_SERIAL_UART == 0
-    mount.configureRAdriver(&RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
-    #elif SW_SERIAL_UART == 1
-    mount.configureRAdriver(RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
-    #endif
-#endif
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC driver TMC2209 UART...");
-    #if SW_SERIAL_UART == 0
-    mount.configureDECdriver(&DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
-    #elif SW_SERIAL_UART == 1
-    mount.configureDECdriver(DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
-    #endif
-#endif
-
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ driver...");
-        #if SW_SERIAL_UART == 0
-    mount.configureAZdriver(&AZ_SERIAL_PORT, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
-        #elif SW_SERIAL_UART == 1
-    mount.configureAZdriver(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
-        #endif
-    #endif
-#endif
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure ALT driver...");
-        #if SW_SERIAL_UART == 0
-    mount.configureALTdriver(&ALT_SERIAL_PORT, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
-        #elif SW_SERIAL_UART == 1
-    mount.configureALTdriver(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
-        #endif
-    #endif
-#endif
-
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[STEPPERS]: setup(): Configure Focus driver...");
-    LOG(DEBUG_FOCUS, "[FOCUS]: setup(): RSense %f, RMS Current %fmA", R_SENSE, FOCUS_RMSCURRENT);
-        #if SW_SERIAL_UART == 0
-    mount.configureFocusDriver(&FOCUS_SERIAL_PORT, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
-        #elif SW_SERIAL_UART == 1
-    mount.configureFocusDriver(
-        FOCUS_SERIAL_PORT_RX, FOCUS_SERIAL_PORT_TX, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
-        #endif
-    #endif
-#endif
+    // The TMC2209 UART drivers, and their register programming, are board knowledge: the
+    // composition root's driver wiring builds them; see app/DriverWiring.cpp.
+    app::attachDrivers(mount);
 
 #if defined(RP2040_SHARED_EN_PIN)
     // Re-assert EN LOW after all driver configs.  Each configureXXXdriver() that

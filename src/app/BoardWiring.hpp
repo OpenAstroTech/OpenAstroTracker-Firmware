@@ -59,6 +59,9 @@ extern EEPROMStore eepromStore;
 /// The typed view of `eepromStore` the domain consumes.
 extern adapters::MountSettingsStore settingsStore;
 
+/// The one log sink, so the wiring modules can log without owning a logger.
+extern ports::ILogger *const logSink;
+
 // --- the mount and everything bound to it ---------------------------------------------
 
 #ifdef ESP32

@@ -146,6 +146,19 @@ class Mount final : public ports::IMountOptionalAxes,
     /// `app/MotorWiring.cpp`; nothing here constructs one.
     void attachSteppers(const Steppers &steppers, const core::AxisLimits &limits);
 
+    /// The drivers the composition root fitted, null where this board has none. A null entry is
+    /// replaced by the null driver, so the call sites below stay unguarded.
+    struct Drivers {
+        ports::IMotorDriver *ra    = nullptr;
+        ports::IMotorDriver *dec   = nullptr;
+        ports::IMotorDriver *az    = nullptr;
+        ports::IMotorDriver *alt   = nullptr;
+        ports::IMotorDriver *focus = nullptr;
+    };
+
+    /// Takes the drivers `app/DriverWiring.cpp` built and programmed.
+    void attachDrivers(const Drivers &drivers);
+
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -155,17 +168,13 @@ class Mount final : public ports::IMountOptionalAxes,
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         // Configure the RA Driver (TMC2209 UART only)
     #if SW_SERIAL_UART == 0
-    void configureRAdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #elif SW_SERIAL_UART == 1
-    void configureRAdriver(uint16_t RA_SW_RX, uint16_t RA_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     // Configure the DEC Driver (TMC2209 UART only)
     #if SW_SERIAL_UART == 0
-    void configureDECdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #elif SW_SERIAL_UART == 1
-    void configureDECdriver(uint16_t DEC_SW_RX, uint16_t DEC_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
     #endif
 #endif
 
@@ -173,9 +182,7 @@ class Mount final : public ports::IMountOptionalAxes,
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #if SW_SERIAL_UART == 0
-    void configureAZdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #elif SW_SERIAL_UART == 1
-    void configureAZdriver(uint16_t AZ_SW_RX, uint16_t AZ_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #endif
     #endif
 #endif
@@ -184,9 +191,7 @@ class Mount final : public ports::IMountOptionalAxes,
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #if SW_SERIAL_UART == 0
-    void configureALTdriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #elif SW_SERIAL_UART == 1
-    void configureALTdriver(uint16_t AlT_SW_RX, uint16_t ALT_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #endif
     #endif
 #endif
@@ -195,9 +200,7 @@ class Mount final : public ports::IMountOptionalAxes,
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         #if SW_SERIAL_UART == 0
-    void configureFocusDriver(Stream *serial, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #elif SW_SERIAL_UART == 1
-    void configureFocusDriver(uint16_t FOCUS_SW_RX, uint16_t FOCUS_SW_TX, float rsense, byte driveraddress, int rmscurrent, int stallvalue);
         #endif
     #endif
 #endif
