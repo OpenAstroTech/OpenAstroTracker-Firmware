@@ -10,6 +10,7 @@
 #include "core/CoordinateFormatter.hpp"
 #include "core/CoordinateMath.hpp"
 #include "core/ActivityState.hpp"
+#include "core/meade/MountStatusReport.hpp"
 #include "core/CoordinateRead.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
@@ -2505,51 +2506,56 @@ String Mount::getStatusStateString()
 /////////////////////////////////
 const char *Mount::getStatusString()
 {
-    String status = getStatusStateString() + ",";
+    // The field order lives in core::meade; this gathers the facts and keeps the buffer.
+    const bool trackingAxis = _coordinator.state().test(STATUS_TRACKING);
+    const bool raRunning    = _stepperRA->isRunning();
+    const bool decRunning   = _stepperDEC->isRunning();
 
-    String disp = F("------,");
-    if (_coordinator.state().test(STATUS_SLEWING))
+    oat::core::meade::MountStatusFacts facts{};
+    _infoStatusScratch = getStatusStateString();
+    facts.activity     = _infoStatusScratch.c_str();
+
+    // The RA/DEC glyphs only appear while a slew is in flight, as before.
+    const bool slewing          = _coordinator.state().test(STATUS_SLEWING);
+    facts.raRunning             = slewing && raRunning;
+    facts.decRunning            = slewing && decRunning;
+    facts.trackingAxisRunning   = slewing && trackingAxis;
+    facts.raTargetBelowCurrent  = _stepperRA->targetPosition() < _stepperRA->currentPosition();
+    facts.decTargetBelowCurrent = _stepperDEC->targetPosition() < _stepperDEC->currentPosition();
+    facts.trackingOnly          = isSlewingTRK() && !slewing;
+
+    if (kHasAzStepper)
     {
-        byte slew = slewStatus();
-        if (slew & SLEWING_RA)
-        {
-            disp[0] = _stepperRA->targetPosition() < _stepperRA->currentPosition() ? 'R' : 'r';
-        }
-        if (slew & SLEWING_DEC)
-        {
-            disp[1] = _stepperDEC->targetPosition() < _stepperDEC->currentPosition() ? 'D' : 'd';
-        }
-        if (slew & SLEWING_TRACKING)
-        {
-            disp[2] = 'T';
-        }
+        facts.azRunning            = _stepperAZ->isRunning();
+        facts.azTargetBelowCurrent = _stepperAZ->targetPosition() < _stepperAZ->currentPosition();
     }
-    else if (isSlewingTRK())
+    if (kHasAltStepper)
     {
-        disp[2] = 'T';
+        facts.altRunning            = _stepperALT->isRunning();
+        facts.altTargetBelowCurrent = _stepperALT->targetPosition() < _stepperALT->currentPosition();
     }
-    if (kHasAzStepper && _stepperAZ->isRunning())
+    if (kHasFocusStepper)
     {
-        disp[3] = _stepperAZ->targetPosition() < _stepperAZ->currentPosition() ? 'Z' : 'z';
+        facts.focusRunning            = _stepperFocus->isRunning();
+        facts.focusTargetBelowCurrent = _stepperFocus->targetPosition() < _stepperFocus->currentPosition();
+        facts.hasFocus                = true;
+        facts.focusSteps              = _stepperFocus->currentPosition();
     }
-    if (kHasAltStepper && _stepperALT->isRunning())
+
+    facts.raSteps  = _stepperRA->currentPosition();
+    facts.decSteps = _stepperDEC->currentPosition();
+    facts.trkSteps = _stepperTRK->currentPosition();
+    facts.raText   = raText(COMPACT_STRING | CURRENT_STRING);
+    facts.decText  = decText(COMPACT_STRING | CURRENT_STRING);
+
+    char buffer[160] = {0};
+    if (!oat::core::meade::formatMountStatus(buffer, sizeof(buffer), facts))
     {
-        disp[4] = _stepperALT->targetPosition() < _stepperALT->currentPosition() ? 'A' : 'a';
+        // The readout the host already has is better than a truncated line.
+        return _readoutScratch.c_str();
     }
 
-    if (kHasFocusStepper && _stepperFocus->isRunning())
-        disp[5] = _stepperFocus->targetPosition() < _stepperFocus->currentPosition() ? 'F' : 'f';
-
-    status += disp;
-    status += String(_stepperRA->currentPosition()) + ",";
-    status += String(_stepperDEC->currentPosition()) + ",";
-    status += String(_stepperTRK->currentPosition()) + ",";
-
-    status += RAString(COMPACT_STRING | CURRENT_STRING) + ",";
-    status += DECString(COMPACT_STRING | CURRENT_STRING) + ",";
-    status += kHasFocusStepper ? String(_stepperFocus->currentPosition()) + "," : String(",");
-
-    _readoutScratch = status;
+    _readoutScratch = buffer;
     return _readoutScratch.c_str();
 }
 
