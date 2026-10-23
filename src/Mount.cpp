@@ -2012,11 +2012,6 @@ byte Mount::slewStatus() const
     return slewState;
 }
 
-byte Mount::mountStatus() const
-{
-    return (byte) _coordinator.state().value();
-}
-
 /////////////////////////////////
 //
 // isGuiding

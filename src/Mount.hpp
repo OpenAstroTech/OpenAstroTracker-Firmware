@@ -520,7 +520,6 @@ class Mount final : public ports::IMountOptionalAxes,
 
     // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
     byte slewStatus() const;
-    byte mountStatus() const;
 
     // Returns the remaining tracking time available and stops tracking if it reaches zero.
     float checkRALimit() override;
@@ -609,8 +608,6 @@ class Mount final : public ports::IMountOptionalAxes,
     float _zeroPosDEC;
     long _lastTRKCheck;
 
-    float _totalDECMove;
-    float _totalRAMove;
     long _commandReceived;
 
     /// Backing store for the `const char *` readouts, which the protocol sends and the info
