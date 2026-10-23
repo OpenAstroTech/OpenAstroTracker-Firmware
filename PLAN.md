@@ -616,6 +616,7 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 **Landed so far:**
 
 - ✅ `src/StepperConfiguration.hpp` moved to `hal/avr/`; `hal/avr/InterruptStepperFactory.hpp` builds every AVR engine behind `IStepperMotor`. `Mount` now holds `ports::IStepperAxis *` for all axes on all platforms and `MountCoordinator<ports::IStepperAxis>` unconditionally.
+- ✅ Engine *construction* left `Mount` too: `app/MotorWiring.cpp` builds every axis for the board and calls `Mount::attachSteppers()`. `hal/StepperMotorFactory` maps an axis role to the right engine, so the AVR/AccelStepper choice is one file inside `hal/` and **no code above `hal/` selects a platform**. The ten cached speed/acceleration values became one `core::AxisLimits` POD.
 - ✅ `src/Core.cpp` → `src/app/main.cpp`.
 - ✅ `app/BoardWiring.hpp/.cpp` own the object graph in one translation unit (clock, scheduler, logger, EEPROM + settings store, enable pins, menu singletons, `mount`, the panel, Wi-Fi). `setup()` moved to `app/main.cpp`; `b_setup.hpp` is a 25-line compatibility shim.
 - ✅ `a_inits.hpp`'s mutable globals are `extern` declarations defined by the composition root, so the header is multi-TU safe.
