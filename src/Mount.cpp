@@ -8,6 +8,17 @@
 #include "Sidereal.hpp"
 #include "core/CalendarMath.hpp"
 #include "core/CoordinateFormatter.hpp"
+#include "core/CoordinateText.hpp"
+
+// The menu screens pass the historical `B0xxx` constants through `ports::IMountReadModel`; core
+// owns the format vocabulary, so the two must not drift.
+static_assert(static_cast<uint8_t>(core::CoordinateFormat::LcdMenu) == LCDMENU_STRING, "format value drift: LcdMenu");
+static_assert(static_cast<uint8_t>(core::CoordinateFormat::Meade) == MEADE_STRING, "format value drift: Meade");
+static_assert(static_cast<uint8_t>(core::CoordinateFormat::Print) == PRINT_STRING, "format value drift: Print");
+static_assert(static_cast<uint8_t>(core::CoordinateFormat::Lcd) == LCD_STRING, "format value drift: Lcd");
+static_assert(static_cast<uint8_t>(core::CoordinateFormat::Compact) == COMPACT_STRING, "format value drift: Compact");
+static_assert(core::kCoordinateFormatMask == FORMAT_STRING_MASK, "format mask drift");
+static_assert(core::kTargetFlag == TARGET_STRING, "target flag drift");
 #include "core/CoordinateMath.hpp"
 #include "core/ActivityState.hpp"
 #include "core/meade/MountStatusReport.hpp"
@@ -56,24 +67,6 @@ POP_NO_WARNINGS
 #define SLEW_MASK_ANY    B1111
 
 #define UART_CONNECTION_TEST_RETRIES 5
-
-const char *formatStringsDEC[] = {
-    "",
-    " {d}@ {m}' {s}\"",  // LCD Menu w/ cursor
-    "{d}*{m}'{s}#",      // Meade
-    "{d} {m}'{s}\"",     // Print
-    "{d}@{m}'{s}\"",     // LCD display only
-    "{d}{m}{s}",         // Compact
-};
-
-const char *formatStringsRA[] = {
-    "",
-    " %02dh %02dm %02ds",  // LCD Menu w/ cursor
-    "%02d:%02d:%02d#",     // Meade
-    "%02dh %02dm %02ds",   // Print
-    "%02dh%02dm%02ds",     // LCD display only
-    "%02d%02d%02d",        // Compact
-};
 
 const float siderealDegreesInHour = 14.95904348958;
 
@@ -3581,11 +3574,12 @@ String Mount::DECString(byte type, byte active)
         dec = Declination(currentDEC());
     }
 
-    core::formatDEC(scratchBuffer, dec, formatStringsDEC[type & FORMAT_STRING_MASK]);
+    const core::CoordinateFormat format = core::coordinateFormat(type);
+    core::formatDEC(scratchBuffer, dec, core::decFormat(format));
 
-    if ((type & FORMAT_STRING_MASK) == LCDMENU_STRING)
+    if (format == core::CoordinateFormat::LcdMenu)
     {
-        scratchBuffer[active * 4 + (active > 0 ? 1 : 0)] = '>';
+        core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/true);
     }
 
     return String(scratchBuffer);
@@ -3609,10 +3603,11 @@ String Mount::RAString(byte type, byte active)
         ra = currentRA();
     }
 
-    core::formatRA(scratchBuffer, sizeof(scratchBuffer), ra, formatStringsRA[type & FORMAT_STRING_MASK]);
-    if ((type & FORMAT_STRING_MASK) == LCDMENU_STRING)
+    const core::CoordinateFormat format = core::coordinateFormat(type);
+    core::formatRA(scratchBuffer, sizeof(scratchBuffer), ra, core::raFormat(format));
+    if (format == core::CoordinateFormat::LcdMenu)
     {
-        scratchBuffer[active * 4] = '>';
+        core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/false);
     }
     return String(scratchBuffer);
 }
