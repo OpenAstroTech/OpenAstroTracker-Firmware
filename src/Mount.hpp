@@ -19,6 +19,7 @@
 #include "core/SlewCompletion.hpp"
 #include "core/SiteTime.hpp"
 #include "core/SlewController.hpp"
+#include "core/SlewStart.hpp"
 #include "core/GuidingController.hpp"
 #include "core/TrackingController.hpp"
 #include "hal/IGpioPin.hpp"
@@ -564,6 +565,14 @@ class Mount final : public ports::IMountOptionalAxes,
     void setDecMicrosteps(int microsteps);
 
     void moveSteppersTo(float targetRA, float targetDEC, StepperAxis direction);
+
+    /// The sequence both slew entry points run once their target is known. `plan` says which of
+    /// the pre-steps apply; see `core/SlewStart.hpp`.
+    void beginSlew(const core::SlewStartPlan &plan, core::SlewIntent intent, long raTarget, long decTarget);
+
+    /// Programs both axes for full-speed slewing. Takes no label: a runtime string would be a
+    /// RAM-resident literal in debug builds, where the log format is the PROGMEM-aware path.
+    void setSlewSpeeds();
 
     void autoCalcHa();
 

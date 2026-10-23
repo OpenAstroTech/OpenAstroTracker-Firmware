@@ -29,6 +29,7 @@ static_assert(core::kTargetFlag == TARGET_STRING, "target flag drift");
 #include "core/SiderealClock.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
+#include "core/SlewStart.hpp"
 #include "core/SyncAdjustment.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
@@ -974,45 +975,16 @@ void Mount::startSlewingToTarget()
     }
 
     stopGuiding();
-
-    // Make sure we're slewing at full speed on a GoTo
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set DEC to MaxSpeed(%ld)", _limits.decSpeed);
-    _stepperDEC->setMaxSpeed(_limits.decSpeed);
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set RA  to MaxSpeed(%ld)", _limits.raSpeed);
-    _stepperRA->setMaxSpeed(_limits.raSpeed);
+    setSlewSpeeds();
 
     // Calculate new RA stepper target (and DEC). We are never in guiding mode here.
     _currentRAStepperPosition = _stepperRA->currentPosition();
     long targetRAPosition, targetDECPosition;
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
 
-    if (targetRAPosition != _stepperRA->currentPosition())
-    {
-        // Only stop tracking if we're tracking and actually going to slew somewhere else, otherwise the
-        // mount::loop() code won't detect the end of the slewing operation...
-        if (isSlewingTRK())
-        {
-            OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
-            stopSlewing(TRACKING);
-            _coordinator.tracking().noteStopped(_deps.clock->now());
-        }
-
-        // Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
-        setRaMicrosteps(_config.raSlewMicrosteps);
-
-        OAT_LOG(
-            _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
-    }
-
-    _coordinator.slew().begin(core::SlewIntent::Target);
-    setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
-    publishEvent(core::MountEventType::SlewStarted);
-    // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
-    setDecMicrosteps(_config.decSlewMicrosteps);
-    _coordinator.slew().noteRunning(true);
-    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _coordinator.slew().setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA Dist: %ld,   DEC Dist: %ld", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
+    const core::SlewStartPlan plan
+        = core::planSlewStart(core::SlewStartKind::Target, {_stepperRA->currentPosition(), targetRAPosition, isSlewingTRK()});
+    beginSlew(plan, core::SlewIntent::Target, targetRAPosition, targetDECPosition);
 }
 
 /////////////////////////////////
@@ -1025,52 +997,73 @@ void Mount::startSlewingToTarget()
 void Mount::startSlewingToHome()
 {
     stopGuiding();
-
-    // Make sure we're slewing at full speed on a GoTo
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set DEC to MaxSpeed(%ld)", _limits.decSpeed);
-    _stepperDEC->setMaxSpeed(_limits.decSpeed);
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set RA  to MaxSpeed(%ld)", _limits.raSpeed);
-    _stepperRA->setMaxSpeed(_limits.raSpeed);
+    setSlewSpeeds();
 
     _currentRAStepperPosition = _stepperRA->currentPosition();
 
-    long targetRAPosition        = 0;
     const long targetDECPosition = 0;
-
-    _coordinator.slew().begin(core::SlewIntent::Home);
-    // Take tracking into account
-    const long trackingOffset = _stepperTRK->currentPosition() * _config.raSlewMicrosteps / _config.raTrackingMicrosteps();
-    targetRAPosition -= trackingOffset;
+    const long targetRAPosition
+        = core::homeRaTargetSteps(_stepperTRK->currentPosition(), _config.raSlewMicrosteps, _config.raTrackingMicrosteps());
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
-            "[STEPPERS]: startSlewingToHome: Adjusted with tracking distance: %ld (adjusted for MS: %ld), result: %ld",
+            "[STEPPERS]: startSlewingToHome: Adjusted with tracking distance: %ld, result: %ld",
             _stepperTRK->currentPosition(),
-            trackingOffset,
             targetRAPosition);
 
-    long raStepsToGo = targetRAPosition - _stepperRA->currentPosition();
-    if (raStepsToGo != 0)
+    const core::SlewStartPlan plan
+        = core::planSlewStart(core::SlewStartKind::Home, {_stepperRA->currentPosition(), targetRAPosition, isSlewingTRK()});
+    beginSlew(plan, core::SlewIntent::Home, targetRAPosition, targetDECPosition);
+}
+/////////////////////////////////
+//
+// beginSlew — the tail both slew entry points share
+//
+/////////////////////////////////
+// The two entry points differ only in what they compute and in whether the tracker is stopped
+// unconditionally (core::planSlewStart states that difference); from here on they are identical,
+// so the sequence exists once.
+void Mount::beginSlew(const core::SlewStartPlan &plan, core::SlewIntent intent, long raTarget, long decTarget)
+{
+    if (plan.stopTracking)
     {
         // Only stop tracking if we're actually going to slew somewhere else, otherwise the
-        // mount::loop() code won't detect the end of the slewing operation...
+        // loop() code won't detect the end of the slewing operation...
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
         stopSlewing(TRACKING);
         _coordinator.tracking().noteStopped(_deps.clock->now());
-
-        // set Slew microsteps for TMC2209 UART once the TRK stepper has stopped
-        setRaMicrosteps(_config.raSlewMicrosteps);
-
-        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
     }
 
+    if (plan.enterRaSlewMicrosteps)
+    {
+        // Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
+        setRaMicrosteps(_config.raSlewMicrosteps);
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: beginSlew: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
+    }
+
+    _coordinator.slew().begin(intent);
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
     publishEvent(core::MountEventType::SlewStarted);
     // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
     setDecMicrosteps(_config.decSlewMicrosteps);
     _coordinator.slew().noteRunning(true);
-    moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
+    moveSteppersTo(raTarget, decTarget, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _coordinator.slew().setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA Dist: %ld,   DEC Dist: %ld", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
+}
+
+/////////////////////////////////
+//
+// setSlewSpeeds
+//
+/////////////////////////////////
+// Both slew entry points run the axes at their configured maximum; the rate table is applied
+// afterwards by setSlewRate().
+void Mount::setSlewSpeeds()
+{
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: beginSlew: Set DEC to MaxSpeed(%ld)", _limits.decSpeed);
+    _stepperDEC->setMaxSpeed(_limits.decSpeed);
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: beginSlew: Set RA  to MaxSpeed(%ld)", _limits.raSpeed);
+    _stepperRA->setMaxSpeed(_limits.raSpeed);
 }
 
 /////////////////////////////////
