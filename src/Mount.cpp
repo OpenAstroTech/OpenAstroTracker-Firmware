@@ -80,13 +80,9 @@ const float siderealDegreesInHour = 14.95904348958;
 // CTOR
 //
 /////////////////////////////////
-Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config)
-    : _deps(deps), _config(config),
-      // Tracking runs at the finer microstep rate while the steps-per-degree value is
-      // the slew-mode one, hence the integer ratio (as the inline expression had it).
-      _coordinator(deps.clock, SIDEREAL_SECONDS_PER_DAY, config.trackingMicrostepRatio()), _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
+Mount::Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator)
+    : _deps(deps), _config(config), _coordinator(coordinator), _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
       _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
-
 {
     _commandReceived = 0;
 

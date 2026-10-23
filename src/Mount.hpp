@@ -120,10 +120,18 @@ class Mount final : public ports::IMountOptionalAxes,
                     public ports::IStatusFlags
 {
   public:
+    /// Every controller the mount drives, in one object. The composition root owns it and builds
+    /// it before the mount, so it can also hand it to anything that only needs the controllers.
+    using Coordinator = core::MountCoordinator<ports::IStepperAxis>;
+
     /// The infrastructure ports are injected by the composition root. The axes are built by
-    /// `app/MotorWiring.cpp` and handed over by `attachSteppers()`; the drivers still come in
-    /// through the `configure*driver` methods and live as long as the mount does.
-    Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config);
+    /// `app/MotorWiring.cpp` and handed over by `attachSteppers()`; the drivers come in through
+    /// `configure*driver` and live as long as the mount does.
+    ///
+    /// The coordinator is owned by the composition root and outlives the mount, so the root can
+    /// hand the same object to the display, the panel and — as the port implementations move — to
+    /// the UI and the command layer.
+    Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator);
 
     void initializeVariables();
 
@@ -581,8 +589,7 @@ class Mount final : public ports::IMountOptionalAxes,
     // which of them exist and, from here on, in what order a tick touches them. The axes are
     // held through `ports::IStepperAxis` on every platform — the concrete engine types live in
     // `hal/` and are built by the composition root's factories, never named here.
-    using Coordinator = core::MountCoordinator<ports::IStepperAxis>;
-    Coordinator _coordinator;
+    Coordinator &_coordinator;
 
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)

@@ -70,6 +70,14 @@ extern DRAM_ATTR Mount mount;
 extern Mount mount;
 #endif
 
+/// The controllers the mount drives, owned here so the rest of the firmware can reach the
+/// controller half without going through `mount`.
+#ifdef ESP32
+extern DRAM_ATTR Mount::Coordinator mountCoordinator;
+#else
+extern Mount::Coordinator mountCoordinator;
+#endif
+
 #if (WIFI_ENABLED == 1)
 extern WifiControl wifiControl;
 #endif

@@ -154,10 +154,18 @@ MountDeps makeMountDeps()
 }
 }  // namespace
 
+// The controllers, built before the mount that drives them and shared through
+// `app::mountCoordinator` where a consumer only needs the controller half.
 #ifdef ESP32
-DRAM_ATTR Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig());
+DRAM_ATTR Mount::Coordinator mountCoordinator(&clockPort, SIDEREAL_SECONDS_PER_DAY, app::buildMountConfig().trackingMicrostepRatio());
 #else
-Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig());
+Mount::Coordinator mountCoordinator(&clockPort, SIDEREAL_SECONDS_PER_DAY, app::buildMountConfig().trackingMicrostepRatio());
+#endif
+
+#ifdef ESP32
+DRAM_ATTR Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
+#else
+Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
 #endif
 
 // The optional status panel is owned here, not by the mount: the mount publishes events and the
