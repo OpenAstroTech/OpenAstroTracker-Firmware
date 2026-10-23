@@ -241,6 +241,13 @@ reviewer does not "fix" them back:
     running, so the last frame can land up to 200 ms after arrival. The frames are otherwise
     identical — same strings, same percentages, same cursor positions.
 
+12. **Homing restarts tracking on the same rule as before, but the state is sampled per run**
+    (6.1–6.3). The homing state machine used to be rebuilt on every attempt, so "was tracking
+    when homing started" was really sampled per attempt; it is now one instance that samples the
+    same fact at the start of each run. Confirm on a board with a hall sensor: start tracking,
+    home, and tracking must resume; then home again from a stopped mount and it must stay
+    stopped. Getting this wrong is silent — homing succeeds either way.
+
 ## 12. What cannot be covered here
 
 - The **AVR display restore** (§7.3 of the plan): display support is currently compiled out of
@@ -249,3 +256,29 @@ reviewer does not "fix" them back:
   test there — but 9.8 confirms the refactored `loop()` did not disturb them.
 - **Long-duration soak** (hours of tracking) is useful but is not a merge gate; note it in §10
   if run.
+
+## 13. Phase 7 slices that need eyes on hardware
+
+The rest of this document was written for the controller refactor. These pieces moved afterwards
+and are covered by the sections above, but they are easy to half-test.
+
+**The driver UART self-test now runs from the composition root** (§8). Same retries, same
+"disable the motor when the UART does not answer" safety write, but it is no longer inside
+`Mount`. Prove the safety path still trips: build with a deliberately wrong `RA_DRIVER_ADDRESS`
+and confirm the RA motor stays disabled at boot (it must not hold current) rather than running
+with a default current.
+
+**Axes, drivers and sensors are constructed by `app/`** — `MotorWiring`, `DriverWiring`,
+`SensorWiring` — rather than by `Mount`. Externally this is invisible, which is the point of
+§2–§8, but do watch the boot order: the axes exist before the drivers program their registers,
+and the end switches and hall sensors are attached before `:hF#` is possible.
+
+| # | Case | Steps | Expected | Guards |
+|---|---|---|---|---|
+| 13.1 | Sync still lands | `:CM#` after `:Sr#`/`:Sd#`, then `:GR#`/`:GD#` | The reported position is the sync target, and a second sync from the same place reports the same, with no drift accumulating per sync | `core::syncAdjustment()` (7 tests) |
+| 13.2 | LST after a session start | `:SC#`/`:SL#`/`:SG#`, then `:St#` and `:GG#` | LST matches an independent calculation for the site and instant; `:GG#` is the offset *inverse* of `:SG#` | `core::SiteTime::lstAt()` (3 tests, incl. J2000) |
+| 13.3 | Local date rollover | Leave running across local midnight, with the session started before it | `:GC#`/`:Gd#` report the new local date; the date does not jump a day early | `core::SiteTime::localDateAt()` |
+| 13.4 | DEC travel limit | `:Sd#` past the calibrated limit, then a go-to | The move clamps at the limit and says so; a limit of 0 still means "no limit" on an uncalibrated mount | `core::clampDecStepsToLimits()` (6 tests) |
+| 13.5 | Move-rate restore | `:Sw#` through each rate, then a manual slew | Speed follows the rate table and returns to the configured maximum when the slew ends | `core::AxisLimits`, `setSlewRate()` |
+| 13.6 | Focuser home position | Power-cycle with a focuser fitted | The focuser reports the same step count as before the refactor (seeded to 50000 when the axis is attached) | `MotorWiring`, `attachSteppers()` |
+| 13.7 | Homing tolerates a reused state machine | Home, then home again without a power cycle | The second run behaves exactly like the first: same search, same latch, same offsets | `HallSensorHoming` + `core::HomingController` |
