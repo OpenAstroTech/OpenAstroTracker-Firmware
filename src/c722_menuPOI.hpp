@@ -62,18 +62,18 @@ bool processPOIKeys()
         {
             case btnSELECT:
                 {
-                    mount.stopSlewing(ALL_DIRECTIONS);
+                    ui.motion->stopSlewing(ALL_DIRECTIONS);
                     if (currentPOI == homePOI)
                     {
-                        mount.startSlewingToHome();
+                        ui.motion->startSlewingToHome();
                     }
                     else if (currentPOI == parkPOI)
                     {
-                        mount.park();
+                        ui.motion->park();
                     }
                     else if (currentPOI == unparkPOI)
                     {
-                        mount.startSlewing(TRACKING);
+                        ui.motion->startSlewing(TRACKING);
                     }
                     else
                     {
@@ -82,14 +82,14 @@ bool processPOIKeys()
                         LOG(DEBUG_INFO, "[POI]: Selected %s. DEC: %d %d %d", poi->pDisplay, poi->degreeDEC, poi->minDEC, poi->secDEC);
                         long targetSeconds = (60L * abs(poi->degreeDEC) + poi->minDEC) * 60L + poi->secDEC;
                         targetSeconds *= (poi->degreeDEC < 0 ? -1 : 1);
-                        mount.targetRA().set(poi->hourRA, poi->minRA, poi->secRA);
-                        mount.targetDEC() = Declination::FromSeconds(targetSeconds);
-                        LOG(DEBUG_INFO, "[POI]: Target RA  is %s. %ls", DayTime(mount.targetRA()).ToString(), targetSeconds);
+                        ui.read->targetRA().set(poi->hourRA, poi->minRA, poi->secRA);
+                        ui.read->targetDEC() = Declination::FromSeconds(targetSeconds);
+                        LOG(DEBUG_INFO, "[POI]: Target RA  is %s. %ls", DayTime(ui.read->targetRA()).ToString(), targetSeconds);
                         LOG(DEBUG_INFO,
                             "[POI]: mount target DEC is %s. %ls",
-                            Declination(mount.targetDEC()).ToString(),
-                            mount.targetDEC().getTotalSeconds());
-                        mount.startSlewingToTarget();
+                            Declination(ui.read->targetDEC()).ToString(),
+                            ui.read->targetDEC().getTotalSeconds());
+                        ui.motion->startSlewingToTarget();
                     }
                 }
                 break;
@@ -123,7 +123,7 @@ bool processPOIKeys()
 
 void printPOISubmenu()
 {
-    if (mount.isSlewingIdle())
+    if (ui.read->isSlewingIdle())
     {
         lcdMenu.printMenu(pointOfInterest[currentPOI].pDisplay);
     }

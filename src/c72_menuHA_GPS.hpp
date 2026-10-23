@@ -54,13 +54,13 @@ bool gpsAqcuisitionComplete(int &indicator)
                 lcdMenu.printMenu(F("GPS sync'd...."));
 
                 DayTime utcNow = DayTime(gps.time.hour(), gps.time.minute(), gps.time.second());
-                utcNow.addHours(mount.getLocalUtcOffset());
-                mount.setLocalStartTime(utcNow);
-                mount.setLocalStartDate(gps.date.year(), gps.date.month(), gps.date.day());
-                mount.setLatitude(gps.location.lat());
-                mount.setLongitude(gps.location.lng());
+                utcNow.addHours(ui.siteTime->getLocalUtcOffset());
+                ui.siteTime->setLocalStartTime(utcNow);
+                ui.siteTime->setLocalStartDate(gps.date.year(), gps.date.month(), gps.date.day());
+                ui.siteTime->setLatitude(gps.location.lat());
+                ui.siteTime->setLongitude(gps.location.lng());
 
-                mount.delay(500);
+                ui.delay(500);
 
                 return true;
             }
@@ -137,10 +137,10 @@ bool processHAKeys()
         {
             if (key == btnSELECT)
             {
-                DayTime ha(mount.HA());
-                settingsStore.storeHATime(mount.HA());
+                DayTime ha(ui.read->hourAngle());
+                settingsStore.storeHATime(ui.read->hourAngle());
                 lcdMenu.printMenu(F("Stored."));
-                mount.delay(500);
+                ui.delay(500);
                 haState = SHOWING_HA_SET;
         #if SUPPORT_GUIDED_STARTUP == 1
                 if (startupState == StartupWaitForHACompletion)
@@ -152,21 +152,21 @@ bool processHAKeys()
             }
             else if (key == btnUP)
             {
-                DayTime ha(mount.HA());
+                DayTime ha(ui.read->hourAngle());
                 if (HAselect == 0)
                     ha.addHours(1);
                 if (HAselect == 1)
                     ha.addMinutes(1);
-                mount.setHA(ha);
+                ui.siteTime->setHA(ha);
             }
             else if (key == btnDOWN)
             {
-                DayTime ha(mount.HA());
+                DayTime ha(ui.read->hourAngle());
                 if (HAselect == 0)
                     ha.addHours(-1);
                 if (HAselect == 1)
                     ha.addMinutes(-1);
-                mount.setHA(ha);
+                ui.siteTime->setHA(ha);
             }
             else if (key == btnLEFT)
             {
@@ -208,11 +208,11 @@ void printHASubmenu()
     char satBuffer[20];
     if (haState == SHOWING_HA_SYNC)
     {
-        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), "%02dh %02dm >Sync", mount.HA().getHours(), mount.HA().getMinutes());
+        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), "%02dh %02dm >Sync", ui.read->hourAngle().getHours(), ui.read->hourAngle().getMinutes());
     }
     else if (haState == SHOWING_HA_SET)
     {
-        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), "%02dh %02dm >Set", mount.HA().getHours(), mount.HA().getMinutes());
+        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), "%02dh %02dm >Set", ui.read->hourAngle().getHours(), ui.read->hourAngle().getMinutes());
     }
     else if (haState == STARTING_GPS)
     {
@@ -221,7 +221,7 @@ void printHASubmenu()
     }
     else if (haState == ENTER_HA_MANUALLY)
     {
-        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), " %02dh %02dm", mount.HA().getHours(), mount.HA().getMinutes());
+        OAT_SNPRINTF(satBuffer, sizeof(satBuffer), " %02dh %02dm", ui.read->hourAngle().getHours(), ui.read->hourAngle().getMinutes());
         satBuffer[HAselect * 4] = '>';
     }
     lcdMenu.printMenu(satBuffer);

@@ -10,17 +10,17 @@ bool processDECKeys()
     {
         if (DECselect == 0)
         {
-            mount.targetDEC().addDegrees(1);
+            ui.read->targetDEC().addDegrees(1);
             showTargetDEC = true;
         }
         if (DECselect == 1)
         {
-            mount.targetDEC().addMinutes(1);
+            ui.read->targetDEC().addMinutes(1);
             showTargetDEC = true;
         }
         if (DECselect == 2)
         {
-            mount.targetDEC().addSeconds(1);
+            ui.read->targetDEC().addSeconds(1);
             showTargetDEC = true;
         }
         if (DECselect == 3)
@@ -29,23 +29,23 @@ bool processDECKeys()
             waitForRelease = true;
         }
         // slow down key repetitions
-        mount.delay(200);
+        ui.delay(200);
     }
     else if (lcdButtons.currentState() == btnDOWN)
     {
         if (DECselect == 0)
         {
-            mount.targetDEC().addDegrees(-1);
+            ui.read->targetDEC().addDegrees(-1);
             showTargetDEC = true;
         }
         if (DECselect == 1)
         {
-            mount.targetDEC().addMinutes(-1);
+            ui.read->targetDEC().addMinutes(-1);
             showTargetDEC = true;
         }
         if (DECselect == 2)
         {
-            mount.targetDEC().addSeconds(-1);
+            ui.read->targetDEC().addSeconds(-1);
             showTargetDEC = true;
         }
         if (DECselect == 3)
@@ -54,7 +54,7 @@ bool processDECKeys()
             waitForRelease = true;
         }
         // slow down key repetitions
-        mount.delay(200);
+        ui.delay(200);
     }
     else if (lcdButtons.keyChanged(&key))
     {
@@ -69,13 +69,13 @@ bool processDECKeys()
 
             case btnSELECT:
                 {
-                    if (mount.isSlewingRAorDEC())
+                    if (ui.motion->isSlewingRAorDEC())
                     {
-                        mount.stopSlewing(ALL_DIRECTIONS);
+                        ui.motion->stopSlewing(ALL_DIRECTIONS);
                     }
                     else
                     {
-                        mount.startSlewingToTarget();
+                        ui.motion->startSlewingToTarget();
                     }
                 }
                 break;
@@ -96,9 +96,9 @@ bool processDECKeys()
 
 void printDECSubmenu()
 {
-    if (mount.isSlewingIdle())
+    if (ui.read->isSlewingIdle())
     {
-        String dec = mount.DECString(LCDMENU_STRING | (showTargetDEC ? TARGET_STRING : CURRENT_STRING), DECselect).substring(0, 13);
+        String dec = String(ui.read->decText(LCDMENU_STRING | (showTargetDEC ? TARGET_STRING : CURRENT_STRING), DECselect)).substring(0, 13);
         dec += (DECselect == 3) ? ">" : " ";
         dec += showTargetDEC ? "Ta" : "Cu";
         lcdMenu.printMenu(dec);

@@ -155,8 +155,8 @@ bool processControlKeys()
                         ui.motion->setHome(true);
                         LOG(DEBUG_GENERAL,
                             "[CTRL]: setHome(true) returned: RA Current %s, Target: %f",
-                            ui.read->raText(CURRENT_STRING | COMPACT_STRING).c_str(),
-                            ui.read->raText(TARGET_STRING | COMPACT_STRING).c_str());
+                            ui.read->raText(CURRENT_STRING | COMPACT_STRING),
+                            ui.read->raText(TARGET_STRING | COMPACT_STRING));
                         ui.motion->startSlewing(TRACKING);
                     }
 

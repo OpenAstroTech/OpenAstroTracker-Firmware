@@ -28,25 +28,25 @@ bool processFocuserKeys()
     {
         if (currentButtonState == btnUP)
         {
-            if (!mount.isRunningFocus())
+            if (!ui.axes->isRunningFocus())
             {
-                mount.focusContinuousMove(FOCUS_BACKWARD);
+                ui.axes->focusContinuousMove(FOCUS_BACKWARD);
             }
         }
         else if (currentButtonState == btnDOWN)
         {
-            if (!mount.isRunningFocus())
+            if (!ui.axes->isRunningFocus())
             {
-                mount.focusContinuousMove(FOCUS_FORWARD);
+                ui.axes->focusContinuousMove(FOCUS_FORWARD);
             }
         }
     }
 
     if (currentButtonState == btnNONE)
     {
-        if (mount.isRunningFocus())
+        if (ui.axes->isRunningFocus())
         {
-            mount.focusStop();
+            ui.axes->focusStop();
         }
     }
 
@@ -78,12 +78,12 @@ bool processFocuserKeys()
                     else if (key == btnRIGHT)
                     {
                         rateIndex = adjustClamp(rateIndex, 1, 0, 3);
-                        mount.focusSetSpeedByRate(rateIndex + 1);
+                        ui.axes->focusSetSpeedByRate(rateIndex + 1);
                     }
                     else if (key == btnLEFT)
                     {
                         rateIndex = adjustClamp(rateIndex, -1, 0, 3);
-                        mount.focusSetSpeedByRate(rateIndex + 1);
+                        ui.axes->focusSetSpeedByRate(rateIndex + 1);
                     }
                 }
                 break;
@@ -104,13 +104,13 @@ void printFocusSubmenu()
         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Rate:  1 2 3 4 *");
         scratchBuffer[6 + rateIndex * 2] = '>';
         scratchBuffer[8 + rateIndex * 2] = '<';
-        if (!mount.isRunningFocus())
+        if (!ui.axes->isRunningFocus())
         {
             scratchBuffer[15] = '-';
         }
         else
         {
-            scratchBuffer[15] = mount.getFocusSpeed() < 0 ? '~' : '^';
+            scratchBuffer[15] = ui.axes->getFocusSpeed() < 0 ? '~' : '^';
         }
 
         lcdMenu.printMenu(scratchBuffer);

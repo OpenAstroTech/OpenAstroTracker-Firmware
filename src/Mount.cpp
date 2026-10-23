@@ -4222,7 +4222,7 @@ String Mount::RAString(byte type, byte active)
 //
 //
 /////////////////////////////////
-DayTime Mount::getUtcTime()
+core::DayTime Mount::getUtcTime()
 {
     DayTime timeUTC = getLocalTime();
     timeUTC.addHours(-_localUtcOffset);

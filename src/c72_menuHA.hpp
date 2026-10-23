@@ -12,27 +12,27 @@ bool processHAKeys()
     bool waitForRelease = false;
     if (lcdButtons.currentState() == btnUP)
     {
-        DayTime ha(mount.HA());
+        DayTime ha(ui.read->hourAngle());
         if (HAselect == 0)
             ha.addHours(1);
         if (HAselect == 1)
             ha.addMinutes(1);
-        mount.setHA(ha);
+        ui.siteTime->setHA(ha);
 
         // slow down key repetitions
-        mount.delay(200);
+        ui.delay(200);
     }
     else if (lcdButtons.currentState() == btnDOWN)
     {
-        DayTime ha(mount.HA());
+        DayTime ha(ui.read->hourAngle());
         if (HAselect == 0)
             ha.addHours(-1);
         if (HAselect == 1)
             ha.addMinutes(-1);
-        mount.setHA(ha);
+        ui.siteTime->setHA(ha);
 
         // slow down key repetitions
-        mount.delay(200);
+        ui.delay(200);
     }
     else if (lcdButtons.keyChanged(&key))
     {
@@ -47,9 +47,9 @@ bool processHAKeys()
 
             case btnSELECT:
                 {
-                    settingsStore.storeHATime(mount.HA());
+                    settingsStore.storeHATime(ui.read->hourAngle());
                     lcdMenu.printMenu(F("Stored."));
-                    mount.delay(500);
+                    ui.delay(500);
 
         #if SUPPORT_GUIDED_STARTUP == 1
                     if (startupState == StartupWaitForHACompletion)
@@ -58,7 +58,7 @@ bool processHAKeys()
                         inStartup    = true;
                     }
         #endif
-                    mount.startSlewing(TRACKING);
+                    ui.motion->startSlewing(TRACKING);
                 }
                 break;
 
@@ -84,7 +84,7 @@ bool processHAKeys()
 void printHASubmenu()
 {
     char scratchBuffer[20];
-    OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " %02dh %02dm", mount.HA().getHours(), mount.HA().getMinutes());
+    OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " %02dh %02dm", ui.read->hourAngle().getHours(), ui.read->hourAngle().getMinutes());
     scratchBuffer[HAselect * 4] = '>';
     lcdMenu.printMenu(scratchBuffer);
 }

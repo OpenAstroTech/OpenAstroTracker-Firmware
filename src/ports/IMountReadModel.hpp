@@ -48,8 +48,10 @@ class IMountReadModel
     /// Hour angle as the mount currently reports it (the value `:GH#` sends).
     virtual core::DayTime hourAngle() = 0;
 
-    /// Current stepper position of one axis, in its own microsteps.
+    /// Current stepper position of one axis, in its own microsteps. The `int` overload takes a
+    /// movement direction (`WEST`, `NORTH`, `TRACKING`) as the menu screens do.
     virtual long getCurrentStepperPosition(StepperAxis which) = 0;
+    virtual long getCurrentStepperPosition(int direction)     = 0;
 
     /// Whether the step generator is driving this axis right now.
     virtual bool isAxisRunning(StepperAxis axis) = 0;

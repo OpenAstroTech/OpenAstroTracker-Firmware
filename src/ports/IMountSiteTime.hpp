@@ -34,6 +34,7 @@ class IMountSiteTime
     virtual void setLongitude(const core::Longitude &longitude) = 0;
 
     virtual core::DayTime getLocalTime() = 0;
+    virtual core::DayTime getUtcTime()   = 0;
     virtual LocalDate getLocalDate()     = 0;
 
     /// The offset the mount adds to local time to reach UTC. The Meade wire carries the inverse

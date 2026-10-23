@@ -66,15 +66,15 @@ void printStatusSubmenu()
                 {
                     if (subIndex == 0)
                     {
-                        lcdMenu.printMenu(String(F("RA Stpr: ")) + String(mount.getCurrentStepperPosition(WEST)));
+                        lcdMenu.printMenu(String(F("RA Stpr: ")) + String(ui.read->getCurrentStepperPosition(WEST)));
                     }
                     else if (subIndex == 1)
                     {
-                        lcdMenu.printMenu(String(F("RTrg: ")) + mount.RAString(LCD_STRING | TARGET_STRING));
+                        lcdMenu.printMenu(String(F("RTrg: ")) + ui.read->raText(LCD_STRING | TARGET_STRING));
                     }
                     else
                     {
-                        lcdMenu.printMenu(String(F("RCur: ")) + mount.RAString(LCD_STRING | CURRENT_STRING));
+                        lcdMenu.printMenu(String(F("RCur: ")) + ui.read->raText(LCD_STRING | CURRENT_STRING));
                     }
                 }
                 break;
@@ -83,15 +83,15 @@ void printStatusSubmenu()
                 {
                     if (subIndex == 0)
                     {
-                        lcdMenu.printMenu(String(F("DEC Stpr:")) + String(mount.getCurrentStepperPosition(NORTH)));
+                        lcdMenu.printMenu(String(F("DEC Stpr:")) + String(ui.read->getCurrentStepperPosition(NORTH)));
                     }
                     else if (subIndex == 1)
                     {
-                        lcdMenu.printMenu(String(F("DTrg: ")) + mount.DECString(LCD_STRING | TARGET_STRING));
+                        lcdMenu.printMenu(String(F("DTrg: ")) + ui.read->decText(LCD_STRING | TARGET_STRING));
                     }
                     else
                     {
-                        lcdMenu.printMenu(String(F("DCur: ")) + mount.DECString(LCD_STRING | CURRENT_STRING));
+                        lcdMenu.printMenu(String(F("DCur: ")) + ui.read->decText(LCD_STRING | CURRENT_STRING));
                     }
                 }
                 break;
@@ -100,12 +100,12 @@ void printStatusSubmenu()
                 {
                     if (subIndex == 0)
                     {
-                        lcdMenu.printMenu(String(F("TRK Stpr:")) + String(mount.getCurrentStepperPosition(TRACKING)));
+                        lcdMenu.printMenu(String(F("TRK Stpr:")) + String(ui.read->getCurrentStepperPosition(TRACKING)));
                     }
                     else
                     {
                         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "TRK Spd:");
-                        dtostrf(mount.getSpeed(TRACKING), 8, 6, &scratchBuffer[8]);
+                        dtostrf(ui.config->getSpeed(TRACKING), 8, 6, &scratchBuffer[8]);
                         lcdMenu.printMenu(scratchBuffer);
                     }
                 }
@@ -113,10 +113,10 @@ void printStatusSubmenu()
 
             case 3:
                 {
-                    float lat          = fabsf(mount.latitude().getTotalHours());
-                    float lng          = fabsf(mount.longitude().getTotalHours());
-                    const char dirLat  = (mount.latitude().getTotalHours() < 0) ? 'S' : 'N';
-                    const char dirLong = (mount.longitude().getTotalHours() < 0) ? 'W' : 'E';
+                    float lat          = fabsf(ui.siteTime->latitude().getTotalHours());
+                    float lng          = fabsf(ui.siteTime->longitude().getTotalHours());
+                    const char dirLat  = (ui.siteTime->latitude().getTotalHours() < 0) ? 'S' : 'N';
+                    const char dirLong = (ui.siteTime->longitude().getTotalHours() < 0) ? 'W' : 'E';
                     OAT_SNPRINTF(scratchBuffer,
                                  sizeof(scratchBuffer),
                                  "Loc %s%c %s%c",
@@ -145,7 +145,7 @@ void printStatusSubmenu()
             case 5:
                 {
                     float lowerLimit, upperLimit;
-                    mount.getDecLimitPositions(lowerLimit, upperLimit);
+                    ui.config->getDecLimitPositions(lowerLimit, upperLimit);
                     lcdMenu.printMenu(String(F("DEC Lo: ")) + String(lowerLimit, 1));
                 }
                 break;
@@ -153,7 +153,7 @@ void printStatusSubmenu()
             case 6:
                 {
                     float lowerLimit, upperLimit;
-                    mount.getDecLimitPositions(lowerLimit, upperLimit);
+                    ui.config->getDecLimitPositions(lowerLimit, upperLimit);
                     lcdMenu.printMenu(String(F("DEC Up: ")) + String(upperLimit, 1));
                 }
                 break;
@@ -185,7 +185,7 @@ void printStatusSubmenu()
 
             case 9:
                 {
-                    LocalDate date = mount.getLocalDate();
+                    LocalDate date = ui.siteTime->getLocalDate();
                     OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Date: %04d-%02d-%02d", date.year, date.month, date.day);
                     lcdMenu.printMenu(scratchBuffer);
                 }
@@ -193,7 +193,7 @@ void printStatusSubmenu()
 
             case 10:
                 {
-                    DayTime drvUtc = mount.getUtcTime();
+                    DayTime drvUtc = ui.siteTime->getUtcTime();
                     OAT_SNPRINTF(scratchBuffer,
                                  sizeof(scratchBuffer),
                                  "UTC: %02d:%02d:%02d",
@@ -206,7 +206,7 @@ void printStatusSubmenu()
 
             case 11:
                 {
-                    DayTime drvUtc = mount.getLocalTime();
+                    DayTime drvUtc = ui.siteTime->getLocalTime();
                     OAT_SNPRINTF(scratchBuffer,
                                  sizeof(scratchBuffer),
                                  "Time: %02d:%02d:%02d",
@@ -219,7 +219,7 @@ void printStatusSubmenu()
 
             case 12:
                 {
-                    int offset = mount.getLocalUtcOffset();
+                    int offset = ui.siteTime->getLocalUtcOffset();
                     OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Timezone: %d", offset);
                     lcdMenu.printMenu(scratchBuffer);
                 }
@@ -227,7 +227,7 @@ void printStatusSubmenu()
 
             case 13:
                 {
-                    DayTime lst = mount.calculateLst();
+                    DayTime lst = ui.read->calculateLst();
                     OAT_SNPRINTF(
                         scratchBuffer, sizeof(scratchBuffer), "LST: %02d:%02d:%02d", lst.getHours(), lst.getMinutes(), lst.getSeconds());
                     lcdMenu.printMenu(scratchBuffer);
@@ -236,7 +236,7 @@ void printStatusSubmenu()
 
             case 14:
                 {
-                    DayTime ha = mount.calculateHa();
+                    DayTime ha = ui.read->calculateHa();
                     OAT_SNPRINTF(
                         scratchBuffer, sizeof(scratchBuffer), "HA: %02d:%02d:%02d", ha.getHours(), ha.getMinutes(), ha.getSeconds());
                     lcdMenu.printMenu(scratchBuffer);

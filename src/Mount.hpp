@@ -308,7 +308,7 @@ class Mount final : public ports::IMountOptionalAxes,
     void delay(int ms);
 
     // Gets the position in one of eight directions or tracking
-    long getCurrentStepperPosition(int direction);
+    long getCurrentStepperPosition(int direction) override;
 
     // Set the tracking stepper position
     void setTrackingStepperPos(long stepPos) override;
@@ -488,7 +488,7 @@ class Mount final : public ports::IMountOptionalAxes,
     // Let the mount know that the system has finished booting
     void bootComplete();
 
-    DayTime getUtcTime();
+    core::DayTime getUtcTime() override;
     core::DayTime getLocalTime() override;
     LocalDate getLocalDate() override;
 
