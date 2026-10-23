@@ -12,7 +12,7 @@ namespace app { struct UiPorts; }
 ///
 /// The state it shows is read, not owned: the percentages come from
 /// `Mount::getStepperProgress()`, and the two planned-move totals decide which axes get a bar.
-void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu);
+void displayLcdSlewStatus(app::UiPorts &ports, LcdMenu &menu);
 
 /// Same, but at most once per `DISPLAY_UPDATE_TIME`. This is what the main loop calls.
-void displayLcdSlewStatusThrottled(app::UiPorts &ui, LcdMenu &menu);
+void displayLcdSlewStatusThrottled(app::UiPorts &ports, LcdMenu &menu);

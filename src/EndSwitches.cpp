@@ -11,11 +11,10 @@
 // EndSwitch ctor
 //
 /////////////////////////////////
-EndSwitch::EndSwitch(Mount *mount, StepperAxis axis, ports::IEndSwitch &minSwitch, ports::IEndSwitch &maxSwitch)
-    : _minSwitch(minSwitch), _maxSwitch(maxSwitch)
+EndSwitch::EndSwitch(app::UiPorts &ports, StepperAxis axis, ports::IEndSwitch &minSwitch, ports::IEndSwitch &maxSwitch)
+    : _ui(ports), _minSwitch(minSwitch), _maxSwitch(maxSwitch)
 {
     _state            = EndSwitchState::SWITCH_NOT_ACTIVE;
-    _pMount           = mount;
     _axis             = axis;
     _dir              = (_axis == StepperAxis::RA_STEPS) ? (EAST | WEST) : (NORTH | SOUTH);
     _posWhenTriggered = 0;
@@ -39,25 +38,25 @@ void EndSwitch::processEndSwitchState()
                 if (_minSwitch.isTriggered())
                 {
                     _state            = EndSwitchState::SWITCH_AT_MINIMUM;
-                    _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
+                    _posWhenTriggered = _ui.read->getCurrentStepperPosition(_dir);
                     LOG(DEBUG_MOUNT,
-                        "[ENDSWITCH]: Reached minimum position on %s axis at %l. MountState is %x, %x. State is now SWITCH_AT_LIMIT",
+                        "[ENDSWITCH]: Reached minimum position on %s axis at %l. AxisRunning=%d, Slewing=%d. State is now SWITCH_AT_LIMIT",
                         _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
                         _posWhenTriggered,
-                        _pMount->slewStatus(),
-                        _pMount->mountStatus());
+                        (int) _ui.read->isAxisRunning(_axis),
+                        (int) _ui.motion->isSlewingRAorDEC());
                 }
 
                 if (_maxSwitch.isTriggered())
                 {
                     _state            = EndSwitchState::SWITCH_AT_MAXIMUM;
-                    _posWhenTriggered = _pMount->getCurrentStepperPosition(_dir);
+                    _posWhenTriggered = _ui.read->getCurrentStepperPosition(_dir);
                     LOG(DEBUG_MOUNT,
-                        "[ENDSWITCH]: Reached maximum position on %s axis at %l. MountState is %x, %x. State is now SWITCH_AT_LIMIT",
+                        "[ENDSWITCH]: Reached maximum position on %s axis at %l. AxisRunning=%d, Slewing=%d. State is now SWITCH_AT_LIMIT",
                         _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
                         _posWhenTriggered,
-                        _pMount->slewStatus(),
-                        _pMount->mountStatus());
+                        (int) _ui.read->isAxisRunning(_axis),
+                        (int) _ui.motion->isSlewingRAorDEC());
                 }
             }
             break;
@@ -108,12 +107,12 @@ void EndSwitch::checkSwitchState()
         return;
     }
 
-    if (_pMount->isSlewingRAorDEC())
+    if (_ui.motion->isSlewingRAorDEC())
     {
         LOG(DEBUG_MOUNT,
-            "[ENDSWITCH]: Switch Active while slewing. (%x, %x). State is SWITCH_AT_LIMIT",
-            _pMount->slewStatus(),
-            _pMount->mountStatus());
+            "[ENDSWITCH]: Switch Active while slewing. (axisRunning %d, slewing %d). State is SWITCH_AT_LIMIT",
+            (int) _ui.read->isAxisRunning(_axis),
+            (int) _ui.motion->isSlewingRAorDEC());
         int stopSlewDir = _dir;
         // Check if we should stop tracking, which we do if RA is at maximum.
         if ((_state == EndSwitchState::SWITCH_AT_MAXIMUM) && (_axis == StepperAxis::RA_STEPS))
@@ -129,19 +128,19 @@ void EndSwitch::checkSwitchState()
             _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
             stopSlewDir,
             _dir);
-        _pMount->stopSlewing(stopSlewDir);
-        _pMount->waitUntilStopped(_dir);  // This function will call checkSwitchState
+        _ui.motion->stopSlewing(stopSlewDir);
+        _ui.waitUntilStopped(_dir);  // This function will call checkSwitchState
         LOG(DEBUG_MOUNT,
-            "[ENDSWITCH]: Slewing stopped on %s axis. (%x, %x)",
+            "[ENDSWITCH]: Slewing stopped on %s axis. (axisRunning %d, slewing %d)",
             _axis == StepperAxis::RA_STEPS ? "RA" : "DEC",
-            _pMount->slewStatus(),
-            _pMount->mountStatus());
-        long currentPos      = _pMount->getCurrentStepperPosition(_dir);
+            (int) _ui.read->isAxisRunning(_axis),
+            (int) _ui.motion->isSlewingRAorDEC());
+        long currentPos      = _ui.read->getCurrentStepperPosition(_dir);
         long backDistance    = _posWhenTriggered - currentPos;
         long backSign        = sign(backDistance);
         long backslewDegrees = (_axis == StepperAxis::DEC_STEPS) ? DEC_ENDSWITCH_BACKSLEW_DEG : RA_ENDSWITCH_BACKSLEW_DEG;
         // Go back the distance that we ran past the switch plus the number of degrees to overcome the hysteresis of the switch
-        long backSlewDistance = backDistance + (backSign * backslewDegrees * _pMount->getStepsPerDegree(_axis));
+        long backSlewDistance = backDistance + (backSign * backslewDegrees * _ui.config->getStepsPerDegree(_axis));
         LOG(DEBUG_MOUNT,
             "[ENDSWITCH]: Reached maximum at %l. Stopped at %l (%l delta), moving back 1.2x (%l). Stopped tracking (if RA at Max). "
             "State is SWITCH_SLEWING_OFF",
@@ -149,17 +148,17 @@ void EndSwitch::checkSwitchState()
             currentPos,
             backDistance,
             backSlewDistance);
-        _pMount->moveStepperBy(_axis, backSlewDistance);
+        _ui.motion->moveStepperBy(_axis, backSlewDistance);
         _state = _state == EndSwitchState::WAIT_FOR_STOP_AT_MINIMUM ? EndSwitchState::SWITCH_SLEWING_OFF_MINIMUM
                                                                     : EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM;
     }
-    else if ((_state == EndSwitchState::SWITCH_AT_MAXIMUM) && _pMount->isSlewingTRK())
+    else if ((_state == EndSwitchState::SWITCH_AT_MAXIMUM) && _ui.motion->isSlewingTRK())
     {
         // If we are not slewing, we must have tracked into the maximum, so just stop tracking and wait for it to be moved off maximum manually.
         LOG(DEBUG_MOUNT,
             "[ENDSWITCH]: Reached maximum position on %s axis while tracking. Stopping tracking. State is now SWITCH_SLEWING_OFF",
             _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
-        _pMount->stopSlewing(TRACKING);
+        _ui.motion->stopSlewing(TRACKING);
         _state = EndSwitchState::SWITCH_SLEWING_OFF_MAXIMUM;
     }
     else if (_state == EndSwitchState::SWITCH_AT_MINIMUM)

@@ -28,6 +28,7 @@
 #include "ports/IMountReadModel.hpp"
 #include "ports/IMountSiteTime.hpp"
 #include "ports/IInfoDisplay.hpp"
+#include "ports/IStatusFlags.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
 #include "ports/IStepperAxis.hpp"
@@ -113,7 +114,8 @@ class Mount final : public ports::IMountOptionalAxes,
                     public ports::IMountReadModel,
                     public ports::IMountSiteTime,
                     public ports::IMountEvents,
-                    public ports::IInfoDisplaySource
+                    public ports::IInfoDisplaySource,
+                    public ports::IStatusFlags
 {
   public:
     /// The infrastructure ports are injected by the composition root
@@ -232,7 +234,7 @@ class Mount final : public ports::IMountOptionalAxes,
 
     // Sets the slew rate of the mount. rate is between 1 (slowest) and 4 (fastest)
     void setSlewRate(int rate) override;
-    int getSlewRate();
+    int getSlewRate() override;
 
     // Get the number of hours we've been tracking
     float getTrackedHours() const;
@@ -397,6 +399,10 @@ class Mount final : public ports::IMountOptionalAxes,
     const char *raText(uint8_t type, uint8_t active = 0) override;
     const char *decText(uint8_t type, uint8_t active = 0) override;
 
+    /// `ports::IStatusFlags`: the raw bitfield the legacy homing/end-switch helpers write.
+    void set(uint16_t bits) override;
+    void clear(uint16_t bits) override;
+
     ports::InfoDisplayActivity activity() override;
 
     /// Fills one frame's worth of panel state. Everything the renderer shows comes from here,
@@ -462,7 +468,7 @@ class Mount final : public ports::IMountOptionalAxes,
     void moveStepperBy(StepperAxis which, long steps) override;
 
     // Move the given stepper motor to the given step position.
-    void moveStepperTo(StepperAxis which, long position);
+    void moveStepperTo(StepperAxis which, long position) override;
 
     // Set the number of steps to use for backlash correction
     void setBacklashCorrection(int steps) override;

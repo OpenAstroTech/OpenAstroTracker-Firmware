@@ -33,6 +33,7 @@ class IMountConfiguration : public IMountMotion
     virtual void setSpeed(StepperAxis which, float speedDegsPerSec) = 0;
     virtual float getSpeed(int direction)                           = 0;
     virtual void setSlewRate(int rate)                              = 0;
+    virtual int getSlewRate()                                       = 0;
 
     virtual float getSpeedCalibration()                               = 0;
     virtual void setSpeedCalibration(float value, bool saveToStorage) = 0;

@@ -71,9 +71,6 @@ extern Mount mount;
 extern WifiControl wifiControl;
 #endif
 
-/// The menu screens' view of the mount. Built from the one `mount` object today; built from the
-/// coordinator once the screens no longer need the facade.
-extern app::UiPorts ui;
 
 // --- the optional status panel ---------------------------------------------------------
 

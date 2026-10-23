@@ -19,20 +19,20 @@ unsigned long lastUpdate = 0;
 
 /// The old code took five branches on the two planned-move totals; they are read once here so the
 /// branches below read the way they did in `Mount`.
-bool hasRaMove(app::UiPorts &ui)
+bool hasRaMove(app::UiPorts &ports)
 {
-    return fabsf(ui.read->plannedRaSteps()) > 0.001f;
+    return fabsf(ports.read->plannedRaSteps()) > 0.001f;
 }
 
-bool hasDecMove(app::UiPorts &ui)
+bool hasDecMove(app::UiPorts &ports)
 {
-    return fabsf(ui.read->plannedDecSteps()) > 0.001f;
+    return fabsf(ports.read->plannedDecSteps()) > 0.001f;
 }
 
 }  // namespace
 #endif
 
-void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu)
+void displayLcdSlewStatus(app::UiPorts &ports, LcdMenu &menu)
 {
 #if DISPLAY_TYPE > 0
 
@@ -40,31 +40,31 @@ void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu)
     // would be two more axis reads for the same answer.
     int raPercent  = 100;
     int decPercent = 100;
-    ui.read->getStepperProgress(raPercent, decPercent);
+    ports.read->getStepperProgress(raPercent, decPercent);
 
-    if (hasRaMove(ui) && hasDecMove(ui))
+    if (hasRaMove(ports) && hasDecMove(ports))
     {
         // Both axes moving to target
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", ui.read->raText(LCD_STRING | CURRENT_STRING), raPercent);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", ports.read->raText(LCD_STRING | CURRENT_STRING), raPercent);
         menu.setCursor(0, 0);
         menu.printMenu(String(scratchBuffer));
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", ui.read->decText(LCD_STRING | CURRENT_STRING), decPercent);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", ports.read->decText(LCD_STRING | CURRENT_STRING), decPercent);
         menu.setCursor(0, 1);
         menu.printMenu(String(scratchBuffer));
         return;
     }
 
-    if (hasDecMove(ui))
+    if (hasDecMove(ports))
     {
         // Only DEC moving to target
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", ui.read->decText(LCD_STRING | CURRENT_STRING), decPercent);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "D%s %d%%", ports.read->decText(LCD_STRING | CURRENT_STRING), decPercent);
         menu.setCursor(0, 1);
         menu.printMenu(String(scratchBuffer));
     }
-    else if (hasRaMove(ui))
+    else if (hasRaMove(ports))
     {
         // Only RA moving to target
-        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", ui.read->raText(LCD_STRING | CURRENT_STRING), raPercent);
+        OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R %s %d%%", ports.read->raText(LCD_STRING | CURRENT_STRING), raPercent);
         menu.setCursor(0, inSerialControl ? 0 : 1);
         menu.printMenu(String(scratchBuffer));
     }
@@ -74,10 +74,10 @@ void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu)
     #if SUPPORT_SERIAL_CONTROL == 1
         if (inSerialControl)
         {
-            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " RA: %s", ui.read->raText(LCD_STRING | CURRENT_STRING));
+            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " RA: %s", ports.read->raText(LCD_STRING | CURRENT_STRING));
             menu.setCursor(0, 0);
             menu.printMenu(scratchBuffer);
-            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "DEC: %s", ui.read->decText(LCD_STRING | CURRENT_STRING));
+            OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "DEC: %s", ports.read->decText(LCD_STRING | CURRENT_STRING));
             menu.setCursor(0, 1);
             menu.printMenu(scratchBuffer);
         }
@@ -86,8 +86,8 @@ void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu)
             OAT_SNPRINTF(scratchBuffer,
                          sizeof(scratchBuffer),
                          "R%s D%s",
-                         ui.read->raText(COMPACT_STRING | CURRENT_STRING),
-                         ui.read->decText(COMPACT_STRING | CURRENT_STRING));
+                         ports.read->raText(COMPACT_STRING | CURRENT_STRING),
+                         ports.read->decText(COMPACT_STRING | CURRENT_STRING));
             menu.setCursor(0, 1);
             menu.printMenu(scratchBuffer);
         }
@@ -95,8 +95,8 @@ void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu)
         OAT_SNPRINTF(scratchBuffer,
                      sizeof(scratchBuffer),
                      "R%s D%s",
-                     ui.read->raText(COMPACT_STRING | CURRENT_STRING),
-                     ui.read->decText(COMPACT_STRING | CURRENT_STRING));
+                     ports.read->raText(COMPACT_STRING | CURRENT_STRING),
+                     ports.read->decText(COMPACT_STRING | CURRENT_STRING));
         menu.setCursor(0, 1);
         menu.printMenu(scratchBuffer);
     #endif
@@ -105,13 +105,13 @@ void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu)
 #endif
 }
 
-void displayLcdSlewStatusThrottled(app::UiPorts &ui, LcdMenu &menu)
+void displayLcdSlewStatusThrottled(app::UiPorts &ports, LcdMenu &menu)
 {
 #if DISPLAY_TYPE > 0
     const unsigned long now = millis();
     if ((now - lastUpdate) > DISPLAY_UPDATE_TIME)
     {
-        displayLcdSlewStatus(ui, menu);
+        displayLcdSlewStatus(ports, menu);
         lastUpdate = millis();
     }
 #endif

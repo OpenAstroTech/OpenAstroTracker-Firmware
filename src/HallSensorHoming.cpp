@@ -82,9 +82,8 @@ String HallSensorHoming::getLastResult() const
 // CTOR
 //
 /////////////////////////////////
-HallSensorHoming::HallSensorHoming(Mount *mount, StepperAxis axis, ports::IHomingSensor &sensor)
-    : _pMount(mount), _axis(axis), _sensor(sensor), _savedRate(0),
-      _wasTracking(mount->isSlewingTRK())
+HallSensorHoming::HallSensorHoming(app::UiPorts &ports, ports::IStatusFlags &status, StepperAxis axis, ports::IHomingSensor &sensor)
+    : _ui(ports), _status(status), _axis(axis), _sensor(sensor), _savedRate(0), _wasTracking(ports.motion->isSlewingTRK())
 {
 }
 
@@ -95,17 +94,17 @@ HallSensorHoming::HallSensorHoming(Mount *mount, StepperAxis axis, ports::IHomin
 /////////////////////////////////
 bool HallSensorHoming::findHomeByHallSensor(int initialDirection, int searchDistance)
 {
-    const long stepsPerDegree = (long) _pMount->getStepsPerDegree(_axis);
-    _savedRate                = (uint8_t) _pMount->getSlewRate();
+    const long stepsPerDegree = (long) _ui.config->getStepsPerDegree(_axis);
+    _savedRate                = (uint8_t) _ui.config->getSlewRate();
     _controller.start(initialDirection,
                       searchDistance,
                       stepsPerDegree,
-                      _pMount->getCurrentStepperPosition(_axis),
-                      _pMount->getHomingOffset(_axis),
+                      _ui.read->getCurrentStepperPosition(_axis),
+                      _ui.config->getHomingOffset(_axis),
                       sensorIsActive());
 
-    _pMount->setSlewRate(4);
-    _pMount->setStatusFlag(STATUS_FINDING_HOME);
+    _ui.config->setSlewRate(4);
+    _status.set(STATUS_FINDING_HOME);
 
     LOG(DEBUG_STEPPERS,
         "[HOMING]: Start homing procedure. Axis %d, StepsPerDegree: %l, SearchDist: %d",
@@ -133,7 +132,7 @@ void HallSensorHoming::processHomingProgress()
 {
     const core::HomingState previous = _controller.state();
     const core::HomingStep step
-        = _controller.update(sensorIsActive(), _pMount->isAxisRunning(_axis), _pMount->getCurrentStepperPosition(_axis), millis());
+        = _controller.update(sensorIsActive(), _ui.read->isAxisRunning(_axis), _ui.read->getCurrentStepperPosition(_axis), _ui.clock->now());
 
     logTransition(previous, step);
 
@@ -143,28 +142,28 @@ void HallSensorHoming::processHomingProgress()
             break;
 
         case core::HomingAction::MoveBy:
-            _pMount->moveStepperBy(_axis, step.steps);
+            _ui.motion->moveStepperBy(_axis, step.steps);
             break;
 
         case core::HomingAction::StopAxis:
-            _pMount->stopSlewing(_axis);
+            _ui.motion->stopSlewing(_axis);
             break;
 
         case core::HomingAction::Succeeded:
-            _pMount->setHome(false);
-            _pMount->setSlewRate(_savedRate);
-            _pMount->clearStatusFlag(STATUS_FINDING_HOME);
+            _ui.motion->setHome(false);
+            _ui.config->setSlewRate(_savedRate);
+            _status.clear(STATUS_FINDING_HOME);
             if (_wasTracking)
             {
-                _pMount->startSlewing(TRACKING);
+                _ui.motion->startSlewing(TRACKING);
             }
             break;
 
         case core::HomingAction::Failed:
-            _pMount->setSlewRate(_savedRate);
-            _pMount->clearStatusFlag(STATUS_FINDING_HOME);
-            _pMount->setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
-            _pMount->moveStepperTo(_axis, _controller.startPosition());
+            _ui.config->setSlewRate(_savedRate);
+            _status.clear(STATUS_FINDING_HOME);
+            _status.set(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
+            _ui.motion->moveStepperTo(_axis, _controller.startPosition());
             break;
     }
 }

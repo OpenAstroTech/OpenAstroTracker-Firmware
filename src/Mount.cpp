@@ -13,6 +13,7 @@
 #include "core/SlewProgressReport.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
+#include "app/UiPorts.hpp"
 #include "adapters/GpioEndSwitch.hpp"
 #include "adapters/HallHomingSensor.hpp"
 #include "adapters/NullMotorDriver.hpp"
@@ -3022,7 +3023,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _raHoming;
         }
-        _raHoming = new HallSensorHoming(this, axis, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
+        _raHoming = new HallSensorHoming(ui, *this, axis, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -3039,7 +3040,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _decHoming;
         }
-        _decHoming = new HallSensorHoming(this, axis, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
+        _decHoming = new HallSensorHoming(ui, *this, axis, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -3130,14 +3131,14 @@ String Mount::homingStateText(bool present, const HallSensorHoming *sensor) cons
 void Mount::setupEndSwitches()
 {
     #if (USE_RA_END_SWITCH == 1)
-    _raEndSwitch = new EndSwitch(this,
+    _raEndSwitch = new EndSwitch(ui,
                                  StepperAxis::RA_STEPS,
                                  makeEndSwitch(RA_ENDSWITCH_EAST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE),
                                  makeEndSwitch(RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE));
     #endif
 
     #if (USE_DEC_END_SWITCH == 1)
-    _decEndSwitch = new EndSwitch(this,
+    _decEndSwitch = new EndSwitch(ui,
                                   StepperAxis::DEC_STEPS,
                                   makeEndSwitch(DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE),
                                   makeEndSwitch(DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE));
@@ -4071,6 +4072,16 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
     long curPos = getCurrentStepperPosition(axis);
     long delta  = position - curPos;
     moveStepperBy(axis, delta);
+}
+
+void Mount::set(uint16_t bits)
+{
+    setStatusFlag(bits);
+}
+
+void Mount::clear(uint16_t bits)
+{
+    clearStatusFlag(bits);
 }
 
 /////////////////////////////////

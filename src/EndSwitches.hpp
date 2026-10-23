@@ -2,6 +2,7 @@
 #define _ENDSWITCHES_HPP
 
 #include "Types.hpp"
+#include "app/UiPorts.hpp"
 #include "ports/IEndSwitch.hpp"
 
 /// Polls one axis' two end switches.
@@ -9,7 +10,6 @@
 /// Defined on every board: whether one exists is a runtime question (`_raEndSwitch` and
 /// `_decEndSwitch` are null when the board has none), so nothing that polls them needs a
 /// compile-time branch. A board without end switches emits no code for this class.
-class Mount;
 
 enum EndSwitchState
 {
@@ -31,7 +31,7 @@ class EndSwitch
 {
   private:
     volatile EndSwitchState _state;
-    Mount *_pMount;
+    app::UiPorts &_ui;
     StepperAxis _axis;
     volatile long _posWhenTriggered;
     int _dir;
@@ -39,7 +39,7 @@ class EndSwitch
     ports::IEndSwitch &_maxSwitch;
 
   public:
-    EndSwitch(Mount *mount, StepperAxis axis, ports::IEndSwitch &minSwitch, ports::IEndSwitch &maxSwitch);
+    EndSwitch(app::UiPorts &ports, StepperAxis axis, ports::IEndSwitch &minSwitch, ports::IEndSwitch &maxSwitch);
     void processEndSwitchState();
     void checkSwitchState();
 };

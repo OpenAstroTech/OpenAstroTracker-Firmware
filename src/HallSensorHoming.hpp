@@ -3,9 +3,10 @@
 
 #include "Types.hpp"
 #include "core/HomingController.hpp"
+#include "app/UiPorts.hpp"
 #include "ports/IHomingSensor.hpp"
+#include "ports/IStatusFlags.hpp"
 
-class Mount;
 
 /////////////////////////////////
 //
@@ -22,14 +23,15 @@ class HallSensorHoming
 {
   private:
     core::HomingController _controller;
-    Mount *_pMount;
+    app::UiPorts &_ui;
+    ports::IStatusFlags &_status;
     StepperAxis _axis;
     ports::IHomingSensor &_sensor;
     uint8_t _savedRate;
     bool _wasTracking;
 
   public:
-    HallSensorHoming(Mount *mount, StepperAxis axis, ports::IHomingSensor &sensor);
+    HallSensorHoming(app::UiPorts &ports, ports::IStatusFlags &status, StepperAxis axis, ports::IHomingSensor &sensor);
 
     bool findHomeByHallSensor(int initialDirection, int searchDistanceDegrees);
     void processHomingProgress();

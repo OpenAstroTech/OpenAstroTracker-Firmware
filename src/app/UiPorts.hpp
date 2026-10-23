@@ -46,3 +46,8 @@ struct UiPorts {
 };
 
 }  // namespace app
+
+/// The one instance the firmware uses; defined in `BoardWiring.cpp` next to the object graph it
+/// points at. Global so the menu headers, which are included into one translation unit, can name
+/// it without a namespace qualifier at ~200 call sites.
+extern app::UiPorts ui;

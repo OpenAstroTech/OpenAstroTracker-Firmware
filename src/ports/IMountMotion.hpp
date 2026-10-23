@@ -38,6 +38,9 @@ class IMountMotion
     virtual void guidePulse(uint8_t direction, int duration)  = 0;
     virtual void moveStepperBy(StepperAxis which, long steps) = 0;
 
+    /// Moves one axis to an absolute position without changing the tracking/guide axes.
+    virtual void moveStepperTo(StepperAxis which, long position) = 0;
+
     virtual bool isSlewingRAorDEC() const = 0;
     virtual bool isSlewingTRK() const     = 0;
 
