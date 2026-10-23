@@ -252,6 +252,7 @@ OpenAstroTracker-Firmware/
 │   │   │   ├── MeadeParserHelpers.cpp/.hpp
 │   │   │   ├── CommandAssembler.hpp      # byte stream -> whole commands
 │   │   │   ├── PendingReplies.hpp        # deferred replies owed to a host
+│   │   │   ├── MountStatusReport.cpp/.hpp# the `:D#` status line
 │   │   │   └── MeadeParser{Get,Set,Quit,Distance,Init,SyncControl,
 │   │   │       Home,SlewRate,Gps,Focus,Movement,Extra}.cpp
 │   │   ├── types/
@@ -265,6 +266,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── CalendarMath.cpp/.hpp        # date arithmetic, local -> UTC date
 │   │   ├── CoordinateFormatter.cpp/.hpp # RA/DEC text formatting
 │   │   ├── CoordinateRead.cpp/.hpp      # stepper positions -> RA/DEC
+│   │   ├── ActivityState.cpp/.hpp        # status bits -> Parked/Slewing/… classification
 │   │   ├── TrackingController.hpp/.cpp  # sidereal rate, tracker-stop compensation
 │   │   ├── SlewController.hpp/.cpp      # slew state machine
 │   │   ├── GuidingController.hpp/.cpp   # guide-pulse math and timing
