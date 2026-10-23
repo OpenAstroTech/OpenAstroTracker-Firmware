@@ -31,7 +31,7 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 
 //SoftwareSerial SoftSerial(GPS_SERIAL_RX_PIN, GPS_SERIAL_TX_PIN); // RX, TX
-TinyGPSPlus gps;
+extern TinyGPSPlus gps;
 #endif
 
 ////////////////////////////////////
@@ -89,21 +89,23 @@ TinyGPSPlus gps;
 // How many menu items at most?
 #define MAXMENUITEMS 11
 
+// These are defined once, in `app/BoardWiring.cpp`, so this header can be included from more
+// than one translation unit. They are UI state, which is why the composition root owns them.
 #if SUPPORT_GUIDED_STARTUP == 1
-bool inStartup = true;  // Start with a guided startup
+extern bool inStartup;  // Start with a guided startup
 #else
-bool inStartup = false;  // Start with a guided startup
+extern bool inStartup;  // Start with a guided startup
 #endif
 
 // Serial control variables
-bool okToUpdateMenu                = true;   // Can be used to supress rendering the first line of the menu.
-bool quitSerialOnNextButtonRelease = false;  // Used to detect SELECT button to quit Serial mode.
+extern bool okToUpdateMenu;                // Can be used to supress rendering the first line of the menu.
+extern bool quitSerialOnNextButtonRelease;  // Used to detect SELECT button to quit Serial mode.
 
 // RA variables
-int RAselect;
+extern int RAselect;
 
 // DEC variables
-int DECselect;
+extern int DECselect;
 
 // HA variables
-int HAselect;
+extern int HAselect;
