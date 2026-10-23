@@ -171,6 +171,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── main.cpp                     # entry point replacing the .ino sketch (done)
 │   │   ├── BoardWiring.hpp/.cpp         # assembles the object graph for a board (done)
 │   │   ├── SerialPump.hpp               # serial-control loop + transport construction (done)
+│   │   ├── MotorWiring.hpp/.cpp         # builds every axis engine for the board (done)
 │   │   └── MountConfigBuilder.hpp       # Configuration*.hpp -> runtime MountConfig (done)
 │   │
 │   ├── adapters/                        # PORT -> HAL GLUE
@@ -232,6 +233,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── EepromLayout.hpp             # storage layout constants
 │   │   ├── InMemoryEeprom.hpp           # RAM-backed IEeprom (USE_DUMMY_EEPROM builds)
 │   │   ├── WarningGuard.hpp             # PUSH/POP_NO_WARNINGS fallbacks for backends
+│   │   ├── StepperMotorFactory.*        # axis role -> engine for the current platform
 │   │   ├── arduino/                     # generic Arduino backends:
 │   │   │   ├── ArduinoSystemClock.*     #   ISystemClock
 │   │   │   ├── ArduinoGpioPin.*         #   IGpioPin
@@ -241,6 +243,8 @@ OpenAstroTracker-Firmware/
 │   │   ├── avr/                         # AVR timer-ISR engines and vectors:
 │   │   │   ├── InterruptAccelStepper.h  #   vendored ISR-driven engine
 │   │   │   ├── InterruptStepperMotor.hpp#   IStepperMotor over an ISR engine
+│   │   │   ├── InterruptStepperFactory.hpp #  one factory per axis role
+│   │   │   ├── StepperConfiguration.hpp #   engine types and slew/trk rates
 │   │   │   └── TimerIsrVectors.cpp      #   TIMER1/3/4/5 ISR vectors
 │   │   ├── esp32/                       # Esp32TimerService, Esp32WifiStack
 │   │   └── rp2040/                      # Rp2040TimerService
@@ -437,7 +441,7 @@ The 116 public methods of `Mount` are redistributed, not renamed:
 | status queries (`isSlewing*`, `isGuiding`, `mountStatus`, `getStepperProgress`) | `MountState` reads; the progress arithmetic is already `core::SlewProgressReport` |
 | coordinate math / formatting (`calculateLst`, `calculateRAandDECSteppers`, `RAString`, `getLocalDate`) | `core/` algorithms (done in Phase 1; `checkRALimit` joined them in Phase 6 as `core::RaTrackingLimit`) |
 | configuration and persistence (`readConfiguration`, `setStepsPerDegree`, limits, calibration, homing offset) | `IPersistentStore` + `MountConfig` |
-| hardware bring-up (`configure*Stepper`, `configure*driver`, `connectToDriver`, `setupEndSwitches`, `testRA_UART_TX`) | `app/` composition root + `hal/` |
+| hardware bring-up (`configure*driver`, `connectToDriver`, `setupEndSwitches`, `testRA_UART_TX`) | `app/` composition root + `hal/`. The axes are already there: `app::attachSteppers()` builds every engine and `Mount` only wires them in |
 | loop and ISR (`loop`, `interruptLoop`, `delay`, `waitUntil*`) | `update()`, the platform ISR, or deleted |
 | UI and diagnostics (`getStatusString`, `getMountHardwareInfo`, `getNumCommandsReceived`) | display adapters, `EventBus` subscribers, `MountState`. The panel is already off this list: `InfoDisplayPanel` owns it and ticks it from the loop |
 
