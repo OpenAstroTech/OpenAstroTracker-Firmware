@@ -280,6 +280,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── ActivityState.cpp/.hpp        # status bits -> Parked/Slewing/… classification
 │   │   ├── SyncAdjustment.cpp/.hpp       # zero-point correction a sync applies
 │   │   ├── FirmwareVersion.cpp/.hpp      # VERSION -> EEPROM migration number
+│   │   ├── PersistentConfig.cpp/.hpp     # store load + version migration + DEC limits
 │   │   ├── DecLimitClamp.cpp/.hpp        # DEC travel-limit policy ("0" = no limit)
 │   │   ├── MountRuntimeSettings.hpp      # live EEPROM-backed motion settings
 │   │   ├── SiteTime.cpp/.hpp             # latitude/longitude/LST + the session clock

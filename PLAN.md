@@ -662,12 +662,14 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 
    | # | Slice | Source | Target | Lines out | Risk |
    |---|---|---|---|---|---|
-   | 5.1 | **Persistence and migration** | `readPersistentData` (103), `clearConfiguration`, the `lastFlashed < 11307` rule, DEC-limit defaults | `core::PersistentConfig` over `ports::IMountSettings` ↔ (`core::MountRuntimeSettings`, `core::SiteTime`) | ~110 | low — pure data flow, host-testable |
+   | 5.1 ✅ | **Persistence and migration** | `readPersistentData` (103), `clearConfiguration`, the `lastFlashed < 11307` rule, DEC-limit defaults | `core::PersistentConfig` over `ports::IMountSettings` ↔ (`core::MountRuntimeSettings`, `core::SiteTime`) | ~110 | low — pure data flow, host-testable |
    | 5.2 | **Hardware/stepper info text** | `getMountHardwareInfo` (104), `getStepperInfo` (~50) | `core::` builders writing into a caller buffer | ~150 | low — formatting only |
    | 5.3 | **Status and coordinate text** | `getStatusStateString`, `raText`/`decText` remainders, `RAString`/`DECString` leftovers | `core::CoordinateFormatter` + `core::ActivityState` | ~80 | low — frozen strings, byte-compare tests |
    | 5.4 | **Motion sequencing** | `startSlewing` (114), `startSlewingToTarget` (59), `startSlewingToHome` (56), `stopGuiding` (57), `moveStepperBy` (89), `setSpeed` (65), `setManualSlewMode` | `core::` plan builders returning a step list; `Mount` executes | ~440 | medium — the sequencing is the domain |
    | 5.5 | **Port adapters** | the twelve `IMountSiteTime` writes, `IStatusFlags`, `IInfoDisplaySource` | small `adapters/` classes over `MountCoordinator` + the seam from 5.1 | ~120 | medium — the EEPROM/hemisphere side effects decide the shape |
    | 5.6 | **The tick** | `loop` (282), `interruptLoop` (94), `updateDriftAlignment` (53) | driven from `app/` off `MountCoordinator::tick()` | ~430 | high — the AVR backend runs part of it in ISR context, must be bench-verified |
+
+   **5.1 Persistence — done.** `core::PersistentConfig` holds `loadPersistedSettings()`, `applyVersionMigration()` (including the 1.13.07 rule that zeroes AZ/ALT home positions) and `decLimitsFromStored()`, with eleven host tests against a new `fakes::FakeMountSettings`. `Mount::readPersistentData()` keeps the side effects (tracking calibration, axis seeding, hemisphere) and its logging; ramps flash dropped 112 bytes.
 
    **5.1 Persistence** is first because it is the largest block of behaviour with *no host test at all* today: 45 direct store calls and an upgrade rule that silently resets the AZ/ALT home positions on any jump from before 1.13.7. The store interface already exists (`ports::IMountSettings`) and there is already a RAM-backed fake (`hal::InMemoryEeprom`), so the whole load/save/migrate cycle becomes testable the day it moves. It also fixes a structural wart: `Mount` currently reads a dozen values out of the store one at a time and writes each into a different member.
 
