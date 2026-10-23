@@ -605,21 +605,32 @@ defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wi
 
 ### Phase 7 — Retire the legacy root: `app/` composes, `Mount` is deleted
 
-*Status: planned. This phase closes the two gaps left after Phase 6: the composition root still lives
-in `src/b_setup.hpp` (with `a_inits.hpp`, `f_serial.hpp`, `c_buttons.hpp` beside it), AVR still
-constructs its engines inside `Mount` instead of through `hal/avr/`, and the `Mount` facade is still
-the object every UI screen talks to. Each step is independently shippable; the `Mount` deletion is the
-last one because it is gated on every remaining `mount.*` call site migrating first.*
+*Status: **in progress** — steps 1 and 2 have landed; steps 3 and 4 remain and are gated on bench
+sessions because every remaining call site is a UI screen or a peripheral. This phase closes the two
+gaps left after Phase 6: the composition root still lived in `src/b_setup.hpp` (with `a_inits.hpp`,
+`f_serial.hpp`, `c_buttons.hpp` beside it), AVR constructed its engines inside `Mount` instead of
+through `hal/avr/`, and the `Mount` facade is still the object every UI screen talks to. Each step is
+independently shippable; the `Mount` deletion is the last one because it is gated on every remaining
+`mount.*` call site migrating first.*
 
-1. **`src/app/` becomes the real composition root.**
-   - `app/main.cpp` (the entry point) + `app/BoardWiring.hpp/.cpp` replace `b_setup.hpp`'s wiring: the clock, scheduler, logger, EEPROM backend, settings store, enable pins, axes, drivers, the coordinator and its controllers, the six mount ports, the transports, and the display.
-   - `a_inits.hpp` globals become `app`-owned objects with defined lifetime; `f_serial.hpp`'s pump (framing, ACK probe, reply deadlines) becomes an `app` function or a small transport driver; `c_buttons.hpp` becomes an adapter over `hal::IButtonMatrix`.
-   - `OpenAstroTracker-Firmware.ino` shrinks to include `app/main.cpp`; `build_src_filter` picks up `app/` for every board.
+**Landed so far:**
 
-2. **AVR goes through `hal/avr/` like the other platforms.**
-   - `hal/avr/` already holds `InterruptAccelStepper.h`, `InterruptStepperMotor.hpp` and `TimerIsrVectors.cpp`. Move the engine construction and selection (`makeInterruptAxis`, the `#include` + `#ifdef NEW_STEPPER_LIB` block in `Mount.cpp`) into a `hal/avr` factory the composition root calls, so nothing above `hal/` names an AVR engine.
-   - Let every axis go through `hal::IStepperMotor` on AVR, not just the optional three. The vtable cost this decision once forbade is accepted: the headless-AVR decision (Phase 4) freed the flash, and the remaining wrapper overhead is negligible at the current margins (≈62 % flash on `ramps`).
-   - Keep the `-<hal/avr/>` exclusions on the ESP32/RP2040 envs, and mirror them for any future platform.
+- ✅ `src/StepperConfiguration.hpp` moved to `hal/avr/`; `hal/avr/InterruptStepperFactory.hpp` builds every AVR engine behind `IStepperMotor`. `Mount` now holds `ports::IStepperAxis *` for all axes on all platforms and `MountCoordinator<ports::IStepperAxis>` unconditionally.
+- ✅ `src/Core.cpp` → `src/app/main.cpp`.
+- ✅ `app/BoardWiring.hpp/.cpp` own the object graph in one translation unit (clock, scheduler, logger, EEPROM + settings store, enable pins, menu singletons, `mount`, the panel, Wi-Fi). `setup()` moved to `app/main.cpp`; `b_setup.hpp` is a 25-line compatibility shim.
+- ✅ `a_inits.hpp`'s mutable globals are `extern` declarations defined by the composition root, so the header is multi-TU safe.
+- ✅ `src/f_serial.hpp` → `src/app/SerialPump.hpp`.
+
+1. 🟡 **`src/app/` becomes the real composition root.**
+   - ✅ `app/main.cpp` + `app/BoardWiring.hpp/.cpp` replace `b_setup.hpp`'s wiring: the clock, scheduler, logger, EEPROM backend, settings store, enable pins, the coordinator and its controllers, the six mount ports, the transports, and the display. The axes and drivers are still created by `Mount::configure*`, because the UI reads them through `mount`.
+   - 🟡 `a_inits.hpp` globals are `app`-owned with defined lifetime (done); `f_serial.hpp`'s pump moved to `app/SerialPump.hpp` (done); **`c_buttons.hpp` is still the UI loop** and becomes an adapter over `hal::IButtonMatrix` when the menu screens migrate (step 3.4).
+   - The `.ino` sketch stays a comment file: `setup()`/`loop()` are defined in `app/main.cpp`, which PlatformIO and the Arduino IDE both compile from `src/`.
+   - 🟡 `build_src_filter` picks up `app/` on every board — true by construction (`+<*>`), and proven by the board builds.
+
+2. ✅ **AVR goes through `hal/avr/` like the other platforms.**
+   - ✅ `src/StepperConfiguration.hpp` moved to `hal/avr/`; engine construction and selection moved out of `Mount.cpp` into [`hal/avr/InterruptStepperFactory.hpp`](src/hal/avr/InterruptStepperFactory.hpp), so nothing above `hal/` names an AVR engine.
+   - ✅ Every axis goes through `hal::IStepperMotor` on AVR, not just the optional three. Measured on `ramps`: 6419 B RAM (78.4 %), 173450 B flash (66.4 %) — the wrapper cost the earlier decision avoided, now accepted.
+   - ✅ `-<hal/avr/>` exclusions on ESP32/RP2040 were already in place from Phase 4.
 
 3. **Migrate the remaining `Mount` consumers, then delete `Mount`.** In dependency order, so each step leaves a green build:
    1. **SSD1306 renderer** — write the `Ssd1306InfoDisplay` adapter (`IInfoDisplay` ← `hal::IOledPanel`) and render from the snapshot struct; delete the `InfoDisplayRender::renderScreen(Mount &)` pull side.

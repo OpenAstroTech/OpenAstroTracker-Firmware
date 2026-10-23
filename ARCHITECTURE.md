@@ -135,7 +135,7 @@ with what would finish it:
 | `SSD1306_128x64_Display` | renders from `Mount` (pull) behind `InfoDisplayPanel` (push): `Mount` no longer calls it, but it still reads it | render from `ports::IInfoDisplay`'s snapshot struct instead of the mount |
 | `EPROMStore` | static facade kept for the menu screens; `Mount` already uses `ports::IMountSettings` | delete once the menus use the typed store |
 | `Gyro`, `HallSensorHoming`, `EndSwitches` | hardware-coupled helpers `Mount` still calls directly; the `IGyro`, `IHomingSensor` and `IEndSwitch` ports exist but nothing implements them yet | adapters over `hal::II2cBus` / `hal::IGpioPin` — the homing one needs the polling-rate decision recorded in `core/HomingController` |
-| `b_setup.hpp`, `a_inits.hpp`, `c_buttons.hpp`, `f_serial.hpp` | they are the composition root and the loop, but in `src/` instead of `app/` | move wholesale; no design change |
+| `c_buttons.hpp`, `a_inits.hpp`, `b_setup.hpp` | the object graph and the entry point have moved to `app/` (`BoardWiring`, `main.cpp`, `SerialPump.hpp`); what is left is the UI loop and the globals the menu screens still read | move with the menu screens (step 4 of Phase 7); no design change |
 
 ---
 
@@ -168,9 +168,10 @@ OpenAstroTracker-Firmware/
 ├── src/
 │   │
 │   ├── app/                             # COMPOSITION ROOT
-│   │   ├── main.cpp                     # entry point replacing the .ino sketch
-│   │   ├── MountConfigBuilder.hpp/.cpp  # Configuration*.hpp -> runtime MountConfig
-│   │   └── BoardWiring.hpp/.cpp         # assembles the object graph for a board
+│   │   ├── main.cpp                     # entry point replacing the .ino sketch (done)
+│   │   ├── BoardWiring.hpp/.cpp         # assembles the object graph for a board (done)
+│   │   ├── SerialPump.hpp               # serial-control loop + transport construction (done)
+│   │   └── MountConfigBuilder.hpp       # Configuration*.hpp -> runtime MountConfig (done)
 │   │
 │   ├── adapters/                        # PORT -> HAL GLUE
 │   │   ├── ArduinoClock.hpp/.cpp        # IClock            <- ISystemClock          (done)
@@ -472,16 +473,22 @@ main loop, which is a separate change and unverifiable without the hardware.
 
 ### What the composition root wires today
 
-`src/b_setup.hpp` is the composition root until `src/app/` exists. It owns the single instances and
-hands `Mount` one `MountDeps` value: the clock, the scheduler, the logger, the typed settings store,
-and the driver enable pins this board compiles in. Nothing below it constructs a backend or reads a
-`Configuration*.hpp` macro.
+`src/app/BoardWiring.cpp` is the composition root: one translation unit, definitions in construction
+order, nothing below it constructs a backend or reads a `Configuration*.hpp` macro. It owns the clock,
+scheduler and logger, the EEPROM backend and the settings store, the display/menu singletons, the
+enable pins this board compiles in, the `Mount` itself, the optional status panel and the Wi-Fi
+controller. `src/app/main.cpp` holds `setup()`; `src/app/SerialPump.hpp` holds the serial-control
+loop. `Mount` receives one `MountDeps` value with the clock, the scheduler, the logger, the typed
+settings store and the driver enable pins.
 
 - A board without AZ/ALT/Focus gets no `MountDeps` entry for that axis, so no RAM goes to a pointer
   nothing reads; each enable pin costs a pointer plus a two-byte `ArduinoGpioPin`.
 - With `DEBUG_LEVEL == DEBUG_NONE` the root installs `adapters::NullLogger` instead of
   `SerialLogger`: `OAT_LOG()` compiles out, so a serial sink would be a vtable and a few bytes of
   the ATmega2560's 8 KB spent on calls that can never happen.
+- The mutable globals the menu screens read (`inStartup`, `okToUpdateMenu`, `quitSerialOnNextButtonRelease`,
+  `RAselect`/`DECselect`/`HAselect`, `gps`) are declared `extern` in `src/a_inits.hpp` and defined
+  here, so that header is safe to include from more than one translation unit.
 - `EEPROMStore` keeps its static facade for the menu screens and the Meade adapter. It is handed the
   same `IPersistentStore` and `ILogger` here (`setStore`, `setLogger`), and `Mount` reaches the typed
   settings through `ports::IMountSettings` instead of naming the facade.
@@ -539,7 +546,7 @@ the need in `ports/`, touch hardware only in `hal/` and `adapters/`, and wire th
 | A **persisted setting** | a field in `hal/EepromLayout.hpp`, an accessor pair on `ports::IMountSettings`, the read/write in `EepromPersistentStore` + `MountSettingsStore` | `test_hal/test_eeprom_layout.cpp` (layout), `test_adapters` (round-trip) |
 | An **optional axis or peripheral** | a port entry that is a no-op when absent (the null-object shape), not an `#if` | the null object's no-op behaviour, plus the board that has it |
 | A **status panel / display element** | a `core::IEventSink` subscriber fed by `core::EventBus`, ticked from the loop — never called by `Mount` | the board with the panel; the event contract in `test_event_bus` |
-| A **board** | `boards/<board>/pins_<board>.h`, `Configuration_local_<board>.hpp`, a PIO env, and the branch in `src/b_setup.hpp` | `python matrix_build.py -b <board>` |
+| A **board** | `boards/<board>/pins_<board>.h`, `Configuration_local_<board>.hpp`, a PIO env, and the branch in `src/app/BoardWiring.cpp` | `python matrix_build.py -b <board>` |
 
 Two things never move inwards: a library name (belongs in `hal/`) and a wire format (belongs in
 `core/meade/`). One thing never moves outwards: a decision.
