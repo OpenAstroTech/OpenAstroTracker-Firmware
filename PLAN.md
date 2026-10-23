@@ -67,7 +67,7 @@ graph TD
 | **core/** | `src/core/` | `ports/` only | Domain controllers (`SlewController`, `TrackingController`, …), algorithms (`SiderealClock`, `CoordinateMath`, …), `MeadeParser`, `MountState`, `EventBus`, `MountConfig` | Pure unit tests with hand-written fakes of the ports. No hardware, no Arduino. `native` env. |
 | **ports/** | `src/ports/` | nothing | Domain interfaces: `IClock`, `ILogger`, `IPersistentStore`, `IStepperAxis`, `IMotorDriver`, `IDisplay`, `IHomingSensor`, `IEndSwitch`, `IGps`, `ITransport` | Pure abstract interfaces — no implementation to test. |
 | **adapters/** | `src/adapters/` | `ports/` + `hal/` | Thin glue: `StepperAxis`, `EepromPersistentStore`, `SerialLogger`, `Tmc2209Driver`, `HallHomingSensor`, `SerialTransport`, `WifiTransport`, `MeadeCommandAdapter` | Integration tests: adapter → faked HAL port. |
-| **hal/** | `src/hal/` | hardware libraries only | Interfaces (`IGpioPin`, `ISerialPort`, `IStepperMotor`, `ITmcDriver`, `ISystemClock`, `ITimerService`, …) + backends under `hal/arduino/` (generic Arduino, used by every platform), `hal/esp32/` and `hal/rp2040/`. AVR has no backend — the compile-time-specialised engines stay concrete (Phase 2b, step 6) | Not host-tested (wraps hardware). Verified by on-device smoke tests. |
+| **hal/** | `src/hal/` | hardware libraries only | Interfaces (`IGpioPin`, `ISerialPort`, `IStepperMotor`, `ITmcDriver`, `ISystemClock`, `ITimerService`, …) + backends under `hal/arduino/` (generic Arduino, used by every platform), `hal/avr/` (the vendored timer-ISR engines behind `InterruptStepperMotor`), `hal/esp32/` and `hal/rp2040/`. | Not host-tested (wraps hardware). Verified by on-device smoke tests. |
 | **app/** | `src/app/` | all layers | Composition root. Board-specific configuration comes from a header (e.g. `Configuration_local_oaeboardv1.hpp`, selected by the PIO environment) which populates a runtime `MountConfig` struct. Wires up the object graph. Replaces the legacy `.ino` entry point. | Verified by on-device smoke tests across the CI-matrix boards. |
 
 **Why both `hal/` and `ports/`:**
@@ -141,7 +141,8 @@ What is left is UI, and it is listed with its exit in
 (~170 `mount.*` call sites), the SSD1306 renderer's pull side, `EPROMStore`'s static facade, three
 hardware helpers (`Gyro`, `HallSensorHoming`, `EndSwitches`) whose ports exist but have no adapter,
 and the four composition-root/loop files that should move to `src/app/`. None of them is a design
-question any more; each is a bounded piece of work with a bench session attached.
+question any more; each is a bounded piece of work with a bench session attached. **Phase 7 (below)
+is the plan that finishes this list and deletes the legacy root.**
 
 ---
 
@@ -292,7 +293,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 4. ✅ Update **build configuration** — all of it belongs in 2a, because nothing references the new interfaces yet:
    - **`native` env:** compiles *all* of `src/adapters/` and none of `src/hal/`. With the stepper library confined to `hal/`, `StepperAxis` stays pure and needs no per-file exclusion; if a future adapter must include an Arduino header, add an exclusion rather than moving it into `hal/`. Add `test_adapters` to `test_filter` so adapter tests actually run (today only `test_core` + `test_hal` are filtered).
    - **Every embedded env needs platform source filters.** `[common_embedded]` uses `src_filter = +<*>` (minus `libs/`), so without exclusions the AVR build would try to compile `hal/esp32/` and `hal/rp2040/` the moment they exist. Add per-env `build_src_filter`: AVR (`ramps`, `mksgenlv1/v2/v21`) → `-<hal/esp32/> -<hal/rp2040/>`; `esp32` + `oaeboardv1` → `-<hal/avr/> -<hal/rp2040/>`; `rp2040_jackw01` + `rp2040_skr_pico` → `-<hal/avr/> -<hal/esp32/>`.
-     - Done: the AVR and RP2040 halves are in place. The `-<hal/avr/>` exclusions were **not** added, because 2b dropped the AVR backend (see step 2) so the directory has never existed — add them to the ESP32 and RP2040 envs if one appears.
+     - Done: the AVR and RP2040 halves are in place. The `-<hal/avr/>` exclusions were **not** added here, because 2b dropped the AVR backend (see step 2) so the directory did not exist yet. **Superseded in Phase 4:** when `hal/avr/` landed, `[env:esp32]` and `[common_rp2xxx]` gained the `-<hal/avr/>` exclusion beside the existing ones.
    - **AVR C++-standard spike.** The AVR envs set no `-std` and inherit **gnu++11** from the Arduino core on **avr-gcc 7.3.0**, yet they compile all of `src/core/**`. Until this spike proves otherwise, `core/` must stay C++11-compatible: keep `etl::optional` (header-only, C++11-safe) and **avoid `if constexpr`**. Try `-std=gnu++14`, then `gnu++17`, on `ramps`; record the outcome here.
      - **Outcome (measured):** both standards build and link on `ramps` with avr-gcc 7.3.0. A `-std=gnu++17` in `build_flags` reaches every `src/` TU without any `build_unflags`, leaving the Arduino core on its own gnu++11. Flash and RAM came out byte-identical to the gnu++11 build, so raising the standard costs nothing. (The vendored `InterruptStepper` library already builds itself with `-std=c++17`, so the AVR toolchain was in fact already mixing standards.)
      - **Decision: stay C++11.** The firmware still supports Arduino IDE builds, which compile AVR sketches with the core's default standard; using C++17 in `core/` would silently break that path. The spike proves C++17 is available if that constraint is ever dropped.
@@ -602,6 +603,40 @@ defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wi
 
 ---
 
+### Phase 7 — Retire the legacy root: `app/` composes, `Mount` is deleted
+
+*Status: planned. This phase closes the two gaps left after Phase 6: the composition root still lives
+in `src/b_setup.hpp` (with `a_inits.hpp`, `f_serial.hpp`, `c_buttons.hpp` beside it), AVR still
+constructs its engines inside `Mount` instead of through `hal/avr/`, and the `Mount` facade is still
+the object every UI screen talks to. Each step is independently shippable; the `Mount` deletion is the
+last one because it is gated on every remaining `mount.*` call site migrating first.*
+
+1. **`src/app/` becomes the real composition root.**
+   - `app/main.cpp` (the entry point) + `app/BoardWiring.hpp/.cpp` replace `b_setup.hpp`'s wiring: the clock, scheduler, logger, EEPROM backend, settings store, enable pins, axes, drivers, the coordinator and its controllers, the six mount ports, the transports, and the display.
+   - `a_inits.hpp` globals become `app`-owned objects with defined lifetime; `f_serial.hpp`'s pump (framing, ACK probe, reply deadlines) becomes an `app` function or a small transport driver; `c_buttons.hpp` becomes an adapter over `hal::IButtonMatrix`.
+   - `OpenAstroTracker-Firmware.ino` shrinks to include `app/main.cpp`; `build_src_filter` picks up `app/` for every board.
+
+2. **AVR goes through `hal/avr/` like the other platforms.**
+   - `hal/avr/` already holds `InterruptAccelStepper.h`, `InterruptStepperMotor.hpp` and `TimerIsrVectors.cpp`. Move the engine construction and selection (`makeInterruptAxis`, the `#include` + `#ifdef NEW_STEPPER_LIB` block in `Mount.cpp`) into a `hal/avr` factory the composition root calls, so nothing above `hal/` names an AVR engine.
+   - Let every axis go through `hal::IStepperMotor` on AVR, not just the optional three. The vtable cost this decision once forbade is accepted: the headless-AVR decision (Phase 4) freed the flash, and the remaining wrapper overhead is negligible at the current margins (≈62 % flash on `ramps`).
+   - Keep the `-<hal/avr/>` exclusions on the ESP32/RP2040 envs, and mirror them for any future platform.
+
+3. **Migrate the remaining `Mount` consumers, then delete `Mount`.** In dependency order, so each step leaves a green build:
+   1. **SSD1306 renderer** — write the `Ssd1306InfoDisplay` adapter (`IInfoDisplay` ← `hal::IOledPanel`) and render from the snapshot struct; delete the `InfoDisplayRender::renderScreen(Mount &)` pull side.
+   2. **`EPROMStore` facade** — point the menu screens and the Meade adapter at `ports::IMountSettings` (plus the raw store where needed) and delete the static facade.
+   3. **Peripheral helpers** — write `HallHomingSensor`, `GpioEndSwitch` and the `IGyro` adapter over `hal::II2cBus`/`hal::IGpioPin`; delete `Gyro`, `HallSensorHoming`, `EndSwitches`.
+   4. **Menu screens** — rewrite `c70…c78`, `LcdMenu`, `LcdButtons`, `LcdSlewStatus` and `testmenu` against `MountCoordinator` requests + `MountState` reads + `ports::IDisplay`/`IInfoDisplay`. This is the big one: ~200 `mount.*` call sites, one screen per bench session.
+   - When the last `mount.*` call site is gone, delete `Mount.hpp`/`Mount.cpp` and the now-unused legacy `src/` overlays (`DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension`, `Sidereal`, `EPROMStore`, `Gyro`, `HallSensorHoming`, `EndSwitches`, `SSD1306_128x64_Display`, `LcdMenu`, `LcdButtons`, `LcdSlewStatus`, `WifiControl`).
+   - `MeadeCommandAdapter` drops its `../Mount.hpp`, `../LcdMenu.hpp`, `../Gyro.hpp`, `../WifiControl.hpp` includes as each consumer migrates; it stays `Mount *`-free (already true at the type level).
+
+4. **Delete the sketch shims.**
+   - `inc/Globals.hpp`/`Globals.cpp` shrink to what `hal/` and `adapters/` actually need (or move into `app/`); `macros/` and `libs/` stay for the macros and vendored libraries.
+   - The `src/` root is then only what the layer directories need; nothing routes through it.
+
+**Verify:** each step — `pio test -e native` green; `scripts/check_architecture.py` clean; coverage gate ≥ 85 % on `core/`; the seven-board CI matrix green; and the hardware smoke checklist (slew, park, guide, home, LX200 round-trip) on at least one real mount per UI screen migrated. The final step's acceptance test is `src/Mount.*` not existing and no `Mount` class left anywhere in `src/`.
+
+---
+
 ## Relevant files
 
 ### Already migrated to `core/`
@@ -685,7 +720,7 @@ Manual smoke checklist (per shippable phase end):
 - **Config flags:** Migrate to **runtime polymorphism behind interfaces**; composition root reads the `Configuration*.hpp` macros once. `core/` becomes `#ifdef`-free for features.
 - **Optional axes:** Use `etl::optional` (from Embedded Template Library) — not `std::optional`. The firmware builds with `-D ETL_NO_STL` on AVR targets. `core/` uses `etl::optional` for consistency across all build targets. **Open:** `-D ETL_NO_STL` is already global via `[env]`, but ETL is not a `lib_deps` entry anywhere (`src/libs/` holds only `MappedDict` and `TimerInterrupt`) and nothing uses `etl::` yet — add ETL to `[common].lib_deps` and `[env:native].test_lib_deps` in Phase 2a before Phase 4 relies on it.
 - **Mount global migration:** `Mount` is currently a global variable (defined as `Mount mount(&lcdMenu);` in `src/b_setup.hpp`; the only `extern Mount mount;` is in `src/testmenu.cpp`). Call sites that use `mount.xxx()` will be migrated using the thin-overlay pattern: existing code delegates through the global during transition; when a module becomes a proper adapter (Phase 2+), it receives injected references instead. No flag day needed.
-- **Stepper axis layering:** `AccelStepperAxis` is neither a `core/` class nor a library-wrapping adapter. `IStepperAxis` (step-level contract) is implemented by one pure `adapters/StepperAxis` over `hal::IStepperMotor`; the motion engine lives in HAL — `hal/arduino/AccelStepperMotor` (`AccelStepper`, shared by ESP32 and RP2040). **AVR has no HAL engine wrapper**: the vendored `InterruptStepper` engines are compile-time specialised per axis and stay concrete in `Mount`, because a polymorphic wrapper per engine costs ~50 B of the 8 KB SRAM in vtables alone (Phase 2b, step 6). Rationale: `core/` may not include `<Arduino.h>`; library names belong in `hal/`; adapters stay host-testable and library-free; and the libraries are retained, not replaced (out of scope). A domain-side motion planner would be a separate `core/` concept, not this class.
+- **Stepper axis layering:** `AccelStepperAxis` is neither a `core/` class nor a library-wrapping adapter. `IStepperAxis` (step-level contract) is implemented by one pure `adapters/StepperAxis` over `hal::IStepperMotor`; the motion engine lives in HAL — `hal/arduino/AccelStepperMotor` (`AccelStepper`, shared by ESP32 and RP2040) and `hal/avr/InterruptStepperMotor` (the vendored timer-ISR engines). AVR uses `hal/avr/` like every other platform, not a special no-backend path; the wrapper cost is accepted as negligible now that the optional axes already go through it (Phase 4) and the headless-AVR decision freed the flash. Rationale: `core/` may not include `<Arduino.h>`; library names belong in `hal/`; adapters stay host-testable and library-free; and the libraries are retained, not replaced (out of scope). A domain-side motion planner would be a separate `core/` concept, not this class.
 - **AVR builds are headless by design — decided, not temporary.** An ATmega2560 build with a display sat at 94.9 % of flash (247848 / 261120 B) before any Phase 4 work, which is what blocked the phase. Dropping `DISPLAY_TYPE` + `INFO_DISPLAY_TYPE` on those boards frees **28.2 KB `DEBUG_NONE` / 32.6 KB `DEBUG_ANY`** of flash and 0.9 KB of SRAM; with that room Phase 4 finished at **163840 B (62.7 %)** on `ramps` with 97 KB to spare. The override lives in [`Configuration.hpp`](Configuration.hpp) and changes only the computed value, so restoring a board's display is one deletion away — and needs the flash found elsewhere first (GPS −8.5 KB, gyro −7.8 KB, both measured). ESP32 and RP2040 keep their displays.
 - **Runtime-optional AVR axes — landed once flash was freed (Phase 4 step 1).** *Superseded measurement:* the table below was taken before AVR display support was dropped. With that out of the way the wrapped axes fit, so **all boards now hold AZ/ALT/Focus as `ports::IStepperAxis*`, null when absent**, and `Mount` branches on `kHasAzStepper` / `kHasAltStepper` / `kHasFocusStepper` at the call site instead of on `#if`. `hal/avr/InterruptStepperMotor<Engine>` is the adapter that makes the AVR engines fit behind the interface; RA, DEC, TRK and GUIDE keep their concrete engines, and on AVR the step generator is still the engine's own ISR, so no virtual call reaches the stepping path. The `#if` that remains is creation and configuration only (`configure*Stepper`, `configure*Driver`, the type aliases), plus the hardware-report string that names the axis set at compile time.
 
