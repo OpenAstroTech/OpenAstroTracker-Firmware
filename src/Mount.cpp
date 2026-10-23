@@ -9,6 +9,7 @@
 #include "core/CalendarMath.hpp"
 #include "core/CoordinateFormatter.hpp"
 #include "core/CoordinateMath.hpp"
+#include "core/ActivityState.hpp"
 #include "core/CoordinateRead.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
@@ -2466,47 +2467,36 @@ void Mount::clearStatusFlag(int flag)
 /////////////////////////////////
 String Mount::getStatusStateString()
 {
-    String status;
-    if (_coordinator.state().isParked())
+    // The precedence lives in core::classifyActivity; the words stay here as flash literals,
+    // because on AVR a plain literal is copied into SRAM.
+    switch (core::classifyActivity(_coordinator.state(),
+                                   isFindingHome(),
+                                   isGuiding(),
+                                   _stepperRA->isRunning() || _stepperDEC->isRunning(),
+                                   _coordinator.state().test(STATUS_TRACKING)))
     {
-        status = F("Parked");
+        case core::ActivityState::Parked:
+            return F("Parked");
+        case core::ActivityState::Parking:
+            return F("Parking");
+        case core::ActivityState::Homing:
+            return F("Homing");
+        case core::ActivityState::Guiding:
+            return F("Guiding");
+        case core::ActivityState::SlewToTarget:
+            return F("SlewToTarget");
+        case core::ActivityState::FreeSlew:
+            return F("FreeSlew");
+        case core::ActivityState::ManualSlew:
+            return F("ManualSlew");
+        case core::ActivityState::Tracking:
+            return F("Tracking");
+        case core::ActivityState::Unknown:
+            return String();
+        case core::ActivityState::Idle:
+        default:
+            return F("Idle");
     }
-    else if (_coordinator.state().test(STATUS_PARKING) || _coordinator.state().test(STATUS_PARKING_POS))
-    {
-        status = F("Parking");
-    }
-    else if (isFindingHome())
-    {
-        status = F("Homing");
-    }
-    else if (isGuiding())
-    {
-        status = F("Guiding");
-    }
-    else if (slewStatus() & SLEW_MASK_ANY)
-    {
-        if (_coordinator.state().test(STATUS_SLEWING_TO_TARGET))
-        {
-            status = F("SlewToTarget");
-        }
-        else if (_coordinator.state().test(STATUS_SLEWING_FREE))
-        {
-            status = F("FreeSlew");
-        }
-        else if (_coordinator.state().test(STATUS_SLEWING_MANUAL))
-        {
-            status = F("ManualSlew");
-        }
-        else if (slewStatus() & SLEWING_TRACKING)
-        {
-            status = F("Tracking");
-        }
-    }
-    else
-    {
-        status = F("Idle");
-    }
-    return status;
 }
 /////////////////////////////////
 //
