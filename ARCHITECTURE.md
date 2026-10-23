@@ -131,7 +131,7 @@ with what would finish it:
 
 | Still outside | Why it is still there | What would finish it |
 |---|---|---|
-| `LcdMenu`, `LcdButtons`, `c7*_menu*.hpp` | ~170 `mount.*` call sites; a menu is a transaction against live mount state | a UI pass that talks to `MountCoordinator` requests plus `MountState` reads, done screen by screen |
+| `LcdMenu`, `LcdButtons`, `c7*_menu*.hpp` | moved: every screen now takes `app::UiPorts` (motion, configuration, read model, site/time, optional axes, clock, scheduler), so it names no `Mount` | the coordinator implements the same ports and `UiPorts` is built from it |
 | `SSD1306_128x64_Display` | renders from `Mount` (pull) behind `InfoDisplayPanel` (push): `Mount` no longer calls it, but it still reads it | render from `ports::IInfoDisplay`'s snapshot struct instead of the mount |
 | `EPROMStore` | static facade kept for the menu screens; `Mount` already uses `ports::IMountSettings` | delete once the menus use the typed store |
 | `Gyro`, `HallSensorHoming`, `EndSwitches` | hardware-coupled helpers `Mount` still calls directly; the `IGyro`, `IHomingSensor` and `IEndSwitch` ports exist but nothing implements them yet | adapters over `hal::II2cBus` / `hal::IGpioPin` — the homing one needs the polling-rate decision recorded in `core/HomingController` |
@@ -419,9 +419,9 @@ Four rules keep them from collapsing into each other:
 1. The coordinator exposes nothing but requests, `update()` and `state()`.
 2. The facade holds no members beyond its dependencies, validates nothing and sequences nothing.
 3. New code calls the coordinator; the facade's method list may only shrink.
-4. If the facade's surface starts mirroring the coordinator, delete it. The reason it is still here
-   is the ~170 `mount.*` call sites in the menu screens: deleting it means rewriting ten menu files
-   in one change, which is a UI refactor rather than a cleanup.
+4. If the facade's surface starts mirroring the coordinator, delete it. The menu screens no longer
+   reach it — they take `app::UiPorts` — so what keeps it alive is the object graph itself: `Mount`
+   still owns the axes and is what the composition root builds and ticks.
 
 The 116 public methods of `Mount` are redistributed, not renamed:
 
