@@ -13,6 +13,7 @@
 #include "core/meade/MountStatusReport.hpp"
 #include "core/CoordinateRead.hpp"
 #include "core/DecLimitClamp.hpp"
+#include "core/FirmwareVersion.hpp"
 #include "core/SiderealClock.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
@@ -174,13 +175,8 @@ void Mount::readPersistentData()
     // EEPROMStore will always return valid data, even if no data is present in the store
     int16_t lastFlashed = _deps.settings->getLastFlashedVersion();
 
-    // Calculate this running firmwares version.
-    String sVersion = String(VERSION);
-    int firstDot    = sVersion.indexOf(".");
-    int secondDot   = sVersion.indexOf(".", firstDot + 1);
-    int16_t version = 10000 * sVersion.substring(1, firstDot).toInt();
-    version += 100 * sVersion.substring(firstDot + 1, secondDot).toInt();
-    version += sVersion.substring(secondDot + 1).toInt();
+    // This running firmware's version, in the same form the store keeps.
+    const int16_t version = core::firmwareVersionCode(VERSION);
 
     if (lastFlashed != version)
     {
