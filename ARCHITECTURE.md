@@ -189,6 +189,8 @@ OpenAstroTracker-Firmware/
 │   │   ├── TinyGpsAdapter.hpp/.cpp      # IGps              <- TinyGPS++ + Stream    (done)
 │   │   ├── SerialTransport.hpp          # ITransport        <- ISerialPort (serial + Wi-Fi) (done)
 │   │   ├── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- the six mount ports (done)
+│   │   ├── WifiControl.hpp/.cpp          # Meade over TCP + SkyFi UDP discovery (done)
+│   │   ├── TcpConnectionPort.hpp/.cpp    # ISerialPort over ITcpConnection (done)
 │   │   ├── InfoDisplayPanel.hpp/.cpp    # IEventSink        -> InfoDisplayRender     (done)
 │   │   ├── HallHomingSensor.hpp/.cpp    # IHomingSensor     <- IGpioPin              (not built)
 │   │   ├── GpioEndSwitch.hpp/.cpp       # IEndSwitch        <- IGpioPin              (not built)
