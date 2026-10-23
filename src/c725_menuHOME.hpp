@@ -1,6 +1,6 @@
 #pragma once
 
-#include "b_setup.hpp"
+#include "app/BoardWiring.hpp"
 
 #if DISPLAY_TYPE > 0
 byte subGoIndex = 0;

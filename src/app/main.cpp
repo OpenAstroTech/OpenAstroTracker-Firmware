@@ -11,7 +11,21 @@
 #include "MotorWiring.hpp"
 
 #include "../a_inits.hpp"
-#include "../b_setup.hpp"
+#if defined(OAT_DEBUG_BUILD)
+    #if BOARD < 1000
+        #include "avr8-stub.h"
+    #else
+        #error "Debugging not supported on this platform"
+    #endif
+#endif
+
+#if TEST_VERIFY_MODE == 1
+    #include "../testmenu.hpp"
+#endif
+
+#ifndef NEW_STEPPER_LIB
+    #include "../hal/InterruptCallback.hpp"
+#endif
 #include "../LcdSlewStatus.hpp"
 #include "../c65_startup.hpp"
 #include "../c70_menuRA.hpp"

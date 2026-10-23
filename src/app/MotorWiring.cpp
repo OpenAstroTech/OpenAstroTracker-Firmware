@@ -26,9 +26,9 @@ constexpr float raSlewAcceleration   = config::Ra::ACCEL_SLEW;
 constexpr unsigned long decSlewSpeed = config::Dec::SPEED_SLEW;
 constexpr float decSlewAcceleration  = config::Dec::ACCEL_SLEW;
 #else
-constexpr unsigned long raSlewSpeed  = RA_STEPPER_SPEED;
-constexpr unsigned long raSlewAcceleration = RA_STEPPER_ACCELERATION;
-constexpr unsigned long decSlewSpeed = DEC_STEPPER_SPEED;
+constexpr unsigned long raSlewSpeed         = RA_STEPPER_SPEED;
+constexpr unsigned long raSlewAcceleration  = RA_STEPPER_ACCELERATION;
+constexpr unsigned long decSlewSpeed        = DEC_STEPPER_SPEED;
 constexpr unsigned long decSlewAcceleration = DEC_STEPPER_ACCELERATION;
 #endif
 }  // namespace
@@ -113,7 +113,7 @@ void attachSteppers(Mount &mount)
     LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/deg     : %f", mount.getStepsPerDegree(AZIMUTH_STEPS));
     LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/minute  : %f", AZIMUTH_STEPS_PER_ARC_MINUTE);
 
-    steppers.az = makeAxis(*hal::makeAxisMotor(hal::AxisRole::Az, AZmotorPin1, AZmotorPin2));
+    steppers.az           = makeAxis(*hal::makeAxisMotor(hal::AxisRole::Az, AZmotorPin1, AZmotorPin2));
     limits.azSpeed        = AZ_STEPPER_SPEED;
     limits.azAcceleration = AZ_STEPPER_ACCELERATION;
     steppers.az->setMaxSpeed(limits.azSpeed);
@@ -132,7 +132,7 @@ void attachSteppers(Mount &mount)
     LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/deg     : %f", mount.getStepsPerDegree(ALTITUDE_STEPS));
     LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/minute  : %f", ALTITUDE_STEPS_PER_ARC_MINUTE);
 
-    steppers.alt = makeAxis(*hal::makeAxisMotor(hal::AxisRole::Alt, ALTmotorPin1, ALTmotorPin2));
+    steppers.alt           = makeAxis(*hal::makeAxisMotor(hal::AxisRole::Alt, ALTmotorPin1, ALTmotorPin2));
     limits.altSpeed        = ALT_STEPPER_SPEED;
     limits.altAcceleration = ALT_STEPPER_ACCELERATION;
     steppers.alt->setMaxSpeed(limits.altSpeed);
@@ -145,7 +145,7 @@ void attachSteppers(Mount &mount)
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_ANY, "[STEPPERS]: Configure Focus stepper...");
 
-    steppers.focus = makeAxis(*hal::makeAxisMotor(hal::AxisRole::Focus, FOCUSmotorPin1, FOCUSmotorPin2));
+    steppers.focus           = makeAxis(*hal::makeAxisMotor(hal::AxisRole::Focus, FOCUSmotorPin1, FOCUSmotorPin2));
     limits.focusSpeed        = FOCUS_STEPPER_SPEED;
     limits.focusAcceleration = FOCUS_STEPPER_ACCELERATION;
     steppers.focus->setMaxSpeed(limits.focusSpeed);

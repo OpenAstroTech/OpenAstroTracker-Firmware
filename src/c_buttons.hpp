@@ -1,7 +1,7 @@
 #pragma once
 
 #include "LcdButtons.hpp"
-#include "b_setup.hpp"
+#include "app/BoardWiring.hpp"
 #include "c65_startup.hpp"
 #include "c70_menuRA.hpp"
 #include "c71_menuDEC.hpp"

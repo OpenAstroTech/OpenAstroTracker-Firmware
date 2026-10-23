@@ -90,7 +90,7 @@ using FocuserDirection = core::FocuserDirection;
 // Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
 //
 //////////////////////////////////////////////////////////////////
-/// Everything `Mount` is handed by the composition root (`src/b_setup.hpp` today).
+/// Everything `Mount` is handed by the composition root (`app/BoardWiring.*`).
 ///
 /// Entries exist only for the features compiled into this build, so a board without
 /// an AZ/ALT/Focus axis, or without the UART connection test, spends no RAM on
@@ -120,10 +120,9 @@ class Mount final : public ports::IMountOptionalAxes,
                     public ports::IStatusFlags
 {
   public:
-    /// The infrastructure ports are injected by the composition root
-    /// (`src/b_setup.hpp` today). The axes and drivers are created in the
-    /// `configure*` methods and owned by the mount for the lifetime of the program,
-    /// exactly as the concrete steppers used to be.
+    /// The infrastructure ports are injected by the composition root. The axes are built by
+    /// `app/MotorWiring.cpp` and handed over by `attachSteppers()`; the drivers still come in
+    /// through the `configure*driver` methods and live as long as the mount does.
     Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config);
 
     void initializeVariables();

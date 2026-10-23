@@ -5,7 +5,7 @@
     #include "testmenudef.hpp"
 #endif
 
-#include "../b_setup.hpp"
+#include "app/BoardWiring.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
     #include "adapters/MeadeCommandAdapter.hpp"
