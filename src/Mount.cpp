@@ -1865,16 +1865,6 @@ void Mount::setTrackingStepperPos(long stepPos)
     _stepperTRK->setCurrentPosition(stepPos);
 }
 
-void Mount::setEventSink(core::IEventSink *sink)
-{
-    _coordinator.subscribe(sink);
-}
-
-void Mount::clearEventSink(core::IEventSink *sink)
-{
-    _coordinator.unsubscribe(sink);
-}
-
 /// Records a fact for the tick boundary. The next `loop()` delivers it, so a subscriber
 /// is never called from inside the code that just changed the mount's state.
 void Mount::publishEvent(core::MountEventType type, bool succeeded)

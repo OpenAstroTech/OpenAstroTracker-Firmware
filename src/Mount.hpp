@@ -385,9 +385,6 @@ class Mount final : public ports::IMountOptionalAxes,
     /// status panel. Events are drained once per `loop()`, so an observer is never called
     /// from inside the code that published. Registration is per sink, so removing one leaves
     /// the other in place.
-    void setEventSink(core::IEventSink *sink);
-    void clearEventSink(core::IEventSink *sink);
-
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction) override;
 
