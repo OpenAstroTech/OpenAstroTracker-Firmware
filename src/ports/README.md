@@ -32,8 +32,11 @@ Adapters in [`../adapters/`](../adapters/) implement these ports on top of [`../
 ## Two contracts worth knowing
 
 - **`IStepperAxis` threading.** `snapshot()` is the only method an ISR may call; every
-  other method is main-loop-only. Timers are shared between axes, so ownership is
-  granted by the coordinator rather than assumed by an axis.
+  other method is main-loop-only. How steps are generated is the backend's business — a
+  timer ISR, a task, a polled engine, or a driver that generates them itself — so no
+  controller may assume a timer. What the coordinator arbitrates is the *actuator*: RA
+  and DEC each carry two logical roles, so a role holds the axis to the exclusion of the
+  other.
 - **`ILogger` and flash.** Format strings reach the logger as an opaque `LogFormat`
   built with `OAT_LOG_FORMAT()`, which is `PSTR()` on AVR. That single platform-specific
   line in `LogFormat.hpp` is what keeps the firmware's 273 format literals (13.9 KB) out
