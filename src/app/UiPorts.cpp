@@ -17,15 +17,20 @@ void UiPorts::delay(int ms)
     }
 }
 
+void UiPorts::tick()
+{
+    if (loop != nullptr)
+    {
+        loop();
+    }
+}
+
 void UiPorts::waitUntilStopped(int direction)
 {
     while (((direction & (EAST | WEST)) && read->isAxisRunning(RA_STEPS))
            || ((direction & (NORTH | SOUTH)) && read->isAxisRunning(DEC_STEPS)) || ((direction & FOCUSING) && axes->isRunningFocus()))
     {
-        if (loop != nullptr)
-        {
-            loop();
-        }
+        tick();
         scheduler->yield();
     }
 }

@@ -33,6 +33,9 @@ struct UiPorts {
     /// touching `millis()` or `yield()` directly.
     void delay(int ms);
 
+    /// One main-loop pass of the mount's bookkeeping.
+    void tick();
+
     /// Blocks until the axes named by `direction` (the `EAST|WEST|…|FOCUSING` bit set) stop.
     /// Ticks the mount between checks, as `Mount::waitUntilStopped()` did.
     void waitUntilStopped(int direction);

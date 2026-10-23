@@ -6,9 +6,9 @@
 
 #if (WIFI_ENABLED == 1)
 
-WifiControl::WifiControl(Mount *mount, LcdMenu *lcdMenu)
+WifiControl::WifiControl(void (*mountTick)(), LcdMenu *lcdMenu)
 {
-    _mount   = mount;
+    _mountTick = mountTick;
     _lcdMenu = lcdMenu;
 
     // `client` is a member, so its address is stable across `client = accept()`; one port and
@@ -186,7 +186,10 @@ void WifiControl::loop()
         }
     }
 
-    _mount->loop();
+    if (_mountTick != nullptr)
+    {
+        _mountTick();
+    }
 
     tcpLoop();
     udpLoop();
@@ -243,7 +246,10 @@ void WifiControl::tcpLoop()
             LOG(DEBUG_WIFI, "[WIFITCP]: No Reply");
         }
 
-        _mount->loop();
+        if (_mountTick != nullptr)
+        {
+            _mountTick();
+        }
     }
 
     if (_clientTransport->takeOverflow())

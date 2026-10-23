@@ -78,28 +78,28 @@ void loop()
     #endif
 
     // Give the mount a time slice to do its thing...
-    mount.loop();
+    ui.tick();
     serviceInfoDisplay();
 
     // The slew progress view owns the screen only while an axis is moving; the rest of the time
     // the menu draws it. This used to be a call from inside `Mount::loop()`.
-    if (mount.isAxisRunning(RA_STEPS) || mount.isAxisRunning(DEC_STEPS))
+    if (ui.read->isAxisRunning(RA_STEPS) || ui.read->isAxisRunning(DEC_STEPS))
     {
-        displayLcdSlewStatusThrottled(mount, lcdMenu);
+        displayLcdSlewStatusThrottled(ui, lcdMenu);
     }
 
     // Update the LCD display
     unsigned long now = millis();
-    if (!inSerialControl && okToUpdateMenu && !inStartup && !mount.isSlewingRAorDEC())
+    if (!inSerialControl && okToUpdateMenu && !inStartup && !ui.motion->isSlewingRAorDEC())
     {
         // Main menu display
         lcdMenu.updateDisplay();
     }
 
     // Tracking marker
-    if ((mount.isBootComplete()) && (now - lastTrackingStatusPrint > 200))
+    if ((ui.read->isBootComplete()) && (now - lastTrackingStatusPrint > 200))
     {
-        lcdMenu.printAt(15, 0, mount.isSlewingTRK() ? '&' : '`');
+        lcdMenu.printAt(15, 0, ui.motion->isSlewingTRK() ? '&' : '`');
         lastTrackingStatusPrint = now;
     }
 
@@ -207,7 +207,7 @@ void loop()
                     }
 
                     // Make sure tracker can still run while fiddling with menus....
-                    mount.loop();
+                    ui.tick();
                     serviceInfoDisplay();
                 } while (true);
             }

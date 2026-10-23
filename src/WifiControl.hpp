@@ -16,14 +16,13 @@
     #define WIFI_UDP_DISCOVERY_PORT 4031
 
 // Forward declarations
-class Mount;
 class LcdMenu;
 class MeadeCommandAdapter;
 
 class WifiControl
 {
   public:
-    WifiControl(Mount *mount, LcdMenu *lcdMenu);
+    WifiControl(void (*mountTick)(), LcdMenu *lcdMenu);
     void setup();
     void loop();
     String getStatus();
@@ -37,7 +36,7 @@ class WifiControl
     void establishServers();
     String getIP();
     wl_status_t _status = WL_DISCONNECTED;
-    Mount *_mount;
+    void (*_mountTick)();
     LcdMenu *_lcdMenu;
     MeadeCommandAdapter *_cmdProcessor;
 

@@ -233,7 +233,7 @@ void printControlSubmenu()
             }
             break;
         default:
-            displayLcdSlewStatusThrottled(mount, lcdMenu);
+            displayLcdSlewStatusThrottled(ui, lcdMenu);
             break;
     }
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 class LcdMenu;
-class Mount;
+namespace app { struct UiPorts; }
 
 /// The slew-progress view on the menu LCD.
 ///
@@ -12,7 +12,7 @@ class Mount;
 ///
 /// The state it shows is read, not owned: the percentages come from
 /// `Mount::getStepperProgress()`, and the two planned-move totals decide which axes get a bar.
-void displayLcdSlewStatus(Mount &mount, LcdMenu &menu);
+void displayLcdSlewStatus(app::UiPorts &ui, LcdMenu &menu);
 
 /// Same, but at most once per `DISPLAY_UPDATE_TIME`. This is what the main loop calls.
-void displayLcdSlewStatusThrottled(Mount &mount, LcdMenu &menu);
+void displayLcdSlewStatusThrottled(app::UiPorts &ui, LcdMenu &menu);

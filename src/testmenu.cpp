@@ -8,7 +8,6 @@
     #include "MappedDict.hpp"
     #include "testmenu.hpp"
 
-extern Mount mount;
 
 TestMenu *TestMenu::_currentMenu               = nullptr;
 TestMenuItem *TestMenu::_backItem              = nullptr;
@@ -240,7 +239,7 @@ void printStepperInfo(StepperAxis axis, String info)
         Serial.print(F("Tracking Microsteps: "));
         Serial.println(RA_TRACKING_MICROSTEPPING);
         Serial.print(F("     Tracking Speed: "));
-        Serial.println(mount.getSpeed(TRACKING));
+        Serial.println(ui.config->getSpeed(TRACKING));
     }
     else
     {
@@ -249,14 +248,14 @@ void printStepperInfo(StepperAxis axis, String info)
     }
 
     Serial.print(F("       Steps/degree: "));
-    Serial.println(mount.getStepsPerDegree(axis));
+    Serial.println(ui.config->getStepsPerDegree(axis));
     delete[] splitInfo;
 }
 
 void TestMenu::listHardware() const
 {
     Serial.println(F("Firmware is configured to support these hardware components:"));
-    String *hw = splitStringBy(String(mount.getMountHardwareInfo()), ',');
+    String *hw = splitStringBy(String(ui.read->getMountHardwareInfo()), ',');
     String *p  = hw;
     int index  = 0;
     Serial.print(F("              Mount: "));
@@ -316,7 +315,7 @@ void TestMenu::connectDriver(String axisStr)
     Serial.print(F("Connecting to "));
     Serial.print(axisStr);
     Serial.print(F(" driver...."));
-    bool connected = mount.connectToDriver(axisStr, &current);
+    bool connected = connectToDriver(axisStr.c_str(), &current);
     Serial.println(connected ? "OK" : "FAIL");
     if (connected)
     {
@@ -390,16 +389,16 @@ void TestMenu::onKeyPressed(int key)
                 }
                 else if (action == F("SetHome"))
                 {
-                    mount.setHome(false);
+                    ui.motion->setHome(false);
                     _currentMenu->display();
                 }
                 else if (action == F("GoHome"))
                 {
-                    _startDEC  = mount.getCurrentStepperPosition(DEC_STEPS);
-                    _startRA   = mount.getCurrentStepperPosition(RA_STEPS);
+                    _startDEC  = ui.read->getCurrentStepperPosition(DEC_STEPS);
+                    _startRA   = ui.read->getCurrentStepperPosition(RA_STEPS);
                     _targetDEC = 0;
                     _targetRA  = 0;
-                    mount.startSlewingToHome();
+                    ui.motion->startSlewingToHome();
                     _internalState |= (DISPLAY_RA | DISPLAY_DEC);
                 }
                 else if (action == F("SetSecDist"))
@@ -409,28 +408,28 @@ void TestMenu::onKeyPressed(int key)
                 }
                 else if (action == F("MoveRAAxis"))
                 {
-                    long stepsPerDegree = mount.getStepsPerDegree(RA_STEPS);
+                    long stepsPerDegree = ui.config->getStepsPerDegree(RA_STEPS);
                     String output       = F("Moving RA axis by 1hr (15 degrees, ");
                     output += stepsPerDegree * 15;
                     output += " steps) " + actionArg;
                     Serial.println(output);
-                    TestMenu::_startRA  = mount.getCurrentStepperPosition(RA_STEPS);
+                    TestMenu::_startRA  = ui.read->getCurrentStepperPosition(RA_STEPS);
                     long steps          = (actionArg == "CCW" ? -1 : 1) * stepsPerDegree * 15;
                     TestMenu::_targetRA = TestMenu::_startRA + steps;
-                    mount.moveStepperBy(RA_STEPS, steps);
+                    ui.motion->moveStepperBy(RA_STEPS, steps);
                     _internalState |= DISPLAY_RA;
                 }
                 else if (action == F("MoveDECAxis"))
                 {
-                    long stepsPerDegree = mount.getStepsPerDegree(DEC_STEPS);
+                    long stepsPerDegree = ui.config->getStepsPerDegree(DEC_STEPS);
                     String output       = F("Moving DEC axis by 15 degrees (");
                     output += stepsPerDegree * 15;
                     output += " steps) " + actionArg;
                     Serial.println(output);
-                    TestMenu::_startDEC  = mount.getCurrentStepperPosition(DEC_STEPS);
+                    TestMenu::_startDEC  = ui.read->getCurrentStepperPosition(DEC_STEPS);
                     long steps           = (actionArg == "DOWN" ? -1 : 1) * stepsPerDegree * 15;
                     TestMenu::_targetDEC = TestMenu::_startDEC + steps;
-                    mount.moveStepperBy(DEC_STEPS, steps);
+                    ui.motion->moveStepperBy(DEC_STEPS, steps);
                     _internalState |= DISPLAY_DEC;
                 }
     #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
@@ -440,9 +439,9 @@ void TestMenu::onKeyPressed(int key)
                     output += String(AZIMUTH_STEPS_PER_ARC_MINUTE * _secondaryDistance, 0) + " steps) " + actionArg;
                     Serial.println(output);
                     float arcmins       = actionArg == "LEFT" ? _secondaryDistance : -_secondaryDistance;
-                    TestMenu::_startAZ  = mount.getCurrentStepperPosition(AZIMUTH_STEPS);
+                    TestMenu::_startAZ  = ui.read->getCurrentStepperPosition(AZIMUTH_STEPS);
                     TestMenu::_targetAZ = TestMenu::_startAZ + arcmins * AZIMUTH_STEPS_PER_ARC_MINUTE;
-                    mount.moveBy(AZIMUTH_STEPS, arcmins);
+                    ui.axes->moveBy(AZIMUTH_STEPS, arcmins);
                     _internalState |= DISPLAY_AZ;
                 }
     #endif
@@ -453,29 +452,29 @@ void TestMenu::onKeyPressed(int key)
                     output += String(ALTITUDE_STEPS_PER_ARC_MINUTE * _secondaryDistance, 0) + " steps) " + actionArg;
                     Serial.println(output);
                     float arcmins        = actionArg == "UP" ? _secondaryDistance : -_secondaryDistance;
-                    TestMenu::_startALT  = mount.getCurrentStepperPosition(ALTITUDE_STEPS);
+                    TestMenu::_startALT  = ui.read->getCurrentStepperPosition(ALTITUDE_STEPS);
                     TestMenu::_targetALT = TestMenu::_startALT + arcmins * ALTITUDE_STEPS_PER_ARC_MINUTE;
-                    mount.moveBy(ALTITUDE_STEPS, arcmins);
+                    ui.axes->moveBy(ALTITUDE_STEPS, arcmins);
                     _internalState |= DISPLAY_ALT;
                 }
     #endif
                 else if (action == F("ToggleTRK"))
                 {
-                    if (mount.isSlewingTRK())
+                    if (ui.motion->isSlewingTRK())
                     {
-                        mount.stopSlewing(TRACKING);
+                        ui.motion->stopSlewing(TRACKING);
                         Serial.println(F("Tracking stopped."));
                     }
                     else
                     {
-                        mount.startSlewing(TRACKING);
+                        ui.motion->startSlewing(TRACKING);
                         Serial.println(F("Tracking started."));
                     }
                     _currentMenu->display();
                 }
                 else if (action == F("FactoryReset"))
                 {
-                    mount.clearConfiguration();
+                    ui.config->clearConfiguration();
                     Serial.println(F("Mount reset, EEPROM erased."));
                     _currentMenu->display();
                 }
@@ -503,23 +502,23 @@ void TestMenu::displayStepperPos() const
     snprintf_P(buffer,
                sizeof(buffer),
                (const char *) F("  RA: %8ld%c   ALT: %8ld%c   TRK: %8ld%c"),
-               mount.getCurrentStepperPosition(RA_STEPS),
-               mount.isAxisRunning(RA_STEPS) ? '^' : ' ',
-               mount.getCurrentStepperPosition(ALTITUDE_STEPS),
-               mount.isAxisRunning(ALTITUDE_STEPS) ? '^' : ' ',
-               mount.getCurrentStepperPosition(TRACKING),
-               mount.isSlewingTRK() ? '^' : ' ');
+               ui.read->getCurrentStepperPosition(RA_STEPS),
+               ui.read->isAxisRunning(RA_STEPS) ? '^' : ' ',
+               ui.read->getCurrentStepperPosition(ALTITUDE_STEPS),
+               ui.read->isAxisRunning(ALTITUDE_STEPS) ? '^' : ' ',
+               ui.read->getCurrentStepperPosition(TRACKING),
+               ui.motion->isSlewingTRK() ? '^' : ' ');
     Serial.println(buffer);
 
     snprintf_P(buffer,
                sizeof(buffer),
                (const char *) F(" DEC: %8ld%c    AZ: %8ld%c   FOC: %8ld%c"),
-               mount.getCurrentStepperPosition(DEC_STEPS),
-               mount.isAxisRunning(DEC_STEPS) ? '^' : ' ',
-               mount.getCurrentStepperPosition(AZIMUTH_STEPS),
-               mount.isAxisRunning(AZIMUTH_STEPS) ? '^' : ' ',
-               mount.getCurrentStepperPosition(FOCUS_STEPS),
-               mount.isAxisRunning(FOCUS_STEPS) ? '^' : ' ');
+               ui.read->getCurrentStepperPosition(DEC_STEPS),
+               ui.read->isAxisRunning(DEC_STEPS) ? '^' : ' ',
+               ui.read->getCurrentStepperPosition(AZIMUTH_STEPS),
+               ui.read->isAxisRunning(AZIMUTH_STEPS) ? '^' : ' ',
+               ui.read->getCurrentStepperPosition(FOCUS_STEPS),
+               ui.read->isAxisRunning(FOCUS_STEPS) ? '^' : ' ');
     Serial.println(buffer);
 }
 
@@ -582,13 +581,13 @@ void TestMenu::tick()
             if (_internalState & DISPLAY_RA)
             {
                 Serial.print(F("RA : "));
-                Serial.print(mount.getCurrentStepperPosition(RA_STEPS));
+                Serial.print(ui.read->getCurrentStepperPosition(RA_STEPS));
                 Serial.print(" (");
-                Serial.print(String(100.0 * (mount.getCurrentStepperPosition(RA_STEPS) - TestMenu::_startRA)
+                Serial.print(String(100.0 * (ui.read->getCurrentStepperPosition(RA_STEPS) - TestMenu::_startRA)
                                         / (TestMenu::_targetRA - TestMenu::_startRA),
                                     0));
                 Serial.print(F("%)   "));
-                if (!mount.isAxisRunning(RA_STEPS))
+                if (!ui.read->isAxisRunning(RA_STEPS))
                 {
                     _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_RA));
                 }
@@ -597,13 +596,13 @@ void TestMenu::tick()
             if (_internalState & DISPLAY_DEC)
             {
                 Serial.print(F("DEC: "));
-                Serial.print(mount.getCurrentStepperPosition(DEC_STEPS));
+                Serial.print(ui.read->getCurrentStepperPosition(DEC_STEPS));
                 Serial.print(" (");
-                Serial.print(String(100.0 * (mount.getCurrentStepperPosition(DEC_STEPS) - TestMenu::_startDEC)
+                Serial.print(String(100.0 * (ui.read->getCurrentStepperPosition(DEC_STEPS) - TestMenu::_startDEC)
                                         / (TestMenu::_targetDEC - TestMenu::_startDEC),
                                     0));
                 Serial.print(F("%)   "));
-                if (!mount.isAxisRunning(DEC_STEPS))
+                if (!ui.read->isAxisRunning(DEC_STEPS))
                 {
                     _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_DEC));
                 }
@@ -613,13 +612,13 @@ void TestMenu::tick()
             if (_internalState & DISPLAY_AZ)
             {
                 Serial.print(F("AZ: "));
-                Serial.print(mount.getCurrentStepperPosition(AZIMUTH_STEPS));
+                Serial.print(ui.read->getCurrentStepperPosition(AZIMUTH_STEPS));
                 Serial.print(" (");
-                Serial.print(String(100.0 * (mount.getCurrentStepperPosition(AZIMUTH_STEPS) - TestMenu::_startAZ)
+                Serial.print(String(100.0 * (ui.read->getCurrentStepperPosition(AZIMUTH_STEPS) - TestMenu::_startAZ)
                                         / (TestMenu::_targetAZ - TestMenu::_startAZ),
                                     0));
                 Serial.print(F("%)   "));
-                if (!mount.isAxisRunning(AZIMUTH_STEPS))
+                if (!ui.read->isAxisRunning(AZIMUTH_STEPS))
                 {
                     _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_AZ));
                 }
@@ -630,13 +629,13 @@ void TestMenu::tick()
             if (_internalState & DISPLAY_ALT)
             {
                 Serial.print(F("ALT: "));
-                Serial.print(mount.getCurrentStepperPosition(ALTITUDE_STEPS));
+                Serial.print(ui.read->getCurrentStepperPosition(ALTITUDE_STEPS));
                 Serial.print(" (");
-                Serial.print(String(100.0 * (mount.getCurrentStepperPosition(ALTITUDE_STEPS) - TestMenu::_startALT)
+                Serial.print(String(100.0 * (ui.read->getCurrentStepperPosition(ALTITUDE_STEPS) - TestMenu::_startALT)
                                         / (TestMenu::_targetALT - TestMenu::_startALT),
                                     0));
                 Serial.print(F("%)   "));
-                if (!mount.isAxisRunning(ALTITUDE_STEPS))
+                if (!ui.read->isAxisRunning(ALTITUDE_STEPS))
                 {
                     _internalState = static_cast<testMenuInternalState>(static_cast<int>(_internalState) & ~static_cast<int>(DISPLAY_ALT));
                 }

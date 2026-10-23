@@ -187,7 +187,7 @@ struct UiPortsInit
 } uiPortsInit;
 
 #if (WIFI_ENABLED == 1)
-WifiControl wifiControl(&mount, &lcdMenu);
+WifiControl wifiControl([]() { mount.loop(); }, &lcdMenu);
 #endif
 
 /////////////////////////////////
@@ -233,6 +233,11 @@ void stepperControlTimerCallback(void *payload)
 }
     #endif
 #endif
+
+bool connectToDriver(const char *driverKind, uint16_t *rmsCurrent)
+{
+    return mount.connectToDriver(String(driverKind), rmsCurrent);
+}
 
 void initPersistentStore()
 {

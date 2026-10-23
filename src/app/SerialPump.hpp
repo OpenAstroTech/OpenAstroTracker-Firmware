@@ -19,7 +19,7 @@ void processSerialData();
 void serialLoop()
 {
     mount.loop();
-    displayLcdSlewStatusThrottled(mount, lcdMenu);
+    displayLcdSlewStatusThrottled(ui, lcdMenu);
     serviceInfoDisplay();
 
     // Deferred Meade replies whose deadline ran out while nothing else was talking. The

@@ -106,6 +106,10 @@ inline void serviceInfoDisplay()
 }
 #endif
 
+/// Runs the driver's UART self-test, as the TEST_VERIFY_MODE screen does. A bring-up
+/// diagnostic: it lives with the mount's hardware wiring, not on a domain port.
+bool connectToDriver(const char *driverKind, uint16_t *rmsCurrent);
+
 /// Wires and initialises the EEPROM facade. The facade is a static class the menus and the
 /// command layer still call, so the root hands it the store and the logger here instead of
 /// letting each call site reach for the singletons.
