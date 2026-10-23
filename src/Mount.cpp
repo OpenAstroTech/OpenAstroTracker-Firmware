@@ -14,6 +14,7 @@
 #include "core/CoordinateRead.hpp"
 #include "core/DecLimitClamp.hpp"
 #include "core/FirmwareVersion.hpp"
+#include "core/PersistentConfig.hpp"
 #include "core/SiderealClock.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
@@ -172,81 +173,71 @@ void Mount::readConfiguration()
 /////////////////////////////////
 void Mount::readPersistentData()
 {
-    // EEPROMStore will always return valid data, even if no data is present in the store
-    int16_t lastFlashed = _deps.settings->getLastFlashedVersion();
+    // The upgrade check runs before anything is read: it may zero the AZ/ALT home positions,
+    // and those are read below. The store always returns valid data, even on a blank EEPROM.
+    const int16_t version                = core::firmwareVersionCode(VERSION);
+    const core::MigrationOutcome outcome = core::applyVersionMigration(*_deps.settings, version);
 
-    // This running firmware's version, in the same form the store keeps.
-    const int16_t version = core::firmwareVersionCode(VERSION);
-
-    if (lastFlashed != version)
-    {
-        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: New Flash detected! Flashed from %d to %d.", lastFlashed, version);
-        // Write upgrade code here if needed. lastFlashed is 0 if we have never flashed V1.14.x and beyond
-        _deps.settings->storeLastFlashedVersion(version);
-        if (lastFlashed < 11307)
-        {
-            OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: First time post 1.13.6, setting AZ and ALT home to 0");
-            // Introduced these two in 1.13.7
-            _deps.settings->storeALTPosition(0);
-            _deps.settings->storeAZPosition(0);
-        }
-    }
-    else
+    if (!outcome.versionChanged)
     {
         OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Same firmware version as last boot %d.", version);
     }
+    else
+    {
+        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: New Flash detected! Flashed to %d.", version);
+        if (outcome.homePositionsReset)
+        {
+            OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: First time post 1.13.6, setting AZ and ALT home to 0");
+        }
+    }
 
-    _settings.setStepsPerDegree(RA_STEPS, _deps.settings->getRAStepsPerDegree());
+    const core::PersistedSettings stored = core::loadPersistedSettings(*_deps.settings);
+
+    _settings.setStepsPerDegree(RA_STEPS, stored.raStepsPerDegree);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: RA steps/deg is %f", _settings.stepsPerDegree(RA_STEPS));
 
-    _settings.setStepsPerDegree(DEC_STEPS, _deps.settings->getDECStepsPerDegree());
+    _settings.setStepsPerDegree(DEC_STEPS, stored.decStepsPerDegree);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: DEC steps/deg is %f", _settings.stepsPerDegree(DEC_STEPS));
 
     if (kHasAzStepper)
     {
-        _stepsPerAZDegree = _deps.settings->getAZStepsPerDegree();
+        _stepsPerAZDegree = stored.azStepsPerDegree;
         OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _stepsPerAZDegree);
     }
 
     if (kHasAltStepper)
     {
-        _stepsPerALTDegree = _deps.settings->getALTStepsPerDegree();
+        _stepsPerALTDegree = stored.altStepsPerDegree;
         OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _stepsPerALTDegree);
     }
-    float speed = _deps.settings->getSpeedFactor();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", speed);
-    setSpeedCalibration(speed, false);
 
-    _settings.setBacklashCorrectionSteps(_deps.settings->getBacklashCorrectionSteps());
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", stored.speedFactor);
+    setSpeedCalibration(stored.speedFactor, false);
+
+    _settings.setBacklashCorrectionSteps(stored.backlashCorrectionSteps);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Backlash correction is %d", _settings.backlashCorrectionSteps());
 
-    _siteTime.setLatitude(core::Latitude(_deps.settings->getLatitude()));
+    _siteTime.setLatitude(stored.latitude);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Latitude is %s", Latitude(_siteTime.latitude()).ToString());
 
-    _siteTime.setLongitude(core::Longitude(_deps.settings->getLongitude()));
+    _siteTime.setLongitude(stored.longitude);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Longitude is %s", Longitude(_siteTime.longitude()).ToString());
 
-    _siteTime.setLocalUtcOffset(_deps.settings->getUtcOffset());
+    _siteTime.setLocalUtcOffset(stored.utcOffset);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: UTC offset is %d", _siteTime.localUtcOffset());
 
 #if USE_GYRO_LEVEL == 1
-    _pitchCalibrationAngle = _deps.settings->getPitchCalibrationAngle();
+    _pitchCalibrationAngle = stored.pitchCalibrationAngle;
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Pitch Offset is %f", _pitchCalibrationAngle);
 
-    _rollCalibrationAngle = _deps.settings->getRollCalibrationAngle();
+    _rollCalibrationAngle = stored.rollCalibrationAngle;
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Roll Offset is %f", _rollCalibrationAngle);
 #endif
 
-    _settings.setDecLowerLimitSteps(static_cast<long>(-(_deps.settings->getDECLowerLimit() * _settings.stepsPerDegree(DEC_STEPS))));
-    if (_settings.decLowerLimitSteps() == 0 && DEC_LIMIT_DOWN != 0)
-    {
-        _settings.setDecLowerLimitSteps(static_cast<long>(-(DEC_LIMIT_DOWN * _settings.stepsPerDegree(DEC_STEPS))));
-    }
-    _settings.setDecUpperLimitSteps(static_cast<long>((_deps.settings->getDECUpperLimit() * _settings.stepsPerDegree(DEC_STEPS))));
-    if (_settings.decUpperLimitSteps() == 0 && DEC_LIMIT_UP != 0)
-    {
-        _settings.setDecUpperLimitSteps(static_cast<long>(DEC_LIMIT_UP * _settings.stepsPerDegree(DEC_STEPS)));
-    }
+    const core::DecLimits limits = core::decLimitsFromStored(
+        stored.decLowerLimitDegrees, stored.decUpperLimitDegrees, _settings.stepsPerDegree(DEC_STEPS), DEC_LIMIT_DOWN, DEC_LIMIT_UP);
+    _settings.setDecLowerLimitSteps(limits.lowerSteps);
+    _settings.setDecUpperLimitSteps(limits.upperSteps);
     OAT_LOG(_deps.logger,
             DEBUG_INFO,
             "[MOUNT]: EEPROM: DEC limits read as %ld -> %ld",
@@ -255,14 +246,12 @@ void Mount::readPersistentData()
 
     if (kHasAltStepper)
     {
-        long altPos = _deps.settings->getALTPosition();
-        _stepperALT->setCurrentPosition(altPos);
+        _stepperALT->setCurrentPosition(stored.altPosition);
     }
 
     if (kHasAzStepper)
     {
-        long azPos = _deps.settings->getAZPosition();
-        _stepperAZ->setCurrentPosition(azPos);
+        _stepperAZ->setCurrentPosition(stored.azPosition);
     }
 
     configureHemisphere(_siteTime.latitude().getTotalHours() > 0);
