@@ -141,8 +141,9 @@ What is left is UI, and it is listed with its exit in
 (~170 `mount.*` call sites), the SSD1306 renderer's pull side, `EPROMStore`'s static facade, three
 hardware helpers (`Gyro`, `HallSensorHoming`, `EndSwitches`) whose ports exist but have no adapter,
 and the four composition-root/loop files that should move to `src/app/`. None of them is a design
-question any more; each is a bounded piece of work with a bench session attached. **Phase 7 (below)
-is the plan that finishes this list and deletes the legacy root.**
+question any more; each is a bounded piece of work. **Phase 7 (below) is the plan that finishes this
+list and deletes the legacy root.** Hardware verification is a single pass after the refactor, run
+from [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md); it does not gate individual steps.
 
 ---
 
@@ -326,9 +327,9 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
    - **Measured sizes** (`pio run -e <board>`): `ramps` 7457 → **7610 B RAM** (+153, 92.9%) and 168430 → **175158 B flash** (+6.7 KB, 67.1%); `esp32` 46008 B / 844981 B; `oaeboardv1` 22444 B / 370921 B; `rp2040_skr_pico` 11316 B / 128700 B. The AVR flash growth is the TMC register writers no longer being inlined through a vtable, and it fits with ~86 KB to spare.
 7. ✅ **`Mount::delay()`** keeps its "keep the tracker running" semantics: it takes the deadline from `IClock` and yields through a new `ports::IScheduler` (backed by `adapters::ArduinoScheduler` → Arduino `yield()`), so it needs neither `millis()` nor `yield()`.
 
-**Verify (2b):** adapter tests run against `hal_fakes`; all prior tests green; every board env builds; manual smoke: slew, park/unpark, guide pulses (same objects, same behaviour).
+**Verify (2b):** adapter tests run against `hal_fakes`; all prior tests green; every board env builds; behaviour on hardware is covered by the post-refactor [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) pass.
 
-**Verified:** `pio test -e native` → 399/399 (22 new adapter tests). `ramps`, `mksgenlv21`, `esp32`, `oaeboardv1`, `rp2040_skr_pico` build green; `mksgenlv1` was verified in 2a with a temporary local config and shares the AVR-only code paths with `mksgenlv21`. **Not verified:** the on-hardware smoke test (slew/park/guide/home) — the stepper objects, driver calls and EEPROM path are the same ones as before, but that needs a mount.
+**Verified:** `pio test -e native` → 399/399 (22 new adapter tests). `ramps`, `mksgenlv21`, `esp32`, `oaeboardv1`, `rp2040_skr_pico` build green; `mksgenlv1` was verified in 2a with a temporary local config and shares the AVR-only code paths with `mksgenlv21`. On-hardware smoke testing is part of the single post-refactor hardware pass, not of this phase.
 
 #### 2c — Call-site cleanup ✅ COMPLETE
 
@@ -353,7 +354,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
    - **The one exception is recorded rather than fixed:** `interruptLoop()` calls `HallSensorHoming::processHomingProgress()`, which calls `stopSlewing()` / `moveStepperBy()` and therefore does mutate status and axis targets from the step-generator context. Phase 3's `HomingController` moves that decision back to the main loop and leaves the generator a request bit; until then the contract documents the exception so `SlewController` is not designed against a promise the firmware does not keep.
 10. ✅ The feature `#if`s inside `interruptLoop()` stay as-is until Phase 4 — untouched.
 
-**Verify (2c):** all Phase 1 tests green; new adapter tests green; every board env builds; **record flash and SRAM before/after on `ramps`** (the AVR budget is the binding constraint for the `ILogger` change); the manual smoke checklist from "Verification strategy" passes (slew, park, guide, home).
+**Verify (2c):** all Phase 1 tests green; new adapter tests green; every board env builds; **record flash and SRAM before/after on `ramps`** (the AVR budget is the binding constraint for the `ILogger` change).
 
 **Verified:** `pio test -e native` → **399/399**. Measured on `ramps` (`size` from `pio run`):
 
@@ -362,7 +363,7 @@ The ~200-line function computes stepper positions from RA/DEC targets. Core math
 | `DEBUG_NONE` (default, the shipping shape) | 7610 → **7749** B (92.9% → 94.6%) | 175158 → **182246** B (67.1% → 69.8%) |
 | `DEBUG_ANY` (worst case: LCD keypad + AZ/ALT/Focus + TMC UART) | 7966 → **8169** B (97.2% → 99.7%) | 245732 → **254472** B (94.1% → 97.5%) |
 
-The AVR growth is the settings port's vtable (86 B — 39 virtuals × 2 B), the logger objects and the `MountDeps` members; the flash growth is the hand-written `formatArg()` being replaced by `vsnprintf_P` plus the 792 B of float support. **The `DEBUG_ANY` configuration is now 23 B from the RAM ceiling**, so the next AVR addition of any size needs a measurement of that configuration, not of the default one. Other boards: `esp32` 46008 → 46032 B RAM / 844981 → 847721 B flash; `oaeboardv1` 22444 → 22820 / 370921 → 386077; `rp2040_skr_pico` 11316 → 11364 / 128700 → 130724. `mksgenlv1`/`mksgenlv2`/`rp2040_jackw01` need a local config that is not tracked, so they were verified with temporary ones. **Not verified:** the on-hardware smoke test (slew/park/guide/home) — same objects and same calls as before, but it needs a mount.
+The AVR growth is the settings port's vtable (86 B — 39 virtuals × 2 B), the logger objects and the `MountDeps` members; the flash growth is the hand-written `formatArg()` being replaced by `vsnprintf_P` plus the 792 B of float support. **The `DEBUG_ANY` configuration is now 23 B from the RAM ceiling**, so the next AVR addition of any size needs a measurement of that configuration, not of the default one. Other boards: `esp32` 46008 → 46032 B RAM / 844981 → 847721 B flash; `oaeboardv1` 22444 → 22820 / 370921 → 386077; `rp2040_skr_pico` 11316 → 11364 / 128700 → 130724. `mksgenlv1`/`mksgenlv2`/`rp2040_jackw01` need a local config that is not tracked, so they were verified with temporary ones. On-hardware smoke testing is part of the single post-refactor hardware pass, not of this phase.
 
 **Layering check (added during Phase 3):** [`scripts/check_architecture.py`](scripts/check_architecture.py) enforces the four §5 rules that ARCHITECTURE.md had always listed as "CI grep check" but which nothing ran: no Arduino header, no `String`/`Serial`/`millis()`/`micros()`/`LOG()`, no `hal/` or `adapters/` include, and no feature `#if` in `src/core/` or `src/ports/`. It strips comments first, so prose that names a banned symbol does not trip it, and it is proven to fail: a probe file with one of each violation reports four and exits 1. The `architecture` job in [`ci.yml`](.github/workflows/ci.yml) runs it before the build matrix.
 
@@ -461,7 +462,7 @@ Recommended slice order (each is an independent step, parallelizable after Phase
 
 Each step: extract → add focused unit tests with faked ports → remove the original code from `Mount.cpp` → ship.
 
-**Verify per step:** unit tests for the new controller; all prior tests still green; firmware behavior on hardware unchanged (manual smoke checklist). For step 10: host tests covering every cell of the admission table, axis-grant exclusivity (RA/DEC two-instances-per-axis and Timer3/4/5 sharing), and deadline expiry.
+**Verify per step:** unit tests for the new controller; all prior tests still green. Hardware behaviour is unchanged by construction and is confirmed in the post-refactor [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) pass. For step 10: host tests covering every cell of the admission table, axis-grant exclusivity (RA/DEC two-instances-per-axis and Timer3/4/5 sharing), and deadline expiry.
 
 ### Phase 4 — Compile-time flags → runtime polymorphism ✅ COMPLETE
 *Eliminate `#ifdef` axes in `core/`, `ports/`, and most of `adapters/`. Feature flags survive only in the composition root and in HAL backend selection.*
@@ -501,7 +502,7 @@ Each step: extract → add focused unit tests with faked ports → remove the or
 
 **Verify:** `core/` and `ports/` contain zero `#ifdef` for features (CI grep check); all board-env builds in the CI matrix still pass (toolchain enforces flash limits).
 
-**On-hardware suite:** [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) lists the manual tests this refactor needs before it merges — per-subsystem cases, each naming the work it guards, plus the deliberate behaviour changes to confirm and a sign-off table. Nothing in this branch has been run against real hardware yet; that suite is the gate, not a follow-up.
+**On-hardware suite:** [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) is the manual suite run once, after the refactor is complete — per-subsystem cases, each naming the work it guards, plus the deliberate behaviour changes to confirm and a sign-off table. It is not a per-phase gate and does not block the phases below.
 
 ### Phase 5 — Meade execution layer cleanup ✅ COMPLETE
 *The parser is already in `core/`. This phase finishes the Meade slice by refining the executor and transport layers.*
@@ -529,7 +530,7 @@ defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wi
    - **Fifth slice: `_mount` is gone.** All 38 remaining calls moved to five ports, and the class no longer has a `Mount *` member at all: [`ports::IMountReadModel`](src/ports/IMountReadModel.hpp) (current/target RA and DEC, derived HA/LST, stepper calculation, RA limit, guiding, the four status strings, the command counter), [`ports::IMountSiteTime`](src/ports/IMountSiteTime.hpp) (latitude, longitude, clock, HA/LST setters), [`ports::IMountEvents`](src/ports/IMountEvents.hpp) (subscribe/unsubscribe, so deferred replies do not need the mount), plus `syncPosition`/`setHome`/`setTrackingStepperPos`/`startDriftAlignment` on `IMountMotion`, `setAZALTHome` on `IMountOptionalAxes`, and `setManualSlewMode`/`clearConfiguration` on `IMountConfiguration`. The composition root passes them as one `MeadeCommandPorts` value ([`src/adapters/MeadeCommandAdapter.hpp`](src/adapters/MeadeCommandAdapter.hpp)), six pointers wired from the one `mount` object in `b_setup`.
    - **The overlay cleanup this step was blocked on, done the second way the plan listed** — "have the port take/return `core::` types and make the conversion explicit at the call sites": `currentRA`/`currentDEC` now return `core::DayTime`/`core::Declination` and `latitude`/`longitude` return `core::Latitude`/`core::Longitude`; the target accessors keep covariant reference returns, which is legal and cost nothing. Five call sites outside the adapter needed a `DayTime(...)`/`Declination(...)` wrap, and the overlay `Declination` gained the same `ctor(const core::X &)` convenience `DayTime` and `Latitude` already had. The four status readouts return `const char *` backed by a mount-owned `mutable String _readoutScratch` instead of an Arduino `String`, because a port cannot hand out a `String`; two external callers wrapped the result in `String(...)` and one dropped `.c_str()`.
    - Cost on `ramps` beyond step 5's baseline: **+3992 B flash (163850 → 167842 B, 64.3 %), +166 B SRAM (6056 → 6222 B)** — the five extra interface pointers, the scratch `String` (12 B plus its heap), three more vtable slots and the inlining the interfaces cost. 584 native tests; `ramps`, `mksgenlv21`, `oaeboardv1`, `esp32` and `rp2040_skr_pico` build.
-   - **Not verified on hardware, and that is the one thing this slice owes.** `HARDWARE_TESTS.md` §9 is still the gate: `:CM#`/`:CS#` (sync), `:St#`/`:SH#` (LST/HA), the target setters, `:D#` and the `:XG` read-backs all now cross a port and a `core::` conversion. The conversions are type-checked and the wire formats are unchanged, but the adapter is still excluded from `native`, so no host test covers the bytes.
+   - **Hardware coverage is deferred, by plan.** `:CM#`/`:CS#` (sync), `:St#`/`:SH#` (LST/HA), the target setters, `:D#` and the `:XG` read-backs all now cross a port and a `core::` conversion. The conversions are type-checked and the wire formats are unchanged; the adapter is still excluded from `native`, so the bytes are confirmed in the post-refactor [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) pass.
    - **Fourth slice: homing joins the motion port.** `findHomeByHallSensor` moved onto `IMountMotion` (2 calls), so `_mount` is down to **38 of 122**. Like the level-calibration angles it is virtual with a default rather than pure — `Mount` declares it only when the build has a hall sensor, so a board without one must be a working "not found", not an abstract class (that is exactly how esp32/oaeboardv1 failed to build on the first attempt). Cost: +148 B flash, +2 B SRAM.
    - **Third slice landed: the optional axes.** [`ports::IMountOptionalAxes`](src/ports/IMountOptionalAxes.hpp) carries the focuser (move-by, position, rate, continuous, stop, running) and AZ/ALT (move-by, home, positions) — one port because Phase 4 made all three runtime-present, so every entry point is a no-op on a board without the hardware instead of absent code. **12 more calls**; `_mount` is down to **47**. Cost: only **+618 B flash, +20 B SRAM**, because the interface chain means no second vtable and these methods are small.
    - **Site and time are blocked on the overlay types, and that is a real decision to make, not a missing port.** `Mount` and the command layer speak the Arduino-aware overlays `Latitude`/`Longitude`/`DayTime` ([`src/Latitude.hpp`](src/Latitude.hpp) and friends), which *derive from* `core::Latitude` etc. A port that speaks `core::` types cannot be overridden by a method taking the overlay (`invalid covariant return type`), and switching `Mount`'s signatures to `core::` would slice the overlay away at every caller. The fix is a separate cleanup: either move the overlays' Arduino-only bits into free functions over the `core::` values, or have the port take/return `core::` types and make the conversion explicit at the few call sites. Until then those 11 calls stay on `_mount`.
@@ -544,7 +545,7 @@ defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wi
      * *Motion* (25 of the 122 calls: `startSlewing*`, `stopSlewing`, `park`, `guidePulse`, `startSlewingToTarget/Home`) → coordinator `request*` methods. `MountRequests` already arbitrates every one of these, so the rules exist; what is missing is the coordinator owning the *effect* (which needs the axes, drivers and `setHome()`, i.e. an actuator seam like the one the arrival sequence deliberately did not get).
      * *Read model* (`currentRA/DEC`, `getStatusString`, `getMountHardwareInfo`, limits, calibration, `isSlewing*`, `isGuiding`) → `MountCoordinator::state()` plus the controllers' read methods, which mostly exist already.
      * *Settings* (latitude, longitude, time, limits, steps-per-degree, homing offsets, backlash) → `ports::IMountSettings`, which already exists and is already implemented by `adapters::MountSettingsStore`.
-   - **Why it waited:** the adapter is the one file where a mistake is invisible to the whole suite (excluded from `native`) and shows up as a hostile host driver on a dark night. It is exactly what [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) §9 exists to catch, and that section is now the outstanding item — the slice was done ahead of the bench session because the hardware arrived only after the plan was finished, not because the risk went away.
+   - **Why it is recorded here:** the adapter is the one file where a mistake is invisible to the whole suite (excluded from `native`) and shows up as a hostile host driver on a dark night. It is exactly what [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) §9 covers; that check runs in the single hardware pass after the refactor, not per step.
 4. ✅ Split `IMeadeHandlers` into three shapes: **immediate** (read `MountState`), **request/ack** (`coordinator.request*()`), **deferred** (return a correlation id instead of bytes). `MeadeResponse` gains an explicit "deferred, no inline output" outcome and `dispatchMeadeCommand` reports it. `:MS#`/`:MA#` stay request/ack — they already acknowledge immediately and the host polls `:D#`.
    - **The deferred outcome exists as of this slice.** `core::meade::MeadeResponse` gained `defer()` / `deferred()` / `clearDeferral()`, and `MeadeCommandAdapter::processCommand()` reports "no inline output, a reply is still owed" instead of returning bytes. The distinction has to be explicit because an empty reply is a legitimate answer on this protocol (`:Q#` sends nothing), so "no bytes" and "no bytes yet" cannot both be spelled as `""`. The response object is reused between commands, hence `clearDeferral()` at the top of a dispatch — a stale flag would silently swallow the next reply. One test pins the semantics.
    - **Nothing defers in the shipped build, deliberately:** step 5 built the table, but `:gT#` (the only candidate) kept the bounded-probe answer for the reason recorded there.
@@ -575,9 +576,9 @@ defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wi
    - **The adapter itself is still not host-buildable** (it reads `String` and `Arduino.h`, so `native` excludes it), so the pipeline test reproduces its three-line contract rather than instantiating it: dispatch into a response, consult the deferral flag, publish unless deferred. The rest of the adapter is covered by the board builds and by `HARDWARE_TESTS.md` §9.
    - [`unit_tests/test_common/meade_fakes/StubMeadeHandlers.hpp`](unit_tests/test_common/meade_fakes/StubMeadeHandlers.hpp) is a generated, complete no-op `IMeadeHandlers` (115 callbacks, recording the last one that fired) — every family test so far had to implement its own subset, and a whole-pipeline test cannot.
 
-**Verify:** Meade test suite green (14 family files + `test_command_assembler` + `test_pending_replies` + `test_meade_pipeline`); Stellarium/ASCOM round-trip smoke test (manual) recorded as a regression checklist; coverage of `core/meade/` ≥ 80% (already achieved — 87.0%); grep check that the adapter contains no `waitUntil*`, `Mount::delay(`, or `while (millis(`, **with one recorded exception**: `:gTnnn#` still polls the GPS serial port inside a 250 ms budget. It cannot become deferred without a GPS tick in the main loop, because the GPS is pumped by the menu screen — recorded in [`ARCHITECTURE.md`](ARCHITECTURE.md) §6 and unverifiable without the hardware.
+**Verify:** Meade test suite green (14 family files + `test_command_assembler` + `test_pending_replies` + `test_meade_pipeline`); coverage of `core/meade/` ≥ 80% (already achieved — 87.0%); grep check that the adapter contains no `waitUntil*`, `Mount::delay(`, or `while (millis(`, **with one recorded exception**: `:gTnnn#` still polls the GPS serial port inside a 250 ms budget. It cannot become deferred without a GPS tick in the main loop, because the GPS is pumped by the menu screen — recorded in [`ARCHITECTURE.md`](ARCHITECTURE.md) §6. The Stellarium/ASCOM round-trip is one of the checks in the post-refactor [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) pass.
 
-### Phase 6 — Cleanup & documentation ✅ COMPLETE (bench items outstanding)
+### Phase 6 — Cleanup & documentation ✅ COMPLETE (hardware verification deferred)
 1. ✅ Mount facade slimmed. It is not removed, because its remaining callers are the menu screens — the plan's own §6 note says deleting it is a UI rewrite, not a cleanup. What left the class here:
    - **`checkRALimit()`** split into [`core::RaTrackingLimit`](src/core/RaTrackingLimit.hpp) (the hour-circle folding, the hemisphere flip, the limit test — 9 tests) and the one side effect it owns (stop tracking). Mount gathers five numbers and logs the outcome.
    - **`getStepperProgress()`** split into [`core::SlewProgressReport`](src/core/SlewProgressReport.hpp) (which axes count as moving, the epsilon, the rounding — 7 tests). Mount gathers the two totals and the two distances.
@@ -595,18 +596,17 @@ defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wi
    - The `Mount` vs `MountCoordinator` tables were corrected: the command layer reads the coordinator through ports, the panel is a subscriber, and the facade's remaining reason to exist is stated without a phase number that has already passed.
 4. ✅ Coverage gate is real, not just a report. [`scripts/test-coverage.sh`](scripts/test-coverage.sh) now runs a second gcovr pass filtered to `src/core/` with `--fail-under-line 85`; CI calls the script, so a change that adds an untested domain decision fails the build instead of quietly lowering a number. Current: **92.5 % of `core/` lines, 89.1 % of `core/meade/`**, 600 native tests.
 
-**Verify:** Architecture doc reviewed; CI gates final; full board matrix green; smoke-tested on at least one real mount.
+**Verify:** Architecture doc reviewed; CI gates final; full board matrix green. Hardware behaviour is covered by the post-refactor pass in [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md), not by this phase.
 - Architecture doc: rewritten as above, and the remaining-debt table is the review checklist for the next pass.
 - CI gates: tests, the `core/` line gate, the architecture check, and the seven-board matrix.
 - Full board matrix: green — all **488** combinations across `ramps`, `esp32`, `rp2040_skr_pico`, `rp2040_jackw01` and `mksgenlv1`/`v2`, run after the Phase 6 changes (the matrix exercises `DEBUG_NONE`/`DEBUG_ANY`, every display and info-display type, and the optional axes).
-- **Smoke test on a real mount: not done.** The hardware arrives after this phase; [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) §9.15/§9.16 are the two new checks it owes (panel framing, LCD progress) and §11.11 the one behaviour note to confirm.
+- **Hardware verification: deferred to the post-refactor pass.** [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) §9.15/§9.16 are the two checks this phase added (panel framing, LCD progress) and §11.11 the one behaviour note to confirm.
 
 ---
 
 ### Phase 7 — Retire the legacy root: `app/` composes, `Mount` is deleted
 
-*Status: **in progress** — steps 1 and 2 have landed; steps 3 and 4 remain and are gated on bench
-sessions because every remaining call site is a UI screen or a peripheral. This phase closes the two
+*Status: **in progress** — steps 1 and 2 have landed; steps 3 and 4 remain. This phase closes the two
 gaps left after Phase 6: the composition root still lived in `src/b_setup.hpp` (with `a_inits.hpp`,
 `f_serial.hpp`, `c_buttons.hpp` beside it), AVR constructed its engines inside `Mount` instead of
 through `hal/avr/`, and the `Mount` facade is still the object every UI screen talks to. Each step is
@@ -636,7 +636,7 @@ independently shippable; the `Mount` deletion is the last one because it is gate
    1. **SSD1306 renderer** — write the `Ssd1306InfoDisplay` adapter (`IInfoDisplay` ← `hal::IOledPanel`) and render from the snapshot struct; delete the `InfoDisplayRender::renderScreen(Mount &)` pull side.
    2. **`EPROMStore` facade** — point the menu screens and the Meade adapter at `ports::IMountSettings` (plus the raw store where needed) and delete the static facade.
    3. **Peripheral helpers** — write `HallHomingSensor`, `GpioEndSwitch` and the `IGyro` adapter over `hal::II2cBus`/`hal::IGpioPin`; delete `Gyro`, `HallSensorHoming`, `EndSwitches`.
-   4. **Menu screens** — rewrite `c70…c78`, `LcdMenu`, `LcdButtons`, `LcdSlewStatus` and `testmenu` against `MountCoordinator` requests + `MountState` reads + `ports::IDisplay`/`IInfoDisplay`. This is the big one: ~200 `mount.*` call sites, one screen per bench session.
+   4. **Menu screens** — rewrite `c70…c78`, `LcdMenu`, `LcdButtons`, `LcdSlewStatus` and `testmenu` against `MountCoordinator` requests + `MountState` reads + `ports::IDisplay`/`IInfoDisplay`. This is the big one: ~200 `mount.*` call sites.
    - When the last `mount.*` call site is gone, delete `Mount.hpp`/`Mount.cpp` and the now-unused legacy `src/` overlays (`DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension`, `Sidereal`, `EPROMStore`, `Gyro`, `HallSensorHoming`, `EndSwitches`, `SSD1306_128x64_Display`, `LcdMenu`, `LcdButtons`, `LcdSlewStatus`, `WifiControl`).
    - `MeadeCommandAdapter` drops its `../Mount.hpp`, `../LcdMenu.hpp`, `../Gyro.hpp`, `../WifiControl.hpp` includes as each consumer migrates; it stays `Mount *`-free (already true at the type level).
 
@@ -644,7 +644,7 @@ independently shippable; the `Mount` deletion is the last one because it is gate
    - `inc/Globals.hpp`/`Globals.cpp` shrink to what `hal/` and `adapters/` actually need (or move into `app/`); `macros/` and `libs/` stay for the macros and vendored libraries.
    - The `src/` root is then only what the layer directories need; nothing routes through it.
 
-**Verify:** each step — `pio test -e native` green; `scripts/check_architecture.py` clean; coverage gate ≥ 85 % on `core/`; the seven-board CI matrix green; and the hardware smoke checklist (slew, park, guide, home, LX200 round-trip) on at least one real mount per UI screen migrated. The final step's acceptance test is `src/Mount.*` not existing and no `Mount` class left anywhere in `src/`.
+**Verify:** each step — `pio test -e native` green; `scripts/check_architecture.py` clean; coverage gate ≥ 85 % on `core/`; the seven-board CI matrix green. The final step's acceptance test is `src/Mount.*` not existing and no `Mount` class left anywhere in `src/`. The whole refactor is then exercised once on hardware against [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) — sections 2–9 and the §10 sign-off table — as a single pass, not per step.
 
 ---
 
@@ -710,17 +710,16 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 ## Verification strategy
 
 Automated:
-1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (399 test cases). `test_filter` = `test_core` + `test_hal` + `test_adapters` (covers `test_core/meade/` and `test_core/types/`).
+1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (600 test cases). `test_filter` = `test_core` + `test_hal` + `test_adapters` (covers `test_core/meade/` and `test_core/types/`).
 2. Every board env in `platformio.ini` (CI matrix: 7 boards) builds green every phase via `matrix_build.py`, which supplies the generated configuration. A bare `pio run -e <board>` additionally needs the developer's untracked `Configuration_local_*.hpp`.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
 4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 4).
 
-Manual smoke checklist (per shippable phase end):
-1. Mount slews to known coordinates within tolerance on real hardware (one volunteer-owned board).
-2. Park / unpark cycle.
-3. Guide pulses in all four directions produce expected micro-moves.
-4. Stellarium/ASCOM LX200 round-trip (date, time, RA/DEC, sync) succeeds.
-5. Hall-sensor auto-home succeeds (on a board so equipped).
+Hardware (one pass, once the refactor is complete):
+1. Run [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) end to end — sections 2–9, the deliberate behaviour changes in §11, and the §10 sign-off table.
+2. Record the result in that file's sign-off table rather than in this plan.
+
+Hardware behaviour is not a per-phase gate: nothing in the phases above waits on it.
 
 ---
 
