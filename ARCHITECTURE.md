@@ -267,6 +267,9 @@ OpenAstroTracker-Firmware/
 │   │   ├── CoordinateFormatter.cpp/.hpp # RA/DEC text formatting
 │   │   ├── CoordinateRead.cpp/.hpp      # stepper positions -> RA/DEC
 │   │   ├── ActivityState.cpp/.hpp        # status bits -> Parked/Slewing/… classification
+│   │   ├── SyncAdjustment.cpp/.hpp       # zero-point correction a sync applies
+│   │   ├── DecLimitClamp.cpp/.hpp        # DEC travel-limit policy ("0" = no limit)
+│   │   ├── MountRuntimeSettings.hpp      # live EEPROM-backed motion settings
 │   │   ├── TrackingController.hpp/.cpp  # sidereal rate, tracker-stop compensation
 │   │   ├── SlewController.hpp/.cpp      # slew state machine
 │   │   ├── GuidingController.hpp/.cpp   # guide-pulse math and timing
