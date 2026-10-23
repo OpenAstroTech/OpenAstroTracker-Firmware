@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "core/SiteTime.hpp"
+#include "core/SiderealClock.hpp"
 
 namespace
 {
@@ -72,4 +73,55 @@ TEST(SiteTimeTest, DateRollsAcrossAMonthBoundary)
     EXPECT_EQ(2024, date.year);
     EXPECT_EQ(2, date.month);
     EXPECT_EQ(29, date.day);  // 2024 is a leap year
+}
+
+TEST(SiteTimeTest, LstMatchesTheSiderealFormulaForTheUtcInstant)
+{
+    // J2000.0: 2000-01-01 12:00 UTC at Greenwich gives a sidereal time of about 18h 41m 50s.
+    core::SiteTime site;
+    site.setLongitude(core::Longitude(0.0f));
+    site.setLocalUtcOffset(0);
+    site.setLocalStartDate({2000, 1, 1});
+    site.setLocalStartTime(core::DayTime(12, 0, 0), 0);
+
+    const float lst = site.lstAt(0).getTotalHours();
+
+    EXPECT_NEAR(18.6974f, lst, 0.01f) << "LST was " << lst;
+}
+
+TEST(SiteTimeTest, LstUsesTheUtcDateNotTheLocalOne)
+{
+    // 01:00 local at UTC+2 is 23:00 UTC on the *previous* day; using the local date here would
+    // shift the answer by nearly 24 sidereal hours.
+    core::SiteTime site;
+    site.setLongitude(core::Longitude(13.0f));
+    site.setLocalUtcOffset(2);
+    site.setLocalStartDate({2024, 6, 15});
+    site.setLocalStartTime(core::DayTime(1, 0, 0), 0);
+
+    const float lst = site.lstAt(0).getTotalHours();
+
+    const float expected = core::SiderealClock::localSiderealTime(13.0, 2024, 6, 14, 23.0f).getTotalHours();
+    EXPECT_NEAR(expected, lst, 0.001f);
+}
+
+TEST(SiteTimeTest, LstAdvancesAtTheSiderealRate)
+{
+    // One solar hour advances sidereal time by 1.0027 hours, because the sidereal day is shorter.
+    core::SiteTime site;
+    site.setLongitude(core::Longitude(-70.0f));
+    site.setLocalUtcOffset(-5);
+    site.setLocalStartDate({2024, 2, 1});
+    site.setLocalStartTime(core::DayTime(20, 0, 0), 0);
+
+    const float start   = site.lstAt(0).getTotalHours();
+    const float anHour  = site.lstAt(3600UL * 1000UL).getTotalHours();
+
+    float delta = anHour - start;
+    if (delta < -12.0f)
+    {
+        delta += 24.0f;
+    }
+
+    EXPECT_NEAR(1.0027f, delta, 0.01f);
 }

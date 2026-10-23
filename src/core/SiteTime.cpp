@@ -1,5 +1,7 @@
 #include "SiteTime.hpp"
 
+#include "SiderealClock.hpp"
+
 namespace core
 {
 
@@ -21,6 +23,15 @@ DayTime SiteTime::utcTimeAt(unsigned long nowMillis) const
     DayTime timeUTC = localTimeAt(nowMillis);
     timeUTC.addHours(-_localUtcOffset);
     return timeUTC;
+}
+
+DayTime SiteTime::lstAt(unsigned long nowMillis) const
+{
+    const DayTime utc       = utcTimeAt(nowMillis);
+    const CalendarDate date = localDateAt(nowMillis);
+    const CalendarDate utcDate = localToUtcDate(date, localTimeAt(nowMillis).getTotalSeconds(), _localUtcOffset);
+
+    return SiderealClock::localSiderealTime(_longitude.getTotalHours(), utcDate.year, utcDate.month, utcDate.day, utc.getTotalHours());
 }
 
 CalendarDate SiteTime::localDateAt(unsigned long nowMillis) const

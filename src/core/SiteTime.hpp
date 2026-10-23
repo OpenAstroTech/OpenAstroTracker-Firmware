@@ -94,6 +94,12 @@ class SiteTime
     /// local midnight, so a partial day still counts as one.
     CalendarDate localDateAt(unsigned long nowMillis) const;
 
+    /// Local sidereal time at `nowMillis`.
+    ///
+    /// The sidereal formula wants the *UTC* calendar date, which differs from the local date for
+    /// |UTC offset| hours each day, so the local date is converted before it is used.
+    DayTime lstAt(unsigned long nowMillis) const;
+
   private:
     Latitude _latitude;
     Longitude _longitude;

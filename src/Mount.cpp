@@ -3732,22 +3732,7 @@ void Mount::autoCalcHa()
 /////////////////////////////////
 core::DayTime Mount::calculateLst()
 {
-    DayTime timeUTC     = getUtcTime();
-    LocalDate localDate = getLocalDate();
-    // The sidereal formula needs the UTC date, which differs from the local date for |UTC offset| hours each day.
-    core::CalendarDate utcDate = core::localToUtcDate(
-        {localDate.year, localDate.month, localDate.day}, getLocalTime().getTotalSeconds(), _siteTime.localUtcOffset());
-    DayTime lst = core::SiderealClock::localSiderealTime(
-        longitude().getTotalHours(), utcDate.year, utcDate.month, utcDate.day, timeUTC.getTotalHours());
-    // LOG(DEBUG_INFO,
-    //     "[MOUNT]: Calculating LST. UTC time: %s. UTC date: %d-%d-%d. Longitude: %s",
-    //     timeUTC.ToString(),
-    //     utcDate.year,
-    //     utcDate.month,
-    //     utcDate.day,
-    //     longitude().ToString());
-    // LOG(DEBUG_INFO, "[MOUNT]: LST is: %s", lst.ToString());
-    return lst;
+    return _siteTime.lstAt(_deps.clock->now());
 }
 
 /////////////////////////////////
