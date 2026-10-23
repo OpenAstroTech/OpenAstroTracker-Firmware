@@ -16,9 +16,11 @@
 #include "Mount.hpp"
 #include "a_inits.hpp"
 
+#include "EPROMStore.hpp"
 #include "adapters/ArduinoClock.hpp"
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/InfoDisplayPanel.hpp"
+#include "adapters/MountSettingsStore.hpp"
 #include "hal/arduino/ArduinoSystemClock.hpp"
 #include "hal/arduino/ArduinoGpioPin.hpp"
 #include "hal/arduino/ArduinoSerialPort.hpp"
@@ -37,6 +39,15 @@ extern LcdButtons lcdButtons;
 extern hal::ArduinoSystemClock arduinoSystemClock;
 extern adapters::ArduinoClock clockPort;
 extern adapters::ArduinoScheduler schedulerPort;
+
+// --- persistence -----------------------------------------------------------------------
+
+/// The on-device settings format. One instance, built here so nothing else constructs or
+/// statically reaches for it.
+extern EEPROMStore eepromStore;
+
+/// The typed view of `eepromStore` the domain consumes.
+extern adapters::MountSettingsStore settingsStore;
 
 // --- the mount and everything bound to it ---------------------------------------------
 

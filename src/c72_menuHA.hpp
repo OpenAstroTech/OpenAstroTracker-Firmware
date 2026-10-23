@@ -47,7 +47,7 @@ bool processHAKeys()
 
             case btnSELECT:
                 {
-                    EEPROMStore::storeHATime(mount.HA());
+                    settingsStore.storeHATime(mount.HA());
                     lcdMenu.printMenu(F("Stored."));
                     mount.delay(500);
 

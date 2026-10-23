@@ -5,213 +5,228 @@
 
 namespace adapters
 {
-/// `ports::IMountSettings` over the legacy `EEPROMStore` facade.
+/// `ports::IMountSettings` over `EEPROMStore`.
 ///
-/// The typed accessors and the on-device encoding stay in `EPROMStore`: it is the
-/// single writer of that format and the menu screens, the Meade adapter and the
-/// composition root still read it directly. This adapter only gives the domain an
-/// injectable handle, so `Mount` (and later the controllers) never name the static
-/// facade and a test can substitute the port.
+/// The typed accessors and the on-device encoding stay in `EEPROMStore`: it is the single writer
+/// of that format. This adapter gives the domain an injectable handle, so `Mount` (and the
+/// controllers) never name the store and a test can substitute the port.
 ///
-/// Header-only and every method a single forward, so an optimising build collapses it
-/// to the same calls the static facade made before.
+/// Header-only and every method a single forward, so an optimising build collapses it to the same
+/// calls a direct store use would make.
 class MountSettingsStore final : public ports::IMountSettings
 {
   public:
+    explicit MountSettingsStore(EEPROMStore &store) : _store(store)
+    {
+    }
+
     core::DayTime getHATime() override
     {
-        return EEPROMStore::getHATime();
+        return _store.getHATime();
     }
 
     void storeHATime(const core::DayTime &ha) override
     {
-        EEPROMStore::storeHATime(DayTime(ha));
+        _store.storeHATime(DayTime(ha));
     }
 
     int getUtcOffset() override
     {
-        return EEPROMStore::getUtcOffset();
+        return _store.getUtcOffset();
     }
 
     void storeUtcOffset(int utcOffset) override
     {
-        EEPROMStore::storeUtcOffset(utcOffset);
+        _store.storeUtcOffset(utcOffset);
+    }
+
+    uint8_t getBrightness() override
+    {
+        return _store.getBrightness();
+    }
+
+    void storeBrightness(uint8_t brightness) override
+    {
+        _store.storeBrightness(brightness);
     }
 
     float getRAStepsPerDegree() override
     {
-        return EEPROMStore::getRAStepsPerDegree();
+        return _store.getRAStepsPerDegree();
     }
 
     void storeRAStepsPerDegree(float stepsPerDegree) override
     {
-        EEPROMStore::storeRAStepsPerDegree(stepsPerDegree);
+        _store.storeRAStepsPerDegree(stepsPerDegree);
     }
 
     float getDECStepsPerDegree() override
     {
-        return EEPROMStore::getDECStepsPerDegree();
+        return _store.getDECStepsPerDegree();
     }
 
     void storeDECStepsPerDegree(float stepsPerDegree) override
     {
-        EEPROMStore::storeDECStepsPerDegree(stepsPerDegree);
+        _store.storeDECStepsPerDegree(stepsPerDegree);
     }
 
     float getAZStepsPerDegree() override
     {
-        return EEPROMStore::getAZStepsPerDegree();
+        return _store.getAZStepsPerDegree();
     }
 
     void storeAZStepsPerDegree(float stepsPerDegree) override
     {
-        EEPROMStore::storeAZStepsPerDegree(stepsPerDegree);
+        _store.storeAZStepsPerDegree(stepsPerDegree);
     }
 
     float getALTStepsPerDegree() override
     {
-        return EEPROMStore::getALTStepsPerDegree();
+        return _store.getALTStepsPerDegree();
     }
 
     void storeALTStepsPerDegree(float stepsPerDegree) override
     {
-        EEPROMStore::storeALTStepsPerDegree(stepsPerDegree);
+        _store.storeALTStepsPerDegree(stepsPerDegree);
     }
 
     float getSpeedFactor() override
     {
-        return EEPROMStore::getSpeedFactor();
+        return _store.getSpeedFactor();
     }
 
     void storeSpeedFactor(float speedFactor) override
     {
-        EEPROMStore::storeSpeedFactor(speedFactor);
+        _store.storeSpeedFactor(speedFactor);
     }
 
     int16_t getBacklashCorrectionSteps() override
     {
-        return EEPROMStore::getBacklashCorrectionSteps();
+        return _store.getBacklashCorrectionSteps();
     }
 
     void storeBacklashCorrectionSteps(int16_t steps) override
     {
-        EEPROMStore::storeBacklashCorrectionSteps(steps);
+        _store.storeBacklashCorrectionSteps(steps);
     }
 
     core::Latitude getLatitude() override
     {
-        return EEPROMStore::getLatitude();
+        return _store.getLatitude();
     }
 
     void storeLatitude(const core::Latitude &latitude) override
     {
-        EEPROMStore::storeLatitude(Latitude(latitude));
+        _store.storeLatitude(Latitude(latitude));
     }
 
     core::Longitude getLongitude() override
     {
-        return EEPROMStore::getLongitude();
+        return _store.getLongitude();
     }
 
     void storeLongitude(const core::Longitude &longitude) override
     {
-        EEPROMStore::storeLongitude(Longitude(longitude));
+        _store.storeLongitude(Longitude(longitude));
     }
 
     float getPitchCalibrationAngle() override
     {
-        return EEPROMStore::getPitchCalibrationAngle();
+        return _store.getPitchCalibrationAngle();
     }
 
     void storePitchCalibrationAngle(float angle) override
     {
-        EEPROMStore::storePitchCalibrationAngle(angle);
+        _store.storePitchCalibrationAngle(angle);
     }
 
     float getRollCalibrationAngle() override
     {
-        return EEPROMStore::getRollCalibrationAngle();
+        return _store.getRollCalibrationAngle();
     }
 
     void storeRollCalibrationAngle(float angle) override
     {
-        EEPROMStore::storeRollCalibrationAngle(angle);
+        _store.storeRollCalibrationAngle(angle);
     }
 
     float getDECLowerLimit() override
     {
-        return EEPROMStore::getDECLowerLimit();
+        return _store.getDECLowerLimit();
     }
 
     void storeDECLowerLimit(float limit) override
     {
-        EEPROMStore::storeDECLowerLimit(limit);
+        _store.storeDECLowerLimit(limit);
     }
 
     float getDECUpperLimit() override
     {
-        return EEPROMStore::getDECUpperLimit();
+        return _store.getDECUpperLimit();
     }
 
     void storeDECUpperLimit(float limit) override
     {
-        EEPROMStore::storeDECUpperLimit(limit);
+        _store.storeDECUpperLimit(limit);
     }
 
     int32_t getRAHomingOffset() override
     {
-        return EEPROMStore::getRAHomingOffset();
+        return _store.getRAHomingOffset();
     }
 
     void storeRAHomingOffset(int32_t offset) override
     {
-        EEPROMStore::storeRAHomingOffset(offset);
+        _store.storeRAHomingOffset(offset);
     }
 
     int32_t getDECHomingOffset() override
     {
-        return EEPROMStore::getDECHomingOffset();
+        return _store.getDECHomingOffset();
     }
 
     void storeDECHomingOffset(int32_t offset) override
     {
-        EEPROMStore::storeDECHomingOffset(offset);
+        _store.storeDECHomingOffset(offset);
     }
 
     int16_t getLastFlashedVersion() override
     {
-        return EEPROMStore::getLastFlashedVersion();
+        return _store.getLastFlashedVersion();
     }
 
     void storeLastFlashedVersion(int16_t version) override
     {
-        EEPROMStore::storeLastFlashedVersion(version);
+        _store.storeLastFlashedVersion(version);
     }
 
     int32_t getAZPosition() override
     {
-        return EEPROMStore::getAZPosition();
+        return _store.getAZPosition();
     }
 
     void storeAZPosition(int32_t position) override
     {
-        EEPROMStore::storeAZPosition(position);
+        _store.storeAZPosition(position);
     }
 
     int32_t getALTPosition() override
     {
-        return EEPROMStore::getALTPosition();
+        return _store.getALTPosition();
     }
 
     void storeALTPosition(int32_t position) override
     {
-        EEPROMStore::storeALTPosition(position);
+        _store.storeALTPosition(position);
     }
 
     void clearConfiguration() override
     {
-        EEPROMStore::clearConfiguration();
+        _store.clearConfiguration();
     }
+
+  private:
+    EEPROMStore &_store;
 };
 
 }  // namespace adapters

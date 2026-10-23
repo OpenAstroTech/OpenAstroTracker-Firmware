@@ -11,14 +11,16 @@
     // You add a string and an id item and this class handles the display and navigation
     // Create a new menu, using the given number of LCD display columns and rows
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
+LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
     : _lcd(LCD_PIN8, LCD_PIN9, LCD_PIN4, LCD_PIN5, LCD_PIN6, LCD_PIN7), _cols(cols), _rows(rows), _maxItems(maxItems),
-      _charHeightRows(1)  // 1 character = 1 row
+      _charHeightRows(1),  // 1 character = 1 row
+      _settings(settings)
 {
 }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
-    : _lcd(0x20), _cols(cols), _rows(rows), _maxItems(maxItems), _charHeightRows(1)  // 1 character = 1 row
+LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
+    : _lcd(0x20), _cols(cols), _rows(rows), _maxItems(maxItems), _charHeightRows(1),  // 1 character = 1 row
+      _settings(settings)
 {
         #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     _lcd.setMCPType(LTI_TYPE_MCP23017);
@@ -27,8 +29,9 @@ LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
         #endif
 }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
-    : _cols(cols), _rows(rows), _maxItems(maxItems), _charHeightRows(2)  // For 7x14 font 1 character = 2 rows (2x8 pixels)
+LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
+    : _cols(cols), _rows(rows), _maxItems(maxItems), _charHeightRows(2),  // For 7x14 font 1 character = 2 rows (2x8 pixels)
+      _settings(settings)
 {
 }
     #endif
@@ -54,7 +57,7 @@ void LcdMenu::startup()
     _lcdBadHw = false;
     #endif
 
-    _brightness = EEPROMStore::getBrightness();
+    _brightness = (_settings != nullptr) ? _settings->getBrightness() : 10;
     LOG(DEBUG_INFO, "[LCD]: Brightness from EEPROM is %d", _brightness);
     setBacklightBrightness(_brightness, false);
 
@@ -218,7 +221,10 @@ void LcdMenu::setBacklightBrightness(int level, bool persist)
     if (persist)
     {
         LOG(DEBUG_INFO, "[LCD]: Saving %d as brightness", _brightness);
-        EEPROMStore::storeBrightness(_brightness);
+        if (_settings != nullptr)
+        {
+            _settings->storeBrightness(_brightness);
+        }
     }
 }
 
@@ -441,7 +447,7 @@ byte LcdMenu::NoTrackingBitmap[8] = {B10000, B00000, B10000, B00010, B10000, B00
 
 #else  // Headless (i.e. DISPLAY_TYPE == 0)
 
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems)
+LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
 {
 }
 

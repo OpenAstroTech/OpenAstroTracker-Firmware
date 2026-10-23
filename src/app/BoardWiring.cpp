@@ -46,18 +46,6 @@ int RAselect;
 int DECselect;
 int HAselect;
 
-// --- the display and menu singletons ---------------------------------------------------
-
-LcdMenu lcdMenu(16, 2, MAXMENUITEMS);
-#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
-#endif
-
-#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008                           \
-    || DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-LcdButtons lcdButtons(&lcdMenu);
-#endif
-
 // The infrastructure the domain runs on. Declared before `mount` so it is
 // constructed first; all of these are stateless or trivially initialised.
 hal::ArduinoSystemClock arduinoSystemClock;
@@ -77,8 +65,7 @@ adapters::NullLogger loggerPort;
 ports::ILogger *const logSink = &loggerPort;
 #endif
 
-// The typed view of the persisted settings; `EEPROMStore` stays the format owner.
-adapters::MountSettingsStore settingsStore;
+// --- persistence -----------------------------------------------------------------------
 
 #if USE_DUMMY_EEPROM == true
 // A development switch: boot without touching the board's EEPROM.
@@ -88,6 +75,25 @@ hal::ArduinoEeprom eeprom(EEPROM);
 #endif
 
 adapters::EepromPersistentStore persistentStore(eeprom, hal::eeprom::STORE_SIZE);
+
+// `EEPROMStore` is the single writer of the on-device format; the settings port is the typed
+// view the domain consumes.
+EEPROMStore eepromStore(persistentStore, *logSink);
+adapters::MountSettingsStore settingsStore(eepromStore);
+
+// --- the display and menu singletons ---------------------------------------------------
+//
+// After the settings store: the menu asks it for the persisted backlight level.
+
+LcdMenu lcdMenu(16, 2, MAXMENUITEMS, &settingsStore);
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
+LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
+#endif
+
+#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008                           \
+    || DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+LcdButtons lcdButtons(&lcdMenu);
+#endif
 
 // Driver enable lines. Only declared where `Mount` drives them: the RA/DEC writes
 // sit inside the UART self-test, and AZ/ALT/Focus exist only when the axis does.
@@ -199,10 +205,8 @@ void stepperControlTimerCallback(void *payload)
 
 void initPersistentStore()
 {
-    EEPROMStore::setStore(&persistentStore);
-    EEPROMStore::setLogger(&loggerPort);
     persistentStore.begin();
-    EEPROMStore::initialize();
+    eepromStore.initialize();
 }
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)

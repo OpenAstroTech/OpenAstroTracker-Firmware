@@ -1,6 +1,8 @@
 #ifndef _LCDMENU_HPP_
 #define _LCDMENU_HPP_
 
+#include "ports/IMountSettings.hpp"
+
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
     #include <LiquidCrystal.h>
 #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
@@ -39,8 +41,9 @@ class MenuItem
 class LcdMenu
 {
   public:
-    // Create a new menu, using the given number of LCD display columns and rows
-    LcdMenu(byte cols, byte rows, int maxItems);
+    // Create a new menu, using the given number of LCD display columns and rows. The settings
+    // store is where the backlight level is persisted; null keeps the level in RAM only.
+    LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings = nullptr);
 
     void startup();
 
@@ -121,6 +124,7 @@ class LcdMenu
     byte _activeCol;         // The column that the LCD cursor is on
     String _lastDisplay[2];  // The last string that was displayed on each row
     byte _brightness;
+    ports::IMountSettings *_settings = nullptr;
 
     #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
     enum specialChar_t : byte

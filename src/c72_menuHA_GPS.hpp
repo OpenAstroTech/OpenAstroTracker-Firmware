@@ -138,7 +138,7 @@ bool processHAKeys()
             if (key == btnSELECT)
             {
                 DayTime ha(mount.HA());
-                EEPROMStore::storeHATime(mount.HA());
+                settingsStore.storeHATime(mount.HA());
                 lcdMenu.printMenu(F("Stored."));
                 mount.delay(500);
                 haState = SHOWING_HA_SET;

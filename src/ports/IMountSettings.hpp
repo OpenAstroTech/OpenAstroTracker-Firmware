@@ -30,6 +30,11 @@ class IMountSettings
     virtual int getUtcOffset()                 = 0;
     virtual void storeUtcOffset(int utcOffset) = 0;
 
+    /// Backlight level of the menu display, 0-255. Stored with the rest of the settings
+    /// because it is a user preference that must survive a power cycle.
+    virtual uint8_t getBrightness()                 = 0;
+    virtual void storeBrightness(uint8_t brightness) = 0;
+
     virtual float getRAStepsPerDegree()                      = 0;
     virtual void storeRAStepsPerDegree(float stepsPerDegree) = 0;
 
