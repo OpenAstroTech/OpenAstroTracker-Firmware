@@ -61,13 +61,13 @@ void attachSensors(Mount &mount)
 #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    sensors.raHoming = new HallSensorHoming(
-        ui, mount, StepperAxis::RA_STEPS, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
+    sensors.raHoming
+        = new HallSensorHoming(ui, mount, StepperAxis::RA_STEPS, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
 #endif
 
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    sensors.decHoming = new HallSensorHoming(
-        ui, mount, StepperAxis::DEC_STEPS, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
+    sensors.decHoming
+        = new HallSensorHoming(ui, mount, StepperAxis::DEC_STEPS, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
 #endif
 
     mount.attachSensors(sensors);

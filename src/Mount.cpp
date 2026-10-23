@@ -120,8 +120,8 @@ void Mount::initializeVariables()
     _driverALT   = &nullDriver;
     _driverFocus = &nullDriver;
 
-    _latitude   = Latitude(inNorthernHemisphere ? 45.0f : -45.0f);
-    _longitude  = Longitude(100.0);
+    _siteTime.setLatitude(core::Latitude(inNorthernHemisphere ? 45.0f : -45.0f));
+    _siteTime.setLongitude(core::Longitude(100.0));
     _zeroPosDEC = 0.0f;
 
     _coordinator.slew().clearTotalMove();
@@ -134,12 +134,10 @@ void Mount::initializeVariables()
     _rollCalibrationAngle  = 0;
 #endif
 
-    _localUtcOffset          = 0;
-    _localStartDate.year     = 2021;
-    _localStartDate.month    = 1;
-    _localStartDate.day      = 1;
-    _localStartTimeSetMillis = -1;
-    _lastTRKCheck            = 0;
+    _siteTime.setLocalUtcOffset(0);
+    _siteTime.setLocalStartDate({2021, 1, 1});
+    _siteTime.setLocalStartTime(DayTime(0), static_cast<unsigned long>(-1));
+    _lastTRKCheck = 0;
 }
 
 /////////////////////////////////
@@ -226,14 +224,14 @@ void Mount::readPersistentData()
     _settings.setBacklashCorrectionSteps(_deps.settings->getBacklashCorrectionSteps());
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Backlash correction is %d", _settings.backlashCorrectionSteps());
 
-    _latitude = _deps.settings->getLatitude();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Latitude is %s", _latitude.ToString());
+    _siteTime.setLatitude(core::Latitude(_deps.settings->getLatitude()));
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Latitude is %s", Latitude(_siteTime.latitude()).ToString());
 
-    _longitude = _deps.settings->getLongitude();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Longitude is %s", _longitude.ToString());
+    _siteTime.setLongitude(core::Longitude(_deps.settings->getLongitude()));
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Longitude is %s", Longitude(_siteTime.longitude()).ToString());
 
-    _localUtcOffset = _deps.settings->getUtcOffset();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: UTC offset is %d", _localUtcOffset);
+    _siteTime.setLocalUtcOffset(_deps.settings->getUtcOffset());
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: UTC offset is %d", _siteTime.localUtcOffset());
 
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = _deps.settings->getPitchCalibrationAngle();
@@ -271,7 +269,7 @@ void Mount::readPersistentData()
         _stepperAZ->setCurrentPosition(azPos);
     }
 
-    configureHemisphere(_latitude.getTotalHours() > 0);
+    configureHemisphere(_siteTime.latitude().getTotalHours() > 0);
 }
 
 /////////////////////////////////
@@ -799,8 +797,8 @@ const DayTime Mount::HA() const
 {
     // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: Get HA.");
     // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: Polaris adjust: %s", DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND).ToString());
-    DayTime ha = _LST;
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: LST: %s", _LST.ToString());
+    DayTime ha = DayTime(_siteTime.lst());
+    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: LST: %s", DayTime(_siteTime.lst()).ToString());
     ha.subtractTime(DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
     // LOG(DEBUG_MOUNT, "[MOUNT]: GetHA: LST-Polaris is HA %s", ha.ToString());
     return ha;
@@ -813,12 +811,12 @@ const DayTime Mount::HA() const
 /////////////////////////////////
 void Mount::setLST(const core::DayTime &lst)
 {
-    _LST       = lst;
+    _siteTime.setLst(lst);
     _zeroPosRA = lst;
 #if defined(OAM) || defined(OAE)
     _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
 #endif
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Set LST and ZeroPosRA to: %s", _LST.ToString());
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Set LST and ZeroPosRA to: %s", DayTime(_siteTime.lst()).ToString());
 }
 
 /////////////////////////////////
@@ -829,9 +827,9 @@ void Mount::setLST(const core::DayTime &lst)
 void Mount::setLatitude(const core::Latitude &latitude)
 {
     OAT_LOG(_deps.logger, DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", latitude.getTotalHours());
-    _latitude = latitude;
-    configureHemisphere(_latitude.getTotalHours() > 0);
-    _deps.settings->storeLatitude(_latitude);
+    _siteTime.setLatitude(latitude);
+    configureHemisphere(_siteTime.latitude().getTotalHours() > 0);
+    _deps.settings->storeLatitude(_siteTime.latitude());
 }
 
 /////////////////////////////////
@@ -842,8 +840,8 @@ void Mount::setLatitude(const core::Latitude &latitude)
 void Mount::setLongitude(const core::Longitude &longitude)
 {
     OAT_LOG(_deps.logger, DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", longitude.getTotalHours());
-    _longitude = longitude;
-    _deps.settings->storeLongitude(_longitude);
+    _siteTime.setLongitude(longitude);
+    _deps.settings->storeLongitude(_siteTime.longitude());
 
     autoCalcHa();
 }
@@ -855,7 +853,7 @@ void Mount::setLongitude(const core::Longitude &longitude)
 /////////////////////////////////
 core::Latitude Mount::latitude() const
 {
-    return _latitude;
+    return _siteTime.latitude();
 }
 /////////////////////////////////
 //
@@ -864,7 +862,7 @@ core::Latitude Mount::latitude() const
 /////////////////////////////////
 core::Longitude Mount::longitude() const
 {
-    return _longitude;
+    return _siteTime.longitude();
 }
 
 /////////////////////////////////
@@ -3646,9 +3644,7 @@ String Mount::RAString(byte type, byte active)
 /////////////////////////////////
 core::DayTime Mount::getUtcTime()
 {
-    DayTime timeUTC = getLocalTime();
-    timeUTC.addHours(-_localUtcOffset);
-    return timeUTC;
+    return _siteTime.utcTimeAt(_deps.clock->now());
 }
 
 /////////////////////////////////
@@ -3658,9 +3654,7 @@ core::DayTime Mount::getUtcTime()
 /////////////////////////////////
 core::DayTime Mount::getLocalTime()
 {
-    DayTime timeLocal = _localStartTime;
-    timeLocal.addSeconds((_deps.clock->now() - _localStartTimeSetMillis) / 1000);
-    return timeLocal;
+    return _siteTime.localTimeAt(_deps.clock->now());
 }
 
 /////////////////////////////////
@@ -3670,18 +3664,8 @@ core::DayTime Mount::getLocalTime()
 /////////////////////////////////
 LocalDate Mount::getLocalDate()
 {
-    LocalDate localDate        = _localStartDate;
-    long secondsSinceSetDayEnd = ((_deps.clock->now() - _localStartTimeSetMillis) / 1000) - (86400 - _localStartTime.getTotalSeconds());
-
-    // Number of day ends passed since the date was set; a partial day still counts as one.
-    const long daysElapsed = secondsSinceSetDayEnd >= 0 ? (secondsSinceSetDayEnd / 86400) + 1 : 0;
-
-    const core::CalendarDate rolled = core::addDays({localDate.year, localDate.month, localDate.day}, daysElapsed);
-    localDate.year                  = rolled.year;
-    localDate.month                 = rolled.month;
-    localDate.day                   = rolled.day;
-
-    return localDate;
+    const core::CalendarDate date = _siteTime.localDateAt(_deps.clock->now());
+    return {date.year, date.month, date.day};
 }
 
 /////////////////////////////////
@@ -3691,7 +3675,7 @@ LocalDate Mount::getLocalDate()
 /////////////////////////////////
 int Mount::getLocalUtcOffset() const
 {
-    return _localUtcOffset;
+    return _siteTime.localUtcOffset();
 }
 
 /////////////////////////////////
@@ -3701,9 +3685,7 @@ int Mount::getLocalUtcOffset() const
 /////////////////////////////////
 void Mount::setLocalStartDate(int year, int month, int day)
 {
-    _localStartDate.year  = year;
-    _localStartDate.month = month;
-    _localStartDate.day   = day;
+    _siteTime.setLocalStartDate({year, month, day});
 
     autoCalcHa();
 }
@@ -3715,8 +3697,7 @@ void Mount::setLocalStartDate(int year, int month, int day)
 /////////////////////////////////
 void Mount::setLocalStartTime(const core::DayTime &localTime)
 {
-    _localStartTime          = DayTime(localTime);
-    _localStartTimeSetMillis = _deps.clock->now();
+    _siteTime.setLocalStartTime(DayTime(localTime), _deps.clock->now());
 
     autoCalcHa();
 }
@@ -3728,8 +3709,8 @@ void Mount::setLocalStartTime(const core::DayTime &localTime)
 /////////////////////////////////
 void Mount::setLocalUtcOffset(int offset)
 {
-    _localUtcOffset = offset;
-    _deps.settings->storeUtcOffset(_localUtcOffset);
+    _siteTime.setLocalUtcOffset(offset);
+    _deps.settings->storeUtcOffset(_siteTime.localUtcOffset());
 
     autoCalcHa();
 }
@@ -3754,8 +3735,8 @@ core::DayTime Mount::calculateLst()
     DayTime timeUTC     = getUtcTime();
     LocalDate localDate = getLocalDate();
     // The sidereal formula needs the UTC date, which differs from the local date for |UTC offset| hours each day.
-    core::CalendarDate utcDate
-        = core::localToUtcDate({localDate.year, localDate.month, localDate.day}, getLocalTime().getTotalSeconds(), _localUtcOffset);
+    core::CalendarDate utcDate = core::localToUtcDate(
+        {localDate.year, localDate.month, localDate.day}, getLocalTime().getTotalSeconds(), _siteTime.localUtcOffset());
     DayTime lst = core::SiderealClock::localSiderealTime(
         longitude().getTotalHours(), utcDate.year, utcDate.month, utcDate.day, timeUTC.getTotalHours());
     // LOG(DEBUG_INFO,

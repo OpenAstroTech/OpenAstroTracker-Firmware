@@ -17,6 +17,7 @@
 #include "core/MountState.hpp"
 #include "core/ParkingController.hpp"
 #include "core/SlewCompletion.hpp"
+#include "core/SiteTime.hpp"
 #include "core/SlewController.hpp"
 #include "core/GuidingController.hpp"
 #include "core/TrackingController.hpp"
@@ -595,7 +596,9 @@ class Mount final : public ports::IMountOptionalAxes,
     float _rollCalibrationAngle;
 #endif
 
-    DayTime _LST;
+    /// Latitude, longitude, local sidereal time and the session clock, in one object.
+    core::SiteTime _siteTime;
+
     DayTime _zeroPosRA;
 
     DayTime _targetRA;
@@ -608,8 +611,6 @@ class Mount final : public ports::IMountOptionalAxes,
 
     float _totalDECMove;
     float _totalRAMove;
-    Latitude _latitude;
-    Longitude _longitude;
     long _commandReceived;
 
     /// Backing store for the `const char *` readouts, which the protocol sends and the info
@@ -673,11 +674,6 @@ class Mount final : public ports::IMountOptionalAxes,
 
     char scratchBuffer[24];
     bool _bootComplete;
-
-    int _localUtcOffset;
-    LocalDate _localStartDate;
-    DayTime _localStartTime;
-    long _localStartTimeSetMillis;
 };
 
 #endif
