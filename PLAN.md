@@ -616,6 +616,7 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 **Landed so far:**
 
 - ✅ `src/StepperConfiguration.hpp` moved to `hal/avr/`; `hal/avr/InterruptStepperFactory.hpp` builds every AVR engine behind `IStepperMotor`. `Mount` now holds `ports::IStepperAxis *` for all axes on all platforms and `MountCoordinator<ports::IStepperAxis>` unconditionally.
+- ✅ Sensor construction left `Mount` too: `app/SensorWiring.cpp` builds the end switches and hall sensors; the homing state machine now samples "was tracking" per run rather than relying on a per-attempt `new`.
 - ✅ Driver construction and register programming left `Mount` as well: `app/DriverWiring.cpp` builds each TMC2209 UART driver, runs the UART self-test and applies the enable-line safety write, then hands the finished ports over via `Mount::attachDrivers()`. `Mount.cpp` dropped 423 lines in that move.
 - ✅ Engine *construction* left `Mount` too: `app/MotorWiring.cpp` builds every axis for the board and calls `Mount::attachSteppers()`. `hal/StepperMotorFactory` maps an axis role to the right engine, so the AVR/AccelStepper choice is one file inside `hal/` and **no code above `hal/` selects a platform**. The ten cached speed/acceleration values became one `core::AxisLimits` POD.
 - ✅ `src/Core.cpp` → `src/app/main.cpp`.
