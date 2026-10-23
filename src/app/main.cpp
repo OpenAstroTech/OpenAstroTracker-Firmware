@@ -26,7 +26,7 @@
 #include "../c76_menuCAL.hpp"
 #include "../c78_menuINFO.hpp"
 #include "../c_buttons.hpp"
-#include "../f_serial.hpp"
+#include "../app/SerialPump.hpp"
 
 void setup()
 {

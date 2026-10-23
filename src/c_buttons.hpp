@@ -14,7 +14,7 @@
 #include "c78_menuINFO.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
-    #include "f_serial.hpp"
+    #include "app/SerialPump.hpp"
 #endif
 
 #if DISPLAY_TYPE > 0
