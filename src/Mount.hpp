@@ -12,6 +12,7 @@
 #include "core/MountConfig.hpp"
 #include "core/MountCoordinator.hpp"
 #include "core/MountRequests.hpp"
+#include "core/MountRuntimeSettings.hpp"
 #include "core/MountState.hpp"
 #include "core/ParkingController.hpp"
 #include "core/SlewCompletion.hpp"
@@ -576,8 +577,6 @@ class Mount final : public ports::IMountOptionalAxes,
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 #endif
-    float _stepsPerRADegree;   // u-steps/degree when slewing (see RA_STEPS_PER_DEGREE)
-    float _stepsPerDECDegree;  // u-steps/degree when slewing (see DEC_STEPS_PER_DEGREE)
     uint32_t _maxRASpeed;
     uint32_t _maxDECSpeed;
     int _maxAZSpeed;
@@ -588,10 +587,8 @@ class Mount final : public ports::IMountOptionalAxes,
     int _maxAZAcceleration;
     int _maxALTAcceleration;
     int _maxFocusAcceleration;
-    int _backlashCorrectionSteps;
-    int _moveRate;
-    long _decLowerLimit;  // Movement limit in slewing steps
-    long _decUpperLimit;  // Movement limit in slewing steps
+    /// The live, EEPROM-backed motion settings: u-steps/degree, backlash, slew rate, DEC limits.
+    core::MountRuntimeSettings _settings;
 
 #if USE_GYRO_LEVEL == 1
     float _pitchCalibrationAngle;

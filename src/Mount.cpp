@@ -136,8 +136,8 @@ void Mount::initializeVariables()
     // at runtime when the Latitude is received via Meade command.
     inNorthernHemisphere = NORTHERN_HEMISPHERE == 1;
 
-    _stepsPerRADegree  = _config.defaultRaStepsPerDegree;   // u-steps per degree when slewing
-    _stepsPerDECDegree = _config.defaultDecStepsPerDegree;  // u-steps per degree when slewing
+    // u-steps per degree when slewing, plus the motion tuning defaults
+    _settings.reset(_config.defaultRaStepsPerDegree, _config.defaultDecStepsPerDegree);
 
     _coordinator.state().reset(0);
     _coordinator.slew().noteRunning(false);
@@ -165,15 +165,10 @@ void Mount::initializeVariables()
     _zeroPosDEC = 0.0f;
 
     _coordinator.slew().clearTotalMove();
-    _moveRate                = 4;
-    _backlashCorrectionSteps = 0;
     _coordinator.slew().clearBacklashCorrection();
     _coordinator.slew().end();
     _coordinator.parking().clear();
     applyParkingStatus();
-    _decLowerLimit = 0;
-    _decUpperLimit = 0;
-
 #if USE_GYRO_LEVEL == 1
     _pitchCalibrationAngle = 0;
     _rollCalibrationAngle  = 0;
@@ -247,11 +242,11 @@ void Mount::readPersistentData()
         OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Same firmware version as last boot %d.", version);
     }
 
-    _stepsPerRADegree = _deps.settings->getRAStepsPerDegree();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: RA steps/deg is %f", _stepsPerRADegree);
+    _settings.setStepsPerDegree(RA_STEPS, _deps.settings->getRAStepsPerDegree());
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: RA steps/deg is %f", _settings.stepsPerDegree(RA_STEPS));
 
-    _stepsPerDECDegree = _deps.settings->getDECStepsPerDegree();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: DEC steps/deg is %f", _stepsPerDECDegree);
+    _settings.setStepsPerDegree(DEC_STEPS, _deps.settings->getDECStepsPerDegree());
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: DEC steps/deg is %f", _settings.stepsPerDegree(DEC_STEPS));
 
     if (kHasAzStepper)
     {
@@ -268,8 +263,8 @@ void Mount::readPersistentData()
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", speed);
     setSpeedCalibration(speed, false);
 
-    _backlashCorrectionSteps = _deps.settings->getBacklashCorrectionSteps();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Backlash correction is %d", _backlashCorrectionSteps);
+    _settings.setBacklashCorrectionSteps(_deps.settings->getBacklashCorrectionSteps());
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Backlash correction is %d", _settings.backlashCorrectionSteps());
 
     _latitude = _deps.settings->getLatitude();
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Latitude is %s", _latitude.ToString());
@@ -288,17 +283,21 @@ void Mount::readPersistentData()
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Roll Offset is %f", _rollCalibrationAngle);
 #endif
 
-    _decLowerLimit = static_cast<long>(-(_deps.settings->getDECLowerLimit() * _stepsPerDECDegree));
-    if (_decLowerLimit == 0 && DEC_LIMIT_DOWN != 0)
+    _settings.setDecLowerLimitSteps(static_cast<long>(-(_deps.settings->getDECLowerLimit() * _settings.stepsPerDegree(DEC_STEPS))));
+    if (_settings.decLowerLimitSteps() == 0 && DEC_LIMIT_DOWN != 0)
     {
-        _decLowerLimit = static_cast<long>(-(DEC_LIMIT_DOWN * _stepsPerDECDegree));
+        _settings.setDecLowerLimitSteps(static_cast<long>(-(DEC_LIMIT_DOWN * _settings.stepsPerDegree(DEC_STEPS))));
     }
-    _decUpperLimit = static_cast<long>((_deps.settings->getDECUpperLimit() * _stepsPerDECDegree));
-    if (_decUpperLimit == 0 && DEC_LIMIT_UP != 0)
+    _settings.setDecUpperLimitSteps(static_cast<long>((_deps.settings->getDECUpperLimit() * _settings.stepsPerDegree(DEC_STEPS))));
+    if (_settings.decUpperLimitSteps() == 0 && DEC_LIMIT_UP != 0)
     {
-        _decUpperLimit = static_cast<long>(DEC_LIMIT_UP * _stepsPerDECDegree);
+        _settings.setDecUpperLimitSteps(static_cast<long>(DEC_LIMIT_UP * _settings.stepsPerDegree(DEC_STEPS)));
     }
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: DEC limits read as %ld -> %ld", _decLowerLimit, _decUpperLimit);
+    OAT_LOG(_deps.logger,
+            DEBUG_INFO,
+            "[MOUNT]: EEPROM: DEC limits read as %ld -> %ld",
+            _settings.decLowerLimitSteps(),
+            _settings.decUpperLimitSteps());
 
     if (kHasAltStepper)
     {
@@ -423,7 +422,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
     #ifdef ARDUINO_AVR_ATmega2560
     _stepperAZ = makeAxis(*hal::avr::makeAzSlewMotor(AccelStepper::DRIVER, pin1, pin2));
     #else
-    _stepperAZ    = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
+    _stepperAZ = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
     _stepperAZ->setMaxSpeed(maxSpeed);
     _stepperAZ->setAcceleration(maxAcceleration);
@@ -441,7 +440,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
     #ifdef ARDUINO_AVR_ATmega2560
     _stepperALT = makeAxis(*hal::avr::makeAltSlewMotor(AccelStepper::DRIVER, pin1, pin2));
     #else
-    _stepperALT   = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
+    _stepperALT = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
     _stepperALT->setMaxSpeed(maxSpeed);
     _stepperALT->setAcceleration(maxAcceleration);
@@ -837,7 +836,7 @@ void Mount::configureALTdriver(uint16_t ALT_SW_RX, uint16_t ALT_SW_TX, float rse
     _driverALT->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver("ALT");
+    UART_Rx_connected      = connectToDriver("ALT");
     if (!UART_Rx_connected)
     {
         // Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
@@ -928,7 +927,7 @@ void Mount::configureFocusDriver(
     _driverFocus->pdn_disable(true);
         #if UART_CONNECTION_TEST_TXRX == 1
     bool UART_Rx_connected = false;
-    UART_Rx_connected = connectToDriver("FOC");
+    UART_Rx_connected      = connectToDriver("FOC");
     if (!UART_Rx_connected)
     {
         // Disable motor for safety reasons if UART connection fails to avoid operating at incorrect rms_current
@@ -987,8 +986,8 @@ void Mount::setSpeedCalibration(float val, bool saveToStorage)
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Current tracking speed is %f steps/sec", _coordinator.tracking().speed());
 
     // The tracking rate is derived from the slewing geometry; see core/TrackingController.hpp.
-    _coordinator.tracking().setStepsPerDegree(_stepsPerRADegree);
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _stepsPerRADegree);
+    _coordinator.tracking().setStepsPerDegree(_settings.stepsPerDegree(RA_STEPS));
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA steps per degree is %f steps/deg", _settings.stepsPerDegree(RA_STEPS));
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: New tracking speed is %f steps/sec", _coordinator.tracking().speed());
 
     OAT_LOG(_deps.logger,
@@ -1063,11 +1062,11 @@ float Mount::getStepsPerDegree(StepperAxis which)
 {
     if (which == RA_STEPS)
     {
-        return _stepsPerRADegree;  // u-steps/degree
+        return _settings.stepsPerDegree(RA_STEPS);  // u-steps/degree
     }
     if (which == DEC_STEPS)
     {
-        return _stepsPerDECDegree;  // u-steps/degree
+        return _settings.stepsPerDegree(DEC_STEPS);  // u-steps/degree
     }
     if (which == AZIMUTH_STEPS)
     {
@@ -1091,13 +1090,13 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
 {
     if (which == DEC_STEPS)
     {
-        _stepsPerDECDegree = steps;
-        _deps.settings->storeDECStepsPerDegree(_stepsPerDECDegree);
+        _settings.setStepsPerDegree(DEC_STEPS, steps);
+        _deps.settings->storeDECStepsPerDegree(_settings.stepsPerDegree(DEC_STEPS));
     }
     else if (which == RA_STEPS)
     {
-        _stepsPerRADegree = steps;
-        _deps.settings->storeRAStepsPerDegree(_stepsPerRADegree);
+        _settings.setStepsPerDegree(RA_STEPS, steps);
+        _deps.settings->storeRAStepsPerDegree(_settings.stepsPerDegree(RA_STEPS));
         setSpeedCalibration(_coordinator.tracking().calibration(), false);
     }
     else if (kHasAzStepper && which == AZIMUTH_STEPS)
@@ -1119,7 +1118,7 @@ void Mount::setStepsPerDegree(StepperAxis which, float steps)
 /////////////////////////////////
 int Mount::getBacklashCorrection()
 {
-    return _backlashCorrectionSteps;
+    return _settings.backlashCorrectionSteps();
 }
 
 /////////////////////////////////
@@ -1280,8 +1279,8 @@ const char *Mount::getMountHardwareInfo()
 // Function to set steps per degree for each axis. This function stores the value in persistent storage.
 void Mount::setBacklashCorrection(int steps)
 {
-    _backlashCorrectionSteps = steps;
-    _deps.settings->storeBacklashCorrectionSteps(_backlashCorrectionSteps);
+    _settings.setBacklashCorrectionSteps(steps);
+    _deps.settings->storeBacklashCorrectionSteps(_settings.backlashCorrectionSteps());
 }
 
 /////////////////////////////////
@@ -1291,11 +1290,11 @@ void Mount::setBacklashCorrection(int steps)
 /////////////////////////////////
 void Mount::setSlewRate(int rate)
 {
-    _moveRate           = clamp(rate, 1, 4);
+    _settings.setMoveRate(clamp(rate, 1, 4));
     float speedFactor[] = {0, 0.05, 0.2, 0.5, 1.0};
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, rate is %d -> %f", _moveRate, speedFactor[_moveRate]);
-    _stepperDEC->setMaxSpeed(speedFactor[_moveRate] * _maxDECSpeed);
-    _stepperRA->setMaxSpeed(speedFactor[_moveRate] * _maxRASpeed);
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, rate is %d -> %f", _settings.moveRate(), speedFactor[_settings.moveRate()]);
+    _stepperDEC->setMaxSpeed(speedFactor[_settings.moveRate()] * _maxDECSpeed);
+    _stepperRA->setMaxSpeed(speedFactor[_settings.moveRate()] * _maxRASpeed);
     OAT_LOG(
         _deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, new speeds are RA: %f  DEC: %f", _stepperRA->maxSpeed(), _stepperDEC->maxSpeed());
 }
@@ -1307,7 +1306,7 @@ void Mount::setSlewRate(int rate)
 /////////////////////////////////
 int Mount::getSlewRate()
 {
-    return _moveRate;
+    return _settings.moveRate();
 }
 
 /////////////////////////////////
@@ -1432,12 +1431,12 @@ core::DayTime Mount::currentRA() const
 {
     // The arithmetic lives in core::currentRa; this gathers the six numbers it needs.
     core::PositionFacts facts;
-    facts.raSteps            = _stepperRA->currentPosition();
-    facts.decSteps           = _stepperDEC->currentPosition();
-    facts.raStepsPerDegree   = _stepsPerRADegree;
-    facts.decStepsPerDegree  = _stepsPerDECDegree;
-    facts.zeroPosRaHours     = _zeroPosRA.getTotalHours();
-    facts.zeroPosDecDegrees  = _zeroPosDEC;
+    facts.raSteps           = _stepperRA->currentPosition();
+    facts.decSteps          = _stepperDEC->currentPosition();
+    facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
+    facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
+    facts.zeroPosRaHours    = _zeroPosRA.getTotalHours();
+    facts.zeroPosDecDegrees = _zeroPosDEC;
     return core::currentRa(facts);
 }
 
@@ -1453,8 +1452,8 @@ core::Declination Mount::currentDEC() const
     core::PositionFacts facts;
     facts.raSteps           = _stepperRA->currentPosition();
     facts.decSteps          = _stepperDEC->currentPosition();
-    facts.raStepsPerDegree  = _stepsPerRADegree;
-    facts.decStepsPerDegree = _stepsPerDECDegree;
+    facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
+    facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
     facts.zeroPosRaHours    = _zeroPosRA.getTotalHours();
     facts.zeroPosDecDegrees = _zeroPosDEC;
     return core::currentDec(facts);
@@ -1509,7 +1508,8 @@ void Mount::syncPosition(const core::DayTime &ra, const core::Declination &dec)
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: ZeroPosRA is now %f", _zeroPosRA.getTotalHours());
 
     // Adjust the home DEC position by the delta between the sync'd target and current position.
-    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
+    const float degreePos
+        = (_stepperDEC->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: DEC degreePos is: %f", degreePos);
 
     // Dec totalhours can be plus or minus the distance from the pole (because it keeps track of whether we are upwards or downwards from the pole)
@@ -1743,7 +1743,10 @@ void Mount::guidePulse(byte direction, int duration)
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   DEC current steps   : %ld",
                     _stepperGUIDE->currentPosition());
-            OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   DEC steps/deg       : %f", _stepsPerDECDegree);
+            OAT_LOG(_deps.logger,
+                    DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   DEC steps/deg       : %f",
+                    _settings.stepsPerDegree(DEC_STEPS));
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   DEC Microstep ratio : %f",
@@ -1755,7 +1758,10 @@ void Mount::guidePulse(byte direction, int duration)
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   RA  current steps   : %ld",
                     _stepperTRK->currentPosition());
-            OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse:   RA  steps/deg       : %f", _stepsPerRADegree);
+            OAT_LOG(_deps.logger,
+                    DEBUG_STEPPERS | DEBUG_GUIDE,
+                    "[GUIDE]: guidePulse:   RA  steps/deg       : %f",
+                    _settings.stepsPerDegree(RA_STEPS));
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   RA  Microstep ratio : %f",
@@ -1766,9 +1772,9 @@ void Mount::guidePulse(byte direction, int duration)
         // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
         // Also compensate for microstepping mode change between slew & guiding/tracking
         const core::GuideAxisGeometry raGeometry
-            = {_stepsPerRADegree, _config.raTrackingMicrosteps(), _config.raSlewMicrosteps, RA_PULSE_MULTIPLIER};
+            = {_settings.stepsPerDegree(RA_STEPS), _config.raTrackingMicrosteps(), _config.raSlewMicrosteps, RA_PULSE_MULTIPLIER};
         const core::GuideAxisGeometry decGeometry
-            = {_stepsPerDECDegree, _config.decGuidingMicrosteps(), _config.decSlewMicrosteps, DEC_PULSE_MULTIPLIER};
+            = {_settings.stepsPerDegree(DEC_STEPS), _config.decGuidingMicrosteps(), _config.decSlewMicrosteps, DEC_PULSE_MULTIPLIER};
 
         // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
         // If so, we need to remember where we were when we started the guide pulse. Then at the end,
@@ -1780,8 +1786,12 @@ void Mount::guidePulse(byte direction, int duration)
             case NORTH:
                 {
                     // If a upper limit is set, check we're not there. If we are, refuse the guide pulse.
-                    const core::DecPulse pulse = core::GuidingController::decPulse(
-                        true, decGeometry, siderealDegreesInHour, _stepperDEC->currentPosition(), _decLowerLimit, _decUpperLimit);
+                    const core::DecPulse pulse = core::GuidingController::decPulse(true,
+                                                                                   decGeometry,
+                                                                                   siderealDegreesInHour,
+                                                                                   _stepperDEC->currentPosition(),
+                                                                                   _settings.decLowerLimitSteps(),
+                                                                                   _settings.decUpperLimitSteps());
                     if (!pulse.allowed)
                     {
                         // TODO: Make sure Southern hemisphere does not need a sign/direction inversion.
@@ -1789,7 +1799,7 @@ void Mount::guidePulse(byte direction, int duration)
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
                                 "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or above upper limit (%ld), ignoring guide pulse",
                                 _stepperDEC->currentPosition(),
-                                _decUpperLimit);
+                                _settings.decUpperLimitSteps());
                     }
                     else
                     {
@@ -1808,15 +1818,19 @@ void Mount::guidePulse(byte direction, int duration)
 
             case SOUTH:
                 {
-                    const core::DecPulse pulse = core::GuidingController::decPulse(
-                        false, decGeometry, siderealDegreesInHour, _stepperDEC->currentPosition(), _decLowerLimit, _decUpperLimit);
+                    const core::DecPulse pulse = core::GuidingController::decPulse(false,
+                                                                                   decGeometry,
+                                                                                   siderealDegreesInHour,
+                                                                                   _stepperDEC->currentPosition(),
+                                                                                   _settings.decLowerLimitSteps(),
+                                                                                   _settings.decUpperLimitSteps());
                     if (!pulse.allowed)
                     {
                         OAT_LOG(_deps.logger,
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
                                 "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or below lower limit (%ld), ignoring guide pulse",
                                 _stepperDEC->currentPosition(),
-                                _decLowerLimit);
+                                _settings.decLowerLimitSteps());
                         OAT_LOG(_deps.logger,
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
                                 "[GUIDE]: guidePulse:   DEC is at lower limit, ignoring guide pulse");
@@ -1914,7 +1928,7 @@ void Mount::commandReceived()
 /////////////////////////////////
 void Mount::startDriftAlignment(int durationSecs)
 {
-    _coordinator.drift().begin(durationSecs, _stepsPerRADegree);
+    _coordinator.drift().begin(durationSecs, _settings.stepsPerDegree(RA_STEPS));
 }
 
 void Mount::updateDriftAlignment(unsigned long now)
@@ -2012,7 +2026,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
 {
     if (which == RA_STEPS)
     {
-        float stepsPerSec = speedDegsPerSec * _stepsPerRADegree;  // deg/sec * u-steps/deg = u-steps/sec
+        float stepsPerSec = speedDegsPerSec * _settings.stepsPerDegree(RA_STEPS);  // deg/sec * u-steps/deg = u-steps/sec
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setSpeed: Set RA speed %f degs/s, which is %f steps/s",
@@ -2023,7 +2037,7 @@ void Mount::setSpeed(StepperAxis which, float speedDegsPerSec)
     }
     else if (which == DEC_STEPS)
     {
-        float stepsPerSec = speedDegsPerSec * _stepsPerDECDegree;  // deg/sec * u-steps/deg = u-steps/sec
+        float stepsPerSec = speedDegsPerSec * _settings.stepsPerDegree(DEC_STEPS);  // deg/sec * u-steps/deg = u-steps/sec
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setSpeed: Set DEC speed %f degs/s, which is %f steps/s",
@@ -2512,7 +2526,7 @@ const char *Mount::getStatusString()
     const bool raRunning    = _stepperRA->isRunning();
     const bool decRunning   = _stepperDEC->isRunning();
 
-    oat::core::meade::MountStatusFacts facts{};
+    oat::core::meade::MountStatusFacts facts {};
     _infoStatusScratch = getStatusStateString();
     facts.activity     = _infoStatusScratch.c_str();
 
@@ -2718,7 +2732,7 @@ void Mount::startSlewing(int direction)
             int sign = inNorthernHemisphere ? 1 : -1;
 
             // Set move rate to last commanded slew rate
-            setSlewRate(_moveRate);
+            setSlewRate(_settings.moveRate());
             if (isSlewingTRK())
             {
                 stopSlewing(TRACKING);
@@ -2733,14 +2747,14 @@ void Mount::startSlewing(int direction)
 
             if (direction & NORTH)
             {
-                long targetLocation = _stepsPerDECDegree * DEC_LIMIT_UP;
-                if (_decUpperLimit != 0)
+                long targetLocation = _settings.stepsPerDegree(DEC_STEPS) * DEC_LIMIT_UP;
+                if (_settings.decUpperLimitSteps() != 0)
                 {
-                    targetLocation = _decUpperLimit;
+                    targetLocation = _settings.decUpperLimitSteps();
                     OAT_LOG(_deps.logger,
                             DEBUG_STEPPERS,
                             "[STEPPERS]: startSlewing(N): DEC has upper limit of %ld. targetMoveTo is now %ld",
-                            _decUpperLimit,
+                            _settings.decUpperLimitSteps(),
                             targetLocation);
                 }
                 else
@@ -2754,14 +2768,14 @@ void Mount::startSlewing(int direction)
 
             if (direction & SOUTH)
             {
-                long targetLocation = -_stepsPerDECDegree * DEC_LIMIT_DOWN;
-                if (_decLowerLimit != 0)
+                long targetLocation = -_settings.stepsPerDegree(DEC_STEPS) * DEC_LIMIT_DOWN;
+                if (_settings.decLowerLimitSteps() != 0)
                 {
-                    targetLocation = _decLowerLimit;
+                    targetLocation = _settings.decLowerLimitSteps();
                     OAT_LOG(_deps.logger,
                             DEBUG_STEPPERS,
                             "[STEPPERS]: startSlewing(S): DEC has lower limit of %ld. targetMoveTo is now %ld",
-                            _decLowerLimit,
+                            _settings.decLowerLimitSteps(),
                             targetLocation);
                 }
                 else
@@ -2777,7 +2791,7 @@ void Mount::startSlewing(int direction)
             if (direction & EAST)
             {
                 // We need to subtract the distance tracked from the physical RA home coordinate
-                long targetEastPos = _stepsPerRADegree * 15.0 * (RA_PHYSICAL_LIMIT + trackedHours);
+                long targetEastPos = _settings.stepsPerDegree(RA_STEPS) * 15.0 * (RA_PHYSICAL_LIMIT + trackedHours);
                 OAT_LOG(_deps.logger,
                         DEBUG_STEPPERS,
                         "[STEPPERS]: startSlewing(E): initial targetMoveTo is %ld (adjusted for %fh tracked)",
@@ -2789,7 +2803,7 @@ void Mount::startSlewing(int direction)
             if (direction & WEST)
             {
                 // We need to add the distance tracked from the physical RA home coordinate
-                long targetWestPos = _stepsPerRADegree * 15.0 * (min(RA_PHYSICAL_LIMIT, RA_TRACKING_LIMIT) - trackedHours);
+                long targetWestPos = _settings.stepsPerDegree(RA_STEPS) * 15.0 * (min(RA_PHYSICAL_LIMIT, RA_TRACKING_LIMIT) - trackedHours);
                 OAT_LOG(_deps.logger,
                         DEBUG_STEPPERS,
                         "[STEPPERS]: startSlewing(W): initial targetMoveTo is %ld (adjusted for %fh tracked)",
@@ -3013,7 +3027,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _raHoming;
         }
-        _raHoming = new HallSensorHoming(ui, *this, axis, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
+        _raHoming          = new HallSensorHoming(ui, *this, axis, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -3030,7 +3044,7 @@ bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int sea
         {
             delete _decHoming;
         }
-        _decHoming = new HallSensorHoming(ui, *this, axis, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
+        _decHoming         = new HallSensorHoming(ui, *this, axis, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
         const bool started = _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
@@ -3432,8 +3446,8 @@ void Mount::loop()
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Reached target at %d. Compensating for backlash by %d",
                         (int) _currentRAStepperPosition,
-                        _backlashCorrectionSteps);
-                _currentRAStepperPosition += _backlashCorrectionSteps;
+                        _settings.backlashCorrectionSteps());
+                _currentRAStepperPosition += _settings.backlashCorrectionSteps();
                 _stepperRA->runToNewPosition(_currentRAStepperPosition);
                 _coordinator.slew().clearBacklashCorrection();
                 OAT_LOG(_deps.logger,
@@ -3569,39 +3583,39 @@ void Mount::setDecLimitPosition(bool upper, float limitAngle)
     {
         if (limitAngle == 0)
         {
-            _decUpperLimit = _stepperDEC->currentPosition();
-            _deps.settings->storeDECUpperLimit(fabsf(_decUpperLimit / _stepsPerDECDegree));
+            _settings.setDecUpperLimitSteps(_stepperDEC->currentPosition());
+            _deps.settings->storeDECUpperLimit(fabsf(_settings.decUpperLimitSteps() / _settings.stepsPerDegree(DEC_STEPS)));
         }
         else
         {
-            _decUpperLimit = (limitAngle * _stepsPerDECDegree);
+            _settings.setDecUpperLimitSteps((limitAngle * _settings.stepsPerDegree(DEC_STEPS)));
             _deps.settings->storeDECUpperLimit(limitAngle);
         }
         OAT_LOG(_deps.logger,
                 DEBUG_MOUNT,
                 "[MOUNT]: setDecLimitPosition(Upper) to %f: limit DEC: %ld -> %ld",
                 limitAngle,
-                _decLowerLimit,
-                _decUpperLimit);
+                _settings.decLowerLimitSteps(),
+                _settings.decUpperLimitSteps());
     }
     else
     {
         if (limitAngle == 0)
         {
-            _decLowerLimit = _stepperDEC->currentPosition();
-            _deps.settings->storeDECLowerLimit(fabsf(_decLowerLimit / _stepsPerDECDegree));
+            _settings.setDecLowerLimitSteps(_stepperDEC->currentPosition());
+            _deps.settings->storeDECLowerLimit(fabsf(_settings.decLowerLimitSteps() / _settings.stepsPerDegree(DEC_STEPS)));
         }
         else
         {
-            _decLowerLimit = -(limitAngle * _stepsPerDECDegree);
+            _settings.setDecLowerLimitSteps(-(limitAngle * _settings.stepsPerDegree(DEC_STEPS)));
             _deps.settings->storeDECLowerLimit(limitAngle);
         }
         OAT_LOG(_deps.logger,
                 DEBUG_MOUNT,
                 "[MOUNT]: setDecLimitPosition(Lower) to %f: limit DEC: %ld -> %ld",
                 limitAngle,
-                _decLowerLimit,
-                _decUpperLimit);
+                _settings.decLowerLimitSteps(),
+                _settings.decUpperLimitSteps());
     }
 }
 
@@ -3614,15 +3628,23 @@ void Mount::clearDecLimitPosition(bool upper)
 {
     if (upper)
     {
-        _decUpperLimit = DEC_LIMIT_UP * _stepsPerDECDegree;
+        _settings.setDecUpperLimitSteps(DEC_LIMIT_UP * _settings.stepsPerDegree(DEC_STEPS));
         _deps.settings->storeDECUpperLimit(DEC_LIMIT_UP);
-        OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: clearDecLimitPosition(Upper): limit DEC: %ld -> %ld", _decLowerLimit, _decUpperLimit);
+        OAT_LOG(_deps.logger,
+                DEBUG_MOUNT,
+                "[MOUNT]: clearDecLimitPosition(Upper): limit DEC: %ld -> %ld",
+                _settings.decLowerLimitSteps(),
+                _settings.decUpperLimitSteps());
     }
     else
     {
-        _decLowerLimit = -(DEC_LIMIT_DOWN * _stepsPerDECDegree);
+        _settings.setDecLowerLimitSteps(-(DEC_LIMIT_DOWN * _settings.stepsPerDegree(DEC_STEPS)));
         _deps.settings->storeDECLowerLimit(DEC_LIMIT_DOWN);
-        OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: clearDecLimitPosition(Lower): limit DEC: %ld -> %ld", _decLowerLimit, _decUpperLimit);
+        OAT_LOG(_deps.logger,
+                DEBUG_MOUNT,
+                "[MOUNT]: clearDecLimitPosition(Lower): limit DEC: %ld -> %ld",
+                _settings.decLowerLimitSteps(),
+                _settings.decUpperLimitSteps());
     }
 }
 
@@ -3633,13 +3655,13 @@ void Mount::clearDecLimitPosition(bool upper)
 /////////////////////////////////
 void Mount::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 {
-    lowerLimit = -1.0f * _decLowerLimit / _stepsPerDECDegree;
-    upperLimit = 1.0f * _decUpperLimit / _stepsPerDECDegree;
+    lowerLimit = -1.0f * _settings.decLowerLimitSteps() / _settings.stepsPerDegree(DEC_STEPS);
+    upperLimit = 1.0f * _settings.decUpperLimitSteps() / _settings.stepsPerDegree(DEC_STEPS);
     OAT_LOG(_deps.logger,
             DEBUG_MOUNT,
             "[MOUNT]: getDecLimitPositions: limit DEC: %ld -> %ld (%f -> %f)",
-            _decLowerLimit,
-            _decUpperLimit,
+            _settings.decLowerLimitSteps(),
+            _settings.decUpperLimitSteps(),
             lowerLimit,
             upperLimit);
 }
@@ -3809,7 +3831,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     }
 
     // How many u-steps moves the RA ring one sidereal hour along when slewing. One sidereal hour moves just shy of 15 degrees
-    float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
+    float stepsPerSiderealHour = _settings.stepsPerDegree(RA_STEPS) * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
 
     // Where do we want to move DEC to?
     float moveDEC = decTarget.getTotalDegrees();
@@ -3845,7 +3867,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     geometry.moveDEC              = moveDEC;
     geometry.homeTargetDeltaRA    = homeTargetDeltaRA;
     geometry.stepsPerSiderealHour = stepsPerSiderealHour;
-    geometry.stepsPerDECDegree    = _stepsPerDECDegree;
+    geometry.stepsPerDECDegree    = _settings.stepsPerDegree(DEC_STEPS);
     geometry.zeroPosDEC           = _zeroPosDEC;
     geometry.raLimitL             = RALimitL;
     geometry.raLimitR             = RALimitR;
@@ -3925,10 +3947,13 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
 
     if ((direction == RA_AND_DEC_STEPS) || (direction == RA_STEPS))
     {
-        if ((_backlashCorrectionSteps != 0) && ((_stepperRA->currentPosition() - targetRASteps) > 0))
+        if ((_settings.backlashCorrectionSteps() != 0) && ((_stepperRA->currentPosition() - targetRASteps) > 0))
         {
-            OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: Needs backlash correction of %d!", _backlashCorrectionSteps);
-            targetRASteps -= _backlashCorrectionSteps;
+            OAT_LOG(_deps.logger,
+                    DEBUG_STEPPERS,
+                    "[STEPPERS]: MoveSteppersTo: Needs backlash correction of %d!",
+                    _settings.backlashCorrectionSteps());
+            targetRASteps -= _settings.backlashCorrectionSteps();
             _coordinator.slew().requestBacklashCorrection();
         }
 
@@ -3937,26 +3962,32 @@ void Mount::moveSteppersTo(float targetRASteps, float targetDECSteps, StepperAxi
 
     if ((direction == RA_AND_DEC_STEPS) || (direction == DEC_STEPS))
     {
-        if (_decUpperLimit != 0)
+        if (_settings.decUpperLimitSteps() != 0)
         {
 #if DEBUG_LEVEL != 0
-            if (targetDECSteps > (float) _decUpperLimit)
+            if (targetDECSteps > (float) _settings.decUpperLimitSteps())
             {
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %ld", _decUpperLimit);
+                OAT_LOG(_deps.logger,
+                        DEBUG_STEPPERS,
+                        "[STEPPERS]: MoveSteppersTo: DEC Upper Limit enforced. To: %ld",
+                        _settings.decUpperLimitSteps());
             }
 #endif
-            targetDECSteps = min(targetDECSteps, (float) _decUpperLimit);
+            targetDECSteps = min(targetDECSteps, (float) _settings.decUpperLimitSteps());
         }
 
-        if (_decLowerLimit != 0)
+        if (_settings.decLowerLimitSteps() != 0)
         {
 #if DEBUG_LEVEL != 0
-            if (targetDECSteps < (float) _decLowerLimit)
+            if (targetDECSteps < (float) _settings.decLowerLimitSteps())
             {
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %ld", _decLowerLimit);
+                OAT_LOG(_deps.logger,
+                        DEBUG_STEPPERS,
+                        "[STEPPERS]: MoveSteppersTo: DEC Lower Limit enforced. To: %ld",
+                        _settings.decLowerLimitSteps());
             }
 #endif
-            targetDECSteps = max(targetDECSteps, (float) _decLowerLimit);
+            targetDECSteps = max(targetDECSteps, (float) _settings.decLowerLimitSteps());
         }
 
         _stepperDEC->moveTo(targetDECSteps);
@@ -4103,16 +4134,16 @@ const char *Mount::decText(uint8_t type, uint8_t active)
 /////////////////////////////////
 ports::InfoDisplayActivity Mount::activity()
 {
-    return ports::InfoDisplayActivity{isAxisRunning(RA_STEPS), isAxisRunning(DEC_STEPS)};
+    return ports::InfoDisplayActivity {isAxisRunning(RA_STEPS), isAxisRunning(DEC_STEPS)};
 }
 
 void Mount::fillInfoDisplayState(ports::InfoDisplayState &state)
 {
-    state.raSteps            = getCurrentStepperPosition(StepperAxis::RA_STEPS);
-    state.decSteps           = getCurrentStepperPosition(StepperAxis::DEC_STEPS);
-    state.trkSteps           = getCurrentStepperPosition(TRACKING);
-    state.raStepsPerDegree   = getStepsPerDegree(StepperAxis::RA_STEPS);
-    state.decStepsPerDegree  = getStepsPerDegree(StepperAxis::DEC_STEPS);
+    state.raSteps           = getCurrentStepperPosition(StepperAxis::RA_STEPS);
+    state.decSteps          = getCurrentStepperPosition(StepperAxis::DEC_STEPS);
+    state.trkSteps          = getCurrentStepperPosition(TRACKING);
+    state.raStepsPerDegree  = getStepsPerDegree(StepperAxis::RA_STEPS);
+    state.decStepsPerDegree = getStepsPerDegree(StepperAxis::DEC_STEPS);
 
     state.raRunning  = isAxisRunning(RA_STEPS);
     state.decRunning = isAxisRunning(DEC_STEPS);
@@ -4335,8 +4366,8 @@ core::DayTime Mount::calculateLst()
     // The sidereal formula needs the UTC date, which differs from the local date for |UTC offset| hours each day.
     core::CalendarDate utcDate
         = core::localToUtcDate({localDate.year, localDate.month, localDate.day}, getLocalTime().getTotalSeconds(), _localUtcOffset);
-    DayTime lst
-        = core::SiderealClock::localSiderealTime(longitude().getTotalHours(), utcDate.year, utcDate.month, utcDate.day, timeUTC.getTotalHours());
+    DayTime lst = core::SiderealClock::localSiderealTime(
+        longitude().getTotalHours(), utcDate.year, utcDate.month, utcDate.day, timeUTC.getTotalHours());
     // LOG(DEBUG_INFO,
     //     "[MOUNT]: Calculating LST. UTC time: %s. UTC date: %d-%d-%d. Longitude: %s",
     //     timeUTC.ToString(),
@@ -4357,8 +4388,7 @@ core::DayTime Mount::calculateHa()
 {
     DayTime lst = calculateLst();
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
-    DayTime ha = core::SiderealClock::hourAngle(
-        lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
+    DayTime ha = core::SiderealClock::hourAngle(lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
     return ha;
 }
@@ -4375,7 +4405,7 @@ void Mount::testRA_UART_TX()
     //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
     const int speed = (RA_STEPPER_SPEED / 2) / 0.715255737f;
     //Duration in ms to move X degrees at half of the max speed
-    const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerRADegree / (RA_STEPPER_SPEED / 2)) * 1000;
+    const int duration = UART_CONNECTION_TEST_TX_DEG * (_settings.stepsPerDegree(RA_STEPS) / (RA_STEPPER_SPEED / 2)) * 1000;
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) for UART test",
@@ -4396,7 +4426,7 @@ void Mount::testDEC_UART_TX()
     //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
     const int speed = (DEC_STEPPER_SPEED / 2) / 0.715255737f;
     //Duration in ms to move X degrees at half of the max speed
-    const int duration = UART_CONNECTION_TEST_TX_DEG * (_stepsPerDECDegree / (DEC_STEPPER_SPEED / 2)) * 1000;
+    const int duration = UART_CONNECTION_TEST_TX_DEG * (_settings.stepsPerDegree(DEC_STEPS) / (DEC_STEPPER_SPEED / 2)) * 1000;
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test",
@@ -4451,7 +4481,7 @@ float Mount::checkRALimit()
     core::RaLimitFacts facts;
     facts.homeRaHours        = _zeroPosRA.getTotalHours() + getTrackedHours();
     facts.currentRaHours     = currentRA().getTotalHours();
-    facts.decAxisDegrees     = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
+    facts.decAxisDegrees     = (_stepperDEC->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;
     facts.northernHemisphere = inNorthernHemisphere;
     facts.limitHours         = RA_TRACKING_LIMIT;
 
