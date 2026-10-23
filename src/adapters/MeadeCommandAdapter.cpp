@@ -4,7 +4,7 @@
 #include "../LcdMenu.hpp"
 #include "../Mount.hpp"
 #include "MeadeCommandAdapter.hpp"
-#include "../WifiControl.hpp"
+#include "WifiControl.hpp"
 #include "core/meade/MeadeParser.hpp"
 
 #include <stdarg.h>

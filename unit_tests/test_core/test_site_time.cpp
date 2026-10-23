@@ -114,8 +114,8 @@ TEST(SiteTimeTest, LstAdvancesAtTheSiderealRate)
     site.setLocalStartDate({2024, 2, 1});
     site.setLocalStartTime(core::DayTime(20, 0, 0), 0);
 
-    const float start   = site.lstAt(0).getTotalHours();
-    const float anHour  = site.lstAt(3600UL * 1000UL).getTotalHours();
+    const float start  = site.lstAt(0).getTotalHours();
+    const float anHour = site.lstAt(3600UL * 1000UL).getTotalHours();
 
     float delta = anHour - start;
     if (delta < -12.0f)

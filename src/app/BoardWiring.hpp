@@ -29,7 +29,7 @@
 #include "hal/arduino/ArduinoSerialPort.hpp"
 
 #if (WIFI_ENABLED == 1)
-    #include "WifiControl.hpp"
+    #include "adapters/WifiControl.hpp"
 #endif
 
 // --- the display and menu singletons ---------------------------------------------------

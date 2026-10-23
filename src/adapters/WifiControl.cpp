@@ -1,19 +1,64 @@
 #include "../Configuration.hpp"
-#include "Utility.hpp"
+#include "../Utility.hpp"
 #include "WifiControl.hpp"
-#include "adapters/MeadeCommandAdapter.hpp"
+#include "MeadeCommandAdapter.hpp"
 
 #if (WIFI_ENABLED == 1)
 
-WifiControl::WifiControl(void (*mountTick)(), LcdMenu *lcdMenu)
+namespace
+{
+/// The stack's status in the words the status menu and `:GX#` have always shown.
+String wifiStatus(hal::WifiStatus status)
+{
+    switch (status)
+    {
+        case hal::WifiStatus::Idle:
+            return "Idle.";
+        case hal::WifiStatus::NoSsid:
+            return "No SSID available.";
+        case hal::WifiStatus::ScanCompleted:
+            return "Scan completed.";
+        case hal::WifiStatus::Connected:
+            return "Connected!";
+        case hal::WifiStatus::ConnectFailed:
+            return "Connect failed.";
+        case hal::WifiStatus::ConnectionLost:
+            return "Connection Lost.";
+        case hal::WifiStatus::Disconnected:
+            return "Disconnected.";
+    }
+    return "Idle.";
+}
+
+String formatIp(hal::IpAddress address)
+{
+    return String(address.octets[0]) + "." + String(address.octets[1]) + "." + String(address.octets[2]) + "." + String(address.octets[3]);
+}
+
+hal::IpAddress toIp(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+{
+    hal::IpAddress address;
+    address.octets[0] = a;
+    address.octets[1] = b;
+    address.octets[2] = c;
+    address.octets[3] = d;
+    return address;
+}
+}  // namespace
+
+WifiControl::WifiControl(hal::IWifiStack &stack, void (*mountTick)(), LcdMenu *lcdMenu) : _stack(stack)
 {
     _mountTick = mountTick;
     _lcdMenu   = lcdMenu;
+}
 
-    // `client` is a member, so its address is stable across `client = accept()`; one port and
-    // one transport serve every connection.
-    _clientPort      = new hal::ArduinoSerialPort(client);
-    _clientTransport = new adapters::SerialTransport<128>(*_clientPort, true);
+WifiControl::~WifiControl()
+{
+    delete _clientTransport;
+    delete _clientPort;
+    delete _client;
+    delete _tcpServer;
+    delete _udp;
 }
 
 void WifiControl::setup()
@@ -35,8 +80,7 @@ void WifiControl::setup()
             _infraStart = millis();
             break;
         case WIFI_MODE_DISABLED:  // Disabled
-            WiFi.mode(WIFI_OFF);
-            btStop();
+            _stack.setMode(hal::WifiMode::Off);
             break;
     }
 }
@@ -48,51 +92,24 @@ void WifiControl::startInfrastructureMode()
     LOG(DEBUG_WIFI, "[WIFI]:          for SSID: %s", String(WIFI_INFRASTRUCTURE_MODE_SSID).c_str());
     LOG(DEBUG_WIFI, "[WIFI]:       and WPA key: %s", String(WIFI_INFRASTRUCTURE_MODE_WPAKEY).c_str());
 
-    #if defined(ESP32)
-    WiFi.setHostname(WIFI_HOSTNAME);
-    #endif
-    WiFi.begin(WIFI_INFRASTRUCTURE_MODE_SSID, WIFI_INFRASTRUCTURE_MODE_WPAKEY);
+    _stack.setHostname(WIFI_HOSTNAME);
+    _stack.beginStation(WIFI_INFRASTRUCTURE_MODE_SSID, WIFI_INFRASTRUCTURE_MODE_WPAKEY);
 }
 
 void WifiControl::startAccessPointMode()
 {
     LOG(DEBUG_WIFI, "[WIFI]: Starting AP Mode Wifi");
-    IPAddress local_ip(192, 168, 1, 1);
-    IPAddress gateway(192, 168, 1, 1);
-    IPAddress subnet(255, 255, 255, 0);
 
-    #if defined(ESP32)
-    WiFi.setHostname(WIFI_HOSTNAME);
-    #endif
-
-    WiFi.mode(WIFI_AP);
-    WiFi.softAPConfig(local_ip, gateway, subnet);
-    if (!WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY))
+    _stack.setHostname(WIFI_HOSTNAME);
+    _stack.setMode(hal::WifiMode::AccessPoint);
+    _stack.configureAccessPoint(toIp(192, 168, 1, 1), toIp(192, 168, 1, 1), toIp(255, 255, 255, 0));
+    if (!_stack.beginAccessPoint(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY))
     {
         LOG(DEBUG_WIFI, "[WIFI]: AP mode could not be started!");
         return;
     }
 
     establishServers();
-}
-
-String wifiStatus(int status)
-{
-    if (status == WL_IDLE_STATUS)
-        return "Idle.";
-    if (status == WL_NO_SSID_AVAIL)
-        return "No SSID available.";
-    if (status == WL_SCAN_COMPLETED)
-        return "Scan completed.";
-    if (status == WL_CONNECTED)
-        return "Connected!";
-    if (status == WL_CONNECT_FAILED)
-        return "Connect failed.";
-    if (status == WL_CONNECTION_LOST)
-        return "Connection Lost.";
-    if (status == WL_DISCONNECTED)
-        return "Disconnected.";
-    return "Status " + String(status);
 }
 
 String WifiControl::getStatus()
@@ -119,12 +136,10 @@ String WifiControl::getStatus()
 
     if (WIFI_MODE != WIFI_MODE_AP_ONLY)
     {
-        result += wifiStatus(WiFi.status()) + ",";
+        result += wifiStatus(_stack.status()) + ",";
     }
-    #if defined(ESP32)
-    result += WiFi.getHostname();
+    result += _stack.hostname();
     result += ",";
-    #endif
 
     result += getIP() + ":" + WIFI_PORT + ",";
     if (WIFI_MODE != WIFI_MODE_AP_ONLY)
@@ -139,20 +154,26 @@ String WifiControl::getStatus()
 void WifiControl::establishServers()
 {
     delete _tcpServer;
-    _tcpServer = new WiFiServer(WIFI_PORT);
-    _tcpServer->begin();
-    _tcpServer->setNoDelay(true);
+    _tcpServer = _stack.createTcpListener();
+    if (_tcpServer != nullptr)
+    {
+        _tcpServer->begin(WIFI_PORT);
+        _tcpServer->setNoDelay(true);
+    }
 
     delete _udp;
-    _udp = new WiFiUDP();
-    _udp->begin(WIFI_UDP_DISCOVERY_PORT);
+    _udp = _stack.createUdpSocket();
+    if (_udp != nullptr)
+    {
+        _udp->begin(WIFI_UDP_DISCOVERY_PORT);
+    }
 }
 
 String WifiControl::getIP()
 {
     return WIFI_MODE == WIFI_MODE_DISABLED  ? "NONE"
-           : WIFI_MODE == WIFI_MODE_AP_ONLY ? WiFi.softAPIP().toString()
-                                            : WiFi.localIP().toString();
+           : WIFI_MODE == WIFI_MODE_AP_ONLY ? formatIp(_stack.accessPointIp())
+                                            : formatIp(_stack.stationIp());
 }
 
 void WifiControl::loop()
@@ -164,21 +185,21 @@ void WifiControl::loop()
 
     if (WIFI_MODE != WIFI_MODE_AP_ONLY)
     {
-        if (_status != WiFi.status())
+        if (_status != _stack.status())
         {
-            _status = WiFi.status();
+            _status = _stack.status();
             LOG(DEBUG_WIFI, "[WIFI]: Connected status changed to %s", wifiStatus(_status).c_str());
-            if (_status == WL_CONNECTED)
+            if (_status == hal::WifiStatus::Connected)
             {
                 establishServers();
                 LOG(DEBUG_WIFI,
                     "[WIFI]: Connecting to SSID %s at %s:%d",
                     WIFI_INFRASTRUCTURE_MODE_SSID,
-                    WiFi.localIP().toString().c_str(),
+                    formatIp(_stack.stationIp()).c_str(),
                     WIFI_PORT);
             }
         }
-        if (_status != WL_CONNECTED)
+        if (_status != hal::WifiStatus::Connected)
         {
             infraToAPFailover();
             return;
@@ -196,9 +217,9 @@ void WifiControl::loop()
 
 void WifiControl::infraToAPFailover()
 {
-    if (_infraStart != 0 && !WiFi.isConnected() && _infraStart + _infraWait < millis())
+    if (_infraStart != 0 && _stack.status() != hal::WifiStatus::Connected && _infraStart + _infraWait < millis())
     {
-        WiFi.disconnect();
+        _stack.disconnect();
         startAccessPointMode();
         _infraStart = 0;
 
@@ -208,17 +229,30 @@ void WifiControl::infraToAPFailover()
 
 void WifiControl::tcpLoop()
 {
-    if (!_tcpServer)
+    if (_tcpServer == nullptr)
         return;
 
-    if (!client.connected())
+    if (_client == nullptr || !_client->connected())
     {
-        _clientTransport->reset();
-        // Replies still owed to the peer that just left have nowhere to go.
-        _cmdProcessor->transportGone(_clientTransport);
-        client = _tcpServer->accept();
-        if (!client.connected())
+        if (_clientTransport != nullptr)
+        {
+            _clientTransport->reset();
+            // Replies still owed to the peer that just left have nowhere to go.
+            _cmdProcessor->transportGone(_clientTransport);
+        }
+
+        delete _clientPort;
+        delete _client;
+        _client = _tcpServer->accept();
+        if (_client == nullptr || !_client->connected())
+        {
             return;
+        }
+
+        // The port and the transport are per-connection, because the accepted socket is a new
+        // object every time while the framing state is not.
+        _clientPort      = new adapters::TcpConnectionPort(*_client);
+        _clientTransport = new adapters::SerialTransport<128>(*_clientPort, true);
     }
 
     // Framing, the 0x06 handshake reply and the write-back all live in the transport, so this
@@ -259,7 +293,7 @@ void WifiControl::tcpLoop()
 
 void WifiControl::udpLoop()
 {
-    if (!_udp)
+    if (_udp == nullptr)
         return;
 
     int packetSize = _udp->parsePacket();
@@ -273,25 +307,18 @@ void WifiControl::udpLoop()
         LOG(DEBUG_WIFI,
             "[WIFIUDP]: Received %d bytes from %s, port %d",
             packetSize,
-            _udp->remoteIP().toString().c_str(),
+            formatIp(_udp->remoteIp()).c_str(),
             _udp->remotePort());
         char incomingPacket[256];
-        int len             = _udp->read(incomingPacket, sizeof(incomingPacket) - 1);
+        int len             = _udp->read(reinterpret_cast<uint8_t *>(incomingPacket), sizeof(incomingPacket) - 1);
         incomingPacket[len] = 0;
         LOG(DEBUG_WIFI, "[WIFIUDP]: Received: %s", incomingPacket);
 
         incomingPacket[lookingFor.length()] = 0;
         if (lookingFor.equalsIgnoreCase(incomingPacket))
         {
-            _udp->beginPacket(_udp->remoteIP(), WIFI_UDP_DISCOVERY_PORT);
-            /*unsigned char bytes[255];
-            reply.getBytes(bytes, 255);
-            _udp->write(bytes, reply.length());*/
-
-    #if defined(ESP32)
-            _udp->print(reply.c_str());
-    #endif
-
+            _udp->beginPacket(_udp->remoteIp(), WIFI_UDP_DISCOVERY_PORT);
+            _udp->write(reinterpret_cast<const uint8_t *>(reply.c_str()), reply.length());
             _udp->endPacket();
             LOG(DEBUG_WIFI, "[WIFIUDP]: Replied: %s", reply.c_str());
         }

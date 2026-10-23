@@ -19,6 +19,7 @@
 #include "adapters/NullLogger.hpp"
 #include "adapters/SerialLogger.hpp"
 #include "adapters/Mpu6050Gyro.hpp"
+#include "hal/esp32/Esp32WifiStack.hpp"
 #include "hal/arduino/ArduinoI2cBus.hpp"
 
 PUSH_NO_WARNINGS
@@ -194,7 +195,8 @@ struct UiPortsInit {
 } uiPortsInit;
 
 #if (WIFI_ENABLED == 1)
-WifiControl wifiControl([]() { mount.loop(); }, &lcdMenu);
+hal::Esp32WifiStack wifiStack;
+WifiControl wifiControl(wifiStack, []() { mount.loop(); }, &lcdMenu);
 #endif
 
 /////////////////////////////////

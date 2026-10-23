@@ -178,6 +178,7 @@ void Esp32WifiStack::setMode(WifiMode mode)
     {
         case WifiMode::Off:
             WiFi.mode(WIFI_OFF);
+            btStop();  // the firmware has never run Wi-Fi and Bluetooth together
             break;
         case WifiMode::Station:
             WiFi.mode(WIFI_STA);
