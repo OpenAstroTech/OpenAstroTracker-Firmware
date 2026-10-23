@@ -280,17 +280,16 @@ class Mount final : public ports::IMountOptionalAxes,
 
     // Various status query functions
     bool isSlewingRAorDEC() const override;
-    bool isSlewingIdle() const;
+    bool isSlewingIdle() const override;
     bool isSlewingTRK() const override;
     bool isParking() const;
     bool isGuiding() const override;
     bool isFindingHome() const;
-    bool isAxisRunning(StepperAxis axis);
     bool isRunningAZ() const;
     bool isRunningALT() const;
 
     bool isRunningFocus() const override;
-    float getFocusSpeed() const;
+    float getFocusSpeed() const override;
 
     // Starts manual slewing in one of eight directions or tracking
     void startSlewing(int direction) override;
@@ -310,7 +309,6 @@ class Mount final : public ports::IMountOptionalAxes,
 
     // Gets the position in one of eight directions or tracking
     long getCurrentStepperPosition(int direction);
-    long getCurrentStepperPosition(StepperAxis axis);
 
     // Set the tracking stepper position
     void setTrackingStepperPos(long stepPos) override;
@@ -378,19 +376,27 @@ class Mount final : public ports::IMountOptionalAxes,
     float getSpeed(int direction) override;
 
     // See if a slew to target is in progress and return the percentage along the path
-    bool getStepperProgress(int &raPercentage, int &decPercentage);
+    bool getStepperProgress(int &raPercentage, int &decPercentage) override;
 
     /// How far each axis was asked to move by the slew in flight. Only the progress display reads
     /// these, to decide which of the two axes it should show a bar for; ``getStepperProgress``
     /// already folds them into percentages.
-    float plannedRaSteps() const;
-    float plannedDecSteps() const;
+    float plannedRaSteps() const override;
+    float plannedDecSteps() const override;
 
     // Called by Meade processor every time a command is received.
     void commandReceived() override;
     // --- ports::IInfoDisplaySource ---------------------------------------------------------
 
     /// Which axes are moving this frame, for the panel's refresh policy.
+    // --- ports::IMountReadModel (UI-facing reads) ------------------------------------------
+
+    core::DayTime hourAngle() override;
+    long getCurrentStepperPosition(StepperAxis axis) override;
+    bool isAxisRunning(StepperAxis axis) override;
+    const char *raText(uint8_t type, uint8_t active = 0) override;
+    const char *decText(uint8_t type, uint8_t active = 0) override;
+
     ports::InfoDisplayActivity activity() override;
 
     /// Fills one frame's worth of panel state. Everything the renderer shows comes from here,
@@ -477,7 +483,7 @@ class Mount final : public ports::IMountOptionalAxes,
     const char *getStepperInfo() override;
 
     // Returns a flag indicating whether the mount is fully booted.
-    bool isBootComplete();
+    bool isBootComplete() override;
 
     // Let the mount know that the system has finished booting
     void bootComplete();

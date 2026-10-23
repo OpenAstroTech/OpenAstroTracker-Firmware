@@ -4075,6 +4075,28 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
 
 /////////////////////////////////
 //
+// IMountReadModel — the UI-facing reads
+//
+/////////////////////////////////
+core::DayTime Mount::hourAngle()
+{
+    return HA();
+}
+
+const char *Mount::raText(uint8_t type, uint8_t active)
+{
+    RAString(type, active);
+    return scratchBuffer;
+}
+
+const char *Mount::decText(uint8_t type, uint8_t active)
+{
+    DECString(type, active);
+    return scratchBuffer;
+}
+
+/////////////////////////////////
+//
 // IInfoDisplaySource
 //
 /////////////////////////////////

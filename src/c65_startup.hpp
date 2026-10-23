@@ -47,7 +47,7 @@ void startupIsCompleted()
         #if TRACK_ON_BOOT == 1
     // Start tracking.
     LOG(DEBUG_ANY, "[STARTUP]: Start Tracking.");
-    mount.startSlewing(TRACKING);
+    ui.motion->startSlewing(TRACKING);
         #endif
 
     // Start on the RA menu
@@ -147,10 +147,10 @@ bool processStartupKeys()
 
         case StartupHAConfirmed:
             {
-                mount.setHome(true);
-                DayTime ha(mount.HA());
-                mount.setHA(ha);
-                mount.targetRA() = mount.currentRA();
+                ui.motion->setHome(true);
+                DayTime ha(ui.read->hourAngle());
+                ui.siteTime->setHA(ha);
+                ui.read->targetRA() = ui.read->currentRA();
                 startupIsCompleted();
             }
             break;

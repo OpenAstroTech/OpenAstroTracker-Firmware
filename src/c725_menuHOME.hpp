@@ -19,15 +19,15 @@ bool processHomeKeys()
                 {
                     if (subGoIndex == 0)
                     {
-                        mount.startSlewingToHome();
+                        ui.motion->startSlewingToHome();
                     }
-                    else if (mount.isSlewingTRK())
+                    else if (ui.motion->isSlewingTRK())
                     {
-                        mount.park();
+                        ui.motion->park();
                     }
                     else
                     {
-                        mount.startSlewing(TRACKING);
+                        ui.motion->startSlewing(TRACKING);
                     }
                 }
                 break;
@@ -57,7 +57,7 @@ bool processHomeKeys()
 void printHomeSubmenu()
 {
     char scratchBuffer[16];
-    if (mount.isSlewingTRK())
+    if (ui.motion->isSlewingTRK())
     {
         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), " Home  Park");
     }

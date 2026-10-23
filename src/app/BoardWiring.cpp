@@ -168,6 +168,24 @@ InfoDisplayRender *infoDisplay               = nullptr;
 adapters::InfoDisplayPanel *infoDisplayPanel = nullptr;
 #endif
 
+app::UiPorts ui;
+// The menu screens' view of the mount: five ports, the clock and the scheduler, all backed by the
+// one `mount` object until the coordinator owns the controllers.
+struct UiPortsInit
+{
+    UiPortsInit()
+    {
+        ui.motion    = &mount;
+        ui.config    = &mount;
+        ui.read      = &mount;
+        ui.siteTime  = &mount;
+        ui.axes      = &mount;
+        ui.clock     = &clockPort;
+        ui.scheduler = &schedulerPort;
+        ui.loop      = []() { mount.loop(); };
+    }
+} uiPortsInit;
+
 #if (WIFI_ENABLED == 1)
 WifiControl wifiControl(&mount, &lcdMenu);
 #endif

@@ -43,12 +43,12 @@ bool controlManualSlew(lcdButton_t key, int dir)
     {
         // Store the current key press as it has been confirmed
         currentKeyPressed = key;
-        mount.stopSlewing(ALL_DIRECTIONS);
-        mount.waitUntilStopped(ALL_DIRECTIONS);
+        ui.motion->stopSlewing(ALL_DIRECTIONS);
+        ui.waitUntilStopped(ALL_DIRECTIONS);
         if (dir != 0)
         {
             // Slew the mount in the desired direction
-            mount.startSlewing(dir);
+            ui.motion->startSlewing(dir);
         }
         isNewSlewDirection = true;
     }
@@ -109,7 +109,7 @@ bool processControlKeys()
                 if (key == btnSELECT)
                 {
                     ctrlState = MANUAL_CONTROL_MODE;
-                    mount.stopSlewing(ALL_DIRECTIONS);
+                    ui.motion->stopSlewing(ALL_DIRECTIONS);
                 }
                 else if ((key == btnDOWN) || (key == btnUP))
                 {
@@ -152,12 +152,12 @@ bool processControlKeys()
                     {
                         // Leaving Control Menu, so set stepper motor positions to zero.
                         LOG(DEBUG_GENERAL, "[CTRL]: Calling setHome(true)!");
-                        mount.setHome(true);
+                        ui.motion->setHome(true);
                         LOG(DEBUG_GENERAL,
                             "[CTRL]: setHome(true) returned: RA Current %s, Target: %f",
-                            mount.RAString(CURRENT_STRING | COMPACT_STRING).c_str(),
-                            mount.RAString(TARGET_STRING | COMPACT_STRING).c_str());
-                        mount.startSlewing(TRACKING);
+                            ui.read->raText(CURRENT_STRING | COMPACT_STRING).c_str(),
+                            ui.read->raText(TARGET_STRING | COMPACT_STRING).c_str());
+                        ui.motion->startSlewing(TRACKING);
                     }
 
         #if SUPPORT_GUIDED_STARTUP == 1

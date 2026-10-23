@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "core/types/DayTime.hpp"
+#include "Types.hpp"
 #include "core/types/Declination.hpp"
 
 namespace ports
@@ -44,6 +45,28 @@ class IMountReadModel
     /// Minutes of tracking left before the RA axis reaches its limit.
     virtual float checkRALimit() = 0;
 
+    /// Hour angle as the mount currently reports it (the value `:GH#` sends).
+    virtual core::DayTime hourAngle() = 0;
+
+    /// Current stepper position of one axis, in its own microsteps.
+    virtual long getCurrentStepperPosition(StepperAxis which) = 0;
+
+    /// Whether the step generator is driving this axis right now.
+    virtual bool isAxisRunning(StepperAxis axis) = 0;
+
+    /// True when neither the RA nor the DEC axis is moving, and nothing is parked or homing.
+    virtual bool isSlewingIdle() const = 0;
+
+    /// Slew progress for the two-axis progress bar: percentages, true while a slew is in flight.
+    virtual bool getStepperProgress(int &raPercentage, int &decPercentage) = 0;
+
+    /// How far the slew in flight was asked to travel, in steps.
+    virtual float plannedRaSteps() const  = 0;
+    virtual float plannedDecSteps() const = 0;
+
+    /// True once `setup()` has finished bringing the mount up.
+    virtual bool isBootComplete() = 0;
+
     virtual bool isGuiding() const = 0;
 
     /// Status readouts, as the strings the protocol sends.
@@ -52,6 +75,11 @@ class IMountReadModel
     /// same method: the alternative — filling a caller buffer — would mean either duplicating
     /// four `String`-building methods or moving them into the adapter, and the wire format of
     /// `:D#` is parsed by every host driver on the planet.
+    /// The coordinate readouts, in the shape the menu and the info panel draw. Same storage rule as
+    /// the status strings below: valid until the next call.
+    virtual const char *raText(uint8_t type, uint8_t active = 0) = 0;
+    virtual const char *decText(uint8_t type, uint8_t active = 0) = 0;
+
     virtual const char *getStatusString()           = 0;
     virtual const char *getStepperInfo()            = 0;
     virtual const char *getMountHardwareInfo()      = 0;

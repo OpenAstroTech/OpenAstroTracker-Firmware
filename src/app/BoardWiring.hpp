@@ -21,6 +21,7 @@
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/InfoDisplayPanel.hpp"
 #include "adapters/MountSettingsStore.hpp"
+#include "UiPorts.hpp"
 #include "adapters/NullGyro.hpp"
 #include "ports/IGyro.hpp"
 #include "hal/arduino/ArduinoSystemClock.hpp"
@@ -69,6 +70,10 @@ extern Mount mount;
 #if (WIFI_ENABLED == 1)
 extern WifiControl wifiControl;
 #endif
+
+/// The menu screens' view of the mount. Built from the one `mount` object today; built from the
+/// coordinator once the screens no longer need the facade.
+extern app::UiPorts ui;
 
 // --- the optional status panel ---------------------------------------------------------
 
