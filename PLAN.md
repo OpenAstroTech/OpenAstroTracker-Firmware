@@ -634,7 +634,7 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 
 3. **Migrate the remaining `Mount` consumers, then delete `Mount`.** In dependency order, so each step leaves a green build:
    1. **SSD1306 renderer** — write the `Ssd1306InfoDisplay` adapter (`IInfoDisplay` ← `hal::IOledPanel`) and render from the snapshot struct; delete the `InfoDisplayRender::renderScreen(Mount &)` pull side.
-   2. **`EPROMStore` facade** — point the menu screens and the Meade adapter at `ports::IMountSettings` (plus the raw store where needed) and delete the static facade.
+   2. ✅ **`EPROMStore` is an instance, not a facade.** It takes its medium and log sink by reference, `app/BoardWiring.cpp` builds the one instance, `adapters::MountSettingsStore` forwards to it, and the brightness accessors joined `ports::IMountSettings` so `LcdMenu` takes the port instead of naming the store. Remaining `Mount` consumers read it through `mount` today and move with step 4.
    3. **Peripheral helpers** — write `HallHomingSensor`, `GpioEndSwitch` and the `IGyro` adapter over `hal::II2cBus`/`hal::IGpioPin`; delete `Gyro`, `HallSensorHoming`, `EndSwitches`.
    4. **Menu screens** — rewrite `c70…c78`, `LcdMenu`, `LcdButtons`, `LcdSlewStatus` and `testmenu` against `MountCoordinator` requests + `MountState` reads + `ports::IDisplay`/`IInfoDisplay`. This is the big one: ~200 `mount.*` call sites.
    - When the last `mount.*` call site is gone, delete `Mount.hpp`/`Mount.cpp` and the now-unused legacy `src/` overlays (`DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension`, `Sidereal`, `EPROMStore`, `Gyro`, `HallSensorHoming`, `EndSwitches`, `SSD1306_128x64_Display`, `LcdMenu`, `LcdButtons`, `LcdSlewStatus`, `WifiControl`).
