@@ -8,7 +8,6 @@
     #include "MappedDict.hpp"
     #include "testmenu.hpp"
 
-
 TestMenu *TestMenu::_currentMenu               = nullptr;
 TestMenuItem *TestMenu::_backItem              = nullptr;
 testMenuState_t TestMenu::_menuState           = testMenuState_t::CLEAR;

@@ -99,7 +99,7 @@ float AccelStepperMotor::maxSpeed()
 
 void AccelStepperMotor::setMicrosteps(uint16_t microsteps)
 {
-    (void)microsteps;  // microstepping lives on the driver, not on the motion engine
+    (void) microsteps;  // microstepping lives on the driver, not on the motion engine
 }
 
 void AccelStepperMotor::enableOutputs()

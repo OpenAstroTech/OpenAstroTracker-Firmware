@@ -46,11 +46,11 @@ class WifiControl
 
     // The TCP peer as a transport: the same framing, ACK probe and reply write the serial path
     // uses. The Wi-Fi path accepted 127-character commands, which is what the capacity keeps.
-    hal::ArduinoSerialPort *_clientPort = nullptr;
+    hal::ArduinoSerialPort *_clientPort              = nullptr;
     adapters::SerialTransport<128> *_clientTransport = nullptr;
 
-    unsigned long _infraStart                = 0;
-    unsigned long _infraWait                 = 30000;  // 30 second timeout for
+    unsigned long _infraStart = 0;
+    unsigned long _infraWait  = 30000;  // 30 second timeout for
 };
 
 extern WifiControl wifiControl;

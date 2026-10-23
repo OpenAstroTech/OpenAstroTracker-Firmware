@@ -5,7 +5,6 @@
 #include "EndSwitches.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
-
 /////////////////////////////////
 //
 // EndSwitch ctor
@@ -171,4 +170,3 @@ void EndSwitch::checkSwitchState()
             _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
     }
 }
-

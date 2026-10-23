@@ -77,4 +77,3 @@ TEST(ActivityStateTest, AMovingAxisWithNoSlewBitsIsUnknown)
     state.reset(0x0400);
     EXPECT_EQ(core::ActivityState::Unknown, core::classifyActivity(state, false, false, true, false));
 }
-

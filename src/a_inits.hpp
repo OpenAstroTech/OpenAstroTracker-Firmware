@@ -98,7 +98,7 @@ extern bool inStartup;  // Start with a guided startup
 #endif
 
 // Serial control variables
-extern bool okToUpdateMenu;                // Can be used to supress rendering the first line of the menu.
+extern bool okToUpdateMenu;                 // Can be used to supress rendering the first line of the menu.
 extern bool quitSerialOnNextButtonRelease;  // Used to detect SELECT button to quit Serial mode.
 
 // RA variables

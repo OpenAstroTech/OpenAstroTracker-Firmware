@@ -120,10 +120,9 @@ TEST(SiderealTest, LocalSiderealTimeMatchesTheThetaFormula)
     const int day          = 23;
     const float utcHours   = 12.25f;
 
-    const int deltaJd   = core::SiderealClock::calculateDeltaJd(year, month, day);
-    const double deltaJ = static_cast<double>(deltaJd) + (static_cast<double>(utcHours) / 24.0);
-    const float expected
-        = static_cast<float>(core::SiderealClock::calculateTheta(deltaJ, longitude, utcHours) / 15.0);
+    const int deltaJd    = core::SiderealClock::calculateDeltaJd(year, month, day);
+    const double deltaJ  = static_cast<double>(deltaJd) + (static_cast<double>(utcHours) / 24.0);
+    const float expected = static_cast<float>(core::SiderealClock::calculateTheta(deltaJ, longitude, utcHours) / 15.0);
 
     const core::DayTime actual = core::SiderealClock::localSiderealTime(longitude, year, month, day, utcHours);
     EXPECT_NEAR(expected, actual.getTotalHours(), 0.0005f);
@@ -131,9 +130,8 @@ TEST(SiderealTest, LocalSiderealTimeMatchesTheThetaFormula)
 
 TEST(SiderealTest, HourAngleIsThePolarisAngleInHours)
 {
-    const float lst = 7.5f;
-    const float expected
-        = static_cast<float>(core::SiderealClock::calculateHaDegrees(static_cast<double>(lst), 3, 0, 8) / 15.0);
+    const float lst      = 7.5f;
+    const float expected = static_cast<float>(core::SiderealClock::calculateHaDegrees(static_cast<double>(lst), 3, 0, 8) / 15.0);
 
     const core::DayTime actual = core::SiderealClock::hourAngle(lst, 3, 0, 8);
     EXPECT_NEAR(expected, actual.getTotalHours(), 0.0005f);

@@ -9,7 +9,7 @@
 // directory: the functions below return `IStepperMotor *`, so no caller above `hal/` ever names an
 // AVR engine type.
 PUSH_NO_WARNINGS
-    #include "StepperConfiguration.hpp"
+#include "StepperConfiguration.hpp"
 POP_NO_WARNINGS
 
 #include "InterruptStepperMotor.hpp"
@@ -46,29 +46,29 @@ inline IStepperMotor *makeDecTrkMotor(uint8_t interfaceType, uint8_t pin1, uint8
     return new InterruptStepperMotor<Engine>(*new Engine(interfaceType, pin1, pin2));
 }
 
-    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
 inline IStepperMotor *makeAzSlewMotor(uint8_t interfaceType, uint8_t pin1, uint8_t pin2)
 {
     using Engine = InterruptAccelStepper<config::Az::stepper_slew>;
     return new InterruptStepperMotor<Engine>(*new Engine(interfaceType, pin1, pin2));
 }
-    #endif
+#endif
 
-    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
 inline IStepperMotor *makeAltSlewMotor(uint8_t interfaceType, uint8_t pin1, uint8_t pin2)
 {
     using Engine = InterruptAccelStepper<config::Alt::stepper_slew>;
     return new InterruptStepperMotor<Engine>(*new Engine(interfaceType, pin1, pin2));
 }
-    #endif
+#endif
 
-    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
 inline IStepperMotor *makeFocusSlewMotor(uint8_t interfaceType, uint8_t pin1, uint8_t pin2)
 {
     using Engine = InterruptAccelStepper<config::Focus::stepper_slew>;
     return new InterruptStepperMotor<Engine>(*new Engine(interfaceType, pin1, pin2));
 }
-    #endif
+#endif
 
 }  // namespace avr
 }  // namespace hal

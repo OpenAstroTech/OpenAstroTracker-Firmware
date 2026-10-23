@@ -60,9 +60,9 @@ class FakeSystemClock final : public hal::ISystemClock
     }
 
   private:
-    mutable uint32_t _millis             = 0;
-    mutable uint32_t _micros             = 0;
-    mutable uint32_t _delaysRequested    = 0;
+    mutable uint32_t _millis               = 0;
+    mutable uint32_t _micros               = 0;
+    mutable uint32_t _delaysRequested      = 0;
     mutable uint32_t _microDelaysRequested = 0;
 };
 

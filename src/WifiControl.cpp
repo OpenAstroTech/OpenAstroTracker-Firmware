@@ -8,7 +8,7 @@
 WifiControl::WifiControl(void (*mountTick)(), LcdMenu *lcdMenu)
 {
     _mountTick = mountTick;
-    _lcdMenu = lcdMenu;
+    _lcdMenu   = lcdMenu;
 
     // `client` is a member, so its address is stable across `client = accept()`; one port and
     // one transport serve every connection.

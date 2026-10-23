@@ -14,13 +14,13 @@ class FakeGpioPin final : public hal::IGpioPin
   public:
     void configure(hal::PinMode mode) override
     {
-        _mode      = mode;
+        _mode       = mode;
         _configured = true;
     }
 
     void write(hal::PinLevel level) override
     {
-        _level     = level;
+        _level = level;
         _writeCount++;
     }
 
@@ -80,13 +80,13 @@ class FakeGpioPin final : public hal::IGpioPin
     }
 
   private:
-    hal::PinMode _mode       = hal::PinMode::Input;
-    hal::PinLevel _level     = hal::PinLevel::Low;
+    hal::PinMode _mode        = hal::PinMode::Input;
+    hal::PinLevel _level      = hal::PinLevel::Low;
     hal::PinLevel _inputLevel = hal::PinLevel::Low;
-    uint16_t _analogValue    = 0;
-    uint8_t _analogDuty      = 0;
-    uint32_t _writeCount     = 0;
-    bool _configured         = false;
+    uint16_t _analogValue     = 0;
+    uint8_t _analogDuty       = 0;
+    uint32_t _writeCount      = 0;
+    bool _configured          = false;
 };
 
 }  // namespace fakes

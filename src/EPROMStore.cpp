@@ -207,8 +207,7 @@ bool EEPROMStore::isPresentExtended(ExtendedItemFlag item)
     uint16_t marker = readUint16(EXTENDED_FLAGS_ADDR);
 
     bool result = (marker & item);
-    OAT_LOG(
-        _log, DEBUG_EEPROM, "[EEPROM]: IsExtendedDataPresent (0x%04X). Checking (0x%04X & 0x%04X) => %d", item, marker, item, result);
+    OAT_LOG(_log, DEBUG_EEPROM, "[EEPROM]: IsExtendedDataPresent (0x%04X). Checking (0x%04X & 0x%04X) => %d", item, marker, item, result);
 
     return result;
 }

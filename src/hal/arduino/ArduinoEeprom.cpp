@@ -16,7 +16,7 @@ ArduinoEeprom::ArduinoEeprom(EEPROMClass &eeprom) : _eeprom(eeprom)
 void ArduinoEeprom::begin(size_t size)
 {
 #if defined(ARDUINO_ARCH_AVR)
-    (void)size;  // AVR EEPROM is always mapped, nothing to reserve
+    (void) size;  // AVR EEPROM is always mapped, nothing to reserve
 #else
     _eeprom.begin(size);
 #endif

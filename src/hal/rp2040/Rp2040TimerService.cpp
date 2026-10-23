@@ -9,8 +9,7 @@ POP_NO_WARNINGS
 namespace hal
 {
 
-Rp2040TimerService::Rp2040TimerService()
-    : _repeating(), _alarm(0), _callback(nullptr), _context(nullptr), _running(false)
+Rp2040TimerService::Rp2040TimerService() : _repeating(), _alarm(0), _callback(nullptr), _context(nullptr), _running(false)
 {
 }
 
@@ -69,7 +68,7 @@ bool Rp2040TimerService::onPeriodic(repeating_timer_t *timer)
 
 int64_t Rp2040TimerService::onOneShot(alarm_id_t id, void *context)
 {
-    (void)id;
+    (void) id;
     Rp2040TimerService *self = static_cast<Rp2040TimerService *>(context);
     if (self != nullptr)
     {

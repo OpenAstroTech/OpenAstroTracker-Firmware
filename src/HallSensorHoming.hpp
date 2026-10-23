@@ -7,7 +7,6 @@
 #include "ports/IHomingSensor.hpp"
 #include "ports/IStatusFlags.hpp"
 
-
 /////////////////////////////////
 //
 // class HallSensorHoming

@@ -110,7 +110,7 @@ class Esp32TcpListener final : public ITcpListener
         }
 
         Esp32TcpConnection *connection = new Esp32TcpConnection();
-        connection->_client             = client;
+        connection->_client            = client;
         return connection;
     }
 
@@ -120,7 +120,7 @@ class Esp32TcpListener final : public ITcpListener
     }
 
   private:
-    WiFiServer _server{0};
+    WiFiServer _server {0};
 };
 
 class Esp32UdpSocket final : public IUdpSocket

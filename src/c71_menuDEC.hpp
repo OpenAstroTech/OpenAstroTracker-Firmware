@@ -98,7 +98,8 @@ void printDECSubmenu()
 {
     if (ui.read->isSlewingIdle())
     {
-        String dec = String(ui.read->decText(LCDMENU_STRING | (showTargetDEC ? TARGET_STRING : CURRENT_STRING), DECselect)).substring(0, 13);
+        String dec
+            = String(ui.read->decText(LCDMENU_STRING | (showTargetDEC ? TARGET_STRING : CURRENT_STRING), DECselect)).substring(0, 13);
         dec += (DECselect == 3) ? ">" : " ";
         dec += showTargetDEC ? "Ta" : "Cu";
         lcdMenu.printMenu(dec);

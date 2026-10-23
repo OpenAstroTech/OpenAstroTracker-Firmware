@@ -1,7 +1,10 @@
 #pragma once
 
 class LcdMenu;
-namespace app { struct UiPorts; }
+namespace app
+{
+struct UiPorts;
+}
 
 /// The slew-progress view on the menu LCD.
 ///

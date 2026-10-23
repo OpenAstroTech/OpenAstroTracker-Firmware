@@ -9,7 +9,7 @@ namespace
 
 oat::core::meade::MountStatusFacts idleFacts()
 {
-    oat::core::meade::MountStatusFacts facts{};
+    oat::core::meade::MountStatusFacts facts {};
     facts.activity = "Idle";
     facts.raText   = "120000";
     facts.decText  = "-051500";
@@ -35,39 +35,39 @@ TEST(MountStatusReportTest, IdleReportHasDashesAndEmptyFocusField)
 
 TEST(MountStatusReportTest, RunningAxesReportTheirDirectionInCase)
 {
-    auto facts                       = idleFacts();
-    facts.raRunning                  = true;
-    facts.raTargetBelowCurrent       = true;
-    facts.decRunning                 = true;
-    facts.decTargetBelowCurrent      = false;
+    auto facts                  = idleFacts();
+    facts.raRunning             = true;
+    facts.raTargetBelowCurrent  = true;
+    facts.decRunning            = true;
+    facts.decTargetBelowCurrent = false;
     EXPECT_EQ("Idle,Rd----,0,0,0,120000,-051500,,", render(facts));
 }
 
 TEST(MountStatusReportTest, TrackingIsShownWhileTheTrackingAxisRuns)
 {
-    auto facts                   = idleFacts();
-    facts.trackingAxisRunning    = true;
+    auto facts                = idleFacts();
+    facts.trackingAxisRunning = true;
     EXPECT_EQ("Idle,--T---,0,0,0,120000,-051500,,", render(facts));
 }
 
 TEST(MountStatusReportTest, TrackingOnlyFillsTheSamePosition)
 {
-    auto facts     = idleFacts();
+    auto facts         = idleFacts();
     facts.trackingOnly = true;
     EXPECT_EQ("Idle,--T---,0,0,0,120000,-051500,,", render(facts));
 }
 
 TEST(MountStatusReportTest, OptionalAxesOccupyTheirPositions)
 {
-    auto facts                  = idleFacts();
-    facts.azRunning             = true;
-    facts.azTargetBelowCurrent  = true;
-    facts.altRunning            = true;
-    facts.altTargetBelowCurrent = false;
-    facts.focusRunning          = true;
+    auto facts                    = idleFacts();
+    facts.azRunning               = true;
+    facts.azTargetBelowCurrent    = true;
+    facts.altRunning              = true;
+    facts.altTargetBelowCurrent   = false;
+    facts.focusRunning            = true;
     facts.focusTargetBelowCurrent = true;
-    facts.hasFocus              = true;
-    facts.focusSteps            = 50000;
+    facts.hasFocus                = true;
+    facts.focusSteps              = 50000;
     EXPECT_EQ("Idle,---ZaF,0,0,0,120000,-051500,50000,", render(facts));
 }
 

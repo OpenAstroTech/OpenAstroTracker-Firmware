@@ -131,8 +131,8 @@ bool HallSensorHoming::findHomeByHallSensor(int initialDirection, int searchDist
 void HallSensorHoming::processHomingProgress()
 {
     const core::HomingState previous = _controller.state();
-    const core::HomingStep step
-        = _controller.update(sensorIsActive(), _ui.read->isAxisRunning(_axis), _ui.read->getCurrentStepperPosition(_axis), _ui.clock->now());
+    const core::HomingStep step      = _controller.update(
+        sensorIsActive(), _ui.read->isAxisRunning(_axis), _ui.read->getCurrentStepperPosition(_axis), _ui.clock->now());
 
     logTransition(previous, step);
 
