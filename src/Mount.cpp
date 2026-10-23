@@ -12,6 +12,7 @@
 #include "core/ActivityState.hpp"
 #include "core/meade/MountStatusReport.hpp"
 #include "core/CoordinateRead.hpp"
+#include "core/SiderealClock.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
@@ -4334,7 +4335,8 @@ core::DayTime Mount::calculateLst()
     // The sidereal formula needs the UTC date, which differs from the local date for |UTC offset| hours each day.
     core::CalendarDate utcDate
         = core::localToUtcDate({localDate.year, localDate.month, localDate.day}, getLocalTime().getTotalSeconds(), _localUtcOffset);
-    DayTime lst = Sidereal::calculateByDateAndTime(longitude().getTotalHours(), utcDate.year, utcDate.month, utcDate.day, &timeUTC);
+    DayTime lst
+        = core::SiderealClock::localSiderealTime(longitude().getTotalHours(), utcDate.year, utcDate.month, utcDate.day, timeUTC.getTotalHours());
     // LOG(DEBUG_INFO,
     //     "[MOUNT]: Calculating LST. UTC time: %s. UTC date: %d-%d-%d. Longitude: %s",
     //     timeUTC.ToString(),
@@ -4355,7 +4357,8 @@ core::DayTime Mount::calculateHa()
 {
     DayTime lst = calculateLst();
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
-    DayTime ha = Sidereal::calculateHa(lst.getTotalHours());
+    DayTime ha = core::SiderealClock::hourAngle(
+        lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
     return ha;
 }

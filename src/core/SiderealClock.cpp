@@ -62,4 +62,18 @@ double SiderealClock::calculateHaDegrees(double lstTotalHours, int polarisRaHour
     return lstDeg;
 }
 
+DayTime SiderealClock::localSiderealTime(double longitude, int year, int month, int day, float utcHours)
+{
+    const int deltaJd   = calculateDeltaJd(year, month, day);
+    const double deltaJ = static_cast<double>(deltaJd) + (static_cast<double>(utcHours) / 24.0);
+    return DayTime(static_cast<float>(calculateTheta(deltaJ, longitude, utcHours) / 15.0));
+}
+
+DayTime SiderealClock::hourAngle(float lstHours, int polarisRaHour, int polarisRaMinute, int polarisRaSecond)
+{
+    const float lstDegrees
+        = static_cast<float>(calculateHaDegrees(static_cast<double>(lstHours), polarisRaHour, polarisRaMinute, polarisRaSecond));
+    return DayTime(lstDegrees / 15.0f);
+}
+
 }  // namespace core
