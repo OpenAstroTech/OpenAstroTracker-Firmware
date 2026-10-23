@@ -76,7 +76,7 @@
     #warning "AVR builds are headless by design: this board would have a display, but the ATmega2560 flash budget does not allow it."
     #undef DISPLAY_TYPE
     #undef INFO_DISPLAY_TYPE
-    #define DISPLAY_TYPE DISPLAY_TYPE_NONE
+    #define DISPLAY_TYPE      DISPLAY_TYPE_NONE
     #define INFO_DISPLAY_TYPE INFO_DISPLAY_TYPE_NONE
 #endif
 

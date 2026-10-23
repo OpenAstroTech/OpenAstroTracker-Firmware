@@ -79,7 +79,7 @@ class IMountReadModel
     /// `:D#` is parsed by every host driver on the planet.
     /// The coordinate readouts, in the shape the menu and the info panel draw. Same storage rule as
     /// the status strings below: valid until the next call.
-    virtual const char *raText(uint8_t type, uint8_t active = 0) = 0;
+    virtual const char *raText(uint8_t type, uint8_t active = 0)  = 0;
     virtual const char *decText(uint8_t type, uint8_t active = 0) = 0;
 
     virtual const char *getStatusString()           = 0;

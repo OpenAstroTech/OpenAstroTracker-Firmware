@@ -78,7 +78,7 @@ void Mpu6050Gyro::collectSample()
 
 ports::GyroAngles Mpu6050Gyro::angles()
 {
-    ports::GyroAngles result{0.0f, 0.0f};
+    ports::GyroAngles result {0.0f, 0.0f};
 
     if (!_present)
     {
@@ -100,11 +100,11 @@ ports::GyroAngles Mpu6050Gyro::angles()
     result.pitch = _pitchEma;
     result.roll  = _rollEma;
 
-    #if GYRO_AXIS_SWAP == 1
+#if GYRO_AXIS_SWAP == 1
     const float temp = result.pitch;
     result.pitch     = result.roll;
     result.roll      = temp;
-    #endif
+#endif
 
     return result;
 }

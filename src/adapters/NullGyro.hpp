@@ -28,7 +28,7 @@ class NullGyro final : public ports::IGyro
 
     ports::GyroAngles angles() override
     {
-        return ports::GyroAngles{0.0f, 0.0f};
+        return ports::GyroAngles {0.0f, 0.0f};
     }
 
     float temperature() override

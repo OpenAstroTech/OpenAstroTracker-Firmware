@@ -53,7 +53,7 @@ class InfoDisplayPanel final : private ::core::IEventSink
     bool bothAxesSlewing();
 
     ports::IInfoDisplaySource &_source;
-    ports::InfoDisplayState _state{};
+    ports::InfoDisplayState _state {};
     InfoDisplayRender &_panel;
     ports::IClock &_clock;
     ports::IMountEvents &_events;

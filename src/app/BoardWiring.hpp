@@ -71,7 +71,6 @@ extern Mount mount;
 extern WifiControl wifiControl;
 #endif
 
-
 // --- the optional status panel ---------------------------------------------------------
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)

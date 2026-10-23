@@ -79,7 +79,6 @@ class IMountConfiguration : public IMountMotion
 
     /// Wipes every stored value and reloads the compile-time defaults (`:XFR#`).
     virtual void clearConfiguration() = 0;
-
 };
 
 }  // namespace ports

@@ -171,8 +171,7 @@ adapters::InfoDisplayPanel *infoDisplayPanel = nullptr;
 app::UiPorts ui;
 // The menu screens' view of the mount: five ports, the clock and the scheduler, all backed by the
 // one `mount` object until the coordinator owns the controllers.
-struct UiPortsInit
-{
+struct UiPortsInit {
     UiPortsInit()
     {
         ui.motion    = &mount;

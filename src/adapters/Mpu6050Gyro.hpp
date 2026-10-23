@@ -18,7 +18,7 @@ namespace adapters
 class Mpu6050Gyro final : public ports::IGyro
 {
   public:
-    static constexpr float kEmaAlpha           = 0.1f;
+    static constexpr float kEmaAlpha                 = 0.1f;
     static constexpr unsigned long kSampleIntervalMs = 5;
 
     Mpu6050Gyro(hal::II2cBus &bus, ports::IClock &clock) : _bus(bus), _clock(clock)
@@ -46,10 +46,10 @@ class Mpu6050Gyro final : public ports::IGyro
 
     hal::II2cBus &_bus;
     ports::IClock &_clock;
-    bool _present        = false;
-    bool _initialized    = false;
-    float _pitchEma      = 0;
-    float _rollEma       = 0;
+    bool _present               = false;
+    bool _initialized           = false;
+    float _pitchEma             = 0;
+    float _rollEma              = 0;
     unsigned long _lastSampleMs = 0;
 };
 
