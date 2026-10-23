@@ -9,16 +9,16 @@ namespace
 constexpr float kSiderealSecondsPerDay = 86164.0905f;
 constexpr unsigned kMicrostepRatio     = 256 / 8;
 
-core::TrackingController<> makeController()
+core::TrackingController makeController()
 {
-    return core::TrackingController<>(kSiderealSecondsPerDay, kMicrostepRatio);
+    return core::TrackingController(kSiderealSecondsPerDay, kMicrostepRatio);
 }
 }  // namespace
 
 TEST(TrackingControllerTest, RateCombinesCalibrationGeometryAndSiderealDay)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
 
     tracking.setCalibration(1.0f);
@@ -29,7 +29,7 @@ TEST(TrackingControllerTest, RateCombinesCalibrationGeometryAndSiderealDay)
 
 TEST(TrackingControllerTest, CalibrationScalesTheRate)
 {
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
 
     tracking.setCalibration(1.0f);
     tracking.setStepsPerDegree(1000.0f);
@@ -44,7 +44,7 @@ TEST(TrackingControllerTest, CalibrationScalesTheRate)
 
 TEST(TrackingControllerTest, GeometryChangeRecalculatesTheRate)
 {
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.setCalibration(1.0f);
     tracking.setStepsPerDegree(1000.0f);
     const float before = tracking.speed();
@@ -57,7 +57,7 @@ TEST(TrackingControllerTest, GeometryChangeRecalculatesTheRate)
 TEST(TrackingControllerTest, ApplySpeedHandsTheRateToTheAxis)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
     tracking.setCalibration(1.0f);
     tracking.setStepsPerDegree(1000.0f);
@@ -71,7 +71,7 @@ TEST(TrackingControllerTest, ApplySpeedHandsTheRateToTheAxis)
 TEST(TrackingControllerTest, StopStopsTheAxis)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
     axis.moveTo(500);
 
@@ -84,7 +84,7 @@ TEST(TrackingControllerTest, StopStopsTheAxis)
 TEST(TrackingControllerTest, TrackerOffIsCompensatedAtTheTrackingRate)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
     tracking.setCalibration(1.0f);
     tracking.setStepsPerDegree(86164.0905f / (32.0f * 360.0f));  // exactly 1 step/sec
@@ -101,7 +101,7 @@ TEST(TrackingControllerTest, TrackerOffIsCompensatedAtTheTrackingRate)
 TEST(TrackingControllerTest, ApplyingCompensationAdvancesTheAxisAndClearsTheRequest)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
     tracking.setCalibration(1.0f);
     tracking.setStepsPerDegree(86164.0905f / (32.0f * 360.0f));
@@ -118,7 +118,7 @@ TEST(TrackingControllerTest, ApplyingCompensationAdvancesTheAxisAndClearsTheRequ
 TEST(TrackingControllerTest, CompensationSurvivesTheMillisecondCounterWrapping)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
     tracking.setCalibration(1.0f);
     tracking.setStepsPerDegree(86164.0905f / (32.0f * 360.0f));
@@ -134,7 +134,7 @@ TEST(TrackingControllerTest, TrackedHoursDeriveFromPositionAndRate)
 {
     fakes::FakeStepperAxis axis;
     // 1 * 1 * 1 * 360 / 0.125 = 2880 u-steps/sec, so 10,368,000 steps are one hour.
-    core::TrackingController<> fast(0.125f, 1);
+    core::TrackingController fast(0.125f, 1);
     fast.attach(&axis);
     fast.setCalibration(1.0f);
     fast.setStepsPerDegree(1.0f);
@@ -148,7 +148,7 @@ TEST(TrackingControllerTest, TrackedHoursDeriveFromPositionAndRate)
 TEST(TrackingControllerTest, DetachForgetsTheAxisAndAnyPendingCompensation)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
     tracking.noteStopped(1000);
     ASSERT_TRUE(tracking.compensationPending());
@@ -162,7 +162,7 @@ TEST(TrackingControllerTest, DetachForgetsTheAxisAndAnyPendingCompensation)
 TEST(TrackingControllerTest, TrackedHoursAreZeroBeforeTheRateIsKnown)
 {
     fakes::FakeStepperAxis axis;
-    core::TrackingController<> tracking = makeController();
+    core::TrackingController tracking = makeController();
     tracking.attach(&axis);
     axis.setPosition(1000);
 

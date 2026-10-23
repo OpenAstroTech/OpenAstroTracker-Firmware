@@ -122,7 +122,7 @@ class Mount final : public ports::IMountOptionalAxes,
   public:
     /// Every controller the mount drives, in one object. The composition root owns it and builds
     /// it before the mount, so it can also hand it to anything that only needs the controllers.
-    using Coordinator = core::MountCoordinator<ports::IStepperAxis>;
+    using Coordinator = core::MountCoordinator;
 
     /// The infrastructure ports are injected by the composition root. The axes are built by
     /// `app/MotorWiring.cpp` and handed over by `attachSteppers()`; the drivers come in through

@@ -19,16 +19,20 @@ struct AxisSnapshot {
 /// Threading contract (settled here, relied on by the Phase 3 controllers):
 /// * `snapshot()` is the **only** method an ISR may call. It returns a copy, so the
 ///   ISR never observes a half-updated position/target pair.
-/// * Every other method is main-loop-only. That holds for all three step-generator
-///   models in this firmware: the AVR `InterruptStepper` ISR steps autonomously, the
-///   ESP32 `stepperControlTask` drives stepping from core 0, and ESP32/RP2040 call
-///   `run()`/`runSpeed()` from the main loop.
-/// * Timers are shared, not per-axis: RA slew and tracking share one hardware timer,
-///   DEC slew and guide share another, and ALT shares its timer with Focus. Axis
-///   ownership is therefore granted by the coordinator, never assumed by an axis.
+/// * Every other method is main-loop-only.
 ///
-/// RA and DEC each hold two instances (slew + tracking, slew + guide), matching the
-/// hardware, because the two roles run different microstep resolutions.
+/// *How* steps get generated is the backend's business and never a domain concern: an
+/// MCU timer interrupt (AVR today), a FreeRTOS task (ESP32), a polled library called
+/// from the main loop (RP2040), or a driver that generates steps from its own clock and
+/// needs no timer at all (a TMC2209 in `VACTUAL` mode does; the command is `x*` and the
+/// axis then moves without the MCU pulsing anything). A backend that owns a shared
+/// hardware timer serialises its own users inside `hal/`; nothing above `hal/` may
+/// assume, require or work around a timer, and no controller is shaped by one.
+///
+/// RA and DEC each hold two instances (slew + tracking, slew + guide) because the two
+/// roles drive **one physical actuator** at different microstep resolutions — that
+/// mutual exclusion is a property of the machine, not of the timer, and it is what the
+/// coordinator arbitrates.
 class IStepperAxis
 {
   public:

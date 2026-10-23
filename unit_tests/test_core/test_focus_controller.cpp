@@ -6,7 +6,7 @@
 TEST(FocusControllerTest, DefaultsToTheFastestRateWithoutTouchingTheAxis)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     axis.setMaxSpeed(111.0f);
 
@@ -21,7 +21,7 @@ TEST(FocusControllerTest, DefaultsToTheFastestRateWithoutTouchingTheAxis)
 TEST(FocusControllerTest, RateSelectsAFractionOfTheMaximumSpeed)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
 
     focus.setRate(1, 1000.0f);
@@ -43,7 +43,7 @@ TEST(FocusControllerTest, RateSelectsAFractionOfTheMaximumSpeed)
 TEST(FocusControllerTest, RatesOutsideOneToFourAreClamped)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
 
     focus.setRate(-5, 1000.0f);
@@ -58,7 +58,7 @@ TEST(FocusControllerTest, RatesOutsideOneToFourAreClamped)
 TEST(FocusControllerTest, MovingByStepsTargetsTheRelativePosition)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     axis.setPosition(50000);
 
@@ -71,7 +71,7 @@ TEST(FocusControllerTest, MovingByStepsTargetsTheRelativePosition)
 TEST(FocusControllerTest, ContinuousMotionRunsToAFarTargetInTheGivenDirection)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     focus.initialize(1000.0f);
 
@@ -87,7 +87,7 @@ TEST(FocusControllerTest, ContinuousMotionRunsToAFarTargetInTheGivenDirection)
 TEST(FocusControllerTest, RunAtSpeedUsesTheSignAsDirection)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
 
     focus.runAtSpeed(-400.0f);
@@ -99,7 +99,7 @@ TEST(FocusControllerTest, RunAtSpeedUsesTheSignAsDirection)
 TEST(FocusControllerTest, RunAtZeroSpeedStopsTheAxisAndLeavesTheModeAlone)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     focus.initialize(1000.0f);
     focus.startContinuous(core::FOCUS_FORWARD);
@@ -114,7 +114,7 @@ TEST(FocusControllerTest, RunAtZeroSpeedStopsTheAxisAndLeavesTheModeAlone)
 TEST(FocusControllerTest, UpdateReportsTheStopExactlyOnce)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     axis.setPosition(10);
     focus.moveBy(100);
@@ -132,7 +132,7 @@ TEST(FocusControllerTest, UpdateReportsTheStopExactlyOnce)
 TEST(FocusControllerTest, AMoveCancelledBeforeItRanDoesNotReportAStop)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     axis.setPosition(10);
     focus.moveBy(100);
@@ -144,7 +144,7 @@ TEST(FocusControllerTest, AMoveCancelledBeforeItRanDoesNotReportAStop)
 TEST(FocusControllerTest, StopReachesTheAxis)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     axis.setPosition(10);
     focus.moveBy(100);
@@ -158,7 +158,7 @@ TEST(FocusControllerTest, StopReachesTheAxis)
 TEST(FocusControllerTest, PositionAndSpeedComeFromTheAxis)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
 
     focus.setPosition(1234);
@@ -171,7 +171,7 @@ TEST(FocusControllerTest, PositionAndSpeedComeFromTheAxis)
 TEST(FocusControllerTest, DetachForgetsTheAxisAndTheMode)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     focus.moveBy(10);
 
@@ -185,7 +185,7 @@ TEST(FocusControllerTest, DetachForgetsTheAxisAndTheMode)
 // shape `MountCoordinator::tick()` relies on for every board.
 TEST(FocusControllerTest, DetachedControllerReadsAsIdle)
 {
-    core::FocusController<> focus;
+    core::FocusController focus;
 
     EXPECT_FALSE(focus.attached());
     EXPECT_FALSE(focus.isRunning());
@@ -210,7 +210,7 @@ TEST(FocusControllerTest, DetachedControllerReadsAsIdle)
 TEST(FocusControllerTest, ReattachResumesMotion)
 {
     fakes::FakeStepperAxis axis;
-    core::FocusController<> focus;
+    core::FocusController focus;
     focus.attach(&axis);
     focus.detach();
 

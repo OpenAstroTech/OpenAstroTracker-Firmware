@@ -64,9 +64,12 @@ objects constructed in the composition root, never as different code paths in th
    in an adapter, and the decision itself belongs in `core/`. The domain core is tested with faked
    ports; the target is ≥ 85% line coverage of `core/` with behavioural tests.
 
-7. **ISR boundaries are explicit.** The stepper interrupt loop runs in interrupt context (AVR timer
-   ISR, or a FreeRTOS task on ESP32). `IStepperAxis` separates ISR-safe reads (`Snapshot()`) from
-   main-loop-only mutation, so no controller can hide a cross-context call.
+7. **Step generation is a backend detail; ISR boundaries are explicit where they exist.** Whether
+   steps come from an MCU timer (AVR), a FreeRTOS task (ESP32), a polled engine (RP2040) or the
+   driver itself (a TMC2209 in `VACTUAL` mode pulses nothing) is decided entirely inside `hal/`
+   and never influences the core's structure. Where a backend *does* step from interrupt context,
+   `IStepperAxis` separates the ISR-safe read (`snapshot()`) from main-loop-only mutation, so no
+   controller can hide a cross-context call.
 
 8. **The wire protocol is the only immovable contract.** Meade LX200 behaviour is frozen
    byte-for-byte so Stellarium and ASCOM keep working. Internal C++ APIs may change freely.
@@ -383,9 +386,12 @@ One instance per firmware, constructed in `app/`. It is the only object that hol
 and the only caller of their mutating methods.
 
 - **Admission** — one decision table for conflicting requests, tested on the host.
-- **Axis ownership** — RA and DEC each have two `IStepperAxis` instances (slew/track, slew/guide)
-  and the AVR timers are shared (Timer3 = RA, Timer4 = DEC, Timer5 = ALT *and* Focus). Exactly one
+- **Axis ownership** — RA and DEC each have two `IStepperAxis` instances (slew/track, slew/guide),
+  so two logical roles drive one physical actuator at different microstep resolutions. Exactly one
   `MotionOwner` (Tracking, Slew, Guide, Home, Park, Focus, AzAlt) holds a physical axis at a time.
+  This is arbitration over the machine, not over a timer: today's AVR backend happens to share
+  Timer3/Timer4/Timer5 between those roles and serialises them in `hal/`, but a board whose driver
+  generates its own steps needs the same domain-level mutual exclusion and no timer at all.
 - **Tick order** — `now = clock.now()` → poll inputs → controllers in fixed order
   (`Slew → Tracking → Guide → Home → Park → Focus → AzAlt`) → resolve completion and release grants
   → scan deadlines → drain `EventBus` → complete pending replies.

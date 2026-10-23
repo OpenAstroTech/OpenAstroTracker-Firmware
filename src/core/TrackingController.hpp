@@ -14,14 +14,16 @@ namespace core
 /// It also remembers when the tracker was stopped, so the mount can advance it by the
 /// distance it would have covered while a slew held it still.
 ///
-/// `Axis` is a template parameter so the AVR build can keep its compile-time
-/// specialised interrupt-stepper engine: a polymorphic wrapper around each engine would
-/// cost a vtable out of the ATmega2560's 8 KB of SRAM (see PLAN.md). Every other
-/// platform instantiates this with `ports::IStepperAxis`.
+/// The axis is held through `ports::IStepperAxis` on every platform. It used to be a
+/// template parameter so the AVR build could keep its concrete interrupt-stepper engine;
+/// once every platform started building engines behind `hal::IStepperMotor`, the
+/// parameter had exactly one instantiation and was removed. How steps are generated is
+/// `hal/`'s business (timer ISR, task, polled engine, or a driver that generates them
+/// itself) and must not reach this class.
 ///
 /// Threading: every method is main-loop-only. The step generator reads the axis, not
 /// this controller.
-template <typename Axis = ports::IStepperAxis> class TrackingController
+class TrackingController
 {
   public:
     /// `microstepRatio` is tracking microsteps per slew microstep, computed with integer
@@ -33,7 +35,7 @@ template <typename Axis = ports::IStepperAxis> class TrackingController
     }
 
     /// The axis is created by the mount's `configure*` step, after the controller.
-    void attach(Axis *axis)
+    void attach(ports::IStepperAxis *axis)
     {
         _axis = axis;
     }
@@ -140,12 +142,12 @@ template <typename Axis = ports::IStepperAxis> class TrackingController
   private:
     const float _siderealSecondsPerDay;
     const unsigned _microstepRatio;
-    Axis *_axis               = nullptr;
-    float _stepsPerDegree     = 0.0f;
-    float _speed              = 0.0f;
-    float _calibration        = 0.0f;
-    uint32_t _stoppedAt       = 0;
-    bool _compensationPending = false;
+    ports::IStepperAxis *_axis = nullptr;
+    float _stepsPerDegree      = 0.0f;
+    float _speed               = 0.0f;
+    float _calibration         = 0.0f;
+    uint32_t _stoppedAt        = 0;
+    bool _compensationPending  = false;
 };
 
 }  // namespace core

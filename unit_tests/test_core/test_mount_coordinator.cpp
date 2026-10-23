@@ -27,7 +27,7 @@ uint16_t mask(StatusBit which)
 /// plus the fake clock its controllers want.
 struct Fixture {
     fakes::FakeClock clock;
-    MountCoordinator<> coordinator {&clock, kSiderealSecondsPerDay, kMicrostepRatio};
+    MountCoordinator coordinator {&clock, kSiderealSecondsPerDay, kMicrostepRatio};
 
     void track()
     {
@@ -67,7 +67,7 @@ TEST(MountCoordinatorTest, AccessorsReturnTheOwnedControllers)
     EXPECT_TRUE(f.coordinator.parking().isParking());
 
     // A const view has to see the same state: admission runs through it.
-    const MountCoordinator<> &view = f.coordinator;
+    const MountCoordinator &view = f.coordinator;
     EXPECT_TRUE(view.state().test(mask(StatusBit::Tracking)));
     EXPECT_TRUE(view.parking().isParking());
     EXPECT_EQ(SlewIntent::Target, view.slew().intent());
@@ -321,7 +321,7 @@ TEST(MountCoordinatorTest, CompletionPlanFollowsTheArrivalFacts)
 // The capacity has to stay a power of two: on AVR the ring index is a mask, not a divide.
 TEST(MountCoordinatorTest, EventQueueIsFourDeepAndPowerOfTwo)
 {
-    const uint8_t depth = MountCoordinator<>::kEventQueueDepth;
+    const uint8_t depth = MountCoordinator::kEventQueueDepth;
 
     EXPECT_EQ(4, static_cast<int>(depth));
     EXPECT_EQ(0, static_cast<int>(depth & (depth - 1)));

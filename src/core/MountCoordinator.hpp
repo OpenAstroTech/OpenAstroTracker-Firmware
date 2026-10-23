@@ -48,11 +48,12 @@ struct TickOutcome {
 /// the coordinator cannot derive, because it needs the hall sensor ports, so the caller
 /// passes it in.
 ///
-/// `TrackingAxis` is a template parameter for the reason `TrackingController` is: the AVR
-/// build keeps its compile-time interrupt-stepper engine rather than an interface.
-/// `FocusAxis` is fixed to `ports::IStepperAxis` on every board since the optional axes
-/// became runtime-present.
-template <typename TrackingAxis = ports::IStepperAxis, typename FocusAxis = ports::IStepperAxis>
+/// The controllers hold their axes through `ports::IStepperAxis`. They used to be
+/// templated on the axis type so the AVR build could keep its concrete interrupt-stepper
+/// engine; that parameter was vestigial once every platform began constructing engines
+/// behind `hal::IStepperMotor`, and is gone. Step generation — timer ISR, task, polled
+/// engine, or a driver that generates steps itself — is a `hal/` concern and does not
+/// reach this class.
 class MountCoordinator : public ports::IMountEvents
 {
   public:
@@ -116,12 +117,12 @@ class MountCoordinator : public ports::IMountEvents
         return _events;
     }
 
-    TrackingController<TrackingAxis> &tracking()
+    TrackingController &tracking()
     {
         return _tracking;
     }
 
-    const TrackingController<TrackingAxis> &tracking() const
+    const TrackingController &tracking() const
     {
         return _tracking;
     }
@@ -136,12 +137,12 @@ class MountCoordinator : public ports::IMountEvents
         return _guiding;
     }
 
-    FocusController<FocusAxis> &focus()
+    FocusController &focus()
     {
         return _focus;
     }
 
-    const FocusController<FocusAxis> &focus() const
+    const FocusController &focus() const
     {
         return _focus;
     }
@@ -250,9 +251,9 @@ class MountCoordinator : public ports::IMountEvents
         return static_cast<uint16_t>(which);
     }
 
-    TrackingController<TrackingAxis> _tracking;
+    TrackingController _tracking;
     GuidingController _guiding;
-    FocusController<FocusAxis> _focus;
+    FocusController _focus;
     AzAltController _azAlt;
     DriftAlignmentController _drift;
     MountState _state;

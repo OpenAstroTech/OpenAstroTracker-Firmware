@@ -36,9 +36,11 @@ enum class StatusBit : uint16_t
 ///   on the 32-bit platforms, so a load never returns a torn value.
 /// * Read-modify-write (`set`, `clear`) is **main-loop-only**. It is not atomic on AVR,
 ///   so a concurrent writer would lose bits.
-/// * The step generator — `stepperControlTask` on core 0 (ESP32) or the timer ISR
-///   (RP2040, and AVR without `NEW_STEPPER_LIB`, where `interruptLoop()` is compiled
-///   out) — reads this state to decide which axes to step and does not write it.
+/// * A step generator owned by a `hal/` backend may read this state from another
+///   context to decide which axes to step; it does not write it. Which backends do
+///   that is a platform detail (the ESP32 task and the AVR timer ISR do today; a driver
+///   generating its own steps, such as a TMC2209 in `VACTUAL` mode, runs no MCU code at
+///   all). The read-side guarantee below is what makes those backends possible.
 /// * One exception, still open: `interruptLoop()` drives the homing state machine,
 ///   which can stop an axis and change status from that context. See PLAN.md.
 class MountState

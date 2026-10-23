@@ -39,16 +39,17 @@ enum class FocusUpdate : uint8_t
 /// settings: the caller enables the motor before a move and disables it when `update()`
 /// reports `Stopped`, exactly as `Mount` did inline.
 ///
-/// `Axis` is a template parameter for the same reason as in `TrackingController`: the
-/// AVR build keeps its compile-time specialised engine instead of paying for a vtable.
+/// The axis is held through `ports::IStepperAxis`, as in `TrackingController`, and the
+/// template parameter it used to carry is gone for the same reason: step generation is a
+/// `hal/` concern and no longer selects a type here.
 ///
 /// Threading: main-loop-only for every method except `isRunning()`/`position()`, which
 /// only read the axis.
-template <typename Axis = ports::IStepperAxis> class FocusController
+class FocusController
 {
   public:
     /// The axis is created by the mount's configure step, after the controller.
-    void attach(Axis *axis)
+    void attach(ports::IStepperAxis *axis)
     {
         _axis = axis;
     }
@@ -247,11 +248,11 @@ template <typename Axis = ports::IStepperAxis> class FocusController
         }
     }
 
-    Axis *_axis         = nullptr;
-    FocusMode _mode     = FocusMode::Idle;
-    float _maxRateSpeed = 0.0f;
-    int8_t _rate        = kMaxRate;
-    bool _wasRunning    = false;
+    ports::IStepperAxis *_axis = nullptr;
+    FocusMode _mode            = FocusMode::Idle;
+    float _maxRateSpeed        = 0.0f;
+    int8_t _rate               = kMaxRate;
+    bool _wasRunning           = false;
 };
 
 }  // namespace core
