@@ -9,6 +9,7 @@
 #include "core/CalendarMath.hpp"
 #include "core/CoordinateFormatter.hpp"
 #include "core/CoordinateMath.hpp"
+#include "core/CoordinateRead.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
@@ -1426,27 +1427,15 @@ core::Declination &Mount::targetDEC()
 // Get current RA value.
 core::DayTime Mount::currentRA() const
 {
-    // How many steps moves the RA ring one sidereal hour along. One sidereal hour moves just shy of 15 degrees
-    float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
-    float hourPos              = -_stepperRA->currentPosition() / stepsPerSiderealHour;  // u-steps / u-steps/hr = hr
-
-    hourPos += _zeroPosRA.getTotalHours();
-
-    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    if (degreePos < 0)
-    {
-        hourPos += 12;
-        if (hourPos > 24)
-            hourPos -= 24;
-    }
-
-    // Make sure we are normalized
-    if (hourPos < 0)
-        hourPos += 24;
-    if (hourPos > 24)
-        hourPos -= 24;
-
-    return hourPos;
+    // The arithmetic lives in core::currentRa; this gathers the six numbers it needs.
+    core::PositionFacts facts;
+    facts.raSteps            = _stepperRA->currentPosition();
+    facts.decSteps           = _stepperDEC->currentPosition();
+    facts.raStepsPerDegree   = _stepsPerRADegree;
+    facts.decStepsPerDegree  = _stepsPerDECDegree;
+    facts.zeroPosRaHours     = _zeroPosRA.getTotalHours();
+    facts.zeroPosDecDegrees  = _zeroPosDEC;
+    return core::currentRa(facts);
 }
 
 /////////////////////////////////
@@ -1457,11 +1446,15 @@ core::DayTime Mount::currentRA() const
 // Get current DEC value.
 core::Declination Mount::currentDEC() const
 {
-    // u-steps / u-steps/deg = deg
-    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
-    Declination dec(degreePos);
-
-    return dec;
+    // u-steps / u-steps/deg = deg; the arithmetic lives in core::currentDec.
+    core::PositionFacts facts;
+    facts.raSteps           = _stepperRA->currentPosition();
+    facts.decSteps          = _stepperDEC->currentPosition();
+    facts.raStepsPerDegree  = _stepsPerRADegree;
+    facts.decStepsPerDegree = _stepsPerDECDegree;
+    facts.zeroPosRaHours    = _zeroPosRA.getTotalHours();
+    facts.zeroPosDecDegrees = _zeroPosDEC;
+    return core::currentDec(facts);
 }
 
 /////////////////////////////////
