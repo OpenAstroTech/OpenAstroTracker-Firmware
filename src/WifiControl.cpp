@@ -2,7 +2,6 @@
 #include "Utility.hpp"
 #include "WifiControl.hpp"
 #include "adapters/MeadeCommandAdapter.hpp"
-#include "Mount.hpp"
 
 #if (WIFI_ENABLED == 1)
 
