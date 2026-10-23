@@ -411,6 +411,7 @@ void setup()
     commandPorts.siteTime      = &mount;
     commandPorts.events        = &mount;
     commandPorts.clock         = &clockPort;
+    commandPorts.gyro          = gyro;
     MeadeCommandAdapter::createProcessor(commandPorts, &lcdMenu);
     updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 

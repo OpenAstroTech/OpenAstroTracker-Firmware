@@ -5,6 +5,7 @@
 #include "core/meade/PendingReplies.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IMountConfiguration.hpp"
+#include "ports/IGyro.hpp"
 #include "ports/IMountEvents.hpp"
 #include "ports/IMountMotion.hpp"
 #include "ports/IMountOptionalAxes.hpp"
@@ -29,6 +30,8 @@ struct MeadeCommandPorts {
     ports::IMountEvents *events               = nullptr;
     /// The same clock the mount uses; the deferred-reply table measures deadlines on it.
     ports::IClock *clock = nullptr;
+    /// The levelling sensor, or the null object on a board without one.
+    ports::IGyro *gyro = nullptr;
 };
 
 class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::core::IEventSink
@@ -228,6 +231,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     ports::IMountSiteTime *_siteTime    = nullptr;
     ports::IMountEvents *_events        = nullptr;
     ports::IClock *_clock               = nullptr;
+    ports::IGyro *_gyro                 = nullptr;
     // The transport the current command arrived on; null for commands the firmware issues itself.
     ports::ITransport *_origin = nullptr;
     bool _deferredThisCommand  = false;

@@ -18,6 +18,8 @@
 #include "adapters/MountSettingsStore.hpp"
 #include "adapters/NullLogger.hpp"
 #include "adapters/SerialLogger.hpp"
+#include "adapters/Mpu6050Gyro.hpp"
+#include "hal/arduino/ArduinoI2cBus.hpp"
 
 PUSH_NO_WARNINGS
 #include <EEPROM.h>
@@ -63,6 +65,17 @@ ports::ILogger *const logSink = &loggerPort;
 #else
 adapters::NullLogger loggerPort;
 ports::ILogger *const logSink = &loggerPort;
+#endif
+
+// --- the optional levelling sensor ------------------------------------------------------
+
+#if USE_GYRO_LEVEL == 1
+hal::ArduinoI2cBus i2cBus;
+adapters::Mpu6050Gyro mpu6050Gyro(i2cBus, clockPort);
+ports::IGyro *gyro = &mpu6050Gyro;
+#else
+adapters::NullGyro nullGyro;
+ports::IGyro *gyro = &nullGyro;
 #endif
 
 // --- persistence -----------------------------------------------------------------------

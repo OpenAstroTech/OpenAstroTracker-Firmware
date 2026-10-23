@@ -4,7 +4,7 @@
 #include "Sidereal.hpp"
 
 #if USE_GYRO_LEVEL == 1
-    #include "Gyro.hpp"
+    #include "app/BoardWiring.hpp"
 #endif
 
 #if DISPLAY_TYPE > 0

@@ -5,7 +5,7 @@
     #if SUPPORT_CALIBRATION == 1
 
         #if USE_GYRO_LEVEL == 1
-            #include "Gyro.hpp"
+            #include "app/BoardWiring.hpp"
         #endif
 
 // HIGHLIGHT states allow you to pick one of the three sub functions.
@@ -141,7 +141,7 @@ void gotoNextMenu()
     lcdMenu.setNextActive();
 
         #if USE_GYRO_LEVEL == 1
-    Gyro::shutdown();
+    gyro->shutdown();
     gyroStarted = false;
         #endif
 }
@@ -226,7 +226,7 @@ bool processCalibrationKeys()
     if (!gyroStarted)
     {
         LOG(DEBUG_INFO, "[CAL]: Starting Gyro!");
-        Gyro::startup();
+        gyro->begin();
         gyroStarted = true;
     }
 
@@ -562,16 +562,16 @@ bool processCalibrationKeys()
                 {
                     if (key == btnSELECT)
                     {
-                        auto angles = Gyro::getCurrentAngles();
+                        auto angles = gyro->angles();
                         if (setRollZeroPoint)
                         {
-                            LOG(DEBUG_GYRO, "[CAL]: Confirmed Roll offset is %f", angles.rollAngle);
-                            mount.setRollCalibrationAngle(angles.rollAngle);
+                            LOG(DEBUG_GYRO, "[CAL]: Confirmed Roll offset is %f", angles.roll);
+                            mount.setRollCalibrationAngle(angles.roll);
                             LOG(DEBUG_GYRO, "[CAL]: New Roll offset is %f", mount.getRollCalibrationAngle());
                         }
                         else
                         {
-                            LOG(DEBUG_GYRO, "[CAL]: Did not confirm, Roll offset was %f", angles.rollAngle);
+                            LOG(DEBUG_GYRO, "[CAL]: Did not confirm, Roll offset was %f", angles.roll);
                         }
                         calState       = HIGHLIGHT_ROLL_LEVEL;
                         okToUpdateMenu = true;
@@ -608,15 +608,15 @@ bool processCalibrationKeys()
                 {
                     if (key == btnSELECT)
                     {
-                        auto angles = Gyro::getCurrentAngles();
+                        auto angles = gyro->angles();
                         if (setPitchZeroPoint)
                         {
-                            LOG(DEBUG_GYRO, "[CAL]: Confirmed Pitch offset is %f", angles.pitchAngle);
-                            mount.setPitchCalibrationAngle(angles.pitchAngle);
+                            LOG(DEBUG_GYRO, "[CAL]: Confirmed Pitch offset is %f", angles.pitch);
+                            mount.setPitchCalibrationAngle(angles.pitch);
                         }
                         else
                         {
-                            LOG(DEBUG_GYRO, "[CAL]: Did not confirm, Pitch offset was %f", angles.pitchAngle);
+                            LOG(DEBUG_GYRO, "[CAL]: Did not confirm, Pitch offset was %f", angles.pitch);
                         }
                         calState       = HIGHLIGHT_PITCH_LEVEL;
                         okToUpdateMenu = true;
@@ -1157,9 +1157,9 @@ void printCalibrationSubmenu()
         #if USE_GYRO_LEVEL == 1
     else if (calState == ROLL_OFFSET_CALIBRATION)
     {
-        auto angles = Gyro::getCurrentAngles();
+        auto angles = gyro->angles();
         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "R: -------------");
-        makeIndicator(scratchBuffer, angles.rollAngle - mount.getRollCalibrationAngle());
+        makeIndicator(scratchBuffer, angles.roll - mount.getRollCalibrationAngle());
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == ROLL_OFFSET_CONFIRM)
@@ -1171,9 +1171,9 @@ void printCalibrationSubmenu()
     }
     else if (calState == PITCH_OFFSET_CALIBRATION)
     {
-        auto angles = Gyro::getCurrentAngles();
+        auto angles = gyro->angles();
         OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "P: -------------");
-        makeIndicator(scratchBuffer, angles.pitchAngle - mount.getPitchCalibrationAngle());
+        makeIndicator(scratchBuffer, angles.pitch - mount.getPitchCalibrationAngle());
         lcdMenu.printMenu(scratchBuffer);
     }
     else if (calState == PITCH_OFFSET_CONFIRM)

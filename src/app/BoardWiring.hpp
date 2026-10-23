@@ -21,6 +21,8 @@
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/InfoDisplayPanel.hpp"
 #include "adapters/MountSettingsStore.hpp"
+#include "adapters/NullGyro.hpp"
+#include "ports/IGyro.hpp"
 #include "hal/arduino/ArduinoSystemClock.hpp"
 #include "hal/arduino/ArduinoGpioPin.hpp"
 #include "hal/arduino/ArduinoSerialPort.hpp"
@@ -39,6 +41,13 @@ extern LcdButtons lcdButtons;
 extern hal::ArduinoSystemClock arduinoSystemClock;
 extern adapters::ArduinoClock clockPort;
 extern adapters::ArduinoScheduler schedulerPort;
+
+// --- the optional levelling sensor ------------------------------------------------------
+//
+// Null when the board has none: the menus and the command layer ask it, and get a working
+// "not available" answer instead of a compile-time branch.
+
+extern ports::IGyro *gyro;
 
 // --- persistence -----------------------------------------------------------------------
 

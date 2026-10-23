@@ -131,8 +131,8 @@ void printStatusSubmenu()
             case 4:
                 {
         #if USE_GYRO_LEVEL == 1
-                    int celsius    = static_cast<int>(roundf(Gyro::getCurrentTemperature()));
-                    int fahrenheit = static_cast<int>(roundf(32.0f + 9.0f * Gyro::getCurrentTemperature() / 5.0f));
+                    int celsius    = static_cast<int>(roundf(gyro->temperature()));
+                    int fahrenheit = static_cast<int>(roundf(32.0f + 9.0f * gyro->temperature() / 5.0f));
 
                     OAT_SNPRINTF(scratchBuffer, sizeof(scratchBuffer), "Temp: %d@C %d@F", celsius, fahrenheit);
                     lcdMenu.printMenu(scratchBuffer);

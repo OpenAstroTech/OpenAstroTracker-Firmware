@@ -5,7 +5,6 @@
 #include "../Mount.hpp"
 #include "MeadeCommandAdapter.hpp"
 #include "../WifiControl.hpp"
-#include "../Gyro.hpp"
 #include "core/meade/MeadeParser.hpp"
 
 #include <stdarg.h>
@@ -54,6 +53,7 @@ MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, LcdMenu
     _siteTime = ports.siteTime;
     _events   = ports.events;
     _clock    = ports.clock;
+    _gyro     = ports.gyro;
 
     // Deferred replies complete on mount events, so the command layer is a subscriber like the
     // status display.
@@ -748,9 +748,9 @@ oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetCurrentAngles()
 {
     oat::core::meade::ExtraPitchRoll pr;
 #if USE_GYRO_LEVEL == 1
-    auto angles = Gyro::getCurrentAngles();
-    pr.pitch    = angles.pitchAngle;
-    pr.roll     = angles.rollAngle;
+    const ports::GyroAngles angles = _gyro->angles();
+    pr.pitch                       = angles.pitch;
+    pr.roll                        = angles.roll;
 #endif
     return pr;
 }
@@ -758,7 +758,7 @@ oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetCurrentAngles()
 float MeadeCommandAdapter::onLevelGetTemperature()
 {
 #if USE_GYRO_LEVEL == 1
-    return Gyro::getCurrentTemperature();
+    return _gyro->temperature();
 #else
     return 0.0f;
 #endif
@@ -783,13 +783,13 @@ void MeadeCommandAdapter::onLevelSetReferenceRoll(float v)
 void MeadeCommandAdapter::onLevelStartup()
 {
 #if USE_GYRO_LEVEL == 1
-    Gyro::startup();
+    _gyro->begin();
 #endif
 }
 void MeadeCommandAdapter::onLevelShutdown()
 {
 #if USE_GYRO_LEVEL == 1
-    Gyro::shutdown();
+    _gyro->shutdown();
 #endif
 }
 
