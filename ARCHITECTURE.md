@@ -135,7 +135,7 @@ with what would finish it:
 | `SSD1306_128x64_Display` | renders from `Mount` (pull) behind `InfoDisplayPanel` (push): `Mount` no longer calls it, but it still reads it | render from `ports::IInfoDisplay`'s snapshot struct instead of the mount |
 | `EPROMStore` | static facade kept for the menu screens; `Mount` already uses `ports::IMountSettings` | delete once the menus use the typed store |
 | `Gyro`, `HallSensorHoming`, `EndSwitches` | hardware-coupled helpers `Mount` still calls directly; the `IGyro`, `IHomingSensor` and `IEndSwitch` ports exist but nothing implements them yet | adapters over `hal::II2cBus` / `hal::IGpioPin` — the homing one needs the polling-rate decision recorded in `core/HomingController` |
-| `c_buttons.hpp`, `a_inits.hpp`, `b_setup.hpp` | the object graph and the entry point have moved to `app/` (`BoardWiring`, `main.cpp`, `SerialPump.hpp`); what is left is the UI loop and the globals the menu screens still read | move with the menu screens (step 4 of Phase 7); no design change |
+| `c_buttons.hpp`, `a_inits.hpp` | the object graph and the entry point have moved to `app/` (`BoardWiring`, `main.cpp`, `SerialPump.hpp`, `MotorWiring`), and `b_setup.hpp` is deleted; what is left is the UI loop and the globals the menu screens still read | move with the menu screens (step 4 of Phase 7); no design change |
 
 ---
 
