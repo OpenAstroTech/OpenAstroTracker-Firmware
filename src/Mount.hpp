@@ -27,6 +27,7 @@
 #include "ports/IMountEvents.hpp"
 #include "ports/IMountReadModel.hpp"
 #include "ports/IMountSiteTime.hpp"
+#include "ports/IInfoDisplay.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
 #include "ports/IStepperAxis.hpp"
@@ -111,7 +112,8 @@ struct MountDeps {
 class Mount final : public ports::IMountOptionalAxes,
                     public ports::IMountReadModel,
                     public ports::IMountSiteTime,
-                    public ports::IMountEvents
+                    public ports::IMountEvents,
+                    public ports::IInfoDisplaySource
 {
   public:
     /// The infrastructure ports are injected by the composition root
@@ -386,6 +388,15 @@ class Mount final : public ports::IMountOptionalAxes,
 
     // Called by Meade processor every time a command is received.
     void commandReceived() override;
+    // --- ports::IInfoDisplaySource ---------------------------------------------------------
+
+    /// Which axes are moving this frame, for the panel's refresh policy.
+    ports::InfoDisplayActivity activity() override;
+
+    /// Fills one frame's worth of panel state. Everything the renderer shows comes from here,
+    /// so the renderer never reads the mount.
+    void fillInfoDisplayState(ports::InfoDisplayState &state) override;
+
     long getNumCommandsReceived() override
     {
         return _commandReceived;
@@ -596,6 +607,9 @@ class Mount final : public ports::IMountOptionalAxes,
     /// display shows. A member rather than a local so the pointer survives the return; the value
     /// is valid until the next call to the method that filled it.
     mutable String _readoutScratch;
+
+    /// Backing store for the status line in `InfoDisplayState`, for the same reason.
+    String _infoStatusScratch;
 
     // Stepper control for RA, DEC and TRK.
     //

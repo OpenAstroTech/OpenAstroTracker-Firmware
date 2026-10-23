@@ -1,12 +1,14 @@
 #include "InfoDisplayPanel.hpp"
 
 #include "InfoDisplayRender.hpp"
-#include "Mount.hpp"
 
 namespace adapters
 {
-InfoDisplayPanel::InfoDisplayPanel(Mount &mount, InfoDisplayRender &panel, ports::IClock &clock, ports::IMountEvents &events)
-    : _mount(mount), _panel(panel), _clock(clock), _events(events)
+InfoDisplayPanel::InfoDisplayPanel(ports::IInfoDisplaySource &source,
+                                   InfoDisplayRender &panel,
+                                   ports::IClock &clock,
+                                   ports::IMountEvents &events)
+    : _source(source), _panel(panel), _clock(clock), _events(events)
 {
 }
 
@@ -39,7 +41,8 @@ void InfoDisplayPanel::onMountEvent(const ::core::MountEvent &event)
 
 void InfoDisplayPanel::render()
 {
-    _panel.renderScreen(_mount);
+    _source.fillInfoDisplayState(_state);
+    _panel.renderScreen(_state);
     _lastRender = _clock.now();
     _dirty      = false;
 }
@@ -88,12 +91,14 @@ void InfoDisplayPanel::tick()
 
 bool InfoDisplayPanel::anyAxisSlewing()
 {
-    return _mount.isAxisRunning(RA_STEPS) || _mount.isAxisRunning(DEC_STEPS);
+    const ports::InfoDisplayActivity activity = _source.activity();
+    return activity.raRunning || activity.decRunning;
 }
 
 bool InfoDisplayPanel::bothAxesSlewing()
 {
-    return _mount.isAxisRunning(RA_STEPS) && _mount.isAxisRunning(DEC_STEPS);
+    const ports::InfoDisplayActivity activity = _source.activity();
+    return activity.raRunning && activity.decRunning;
 }
 
 }  // namespace adapters

@@ -19,8 +19,9 @@ POP_NO_WARNINGS
 #include "Utility.hpp"
 #include "Version.h"
 #include "fonts128x64.h"
-#include "Mount.hpp"
+#include "DayTime.hpp"
 #include "InfoDisplayRender.hpp"
+#include "ports/IInfoDisplay.hpp"
 
 #if defined(ESP32)
     /*
@@ -35,8 +36,6 @@ POP_NO_WARNINGS
 
 const float sineSize              = 18.0;
 const uint8_t sineTable[] PROGMEM = {0, 22, 44, 66, 87, 108, 128, 146, 164, 180, 195, 209, 221, 231, 240, 246, 251, 254, 255, 255};
-
-class Mount;
 
 // This class renders the mount status to a 128x64 pixel display controlled by a SSD1306 chip.
 class SDD1306OLED128x64 : public InfoDisplayRender
@@ -62,7 +61,8 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     const int yMaxStatus = 63 - 11;
 
     char _commLetter;
-    static Mount *_mount;
+    /// The frame being drawn. Set by `renderScreen()` and valid for that call only.
+    static const ports::InfoDisplayState *_state;
 
   public:
     SDD1306OLED128x64(uint8_t addr, int sda, int scl);
@@ -72,14 +72,14 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     // Console-mode header: logo and product name
     void drawHeader();
 
-    // Build the display from the mount
-    void renderScreen(Mount &mount);
+    // Draw one frame from a snapshot the composition root produced
+    void renderScreen(const ports::InfoDisplayState &state);
 
-    // Display the tiem left before tracking hits the limit
-    void drawTime(Mount *mount, String label, const DayTime &time);
+    // Display the time left before tracking hits the limit
+    void drawTime(String label, const DayTime &time);
 
     // Draw all the indicators on screen
-    void drawIndicators(Mount *mount);
+    void drawIndicators();
 
     // Display two 2-pixel high progress bar in the last 4 lines of the display
     void drawProgressBar(int percRA, int percDEC);
@@ -89,15 +89,15 @@ class SDD1306OLED128x64 : public InfoDisplayRender
 
     // Display all the configured stepper status rectangles
     // Focuser is currently not supported, but could be added here, if possible.
-    void drawStepperStates(Mount *mount);
+    void drawStepperStates();
 
-    void drawCommunicationStatus(Mount *mount);
+    void drawCommunicationStatus();
 
     // Draw the given coordinate string at the given point
     void drawCoordinate(int x, int y, const char *coord);
 
     // Draw the mounts celestial RA and DEC coordinates
-    void drawCoordinates(Mount *mount);
+    void drawCoordinates();
 
     // Map the given RA coordinate to the pixel position on the display
     int xRAPixel(float ra);
@@ -106,10 +106,10 @@ class SDD1306OLED128x64 : public InfoDisplayRender
     int yDECPixel(float dec);
 
     // Draw the rectangle with the current and target positions
-    void drawMountPosition(Mount *mount);
-    // Display the tiem left before tracking hits the limit
-    void drawSafeTime(Mount *mount);
+    void drawMountPosition();
+    // Display the time left before tracking hits the limit
+    void drawSafeTime();
 
     // Display the mount status string
-    void drawStatus(Mount *mount);
+    void drawStatus();
 };

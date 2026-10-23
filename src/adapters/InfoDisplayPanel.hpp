@@ -2,9 +2,9 @@
 
 #include "core/MountEvent.hpp"
 #include "ports/IClock.hpp"
+#include "ports/IInfoDisplay.hpp"
 #include "ports/IMountEvents.hpp"
 
-class Mount;
 class InfoDisplayRender;
 
 namespace adapters
@@ -15,7 +15,8 @@ namespace adapters
 /// `infoDisplay->renderScreen(this)`, and the guide-pulse path called it explicitly because it
 /// returns early. That made the mount aware of a peripheral that only exists on some boards, and
 /// it put the refresh-rate policy — which exists to protect the serial ring buffer during a slew —
-/// inside the motion code.
+/// inside the motion code. The frame is now a POD the composition root fills, so the renderer
+/// never reads the mount either.
 ///
 /// Ownership is inverted here: the composition root creates the panel, the main loop ticks it, and
 /// the mount's events tell it when something worth showing has happened. `Mount` no longer knows
@@ -35,7 +36,7 @@ class InfoDisplayPanel final : private ::core::IEventSink
     /// Highest frame rate a transition may ask for, whatever the slew bucket says.
     static constexpr uint32_t kMinimumFrameIntervalMs = 33;  // ~30 Hz
 
-    InfoDisplayPanel(Mount &mount, InfoDisplayRender &panel, ports::IClock &clock, ports::IMountEvents &events);
+    InfoDisplayPanel(ports::IInfoDisplaySource &source, InfoDisplayRender &panel, ports::IClock &clock, ports::IMountEvents &events);
 
     /// Subscribes to the mount's events.
     void begin();
@@ -51,7 +52,8 @@ class InfoDisplayPanel final : private ::core::IEventSink
     bool anyAxisSlewing();
     bool bothAxesSlewing();
 
-    Mount &_mount;
+    ports::IInfoDisplaySource &_source;
+    ports::InfoDisplayState _state{};
     InfoDisplayRender &_panel;
     ports::IClock &_clock;
     ports::IMountEvents &_events;

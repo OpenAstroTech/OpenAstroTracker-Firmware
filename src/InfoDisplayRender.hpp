@@ -9,8 +9,7 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 #include "fonts128x64.h"
 #include "../Configuration.hpp"
-
-class Mount;
+#include "ports/IInfoDisplay.hpp"
 
 // Base class to implement a
 class InfoDisplayRender
@@ -58,9 +57,9 @@ class InfoDisplayRender
         return _display;
     };
 
-    /// Draws one frame of mount state. Typed on `Mount` rather than `void *`: the only caller was
-    /// an unchecked cast out of `Mount::loop()`, which is where that cast used to live.
-    virtual void renderScreen(Mount &mount) = 0;
+    /// Draws one frame from a snapshot the composition root produced. The renderer never reads
+    /// the mount: everything it shows arrives in `ports::InfoDisplayState`.
+    virtual void renderScreen(const ports::InfoDisplayState &state) = 0;
 
     // Build the display from the mount
     virtual void render(void (*drawContentFunction)(void *))

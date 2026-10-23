@@ -11,7 +11,7 @@
     #define pgm_read_byte(addr) (*(addr))
 #endif
 
-Mount *SDD1306OLED128x64::_mount = nullptr;
+const ports::InfoDisplayState *SDD1306OLED128x64::_state = nullptr;
 
 float sinLookup(float deg)
 {
@@ -83,20 +83,20 @@ void SDD1306OLED128x64::drawScreen()
     else
     {
         // Draw indicators in all other modes
-        drawIndicators(SDD1306OLED128x64::_mount);
+        drawIndicators();
     }
 }
 
-// Build the display from the mount
-void SDD1306OLED128x64::renderScreen(Mount &mount)
+// Draw one frame from a snapshot the composition root produced
+void SDD1306OLED128x64::renderScreen(const ports::InfoDisplayState &state)
 {
-    _mount = &mount;
+    _state = &state;
     // Call the base
     this->InfoDisplayRender::render(renderCallback);
 };
 
 // Display the tiem left before tracking hits the limit
-void SDD1306OLED128x64::drawTime(Mount *mount, String label, const DayTime &time)
+void SDD1306OLED128x64::drawTime(String label, const DayTime &time)
 {
     char achTemp[24];
     _display->setColor(WHITE);
@@ -106,19 +106,18 @@ void SDD1306OLED128x64::drawTime(Mount *mount, String label, const DayTime &time
 }
 
 // Draw all the indicators on screen
-void SDD1306OLED128x64::drawIndicators(Mount *mount)
+void SDD1306OLED128x64::drawIndicators()
 {
     char scratchBuffer[24];
     _display->setFont(Bitmap5x7);
     _display->setColor(WHITE);
 
-    drawStepperStates(mount);
-    int ra, dec;
+    drawStepperStates();
     // If a slew is in progress, we don't display the safe time, version, and
     // comms indicator, since the progress bar takes up the same space
-    if (mount->getStepperProgress(ra, dec))
+    if (_state->progressActive)
     {
-        drawProgressBar(ra, dec);
+        drawProgressBar(_state->raProgressPercent, _state->decProgressPercent);
     }
     else
     {
@@ -146,14 +145,13 @@ void SDD1306OLED128x64::drawIndicators(Mount *mount)
         {
             case 0:
                 {
-                    float hoursLeft = mount->checkRALimit();
-                    DayTime dt(hoursLeft);
-                    drawTime(mount, F("REM "), dt);
+                    DayTime dt(_state->hoursToLimit);
+                    drawTime(F("REM "), dt);
                 }
                 break;
             case 1:
                 {
-                    drawTime(mount, F("LST "), mount->calculateLst());
+                    drawTime(F("LST "), DayTime(_state->lst));
                 }
                 break;
             case 2:
@@ -163,7 +161,7 @@ void SDD1306OLED128x64::drawIndicators(Mount *mount)
                     int days      = (int) (now / msPerDay);
                     now -= days * msPerDay;
                     DayTime elapsed(1.0 * now / (1000.0 * 3600.0));
-                    drawTime(mount, F("UPT "), elapsed);
+                    drawTime(F("UPT "), elapsed);
                 }
                 break;
             case 3:
@@ -177,20 +175,20 @@ void SDD1306OLED128x64::drawIndicators(Mount *mount)
                 break;
             case 4:
                 {
-                    float lat          = fabsf(mount->latitude().getTotalHours());
-                    float lng          = fabsf(mount->longitude().getTotalHours());
-                    const char dirLat  = (mount->latitude().getTotalHours() < 0) ? 'S' : 'N';
-                    const char dirLong = (mount->longitude().getTotalHours() < 0) ? 'W' : 'E';
+                    float lat          = fabsf(_state->latitudeHours);
+                    float lng          = fabsf(_state->longitudeHours);
+                    const char dirLat  = (_state->latitudeHours < 0) ? 'S' : 'N';
+                    const char dirLong = (_state->longitudeHours < 0) ? 'W' : 'E';
                     sprintf(scratchBuffer, "LOC %s%c %s%c", String(lat, 0).c_str(), dirLat, String(lng, 0).c_str(), dirLong);
                     _display->drawString(55, 59, scratchBuffer);
                 }
                 break;
         }
-        drawCommunicationStatus(mount);
+        drawCommunicationStatus();
     }
-    drawCoordinates(mount);
-    drawMountPosition(mount);
-    drawStatus(mount);
+    drawCoordinates();
+    drawMountPosition();
+    drawStatus();
 }
 
 // Display two 2-pixel high progress bar in the last 4 lines of the display
@@ -222,24 +220,24 @@ void SDD1306OLED128x64::drawStepperState(String name, bool active, int xoff, int
 
 // Display all the configured stepper status rectangles
 // Focuser is currently not supported, but could be added here, if possible.
-void SDD1306OLED128x64::drawStepperStates(Mount *mount)
+void SDD1306OLED128x64::drawStepperStates()
 {
     _display->setFont(Bitmap5x7);
-    drawStepperState(F("RA"), mount->isAxisRunning(RA_STEPS), 0, 15);
-    drawStepperState(F("DEC"), mount->isAxisRunning(DEC_STEPS), 16, 21);
+    drawStepperState(F("RA"), _state->raRunning, 0, 15);
+    drawStepperState(F("DEC"), _state->decRunning, 16, 21);
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    drawStepperState(F("ALT"), mount->isRunningALT(), 38, 21);
+    drawStepperState(F("ALT"), _state->altRunning, 38, 21);
 #endif
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    drawStepperState(F("AZ"), mount->isRunningAZ(), 60, 16);
+    drawStepperState(F("AZ"), _state->azRunning, 60, 16);
 #endif
-    drawStepperState(F("GDE"), mount->isGuiding(), 83, 21);
-    drawStepperState(F("TRK"), mount->isSlewingTRK(), 105, 23, 1);
+    drawStepperState(F("GDE"), _state->guiding, 83, 21);
+    drawStepperState(F("TRK"), _state->trkRunning, 105, 23, 1);
 }
 
-void SDD1306OLED128x64::drawCommunicationStatus(Mount *mount)
+void SDD1306OLED128x64::drawCommunicationStatus()
 {
-    long recvdCmds = mount->getNumCommandsReceived();
+    long recvdCmds = _state->commandsReceived;
     // If we have received any commands since the last display, draw the marker.
 
     if (_commLetter != ' ')
@@ -309,12 +307,10 @@ void SDD1306OLED128x64::drawCoordinate(int x, int y, const char *coord)
 }
 
 // Draw the mounts celestial RA and DEC coordinates
-void SDD1306OLED128x64::drawCoordinates(Mount *mount)
+void SDD1306OLED128x64::drawCoordinates()
 {
-    String rc = mount->RAString(LCD_STRING | CURRENT_STRING);
-    String dc = mount->DECString(LCD_STRING | CURRENT_STRING);
-    drawCoordinate(8, 24, rc.c_str());
-    drawCoordinate(0, 42, dc.c_str());
+    drawCoordinate(8, 24, _state->raText);
+    drawCoordinate(0, 42, _state->decText);
 }
 
 // Map the given RA coordinate to the pixel position on the display
@@ -333,7 +329,7 @@ int SDD1306OLED128x64::yDECPixel(float dec)
 }
 
 // Draw the rectangle with the current and target positions
-void SDD1306OLED128x64::drawMountPosition(Mount *mount)
+void SDD1306OLED128x64::drawMountPosition()
 {
     _display->setColor(WHITE);
     _display->setFont(Bitmap3x5);
@@ -362,8 +358,8 @@ void SDD1306OLED128x64::drawMountPosition(Mount *mount)
     _display->drawString(_decScalePos + 3, yDECPixel(180.0f) - 2, F("180"));
 
     // DEC Pos Marker
-    float decStepsPerDeg = mount->getStepsPerDegree(StepperAxis::DEC_STEPS);
-    long decSteps        = mount->getCurrentStepperPosition(StepperAxis::DEC_STEPS);
+    float decStepsPerDeg = _state->decStepsPerDegree;
+    long decSteps        = _state->decSteps;
     float decDegrees     = decSteps / decStepsPerDeg;
     int yMark            = yDECPixel(decDegrees);
     _display->setPixel(_decScalePos - 2, yMark);
@@ -390,9 +386,9 @@ void SDD1306OLED128x64::drawMountPosition(Mount *mount)
     _display->drawString(xRAPixel(3.0f) - 1, _raScalePos + 2, "3");
     _display->drawString(xRAPixel(6.0f) - 1, _raScalePos + 2, "6");
 
-    float raStepsPerDeg = mount->getStepsPerDegree(StepperAxis::RA_STEPS);
-    float trkSteps      = 1.0f * mount->getCurrentStepperPosition(TRACKING) / (1.0f * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING);
-    long raSteps        = mount->getCurrentStepperPosition(StepperAxis::RA_STEPS);
+    float raStepsPerDeg = _state->raStepsPerDegree;
+    float trkSteps      = 1.0f * _state->trkSteps / (1.0f * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING);
+    long raSteps        = _state->raSteps;
     float raHours       = (trkSteps + raSteps) / raStepsPerDeg / 15.0f;
 
     // RA Position Marker
@@ -403,11 +399,10 @@ void SDD1306OLED128x64::drawMountPosition(Mount *mount)
 }
 
 // Display the tiem left before tracking hits the limit
-void SDD1306OLED128x64::drawSafeTime(Mount *mount)
+void SDD1306OLED128x64::drawSafeTime()
 {
     char achTemp[10];
-    float hoursLeft = mount->checkRALimit();
-    DayTime dt(hoursLeft);
+    DayTime dt(_state->hoursToLimit);
     _display->setColor(WHITE);
     _display->setFont(CommSymbols);
     _display->drawString(48, 59, "M");  // Clock sign
@@ -417,11 +412,11 @@ void SDD1306OLED128x64::drawSafeTime(Mount *mount)
 }
 
 // Display the mount status string
-void SDD1306OLED128x64::drawStatus(Mount *mount)
+void SDD1306OLED128x64::drawStatus()
 {
     _display->setColor(WHITE);
     _display->setFont(Bitmap5x7);
-    String state = mount->getStatusStateString();
+    String state = (_state->statusText != nullptr) ? _state->statusText : "";
     state.toUpperCase();
     _display->drawString(4, 14, state.c_str());
 

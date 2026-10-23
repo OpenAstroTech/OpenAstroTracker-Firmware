@@ -38,9 +38,6 @@ ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
 }  // namespace
 
 PUSH_NO_WARNINGS
-#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
-    #include "SSD1306_128x64_Display.hpp"
-#endif
 #include <AccelStepper.h>
 
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
@@ -4041,6 +4038,56 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
     long curPos = getCurrentStepperPosition(axis);
     long delta  = position - curPos;
     moveStepperBy(axis, delta);
+}
+
+/////////////////////////////////
+//
+// IInfoDisplaySource
+//
+/////////////////////////////////
+ports::InfoDisplayActivity Mount::activity()
+{
+    return ports::InfoDisplayActivity{isAxisRunning(RA_STEPS), isAxisRunning(DEC_STEPS)};
+}
+
+void Mount::fillInfoDisplayState(ports::InfoDisplayState &state)
+{
+    state.raSteps            = getCurrentStepperPosition(StepperAxis::RA_STEPS);
+    state.decSteps           = getCurrentStepperPosition(StepperAxis::DEC_STEPS);
+    state.trkSteps           = getCurrentStepperPosition(TRACKING);
+    state.raStepsPerDegree   = getStepsPerDegree(StepperAxis::RA_STEPS);
+    state.decStepsPerDegree  = getStepsPerDegree(StepperAxis::DEC_STEPS);
+
+    state.raRunning  = isAxisRunning(RA_STEPS);
+    state.decRunning = isAxisRunning(DEC_STEPS);
+    state.altRunning = isRunningALT();
+    state.azRunning  = isRunningAZ();
+    state.trkRunning = isSlewingTRK();
+    state.guiding    = isGuiding();
+
+    state.tracking = _coordinator.state().test(STATUS_TRACKING);
+    state.slewing  = _coordinator.state().test(STATUS_SLEWING);
+    state.parked   = _coordinator.state().isParked();
+
+    state.commandsReceived = getNumCommandsReceived();
+
+    state.progressActive = getStepperProgress(state.raProgressPercent, state.decProgressPercent);
+
+    state.latitudeHours  = latitude().getTotalHours();
+    state.longitudeHours = longitude().getTotalHours();
+    state.hoursToLimit   = checkRALimit();
+    state.lst            = calculateLst();
+
+    // The panel's coordinate text is the LCD shape the renderer drew before, produced here so the
+    // renderer needs no formatter and no mount.
+    const String raText  = RAString(LCD_STRING | CURRENT_STRING);
+    const String decText = DECString(LCD_STRING | CURRENT_STRING);
+    snprintf(state.raText, sizeof(state.raText), "%s", raText.c_str());
+    snprintf(state.decText, sizeof(state.decText), "%s", decText.c_str());
+
+    // The status line outlives this call because it is copied into a member-backed scratch.
+    _infoStatusScratch = getStatusStateString();
+    state.statusText   = _infoStatusScratch.c_str();
 }
 
 /////////////////////////////////
