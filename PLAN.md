@@ -616,6 +616,7 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 **Landed so far:**
 
 - ✅ `src/StepperConfiguration.hpp` moved to `hal/avr/`; `hal/avr/InterruptStepperFactory.hpp` builds every AVR engine behind `IStepperMotor`. `Mount` now holds `ports::IStepperAxis *` for all axes on all platforms and `MountCoordinator<ports::IStepperAxis>` unconditionally.
+- ✅ Driver construction and register programming left `Mount` as well: `app/DriverWiring.cpp` builds each TMC2209 UART driver, runs the UART self-test and applies the enable-line safety write, then hands the finished ports over via `Mount::attachDrivers()`. `Mount.cpp` dropped 423 lines in that move.
 - ✅ Engine *construction* left `Mount` too: `app/MotorWiring.cpp` builds every axis for the board and calls `Mount::attachSteppers()`. `hal/StepperMotorFactory` maps an axis role to the right engine, so the AVR/AccelStepper choice is one file inside `hal/` and **no code above `hal/` selects a platform**. The ten cached speed/acceleration values became one `core::AxisLimits` POD.
 - ✅ `src/Core.cpp` → `src/app/main.cpp`.
 - ✅ `app/BoardWiring.hpp/.cpp` own the object graph in one translation unit (clock, scheduler, logger, EEPROM + settings store, enable pins, menu singletons, `mount`, the panel, Wi-Fi). `setup()` moved to `app/main.cpp`, and `b_setup.hpp` — a 25-line compatibility shim by then — is deleted: `main.cpp`, `SerialPump.hpp`, `c_buttons.hpp` and `c725_menuHOME.hpp` now include `app/BoardWiring.hpp` and the debug/test/timer hooks directly.
@@ -623,7 +624,7 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 - ✅ `src/f_serial.hpp` → `src/app/SerialPump.hpp`.
 
 1. 🟡 **`src/app/` becomes the real composition root.**
-   - ✅ `app/main.cpp` + `app/BoardWiring.hpp/.cpp` replace `b_setup.hpp`'s wiring: the clock, scheduler, logger, EEPROM backend, settings store, enable pins, the coordinator and its controllers, the six mount ports, the transports, and the display. The axes are built by `app/MotorWiring.cpp`; the five `configure*driver` methods are the last construction left in `Mount`.
+   - ✅ `app/main.cpp` + `app/BoardWiring.hpp/.cpp` replace `b_setup.hpp`'s wiring: the clock, scheduler, logger, EEPROM backend, settings store, enable pins, the coordinator and its controllers, the six mount ports, the transports, and the display. The axes (`app/MotorWiring.cpp`) and the drivers (`app/DriverWiring.cpp`) are built by the composition root, so `Mount` no longer constructs hardware at all.
    - 🟡 `a_inits.hpp` globals are `app`-owned with defined lifetime (done); `f_serial.hpp`'s pump moved to `app/SerialPump.hpp` (done); **`c_buttons.hpp` is still the UI loop** and becomes an adapter over `hal::IButtonMatrix` when the menu screens migrate (step 3.4).
    - The `.ino` sketch stays a comment file: `setup()`/`loop()` are defined in `app/main.cpp`, which PlatformIO and the Arduino IDE both compile from `src/`.
    - 🟡 `build_src_filter` picks up `app/` on every board — true by construction (`+<*>`), and proven by the board builds.
