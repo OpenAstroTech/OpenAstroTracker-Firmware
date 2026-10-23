@@ -34,79 +34,6 @@
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 #endif
 
-#ifdef NEW_STEPPER_LIB
-
-    #include "StepperConfiguration.hpp"
-
-    // Forward declarations
-    #ifdef ARDUINO_AVR_ATmega2560
-using StepperRaSlew  = InterruptAccelStepper<config::Ra::stepper_slew>;
-using StepperRaTrk   = InterruptAccelStepper<config::Ra::stepper_trk>;
-using StepperDecSlew = InterruptAccelStepper<config::Dec::stepper_slew>;
-using StepperDecTrk  = InterruptAccelStepper<config::Dec::stepper_trk>;
-
-        #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew = InterruptAccelStepper<config::Az::stepper_slew>;
-        #endif
-
-        #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew = InterruptAccelStepper<config::Alt::stepper_slew>;
-        #endif
-
-        #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperFocusSlew = InterruptAccelStepper<config::Focus::stepper_slew>;
-        #endif
-
-    #else
-        #include "AccelStepper.h"
-class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
-
-        #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
-        #endif
-
-        #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
-        #endif
-
-        #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
-        #endif
-
-        #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperFocusSlew = AccelStepper;
-        #endif
-
-    #endif
-#else
-    #include "AccelStepper.h"
-class AccelStepper;
-using StepperRaSlew    = AccelStepper;
-using StepperRaTrk     = AccelStepper;
-using StepperDecSlew   = AccelStepper;
-using StepperDecTrk    = AccelStepper;
-
-    #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAzSlew    = AccelStepper;
-    #endif
-
-    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
-    #endif
-
-    #if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperAltSlew   = AccelStepper;
-    #endif
-
-    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-using StepperFocusSlew = AccelStepper;
-    #endif
-#endif
-
 class LcdMenu;
 class TMC2209Stepper;
 class HallSensorHoming;
@@ -617,14 +544,10 @@ class Mount final : public ports::IMountOptionalAxes,
     core::MountConfig _config;
 
     // Every controller the mount owns, in one object: `core::MountCoordinator` states
-    // which of them exist and, from here on, in what order a tick touches them. The AVR
-    // build keeps its concrete tracking engine rather than an interface, so the
-    // coordinator is instantiated over that type.
-#ifdef ARDUINO_AVR_ATmega2560
-    using Coordinator = core::MountCoordinator<StepperRaTrk>;
-#else
+    // which of them exist and, from here on, in what order a tick touches them. The axes are
+    // held through `ports::IStepperAxis` on every platform — the concrete engine types live in
+    // `hal/` and are built by the composition root's factories, never named here.
     using Coordinator = core::MountCoordinator<ports::IStepperAxis>;
-#endif
     Coordinator _coordinator;
 
     LcdMenu *_lcdMenu;
@@ -676,22 +599,15 @@ class Mount final : public ports::IMountOptionalAxes,
 
     // Stepper control for RA, DEC and TRK.
     //
-    // AVR keeps the concrete engines: the interrupt-stepper engines are compile-time
-    // specialised per axis (pins, timer, ramp) and a polymorphic wrapper per engine
-    // would cost ~50 B of the 8 KB SRAM for its vtable alone (~350 B for a RAMPS
-    // build). That is PLAN.md's "template-based static dispatch" escape hatch. Every
-    // other platform drives the same code through the axis port.
-#ifdef ARDUINO_AVR_ATmega2560
-    StepperRaSlew *_stepperRA;
-    StepperRaTrk *_stepperTRK;
-    StepperDecSlew *_stepperDEC;
-    StepperDecTrk *_stepperGUIDE;
-#else
+    // Held through the axis port on every platform, including AVR: the interrupt-stepper engines
+    // are constructed behind `hal::avr::InterruptStepperMotor` by the composition root's factory,
+    // so the concrete engine types never reach this class. The AVR step generator is the engine's
+    // own ISR, not `Mount::interruptLoop()` (compiled out for `NEW_STEPPER_LIB`), so no virtual
+    // call reaches the stepping path.
     ports::IStepperAxis *_stepperRA;
     ports::IStepperAxis *_stepperTRK;
     ports::IStepperAxis *_stepperDEC;
     ports::IStepperAxis *_stepperGUIDE;
-#endif
     // Driver ports. Always set: a board whose driver has no registers behind it holds the
     // null object, so the call sites below need no guard.
     ports::IMotorDriver *_driverRA;

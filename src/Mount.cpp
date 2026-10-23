@@ -18,7 +18,7 @@
 #include "adapters/Tmc2209Driver.hpp"
 
 #ifdef ARDUINO_AVR_ATmega2560
-    #include "hal/avr/InterruptStepperMotor.hpp"
+    #include "hal/avr/InterruptStepperFactory.hpp"
 #else
     #include "hal/arduino/AccelStepperMotor.hpp"
 #endif
@@ -38,13 +38,6 @@ ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
 }  // namespace
 
 PUSH_NO_WARNINGS
-#ifdef NEW_STEPPER_LIB
-    #ifdef __AVR_ATmega2560__
-        #include "hal/avr/InterruptAccelStepper.h"
-        #include "StepperConfiguration.hpp"
-    #endif
-#endif
-
 #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
     #include "SSD1306_128x64_Display.hpp"
 #endif
@@ -56,16 +49,6 @@ PUSH_NO_WARNINGS
     #include <TMCStepper.h>  // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
 #endif
 POP_NO_WARNINGS
-
-#ifdef ARDUINO_AVR_ATmega2560
-/// The optional AVR engines are the only ones that go through the port; RA, DEC, TRK and
-/// GUIDE are always present and keep their concrete engines. See
-/// `hal/avr/InterruptStepperMotor.hpp`.
-template <typename Engine> ports::IStepperAxis *makeInterruptAxis(uint8_t interfaceType, uint8_t pin1, uint8_t pin2)
-{
-    return makeAxis(*new hal::InterruptStepperMotor<Engine>(*new Engine(interfaceType, pin1, pin2)));
-}
-#endif
 
 // slewStatus()
 #define SLEWING_DEC      B00000010
@@ -347,10 +330,8 @@ void Mount::configureHemisphere(bool inNorthern, bool force)
 void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
 #ifdef ARDUINO_AVR_ATmega2560
-    _stepperRA = new StepperRaSlew(AccelStepper::DRIVER, pin1, pin2);
-
-    // Use another AccelStepper to run the RA motor as well. This instance tracks earths rotation.
-    _stepperTRK = new StepperRaTrk(AccelStepper::DRIVER, pin1, pin2);
+    _stepperRA  = makeAxis(*hal::avr::makeRaSlewMotor(AccelStepper::DRIVER, pin1, pin2));
+    _stepperTRK = makeAxis(*hal::avr::makeRaTrkMotor(AccelStepper::DRIVER, pin1, pin2));
 #else
     _stepperRA = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
 
@@ -377,10 +358,8 @@ void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t
 void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
 {
 #ifdef ARDUINO_AVR_ATmega2560
-    _stepperDEC = new StepperDecSlew(AccelStepper::DRIVER, pin1, pin2);
-
-    // Use another AccelStepper to run the DEC motor as well. This instance is used for guiding.
-    _stepperGUIDE = new StepperDecTrk(AccelStepper::DRIVER, pin1, pin2);
+    _stepperDEC   = makeAxis(*hal::avr::makeDecSlewMotor(AccelStepper::DRIVER, pin1, pin2));
+    _stepperGUIDE = makeAxis(*hal::avr::makeDecTrkMotor(AccelStepper::DRIVER, pin1, pin2));
 #else
     _stepperDEC = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
 
@@ -411,7 +390,7 @@ void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_
 void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     #ifdef ARDUINO_AVR_ATmega2560
-    _stepperAZ = makeInterruptAxis<StepperAzSlew>(AccelStepper::DRIVER, pin1, pin2);
+    _stepperAZ = makeAxis(*hal::avr::makeAzSlewMotor(AccelStepper::DRIVER, pin1, pin2));
     #else
     _stepperAZ    = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
@@ -429,7 +408,7 @@ void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAccele
 void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     #ifdef ARDUINO_AVR_ATmega2560
-    _stepperALT = makeInterruptAxis<StepperAltSlew>(AccelStepper::DRIVER, pin1, pin2);
+    _stepperALT = makeAxis(*hal::avr::makeAltSlewMotor(AccelStepper::DRIVER, pin1, pin2));
     #else
     _stepperALT   = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif
@@ -452,7 +431,7 @@ void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAccel
 void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
 {
     #ifdef ARDUINO_AVR_ATmega2560
-    _stepperFocus = makeInterruptAxis<StepperFocusSlew>(AccelStepper::DRIVER, pin1, pin2);
+    _stepperFocus = makeAxis(*hal::avr::makeFocusSlewMotor(AccelStepper::DRIVER, pin1, pin2));
     #else
     _stepperFocus = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
     #endif

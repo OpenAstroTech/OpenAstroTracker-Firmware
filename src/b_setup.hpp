@@ -25,6 +25,9 @@ POP_NO_WARNINGS
 #include "app/MountConfigBuilder.hpp"
 #include "LcdSlewStatus.hpp"
 #include "a_inits.hpp"
+#ifdef NEW_STEPPER_LIB
+    #include "hal/avr/StepperConfiguration.hpp"
+#endif
 #include "LcdMenu.hpp"
 #include "LcdButtons.hpp"
 

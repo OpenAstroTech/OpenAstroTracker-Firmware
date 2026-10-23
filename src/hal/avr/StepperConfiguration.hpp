@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Configuration.hpp"
+#include "../../../Configuration.hpp"
 
 #ifdef NEW_STEPPER_LIB
 
@@ -11,7 +11,7 @@
 
 PUSH_NO_WARNINGS
         #include "Stepper.h"
-        #include "hal/avr/InterruptAccelStepper.h"
+        #include "InterruptAccelStepper.h"
 POP_NO_WARNINGS
     #endif
 
