@@ -15,6 +15,7 @@
 #include "core/SiderealClock.hpp"
 #include "core/RaTrackingLimit.hpp"
 #include "core/SlewProgressReport.hpp"
+#include "core/SyncAdjustment.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
 #include "app/UiPorts.hpp"
@@ -1487,48 +1488,20 @@ void Mount::syncPosition(const core::DayTime &ra, const core::Declination &dec)
             _zeroPosRA.getTotalHours(),
             _zeroPosDEC);
 
-    // Adjust the home RA position by the delta sync position.
-    float raAdjust = ra.getTotalHours() - currentRA().getTotalHours();
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: syncPosition: AdjustRA is %f  (%f - %f)",
-            raAdjust,
-            ra.getTotalHours(),
-            currentRA().getTotalHours());
-    while (raAdjust > 12)
-    {
-        raAdjust -= 24;
-    }
-    while (raAdjust < -12)
-    {
-        raAdjust += 24;
-    }
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: AdjustRA is %f", raAdjust);
-    _zeroPosRA.addHours(raAdjust);
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: ZeroPosRA is now %f", _zeroPosRA.getTotalHours());
-
-    // Adjust the home DEC position by the delta between the sync'd target and current position.
+    // The declination the stepper position maps to, before the correction: negative when the
+    // mount sits on the far side of home, which is what flips the declination correction.
     const float degreePos
         = (_stepperDEC->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: DEC degreePos is: %f", degreePos);
 
-    // Dec totalhours can be plus or minus the distance from the pole (because it keeps track of whether we are upwards or downwards from the pole)
-    // So we use the abs of both values to find their difference
-    float decAdjust = fabsf(dec.getTotalDegrees()) - fabsf(currentDEC().getTotalDegrees());
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: syncPosition: DecAdjust is: %f ( |%f| - |%f| )",
-            decAdjust,
-            dec.getTotalDegrees(),
-            currentDEC().getTotalDegrees());
-    if (degreePos < 0)
-    {
-        OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: Inverted DecAdjust to: %f (below home pos)", decAdjust);
-        decAdjust = -decAdjust;
-    }
+    const core::SyncAdjustment adjustment = core::syncAdjustment(
+        ra.getTotalHours(), currentRA().getTotalHours(), dec.getTotalDegrees(), currentDEC().getTotalDegrees(), degreePos);
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: AdjustRA is %f", adjustment.raHours);
+    _zeroPosRA.addHours(adjustment.raHours);
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: ZeroPosRA is now %f", _zeroPosRA.getTotalHours());
 
-    _zeroPosDEC += decAdjust;
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zeroPosDEC adjusted by: %f", decAdjust);
+    _zeroPosDEC += adjustment.decDegrees;
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zeroPosDEC adjusted by: %f", adjustment.decDegrees);
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zeroPosDEC: %f", _zeroPosDEC);
 
     long targetRAPosition, targetDECPosition;
