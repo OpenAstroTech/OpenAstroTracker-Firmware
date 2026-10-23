@@ -23,16 +23,9 @@
 #include "adapters/GpioEndSwitch.hpp"
 #include "adapters/HallHomingSensor.hpp"
 #include "adapters/NullMotorDriver.hpp"
-#include "adapters/StepperAxis.hpp"
 #include "adapters/Tmc2209Driver.hpp"
 
 #include "hal/arduino/ArduinoGpioPin.hpp"
-
-#ifdef ARDUINO_AVR_ATmega2560
-    #include "hal/avr/InterruptStepperFactory.hpp"
-#else
-    #include "hal/arduino/AccelStepperMotor.hpp"
-#endif
 
 namespace
 {
@@ -40,15 +33,8 @@ namespace
 /// standalone), so every `_driverX` is non-null and its call sites stay unguarded.
 adapters::NullMotorDriver nullDriver;
 
-/// Wraps a motion engine in its axis adapter. Both objects live for the lifetime of
-/// the program, exactly like the concrete steppers they replace.
-ports::IStepperAxis *makeAxis(hal::IStepperMotor &motor)
-{
-    return new adapters::StepperAxis(motor);
-}
-
-/// One input pin as a domain switch. The pin object lives for the lifetime of the program,
-/// like the engines above; polarity is the adapter's business.
+/// One input pin as a domain switch. The pin object lives for the lifetime of the program;
+/// polarity is the adapter's business.
 hal::PinLevel toPinLevel(int activeState)
 {
     return (activeState == LOW) ? hal::PinLevel::Low : hal::PinLevel::High;
@@ -356,127 +342,34 @@ void Mount::configureHemisphere(bool inNorthern, bool force)
 
 /////////////////////////////////
 //
-// configureRAStepper
+// attachSteppers
 //
 /////////////////////////////////
-void Mount::configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
+// The engines are built by the composition root (`app/MotorWiring.cpp`) and handed over here
+// fully configured: speed, acceleration and direction inversion are hardware facts, and the
+// coordinator wiring below is the mount's own business.
+void Mount::attachSteppers(const Steppers &steppers, const core::AxisLimits &limits)
 {
-#ifdef ARDUINO_AVR_ATmega2560
-    _stepperRA  = makeAxis(*hal::avr::makeRaSlewMotor(AccelStepper::DRIVER, pin1, pin2));
-    _stepperTRK = makeAxis(*hal::avr::makeRaTrkMotor(AccelStepper::DRIVER, pin1, pin2));
-#else
-    _stepperRA = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
+    _stepperRA    = steppers.ra;
+    _stepperTRK   = steppers.tracking;
+    _stepperDEC   = steppers.dec;
+    _stepperGUIDE = steppers.guide;
+    _stepperAZ    = steppers.az;
+    _stepperALT   = steppers.alt;
+    _stepperFocus = steppers.focus;
+    _limits       = limits;
 
-    // Use another axis instance to run the RA motor as well. This one tracks earths rotation.
-    _stepperTRK = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
-#endif
+    if (_stepperTRK != nullptr)
+    {
+        _coordinator.tracking().attach(_stepperTRK);
+    }
 
-    _stepperRA->setMaxSpeed(maxSpeed);
-    _stepperRA->setAcceleration(maxAcceleration);
-    _maxRASpeed        = maxSpeed;
-    _maxRAAcceleration = maxAcceleration;
-
-    _stepperTRK->setMaxSpeed(5000);
-    _stepperTRK->setAcceleration(15000);
-
-    _coordinator.tracking().attach(_stepperTRK);
+    if (_stepperFocus != nullptr)
+    {
+        _coordinator.focus().attach(_stepperFocus);
+        _coordinator.focus().initialize(limits.focusSpeed);
+    }
 }
-
-/////////////////////////////////
-//
-// configureDECStepper
-//
-/////////////////////////////////
-void Mount::configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration)
-{
-#ifdef ARDUINO_AVR_ATmega2560
-    _stepperDEC   = makeAxis(*hal::avr::makeDecSlewMotor(AccelStepper::DRIVER, pin1, pin2));
-    _stepperGUIDE = makeAxis(*hal::avr::makeDecTrkMotor(AccelStepper::DRIVER, pin1, pin2));
-#else
-    _stepperDEC = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
-
-    // Use another axis instance to run the DEC motor as well. This one is used for guiding.
-    _stepperGUIDE = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
-#endif
-    _stepperDEC->setMaxSpeed(maxSpeed);
-    _stepperDEC->setAcceleration(maxAcceleration);
-    _maxDECSpeed        = maxSpeed;
-    _maxDECAcceleration = maxAcceleration;
-
-    _stepperGUIDE->setMaxSpeed(maxSpeed);
-    _stepperGUIDE->setAcceleration(maxAcceleration);
-
-#if DEC_INVERT_DIR == 1
-    _stepperDEC->setPinsInverted(true, false, false);
-    _stepperGUIDE->setPinsInverted(true, false, false);
-#endif
-    _stepperGUIDE->setCurrentPosition(0);
-}
-
-/////////////////////////////////
-//
-// configureAZStepper / configureALTStepper
-//
-/////////////////////////////////
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-void Mount::configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
-{
-    #ifdef ARDUINO_AVR_ATmega2560
-    _stepperAZ = makeAxis(*hal::avr::makeAzSlewMotor(AccelStepper::DRIVER, pin1, pin2));
-    #else
-    _stepperAZ = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
-    #endif
-    _stepperAZ->setMaxSpeed(maxSpeed);
-    _stepperAZ->setAcceleration(maxAcceleration);
-    _maxAZSpeed        = maxSpeed;
-    _maxAZAcceleration = maxAcceleration;
-    #if AZ_INVERT_DIR == 1
-    _stepperAZ->setPinsInverted(true, false, false);
-    #endif
-}
-#endif
-
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-void Mount::configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
-{
-    #ifdef ARDUINO_AVR_ATmega2560
-    _stepperALT = makeAxis(*hal::avr::makeAltSlewMotor(AccelStepper::DRIVER, pin1, pin2));
-    #else
-    _stepperALT = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
-    #endif
-    _stepperALT->setMaxSpeed(maxSpeed);
-    _stepperALT->setAcceleration(maxAcceleration);
-    _maxALTSpeed        = maxSpeed;
-    _maxALTAcceleration = maxAcceleration;
-    #if ALT_INVERT_DIR == 1
-    _stepperALT->setPinsInverted(true, false, false);
-    #endif
-}
-#endif
-
-/////////////////////////////////
-//
-// configureFocusStepper
-//
-/////////////////////////////////
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-void Mount::configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration)
-{
-    #ifdef ARDUINO_AVR_ATmega2560
-    _stepperFocus = makeAxis(*hal::avr::makeFocusSlewMotor(AccelStepper::DRIVER, pin1, pin2));
-    #else
-    _stepperFocus = makeAxis(*new hal::AccelStepperMotor(*new AccelStepper(AccelStepper::DRIVER, pin1, pin2)));
-    #endif
-    _stepperFocus->setMaxSpeed(maxSpeed);
-    _stepperFocus->setAcceleration(maxAcceleration);
-    _stepperFocus->setSpeed(0);
-    _stepperFocus->setCurrentPosition(50000);
-    _maxFocusSpeed        = maxSpeed;
-    _maxFocusAcceleration = maxAcceleration;
-    _coordinator.focus().attach(_stepperFocus);
-    _coordinator.focus().initialize(maxSpeed);
-}
-#endif
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
@@ -1295,8 +1188,8 @@ void Mount::setSlewRate(int rate)
     _settings.setMoveRate(clamp(rate, 1, 4));
     float speedFactor[] = {0, 0.05, 0.2, 0.5, 1.0};
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, rate is %d -> %f", _settings.moveRate(), speedFactor[_settings.moveRate()]);
-    _stepperDEC->setMaxSpeed(speedFactor[_settings.moveRate()] * _maxDECSpeed);
-    _stepperRA->setMaxSpeed(speedFactor[_settings.moveRate()] * _maxRASpeed);
+    _stepperDEC->setMaxSpeed(speedFactor[_settings.moveRate()] * _limits.decSpeed);
+    _stepperRA->setMaxSpeed(speedFactor[_settings.moveRate()] * _limits.raSpeed);
     OAT_LOG(
         _deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, new speeds are RA: %f  DEC: %f", _stepperRA->maxSpeed(), _stepperDEC->maxSpeed());
 }
@@ -1534,10 +1427,10 @@ void Mount::startSlewingToTarget()
     stopGuiding();
 
     // Make sure we're slewing at full speed on a GoTo
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set DEC to MaxSpeed(%ld)", _maxDECSpeed);
-    _stepperDEC->setMaxSpeed(_maxDECSpeed);
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set RA  to MaxSpeed(%ld)", _maxRASpeed);
-    _stepperRA->setMaxSpeed(_maxRASpeed);
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set DEC to MaxSpeed(%ld)", _limits.decSpeed);
+    _stepperDEC->setMaxSpeed(_limits.decSpeed);
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set RA  to MaxSpeed(%ld)", _limits.raSpeed);
+    _stepperRA->setMaxSpeed(_limits.raSpeed);
 
     // Calculate new RA stepper target (and DEC). We are never in guiding mode here.
     _currentRAStepperPosition = _stepperRA->currentPosition();
@@ -1585,10 +1478,10 @@ void Mount::startSlewingToHome()
     stopGuiding();
 
     // Make sure we're slewing at full speed on a GoTo
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set DEC to MaxSpeed(%ld)", _maxDECSpeed);
-    _stepperDEC->setMaxSpeed(_maxDECSpeed);
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set RA  to MaxSpeed(%ld)", _maxRASpeed);
-    _stepperRA->setMaxSpeed(_maxRASpeed);
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set DEC to MaxSpeed(%ld)", _limits.decSpeed);
+    _stepperDEC->setMaxSpeed(_limits.decSpeed);
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set RA  to MaxSpeed(%ld)", _limits.raSpeed);
+    _stepperRA->setMaxSpeed(_limits.raSpeed);
 
     _currentRAStepperPosition = _stepperRA->currentPosition();
 
@@ -1946,7 +1839,7 @@ void Mount::updateDriftAlignment(unsigned long now)
 
         case core::DriftAction::ResumeTracking:
             // Put the stepper back into its configured slew parameters before tracking resumes.
-            _stepperRA->setMaxSpeed(_maxRASpeed);
+            _stepperRA->setMaxSpeed(_limits.raSpeed);
             startSlewing(TRACKING);
             break;
     }
@@ -1976,17 +1869,17 @@ void Mount::setManualSlewMode(bool state)
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setManualSlewMode: Set RA  speed/accel:  %ld  / %ld",
-                _maxRASpeed,
-                _maxRAAcceleration);
+                _limits.raSpeed,
+                _limits.raAcceleration);
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setManualSlewMode: Set DEC speed/accel:  %ld  / %ld",
-                _maxDECSpeed,
-                _maxDECAcceleration);
-        _stepperRA->setAcceleration(_maxRAAcceleration);
-        _stepperRA->setMaxSpeed(_maxRASpeed);
-        _stepperDEC->setMaxSpeed(_maxDECSpeed);
-        _stepperDEC->setAcceleration(_maxDECAcceleration);
+                _limits.decSpeed,
+                _limits.decAcceleration);
+        _stepperRA->setAcceleration(_limits.raAcceleration);
+        _stepperRA->setMaxSpeed(_limits.raSpeed);
+        _stepperDEC->setMaxSpeed(_limits.decSpeed);
+        _stepperDEC->setAcceleration(_limits.decAcceleration);
         startSlewing(TRACKING);
     }
 }
@@ -2281,19 +2174,19 @@ float Mount::getFocusSpeed() const
 /////////////////////////////////
 void Mount::focusSetSpeedByRate(int rate)
 {
-    _coordinator.focus().setRate(rate, _maxFocusSpeed);
+    _coordinator.focus().setRate(rate, _limits.focusSpeed);
     OAT_LOG(_deps.logger,
             DEBUG_FOCUS,
             "[FOCUS]: focusSetSpeedByRate: rate is %d, factor %f, maxspeed %f -> %f",
             _coordinator.focus().rate(),
             _coordinator.focus().rateFactor(),
-            _maxFocusSpeed,
+            _limits.focusSpeed,
             _coordinator.focus().maxRateSpeed());
 
     if (_coordinator.focus().isRunning())
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusSetSpeedByRate: stepper is already running so should adjust speed?");
-        //_stepperFocus->setSpeed(_coordinator.focus().rateFactor() * _maxFocusSpeed);
+        //_stepperFocus->setSpeed(_coordinator.focus().rateFactor() * _limits.focusSpeed);
     }
 }
 

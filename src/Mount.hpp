@@ -11,6 +11,7 @@
 #include "core/Microsteps.hpp"
 #include "core/MountConfig.hpp"
 #include "core/MountCoordinator.hpp"
+#include "core/AxisLimits.hpp"
 #include "core/MountRequests.hpp"
 #include "core/MountRuntimeSettings.hpp"
 #include "core/MountState.hpp"
@@ -127,28 +128,24 @@ class Mount final : public ports::IMountOptionalAxes,
 
     void initializeVariables();
 
-    // Configure the RA stepper motor. This also sets up the TRK stepper on the same pins.
-    void configureRAStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
-
     void configureHemisphere(bool isNorthern, bool force = false);
 
-    // Configure the DEC stepper motor.
-    void configureDECStepper(byte pin1, byte pin2, uint32_t maxSpeed, uint32_t maxAcceleration);
+    /// The axes this board has, as the composition root built them. A null entry means the build
+    /// has no such axis; `az`, `alt` and `focus` are the optional ones.
+    struct Steppers {
+        ports::IStepperAxis *ra       = nullptr;
+        ports::IStepperAxis *tracking = nullptr;
+        ports::IStepperAxis *dec      = nullptr;
+        ports::IStepperAxis *guide    = nullptr;
+        ports::IStepperAxis *az       = nullptr;
+        ports::IStepperAxis *alt      = nullptr;
+        ports::IStepperAxis *focus    = nullptr;
+    };
 
-// Configure the AZ stepper motors.
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    void configureAZStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-#endif
-
-// Configure the ALT stepper motors.
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    void configureALTStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-#endif
-
-// Configure the Focus stepper motors.
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    void configureFocusStepper(byte pin1, byte pin2, int maxSpeed, int maxAcceleration);
-#endif
+    /// Takes the axes the composition root built, plus the limits they run at, and wires them into
+    /// the controllers. The engines themselves — and with them every platform `#ifdef` — live in
+    /// `app/MotorWiring.cpp`; nothing here constructs one.
+    void attachSteppers(const Steppers &steppers, const core::AxisLimits &limits);
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
@@ -577,16 +574,8 @@ class Mount final : public ports::IMountOptionalAxes,
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 #endif
-    uint32_t _maxRASpeed;
-    uint32_t _maxDECSpeed;
-    int _maxAZSpeed;
-    int _maxALTSpeed;
-    int _maxFocusSpeed;
-    uint32_t _maxRAAcceleration;
-    uint32_t _maxDECAcceleration;
-    int _maxAZAcceleration;
-    int _maxALTAcceleration;
-    int _maxFocusAcceleration;
+    /// The speed and acceleration each axis was built with, restored when a slew changes rate.
+    core::AxisLimits _limits;
     /// The live, EEPROM-backed motion settings: u-steps/degree, backlash, slew rate, DEC limits.
     core::MountRuntimeSettings _settings;
 

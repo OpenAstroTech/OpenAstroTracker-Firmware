@@ -8,11 +8,9 @@
 #include "../Mount.hpp"
 
 #include "BoardWiring.hpp"
+#include "MotorWiring.hpp"
 
 #include "../a_inits.hpp"
-#ifdef NEW_STEPPER_LIB
-    #include "../hal/avr/StepperConfiguration.hpp"
-#endif
 #include "../b_setup.hpp"
 #include "../LcdSlewStatus.hpp"
 #include "../c65_startup.hpp"
@@ -428,51 +426,8 @@ void setup()
 
     LOG(DEBUG_ANY, "[SYSTEM]: Configure steppers...");
 
-// Set the stepper motor parameters
-#if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA.");
-    LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps : %d", RA_SLEW_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: Trk Microsteps  : %d", RA_TRACKING_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR     : %d", RA_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: Transmission    : %f", RA_TRANSMISSION);
-    #ifdef NEW_STEPPER_LIB
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR : %l", config::Ra::DRIVER_SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR  : %l", config::Ra::DRIVER_SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew        : %f", config::Ra::SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk         : %f", config::Ra::SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew      : %f", config::Ra::SPEED_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew      : %f", config::Ra::ACCEL_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk       : %f", config::Ra::SPEED_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed TrkComp   : %f", config::Ra::SPEED_COMPENSATION);
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
-    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, config::Ra::SPEED_SLEW, config::Ra::ACCEL_SLEW);
-    #else
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure RA stepper NEMA...");
-    mount.configureRAStepper(RAmotorPin1, RAmotorPin2, RA_STEPPER_SPEED, RA_STEPPER_ACCELERATION);
-    #endif
-#endif
-
-#if (DEC_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA.");
-    LOG(DEBUG_ANY, "[STEPPERS]: Slew Microsteps  : %d", DEC_SLEW_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: Guide Microsteps : %d", DEC_GUIDE_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: Stepper SPR      : %d", DEC_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: Transmission     : %f", DEC_TRANSMISSION);
-    #ifdef NEW_STEPPER_LIB
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Slew SPR  : %l", config::Dec::DRIVER_SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Driver Trk SPR   : %l", config::Dec::DRIVER_SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Slew         : %f", config::Dec::SPR_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: SPR Trk          : %f", config::Dec::SPR_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Slew       : %f", config::Dec::SPEED_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Accel Slew       : %f", config::Dec::ACCEL_SLEW);
-    LOG(DEBUG_ANY, "[STEPPERS]: Speed Trk        : %f", config::Dec::SPEED_TRK);
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
-    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, config::Dec::SPEED_SLEW, config::Dec::ACCEL_SLEW);
-    #else
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure DEC stepper NEMA...");
-    mount.configureDECStepper(DECmotorPin1, DECmotorPin2, DEC_STEPPER_SPEED, DEC_STEPPER_ACCELERATION);
-    #endif
-#endif
+    // Every axis engine is built by the composition root's wiring module; see app/MotorWiring.cpp.
+    app::attachSteppers(mount);
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure RA driver TMC2209 UART...");
@@ -492,14 +447,6 @@ void setup()
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ stepper...");
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ Microsteps    : %d", AZ_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ Stepper SPR   : %d", AZ_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ Circumference : %f", AZ_CIRCUMFERENCE);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/rev     : %f", AZIMUTH_STEPS_PER_REV);
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/deg     : %f", mount.getStepsPerDegree(AZIMUTH_STEPS));
-    LOG(DEBUG_ANY, "[STEPPERS]: AZ steps/minute  : %f", AZIMUTH_STEPS_PER_ARC_MINUTE);
-    mount.configureAZStepper(AZmotorPin1, AZmotorPin2, AZ_STEPPER_SPEED, AZ_STEPPER_ACCELERATION);
     #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure AZ driver...");
         #if SW_SERIAL_UART == 0
@@ -510,14 +457,6 @@ void setup()
     #endif
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: Configure Alt stepper...");
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT Microsteps    : %d", ALT_MICROSTEPPING);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT Stepper SPR   : %d", ALT_STEPPER_SPR);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT Circumference : %f", ALT_CIRCUMFERENCE);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/rev     : %f", ALTITUDE_STEPS_PER_REV);
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/deg     : %f", mount.getStepsPerDegree(ALTITUDE_STEPS));
-    LOG(DEBUG_ANY, "[STEPPERS]: ALT steps/minute  : %f", ALTITUDE_STEPS_PER_ARC_MINUTE);
-    mount.configureALTStepper(ALTmotorPin1, ALTmotorPin2, ALT_STEPPER_SPEED, ALT_STEPPER_ACCELERATION);
     #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: Configure ALT driver...");
         #if SW_SERIAL_UART == 0
@@ -529,8 +468,6 @@ void setup()
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    LOG(DEBUG_ANY, "[STEPPERS]: setup(): Configure Focus stepper...");
-    mount.configureFocusStepper(FOCUSmotorPin1, FOCUSmotorPin2, FOCUS_STEPPER_SPEED, FOCUS_STEPPER_ACCELERATION);
     #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     LOG(DEBUG_ANY, "[STEPPERS]: setup(): Configure Focus driver...");
     LOG(DEBUG_FOCUS, "[FOCUS]: setup(): RSense %f, RMS Current %fmA", R_SENSE, FOCUS_RMSCURRENT);
