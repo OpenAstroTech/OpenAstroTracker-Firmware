@@ -69,6 +69,16 @@ class FakeExtra : public meade::IMeadeExtraHandlers
     bool setManualSlew         = false;
     int setBacklash            = 0;
     long setRaHomingOffset     = 0L;
+    bool decLimitUpperPayload  = false;
+    float decLimitUpperVal     = 0.0f;
+    long setDecHomingOffset    = 0L;
+    float setAzSpd             = 0.0f;
+    float setAltSpd            = 0.0f;
+    float setSpeedCalibration  = 0.0f;
+    float setRaManualSpeed     = 0.0f;
+    float setDecManualSpeed    = 0.0f;
+    float setRefPitch          = 0.0f;
+    float setRefRoll           = 0.0f;
 
     void onFactoryReset() override
     {
@@ -173,19 +183,23 @@ class FakeExtra : public meade::IMeadeExtraHandlers
     {
         setDecSpd = v;
     }
-    void onSetAzStepsPerDegree(float) override
+    void onSetAzStepsPerDegree(float v) override
     {
+        setAzSpd = v;
     }
-    void onSetAltStepsPerDegree(float) override
+    void onSetAltStepsPerDegree(float v) override
     {
+        setAltSpd = v;
     }
     void onSetDecLimitLower(bool havePayload, float value) override
     {
         decLimitLowerPayload = havePayload;
         decLimitLowerVal     = value;
     }
-    void onSetDecLimitUpper(bool, float) override
+    void onSetDecLimitUpper(bool havePayload, float value) override
     {
+        decLimitUpperPayload = havePayload;
+        decLimitUpperVal     = value;
     }
     void onClearDecLimitLower() override
     {
@@ -195,8 +209,9 @@ class FakeExtra : public meade::IMeadeExtraHandlers
     {
         clearUpperCalled = true;
     }
-    void onSetTrackingSpeedCalibration(float) override
+    void onSetTrackingSpeedCalibration(float v) override
     {
+        setSpeedCalibration = v;
     }
     void onSetTrackingStepperPosition(long v) override
     {
@@ -206,11 +221,13 @@ class FakeExtra : public meade::IMeadeExtraHandlers
     {
         setManualSlew = enable;
     }
-    void onSetRaManualSpeed(float) override
+    void onSetRaManualSpeed(float v) override
     {
+        setRaManualSpeed = v;
     }
-    void onSetDecManualSpeed(float) override
+    void onSetDecManualSpeed(float v) override
     {
+        setDecManualSpeed = v;
     }
     void onSetBacklashCorrection(int v) override
     {
@@ -220,8 +237,9 @@ class FakeExtra : public meade::IMeadeExtraHandlers
     {
         setRaHomingOffset = v;
     }
-    void onSetDecHomingOffset(long) override
+    void onSetDecHomingOffset(long v) override
     {
+        setDecHomingOffset = v;
     }
 
     bool onLevelIsAvailable() override
@@ -240,11 +258,13 @@ class FakeExtra : public meade::IMeadeExtraHandlers
     {
         return gyroTemperature;
     }
-    void onLevelSetReferencePitch(float) override
+    void onLevelSetReferencePitch(float v) override
     {
+        setRefPitch = v;
     }
-    void onLevelSetReferenceRoll(float) override
+    void onLevelSetReferenceRoll(float v) override
     {
+        setRefRoll = v;
     }
     void onLevelStartup() override
     {
@@ -547,4 +567,168 @@ TEST(MeadeExtra, level_get_temperature_numeric_float_when_available)
     h.levelAvailable  = true;
     h.gyroTemperature = 23.5f;
     EXPECT_STREQ("23.5#", dispatch("LGT", h));
+}
+
+// ---- Get leaves that a host polls but nothing covered -------------------------
+
+TEST(MeadeExtra, get_dec_steps_per_degree_numeric_float_one_decimal)
+{
+    FakeExtra h;
+    h.decSpd = 200.25f;
+    EXPECT_STREQ("200.3#", dispatch("GD", h));
+}
+
+TEST(MeadeExtra, get_tracking_speed_calibration_keeps_five_decimals)
+{
+    FakeExtra h;
+    h.speedCalibration = 1.00125f;
+    EXPECT_STREQ("1.00125#", dispatch("GS", h));
+}
+
+TEST(MeadeExtra, get_remaining_safe_time_keeps_seven_decimals)
+{
+    FakeExtra h;
+    h.remainingSafeTime = 3.5f;
+    EXPECT_STREQ("3.5000000#", dispatch("GST", h));
+}
+
+TEST(MeadeExtra, get_tracking_speed_keeps_seven_decimals)
+{
+    FakeExtra h;
+    h.trackingSpeed = 0.0041667f;
+    EXPECT_STREQ("0.0041667#", dispatch("GT", h));
+}
+
+TEST(MeadeExtra, get_az_steps_per_degree_numeric_float_one_decimal)
+{
+    FakeExtra h;
+    h.azSpd = 13.5f;
+    EXPECT_STREQ("13.5#", dispatch("GZ", h));
+}
+
+TEST(MeadeExtra, get_dec_homing_offset_is_a_long)
+{
+    FakeExtra h;
+    h.decHomeOff = -42L;
+    EXPECT_STREQ("-42#", dispatch("GHD", h));
+}
+
+TEST(MeadeExtra, get_stepper_info_is_framed_text)
+{
+    FakeExtra h;
+    h.stepperInfo = "RA:TMC,DEC:TMC";
+    EXPECT_STREQ("RA:TMC,DEC:TMC#", dispatch("GMS", h));
+}
+
+// ---- Set leaves that a host writes but nothing covered -----------------------
+
+TEST(MeadeExtra, set_dec_limit_upper_passes_payload_and_value)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SDLU45.5", h));
+    EXPECT_TRUE(h.decLimitUpperPayload);
+    EXPECT_FLOAT_EQ(45.5f, h.decLimitUpperVal);
+}
+
+TEST(MeadeExtra, set_dec_limit_upper_without_payload_reports_none)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SDLU", h));
+    EXPECT_FALSE(h.decLimitUpperPayload);
+    EXPECT_FLOAT_EQ(0.0f, h.decLimitUpperVal);
+}
+
+TEST(MeadeExtra, set_ra_homing_offset_parses_a_signed_long)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SHR-317", h));
+    EXPECT_EQ(-317L, h.setRaHomingOffset);
+}
+
+TEST(MeadeExtra, set_dec_homing_offset_parses_a_signed_long)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SHD88", h));
+    EXPECT_EQ(88L, h.setDecHomingOffset);
+}
+
+TEST(MeadeExtra, set_dec_steps_per_degree_ignores_non_positive_values)
+{
+    FakeExtra h;
+
+    EXPECT_STREQ("", dispatch("SD0", h));
+    EXPECT_FLOAT_EQ(0.0f, h.setDecSpd) << "a zero rate would stop the axis";
+
+    EXPECT_STREQ("", dispatch("SD12.5", h));
+    EXPECT_FLOAT_EQ(12.5f, h.setDecSpd);
+}
+
+TEST(MeadeExtra, set_az_and_alt_steps_per_degree_reach_their_handlers)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SA31.5", h));
+    EXPECT_FLOAT_EQ(31.5f, h.setAzSpd);
+    EXPECT_STREQ("", dispatch("SL41.5", h));
+    EXPECT_FLOAT_EQ(41.5f, h.setAltSpd);
+}
+
+TEST(MeadeExtra, set_tracking_speed_calibration_reaches_its_handler)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SS1.002", h));
+    EXPECT_FLOAT_EQ(1.002f, h.setSpeedCalibration);
+}
+
+TEST(MeadeExtra, set_tracking_stepper_position_parses_a_long)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("ST1234", h));
+    EXPECT_EQ(1234L, h.setTrackingStepperPos);
+}
+
+TEST(MeadeExtra, set_manual_slew_mode_reads_a_boolean_digit)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SM1", h));
+    EXPECT_TRUE(h.setManualSlew);
+    EXPECT_STREQ("", dispatch("SM0", h));
+    EXPECT_FALSE(h.setManualSlew);
+}
+
+TEST(MeadeExtra, set_manual_axis_speeds_reach_their_handlers)
+{
+    FakeExtra h;
+    EXPECT_STREQ("", dispatch("SX0.75", h));
+    EXPECT_FLOAT_EQ(0.75f, h.setRaManualSpeed);
+    EXPECT_STREQ("", dispatch("SY-0.25", h));
+    EXPECT_FLOAT_EQ(-0.25f, h.setDecManualSpeed);
+}
+
+// ---- Level leaves that a host polls -----------------------------------------
+
+TEST(MeadeExtra, level_current_angles_are_two_angles_in_one_frame)
+{
+    FakeExtra h;
+    h.levelAvailable = true;
+    h.curAngles      = {3.3f, -4.4f};
+    EXPECT_STREQ("3.3000,-4.4000#", dispatch("LGC", h));
+}
+
+TEST(MeadeExtra, level_set_reference_angles_echo_success)
+{
+    FakeExtra h;
+    h.levelAvailable = true;
+    EXPECT_STREQ("1#", dispatch("LSP1.5", h));
+    EXPECT_FLOAT_EQ(1.5f, h.setRefPitch);
+    EXPECT_STREQ("1#", dispatch("LSR-2.5", h));
+    EXPECT_FLOAT_EQ(-2.5f, h.setRefRoll);
+}
+
+TEST(MeadeExtra, level_unknown_leaf_echoes_the_request_with_an_l_prefix)
+{
+    // The echo is the whole `:X` suffix with the X replaced, so the host can tell which of its
+    // requests the firmware did not understand.
+    FakeExtra h;
+    h.levelAvailable = true;
+    EXPECT_STREQ("Unknown Level command: XLQZ9#", dispatch("LQZ9", h));
 }
