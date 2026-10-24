@@ -284,6 +284,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── CoordinateText.cpp/.hpp       # RA/DEC format table + menu cursor
 │   │   ├── SlewStart.cpp/.hpp            # what starting a slew must do first
 │   │   ├── ManualSlew.cpp/.hpp           # direction bits -> axis targets
+│   │   ├── RelativeMove.cpp/.hpp         # per-axis preconditions of a nudge
 │   │   ├── DecLimitClamp.cpp/.hpp        # DEC travel-limit policy ("0" = no limit)
 │   │   ├── MountRuntimeSettings.hpp      # live EEPROM-backed motion settings
 │   │   ├── SiteTime.cpp/.hpp             # latitude/longitude/LST + the session clock
