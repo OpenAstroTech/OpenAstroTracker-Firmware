@@ -1,5 +1,7 @@
 #include "CoordinateMath.hpp"
 
+#include "CoordinateRead.hpp"
+
 namespace core
 {
 
@@ -49,6 +51,48 @@ SlewResult calculateStepperPositions(const SlewGeometry &geo)
     result.targetDECSteps = static_cast<long>(moveDEC * geo.stepsPerDECDegree);
 
     return result;
+}
+
+SlewGeometry buildSlewGeometry(const SlewGeometryFacts &facts)
+{
+    SlewGeometry geometry;
+
+    // The target relative to the RA zero point, folded into +-12 h so the mount takes the
+    // shorter way round. The original only ever subtracted 24 h, because the value it started
+    // from was already in [0, 24).
+    float moveRA = facts.targetRaHours - facts.zeroPosRaHours;
+    while (moveRA > 12.0f)
+    {
+        moveRA -= 24.0f;
+    }
+    while (moveRA < -12.0f)
+    {
+        moveRA += 24.0f;
+    }
+
+    // How far the target is from the home position as the tracker has moved it. This one is
+    // wrapped in both directions: the target and the tracked home can be on either side.
+    const float homeRA      = facts.zeroPosRaHours + facts.trackedHours;
+    float homeTargetDeltaRA = facts.targetRaHours - homeRA;
+    while (homeTargetDeltaRA > 12.0f)
+    {
+        homeTargetDeltaRA -= 24.0f;
+    }
+    while (homeTargetDeltaRA < -12.0f)
+    {
+        homeTargetDeltaRA += 24.0f;
+    }
+
+    geometry.moveRA               = moveRA;
+    geometry.moveDEC              = facts.northernHemisphere ? facts.targetDecDegrees : -facts.targetDecDegrees;
+    geometry.homeTargetDeltaRA    = homeTargetDeltaRA;
+    geometry.stepsPerSiderealHour = facts.raStepsPerDegree * kSiderealDegreesPerHour;
+    geometry.stepsPerDECDegree    = facts.decStepsPerDegree;
+    geometry.zeroPosDEC           = facts.zeroPosDecDegrees;
+    geometry.raLimitL             = facts.northernHemisphere ? -facts.raLimitLeftHours : -facts.raLimitRightHours;
+    geometry.raLimitR             = facts.northernHemisphere ? facts.raLimitRightHours : facts.raLimitLeftHours;
+
+    return geometry;
 }
 
 }  // namespace core

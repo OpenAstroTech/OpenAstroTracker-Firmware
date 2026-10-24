@@ -3123,68 +3123,41 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
             raTarget.ToString(),
             _targetDEC.ToString());
 
-    // Where do we want to move RA to?
-    float moveRA = raTarget.getTotalHours();
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveRA (target) is %f", moveRA);
-
     // Total hours of tracking-to-date
-    float trackedHours = getTrackedHours();
+    const float trackedHours = getTrackedHours();
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Tracked time is %ld steps (%f h).",
             _stepperTRK->currentPosition(),
             trackedHours);
 
-    // The current RA of the home position, taking tracking-to-date into account
-    float homeRA = _zeroPosRA.getTotalHours() + trackedHours;
-    OAT_LOG(
-        _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: homeRA adjusted by elasped tracking actually represents %f h", homeRA);
+    core::SlewGeometryFacts facts;
+    facts.targetRaHours      = _targetRA.getTotalHours();
+    facts.targetDecDegrees   = decTarget.getTotalDegrees();
+    facts.zeroPosRaHours     = _zeroPosRA.getTotalHours();
+    facts.zeroPosDecDegrees  = _zeroPosDEC;
+    facts.trackedHours       = trackedHours;
+    facts.raStepsPerDegree   = _settings.stepsPerDegree(RA_STEPS);
+    facts.decStepsPerDegree  = _settings.stepsPerDegree(DEC_STEPS);
+    facts.raLimitLeftHours   = RA_LIMIT_LEFT;
+    facts.raLimitRightHours  = RA_LIMIT_RIGHT;
+    facts.northernHemisphere = inNorthernHemisphere;
 
-    // Delta between target RA and home position with a normalized range of -12 hr to 12 hr
-    float homeTargetDeltaRA = _targetRA.getTotalHours() - homeRA;
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: Delta of home to targetRA (%f) is %f (will use to check limits) ",
-            _targetRA.getTotalHours(),
-            homeTargetDeltaRA);
-    while (homeTargetDeltaRA > 12)
-    {
-        homeTargetDeltaRA = homeTargetDeltaRA - 24;
-    }
-    while (homeTargetDeltaRA < -12)
-    {
-        homeTargetDeltaRA = homeTargetDeltaRA + 24;
-    }
+    const core::SlewGeometry geometry = core::buildSlewGeometry(facts);
 
-    // Map [0 to 24] range to [-12 to +12] range
-    while (moveRA > 12)
-    {
-        moveRA = moveRA - 24;
-        OAT_LOG(_deps.logger,
-                DEBUG_COORD_CALC,
-                "[MOUNT]: CalcSteppersIn: moveRA>12 so -24. New Target RA: %s, DEC: %s",
-                DayTime(moveRA).ToString(),
-                _targetDEC.ToString());
-    }
-
-    // How many u-steps moves the RA ring one sidereal hour along when slewing. One sidereal hour moves just shy of 15 degrees
-    float stepsPerSiderealHour = _settings.stepsPerDegree(RA_STEPS) * siderealDegreesInHour;  // u-steps/deg * deg/hr = u-steps/hr
-
-    // Where do we want to move DEC to?
-    float moveDEC = decTarget.getTotalDegrees();
     if (!inNorthernHemisphere)
     {
-        OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", moveDEC);
-        moveDEC = -moveDEC;
+        OAT_LOG(
+            _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", geometry.moveDEC);
     }
 
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Target hrs pos RA: Delta:%f (moveRA: %f), DEC: %s (moveDEC: %f)",
-            homeTargetDeltaRA,
-            moveRA,
+            geometry.homeTargetDeltaRA,
+            geometry.moveRA,
             decTarget.ToString(),
-            moveDEC);
+            geometry.moveDEC);
 
     /*
   * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
@@ -3195,19 +3168,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
-    float const RALimitL = inNorthernHemisphere ? -RA_LIMIT_LEFT : -RA_LIMIT_RIGHT;
-    float const RALimitR = inNorthernHemisphere ? RA_LIMIT_RIGHT : RA_LIMIT_LEFT;
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", RALimitL, RALimitR);
-
-    core::SlewGeometry geometry;
-    geometry.moveRA               = moveRA;
-    geometry.moveDEC              = moveDEC;
-    geometry.homeTargetDeltaRA    = homeTargetDeltaRA;
-    geometry.stepsPerSiderealHour = stepsPerSiderealHour;
-    geometry.stepsPerDECDegree    = _settings.stepsPerDegree(DEC_STEPS);
-    geometry.zeroPosDEC           = _zeroPosDEC;
-    geometry.raLimitL             = RALimitL;
-    geometry.raLimitR             = RALimitR;
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", geometry.raLimitL, geometry.raLimitR);
 
     const core::SlewResult result = core::calculateStepperPositions(geometry);
 
@@ -3219,9 +3180,9 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
         }
     }
 
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 1: %f, %f", -moveRA, moveDEC);
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 2: %f, %f", -(moveRA - 12.0f), -moveDEC);
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 3: %f, %f", -(moveRA + 12.0f), -moveDEC);
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 1: %f, %f", -geometry.moveRA, geometry.moveDEC);
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 2: %f, %f", -(geometry.moveRA - 12.0f), -geometry.moveDEC);
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 3: %f, %f", -(geometry.moveRA + 12.0f), -geometry.moveDEC);
 
     switch (result.selected)
     {
@@ -3230,26 +3191,26 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
                 _deps.logger,
                 DEBUG_COORD_CALC,
                 "[MOUNT]: CalcSteppersIn: Using Solution 2, since hometargetDeltaRA %f (RA:%f) is past max limit %f, inverting both axes",
-                homeTargetDeltaRA,
-                moveRA,
-                RALimitR);
+                geometry.homeTargetDeltaRA,
+                geometry.moveRA,
+                geometry.raLimitR);
             break;
         case core::SlewSolution::FlipLower:
             OAT_LOG(
                 _deps.logger,
                 DEBUG_COORD_CALC,
                 "[MOUNT]: CalcSteppersIn: Using solution 3 since homeTargetDeltaRA %f (RA:%f) is past min limit: %f, inverting both axes",
-                homeTargetDeltaRA,
-                moveRA,
-                RALimitL);
+                geometry.homeTargetDeltaRA,
+                geometry.moveRA,
+                geometry.raLimitL);
             break;
         case core::SlewSolution::Direct:
             OAT_LOG(_deps.logger,
                     DEBUG_COORD_CALC,
                     "[MOUNT]: CalcSteppersIn: Using solution 1 since targetRA %f is in range. RA: %f, DEC: %f",
-                    homeTargetDeltaRA,
-                    moveRA,
-                    moveDEC);
+                    geometry.homeTargetDeltaRA,
+                    geometry.moveRA,
+                    geometry.moveDEC);
             break;
     }
 

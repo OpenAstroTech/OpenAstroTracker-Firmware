@@ -15,6 +15,27 @@ struct SlewGeometry {
     float raLimitR;              /// Upper RA limit (hours, positive)
 };
 
+/// Everything `SlewGeometry` is derived from, before any arithmetic.
+///
+/// The preparation — normalizing the target into +-12 h, folding in the hours the tracker has
+/// already run, flipping the declination for the southern hemisphere and swapping the ring's
+/// limits — used to happen inline in `Mount`, which made it the one part of the go-to path with
+/// no host test. It is a value in, geometry out.
+struct SlewGeometryFacts {
+    float targetRaHours;      /// Target RA, already relative to the zero point (hours)
+    float targetDecDegrees;   /// Target DEC (degrees)
+    float zeroPosRaHours;     /// RA zero point (hours)
+    float zeroPosDecDegrees;  /// Accumulated DEC offset from sync (degrees)
+    float trackedHours;       /// How far the tracker has run this session (hours)
+    float raStepsPerDegree;   /// u-steps per RA degree
+    float decStepsPerDegree;  /// u-steps per DEC degree
+    float raLimitLeftHours;   /// The ring's negative travel limit (hours)
+    float raLimitRightHours;  /// The ring's positive travel limit (hours)
+    bool northernHemisphere;  /// Flips DEC and swaps the RA limits when false
+};
+
+SlewGeometry buildSlewGeometry(const SlewGeometryFacts &facts);
+
 /// The candidate the selector picked.
 enum class SlewSolution
 {
