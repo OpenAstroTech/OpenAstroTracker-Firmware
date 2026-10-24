@@ -19,6 +19,7 @@
 #include "adapters/NullLogger.hpp"
 #include "adapters/SerialLogger.hpp"
 #include "adapters/Mpu6050Gyro.hpp"
+#include "adapters/SiteTimePort.hpp"
 #include "hal/esp32/Esp32WifiStack.hpp"
 #include "hal/arduino/ArduinoI2cBus.hpp"
 
@@ -177,6 +178,22 @@ InfoDisplayRender *infoDisplay               = nullptr;
 adapters::InfoDisplayPanel *infoDisplayPanel = nullptr;
 #endif
 
+namespace
+{
+/// The latitude observer exists so a site change can still reconfigure the hemisphere, which is
+/// motion work the mount owns.
+void onLatitudeChanged(void *context, bool northernHemisphere)
+{
+    static_cast<Mount *>(context)->configureHemisphere(northernHemisphere);
+}
+}  // namespace
+
+#ifdef ESP32
+DRAM_ATTR adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, settingsStore, *logSink, {&mount, &onLatitudeChanged});
+#else
+adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, settingsStore, *logSink, {&mount, &onLatitudeChanged});
+#endif
+
 app::UiPorts ui;
 // The menu screens' view of the mount: five ports, the clock and the scheduler, all backed by the
 // one `mount` object until the coordinator owns the controllers.
@@ -186,7 +203,7 @@ struct UiPortsInit {
         ui.motion    = &mount;
         ui.config    = &mount;
         ui.read      = &mount;
-        ui.siteTime  = &mount;
+        ui.siteTime  = &siteTimePort;
         ui.axes      = &mount;
         ui.clock     = &clockPort;
         ui.scheduler = &schedulerPort;

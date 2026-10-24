@@ -765,19 +765,6 @@ int Mount::getSlewRate()
 
 /////////////////////////////////
 //
-// setHA
-//
-/////////////////////////////////
-void Mount::setHA(const core::DayTime &haTime)
-{
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setHA:  HA is %s", DayTime(haTime).ToString());
-    DayTime lst = DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
-    lst.addTime(haTime);
-    setLST(lst);
-}
-
-/////////////////////////////////
-//
 // HA
 //
 /////////////////////////////////
@@ -790,66 +777,6 @@ const DayTime Mount::HA() const
     ha.subtractTime(DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
     // LOG(DEBUG_MOUNT, "[MOUNT]: GetHA: LST-Polaris is HA %s", ha.ToString());
     return ha;
-}
-
-/////////////////////////////////
-//
-// setLST
-//
-/////////////////////////////////
-void Mount::setLST(const core::DayTime &lst)
-{
-    _siteTime.setLst(lst);
-#if defined(OAM) || defined(OAE)
-    _siteTime.adjustRaZeroPoint(6.0f);  // shift all coordinates by 90° for EQ mount movement
-#endif
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Set LST and ZeroPosRA to: %s", DayTime(_siteTime.lst()).ToString());
-}
-
-/////////////////////////////////
-//
-// setLatitude
-//
-/////////////////////////////////
-void Mount::setLatitude(const core::Latitude &latitude)
-{
-    OAT_LOG(_deps.logger, DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", latitude.getTotalHours());
-    _siteTime.setLatitude(latitude);
-    configureHemisphere(_siteTime.latitude().getTotalHours() > 0);
-    _deps.settings->storeLatitude(_siteTime.latitude());
-}
-
-/////////////////////////////////
-//
-// setLongitude
-//
-/////////////////////////////////
-void Mount::setLongitude(const core::Longitude &longitude)
-{
-    OAT_LOG(_deps.logger, DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", longitude.getTotalHours());
-    _siteTime.setLongitude(longitude);
-    _deps.settings->storeLongitude(_siteTime.longitude());
-
-    autoCalcHa();
-}
-
-/////////////////////////////////
-//
-// latitude
-//
-/////////////////////////////////
-core::Latitude Mount::latitude() const
-{
-    return _siteTime.latitude();
-}
-/////////////////////////////////
-//
-// longitude
-//
-/////////////////////////////////
-core::Longitude Mount::longitude() const
-{
-    return _siteTime.longitude();
 }
 
 /////////////////////////////////
@@ -3432,8 +3359,8 @@ void Mount::fillInfoDisplayState(ports::InfoDisplayState &state)
 
     state.progressActive = getStepperProgress(state.raProgressPercent, state.decProgressPercent);
 
-    state.latitudeHours  = latitude().getTotalHours();
-    state.longitudeHours = longitude().getTotalHours();
+    state.latitudeHours  = _siteTime.latitude().getTotalHours();
+    state.longitudeHours = _siteTime.longitude().getTotalHours();
     state.hoursToLimit   = checkRALimit();
     state.lst            = calculateLst();
 
@@ -3521,94 +3448,6 @@ String Mount::RAString(byte type, byte active)
         core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/false);
     }
     return String(scratchBuffer);
-}
-
-/////////////////////////////////
-//
-//
-//
-/////////////////////////////////
-core::DayTime Mount::getUtcTime()
-{
-    return _siteTime.utcTimeAt(_deps.clock->now());
-}
-
-/////////////////////////////////
-//
-// localTime
-//
-/////////////////////////////////
-core::DayTime Mount::getLocalTime()
-{
-    return _siteTime.localTimeAt(_deps.clock->now());
-}
-
-/////////////////////////////////
-//
-// localDate
-//
-/////////////////////////////////
-LocalDate Mount::getLocalDate()
-{
-    const core::CalendarDate date = _siteTime.localDateAt(_deps.clock->now());
-    return {date.year, date.month, date.day};
-}
-
-/////////////////////////////////
-//
-// localUtcOffset
-//
-/////////////////////////////////
-int Mount::getLocalUtcOffset() const
-{
-    return _siteTime.localUtcOffset();
-}
-
-/////////////////////////////////
-//
-// setLocalStartDate
-//
-/////////////////////////////////
-void Mount::setLocalStartDate(int year, int month, int day)
-{
-    _siteTime.setLocalStartDate({year, month, day});
-
-    autoCalcHa();
-}
-
-/////////////////////////////////
-//
-// setLocalStartTime
-//
-/////////////////////////////////
-void Mount::setLocalStartTime(const core::DayTime &localTime)
-{
-    _siteTime.setLocalStartTime(DayTime(localTime), _deps.clock->now());
-
-    autoCalcHa();
-}
-
-/////////////////////////////////
-//
-// setLocalUtcOffset
-//
-/////////////////////////////////
-void Mount::setLocalUtcOffset(int offset)
-{
-    _siteTime.setLocalUtcOffset(offset);
-    _deps.settings->storeUtcOffset(_siteTime.localUtcOffset());
-
-    autoCalcHa();
-}
-
-/////////////////////////////////
-//
-// autoCalcHa
-//
-/////////////////////////////////
-void Mount::autoCalcHa()
-{
-    setHA(calculateHa());
 }
 
 /////////////////////////////////

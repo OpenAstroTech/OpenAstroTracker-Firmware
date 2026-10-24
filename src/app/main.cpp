@@ -425,7 +425,7 @@ void setup()
     commandPorts.configuration = &mount;
     commandPorts.axes          = &mount;
     commandPorts.readModel     = &mount;
-    commandPorts.siteTime      = &mount;
+    commandPorts.siteTime      = &siteTimePort;
     commandPorts.events        = &mountCoordinator;
     commandPorts.clock         = &clockPort;
     commandPorts.gyro          = gyro;
@@ -478,7 +478,7 @@ void setup()
     LOG(DEBUG_INFO, "[SYSTEM]: SpeedCal: %s", String(mount.getSpeedCalibration(), 5).c_str());
     LOG(DEBUG_INFO, "[SYSTEM]: TRKSpeed: %s", String(mount.getSpeed(TRACKING), 5).c_str());
 
-    mount.setHA(haTime);
+    siteTimePort.setHA(haTime);
 
     // For LCD screen, it's better to initialize the target to where we are (RA)
     mount.targetRA() = mount.currentRA();

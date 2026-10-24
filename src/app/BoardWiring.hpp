@@ -21,6 +21,7 @@
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/InfoDisplayPanel.hpp"
 #include "adapters/MountSettingsStore.hpp"
+#include "adapters/SiteTimePort.hpp"
 #include "UiPorts.hpp"
 #include "adapters/NullGyro.hpp"
 #include "ports/IGyro.hpp"
@@ -68,6 +69,14 @@ extern ports::ILogger *const logSink;
 extern DRAM_ATTR Mount mount;
 #else
 extern Mount mount;
+#endif
+
+/// The site/time port the menus and the command layer use. Reaching the mount only for its
+/// `SiteTime` and its settings store is what keeps those consumers off the facade.
+#ifdef ESP32
+extern DRAM_ATTR adapters::SiteTimePort siteTimePort;
+#else
+extern adapters::SiteTimePort siteTimePort;
 #endif
 
 /// The controllers the mount drives, owned here so the rest of the firmware can reach the

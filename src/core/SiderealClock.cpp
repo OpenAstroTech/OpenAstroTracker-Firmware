@@ -76,4 +76,11 @@ DayTime SiderealClock::hourAngle(float lstHours, int polarisRaHour, int polarisR
     return DayTime(lstDegrees / 15.0f);
 }
 
+DayTime SiderealClock::lstFromHourAngle(const DayTime &ha, int polarisRaHour, int polarisRaMinute, int polarisRaSecond)
+{
+    DayTime lst(polarisRaHour, polarisRaMinute, polarisRaSecond);
+    lst.addTime(ha);
+    return lst;
+}
+
 }  // namespace core

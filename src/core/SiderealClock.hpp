@@ -24,6 +24,11 @@ class SiderealClock
     /// Hour angle of Polaris from local sidereal time, in hours.
     static DayTime hourAngle(float lstHours, int polarisRaHour, int polarisRaMinute, int polarisRaSecond);
 
+    /// Local sidereal time from a Polaris hour angle — the inverse of `hourAngle()`, and what
+    /// `:SH#` (set hour angle) means. The mount has always added the pole star's right ascension
+    /// in hour arithmetic, so this does the same.
+    static DayTime lstFromHourAngle(const DayTime &ha, int polarisRaHour, int polarisRaMinute, int polarisRaSecond);
+
     /// Calculate hour angle for Polaris given LST total hours.
     static double calculateHaDegrees(double lstTotalHours, int polarisRaHour = 3, int polarisRaMinute = 0, int polarisRaSecond = 8);
 };

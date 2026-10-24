@@ -265,6 +265,15 @@
     #define DEW_HEATER 0
 #endif
 
+// The RA ring's zero point is offset by 90 degrees on the EQ mounts, because their home
+// position is not the meridian. Defined here rather than at each use so the adapters and the
+// mount cannot disagree about it.
+#if defined(OAM) || defined(OAE)
+    #define RA_ZERO_POINT_SHIFT_HOURS 6.0f
+#else
+    #define RA_ZERO_POINT_SHIFT_HOURS 0.0f
+#endif
+
 #ifndef SIDEREAL_SECONDS_PER_DAY
     #define SIDEREAL_SECONDS_PER_DAY 86164.0905f
 #endif

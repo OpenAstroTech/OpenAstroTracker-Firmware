@@ -30,7 +30,6 @@
 #include "ports/IMountMotion.hpp"
 #include "ports/IMountEvents.hpp"
 #include "ports/IMountReadModel.hpp"
-#include "ports/IMountSiteTime.hpp"
 #include "ports/IInfoDisplay.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
@@ -113,10 +112,7 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class Mount final : public ports::IMountOptionalAxes,
-                    public ports::IMountReadModel,
-                    public ports::IMountSiteTime,
-                    public ports::IInfoDisplaySource
+class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadModel, public ports::IInfoDisplaySource
 {
   public:
     /// Every controller the mount drives, in one object. The composition root owns it and builds
@@ -133,6 +129,13 @@ class Mount final : public ports::IMountOptionalAxes,
     Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator);
 
     void initializeVariables();
+
+    /// The session's site and time state. Exposed so the site/time port can be built over it:
+    /// the mount still owns the storage, the adapter owns the write protocol around it.
+    core::SiteTime &siteTime()
+    {
+        return _siteTime;
+    }
 
     void configureHemisphere(bool isNorthern, bool force = false);
 
@@ -258,17 +261,8 @@ class Mount final : public ports::IMountOptionalAxes,
     // Get the number of hours we've been tracking
     float getTrackedHours() const;
 
-    // Set the HA time (HA is derived from LST, the setter calculates and sets LST)
-    void setHA(const core::DayTime &haTime) override;
+    // The hour angle derived from the current sidereal time and the pole star's RA.
     const DayTime HA() const;
-
-    // Set the LST time (HA is derived from LST)
-    void setLST(const core::DayTime &haTime) override;
-
-    void setLatitude(const core::Latitude &lat) override;
-    void setLongitude(const core::Longitude &lon) override;
-    core::Latitude latitude() const override;
-    core::Longitude longitude() const override;
 
     // Get a reference to the target RA value.
     core::DayTime &targetRA() override;
@@ -499,16 +493,6 @@ class Mount final : public ports::IMountOptionalAxes,
 
     // Let the mount know that the system has finished booting
     void bootComplete();
-
-    core::DayTime getUtcTime() override;
-    core::DayTime getLocalTime() override;
-    LocalDate getLocalDate() override;
-
-    int getLocalUtcOffset() const override;
-
-    void setLocalStartDate(int year, int month, int day) override;
-    void setLocalStartTime(const core::DayTime &localTime) override;
-    void setLocalUtcOffset(int offset) override;
 
     core::DayTime calculateLst() override;
     core::DayTime calculateHa() override;

@@ -136,3 +136,35 @@ TEST(SiderealTest, HourAngleIsThePolarisAngleInHours)
     const core::DayTime actual = core::SiderealClock::hourAngle(lst, 3, 0, 8);
     EXPECT_NEAR(expected, actual.getTotalHours(), 0.0005f);
 }
+
+TEST(SiderealClockTest, LstFromHourAngleIsTheInverseOfHourAngle)
+{
+    // `:SH#` sets the hour angle; the mount converts it to a sidereal time and re-anchors there.
+    const float hourAngles[] = {0.0f, 1.5f, -3.25f, 11.75f, 23.5f};
+
+    for (float ha : hourAngles)
+    {
+        const core::DayTime lst  = core::SiderealClock::lstFromHourAngle(core::DayTime(ha), 3, 0, 8);
+        const core::DayTime back = core::SiderealClock::hourAngle(lst.getTotalHours(), 3, 0, 8);
+
+        float delta = back.getTotalHours() - ha;
+        while (delta > 12.0f)
+        {
+            delta -= 24.0f;
+        }
+        while (delta < -12.0f)
+        {
+            delta += 24.0f;
+        }
+
+        EXPECT_NEAR(0.0f, delta, 0.002f) << "ha=" << ha;
+    }
+}
+
+TEST(SiderealClockTest, LstFromHourAngleAddsThePoleStarRightAscension)
+{
+    // 0h HA means the scope points at Polaris' RA, so LST equals it.
+    const core::DayTime lst = core::SiderealClock::lstFromHourAngle(core::DayTime(0), 3, 0, 8);
+
+    EXPECT_NEAR(3.0f + 8.0f / 3600.0f, lst.getTotalHours(), 0.001f);
+}
