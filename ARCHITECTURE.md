@@ -273,7 +273,7 @@ OpenAstroTracker-Firmware/
 │   │   │   ├── Longitude.cpp/.hpp
 │   │   │   └── RightAscension.cpp/.hpp
 │   │   ├── SiderealClock.cpp/.hpp       # LST and hour-angle math
-│   │   ├── CoordinateMath.cpp/.hpp      # RA/DEC -> stepper positions
+│   │   ├── CoordinateMath.cpp/.hpp      # RA/DEC -> stepper positions (+ geometry prep)
 │   │   ├── CalendarMath.cpp/.hpp        # date arithmetic, local -> UTC date
 │   │   ├── CoordinateFormatter.cpp/.hpp # RA/DEC text formatting
 │   │   ├── CoordinateRead.cpp/.hpp      # stepper positions -> RA/DEC
