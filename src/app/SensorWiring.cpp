@@ -76,6 +76,10 @@ void attachSensors(Mount &mount)
 #endif
 
     mount.attachSensors(sensors);
+
+#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
+    allSensors = sensors;
+#endif
 }
 
 }  // namespace app

@@ -490,7 +490,7 @@ void setup()
     xTaskCreatePinnedToCore(stepperControlTask,  // Function to run on this core
                             "StepperControl",    // Name of this task
                             32767,               // Stack space in bytes
-                            &mount,              // payload
+                            &stepPump,           // payload
                             1,                   // Priority (2 is higher than 1)
                             &StepperTask,        // The location that receives the thread id
                             0);                  // The core to run this on
@@ -499,7 +499,7 @@ void setup()
     #ifndef NEW_STEPPER_LIB
     // Stepper servicing rate: 2 kHz on AVR (higher rates there interfere with serial
     // communications and mess up OATControl), 5 kHz on RP2040 (see STEPPER_CONTROL_INTERVAL_MS).
-    if (!InterruptCallback::setInterval(STEPPER_CONTROL_INTERVAL_MS, stepperControlTimerCallback, &mount))
+    if (!InterruptCallback::setInterval(STEPPER_CONTROL_INTERVAL_MS, stepperControlTimerCallback, &stepPump))
     {
         LOG(DEBUG_MOUNT, "[SYSTEM]: CANNOT setup interrupt timer!");
     }

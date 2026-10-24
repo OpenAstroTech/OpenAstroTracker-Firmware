@@ -24,7 +24,7 @@ namespace hal
 /// because a vtable per engine costs SRAM and the concrete engines inline better. Phase 4
 /// needs the optional axes to be runtime-present — a board with no AZ motor must hold a
 /// null pointer rather than compile the axis out — so those engines are wrapped. On AVR
-/// the step generator is the engine's own ISR, not `Mount::interruptLoop()` (which is
+/// the step generator is the engine's own ISR, not `app::StepPump` (which is
 /// compiled out for `NEW_STEPPER_LIB`), so this adds no virtual call to the stepping path:
 /// it is main-loop only.
 ///

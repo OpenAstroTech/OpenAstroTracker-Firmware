@@ -181,6 +181,22 @@ class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadMo
 
     void attachSensors(const Sensors &sensors);
 
+    /// Compile-time presence of the optional hardware, so the parts a board cannot have cost
+    /// neither flash nor a branch.
+    ///
+    /// This is the compile-time half of the `kHasX && ptr != nullptr` test the call sites use: a
+    /// board that cannot have the part still pays for the pointer (8 B of SRAM on AVR) but not
+    /// for the code behind it, because the constant lets the compiler drop the branch entirely.
+    /// Public because the step pump in `app/` is compiled per board too and must ask the same
+    /// questions — one definition, so the two cannot disagree.
+    static constexpr bool kHasAzStepper    = (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE);
+    static constexpr bool kHasAltStepper   = (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE);
+    static constexpr bool kHasFocusStepper = (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE);
+    static constexpr bool kHasRaEndSwitch  = (USE_RA_END_SWITCH == 1);
+    static constexpr bool kHasDecEndSwitch = (USE_DEC_END_SWITCH == 1);
+    static constexpr bool kHasRaHoming     = (USE_HALL_SENSOR_RA_AUTOHOME == 1);
+    static constexpr bool kHasDecHoming    = (USE_HALL_SENSOR_DEC_AUTOHOME == 1);
+
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
     || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -330,11 +346,6 @@ class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadMo
 
     // Process any stepper movement.
     void loop();
-
-// Low-level process any stepper movement on interrupt callback.
-#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
-    void interruptLoop();
-#endif
 
     // Set the current stepper positions to be home.
     void setHome(bool clearZeroPos) override;
@@ -608,8 +619,8 @@ class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadMo
     // Held through the axis port on every platform, including AVR: the interrupt-stepper engines
     // are constructed behind `hal::avr::InterruptStepperMotor` by the composition root's factory,
     // so the concrete engine types never reach this class. The AVR step generator is the engine's
-    // own ISR, not `Mount::interruptLoop()` (compiled out for `NEW_STEPPER_LIB`), so no virtual
-    // call reaches the stepping path.
+    // own ISR, not `app::StepPump` (compiled out for `NEW_STEPPER_LIB`), so no virtual call
+    // reaches the stepping path.
     ports::IStepperAxis *_stepperRA;
     ports::IStepperAxis *_stepperTRK;
     ports::IStepperAxis *_stepperDEC;
@@ -634,19 +645,6 @@ class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadMo
 
     // Optional hardware, present at run time or null.
     //
-    // `kHas*` is the compile-time half: a board that cannot have the part still pays for
-    // these pointers (8 B of SRAM on AVR) but not for the driver code behind them, because
-    // the constant lets the compiler drop the branch entirely. Readers test
-    // `kHasX && ptr != nullptr`, which reads as a presence check at the call site and
-    // still folds to nothing on a board without the part.
-    static constexpr bool kHasAzStepper    = (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE);
-    static constexpr bool kHasAltStepper   = (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE);
-    static constexpr bool kHasFocusStepper = (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE);
-    static constexpr bool kHasRaEndSwitch  = (USE_RA_END_SWITCH == 1);
-    static constexpr bool kHasDecEndSwitch = (USE_DEC_END_SWITCH == 1);
-    static constexpr bool kHasRaHoming     = (USE_HALL_SENSOR_RA_AUTOHOME == 1);
-    static constexpr bool kHasDecHoming    = (USE_HALL_SENSOR_DEC_AUTOHOME == 1);
-
     HallSensorHoming *_raHoming  = nullptr;
     HallSensorHoming *_decHoming = nullptr;
     EndSwitch *_raEndSwitch      = nullptr;

@@ -1,5 +1,7 @@
 #include "MotorWiring.hpp"
 
+#include "BoardWiring.hpp"
+
 #include "../../Configuration.hpp"
 #include "../Utility.hpp"
 
@@ -155,6 +157,10 @@ void attachSteppers(Mount &mount)
 #endif
 
     mount.attachSteppers(steppers, limits);
+
+#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
+    allSteppers = steppers;
+#endif
 }
 
 }  // namespace app

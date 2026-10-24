@@ -194,6 +194,20 @@ DRAM_ATTR adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, setti
 adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, settingsStore, *logSink, {&mount, &onLatitudeChanged});
 #endif
 
+#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
+Mount::Steppers allSteppers;
+Mount::Sensors allSensors;
+
+    // Starts empty and is filled by `app::attachSteppers()`/`attachSensors()` in `setup()`; the pump
+    // holds references, so it sees the axes as soon as they exist. It is a static rather than a
+    // local because the timer ISR needs a fixed address.
+    #ifdef ESP32
+DRAM_ATTR app::StepPump stepPump(mountCoordinator.state(), mountCoordinator.focus(), allSteppers, allSensors);
+    #else
+app::StepPump stepPump(mountCoordinator.state(), mountCoordinator.focus(), allSteppers, allSensors);
+    #endif
+#endif
+
 app::UiPorts ui;
 // The menu screens' view of the mount: five ports, the clock and the scheduler, all backed by the
 // one `mount` object until the coordinator owns the controllers.
@@ -234,28 +248,28 @@ WifiControl wifiControl(wifiStack, []() { mount.loop(); }, &lcdMenu);
 TaskHandle_t StepperTask;
 
 // This is the task for simulating periodic interrupts on ESP32 platforms.
-// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
+// It should do very minimal work, only running app::StepPump::pump() to step the motors as needed.
 // This task function is run on Core 0 of the ESP32 and never returns
 void IRAM_ATTR stepperControlTask(void *payload)
 {
-    Mount *mountCopy = reinterpret_cast<Mount *>(payload);
+    app::StepPump *pump = reinterpret_cast<app::StepPump *>(payload);
     for (;;)
     {
-        mountCopy->interruptLoop();
+        pump->pump();
     }
 }
 
 #else
     #ifndef NEW_STEPPER_LIB
 
-// This is the callback function for the timer interrupt on ATMega platforms.
-// It should do very minimal work, only calling Mount::interruptLoop() to step the stepper motors as needed.
-// It is called every 500 us (2 kHz rate)
+// This is the callback function for the timer interrupt on the platforms that need one.
+// It should do very minimal work, only running app::StepPump::pump() to step the motors as needed.
+// It is called every STEPPER_CONTROL_INTERVAL_MS.
 void stepperControlTimerCallback(void *payload)
 {
-    Mount *mountCopy = reinterpret_cast<Mount *>(payload);
-    if (mountCopy)
-        mountCopy->interruptLoop();
+    app::StepPump *pump = reinterpret_cast<app::StepPump *>(payload);
+    if (pump)
+        pump->pump();
 }
     #endif
 #endif

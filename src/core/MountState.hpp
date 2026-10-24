@@ -41,8 +41,8 @@ enum class StatusBit : uint16_t
 ///   that is a platform detail (the ESP32 task and the AVR timer ISR do today; a driver
 ///   generating its own steps, such as a TMC2209 in `VACTUAL` mode, runs no MCU code at
 ///   all). The read-side guarantee below is what makes those backends possible.
-/// * One exception, still open: `interruptLoop()` drives the homing state machine,
-///   which can stop an axis and change status from that context. See PLAN.md.
+/// * One exception, still open: the step pump (`app::StepPump`) drives the homing state
+///   machine, which can stop an axis and change status from that context. See PLAN.md.
 class MountState
 {
   public:

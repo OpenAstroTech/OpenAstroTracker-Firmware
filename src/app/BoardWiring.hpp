@@ -23,6 +23,7 @@
 #include "adapters/MountSettingsStore.hpp"
 #include "adapters/SiteTimePort.hpp"
 #include "UiPorts.hpp"
+#include "StepPump.hpp"
 #include "adapters/NullGyro.hpp"
 #include "ports/IGyro.hpp"
 #include "hal/arduino/ArduinoSystemClock.hpp"
@@ -87,6 +88,21 @@ extern DRAM_ATTR Mount::Coordinator mountCoordinator;
 extern Mount::Coordinator mountCoordinator;
 #endif
 
+#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
+// The axes and sensors the root builds, kept at namespace scope so the step pump can hold a
+// reference to them before `setup()` has filled them in.
+extern Mount::Steppers allSteppers;
+extern Mount::Sensors allSensors;
+
+    /// The step pump the timer ISR (or the ESP32 task) runs. Only exists on boards without a
+    /// driver-side step generator.
+    #ifdef ESP32
+extern DRAM_ATTR app::StepPump stepPump;
+    #else
+extern app::StepPump stepPump;
+    #endif
+#endif
+
 #if (WIFI_ENABLED == 1)
 extern WifiControl wifiControl;
 #endif
@@ -136,12 +152,12 @@ void initPersistentStore();
 #if defined(ESP32)
 extern TaskHandle_t StepperTask;
 
-/// FreeRTOS task on core 0 that calls `Mount::interruptLoop()` in a tight loop.
+/// FreeRTOS task on core 0 that runs `app::StepPump::pump()` in a tight loop.
 void IRAM_ATTR stepperControlTask(void *payload);
 #else
     #ifndef NEW_STEPPER_LIB
 
-/// Timer ISR callback (2 kHz AVR / 5 kHz RP2040) that calls `Mount::interruptLoop()`.
+/// Timer ISR callback (5 kHz RP2040) that runs `app::StepPump::pump()`.
 void stepperControlTimerCallback(void *payload);
     #endif
 #endif
