@@ -133,3 +133,26 @@ TEST(MeadeDispatchTest, EveryFamilyReachesAHandler)
         EXPECT_TRUE(handlers.lastCall != nullptr) << command << " reached no handler";
     }
 }
+
+TEST(MeadeResponseTest, AssigningNullClearsTheBuffer)
+{
+    meade::MeadeResponse response;
+    response.assign("12:34:56#");
+    ASSERT_FALSE(response.empty());
+
+    response.assign(nullptr);
+
+    EXPECT_TRUE(response.empty());
+    EXPECT_EQ(0u, response.length());
+    EXPECT_STREQ("", response.c_str());
+}
+
+TEST(MeadeResponseTest, AssigningANullStringTerminatesTheBuffer)
+{
+    meade::MeadeResponse response;
+    response.assign("abc");
+    response.assign("de");
+
+    EXPECT_STREQ("de", response.c_str());
+    EXPECT_EQ(2u, response.length());
+}
