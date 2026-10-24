@@ -11,6 +11,11 @@ void SiteTime::setLocalStartTime(const DayTime &localTime, unsigned long nowMill
     _startSetMillis = nowMillis;
 }
 
+void SiteTime::adjustRaZeroPoint(float hours)
+{
+    _raZeroPoint.addHours(hours);
+}
+
 DayTime SiteTime::localTimeAt(unsigned long nowMillis) const
 {
     DayTime timeLocal = _localStartTime;

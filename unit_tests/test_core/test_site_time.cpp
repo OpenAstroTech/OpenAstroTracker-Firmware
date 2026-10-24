@@ -125,3 +125,46 @@ TEST(SiteTimeTest, LstAdvancesAtTheSiderealRate)
 
     EXPECT_NEAR(1.0027f, delta, 0.01f);
 }
+
+TEST(SiteTimeTest, SettingTheSiderealTimeAlsoSetsTheRaZeroPoint)
+{
+    // Home RA is wherever the sky was when the session started; that has always been the rule.
+    core::SiteTime site;
+    site.setLst(core::DayTime(7, 30, 0));
+
+    EXPECT_NEAR(7.5f, site.lst().getTotalHours(), 0.001f);
+    EXPECT_NEAR(7.5f, site.raZeroPoint().getTotalHours(), 0.001f);
+}
+
+TEST(SiteTimeTest, ASyncMovesTheZeroPointButNotTheClock)
+{
+    core::SiteTime site;
+    site.setLst(core::DayTime(7, 30, 0));
+
+    site.adjustRaZeroPoint(1.25f);
+
+    EXPECT_NEAR(7.5f, site.lst().getTotalHours(), 0.001f) << "the sidereal clock must not move";
+    EXPECT_NEAR(8.75f, site.raZeroPoint().getTotalHours(), 0.001f);
+}
+
+TEST(SiteTimeTest, AdjustingTheZeroPointWrapsThroughMidnight)
+{
+    core::SiteTime site;
+    site.setLst(core::DayTime(23, 0, 0));
+
+    site.adjustRaZeroPoint(3.0f);
+
+    EXPECT_NEAR(2.0f, site.raZeroPoint().getTotalHours(), 0.001f);
+}
+
+TEST(SiteTimeTest, ReSettingTheSiderealTimeDiscardsTheSyncOffset)
+{
+    // Setting LST resets the zero point, which is what a new session does.
+    core::SiteTime site;
+    site.setLst(core::DayTime(7, 0, 0));
+    site.adjustRaZeroPoint(2.0f);
+
+    site.setLst(core::DayTime(9, 0, 0));
+
+    EXPECT_NEAR(9.0f, site.raZeroPoint().getTotalHours(), 0.001f);
+}

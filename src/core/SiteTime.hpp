@@ -40,16 +40,35 @@ class SiteTime
         _longitude = longitude;
     }
 
-    /// Local sidereal time, which the mount also uses as its right-ascension zero point.
+    /// Local sidereal time.
     DayTime lst() const
     {
         return _lst;
     }
 
+    /// Sets the sidereal time **and** the right-ascension zero point, which is what the mount has
+    /// always done: home RA is "wherever the sky was when the session was set up". A sync moves
+    /// the zero point on its own, which is why the two are separate fields.
     void setLst(const DayTime &lst)
     {
-        _lst = lst;
+        _lst         = lst;
+        _raZeroPoint = lst;
     }
+
+    /// Right ascension of the home position, in hours. Offset from `lst()` by whatever syncs have
+    /// applied.
+    DayTime raZeroPoint() const
+    {
+        return _raZeroPoint;
+    }
+
+    void setRaZeroPoint(const DayTime &zeroPoint)
+    {
+        _raZeroPoint = zeroPoint;
+    }
+
+    /// Shifts the reference point (rather than the clock) — what a sync does.
+    void adjustRaZeroPoint(float hours);
 
     int localUtcOffset() const
     {
@@ -104,6 +123,7 @@ class SiteTime
     Latitude _latitude;
     Longitude _longitude;
     DayTime _lst;
+    DayTime _raZeroPoint;
     DayTime _localStartTime;
     unsigned long _startSetMillis = 0;
     CalendarDate _localStartDate  = {0, 0, 0};

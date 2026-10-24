@@ -800,9 +800,8 @@ const DayTime Mount::HA() const
 void Mount::setLST(const core::DayTime &lst)
 {
     _siteTime.setLst(lst);
-    _zeroPosRA = lst;
 #if defined(OAM) || defined(OAE)
-    _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
+    _siteTime.adjustRaZeroPoint(6.0f);  // shift all coordinates by 90° for EQ mount movement
 #endif
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: Set LST and ZeroPosRA to: %s", DayTime(_siteTime.lst()).ToString());
 }
@@ -889,7 +888,7 @@ core::DayTime Mount::currentRA() const
     facts.decSteps          = _stepperDEC->currentPosition();
     facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
-    facts.zeroPosRaHours    = _zeroPosRA.getTotalHours();
+    facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
     facts.zeroPosDecDegrees = _zeroPosDEC;
     return core::currentRa(facts);
 }
@@ -908,7 +907,7 @@ core::Declination Mount::currentDEC() const
     facts.decSteps          = _stepperDEC->currentPosition();
     facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
-    facts.zeroPosRaHours    = _zeroPosRA.getTotalHours();
+    facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
     facts.zeroPosDecDegrees = _zeroPosDEC;
     return core::currentDec(facts);
 }
@@ -938,7 +937,7 @@ void Mount::syncPosition(const core::DayTime &ra, const core::Declination &dec)
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: syncPosition: ZeroPos values RA: %f  and DEC: %f)",
-            _zeroPosRA.getTotalHours(),
+            DayTime(_siteTime.raZeroPoint()).getTotalHours(),
             _zeroPosDEC);
 
     // The declination the stepper position maps to, before the correction: negative when the
@@ -950,8 +949,8 @@ void Mount::syncPosition(const core::DayTime &ra, const core::Declination &dec)
     const core::SyncAdjustment adjustment = core::syncAdjustment(
         ra.getTotalHours(), currentRA().getTotalHours(), dec.getTotalDegrees(), currentDEC().getTotalDegrees(), degreePos);
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: AdjustRA is %f", adjustment.raHours);
-    _zeroPosRA.addHours(adjustment.raHours);
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: ZeroPosRA is now %f", _zeroPosRA.getTotalHours());
+    _siteTime.adjustRaZeroPoint(adjustment.raHours);
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: ZeroPosRA is now %f", DayTime(_siteTime.raZeroPoint()).getTotalHours());
 
     _zeroPosDEC += adjustment.decDegrees;
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zeroPosDEC adjusted by: %f", adjustment.decDegrees);
@@ -3026,10 +3025,10 @@ void Mount::setHome(bool clearZeroPos)
 
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: currentRA is %s", currentRA().ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: targetRA is %s", targetRA().ToString());
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: zeroPos is %s", _zeroPosRA.ToString());
-    _zeroPosRA = clearZeroPos ? DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst();
+    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: zeroPos is %s", DayTime(_siteTime.raZeroPoint()).ToString());
+    _siteTime.setRaZeroPoint(clearZeroPos ? DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst());
 #if defined(OAM) || defined(OAE)
-    _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
+    _siteTime.adjustRaZeroPoint(6.0f);  // shift all coordinates by 90° for EQ mount movement
 #endif
     _zeroPosDEC = 0.0f;
 
@@ -3049,7 +3048,7 @@ void Mount::setHome(bool clearZeroPos)
     }
 
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: currentRA is %s", currentRA().ToString());
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: zeroPos is %s", _zeroPosRA.ToString());
+    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: zeroPos is %s", DayTime(_siteTime.raZeroPoint()).ToString());
     //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: targetRA is %s", targetRA().ToString());
 }
 
@@ -3108,7 +3107,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
             Declination(currentDEC()).ToString());
     OAT_LOG(
         _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s", _targetRA.ToString(), _targetDEC.ToString());
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", _zeroPosRA.ToString());
+    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", DayTime(_siteTime.raZeroPoint()).ToString());
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroDEC : %f", _zeroPosDEC);
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
@@ -3120,7 +3119,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     Declination decTarget = _targetDEC;
 
     // Calculate how far from the home position this new target is.
-    raTarget.subtractTime(_zeroPosRA);
+    raTarget.subtractTime(DayTime(_siteTime.raZeroPoint()));
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
@@ -3138,7 +3137,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     core::SlewGeometryFacts facts;
     facts.targetRaHours      = _targetRA.getTotalHours();
     facts.targetDecDegrees   = decTarget.getTotalDegrees();
-    facts.zeroPosRaHours     = _zeroPosRA.getTotalHours();
+    facts.zeroPosRaHours     = DayTime(_siteTime.raZeroPoint()).getTotalHours();
     facts.zeroPosDecDegrees  = _zeroPosDEC;
     facts.trackedHours       = trackedHours;
     facts.raStepsPerDegree   = _settings.stepsPerDegree(RA_STEPS);
@@ -3722,7 +3721,7 @@ float Mount::checkRALimit()
     // The arithmetic and the folding live in core::RaTrackingLimit; the side effect — stopping the
     // tracker — stays here, because it owns the axes.
     core::RaLimitFacts facts;
-    facts.homeRaHours        = _zeroPosRA.getTotalHours() + getTrackedHours();
+    facts.homeRaHours        = DayTime(_siteTime.raZeroPoint()).getTotalHours() + getTrackedHours();
     facts.currentRaHours     = currentRA().getTotalHours();
     facts.decAxisDegrees     = (_stepperDEC->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;
     facts.northernHemisphere = inNorthernHemisphere;
@@ -3734,7 +3733,7 @@ float Mount::checkRALimit()
             DEBUG_MOUNT_VERBOSE,
             "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f), remaining: %f",
             facts.homeRaHours,
-            _zeroPosRA.getTotalHours(),
+            DayTime(_siteTime.raZeroPoint()).getTotalHours(),
             getTrackedHours(),
             result.remainingHours);
 

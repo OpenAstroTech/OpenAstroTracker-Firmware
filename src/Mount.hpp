@@ -601,8 +601,6 @@ class Mount final : public ports::IMountOptionalAxes,
     /// Latitude, longitude, local sidereal time and the session clock, in one object.
     core::SiteTime _siteTime;
 
-    DayTime _zeroPosRA;
-
     DayTime _targetRA;
     long _currentRAStepperPosition;
 
