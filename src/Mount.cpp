@@ -9,6 +9,7 @@
 #include "core/CalendarMath.hpp"
 #include "core/CoordinateFormatter.hpp"
 #include "core/CoordinateText.hpp"
+#include "core/ManualSlew.hpp"
 
 // The menu screens pass the historical `B0xxx` constants through `ports::IMountReadModel`; core
 // owns the format vocabulary, so the two must not drift.
@@ -19,6 +20,12 @@ static_assert(static_cast<uint8_t>(core::CoordinateFormat::Lcd) == LCD_STRING, "
 static_assert(static_cast<uint8_t>(core::CoordinateFormat::Compact) == COMPACT_STRING, "format value drift: Compact");
 static_assert(core::kCoordinateFormatMask == FORMAT_STRING_MASK, "format mask drift");
 static_assert(core::kTargetFlag == TARGET_STRING, "target flag drift");
+
+static_assert(static_cast<uint8_t>(core::SlewDirection::North) == NORTH, "direction value drift: North");
+static_assert(static_cast<uint8_t>(core::SlewDirection::East) == EAST, "direction value drift: East");
+static_assert(static_cast<uint8_t>(core::SlewDirection::South) == SOUTH, "direction value drift: South");
+static_assert(static_cast<uint8_t>(core::SlewDirection::West) == WEST, "direction value drift: West");
+static_assert(static_cast<uint8_t>(core::SlewDirection::Tracking) == TRACKING, "direction value drift: Tracking");
 #include "core/CoordinateMath.hpp"
 #include "core/ActivityState.hpp"
 #include "core/meade/MountStatusReport.hpp"
@@ -2096,107 +2103,71 @@ void Mount::startSlewing(int direction)
 {
     // Parking owns both axes until it finishes; every request in this function is
     // refused while it runs. See core/MountRequests.hpp for the whole table.
-    if (admit((direction & TRACKING) ? core::MountRequest::Track : core::MountRequest::ManualSlew))
+    if (!admit((direction & TRACKING) ? core::MountRequest::Track : core::MountRequest::ManualSlew))
     {
-        stopGuiding();
+        return;
+    }
 
-        if (direction & TRACKING)
-        {
-            // Start tracking
-            setRaMicrosteps(_config.raTrackingMicrosteps());
-            _coordinator.tracking().applySpeed();
+    stopGuiding();
 
-            // Turn on tracking
-            setStatusFlag(STATUS_TRACKING);
-            publishEvent(core::MountEventType::TrackingStarted);
-        }
-        else
-        {
-            // Start slewing
-            int sign = inNorthernHemisphere ? 1 : -1;
+    if (direction & TRACKING)
+    {
+        setRaMicrosteps(_config.raTrackingMicrosteps());
+        _coordinator.tracking().applySpeed();
 
-            // Set move rate to last commanded slew rate
-            setSlewRate(_settings.moveRate());
-            if (isSlewingTRK())
-            {
-                stopSlewing(TRACKING);
-                _coordinator.tracking().noteStopped(_deps.clock->now());
-                OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %ld", _coordinator.tracking().stoppedAt());
-            }
+        setStatusFlag(STATUS_TRACKING);
+        publishEvent(core::MountEventType::TrackingStarted);
+        return;
+    }
 
-            // Change microstep mode for slewing
-            setRaMicrosteps(_config.raSlewMicrosteps);
-            // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
-            setDecMicrosteps(_config.decSlewMicrosteps);
+    // A manual slew runs at the last commanded rate.
+    setSlewRate(_settings.moveRate());
+    if (isSlewingTRK())
+    {
+        stopSlewing(TRACKING);
+        _coordinator.tracking().noteStopped(_deps.clock->now());
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %ld", _coordinator.tracking().stoppedAt());
+    }
 
-            if (direction & NORTH)
-            {
-                long targetLocation = _settings.stepsPerDegree(DEC_STEPS) * DEC_LIMIT_UP;
-                if (_settings.decUpperLimitSteps() != 0)
-                {
-                    targetLocation = _settings.decUpperLimitSteps();
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS,
-                            "[STEPPERS]: startSlewing(N): DEC has upper limit of %ld. targetMoveTo is now %ld",
-                            _settings.decUpperLimitSteps(),
-                            targetLocation);
-                }
-                else
-                {
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewing(N): initial targetMoveTo is %ld", targetLocation);
-                }
+    // Both axes run at slew microsteps while a manual move is in flight.
+    setRaMicrosteps(_config.raSlewMicrosteps);
+    setDecMicrosteps(_config.decSlewMicrosteps);
 
-                _stepperDEC->moveTo(targetLocation);
-                setStatusFlag(STATUS_SLEWING);
-            }
+    core::ManualSlewFacts facts;
+    facts.raStepsPerDegree       = _settings.stepsPerDegree(RA_STEPS);
+    facts.decStepsPerDegree      = _settings.stepsPerDegree(DEC_STEPS);
+    facts.raPhysicalLimitDegrees = RA_PHYSICAL_LIMIT;
+    facts.raTrackingLimitDegrees = RA_TRACKING_LIMIT;
+    facts.decLimitUpDegrees      = DEC_LIMIT_UP;
+    facts.decLimitDownDegrees    = DEC_LIMIT_DOWN;
+    facts.decUpperLimitSteps     = _settings.decUpperLimitSteps();
+    facts.decLowerLimitSteps     = _settings.decLowerLimitSteps();
+    facts.trackedHours           = getTrackedHours();
+    facts.northernHemisphere     = inNorthernHemisphere;
 
-            if (direction & SOUTH)
-            {
-                long targetLocation = -_settings.stepsPerDegree(DEC_STEPS) * DEC_LIMIT_DOWN;
-                if (_settings.decLowerLimitSteps() != 0)
-                {
-                    targetLocation = _settings.decLowerLimitSteps();
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS,
-                            "[STEPPERS]: startSlewing(S): DEC has lower limit of %ld. targetMoveTo is now %ld",
-                            _settings.decLowerLimitSteps(),
-                            targetLocation);
-                }
-                else
-                {
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: startSlewing(S): initial targetMoveTo is %ld", targetLocation);
-                }
+    const core::ManualSlewTargets targets = core::manualSlewTargets(static_cast<uint8_t>(direction), facts);
 
-                _stepperDEC->moveTo(targetLocation);
-                setStatusFlag(STATUS_SLEWING);
-            }
+    if (targets.movesDec)
+    {
+        OAT_LOG(_deps.logger,
+                DEBUG_STEPPERS,
+                "[STEPPERS]: startSlewing: DEC targetMoveTo is %ld (limits %ld -> %ld)",
+                targets.decSteps,
+                _settings.decLowerLimitSteps(),
+                _settings.decUpperLimitSteps());
+        _stepperDEC->moveTo(targets.decSteps);
+        setStatusFlag(STATUS_SLEWING);
+    }
 
-            const float trackedHours = getTrackedHours();
-            if (direction & EAST)
-            {
-                // We need to subtract the distance tracked from the physical RA home coordinate
-                long targetEastPos = _settings.stepsPerDegree(RA_STEPS) * 15.0 * (RA_PHYSICAL_LIMIT + trackedHours);
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS,
-                        "[STEPPERS]: startSlewing(E): initial targetMoveTo is %ld (adjusted for %fh tracked)",
-                        -sign * targetEastPos,
-                        trackedHours);
-                _stepperRA->moveTo(-sign * targetEastPos);
-                setStatusFlag(STATUS_SLEWING);
-            }
-            if (direction & WEST)
-            {
-                // We need to add the distance tracked from the physical RA home coordinate
-                long targetWestPos = _settings.stepsPerDegree(RA_STEPS) * 15.0 * (min(RA_PHYSICAL_LIMIT, RA_TRACKING_LIMIT) - trackedHours);
-                OAT_LOG(_deps.logger,
-                        DEBUG_STEPPERS,
-                        "[STEPPERS]: startSlewing(W): initial targetMoveTo is %ld (adjusted for %fh tracked)",
-                        sign * targetWestPos,
-                        trackedHours);
-                _stepperRA->moveTo(sign * targetWestPos);
-                setStatusFlag(STATUS_SLEWING);
-            }
-        }
+    if (targets.movesRa)
+    {
+        OAT_LOG(_deps.logger,
+                DEBUG_STEPPERS,
+                "[STEPPERS]: startSlewing: RA targetMoveTo is %ld (adjusted for %fh tracked)",
+                targets.raSteps,
+                facts.trackedHours);
+        _stepperRA->moveTo(targets.raSteps);
+        setStatusFlag(STATUS_SLEWING);
     }
 }
 
