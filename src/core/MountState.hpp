@@ -29,6 +29,23 @@ enum class StatusBit : uint16_t
     FindingHome     = 0x2000,
 };
 
+// The names the firmware has always used for those bits. They were `#define`s in the mount's
+// header; they alias `StatusBit`, so the two cannot drift.
+#define STATUS_PARKED            ((uint16_t)::core::StatusBit::Parked)
+#define STATUS_SLEWING           ((uint16_t)::core::StatusBit::Slewing)
+#define STATUS_SLEWING_TO_TARGET ((uint16_t)::core::StatusBit::SlewingToTarget)
+#define STATUS_SLEWING_FREE      ((uint16_t)::core::StatusBit::SlewingFree)
+#define STATUS_SLEWING_MANUAL    ((uint16_t)::core::StatusBit::SlewingManual)
+#define STATUS_TRACKING          ((uint16_t)::core::StatusBit::Tracking)
+#define STATUS_PARKING           ((uint16_t)::core::StatusBit::Parking)
+#define STATUS_PARKING_POS       ((uint16_t)::core::StatusBit::ParkingPos)
+#define STATUS_GUIDE_PULSE       ((uint16_t)::core::StatusBit::GuidePulse)
+#define STATUS_GUIDE_PULSE_DIR   ((uint16_t)::core::StatusBit::GuidePulseDir)
+#define STATUS_GUIDE_PULSE_RA    ((uint16_t)::core::StatusBit::GuidePulseRa)
+#define STATUS_GUIDE_PULSE_DEC   ((uint16_t)::core::StatusBit::GuidePulseDec)
+#define STATUS_GUIDE_PULSE_MASK  ((uint16_t)::core::StatusBit::GuidePulseMask)
+#define STATUS_FINDING_HOME      ((uint16_t)::core::StatusBit::FindingHome)
+
 /// The single source of truth for that bitfield.
 ///
 /// Threading contract — the same one the raw field carried, now stated once, here:

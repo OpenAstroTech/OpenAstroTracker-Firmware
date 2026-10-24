@@ -378,7 +378,7 @@ bool processCalibrationKeys()
         #if SUPPORT_DRIFT_ALIGNMENT == 1
     else if (calState == DRIFT_CALIBRATION_RUNNING)
     {
-        // The sequence is a phase machine now, ticked from Mount::loop(): it used to block the
+        // The sequence is a phase machine now, ticked from app::MountExecutor::loop(): it used to block the
         // menu for ~90 s (three 1.5 s delays and three synchronous passes). The mount resumes
         // tracking on its own when the last phase is done, so the menu only has to start it.
         lcdMenu.setCursor(0, 1);

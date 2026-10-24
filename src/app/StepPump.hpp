@@ -5,7 +5,7 @@
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
 
-    #include "../Mount.hpp"
+    #include "MountExecutor.hpp"
     #include "../core/FocusController.hpp"
     #include "../core/MountState.hpp"
 
@@ -32,8 +32,8 @@ class StepPump
   public:
     StepPump(const core::MountState &state,
              const core::FocusController &focus,
-             const Mount::Steppers &steppers,
-             const Mount::Sensors &sensors);
+             const app::MountExecutor::Steppers &steppers,
+             const app::MountExecutor::Sensors &sensors);
 
     /// One service interval. Called from interrupt context on RP2040.
     void pump();
@@ -41,8 +41,8 @@ class StepPump
   private:
     const core::MountState &_state;
     const core::FocusController &_focusController;
-    const Mount::Steppers &_steppers;
-    const Mount::Sensors &_sensors;
+    const app::MountExecutor::Steppers &_steppers;
+    const app::MountExecutor::Sensors &_sensors;
 };
 
 }  // namespace app

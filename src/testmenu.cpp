@@ -1,6 +1,6 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
-#include "Mount.hpp"
+#include "app/MountExecutor.hpp"
 #include "adapters/MeadeCommandAdapter.hpp"
 
 #if TEST_VERIFY_MODE == 1
@@ -478,7 +478,7 @@ void TestMenu::onKeyPressed(int key)
                 else if (action == F("FactoryReset"))
                 {
                     ui.config->clearConfiguration();
-                    Serial.println(F("Mount reset, EEPROM erased."));
+                    Serial.println(F("app::MountExecutor reset, EEPROM erased."));
                     _currentMenu->display();
                 }
                 else if (action == F("PassthroughCmd"))

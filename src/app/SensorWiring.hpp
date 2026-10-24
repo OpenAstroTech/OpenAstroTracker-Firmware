@@ -2,7 +2,7 @@
 
 #include "../inc/Globals.hpp"
 #include "../../Configuration.hpp"
-#include "../Mount.hpp"
+#include "MountExecutor.hpp"
 
 namespace app
 {
@@ -12,6 +12,6 @@ namespace app
 /// Which pins exist, and whether a switch reads high or low, is board knowledge — the same
 /// reason the axes and the drivers are built here. The devices are built once: the homing state
 /// machine re-starts itself on every run, so it does not need a fresh object per attempt.
-void attachSensors(Mount &mount);
+void attachSensors(app::MountExecutor &mount);
 
 }  // namespace app

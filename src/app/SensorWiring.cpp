@@ -47,9 +47,9 @@ ports::IHomingSensor &makeHomingSensor(uint8_t pin, int activeState)
 namespace app
 {
 
-void attachSensors(Mount &mount)
+void attachSensors(app::MountExecutor &mount)
 {
-    Mount::Sensors sensors;
+    app::MountExecutor::Sensors sensors;
 
 #if USE_RA_END_SWITCH == 1
     sensors.raEndSwitch = new EndSwitch(ui,

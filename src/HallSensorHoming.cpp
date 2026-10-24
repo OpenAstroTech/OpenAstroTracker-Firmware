@@ -1,6 +1,7 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
-#include "Mount.hpp"
+#include "Types.hpp"
+#include "core/MountState.hpp"
 #include "EPROMStore.hpp"
 #include "HallSensorHoming.hpp"
 #include "Utility.hpp"

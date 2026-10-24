@@ -110,7 +110,7 @@ LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
 LcdButtons lcdButtons(&lcdMenu);
 #endif
 
-// Driver enable lines. Only declared where `Mount` drives them: the RA/DEC writes
+// Driver enable lines. Only declared where the executor drives them: the RA/DEC writes
 // sit inside the UART self-test, and AZ/ALT/Focus exist only when the axis does.
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
 hal::ArduinoGpioPin raEnablePin(RA_EN_PIN);
@@ -130,9 +130,9 @@ hal::ArduinoGpioPin focusEnablePin(FOCUS_EN_PIN);
 
 namespace
 {
-MountDeps makeMountDeps()
+app::MountDeps makeMountDeps()
 {
-    MountDeps deps;
+    app::MountDeps deps;
     deps.clock     = &clockPort;
     deps.scheduler = &schedulerPort;
     deps.logger    = logSink;
@@ -159,15 +159,17 @@ MountDeps makeMountDeps()
 // The controllers, built before the mount that drives them and shared through
 // `app::mountCoordinator` where a consumer only needs the controller half.
 #ifdef ESP32
-DRAM_ATTR Mount::Coordinator mountCoordinator(&clockPort, SIDEREAL_SECONDS_PER_DAY, app::buildMountConfig().trackingMicrostepRatio());
+DRAM_ATTR app::MountExecutor::Coordinator mountCoordinator(&clockPort,
+                                                           SIDEREAL_SECONDS_PER_DAY,
+                                                           app::buildMountConfig().trackingMicrostepRatio());
 #else
-Mount::Coordinator mountCoordinator(&clockPort, SIDEREAL_SECONDS_PER_DAY, app::buildMountConfig().trackingMicrostepRatio());
+app::MountExecutor::Coordinator mountCoordinator(&clockPort, SIDEREAL_SECONDS_PER_DAY, app::buildMountConfig().trackingMicrostepRatio());
 #endif
 
 #ifdef ESP32
-DRAM_ATTR Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
+DRAM_ATTR app::MountExecutor mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
 #else
-Mount mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
+app::MountExecutor mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
 #endif
 
 // The optional status panel is owned here, not by the mount: the mount publishes events and the
@@ -184,7 +186,7 @@ namespace
 /// motion work the mount owns.
 void onLatitudeChanged(void *context, bool northernHemisphere)
 {
-    static_cast<Mount *>(context)->configureHemisphere(northernHemisphere);
+    static_cast<app::MountExecutor *>(context)->configureHemisphere(northernHemisphere);
 }
 }  // namespace
 
@@ -195,8 +197,8 @@ adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, settingsStore, 
 #endif
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
-Mount::Steppers allSteppers;
-Mount::Sensors allSensors;
+app::MountExecutor::Steppers allSteppers;
+app::MountExecutor::Sensors allSensors;
 
     // Starts empty and is filled by `app::attachSteppers()`/`attachSensors()` in `setup()`; the pump
     // holds references, so it sees the axes as soon as they exist. It is a static rather than a
@@ -276,7 +278,7 @@ void stepperControlTimerCallback(void *payload)
 
 bool connectToDriver(const char *driverKind, uint16_t *rmsCurrent)
 {
-    // Only a UART driver has registers to talk to, and `Mount` does not declare the call on a
+    // Only a UART driver has registers to talk to, and the executor does not declare the call on a
     // board without one. The bring-up screen asks unconditionally, so a board with no UART
     // driver answers "not connected" rather than failing to compile.
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \

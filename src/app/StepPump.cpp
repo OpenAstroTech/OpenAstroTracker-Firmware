@@ -10,8 +10,8 @@ namespace app
 
 StepPump::StepPump(const core::MountState &state,
                    const core::FocusController &focus,
-                   const Mount::Steppers &steppers,
-                   const Mount::Sensors &sensors)
+                   const app::MountExecutor::Steppers &steppers,
+                   const app::MountExecutor::Sensors &sensors)
     : _state(state), _focusController(focus), _steppers(steppers), _sensors(sensors)
 {
 }
@@ -60,44 +60,44 @@ void StepPump::pump()
 
     if (_state.test(STATUS_FINDING_HOME))
     {
-        if (Mount::kHasRaHoming && (_sensors.raHoming != nullptr))
+        if (app::MountExecutor::kHasRaHoming && (_sensors.raHoming != nullptr))
         {
             _steppers.ra->run();
             _sensors.raHoming->processHomingProgress();
         }
-        if (Mount::kHasDecHoming && (_sensors.decHoming != nullptr))
+        if (app::MountExecutor::kHasDecHoming && (_sensors.decHoming != nullptr))
         {
             _steppers.dec->run();
             _sensors.decHoming->processHomingProgress();
         }
     }
 
-    if (Mount::kHasAzStepper)
+    if (app::MountExecutor::kHasAzStepper)
     {
         _steppers.az->run();
     }
-    if (Mount::kHasAltStepper)
+    if (app::MountExecutor::kHasAltStepper)
     {
         _steppers.alt->run();
     }
 
     // `FocusMode::Continuous` is kept from the original, which never selected it: a
     // continuous run targets a far position and therefore uses `run()`.
-    if (Mount::kHasFocusStepper && _focusController.mode() == core::FocusMode::ToTarget)
+    if (app::MountExecutor::kHasFocusStepper && _focusController.mode() == core::FocusMode::ToTarget)
     {
         _steppers.focus->run();
     }
-    else if (Mount::kHasFocusStepper && _focusController.mode() == core::FocusMode::Continuous)
+    else if (app::MountExecutor::kHasFocusStepper && _focusController.mode() == core::FocusMode::Continuous)
     {
         _steppers.focus->runSpeed();
     }
 
-    if (Mount::kHasRaEndSwitch && (_sensors.raEndSwitch != nullptr))
+    if (app::MountExecutor::kHasRaEndSwitch && (_sensors.raEndSwitch != nullptr))
     {
         _sensors.raEndSwitch->processEndSwitchState();
     }
 
-    if (Mount::kHasDecEndSwitch && (_sensors.decEndSwitch != nullptr))
+    if (app::MountExecutor::kHasDecEndSwitch && (_sensors.decEndSwitch != nullptr))
     {
         _sensors.decEndSwitch->processEndSwitchState();
     }

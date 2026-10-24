@@ -1,7 +1,7 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
 #include "EPROMStore.hpp"
-#include "Mount.hpp"
+#include "Types.hpp"
 #include "EndSwitches.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
@@ -94,7 +94,7 @@ void EndSwitch::processEndSwitchState()
 ///////////////////////////
 //
 // checkSwitchState
-// This runs in the Mount::loop() function where all the logic
+// This runs in the `app::MountExecutor::loop()` function where all the logic
 // about stopping, parking, etc. happens.
 //
 ///////////////////////////

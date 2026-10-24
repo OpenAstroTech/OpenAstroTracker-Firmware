@@ -178,6 +178,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── DriverWiring.hpp/.cpp        # builds + programs the TMC2209 UART drivers (done)
 │   │   ├── SensorWiring.hpp/.cpp        # builds end switches and hall sensors (done)
 │   │   ├── StepPump.hpp/.cpp            # the ISR/task step-generation pump (done)
+│   │   ├── MountExecutor.hpp/.cpp       # axes + drivers + sensors + the ports the UI calls (was src/Mount.*)
 │   │   └── MountConfigBuilder.hpp       # Configuration*.hpp -> runtime MountConfig (done)
 │   │
 │   ├── adapters/                        # PORT -> HAL GLUE
@@ -436,7 +437,7 @@ the old one dissolving into it one responsibility at a time.
 
 | | `MountCoordinator` | `Mount` |
 |---|---|---|
-| Layer / path | `core/` — part of the final layering | legacy root (`src/Mount.*`) — outside it |
+| Layer / path | `core/` — part of the final layering | `app/MountExecutor.*` — the composition root's, not the domain's |
 | Lifetime | permanent; the domain entry point | legacy; it survives for the menu screens and the status panel, which are the last UI call sites |
 | Owns | controllers, `MountState`, `EventBus` wiring, axis grants, deadlines | nothing |
 | Drives time | `update(now)`, exactly once per app tick | never |

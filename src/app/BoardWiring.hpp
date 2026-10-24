@@ -13,7 +13,7 @@
 
 #include "LcdButtons.hpp"
 #include "LcdMenu.hpp"
-#include "Mount.hpp"
+#include "MountExecutor.hpp"
 #include "a_inits.hpp"
 
 #include "EPROMStore.hpp"
@@ -67,9 +67,9 @@ extern ports::ILogger *const logSink;
 // --- the mount and everything bound to it ---------------------------------------------
 
 #ifdef ESP32
-extern DRAM_ATTR Mount mount;
+extern DRAM_ATTR app::MountExecutor mount;
 #else
-extern Mount mount;
+extern app::MountExecutor mount;
 #endif
 
 /// The site/time port the menus and the command layer use. Reaching the mount only for its
@@ -83,16 +83,16 @@ extern adapters::SiteTimePort siteTimePort;
 /// The controllers the mount drives, owned here so the rest of the firmware can reach the
 /// controller half without going through `mount`.
 #ifdef ESP32
-extern DRAM_ATTR Mount::Coordinator mountCoordinator;
+extern DRAM_ATTR app::MountExecutor::Coordinator mountCoordinator;
 #else
-extern Mount::Coordinator mountCoordinator;
+extern app::MountExecutor::Coordinator mountCoordinator;
 #endif
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
 // The axes and sensors the root builds, kept at namespace scope so the step pump can hold a
 // reference to them before `setup()` has filled them in.
-extern Mount::Steppers allSteppers;
-extern Mount::Sensors allSensors;
+extern app::MountExecutor::Steppers allSteppers;
+extern app::MountExecutor::Sensors allSensors;
 
     /// The step pump the timer ISR (or the ESP32 task) runs. Only exists on boards without a
     /// driver-side step generator.

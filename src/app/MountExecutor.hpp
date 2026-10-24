@@ -1,39 +1,38 @@
-#ifndef _MOUNT_HPP_
-#define _MOUNT_HPP_
+#pragma once
 
-#include "Declination.hpp"
-#include "Latitude.hpp"
-#include "Longitude.hpp"
-#include "Types.hpp"
-#include "core/AzAltController.hpp"
-#include "core/EventBus.hpp"
-#include "core/FocusController.hpp"
-#include "core/Microsteps.hpp"
-#include "core/MountConfig.hpp"
-#include "core/MountCoordinator.hpp"
-#include "core/AxisLimits.hpp"
-#include "core/MountRequests.hpp"
-#include "core/MountRuntimeSettings.hpp"
-#include "core/MountState.hpp"
-#include "core/ParkingController.hpp"
-#include "core/SlewCompletion.hpp"
-#include "core/SiteTime.hpp"
-#include "core/SlewController.hpp"
-#include "core/SlewStart.hpp"
-#include "core/GuidingController.hpp"
-#include "core/TrackingController.hpp"
-#include "hal/IGpioPin.hpp"
-#include "ports/IClock.hpp"
-#include "ports/ILogger.hpp"
-#include "ports/IMotorDriver.hpp"
-#include "ports/IMountOptionalAxes.hpp"
-#include "ports/IMountMotion.hpp"
-#include "ports/IMountEvents.hpp"
-#include "ports/IMountReadModel.hpp"
-#include "ports/IInfoDisplay.hpp"
-#include "ports/IMountSettings.hpp"
-#include "ports/IScheduler.hpp"
-#include "ports/IStepperAxis.hpp"
+#include "../Declination.hpp"
+#include "../Latitude.hpp"
+#include "../Longitude.hpp"
+#include "../Types.hpp"
+#include "../core/AzAltController.hpp"
+#include "../core/EventBus.hpp"
+#include "../core/FocusController.hpp"
+#include "../core/Microsteps.hpp"
+#include "../core/MountConfig.hpp"
+#include "../core/MountCoordinator.hpp"
+#include "../core/AxisLimits.hpp"
+#include "../core/MountRequests.hpp"
+#include "../core/MountRuntimeSettings.hpp"
+#include "../core/MountState.hpp"
+#include "../core/ParkingController.hpp"
+#include "../core/SlewCompletion.hpp"
+#include "../core/SiteTime.hpp"
+#include "../core/SlewController.hpp"
+#include "../core/SlewStart.hpp"
+#include "../core/GuidingController.hpp"
+#include "../core/TrackingController.hpp"
+#include "../hal/IGpioPin.hpp"
+#include "../ports/IClock.hpp"
+#include "../ports/ILogger.hpp"
+#include "../ports/IMotorDriver.hpp"
+#include "../ports/IMountOptionalAxes.hpp"
+#include "../ports/IMountMotion.hpp"
+#include "../ports/IMountEvents.hpp"
+#include "../ports/IMountReadModel.hpp"
+#include "../ports/IInfoDisplay.hpp"
+#include "../ports/IMountSettings.hpp"
+#include "../ports/IScheduler.hpp"
+#include "../ports/IStepperAxis.hpp"
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 #endif
@@ -43,54 +42,32 @@ class TMC2209Stepper;
 class HallSensorHoming;
 class EndSwitch;
 
-#define NORTH          B00000001
-#define EAST           B00000010
-#define SOUTH          B00000100
-#define WEST           B00001000
-#define ALL_DIRECTIONS B00001111
-#define TRACKING       B00010000
-#define FOCUSING       B00100000
-
-#define LCDMENU_STRING     B0001
-#define MEADE_STRING       B0010
-#define PRINT_STRING       B0011
-#define LCD_STRING         B0100
-#define COMPACT_STRING     B0101
-#define FORMAT_STRING_MASK B0111
-
-#define TARGET_STRING  B01000
-#define CURRENT_STRING B10000
-
-// Mount status bits. `core::MountState` owns the field; these names are the masks the
-// firmware has always used, defined once in `core/MountState.hpp`.
-#define STATUS_PARKED            ((uint16_t) core::StatusBit::Parked)
-#define STATUS_SLEWING           ((uint16_t) core::StatusBit::Slewing)
-#define STATUS_SLEWING_TO_TARGET ((uint16_t) core::StatusBit::SlewingToTarget)
-#define STATUS_SLEWING_FREE      ((uint16_t) core::StatusBit::SlewingFree)
-#define STATUS_SLEWING_MANUAL    ((uint16_t) core::StatusBit::SlewingManual)
-#define STATUS_TRACKING          ((uint16_t) core::StatusBit::Tracking)
-#define STATUS_PARKING           ((uint16_t) core::StatusBit::Parking)
-#define STATUS_PARKING_POS       ((uint16_t) core::StatusBit::ParkingPos)
-#define STATUS_GUIDE_PULSE       ((uint16_t) core::StatusBit::GuidePulse)
-#define STATUS_GUIDE_PULSE_DIR   ((uint16_t) core::StatusBit::GuidePulseDir)
-#define STATUS_GUIDE_PULSE_RA    ((uint16_t) core::StatusBit::GuidePulseRa)
-#define STATUS_GUIDE_PULSE_DEC   ((uint16_t) core::StatusBit::GuidePulseDec)
-#define STATUS_GUIDE_PULSE_MASK  ((uint16_t) core::StatusBit::GuidePulseMask)
-#define STATUS_FINDING_HOME      ((uint16_t) core::StatusBit::FindingHome)
-
 // Focuser support
 // The focuser's direction and mode are domain vocabulary, so they live in `core/` with
 // the controller that acts on them. The aliases keep the public menu and Meade names.
+//
+// The direction bits, coordinate-format selectors and status masks this header used to define
+// now live where their owners are: the bits in `Types.hpp` (they are the ports' vocabulary),
+// the status masks in `core/MountState.hpp` (they alias `core::StatusBit`).
 using core::FOCUS_BACKWARD;
 using core::FOCUS_FORWARD;
 using FocuserDirection = core::FocuserDirection;
 
 //////////////////////////////////////////////////////////////////
 //
-// Class that represent the OpenAstroTracker mount, with all its parameters, motors, etc.
+// The mount's hardware half: the axes, the drivers, the sensors and the settings they run on,
+// plus the port implementations the UI and the command layer still call.
+//
+// It lives in `app/` because it owns objects only a composition root may build, and because what
+// is left of the old `Mount` facade is the executor — it turns domain requests into axis
+// operations and answers the read model. The decision layer is `core::MountCoordinator`; this
+// class never decides when to move, only how.
 //
 //////////////////////////////////////////////////////////////////
-/// Everything `Mount` is handed by the composition root (`app/BoardWiring.*`).
+namespace app
+{
+
+/// Everything `MountExecutor` is handed by the composition root (`app/BoardWiring.*`).
 ///
 /// Entries exist only for the features compiled into this build, so a board without
 /// an AZ/ALT/Focus axis, or without the UART connection test, spends no RAM on
@@ -112,7 +89,7 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadModel, public ports::IInfoDisplaySource
+class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMountReadModel, public ports::IInfoDisplaySource
 {
   public:
     /// Every controller the mount drives, in one object. The composition root owns it and builds
@@ -126,7 +103,7 @@ class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadMo
     /// The coordinator is owned by the composition root and outlives the mount, so the root can
     /// hand the same object to the display, the panel and — as the port implementations move — to
     /// the UI and the command layer.
-    Mount(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator);
+    MountExecutor(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator);
 
     void initializeVariables();
 
@@ -204,7 +181,7 @@ class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadMo
 
 #endif
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        // Configure the RA Driver (TMC2209 UART only)
+    // Configure the RA Driver (TMC2209 UART only)
     #if SW_SERIAL_UART == 0
     #elif SW_SERIAL_UART == 1
     #endif
@@ -656,4 +633,4 @@ class Mount final : public ports::IMountOptionalAxes, public ports::IMountReadMo
     bool _bootComplete;
 };
 
-#endif
+}  // namespace app

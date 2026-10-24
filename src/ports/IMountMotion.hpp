@@ -15,7 +15,7 @@ namespace ports
 /// adapter's *other* dependencies are separately named and will be moved one group at a time.
 ///
 /// `direction` stays the `int` bitmask the mount has always used (`EAST`, `WEST`, `NORTH`,
-/// `SOUTH`, `TRACKING`, `ALL_DIRECTIONS`). Those names live in `Mount.hpp` and are already the
+/// `SOUTH`, `TRACKING`, `ALL_DIRECTIONS`). Those names live in `app/MountExecutor.hpp` and are already the
 /// vocabulary of the command layer; inventing a parallel enum here would mean two vocabularies in
 /// flight at once. Typing it is a separate cleanup, tracked in PLAN.md.
 ///
@@ -58,7 +58,7 @@ class IMountMotion
     virtual void setTrackingStepperPos(long stepPos) = 0;
 
     /// Starts the drift-alignment phase machine. It returns immediately; the controller is
-    /// ticked from `Mount::loop()`.
+    /// ticked from `app::MountExecutor::loop()`.
     ///
     /// Virtual with an empty default rather than pure: `Mount` declares it only under
     /// `SUPPORT_DRIFT_ALIGNMENT`, so a board without the feature would otherwise be an abstract

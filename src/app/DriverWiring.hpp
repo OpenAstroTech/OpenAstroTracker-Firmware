@@ -2,7 +2,7 @@
 
 #include "../inc/Globals.hpp"
 #include "../../Configuration.hpp"
-#include "../Mount.hpp"
+#include "MountExecutor.hpp"
 
 namespace app
 {
@@ -10,9 +10,9 @@ namespace app
 /// Builds this board's TMC2209 UART drivers and programs their registers.
 ///
 /// Driver registers depend on board macros (currents, stall thresholds, stealth mode, microstep
-/// seeding), so this is composition-root knowledge, not domain behaviour. `Mount` receives the
+/// seeding), so this is composition-root knowledge, not domain behaviour. The executor receives the
 /// finished drivers through `attachDrivers()` and only ever talks to them through
 /// `ports::IMotorDriver`.
-void attachDrivers(Mount &mount);
+void attachDrivers(app::MountExecutor &mount);
 
 }  // namespace app

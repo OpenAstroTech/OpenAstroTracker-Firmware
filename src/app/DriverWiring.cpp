@@ -12,7 +12,7 @@
 #include "hal/arduino/ArduinoGpioPin.hpp"
 
 // The driver register programming is board knowledge, so it lives here with the pin maps and the
-// `Configuration*.hpp` macros rather than in `Mount`. The bodies are the ones `Mount::configure*
+// `Configuration*.hpp` macros rather than in `Mount`. The bodies are the ones `app::MountExecutor::configure*
 // driver` used to hold, moved verbatim; only their owner changed.
 
 namespace
@@ -520,10 +520,10 @@ ports::IMotorDriver *buildFocusDriver(
 namespace app
 {
 
-void attachDrivers(Mount &mount)
+void attachDrivers(app::MountExecutor &mount)
 {
     const core::MountConfig config = buildMountConfig();
-    Mount::Drivers drivers;
+    app::MountExecutor::Drivers drivers;
 
     (void) config;  // only the UART builds read it
 

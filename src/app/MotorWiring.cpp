@@ -38,9 +38,9 @@ constexpr unsigned long decSlewAcceleration = DEC_STEPPER_ACCELERATION;
 namespace app
 {
 
-void attachSteppers(Mount &mount)
+void attachSteppers(app::MountExecutor &mount)
 {
-    Mount::Steppers steppers;
+    app::MountExecutor::Steppers steppers;
     core::AxisLimits limits;
 
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)

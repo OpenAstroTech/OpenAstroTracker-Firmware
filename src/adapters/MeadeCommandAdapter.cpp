@@ -2,9 +2,13 @@
 #include "../Configuration.hpp"
 #include "../Utility.hpp"
 #include "../LcdMenu.hpp"
-#include "../Mount.hpp"
 #include "MeadeCommandAdapter.hpp"
 #include "WifiControl.hpp"
+#include "../DayTime.hpp"
+#include "../Declination.hpp"
+#include "../Latitude.hpp"
+#include "../Longitude.hpp"
+#include "core/FocusController.hpp"
 #include "core/meade/MeadeParser.hpp"
 
 #include <stdarg.h>
@@ -521,7 +525,7 @@ void MeadeCommandAdapter::onDriftAlignment(int duration)
 #if SUPPORT_DRIFT_ALIGNMENT == 1
     // The sequence used to run here, synchronously: stop, three 1.5 s delays and three blocking
     // passes, i.e. ~90 s in which the mount answered nothing because the main loop was inside this
-    // handler. It is a phase machine in core/DriftAlignmentController now, ticked from Mount::loop.
+    // handler. It is a phase machine in core/DriftAlignmentController now, ticked from `app::MountExecutor::loop()`.
     _lcdMenu->setCursor(0, 0);
     _lcdMenu->printMenu(F(">Drift Alignment"));
     _motion->startDriftAlignment(duration);
@@ -854,7 +858,7 @@ void MeadeCommandAdapter::onFocusContinuousIn()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove IN");
-    _axes->focusContinuousMove(FOCUS_BACKWARD);
+    _axes->focusContinuousMove(core::FOCUS_BACKWARD);
 #endif
 }
 
@@ -862,7 +866,7 @@ void MeadeCommandAdapter::onFocusContinuousOut()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove OUT");
-    _axes->focusContinuousMove(FOCUS_FORWARD);
+    _axes->focusContinuousMove(core::FOCUS_FORWARD);
 #endif
 }
 
