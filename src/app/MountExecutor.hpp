@@ -103,7 +103,7 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     /// The coordinator is owned by the composition root and outlives the mount, so the root can
     /// hand the same object to the display, the panel and — as the port implementations move — to
     /// the UI and the command layer.
-    MountExecutor(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator);
+    MountExecutor(const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator);
 
     void initializeVariables();
 
@@ -557,7 +557,6 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     // `hal/` and are built by the composition root's factories, never named here.
     Coordinator &_coordinator;
 
-    LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 #endif
     /// The speed and acceleration each axis was built with, restored when a slew changes rate.

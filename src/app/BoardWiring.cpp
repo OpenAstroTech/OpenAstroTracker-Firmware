@@ -167,9 +167,9 @@ app::MountExecutor::Coordinator mountCoordinator(&clockPort, SIDEREAL_SECONDS_PE
 #endif
 
 #ifdef ESP32
-DRAM_ATTR app::MountExecutor mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
+DRAM_ATTR app::MountExecutor mount(makeMountDeps(), app::buildMountConfig(), mountCoordinator);
 #else
-app::MountExecutor mount(&lcdMenu, makeMountDeps(), app::buildMountConfig(), mountCoordinator);
+app::MountExecutor mount(makeMountDeps(), app::buildMountConfig(), mountCoordinator);
 #endif
 
 // The optional status panel is owned here, not by the mount: the mount publishes events and the

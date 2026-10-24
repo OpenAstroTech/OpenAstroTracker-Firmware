@@ -78,13 +78,12 @@ namespace app
 // CTOR
 //
 /////////////////////////////////
-MountExecutor::MountExecutor(LcdMenu *lcdMenu, const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator)
+MountExecutor::MountExecutor(const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator)
     : _deps(deps), _config(config), _coordinator(coordinator), _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
       _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
 {
     _commandReceived = 0;
 
-    _lcdMenu = lcdMenu;
     initializeVariables();
 }
 
