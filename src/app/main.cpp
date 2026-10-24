@@ -12,6 +12,10 @@
 #include "MotorWiring.hpp"
 #include "SensorWiring.hpp"
 
+#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #include "../SSD1306_128x64_Display.hpp"
+#endif
+
 #include "../a_inits.hpp"
 #if defined(OAT_DEBUG_BUILD)
     #if BOARD < 1000
@@ -112,7 +116,7 @@ void setup()
     #endif
     if (infoDisplay != nullptr)
     {
-        infoDisplayPanel = new adapters::InfoDisplayPanel(mount, *infoDisplay, clockPort, mount);
+        infoDisplayPanel = new adapters::InfoDisplayPanel(mount, *infoDisplay, clockPort, mountCoordinator);
         infoDisplayPanel->begin();
         addConsoleText(F("BOOTING " VERSION));
     }

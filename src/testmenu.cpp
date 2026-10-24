@@ -5,6 +5,10 @@
 
 #if TEST_VERIFY_MODE == 1
 
+    // The bring-up screen reads the menu ports and runs the driver UART test, both of which the
+    // composition root owns now.
+    #include "app/BoardWiring.hpp"
+
     #include "MappedDict.hpp"
     #include "testmenu.hpp"
 

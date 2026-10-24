@@ -4,6 +4,7 @@
 #include "../Utility.hpp"
 #include "../a_inits.hpp"
 
+#include "BoardWiring.hpp"
 #include "MountConfigBuilder.hpp"
 #include "core/Microsteps.hpp"
 
@@ -19,8 +20,13 @@ namespace
 /// How many times the UART self-test asks a driver to answer before giving up on it.
 #define UART_CONNECTION_TEST_RETRIES 5
 
-#if (UART_CONNECTION_TEST_TXRX == 1) || (TEST_VERIFY_MODE == 1)
+#if UART_CONNECTION_TEST_TXRX == 1
 /// Runs the UART self-test the way the mount used to: retries, then reports the current it read.
+///
+/// Guarded by the switch that decides whether any caller exists, not by `TEST_VERIFY_MODE`: the
+/// bring-up screen reaches the driver through `connectToDriver()`, so a board that enables the
+/// test screen without the UART self-test would otherwise define this helper and never call it,
+/// which `-Werror` rejects.
 bool testDriverConnection(ports::IMotorDriver *driver, const char *driverKind, uint16_t *rmsCurrent = nullptr)
 {
     if (driver == nullptr)

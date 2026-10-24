@@ -120,5 +120,7 @@ class EEPROMStore
     void commit();
 
     ports::IPersistentStore &_persistent;
+    /// The log sink, held by reference because the store never outlives it. `OAT_LOG` takes a
+    /// pointer, hence the `&_log` at the call sites below.
     ports::ILogger &_log;
 };
