@@ -64,7 +64,7 @@ objects constructed in the composition root, never as different code paths in th
    in an adapter, and the decision itself belongs in `core/`. The domain core is tested with faked
    ports; the target is ≥ 85% line coverage of `core/` with behavioural tests.
 
-7. **Step generation is a backend detail; ISR boundaries are explicit where they exist.** Whether
+7. **Step generation is a backend detail; ISR boundaries are explicit where they exist, and the lock lives in `hal/`.** Whether
    steps come from an MCU timer (AVR), a FreeRTOS task (ESP32), a polled engine (RP2040) or the
    driver itself (a TMC2209 in `VACTUAL` mode pulses nothing) is decided entirely inside `hal/`
    and never influences the core's structure. Where a backend *does* step from interrupt context,
@@ -194,6 +194,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- the six mount ports (done)
 │   │   ├── WifiControl.hpp/.cpp          # Meade over TCP + SkyFi UDP discovery (done)
 │   │   ├── TcpConnectionPort.hpp/.cpp    # ISerialPort over ITcpConnection (done)
+│   │   ├── StatusFlags.hpp/.cpp          # IStatusFlags over core::MountState (done)
 │   │   ├── InfoDisplayPanel.hpp/.cpp    # IEventSink        -> InfoDisplayRender     (done)
 │   │   ├── HallHomingSensor.hpp/.cpp    # IHomingSensor     <- IGpioPin              (not built)
 │   │   ├── GpioEndSwitch.hpp/.cpp       # IEndSwitch        <- IGpioPin              (not built)
@@ -240,6 +241,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── EepromLayout.hpp             # storage layout constants
 │   │   ├── InMemoryEeprom.hpp           # RAM-backed IEeprom (USE_DUMMY_EEPROM builds)
 │   │   ├── WarningGuard.hpp             # PUSH/POP_NO_WARNINGS fallbacks for backends
+│   │   ├── CriticalSection.hpp          # ISR-vs-main-loop mutual exclusion (saves/restores SREG)
 │   │   ├── StepperMotorFactory.*        # axis role -> engine for the current platform
 │   │   ├── arduino/                     # generic Arduino backends:
 │   │   │   ├── ArduinoSystemClock.*     #   ISystemClock
