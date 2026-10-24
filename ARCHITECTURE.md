@@ -283,6 +283,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── PersistentConfig.cpp/.hpp     # store load + version migration + DEC limits
 │   │   ├── CoordinateText.cpp/.hpp       # RA/DEC format table + menu cursor
 │   │   ├── SlewStart.cpp/.hpp            # what starting a slew must do first
+│   │   ├── ManualSlew.cpp/.hpp           # direction bits -> axis targets
 │   │   ├── DecLimitClamp.cpp/.hpp        # DEC travel-limit policy ("0" = no limit)
 │   │   ├── MountRuntimeSettings.hpp      # live EEPROM-backed motion settings
 │   │   ├── SiteTime.cpp/.hpp             # latitude/longitude/LST + the session clock
