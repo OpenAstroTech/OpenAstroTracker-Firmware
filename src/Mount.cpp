@@ -10,6 +10,7 @@
 #include "core/CoordinateFormatter.hpp"
 #include "core/CoordinateText.hpp"
 #include "core/ManualSlew.hpp"
+#include "core/RelativeMove.hpp"
 
 // The menu screens pass the historical `B0xxx` constants through `ports::IMountReadModel`; core
 // owns the format vocabulary, so the two must not drift.
@@ -3328,30 +3329,27 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
 {
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: %ld", steps);
 
+    const core::RelativeMovePlan plan = core::planRelativeMove(direction, steps, isSlewingTRK());
+
+    if (!plan.accepted)
+    {
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: MoveStepperBy does not support multiple axes.");
+        return;
+    }
+
+    if (plan.stopTracking)
+    {
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Stop tracking (NEMA steppers)");
+        stopSlewing(TRACKING);
+        _coordinator.tracking().noteStopped(_deps.clock->now());
+        OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: TRK stopped at %ldms", _coordinator.tracking().stoppedAt());
+    }
+
     switch (direction)
     {
-        case RA_AND_DEC_STEPS:
-            OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: MoveStepperBy does not support multiple axes.");
-            break;
-
         case RA_STEPS:
-            if (steps != 0)
-            {
-                // Only stop tracking if we're actually tracking and going to slew somewhere else, otherwise the
-                // mount::loop() code won't detect the end of the slewing operation...
-                if (isSlewingTRK())
-                {
-                    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: moveStepperBy: Stop tracking (NEMA steppers)");
-                    stopSlewing(TRACKING);
-                    _coordinator.tracking().noteStopped(_deps.clock->now());
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS,
-                            "[STEPPERS]: moveStepperBy: TRK stopped at %ldms",
-                            _coordinator.tracking().stoppedAt());
-                }
-            }
-
-            // Slew microsteps once the TRK stepper has stopped.
+            // Slew microsteps once the TRK stepper has stopped, before the status bit says a
+            // slew is in flight: the step generator reads that bit.
             setRaMicrosteps(_config.raSlewMicrosteps);
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             publishEvent(core::MountEventType::SlewStarted);
@@ -3361,50 +3359,45 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             break;
 
         case DEC_STEPS:
-            {
-                setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
-                publishEvent(core::MountEventType::SlewStarted);
-                // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
-                setDecMicrosteps(_config.decSlewMicrosteps);
-                _coordinator.slew().noteRunning(true);
-                moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
-                _coordinator.slew().setTotalMove(_coordinator.slew().totalRaSteps(), 1.0f * _stepperDEC->distanceToGo());
-            }
+            setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
+            publishEvent(core::MountEventType::SlewStarted);
+            // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
+            setDecMicrosteps(_config.decSlewMicrosteps);
+            _coordinator.slew().noteRunning(true);
+            moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
+            _coordinator.slew().setTotalMove(_coordinator.slew().totalRaSteps(), 1.0f * _stepperDEC->distanceToGo());
             break;
 
         case FOCUS_STEPS:
+            if (kHasFocusStepper)
             {
-                if (kHasFocusStepper)
-                {
-                    focusMoveBy(steps);
-                }
+                focusMoveBy(steps);
             }
             break;
 
         case AZIMUTH_STEPS:
+            if (kHasAzStepper)
             {
-                if (kHasAzStepper)
-                {
-                    enableAzMotor();
-                    OAT_LOG(_deps.logger,
-                            DEBUG_STEPPERS,
-                            "[STEPPERS]: moveStepperBy: AZ from %ld to %ld",
-                            _stepperAZ->currentPosition(),
-                            _stepperAZ->currentPosition() + steps);
-                    _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
-                }
+                enableAzMotor();
+                OAT_LOG(_deps.logger,
+                        DEBUG_STEPPERS,
+                        "[STEPPERS]: moveStepperBy: AZ from %ld to %ld",
+                        _stepperAZ->currentPosition(),
+                        _stepperAZ->currentPosition() + steps);
+                _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
             }
             break;
 
         case ALTITUDE_STEPS:
+            if (kHasAltStepper)
             {
-                if (kHasAltStepper)
-                {
-                    enableAltMotor();
-                    _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
-                }
+                enableAltMotor();
+                _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
             }
             break;
+
+        case RA_AND_DEC_STEPS:
+            break;  // rejected above
     }
 }
 
