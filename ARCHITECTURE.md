@@ -289,7 +289,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── RelativeMove.cpp/.hpp         # per-axis preconditions of a nudge
 │   │   ├── DecLimitClamp.cpp/.hpp        # DEC travel-limit policy ("0" = no limit)
 │   │   ├── MountRuntimeSettings.hpp      # live EEPROM-backed motion settings
-│   │   ├── SiteTime.cpp/.hpp             # latitude/longitude/LST + the session clock
+│   │   ├── SiteTime.cpp/.hpp             # latitude/longitude/LST + RA zero point + clock
 │   │   ├── TrackingController.hpp/.cpp  # sidereal rate, tracker-stop compensation
 │   │   ├── SlewController.hpp/.cpp      # slew state machine
 │   │   ├── GuidingController.hpp/.cpp   # guide-pulse math and timing
