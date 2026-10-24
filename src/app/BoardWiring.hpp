@@ -89,13 +89,9 @@ extern app::MountExecutor::Coordinator mountCoordinator;
 #endif
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
-// The axes and sensors the root builds, kept at namespace scope so the step pump can hold a
-// reference to them before `setup()` has filled them in.
-extern app::MountExecutor::Steppers allSteppers;
-extern app::MountExecutor::Sensors allSensors;
-
     /// The step pump the timer ISR (or the ESP32 task) runs. Only exists on boards without a
-    /// driver-side step generator.
+    /// driver-side step generator. It reads the axes through `mount.axes()`, so it needs no copy of
+    /// them here.
     #ifdef ESP32
 extern DRAM_ATTR app::StepPump stepPump;
     #else

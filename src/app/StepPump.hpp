@@ -5,7 +5,7 @@
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
 
-    #include "MountExecutor.hpp"
+    #include "AxisBank.hpp"
     #include "../core/FocusController.hpp"
     #include "../core/MountState.hpp"
 
@@ -24,16 +24,12 @@ namespace app
 /// that need it: the references below would otherwise cost SRAM on every board that never calls
 /// `pump()`.
 ///
-/// The axes and sensors are held by reference rather than copied, because the root builds them in
-/// `setup()` while this object is a static — a copy would capture the empty struct the wiring
-/// starts from.
+/// The bank is held by reference rather than copied, because the root builds the axes in `setup()`
+/// while this object is a static — a copy would capture the empty struct the wiring starts from.
 class StepPump
 {
   public:
-    StepPump(const core::MountState &state,
-             const core::FocusController &focus,
-             const app::MountExecutor::Steppers &steppers,
-             const app::MountExecutor::Sensors &sensors);
+    StepPump(const core::MountState &state, const core::FocusController &focus, const AxisBank &axes);
 
     /// One service interval. Called from interrupt context on RP2040.
     void pump();
@@ -41,8 +37,7 @@ class StepPump
   private:
     const core::MountState &_state;
     const core::FocusController &_focusController;
-    const app::MountExecutor::Steppers &_steppers;
-    const app::MountExecutor::Sensors &_sensors;
+    const AxisBank &_axes;
 };
 
 }  // namespace app

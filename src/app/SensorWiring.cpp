@@ -49,7 +49,7 @@ namespace app
 
 void attachSensors(app::MountExecutor &mount)
 {
-    app::MountExecutor::Sensors sensors;
+    app::AxisBank::Sensors sensors;
 
 #if USE_RA_END_SWITCH == 1
     sensors.raEndSwitch = new EndSwitch(ui,
@@ -76,10 +76,6 @@ void attachSensors(app::MountExecutor &mount)
 #endif
 
     mount.attachSensors(sensors);
-
-#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
-    allSensors = sensors;
-#endif
 }
 
 }  // namespace app

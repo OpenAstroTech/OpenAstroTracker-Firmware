@@ -8,11 +8,8 @@
 namespace app
 {
 
-StepPump::StepPump(const core::MountState &state,
-                   const core::FocusController &focus,
-                   const app::MountExecutor::Steppers &steppers,
-                   const app::MountExecutor::Sensors &sensors)
-    : _state(state), _focusController(focus), _steppers(steppers), _sensors(sensors)
+StepPump::StepPump(const core::MountState &state, const core::FocusController &focus, const AxisBank &axes)
+    : _state(state), _focusController(focus), _axes(axes)
 {
 }
 
@@ -21,33 +18,33 @@ void StepPump::pump()
     // Only process guide pulses if we are tracking.
     if (_state.test(STATUS_GUIDE_PULSE) && _state.test(STATUS_TRACKING))
     {
-        _steppers.tracking->runSpeed();
+        _axes.tracking()->runSpeed();
         if (_state.test(STATUS_GUIDE_PULSE_DEC))
         {
-            _steppers.guide->runSpeed();
+            _axes.guide()->runSpeed();
         }
         return;
     }
 
     if (_state.test(STATUS_TRACKING))
     {
-        _steppers.tracking->runSpeed();
+        _axes.tracking()->runSpeed();
     }
 
     if (_state.test(STATUS_SLEWING))
     {
         if (_state.test(STATUS_SLEWING_MANUAL))
         {
-            _steppers.dec->runSpeed();
-            _steppers.ra->runSpeed();
+            _axes.dec()->runSpeed();
+            _axes.ra()->runSpeed();
         }
         else
         {
-            _steppers.dec->run();
-            _steppers.ra->run();
+            _axes.dec()->run();
+            _axes.ra()->run();
         }
     }
-    else if (!_state.test(STATUS_TRACKING) && _steppers.tracking->isRunning())
+    else if (!_state.test(STATUS_TRACKING) && _axes.tracking()->isRunning())
     {
         // If we are not tracking, but the tracking stepper is running, we need to let it move.
         // This can happen when we need to compensate for a slew (during which the tracker is
@@ -55,51 +52,51 @@ void StepPump::pump()
         // travelled during the slew if it had been tracking.
         // That compensation uses goto mode (using runToNewPosition()), so we need to use run(),
         // since runSpeed() only advances the stepper when it is in constant speed mode.
-        _steppers.tracking->run();
+        _axes.tracking()->run();
     }
 
     if (_state.test(STATUS_FINDING_HOME))
     {
-        if (app::MountExecutor::kHasRaHoming && (_sensors.raHoming != nullptr))
+        if (kHasRaHoming && (_axes.raHoming() != nullptr))
         {
-            _steppers.ra->run();
-            _sensors.raHoming->processHomingProgress();
+            _axes.ra()->run();
+            _axes.raHoming()->processHomingProgress();
         }
-        if (app::MountExecutor::kHasDecHoming && (_sensors.decHoming != nullptr))
+        if (kHasDecHoming && (_axes.decHoming() != nullptr))
         {
-            _steppers.dec->run();
-            _sensors.decHoming->processHomingProgress();
+            _axes.dec()->run();
+            _axes.decHoming()->processHomingProgress();
         }
     }
 
-    if (app::MountExecutor::kHasAzStepper)
+    if (kHasAzStepper)
     {
-        _steppers.az->run();
+        _axes.az()->run();
     }
-    if (app::MountExecutor::kHasAltStepper)
+    if (kHasAltStepper)
     {
-        _steppers.alt->run();
+        _axes.alt()->run();
     }
 
     // `FocusMode::Continuous` is kept from the original, which never selected it: a
     // continuous run targets a far position and therefore uses `run()`.
-    if (app::MountExecutor::kHasFocusStepper && _focusController.mode() == core::FocusMode::ToTarget)
+    if (kHasFocusStepper && _focusController.mode() == core::FocusMode::ToTarget)
     {
-        _steppers.focus->run();
+        _axes.focus()->run();
     }
-    else if (app::MountExecutor::kHasFocusStepper && _focusController.mode() == core::FocusMode::Continuous)
+    else if (kHasFocusStepper && _focusController.mode() == core::FocusMode::Continuous)
     {
-        _steppers.focus->runSpeed();
-    }
-
-    if (app::MountExecutor::kHasRaEndSwitch && (_sensors.raEndSwitch != nullptr))
-    {
-        _sensors.raEndSwitch->processEndSwitchState();
+        _axes.focus()->runSpeed();
     }
 
-    if (app::MountExecutor::kHasDecEndSwitch && (_sensors.decEndSwitch != nullptr))
+    if (kHasRaEndSwitch && (_axes.raEndSwitch() != nullptr))
     {
-        _sensors.decEndSwitch->processEndSwitchState();
+        _axes.raEndSwitch()->processEndSwitchState();
+    }
+
+    if (kHasDecEndSwitch && (_axes.decEndSwitch() != nullptr))
+    {
+        _axes.decEndSwitch()->processEndSwitchState();
     }
 }
 

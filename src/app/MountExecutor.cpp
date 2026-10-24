@@ -50,14 +50,6 @@ static_assert(static_cast<uint8_t>(core::SlewDirection::Tracking) == TRACKING, "
 #include "../hal/CriticalSection.hpp"
 #include "../hal/arduino/ArduinoGpioPin.hpp"
 
-namespace
-{
-/// Stands in for a driver that has no registers to talk to (A4988, or a TMC2209 strapped to
-/// standalone), so every `_driverX` is non-null and its call sites stay unguarded.
-adapters::NullMotorDriver nullDriver;
-
-}  // namespace
-
 // slewStatus()
 #define SLEWING_DEC      B00000010
 #define SLEWING_RA       B00000001
@@ -79,8 +71,7 @@ namespace app
 //
 /////////////////////////////////
 MountExecutor::MountExecutor(const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator)
-    : _deps(deps), _config(config), _coordinator(coordinator), _stepsPerAZDegree(AZIMUTH_STEPS_PER_REV / 360),
-      _stepsPerALTDegree(ALTITUDE_STEPS_PER_REV / 360)
+    : _deps(deps), _config(config), _coordinator(coordinator)
 {
     _commandReceived = 0;
 
@@ -99,23 +90,11 @@ void MountExecutor::initializeVariables()
     _coordinator.state().reset(0);
     _coordinator.slew().noteRunning(false);
 
-    // Created by the configure* methods below; null until then.
-    _stepperRA    = nullptr;
-    _stepperTRK   = nullptr;
-    _stepperDEC   = nullptr;
-    _stepperGUIDE = nullptr;
+    // Created by the configure* methods below; null until then. The drivers go back to the null
+    // driver, which `reset()` puts in place.
+    _axes.reset();
     _coordinator.tracking().detach();
-    _stepperAZ    = nullptr;
-    _stepperALT   = nullptr;
-    _stepperFocus = nullptr;
     _coordinator.focus().detach();
-
-    // Replaced by configure*Driver() when the build actually has UART drivers.
-    _driverRA    = &nullDriver;
-    _driverDEC   = &nullDriver;
-    _driverAZ    = &nullDriver;
-    _driverALT   = &nullDriver;
-    _driverFocus = &nullDriver;
 
     _siteTime.setLatitude(core::Latitude(inNorthernHemisphere ? 45.0f : -45.0f));
     _siteTime.setLongitude(core::Longitude(100.0));
@@ -196,14 +175,14 @@ void MountExecutor::readPersistentData()
 
     if (kHasAzStepper)
     {
-        _stepsPerAZDegree = stored.azStepsPerDegree;
-        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _stepsPerAZDegree);
+        _axes.setAzStepsPerDegree(stored.azStepsPerDegree);
+        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: AZ steps/deg is %f", _axes.azStepsPerDegree());
     }
 
     if (kHasAltStepper)
     {
-        _stepsPerALTDegree = stored.altStepsPerDegree;
-        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _stepsPerALTDegree);
+        _axes.setAltStepsPerDegree(stored.altStepsPerDegree);
+        OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: ALT steps/deg is %f", _axes.altStepsPerDegree());
     }
 
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Speed factor is %f", stored.speedFactor);
@@ -241,12 +220,12 @@ void MountExecutor::readPersistentData()
 
     if (kHasAltStepper)
     {
-        _stepperALT->setCurrentPosition(stored.altPosition);
+        _axes.alt()->setCurrentPosition(stored.altPosition);
     }
 
     if (kHasAzStepper)
     {
-        _stepperAZ->setCurrentPosition(stored.azPosition);
+        _axes.az()->setCurrentPosition(stored.azPosition);
     }
 
     configureHemisphere(_siteTime.latitude().getTotalHours() > 0);
@@ -269,12 +248,12 @@ void MountExecutor::configureHemisphere(bool inNorthern, bool force)
         inNorthernHemisphere = inNorthern;
         bool invertDir       = inNorthernHemisphere ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Configured RA steppers, DIR Invert is %d", invertDir);
-        _stepperRA->setPinsInverted(invertDir, false, false);
-        _stepperTRK->setPinsInverted(invertDir, false, false);
+        _axes.ra()->setPinsInverted(invertDir, false, false);
+        _axes.tracking()->setPinsInverted(invertDir, false, false);
 
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Reset RA and TRK positions to 0");
-        _stepperTRK->setCurrentPosition(0);
-        _stepperRA->setCurrentPosition(0);
+        _axes.tracking()->setCurrentPosition(0);
+        _axes.ra()->setCurrentPosition(0);
         if (wasTracking)
         {
             OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Restarting TRK since it was on.");
@@ -298,25 +277,18 @@ void MountExecutor::configureHemisphere(bool inNorthern, bool force)
 // The engines are built by the composition root (`app/MotorWiring.cpp`) and handed over here
 // fully configured: speed, acceleration and direction inversion are hardware facts, and the
 // coordinator wiring below is the mount's own business.
-void MountExecutor::attachSteppers(const Steppers &steppers, const core::AxisLimits &limits)
+void MountExecutor::attachSteppers(const AxisBank::Steppers &steppers, const core::AxisLimits &limits)
 {
-    _stepperRA    = steppers.ra;
-    _stepperTRK   = steppers.tracking;
-    _stepperDEC   = steppers.dec;
-    _stepperGUIDE = steppers.guide;
-    _stepperAZ    = steppers.az;
-    _stepperALT   = steppers.alt;
-    _stepperFocus = steppers.focus;
-    _limits       = limits;
+    _axes.attachSteppers(steppers, limits);
 
-    if (_stepperTRK != nullptr)
+    if (_axes.tracking() != nullptr)
     {
-        _coordinator.tracking().attach(_stepperTRK);
+        _coordinator.tracking().attach(_axes.tracking());
     }
 
-    if (_stepperFocus != nullptr)
+    if (_axes.focus() != nullptr)
     {
-        _coordinator.focus().attach(_stepperFocus);
+        _coordinator.focus().attach(_axes.focus());
         _coordinator.focus().initialize(limits.focusSpeed);
     }
 }
@@ -328,13 +300,9 @@ void MountExecutor::attachSteppers(const Steppers &steppers, const core::AxisLim
 /////////////////////////////////
 // The drivers arrive fully programmed; all that is left is to take ownership and keep the null
 // driver in place for the axes this board does not have.
-void MountExecutor::attachDrivers(const Drivers &drivers)
+void MountExecutor::attachDrivers(const AxisBank::Drivers &drivers)
 {
-    _driverRA    = drivers.ra != nullptr ? drivers.ra : &nullDriver;
-    _driverDEC   = drivers.dec != nullptr ? drivers.dec : &nullDriver;
-    _driverAZ    = drivers.az != nullptr ? drivers.az : &nullDriver;
-    _driverALT   = drivers.alt != nullptr ? drivers.alt : &nullDriver;
-    _driverFocus = drivers.focus != nullptr ? drivers.focus : &nullDriver;
+    _axes.attachDrivers(drivers);
 }
 
 /////////////////////////////////
@@ -343,12 +311,9 @@ void MountExecutor::attachDrivers(const Drivers &drivers)
 //
 /////////////////////////////////
 // The switches and sensors arrive from `app/SensorWiring.cpp`, already bound to their pins.
-void MountExecutor::attachSensors(const Sensors &sensors)
+void MountExecutor::attachSensors(const AxisBank::Sensors &sensors)
 {
-    _raEndSwitch  = sensors.raEndSwitch;
-    _decEndSwitch = sensors.decEndSwitch;
-    _raHoming     = sensors.raHoming;
-    _decHoming    = sensors.decHoming;
+    _axes.attachSensors(sensors);
 }
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
@@ -359,19 +324,19 @@ bool MountExecutor::connectToDriver(const String &driverKind, uint16_t *rmsCurre
 {
     MappedDict<String, ports::IMotorDriver *>::DictEntry_t lookupTable[] = {
         #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        {"RA", _driverRA},
+        {"RA", _axes.raDriver()},
         #endif
         #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        {"DEC", _driverDEC},
+        {"DEC", _axes.decDriver()},
         #endif
         #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        {"ALT", _driverALT},
+        {"ALT", _axes.altDriver()},
         #endif
         #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        {"AZ", _driverAZ},
+        {"AZ", _axes.azDriver()},
         #endif
         #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        {"FOC", _driverFocus},
+        {"FOC", _axes.focusDriver()},
         #endif
     };
     auto driverLookup = MappedDict<String, ports::IMotorDriver *>(lookupTable, ARRAY_SIZE(lookupTable));
@@ -516,11 +481,11 @@ float MountExecutor::getStepsPerDegree(StepperAxis which)
     }
     if (which == AZIMUTH_STEPS)
     {
-        return kHasAzStepper ? _stepsPerAZDegree : 1;  // u-steps/degree
+        return kHasAzStepper ? _axes.azStepsPerDegree() : 1;  // u-steps/degree
     }
     if (which == ALTITUDE_STEPS)
     {
-        return kHasAltStepper ? _stepsPerALTDegree : 1;  // u-steps/degree
+        return kHasAltStepper ? _axes.altStepsPerDegree() : 1;  // u-steps/degree
     }
 
     return 0;
@@ -547,13 +512,13 @@ void MountExecutor::setStepsPerDegree(StepperAxis which, float steps)
     }
     else if (kHasAzStepper && which == AZIMUTH_STEPS)
     {
-        _stepsPerAZDegree = steps;
-        _deps.settings->storeAZStepsPerDegree(_stepsPerAZDegree);
+        _axes.setAzStepsPerDegree(steps);
+        _deps.settings->storeAZStepsPerDegree(_axes.azStepsPerDegree());
     }
     else if (kHasAltStepper && which == ALTITUDE_STEPS)
     {
-        _stepsPerALTDegree = steps;
-        _deps.settings->storeALTStepsPerDegree(_stepsPerALTDegree);
+        _axes.setAltStepsPerDegree(steps);
+        _deps.settings->storeALTStepsPerDegree(_axes.altStepsPerDegree());
     }
 }
 
@@ -739,10 +704,10 @@ void MountExecutor::setSlewRate(int rate)
     _settings.setMoveRate(clamp(rate, 1, 4));
     float speedFactor[] = {0, 0.05, 0.2, 0.5, 1.0};
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, rate is %d -> %f", _settings.moveRate(), speedFactor[_settings.moveRate()]);
-    _stepperDEC->setMaxSpeed(speedFactor[_settings.moveRate()] * _limits.decSpeed);
-    _stepperRA->setMaxSpeed(speedFactor[_settings.moveRate()] * _limits.raSpeed);
+    _axes.dec()->setMaxSpeed(speedFactor[_settings.moveRate()] * _axes.limits().decSpeed);
+    _axes.ra()->setMaxSpeed(speedFactor[_settings.moveRate()] * _axes.limits().raSpeed);
     OAT_LOG(
-        _deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, new speeds are RA: %f  DEC: %f", _stepperRA->maxSpeed(), _stepperDEC->maxSpeed());
+        _deps.logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, new speeds are RA: %f  DEC: %f", _axes.ra()->maxSpeed(), _axes.dec()->maxSpeed());
 }
 
 /////////////////////////////////
@@ -803,8 +768,8 @@ core::DayTime MountExecutor::currentRA() const
 {
     // The arithmetic lives in core::currentRa; this gathers the six numbers it needs.
     core::PositionFacts facts;
-    facts.raSteps           = _stepperRA->currentPosition();
-    facts.decSteps          = _stepperDEC->currentPosition();
+    facts.raSteps           = _axes.ra()->currentPosition();
+    facts.decSteps          = _axes.dec()->currentPosition();
     facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
     facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
@@ -822,8 +787,8 @@ core::Declination MountExecutor::currentDEC() const
 {
     // u-steps / u-steps/deg = deg; the arithmetic lives in core::currentDec.
     core::PositionFacts facts;
-    facts.raSteps           = _stepperRA->currentPosition();
-    facts.decSteps          = _stepperDEC->currentPosition();
+    facts.raSteps           = _axes.ra()->currentPosition();
+    facts.decSteps          = _axes.dec()->currentPosition();
     facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
     facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
@@ -862,7 +827,7 @@ void MountExecutor::syncPosition(const core::DayTime &ra, const core::Declinatio
     // The declination the stepper position maps to, before the correction: negative when the
     // mount sits on the far side of home, which is what flips the declination correction.
     const float degreePos
-        = (_stepperDEC->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
+        = (_axes.dec()->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;  // u-steps / u-steps/deg = deg
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: DEC degreePos is: %f", degreePos);
 
     const core::SyncAdjustment adjustment = core::syncAdjustment(
@@ -905,12 +870,12 @@ void MountExecutor::startSlewingToTarget()
     setSlewSpeeds();
 
     // Calculate new RA stepper target (and DEC). We are never in guiding mode here.
-    _currentRAStepperPosition = _stepperRA->currentPosition();
+    _currentRAStepperPosition = _axes.ra()->currentPosition();
     long targetRAPosition, targetDECPosition;
     calculateRAandDECSteppers(targetRAPosition, targetDECPosition);
 
     const core::SlewStartPlan plan
-        = core::planSlewStart(core::SlewStartKind::Target, {_stepperRA->currentPosition(), targetRAPosition, isSlewingTRK()});
+        = core::planSlewStart(core::SlewStartKind::Target, {_axes.ra()->currentPosition(), targetRAPosition, isSlewingTRK()});
     beginSlew(plan, core::SlewIntent::Target, targetRAPosition, targetDECPosition);
 }
 
@@ -926,19 +891,19 @@ void MountExecutor::startSlewingToHome()
     stopGuiding();
     setSlewSpeeds();
 
-    _currentRAStepperPosition = _stepperRA->currentPosition();
+    _currentRAStepperPosition = _axes.ra()->currentPosition();
 
     const long targetDECPosition = 0;
     const long targetRAPosition
-        = core::homeRaTargetSteps(_stepperTRK->currentPosition(), _config.raSlewMicrosteps, _config.raTrackingMicrosteps());
+        = core::homeRaTargetSteps(_axes.tracking()->currentPosition(), _config.raSlewMicrosteps, _config.raTrackingMicrosteps());
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: startSlewingToHome: Adjusted with tracking distance: %ld, result: %ld",
-            _stepperTRK->currentPosition(),
+            _axes.tracking()->currentPosition(),
             targetRAPosition);
 
     const core::SlewStartPlan plan
-        = core::planSlewStart(core::SlewStartKind::Home, {_stepperRA->currentPosition(), targetRAPosition, isSlewingTRK()});
+        = core::planSlewStart(core::SlewStartKind::Home, {_axes.ra()->currentPosition(), targetRAPosition, isSlewingTRK()});
     beginSlew(plan, core::SlewIntent::Home, targetRAPosition, targetDECPosition);
 }
 /////////////////////////////////
@@ -974,8 +939,8 @@ void MountExecutor::beginSlew(const core::SlewStartPlan &plan, core::SlewIntent 
     setDecMicrosteps(_config.decSlewMicrosteps);
     _coordinator.slew().noteRunning(true);
     moveSteppersTo(raTarget, decTarget, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
-    _coordinator.slew().setTotalMove(static_cast<float>(_stepperRA->distanceToGo()), static_cast<float>(_stepperDEC->distanceToGo()));
-    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA Dist: %ld,   DEC Dist: %ld", _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
+    _coordinator.slew().setTotalMove(static_cast<float>(_axes.ra()->distanceToGo()), static_cast<float>(_axes.dec()->distanceToGo()));
+    OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: RA Dist: %ld,   DEC Dist: %ld", _axes.ra()->distanceToGo(), _axes.dec()->distanceToGo());
 }
 
 /////////////////////////////////
@@ -987,10 +952,10 @@ void MountExecutor::beginSlew(const core::SlewStartPlan &plan, core::SlewIntent 
 // afterwards by setSlewRate().
 void MountExecutor::setSlewSpeeds()
 {
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: beginSlew: Set DEC to MaxSpeed(%ld)", _limits.decSpeed);
-    _stepperDEC->setMaxSpeed(_limits.decSpeed);
-    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: beginSlew: Set RA  to MaxSpeed(%ld)", _limits.raSpeed);
-    _stepperRA->setMaxSpeed(_limits.raSpeed);
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: beginSlew: Set DEC to MaxSpeed(%ld)", _axes.limits().decSpeed);
+    _axes.dec()->setMaxSpeed(_axes.limits().decSpeed);
+    OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: beginSlew: Set RA  to MaxSpeed(%ld)", _axes.limits().raSpeed);
+    _axes.ra()->setMaxSpeed(_axes.limits().raSpeed);
 }
 
 /////////////////////////////////
@@ -1006,8 +971,10 @@ void MountExecutor::stopGuiding(bool ra, bool dec)
     // Stop RA guide first, since it's just a speed change back to tracking speed
     if (ra && _coordinator.state().test(STATUS_GUIDE_PULSE_RA))
     {
-        OAT_LOG(
-            _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK stop guide at  : %ld", _stepperTRK->currentPosition());
+        OAT_LOG(_deps.logger,
+                DEBUG_STEPPERS | DEBUG_GUIDE,
+                "[GUIDE]: stopGuide:    TRK stop guide at  : %ld",
+                _axes.tracking()->currentPosition());
         _coordinator.tracking().applySpeed();
         OAT_LOG(
             _deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: stopGuide:    TRK speed set to   : %f", _coordinator.tracking().speed());
@@ -1020,16 +987,16 @@ void MountExecutor::stopGuiding(bool ra, bool dec)
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS | DEBUG_GUIDE,
                 "[GUIDE]: stopGuide:    DEC stop guide at   : %ld",
-                _stepperGUIDE->currentPosition());
+                _axes.guide()->currentPosition());
 
         // Stop DEC guiding and wait for it to stop.
-        _stepperGUIDE->stop();
+        _axes.guide()->stop();
 
 #if !defined(ESP32BOARD)
-        while (_stepperGUIDE->isRunning())
+        while (_axes.guide()->isRunning())
         {
-            _stepperGUIDE->run();
-            _stepperTRK->runSpeed();
+            _axes.guide()->run();
+            _axes.tracking()->runSpeed();
         }
 #endif
 
@@ -1078,7 +1045,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   DEC current steps   : %ld",
-                    _stepperGUIDE->currentPosition());
+                    _axes.guide()->currentPosition());
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   DEC steps/deg       : %f",
@@ -1093,7 +1060,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   RA  current steps   : %ld",
-                    _stepperTRK->currentPosition());
+                    _axes.tracking()->currentPosition());
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS | DEBUG_GUIDE,
                     "[GUIDE]: guidePulse:   RA  steps/deg       : %f",
@@ -1125,7 +1092,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                     const core::DecPulse pulse = core::GuidingController::decPulse(true,
                                                                                    decGeometry,
                                                                                    siderealDegreesInHour,
-                                                                                   _stepperDEC->currentPosition(),
+                                                                                   _axes.dec()->currentPosition(),
                                                                                    _settings.decLowerLimitSteps(),
                                                                                    _settings.decUpperLimitSteps());
                     if (!pulse.allowed)
@@ -1134,7 +1101,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                         OAT_LOG(_deps.logger,
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
                                 "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or above upper limit (%ld), ignoring guide pulse",
-                                _stepperDEC->currentPosition(),
+                                _axes.dec()->currentPosition(),
                                 _settings.decUpperLimitSteps());
                     }
                     else
@@ -1145,7 +1112,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
                                 "[GUIDE]: guidePulse:   DEC guide speed     : %f",
                                 pulse.targetSpeed);
-                        _stepperGUIDE->setSpeed(pulse.targetSpeed);
+                        _axes.guide()->setSpeed(pulse.targetSpeed);
                         setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
                         _coordinator.guiding().startDec(duration);
                     }
@@ -1157,7 +1124,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                     const core::DecPulse pulse = core::GuidingController::decPulse(false,
                                                                                    decGeometry,
                                                                                    siderealDegreesInHour,
-                                                                                   _stepperDEC->currentPosition(),
+                                                                                   _axes.dec()->currentPosition(),
                                                                                    _settings.decLowerLimitSteps(),
                                                                                    _settings.decUpperLimitSteps());
                     if (!pulse.allowed)
@@ -1165,7 +1132,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                         OAT_LOG(_deps.logger,
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
                                 "[GUIDE]: guidePulse:   DEC is at (%ld) which is at or below lower limit (%ld), ignoring guide pulse",
-                                _stepperDEC->currentPosition(),
+                                _axes.dec()->currentPosition(),
                                 _settings.decLowerLimitSteps());
                         OAT_LOG(_deps.logger,
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
@@ -1179,7 +1146,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                                 DEBUG_STEPPERS | DEBUG_GUIDE,
                                 "[GUIDE]: guidePulse:   DEC guide speed     : %f",
                                 pulse.targetSpeed);
-                        _stepperGUIDE->setSpeed(pulse.targetSpeed);
+                        _axes.guide()->setSpeed(pulse.targetSpeed);
                         setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_DEC);
                         _coordinator.guiding().startDec(duration);
                     }
@@ -1203,7 +1170,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                             "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
                             pulse.targetSpeed,
                             RA_PULSE_MULTIPLIER);
-                    _stepperTRK->setSpeed(pulse.targetSpeed);  // Faster than siderael
+                    _axes.tracking()->setSpeed(pulse.targetSpeed);  // Faster than siderael
                     setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
                     _coordinator.guiding().startRa(duration);
                 }
@@ -1226,7 +1193,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                             "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
                             (2.0 - RA_PULSE_MULTIPLIER * pulse.adjustedSpeed),
                             (2.0 - RA_PULSE_MULTIPLIER));
-                    _stepperTRK->setSpeed(pulse.targetSpeed);  // Slower than siderael
+                    _axes.tracking()->setSpeed(pulse.targetSpeed);  // Slower than siderael
                     setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
                     _coordinator.guiding().startRa(duration);
                 }
@@ -1274,8 +1241,8 @@ void MountExecutor::updateDriftAlignment(unsigned long now)
         return;
     }
 
-    const bool raRunning  = _stepperRA->isRunning();
-    const bool decRunning = _stepperDEC->isRunning();
+    const bool raRunning  = _axes.ra()->isRunning();
+    const bool decRunning = _axes.dec()->isRunning();
 
     switch (_coordinator.drift().update(!raRunning && !decRunning, now))
     {
@@ -1287,28 +1254,28 @@ void MountExecutor::updateDriftAlignment(unsigned long now)
             break;
 
         case core::DriftAction::MoveEastPass:
-            _stepperRA->setMaxSpeed(_coordinator.drift().passSpeed());
-            _stepperRA->move(_coordinator.drift().passSteps());
+            _axes.ra()->setMaxSpeed(_coordinator.drift().passSpeed());
+            _axes.ra()->move(_coordinator.drift().passSteps());
             break;
 
         case core::DriftAction::MoveEastGap:
-            _stepperRA->setMaxSpeed(core::DriftAlignmentController::kGapSpeedStepsSec);
-            _stepperRA->move(-core::DriftAlignmentController::kGearingGapSteps);
+            _axes.ra()->setMaxSpeed(core::DriftAlignmentController::kGapSpeedStepsSec);
+            _axes.ra()->move(-core::DriftAlignmentController::kGearingGapSteps);
             break;
 
         case core::DriftAction::MoveWestPass:
-            _stepperRA->setMaxSpeed(_coordinator.drift().passSpeed());
-            _stepperRA->move(-_coordinator.drift().passSteps());
+            _axes.ra()->setMaxSpeed(_coordinator.drift().passSpeed());
+            _axes.ra()->move(-_coordinator.drift().passSteps());
             break;
 
         case core::DriftAction::ResetGap:
-            _stepperRA->setMaxSpeed(core::DriftAlignmentController::kGapSpeedStepsSec);
-            _stepperRA->move(core::DriftAlignmentController::kGearingGapSteps);
+            _axes.ra()->setMaxSpeed(core::DriftAlignmentController::kGapSpeedStepsSec);
+            _axes.ra()->move(core::DriftAlignmentController::kGearingGapSteps);
             break;
 
         case core::DriftAction::ResumeTracking:
             // Put the stepper back into its configured slew parameters before tracking resumes.
-            _stepperRA->setMaxSpeed(_limits.raSpeed);
+            _axes.ra()->setMaxSpeed(_axes.limits().raSpeed);
             startSlewing(TRACKING);
             break;
     }
@@ -1338,17 +1305,17 @@ void MountExecutor::setManualSlewMode(bool state)
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setManualSlewMode: Set RA  speed/accel:  %ld  / %ld",
-                _limits.raSpeed,
-                _limits.raAcceleration);
+                _axes.limits().raSpeed,
+                _axes.limits().raAcceleration);
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setManualSlewMode: Set DEC speed/accel:  %ld  / %ld",
-                _limits.decSpeed,
-                _limits.decAcceleration);
-        _stepperRA->setAcceleration(_limits.raAcceleration);
-        _stepperRA->setMaxSpeed(_limits.raSpeed);
-        _stepperDEC->setMaxSpeed(_limits.decSpeed);
-        _stepperDEC->setAcceleration(_limits.decAcceleration);
+                _axes.limits().decSpeed,
+                _axes.limits().decAcceleration);
+        _axes.ra()->setAcceleration(_axes.limits().raAcceleration);
+        _axes.ra()->setMaxSpeed(_axes.limits().raSpeed);
+        _axes.dec()->setMaxSpeed(_axes.limits().decSpeed);
+        _axes.dec()->setAcceleration(_axes.limits().decAcceleration);
         startSlewing(TRACKING);
     }
 }
@@ -1369,7 +1336,7 @@ void MountExecutor::setSpeed(StepperAxis which, float speedDegsPerSec)
                 speedDegsPerSec,
                 stepsPerSec);
         // TODO: Are we already in slew mode?
-        _stepperRA->setSpeed(stepsPerSec);
+        _axes.ra()->setSpeed(stepsPerSec);
     }
     else if (which == DEC_STEPS)
     {
@@ -1380,27 +1347,27 @@ void MountExecutor::setSpeed(StepperAxis which, float speedDegsPerSec)
                 speedDegsPerSec,
                 stepsPerSec);
         // TODO: Are we already in slew mode?
-        _stepperDEC->setSpeed(stepsPerSec);
+        _axes.dec()->setSpeed(stepsPerSec);
     }
     else if (kHasAzStepper && which == AZIMUTH_STEPS)
     {
-        float stepsPerSec = speedDegsPerSec * _stepsPerAZDegree;  // deg/sec * u-steps/deg = u-steps/sec
+        float stepsPerSec = speedDegsPerSec * _axes.azStepsPerDegree();  // deg/sec * u-steps/deg = u-steps/sec
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setSpeed: Set AZ speed %f degs/s, which is %f steps/s",
                 speedDegsPerSec,
                 stepsPerSec);
-        _stepperAZ->setSpeed(stepsPerSec);
+        _axes.az()->setSpeed(stepsPerSec);
     }
     else if (kHasAltStepper && which == ALTITUDE_STEPS)
     {
-        float stepsPerSec = speedDegsPerSec * _stepsPerALTDegree;  // deg/sec * u-steps/deg = u-steps/sec
+        float stepsPerSec = speedDegsPerSec * _axes.altStepsPerDegree();  // deg/sec * u-steps/deg = u-steps/sec
         OAT_LOG(_deps.logger,
                 DEBUG_STEPPERS,
                 "[STEPPERS]: setSpeed: Set ALT speed %f degs/s, which is %f steps/s",
                 speedDegsPerSec,
                 stepsPerSec);
-        _stepperALT->setSpeed(stepsPerSec);
+        _axes.alt()->setSpeed(stepsPerSec);
     }
     else if (kHasFocusStepper && which == FOCUS_STEPS)
     {
@@ -1418,15 +1385,15 @@ void MountExecutor::setSpeed(StepperAxis which, float speedDegsPerSec)
         else
         {
             OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_FOCUS, "[FOCUS]: setSpeed(): Stopping motor.");
-            _stepperFocus->stop();
+            _axes.focus()->stop();
         }
     }
 }
 
 void MountExecutor::getAZALTPositions(long &azPos, long &altPos)
 {
-    azPos  = kHasAzStepper ? _stepperAZ->currentPosition() : 0;
-    altPos = kHasAltStepper ? _stepperALT->currentPosition() : 0;
+    azPos  = kHasAzStepper ? _axes.az()->currentPosition() : 0;
+    altPos = kHasAltStepper ? _axes.alt()->currentPosition() : 0;
 }
 
 void MountExecutor::moveAZALTToHome()
@@ -1434,12 +1401,12 @@ void MountExecutor::moveAZALTToHome()
     if (kHasAzStepper)
     {
         enableAzMotor();
-        _stepperAZ->moveTo(0);
+        _axes.az()->moveTo(0);
     }
     if (kHasAltStepper)
     {
         enableAltMotor();
-        _stepperALT->moveTo(0);
+        _axes.alt()->moveTo(0);
     }
 }
 
@@ -1447,12 +1414,12 @@ void MountExecutor::setAZALTHome()
 {
     if (kHasAzStepper)
     {
-        _stepperAZ->setCurrentPosition(0);
+        _axes.az()->setCurrentPosition(0);
         _deps.settings->storeAZPosition(0);
     }
     if (kHasAltStepper)
     {
-        _stepperALT->setCurrentPosition(0);
+        _axes.alt()->setCurrentPosition(0);
         _deps.settings->storeALTPosition(0);
     }
 }
@@ -1480,23 +1447,23 @@ bool MountExecutor::isAxisRunning(StepperAxis axis)
     switch (axis)
     {
         case RA_STEPS:
-            return _stepperRA->isRunning();
+            return _axes.ra()->isRunning();
         case DEC_STEPS:
-            return _stepperDEC->isRunning();
+            return _axes.dec()->isRunning();
             if (kHasAltStepper)
             {
                 case ALTITUDE_STEPS:
-                    return _stepperALT->isRunning();
+                    return _axes.alt()->isRunning();
             }
             if (kHasAzStepper)
             {
                 case AZIMUTH_STEPS:
-                    return _stepperAZ->isRunning();
+                    return _axes.az()->isRunning();
             }
             if (kHasFocusStepper)
             {
                 case FOCUS_STEPS:
-                    return _stepperFocus->isRunning();
+                    return _axes.focus()->isRunning();
             }
         default:
             break;
@@ -1511,7 +1478,7 @@ bool MountExecutor::isAxisRunning(StepperAxis axis)
 /////////////////////////////////
 bool MountExecutor::isRunningAZ() const
 {
-    return kHasAzStepper && _stepperAZ->isRunning();
+    return kHasAzStepper && _axes.az()->isRunning();
 }
 
 /////////////////////////////////
@@ -1521,7 +1488,7 @@ bool MountExecutor::isRunningAZ() const
 /////////////////////////////////
 bool MountExecutor::isRunningALT() const
 {
-    return kHasAltStepper && _stepperALT->isRunning();
+    return kHasAltStepper && _axes.alt()->isRunning();
 }
 
 /////////////////////////////////
@@ -1535,13 +1502,13 @@ void MountExecutor::moveBy(int direction, float arcMinutes)
     {
         enableAzMotor();
         long stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
-        _stepperAZ->move(stepsToMove);
+        _axes.az()->move(stepsToMove);
     }
     if (kHasAltStepper && direction == ALTITUDE_STEPS)
     {
         enableAltMotor();
         long stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
-        _stepperALT->move(stepsToMove);
+        _axes.alt()->move(stepsToMove);
     }
 }
 
@@ -1554,16 +1521,16 @@ void MountExecutor::disableAzAltMotors()
 {
     if (kHasAzStepper)
     {
-        _stepperAZ->stop();
+        _axes.az()->stop();
     }
     if (kHasAltStepper)
     {
-        _stepperALT->stop();
+        _axes.alt()->stop();
     }
 
     if (kHasAzStepper)
     {
-        while (_stepperAZ->isRunning())
+        while (_axes.az()->isRunning())
         {
             loop();
         }
@@ -1571,7 +1538,7 @@ void MountExecutor::disableAzAltMotors()
 
     if (kHasAltStepper)
     {
-        while (_stepperALT->isRunning())
+        while (_axes.alt()->isRunning())
         {
             loop();
         }
@@ -1643,19 +1610,19 @@ float MountExecutor::getFocusSpeed() const
 /////////////////////////////////
 void MountExecutor::focusSetSpeedByRate(int rate)
 {
-    _coordinator.focus().setRate(rate, _limits.focusSpeed);
+    _coordinator.focus().setRate(rate, _axes.limits().focusSpeed);
     OAT_LOG(_deps.logger,
             DEBUG_FOCUS,
             "[FOCUS]: focusSetSpeedByRate: rate is %d, factor %f, maxspeed %f -> %f",
             _coordinator.focus().rate(),
             _coordinator.focus().rateFactor(),
-            _limits.focusSpeed,
+            _axes.limits().focusSpeed,
             _coordinator.focus().maxRateSpeed());
 
     if (_coordinator.focus().isRunning())
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusSetSpeedByRate: stepper is already running so should adjust speed?");
-        //_stepperFocus->setSpeed(_coordinator.focus().rateFactor() * _limits.focusSpeed);
+        //_axes.focus()->setSpeed(_coordinator.focus().rateFactor() * _axes.limits().focusSpeed);
     }
 }
 
@@ -1720,7 +1687,7 @@ void MountExecutor::focusSetStepperPosition(long steps)
 void MountExecutor::disableFocusMotor()
 {
     OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: disableFocusMotor: stopping motor and waiting.");
-    _stepperFocus->stop();
+    _axes.focus()->stop();
     waitUntilStopped(FOCUSING);
 
     if (FOCUSER_ALWAYS_ON == 0 && kHasFocusStepper)
@@ -1758,7 +1725,7 @@ void MountExecutor::focusStop()
 /////////////////////////////////
 void MountExecutor::setTrackingStepperPos(long stepPos)
 {
-    _stepperTRK->setCurrentPosition(stepPos);
+    _axes.tracking()->setCurrentPosition(stepPos);
 }
 
 /// Records a fact for the tick boundary. The next `loop()` delivers it, so a subscriber
@@ -1807,7 +1774,7 @@ String MountExecutor::getStatusStateString()
     switch (core::classifyActivity(_coordinator.state(),
                                    isFindingHome(),
                                    isGuiding(),
-                                   _stepperRA->isRunning() || _stepperDEC->isRunning(),
+                                   _axes.ra()->isRunning() || _axes.dec()->isRunning(),
                                    _coordinator.state().test(STATUS_TRACKING)))
     {
         case core::ActivityState::Parked:
@@ -1842,8 +1809,8 @@ const char *MountExecutor::getStatusString()
 {
     // The field order lives in core::meade; this gathers the facts and keeps the buffer.
     const bool trackingAxis = _coordinator.state().test(STATUS_TRACKING);
-    const bool raRunning    = _stepperRA->isRunning();
-    const bool decRunning   = _stepperDEC->isRunning();
+    const bool raRunning    = _axes.ra()->isRunning();
+    const bool decRunning   = _axes.dec()->isRunning();
 
     oat::core::meade::MountStatusFacts facts {};
     _infoStatusScratch = getStatusStateString();
@@ -1854,31 +1821,31 @@ const char *MountExecutor::getStatusString()
     facts.raRunning             = slewing && raRunning;
     facts.decRunning            = slewing && decRunning;
     facts.trackingAxisRunning   = slewing && trackingAxis;
-    facts.raTargetBelowCurrent  = _stepperRA->targetPosition() < _stepperRA->currentPosition();
-    facts.decTargetBelowCurrent = _stepperDEC->targetPosition() < _stepperDEC->currentPosition();
+    facts.raTargetBelowCurrent  = _axes.ra()->targetPosition() < _axes.ra()->currentPosition();
+    facts.decTargetBelowCurrent = _axes.dec()->targetPosition() < _axes.dec()->currentPosition();
     facts.trackingOnly          = isSlewingTRK() && !slewing;
 
     if (kHasAzStepper)
     {
-        facts.azRunning            = _stepperAZ->isRunning();
-        facts.azTargetBelowCurrent = _stepperAZ->targetPosition() < _stepperAZ->currentPosition();
+        facts.azRunning            = _axes.az()->isRunning();
+        facts.azTargetBelowCurrent = _axes.az()->targetPosition() < _axes.az()->currentPosition();
     }
     if (kHasAltStepper)
     {
-        facts.altRunning            = _stepperALT->isRunning();
-        facts.altTargetBelowCurrent = _stepperALT->targetPosition() < _stepperALT->currentPosition();
+        facts.altRunning            = _axes.alt()->isRunning();
+        facts.altTargetBelowCurrent = _axes.alt()->targetPosition() < _axes.alt()->currentPosition();
     }
     if (kHasFocusStepper)
     {
-        facts.focusRunning            = _stepperFocus->isRunning();
-        facts.focusTargetBelowCurrent = _stepperFocus->targetPosition() < _stepperFocus->currentPosition();
+        facts.focusRunning            = _axes.focus()->isRunning();
+        facts.focusTargetBelowCurrent = _axes.focus()->targetPosition() < _axes.focus()->currentPosition();
         facts.hasFocus                = true;
-        facts.focusSteps              = _stepperFocus->currentPosition();
+        facts.focusSteps              = _axes.focus()->currentPosition();
     }
 
-    facts.raSteps  = _stepperRA->currentPosition();
-    facts.decSteps = _stepperDEC->currentPosition();
-    facts.trkSteps = _stepperTRK->currentPosition();
+    facts.raSteps  = _axes.ra()->currentPosition();
+    facts.decSteps = _axes.dec()->currentPosition();
+    facts.trkSteps = _axes.tracking()->currentPosition();
     facts.raText   = raText(COMPACT_STRING | CURRENT_STRING);
     facts.decText  = decText(COMPACT_STRING | CURRENT_STRING);
 
@@ -1910,8 +1877,8 @@ byte MountExecutor::slewStatus() const
     {
         return NOT_SLEWING;
     }
-    byte slewState = _stepperRA->isRunning() ? SLEWING_RA : NOT_SLEWING;
-    slewState |= _stepperDEC->isRunning() ? SLEWING_DEC : NOT_SLEWING;
+    byte slewState = _axes.ra()->isRunning() ? SLEWING_RA : NOT_SLEWING;
+    slewState |= _axes.dec()->isRunning() ? SLEWING_DEC : NOT_SLEWING;
 
     slewState |= _coordinator.state().test(STATUS_TRACKING) ? SLEWING_TRACKING : NOT_SLEWING;
     return slewState;
@@ -2006,13 +1973,13 @@ bool MountExecutor::admit(core::MountRequest request) const
 void MountExecutor::setRaMicrosteps(int microsteps)
 {
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: RA driver setMicrosteps(%d)", microsteps);
-    _driverRA->microsteps(core::microstepRegisterValue(microsteps));
+    _axes.raDriver()->microsteps(core::microstepRegisterValue(microsteps));
 }
 
 void MountExecutor::setDecMicrosteps(int microsteps)
 {
     OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: DEC driver setMicrosteps(%d)", microsteps);
-    _driverDEC->microsteps(core::microstepRegisterValue(microsteps));
+    _axes.decDriver()->microsteps(core::microstepRegisterValue(microsteps));
 }
 
 /////////////////////////////////
@@ -2078,7 +2045,7 @@ void MountExecutor::startSlewing(int direction)
                 targets.decSteps,
                 _settings.decLowerLimitSteps(),
                 _settings.decUpperLimitSteps());
-        _stepperDEC->moveTo(targets.decSteps);
+        _axes.dec()->moveTo(targets.decSteps);
         setStatusFlag(STATUS_SLEWING);
     }
 
@@ -2089,7 +2056,7 @@ void MountExecutor::startSlewing(int direction)
                 "[STEPPERS]: startSlewing: RA targetMoveTo is %ld (adjusted for %fh tracked)",
                 targets.raSteps,
                 facts.trackedHours);
-        _stepperRA->moveTo(targets.raSteps);
+        _axes.ra()->moveTo(targets.raSteps);
         setStatusFlag(STATUS_SLEWING);
     }
 }
@@ -2115,13 +2082,13 @@ void MountExecutor::stopSlewing(int direction)
     if ((direction & (NORTH | SOUTH)) != 0)
     {
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: DEC stepper stop()");
-        _stepperDEC->stop();
+        _axes.dec()->stop();
     }
 
     if ((direction & (WEST | EAST)) != 0)
     {
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: RA stepper stop()");
-        _stepperRA->stop();
+        _axes.ra()->stop();
         if (isFindingHome())
         {
             clearStatusFlag(STATUS_FINDING_HOME);
@@ -2133,31 +2100,31 @@ void MountExecutor::stopSlewing(StepperAxis axis)
 {
     if (axis == RA_STEPS)
     {
-        _stepperRA->stop();
+        _axes.ra()->stop();
     }
     else if (axis == DEC_STEPS)
     {
-        _stepperDEC->stop();
+        _axes.dec()->stop();
     }
     else if (axis == AZIMUTH_STEPS)
     {
         if (kHasAzStepper)
         {
-            _stepperAZ->stop();
+            _axes.az()->stop();
         }
     }
     else if (axis == ALTITUDE_STEPS)
     {
         if (kHasAltStepper)
         {
-            _stepperALT->stop();
+            _axes.alt()->stop();
         }
     }
     else if (axis == FOCUS_STEPS)
     {
         if (kHasFocusStepper)
         {
-            _stepperFocus->stop();
+            _axes.focus()->stop();
         }
     }
 }
@@ -2170,9 +2137,9 @@ void MountExecutor::stopSlewing(StepperAxis axis)
 // Block until the RA and DEC motors are stopped
 void MountExecutor::waitUntilStopped(byte direction)
 {
-    while (((direction & (EAST | WEST)) && _stepperRA->isRunning()) || ((direction & (NORTH | SOUTH)) && _stepperDEC->isRunning())
-           || ((direction & TRACKING) && ((!_coordinator.state().test(STATUS_TRACKING)) && _stepperTRK->isRunning()))
-           || ((direction & FOCUSING) && kHasFocusStepper && _stepperFocus->isRunning()))
+    while (((direction & (EAST | WEST)) && _axes.ra()->isRunning()) || ((direction & (NORTH | SOUTH)) && _axes.dec()->isRunning())
+           || ((direction & TRACKING) && ((!_coordinator.state().test(STATUS_TRACKING)) && _axes.tracking()->isRunning()))
+           || ((direction & FOCUSING) && kHasFocusStepper && _axes.focus()->isRunning()))
     {
         loop();
         yield();
@@ -2187,10 +2154,10 @@ void MountExecutor::waitUntilStopped(byte direction)
 // Block until all steppers are stopped
 void MountExecutor::waitUntilAllStopped()
 {
-    while (_stepperRA->isRunning() || _stepperDEC->isRunning()
-           || ((!_coordinator.state().test(STATUS_TRACKING)) && _stepperTRK->isRunning())
-           || (kHasFocusStepper && _stepperFocus->isRunning()) || (kHasAzStepper && _stepperAZ->isRunning())
-           || (kHasAltStepper && _stepperALT->isRunning()))
+    while (_axes.ra()->isRunning() || _axes.dec()->isRunning()
+           || ((!_coordinator.state().test(STATUS_TRACKING)) && _axes.tracking()->isRunning())
+           || (kHasFocusStepper && _axes.focus()->isRunning()) || (kHasAzStepper && _axes.az()->isRunning())
+           || (kHasAltStepper && _axes.alt()->isRunning()))
     {
         loop();
         yield();
@@ -2206,15 +2173,15 @@ long MountExecutor::getCurrentStepperPosition(int direction)
 {
     if (direction & TRACKING)
     {
-        return _stepperTRK->currentPosition();
+        return _axes.tracking()->currentPosition();
     }
     if (direction & (NORTH | SOUTH))
     {
-        return _stepperDEC->currentPosition();
+        return _axes.dec()->currentPosition();
     }
     if (direction & (EAST | WEST))
     {
-        return _stepperRA->currentPosition();
+        return _axes.ra()->currentPosition();
     }
     return 0;
 }
@@ -2223,31 +2190,31 @@ long MountExecutor::getCurrentStepperPosition(StepperAxis axis)
 {
     if (axis == StepperAxis::DEC_STEPS)
     {
-        return _stepperDEC->currentPosition();
+        return _axes.dec()->currentPosition();
     }
     if (axis == StepperAxis::RA_STEPS)
     {
-        return _stepperRA->currentPosition();
+        return _axes.ra()->currentPosition();
     }
     if (axis == StepperAxis::FOCUS_STEPS)
     {
         if (kHasFocusStepper)
         {
-            return _stepperFocus->currentPosition();
+            return _axes.focus()->currentPosition();
         }
     }
     if (axis == StepperAxis::ALTITUDE_STEPS)
     {
         if (kHasAltStepper)
         {
-            return _stepperALT->currentPosition();
+            return _axes.alt()->currentPosition();
         }
     }
     if (axis == StepperAxis::AZIMUTH_STEPS)
     {
         if (kHasAzStepper)
         {
-            return _stepperAZ->currentPosition();
+            return _axes.az()->currentPosition();
         }
     }
     return 0;
@@ -2301,11 +2268,11 @@ bool MountExecutor::findHomeByHallSensor(StepperAxis axis, int initialDirection,
     #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     if (axis == StepperAxis::RA_STEPS)
     {
-        if (_raHoming == nullptr)
+        if (_axes.raHoming() == nullptr)
         {
             return false;
         }
-        const bool started = _raHoming->findHomeByHallSensor(initialDirection, searchDistance);
+        const bool started = _axes.raHoming()->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
             publishEvent(core::MountEventType::HomingStarted);
@@ -2317,11 +2284,11 @@ bool MountExecutor::findHomeByHallSensor(StepperAxis axis, int initialDirection,
     #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
     if (axis == StepperAxis::DEC_STEPS)
     {
-        if (_decHoming == nullptr)
+        if (_axes.decHoming() == nullptr)
         {
             return false;
         }
-        const bool started = _decHoming->findHomeByHallSensor(initialDirection, searchDistance);
+        const bool started = _axes.decHoming()->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
             publishEvent(core::MountEventType::HomingStarted);
@@ -2342,21 +2309,21 @@ bool MountExecutor::findHomeByHallSensor(StepperAxis axis, int initialDirection,
 /// mount loop calls every tick.
 void MountExecutor::processHomingProgress()
 {
-    if (kHasRaHoming && (_raHoming != nullptr) && (!_raHoming->isIdleOrComplete()))
+    if (kHasRaHoming && (_axes.raHoming() != nullptr) && (!_axes.raHoming()->isIdleOrComplete()))
     {
-        _raHoming->processHomingProgress();
-        if (_raHoming->isIdleOrComplete())
+        _axes.raHoming()->processHomingProgress();
+        if (_axes.raHoming()->isIdleOrComplete())
         {
-            publishEvent(core::MountEventType::HomingFinished, _raHoming->homingResult() == core::HomingResult::Succeeded);
+            publishEvent(core::MountEventType::HomingFinished, _axes.raHoming()->homingResult() == core::HomingResult::Succeeded);
         }
     }
 
-    if (kHasDecHoming && (_decHoming != nullptr) && (!_decHoming->isIdleOrComplete()))
+    if (kHasDecHoming && (_axes.decHoming() != nullptr) && (!_axes.decHoming()->isIdleOrComplete()))
     {
-        _decHoming->processHomingProgress();
-        if (_decHoming->isIdleOrComplete())
+        _axes.decHoming()->processHomingProgress();
+        if (_axes.decHoming()->isIdleOrComplete())
         {
-            publishEvent(core::MountEventType::HomingFinished, _decHoming->homingResult() == core::HomingResult::Succeeded);
+            publishEvent(core::MountEventType::HomingFinished, _axes.decHoming()->homingResult() == core::HomingResult::Succeeded);
         }
     }
 }
@@ -2365,24 +2332,24 @@ void MountExecutor::processHomingProgress()
 /// debounced state. On a board without them both calls compile out.
 void MountExecutor::pollEndSwitches()
 {
-    if (kHasRaEndSwitch && (_raEndSwitch != nullptr))
+    if (kHasRaEndSwitch && (_axes.raEndSwitch() != nullptr))
     {
-        _raEndSwitch->processEndSwitchState();
-        _raEndSwitch->checkSwitchState();
+        _axes.raEndSwitch()->processEndSwitchState();
+        _axes.raEndSwitch()->checkSwitchState();
     }
 
-    if (kHasDecEndSwitch && (_decEndSwitch != nullptr))
+    if (kHasDecEndSwitch && (_axes.decEndSwitch() != nullptr))
     {
-        _decEndSwitch->processEndSwitchState();
-        _decEndSwitch->checkSwitchState();
+        _axes.decEndSwitch()->processEndSwitchState();
+        _axes.decEndSwitch()->checkSwitchState();
     }
 }
 
 const char *MountExecutor::getAutoHomingStates() const
 {
-    String state = homingStateText(kHasRaHoming && (_raHoming != nullptr), _raHoming);
+    String state = homingStateText(kHasRaHoming && (_axes.raHoming() != nullptr), _axes.raHoming());
     state += "|";
-    state += homingStateText(kHasDecHoming && (_decHoming != nullptr), _decHoming);
+    state += homingStateText(kHasDecHoming && (_axes.decHoming() != nullptr), _axes.decHoming());
     _readoutScratch = state;
     return _readoutScratch.c_str();
 }
@@ -2453,7 +2420,7 @@ void MountExecutor::loop()
     }
 #endif
 
-    // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _stepperFocus->isRunning());
+    // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _axes.focus()->isRunning());
 
     if (_coordinator.focus().isRunning())
     {
@@ -2463,11 +2430,11 @@ void MountExecutor::loop()
     bool oneIsRunning = false;
     if (kHasAzStepper)
     {
-        oneIsRunning |= _stepperAZ->isRunning();
+        oneIsRunning |= _axes.az()->isRunning();
     }
     if (kHasAltStepper)
     {
-        oneIsRunning |= _stepperALT->isRunning();
+        oneIsRunning |= _axes.alt()->isRunning();
     }
 
     // The controller half of a tick: dispatch published facts, poll the axes, then the guide
@@ -2481,11 +2448,11 @@ void MountExecutor::loop()
         disableAzAltMotors();
         if (kHasAzStepper)
         {
-            _deps.settings->storeAZPosition(_stepperAZ->currentPosition());
+            _deps.settings->storeAZPosition(_axes.az()->currentPosition());
         }
         if (kHasAltStepper)
         {
-            _deps.settings->storeALTPosition(_stepperALT->currentPosition());
+            _deps.settings->storeALTPosition(_axes.alt()->currentPosition());
         }
     }
 
@@ -2513,12 +2480,12 @@ void MountExecutor::loop()
         return;
     }
 
-    if (_stepperDEC->isRunning())
+    if (_axes.dec()->isRunning())
     {
         decStillRunning = true;
     }
 
-    if (_stepperRA->isRunning())
+    if (_axes.ra()->isRunning())
     {
         raStillRunning = true;
     }
@@ -2541,8 +2508,8 @@ void MountExecutor::loop()
             OAT_LOG(_deps.logger,
                     DEBUG_MOUNT | DEBUG_STEPPERS,
                     "[MOUNT]: Loop: Reached target. RA:%ld, DEC:%ld",
-                    _stepperRA->currentPosition(),
-                    _stepperDEC->currentPosition());
+                    _axes.ra()->currentPosition(),
+                    _axes.dec()->currentPosition());
 
             // The rules for what happens at the end of a slew live in
             // core/SlewCompletion.hpp, as a plan this loop executes in order. The facts they
@@ -2571,7 +2538,7 @@ void MountExecutor::loop()
                 _coordinator.slew().restore(savedSlew);
             }
 
-            _currentRAStepperPosition = _stepperRA->currentPosition();
+            _currentRAStepperPosition = _axes.ra()->currentPosition();
             if (plan.raTrackingMicrosteps)  // RA stays in slew configuration while homing
             {
                 setRaMicrosteps(_config.raTrackingMicrosteps());
@@ -2612,7 +2579,7 @@ void MountExecutor::loop()
                         (int) _currentRAStepperPosition,
                         _settings.backlashCorrectionSteps());
                 _currentRAStepperPosition += _settings.backlashCorrectionSteps();
-                _stepperRA->runToNewPosition(_currentRAStepperPosition);
+                _axes.ra()->runToNewPosition(_currentRAStepperPosition);
                 _coordinator.slew().clearBacklashCorrection();
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
@@ -2642,9 +2609,9 @@ void MountExecutor::loop()
                         "[MOUNT]: Loop:   Was parking, so no tracking. Proceeding to park position...");
                 _coordinator.parking().beginPositionLeg();
                 applyParkingStatus();
-                _stepperRA->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
-                _stepperDEC->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
-                _coordinator.slew().setTotalMove(1.0f * _stepperRA->distanceToGo(), 1.0f * _stepperDEC->distanceToGo());
+                _axes.ra()->moveTo(-getHomingOffset(StepperAxis::RA_STEPS));
+                _axes.dec()->moveTo(-getHomingOffset(StepperAxis::DEC_STEPS));
+                _coordinator.slew().setTotalMove(1.0f * _axes.ra()->distanceToGo(), 1.0f * _axes.dec()->distanceToGo());
                 OAT_LOG(_deps.logger,
                         DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Park Position is R:%ld  D:%ld, TotalMove is R:%f, D:%f",
@@ -2652,7 +2619,7 @@ void MountExecutor::loop()
                         -getHomingOffset(StepperAxis::DEC_STEPS),
                         _coordinator.slew().totalRaSteps(),
                         _coordinator.slew().totalDecSteps());
-                parkLegIsNoOp = core::SlewCompletion::parkLegIsNoOp(_stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
+                parkLegIsNoOp = core::SlewCompletion::parkLegIsNoOp(_axes.ra()->distanceToGo(), _axes.dec()->distanceToGo());
                 if (parkLegIsNoOp)
                 {
                     OAT_LOG(_deps.logger, DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Already at Parking pos, so done.");
@@ -2747,7 +2714,7 @@ void MountExecutor::setDecLimitPosition(bool upper, float limitAngle)
     {
         if (limitAngle == 0)
         {
-            _settings.setDecUpperLimitSteps(_stepperDEC->currentPosition());
+            _settings.setDecUpperLimitSteps(_axes.dec()->currentPosition());
             _deps.settings->storeDECUpperLimit(fabsf(_settings.decUpperLimitSteps() / _settings.stepsPerDegree(DEC_STEPS)));
         }
         else
@@ -2766,7 +2733,7 @@ void MountExecutor::setDecLimitPosition(bool upper, float limitAngle)
     {
         if (limitAngle == 0)
         {
-            _settings.setDecLowerLimitSteps(_stepperDEC->currentPosition());
+            _settings.setDecLowerLimitSteps(_axes.dec()->currentPosition());
             _deps.settings->storeDECLowerLimit(fabsf(_settings.decLowerLimitSteps() / _settings.stepsPerDegree(DEC_STEPS)));
         }
         else
@@ -2856,10 +2823,10 @@ void MountExecutor::setHome(bool clearZeroPos)
 #endif
     _zeroPosDEC = 0.0f;
 
-    _stepperRA->setCurrentPosition(0);
-    _stepperDEC->setCurrentPosition(0);
-    _stepperTRK->setCurrentPosition(0);
-    _stepperGUIDE->setCurrentPosition(0);
+    _axes.ra()->setCurrentPosition(0);
+    _axes.dec()->setCurrentPosition(0);
+    _axes.tracking()->setCurrentPosition(0);
+    _axes.guide()->setCurrentPosition(0);
 
     _targetRA = currentRA();
     _coordinator.slew().end();
@@ -2890,11 +2857,11 @@ float MountExecutor::getSpeed(int direction)
     }
     if (direction & (NORTH | SOUTH))
     {
-        return _stepperDEC->speed();
+        return _axes.dec()->speed();
     }
     if (direction & (EAST | WEST))
     {
-        return _stepperRA->speed();
+        return _axes.ra()->speed();
     }
     return 0;
 }
@@ -2936,9 +2903,9 @@ void MountExecutor::calculateRAandDECSteppers(long &targetRASteps, long &targetD
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersPre: Stepper: RA: %ld, DEC: %ld, TRK: %ld",
-            _stepperRA->currentPosition(),
-            _stepperDEC->currentPosition(),
-            _stepperTRK->currentPosition());
+            _axes.ra()->currentPosition(),
+            _axes.dec()->currentPosition(),
+            _axes.tracking()->currentPosition());
     DayTime raTarget      = _targetRA;
     Declination decTarget = _targetDEC;
 
@@ -2955,7 +2922,7 @@ void MountExecutor::calculateRAandDECSteppers(long &targetRASteps, long &targetD
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Tracked time is %ld steps (%f h).",
-            _stepperTRK->currentPosition(),
+            _axes.tracking()->currentPosition(),
             trackedHours);
 
     core::SlewGeometryFacts facts;
@@ -3066,13 +3033,13 @@ void MountExecutor::moveSteppersTo(float targetRASteps, float targetDECSteps, St
     // Show time: tell the steppers where to go!
     _coordinator.slew().clearBacklashCorrection();
     OAT_LOG(
-        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: RA  From: %ld  To: %f", _stepperRA->currentPosition(), targetRASteps);
+        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: RA  From: %ld  To: %f", _axes.ra()->currentPosition(), targetRASteps);
     OAT_LOG(
-        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC From: %ld  To: %f", _stepperDEC->currentPosition(), targetDECSteps);
+        _deps.logger, DEBUG_STEPPERS, "[STEPPERS]: MoveSteppersTo: DEC From: %ld  To: %f", _axes.dec()->currentPosition(), targetDECSteps);
 
     if ((direction == RA_AND_DEC_STEPS) || (direction == RA_STEPS))
     {
-        if ((_settings.backlashCorrectionSteps() != 0) && ((_stepperRA->currentPosition() - targetRASteps) > 0))
+        if ((_settings.backlashCorrectionSteps() != 0) && ((_axes.ra()->currentPosition() - targetRASteps) > 0))
         {
             OAT_LOG(_deps.logger,
                     DEBUG_STEPPERS,
@@ -3082,7 +3049,7 @@ void MountExecutor::moveSteppersTo(float targetRASteps, float targetDECSteps, St
             _coordinator.slew().requestBacklashCorrection();
         }
 
-        _stepperRA->moveTo(targetRASteps);
+        _axes.ra()->moveTo(targetRASteps);
     }
 
     if ((direction == RA_AND_DEC_STEPS) || (direction == DEC_STEPS))
@@ -3104,7 +3071,7 @@ void MountExecutor::moveSteppersTo(float targetRASteps, float targetDECSteps, St
                     _settings.decLowerLimitSteps());
         }
 
-        _stepperDEC->moveTo(limited.steps);
+        _axes.dec()->moveTo(limited.steps);
     }
 }
 
@@ -3142,8 +3109,8 @@ void MountExecutor::moveStepperBy(StepperAxis direction, long steps)
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             publishEvent(core::MountEventType::SlewStarted);
             _coordinator.slew().noteRunning(true);
-            moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
-            _coordinator.slew().setTotalMove(1.0f * _stepperRA->distanceToGo(), _coordinator.slew().totalDecSteps());
+            moveSteppersTo(_axes.ra()->currentPosition() + steps, 0, direction);
+            _coordinator.slew().setTotalMove(1.0f * _axes.ra()->distanceToGo(), _coordinator.slew().totalDecSteps());
             break;
 
         case DEC_STEPS:
@@ -3152,8 +3119,8 @@ void MountExecutor::moveStepperBy(StepperAxis direction, long steps)
             // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
             setDecMicrosteps(_config.decSlewMicrosteps);
             _coordinator.slew().noteRunning(true);
-            moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
-            _coordinator.slew().setTotalMove(_coordinator.slew().totalRaSteps(), 1.0f * _stepperDEC->distanceToGo());
+            moveSteppersTo(0, _axes.dec()->currentPosition() + steps, direction);
+            _coordinator.slew().setTotalMove(_coordinator.slew().totalRaSteps(), 1.0f * _axes.dec()->distanceToGo());
             break;
 
         case FOCUS_STEPS:
@@ -3170,9 +3137,9 @@ void MountExecutor::moveStepperBy(StepperAxis direction, long steps)
                 OAT_LOG(_deps.logger,
                         DEBUG_STEPPERS,
                         "[STEPPERS]: moveStepperBy: AZ from %ld to %ld",
-                        _stepperAZ->currentPosition(),
-                        _stepperAZ->currentPosition() + steps);
-                _stepperAZ->moveTo(_stepperAZ->currentPosition() + steps);
+                        _axes.az()->currentPosition(),
+                        _axes.az()->currentPosition() + steps);
+                _axes.az()->moveTo(_axes.az()->currentPosition() + steps);
             }
             break;
 
@@ -3180,7 +3147,7 @@ void MountExecutor::moveStepperBy(StepperAxis direction, long steps)
             if (kHasAltStepper)
             {
                 enableAltMotor();
-                _stepperALT->moveTo(_stepperALT->currentPosition() + steps);
+                _axes.alt()->moveTo(_axes.alt()->currentPosition() + steps);
             }
             break;
 
@@ -3282,7 +3249,7 @@ bool MountExecutor::getStepperProgress(int &raPercentage, int &decPercentage)
 {
     // The rules live in core::SlewProgressReport; this gathers the four numbers it needs.
     const core::SlewProgress progress = core::SlewProgressReport::evaluate(
-        _coordinator.slew().totalRaSteps(), _coordinator.slew().totalDecSteps(), _stepperRA->distanceToGo(), _stepperDEC->distanceToGo());
+        _coordinator.slew().totalRaSteps(), _coordinator.slew().totalDecSteps(), _axes.ra()->distanceToGo(), _axes.dec()->distanceToGo());
     raPercentage  = progress.raPercent;
     decPercentage = progress.decPercent;
     return progress.inProgress;
@@ -3389,7 +3356,7 @@ void MountExecutor::testRA_UART_TX()
             "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) for UART test",
             _config.raSlewMicrosteps);
     setRaMicrosteps(_config.raSlewMicrosteps);
-    testUART_vactual(_driverRA, speed, duration);
+    testUART_vactual(_axes.raDriver(), speed, duration);
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) after UART test",
@@ -3410,7 +3377,7 @@ void MountExecutor::testDEC_UART_TX()
             "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test",
             _config.decSlewMicrosteps);
     setDecMicrosteps(_config.decSlewMicrosteps);
-    testUART_vactual(_driverDEC, speed, duration);
+    testUART_vactual(_axes.decDriver(), speed, duration);
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) after UART test",
@@ -3459,7 +3426,7 @@ float MountExecutor::checkRALimit()
     core::RaLimitFacts facts;
     facts.homeRaHours        = DayTime(_siteTime.raZeroPoint()).getTotalHours() + getTrackedHours();
     facts.currentRaHours     = currentRA().getTotalHours();
-    facts.decAxisDegrees     = (_stepperDEC->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;
+    facts.decAxisDegrees     = (_axes.dec()->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;
     facts.northernHemisphere = inNorthernHemisphere;
     facts.limitHours         = RA_TRACKING_LIMIT;
 

@@ -4,6 +4,8 @@
 #include "../Latitude.hpp"
 #include "../Longitude.hpp"
 #include "../Types.hpp"
+#include "AxisBank.hpp"
+#include "BoardPresence.hpp"
 #include "../core/AzAltController.hpp"
 #include "../core/EventBus.hpp"
 #include "../core/FocusController.hpp"
@@ -107,6 +109,13 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
 
     void initializeVariables();
 
+    /// The hardware this board has. Exposed so the step pump can hold a reference to it: the axes
+    /// are built in `setup()` while the pump is a static, so a copy would capture the empty bank.
+    AxisBank &axes()
+    {
+        return _axes;
+    }
+
     /// The session's site and time state. Exposed so the site/time port can be built over it:
     /// the mount still owns the storage, the adapter owns the write protocol around it.
     core::SiteTime &siteTime()
@@ -116,63 +125,16 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
 
     void configureHemisphere(bool isNorthern, bool force = false);
 
-    /// The axes this board has, as the composition root built them. A null entry means the build
-    /// has no such axis; `az`, `alt` and `focus` are the optional ones.
-    struct Steppers {
-        ports::IStepperAxis *ra       = nullptr;
-        ports::IStepperAxis *tracking = nullptr;
-        ports::IStepperAxis *dec      = nullptr;
-        ports::IStepperAxis *guide    = nullptr;
-        ports::IStepperAxis *az       = nullptr;
-        ports::IStepperAxis *alt      = nullptr;
-        ports::IStepperAxis *focus    = nullptr;
-    };
-
-    /// Takes the axes the composition root built, plus the limits they run at, and wires them into
-    /// the controllers. The engines themselves — and with them every platform `#ifdef` — live in
-    /// `app/MotorWiring.cpp`; nothing here constructs one.
-    void attachSteppers(const Steppers &steppers, const core::AxisLimits &limits);
-
-    /// The drivers the composition root fitted, null where this board has none. A null entry is
-    /// replaced by the null driver, so the call sites below stay unguarded.
-    struct Drivers {
-        ports::IMotorDriver *ra    = nullptr;
-        ports::IMotorDriver *dec   = nullptr;
-        ports::IMotorDriver *az    = nullptr;
-        ports::IMotorDriver *alt   = nullptr;
-        ports::IMotorDriver *focus = nullptr;
-    };
+    /// Takes the axes the composition root built, plus the limits they run at, and wires the
+    /// controller half into them. The engines themselves — and with them every platform `#ifdef` —
+    /// live in `app/MotorWiring.cpp`; nothing here constructs one.
+    void attachSteppers(const AxisBank::Steppers &steppers, const core::AxisLimits &limits);
 
     /// Takes the drivers `app/DriverWiring.cpp` built and programmed.
-    void attachDrivers(const Drivers &drivers);
+    void attachDrivers(const AxisBank::Drivers &drivers);
 
-    /// The end switches and hall sensors the composition root built, null where this board has
-    /// none. `app/SensorWiring.cpp` creates them once; the homing state machine restarts itself
-    /// on each run, so a single instance per axis is enough.
-    struct Sensors {
-        EndSwitch *raEndSwitch      = nullptr;
-        EndSwitch *decEndSwitch     = nullptr;
-        HallSensorHoming *raHoming  = nullptr;
-        HallSensorHoming *decHoming = nullptr;
-    };
-
-    void attachSensors(const Sensors &sensors);
-
-    /// Compile-time presence of the optional hardware, so the parts a board cannot have cost
-    /// neither flash nor a branch.
-    ///
-    /// This is the compile-time half of the `kHasX && ptr != nullptr` test the call sites use: a
-    /// board that cannot have the part still pays for the pointer (8 B of SRAM on AVR) but not
-    /// for the code behind it, because the constant lets the compiler drop the branch entirely.
-    /// Public because the step pump in `app/` is compiled per board too and must ask the same
-    /// questions — one definition, so the two cannot disagree.
-    static constexpr bool kHasAzStepper    = (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE);
-    static constexpr bool kHasAltStepper   = (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE);
-    static constexpr bool kHasFocusStepper = (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE);
-    static constexpr bool kHasRaEndSwitch  = (USE_RA_END_SWITCH == 1);
-    static constexpr bool kHasDecEndSwitch = (USE_DEC_END_SWITCH == 1);
-    static constexpr bool kHasRaHoming     = (USE_HALL_SENSOR_RA_AUTOHOME == 1);
-    static constexpr bool kHasDecHoming    = (USE_HALL_SENSOR_DEC_AUTOHOME == 1);
+    /// Takes the end switches and hall sensors `app/SensorWiring.cpp` built.
+    void attachSensors(const AxisBank::Sensors &sensors);
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
     || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
@@ -559,8 +521,6 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 #endif
-    /// The speed and acceleration each axis was built with, restored when a slew changes rate.
-    core::AxisLimits _limits;
     /// The live, EEPROM-backed motion settings: u-steps/degree, backlash, slew rate, DEC limits.
     core::MountRuntimeSettings _settings;
 
@@ -590,41 +550,10 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     /// Backing store for the status line in `InfoDisplayState`, for the same reason.
     String _infoStatusScratch;
 
-    // Stepper control for RA, DEC and TRK.
-    //
-    // Held through the axis port on every platform, including AVR: the interrupt-stepper engines
-    // are constructed behind `hal::avr::InterruptStepperMotor` by the composition root's factory,
-    // so the concrete engine types never reach this class. The AVR step generator is the engine's
-    // own ISR, not `app::StepPump` (compiled out for `NEW_STEPPER_LIB`), so no virtual call
-    // reaches the stepping path.
-    ports::IStepperAxis *_stepperRA;
-    ports::IStepperAxis *_stepperTRK;
-    ports::IStepperAxis *_stepperDEC;
-    ports::IStepperAxis *_stepperGUIDE;
-    // Driver ports. Always set: a board whose driver has no registers behind it holds the
-    // null object, so the call sites below need no guard.
-    ports::IMotorDriver *_driverRA;
-    ports::IMotorDriver *_driverDEC;
-
-    // Optional axes: present at run time or null. Every caller guards with kHasXStepper.
-    ports::IStepperAxis *_stepperAZ = nullptr;
-    float _stepsPerAZDegree;  // u-steps/degree (from CTOR)
-    ports::IMotorDriver *_driverAZ;
-    ports::IStepperAxis *_stepperALT = nullptr;
-    float _stepsPerALTDegree;  // u-steps/degree (from CTOR)
-    ports::IMotorDriver *_driverALT;
-
-    // The axis is attached by configureFocusStepper(), and stays null when this build has
-    // no focuser.
-    ports::IStepperAxis *_stepperFocus = nullptr;
-    ports::IMotorDriver *_driverFocus;
-
-    // Optional hardware, present at run time or null.
-    //
-    HallSensorHoming *_raHoming  = nullptr;
-    HallSensorHoming *_decHoming = nullptr;
-    EndSwitch *_raEndSwitch      = nullptr;
-    EndSwitch *_decEndSwitch     = nullptr;
+    /// The axes, drivers, sensors and limits this board has. The only object that holds them, so
+    /// every cluster below reaches the hardware through one owner instead of through loose members
+    /// nobody owns. Held by value: same bytes as the pointers it replaces.
+    AxisBank _axes;
 
     unsigned long _lastMountPrint = 0;
 

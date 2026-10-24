@@ -197,16 +197,13 @@ adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, settingsStore, 
 #endif
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
-app::MountExecutor::Steppers allSteppers;
-app::MountExecutor::Sensors allSensors;
-
-    // Starts empty and is filled by `app::attachSteppers()`/`attachSensors()` in `setup()`; the pump
-    // holds references, so it sees the axes as soon as they exist. It is a static rather than a
-    // local because the timer ISR needs a fixed address.
+    // The bank starts empty and `app::attachSteppers()` fills it in `setup()`; the pump holds a
+    // reference, so it sees the axes as soon as they exist. It is a static rather than a local
+    // because the timer ISR needs a fixed address.
     #ifdef ESP32
-DRAM_ATTR app::StepPump stepPump(mountCoordinator.state(), mountCoordinator.focus(), allSteppers, allSensors);
+DRAM_ATTR app::StepPump stepPump(mountCoordinator.state(), mountCoordinator.focus(), mount.axes());
     #else
-app::StepPump stepPump(mountCoordinator.state(), mountCoordinator.focus(), allSteppers, allSensors);
+app::StepPump stepPump(mountCoordinator.state(), mountCoordinator.focus(), mount.axes());
     #endif
 #endif
 

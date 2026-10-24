@@ -40,7 +40,7 @@ namespace app
 
 void attachSteppers(app::MountExecutor &mount)
 {
-    app::MountExecutor::Steppers steppers;
+    app::AxisBank::Steppers steppers;
     core::AxisLimits limits;
 
 #if (RA_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -157,10 +157,6 @@ void attachSteppers(app::MountExecutor &mount)
 #endif
 
     mount.attachSteppers(steppers, limits);
-
-#if defined(ESP32) || !defined(NEW_STEPPER_LIB)
-    allSteppers = steppers;
-#endif
 }
 
 }  // namespace app

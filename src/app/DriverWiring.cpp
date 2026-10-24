@@ -523,7 +523,7 @@ namespace app
 void attachDrivers(app::MountExecutor &mount)
 {
     const core::MountConfig config = buildMountConfig();
-    app::MountExecutor::Drivers drivers;
+    app::AxisBank::Drivers drivers;
 
     (void) config;  // only the UART builds read it
 
