@@ -32,7 +32,6 @@
 #include "ports/IMountReadModel.hpp"
 #include "ports/IMountSiteTime.hpp"
 #include "ports/IInfoDisplay.hpp"
-#include "ports/IStatusFlags.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IScheduler.hpp"
 #include "ports/IStepperAxis.hpp"
@@ -117,8 +116,7 @@ struct MountDeps {
 class Mount final : public ports::IMountOptionalAxes,
                     public ports::IMountReadModel,
                     public ports::IMountSiteTime,
-                    public ports::IInfoDisplaySource,
-                    public ports::IStatusFlags
+                    public ports::IInfoDisplaySource
 {
   public:
     /// Every controller the mount drives, in one object. The composition root owns it and builds
@@ -411,10 +409,6 @@ class Mount final : public ports::IMountOptionalAxes,
     bool isAxisRunning(StepperAxis axis) override;
     const char *raText(uint8_t type, uint8_t active = 0) override;
     const char *decText(uint8_t type, uint8_t active = 0) override;
-
-    /// `ports::IStatusFlags`: the raw bitfield the legacy homing/end-switch helpers write.
-    void set(uint16_t bits) override;
-    void clear(uint16_t bits) override;
 
     ports::InfoDisplayActivity activity() override;
 

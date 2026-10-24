@@ -7,11 +7,16 @@
 #include "../HallSensorHoming.hpp"
 #include "../adapters/GpioEndSwitch.hpp"
 #include "../adapters/HallHomingSensor.hpp"
+#include "../adapters/StatusFlags.hpp"
 #include "../hal/arduino/ArduinoGpioPin.hpp"
 
 namespace
 {
 #if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1) || (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
+/// The status bits the homing state machine writes. The coordinator owns the bitfield, so the
+/// homing code no longer needs the mount object for it.
+adapters::StatusFlags statusFlags(mountCoordinator.state());
+
 hal::PinLevel toPinLevel(int activeState)
 {
     return (activeState == LOW) ? hal::PinLevel::Low : hal::PinLevel::High;
@@ -61,13 +66,13 @@ void attachSensors(Mount &mount)
 #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    sensors.raHoming
-        = new HallSensorHoming(ui, mount, StepperAxis::RA_STEPS, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
+    sensors.raHoming = new HallSensorHoming(
+        ui, statusFlags, StepperAxis::RA_STEPS, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
 #endif
 
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    sensors.decHoming
-        = new HallSensorHoming(ui, mount, StepperAxis::DEC_STEPS, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
+    sensors.decHoming = new HallSensorHoming(
+        ui, statusFlags, StepperAxis::DEC_STEPS, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
 #endif
 
     mount.attachSensors(sensors);

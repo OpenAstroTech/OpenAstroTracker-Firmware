@@ -47,6 +47,7 @@ static_assert(static_cast<uint8_t>(core::SlewDirection::Tracking) == TRACKING, "
 #include "adapters/NullMotorDriver.hpp"
 #include "adapters/Tmc2209Driver.hpp"
 
+#include "hal/CriticalSection.hpp"
 #include "hal/arduino/ArduinoGpioPin.hpp"
 
 namespace
@@ -1854,23 +1855,26 @@ void Mount::publishEvent(core::MountEventType type, bool succeeded)
 
 void Mount::setStatus(int state)
 {
-    noInterrupts();
+    // The bitfield is a read-modify-write; hal's guard is what makes it safe against the step
+    // generator. See hal/CriticalSection.hpp.
+    const hal::CriticalSection lock;
     _coordinator.state().reset((uint16_t) state);
-    interrupts();
 }
 
 void Mount::setStatusFlag(int flag)
 {
-    noInterrupts();
+    // The bitfield is a read-modify-write; hal's guard is what makes it safe against the step
+    // generator. See hal/CriticalSection.hpp.
+    const hal::CriticalSection lock;
     _coordinator.state().set((uint16_t) flag);
-    interrupts();
 }
 
 void Mount::clearStatusFlag(int flag)
 {
-    noInterrupts();
+    // The bitfield is a read-modify-write; hal's guard is what makes it safe against the step
+    // generator. See hal/CriticalSection.hpp.
+    const hal::CriticalSection lock;
     _coordinator.state().clear((uint16_t) flag);
-    interrupts();
 }
 
 /////////////////////////////////
@@ -3372,16 +3376,6 @@ void Mount::moveStepperTo(StepperAxis axis, long position)
     long curPos = getCurrentStepperPosition(axis);
     long delta  = position - curPos;
     moveStepperBy(axis, delta);
-}
-
-void Mount::set(uint16_t bits)
-{
-    setStatusFlag(bits);
-}
-
-void Mount::clear(uint16_t bits)
-{
-    clearStatusFlag(bits);
 }
 
 /////////////////////////////////
