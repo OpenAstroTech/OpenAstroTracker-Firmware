@@ -58,16 +58,6 @@ adapters::NullMotorDriver nullDriver;
 
 }  // namespace
 
-PUSH_NO_WARNINGS
-#include <AccelStepper.h>
-
-#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                          \
-    || (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) || (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)                                       \
-    || (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
-    #include <TMCStepper.h>  // If you get an error here, download the TMCstepper library from "Tools > Manage Libraries"
-#endif
-POP_NO_WARNINGS
-
 // slewStatus()
 #define SLEWING_DEC      B00000010
 #define SLEWING_RA       B00000001
