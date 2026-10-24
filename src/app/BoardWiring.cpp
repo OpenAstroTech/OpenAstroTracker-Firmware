@@ -276,7 +276,18 @@ void stepperControlTimerCallback(void *payload)
 
 bool connectToDriver(const char *driverKind, uint16_t *rmsCurrent)
 {
+    // Only a UART driver has registers to talk to, and `Mount` does not declare the call on a
+    // board without one. The bring-up screen asks unconditionally, so a board with no UART
+    // driver answers "not connected" rather than failing to compile.
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                              \
+    || AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART || ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART                                           \
+    || FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     return mount.connectToDriver(String(driverKind), rmsCurrent);
+#else
+    (void) driverKind;
+    (void) rmsCurrent;
+    return false;
+#endif
 }
 
 void initPersistentStore()

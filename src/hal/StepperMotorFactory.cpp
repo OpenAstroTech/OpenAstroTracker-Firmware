@@ -3,7 +3,10 @@
 #include "../../Configuration.hpp"
 #include "../Utility.hpp"
 
-#ifdef ARDUINO_AVR_ATmega2560
+// The interrupt engines only exist on the AVR core *and* only when the interrupt stepper library
+// is selected: `avr/StepperConfiguration.hpp` declares them under `NEW_STEPPER_LIB`. An ATmega2560
+// built without it drives the axes through `AccelStepper` like any other board.
+#if defined(ARDUINO_AVR_ATmega2560) && defined(NEW_STEPPER_LIB)
     #include "avr/InterruptStepperFactory.hpp"
 
 /// `AccelStepper::DRIVER`, the interface style the engines were always built with. The interrupt
@@ -21,7 +24,7 @@ namespace hal
 
 IStepperMotor *makeAxisMotor(AxisRole role, uint8_t pin1, uint8_t pin2)
 {
-#ifdef ARDUINO_AVR_ATmega2560
+#if defined(ARDUINO_AVR_ATmega2560) && defined(NEW_STEPPER_LIB)
     switch (role)
     {
         case AxisRole::RaSlew:
