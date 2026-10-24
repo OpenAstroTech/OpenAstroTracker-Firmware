@@ -55,3 +55,27 @@ TEST(CoordinateReadTest, DeclinationIncludesTheZeroOffset)
     const core::Declination dec = core::currentDec(factsAt(0, 360, 0.0f, 5.0f));
     EXPECT_NEAR(6.0f, dec.getTotalHours(), 0.001f);
 }
+
+TEST(CoordinateReadTest, HourAngleWrapsWhenItRunsPastTwentyFourHours)
+{
+    // Zero point just short of midnight; negative RA steps push the hour angle past it.
+    core::PositionFacts facts = factsAt(-1000, 0, 23.99f);
+    facts.raStepsPerDegree    = 360.0f;
+
+    const float hours = core::currentRa(facts).getTotalHours();
+
+    EXPECT_LT(hours, 1.0f) << "should have wrapped into the new day, was " << hours;
+    EXPECT_GE(hours, 0.0f);
+}
+
+TEST(CoordinateReadTest, HourAngleWrapsWhenItRunsBelowZero)
+{
+    // Zero point just after midnight; positive RA steps take the hour angle negative.
+    core::PositionFacts facts = factsAt(1000, 0, 0.1f);
+    facts.raStepsPerDegree    = 360.0f;
+
+    const float hours = core::currentRa(facts).getTotalHours();
+
+    EXPECT_GT(hours, 23.0f) << "should have wrapped to the previous day, was " << hours;
+    EXPECT_LE(hours, 24.0f);
+}
