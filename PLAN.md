@@ -793,8 +793,12 @@ format, the two sensor helpers and the utility grab-bag.*
   `app/HomingRunner.*` inside `namespace app`. They were already port-based, so the move is an
   address change: `mksgenlv21` RAM unchanged, +4 B flash. The end-switch poll keeps its
   no-allocation, no-logging shape because it still runs in the step generator.
-- **8.6b (next):** the seven-state machine is still interleaved with the port reads; extracting it
-  as `core::EndSwitchState` is what gives it tests.
+- ✅ **8.6b** `core::pollLimit` (the step-generator half: state in, state plus an edge out),
+  `core::checkLimit` (the main-loop half: state plus motion facts in, one action out) and
+  `core::backOffDistance` (the hysteresis arithmetic). `app::EndSwitchMonitor` keeps only the two
+  switch references, the direction bits and the latched position. 12 tests, including the
+  precedence the original had — both switches active means "maximum" — and the ISR path is still a
+  POD switch, so nothing new waits there.
 - ✅ **8.5b** the board defaults (four steps-per-degree figures, backlash, the microstep ratios the
   stored numbers are normalised against) are injected as an `AxisDefaults` value the composition root
   builds, so `EepromSettingsFormat` compiles and runs on the host: 8 tests cover the blank-store
@@ -832,7 +836,7 @@ None of this is a design question any more. Every surface the UI needs exists: `
 | 8.3 ✅ | **Button port** | `LcdButtons`' three decoders | `core/ButtonDebounce` + `hal/*/…Buttons` + `adapters/DebouncedButtons` | ~155 | medium — the 5 ms rule is only observable on-device |
 | 8.4 ✅ | **Status panel** (closes 7.3.1) | `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | `core/InfoDisplayLayout`, `core/ConsoleLog`, `adapters/Ssd1306InfoDisplay` | ~680 | medium — frozen pixels |
 | 8.5a ✅ / 8.5b | **Settings format** | `EPROMStore` | `adapters/EepromSettingsFormat` + its first tests | ~1,000 | low — mechanical, and finally host-testable |
-| 8.6a ✅ / 8.6b | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
+| 8.6 ✅ | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
 | 8.7a ✅ / 8.7b | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
 | 8.8 | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
 | 8.9 | **Factory test console** | `testmenu.*`, `testmenudef.hpp` | `app/test/TestConsole` | ~860 | low — build-flag gated |
