@@ -181,7 +181,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── MountExecutor.hpp/.cpp       # the motion executor + the ports the UI calls (was src/Mount.*)
 │   │   ├── AxisBank.hpp/.cpp            # owns the axes, drivers, sensors and their limits (done)
 │   │   ├── BoardPresence.hpp            # compile-time "which parts does this board have" (done)
-│   │   ├── MountReadout.hpp/.cpp        # the read model's formatting half (done)
+│   │   ├── MountReadout.hpp/.cpp        # read model + IInfoDisplaySource (done)
 │   │   └── MountConfigBuilder.hpp       # Configuration*.hpp -> runtime MountConfig (done)
 │   │
 │   ├── adapters/                        # PORT -> HAL GLUE
