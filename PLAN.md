@@ -824,9 +824,17 @@ format, the two sensor helpers and the utility grab-bag.*
   header-only so `app/ui` links on the host, and `MenuKeyInput` now carries the held key as well as
   the edge, because these screens act on a held key. 9 tests, including both exact row widths.
   `c70_menuRA.hpp` and `c71_menuDEC.hpp` are deleted.
+- 🟡 **8.8b — the FOCUS screen converted.** `app::FocusMenu` keeps the two legacy states
+  (`Highlight` on the "Focus Adjust" row, `Adjust` on the rate row), and reproduces the rate row
+  marker formula exactly — `>` at `6 + rate * 2` and `<` at `8 + rate * 2`, which land on the spaces
+  *adjacent* to the selected rate, not around it (`Rate:  1 2 3>4<-`). 8 tests cover both states, the
+  continuous move on a held UP/DOWN, the stop on release and the `~`/`^` direction glyph in the last
+  column. `FakeOptionalAxes` is the first fake to have to satisfy the full
+  `IMountOptionalAxes : IMountConfiguration : IMountMotion` chain. `c77_menuFOC.hpp` is deleted;
+  `c_buttons.hpp` calls `handleKey()`/`render()` under `#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE`.
 - **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the other
-  nine screens: POI/HA/GPS/CTRL/CAL/FOC/INFO/startup/slew-status), 8.9 (test console), 8.10
-  (`Utility` and the empty root). The root is down from 47 files to 30.
+  eight screens: POI/HA/GPS/CTRL/CAL/INFO/startup/slew-status), 8.9 (test console), 8.10
+  (`Utility` and the empty root). The root is down from 47 files to 29.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

@@ -8,10 +8,10 @@
 #include "c72_menuHA_GPS.hpp"
 #include "c75_menuCTRL.hpp"
 #include "c76_menuCAL.hpp"
-#include "c77_menuFOC.hpp"
 #include "c78_menuINFO.hpp"
 
 #include "app/ui/screens/DecMenu.hpp"
+#include "app/ui/screens/FocusMenu.hpp"
 #include "app/ui/screens/HomeMenu.hpp"
 #include "app/ui/screens/RaMenu.hpp"
 
@@ -31,6 +31,10 @@ unsigned long lastTrackingStatusPrint = 0;
 app::HomeMenu homeMenu;
 app::RaMenu raMenu;
 app::DecMenu decMenu;
+
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+app::FocusMenu focusMenu;
+#endif
 
 /// What the loop hands a converted screen: the key that just settled and the key held now.
 app::MenuKeyInput screenInput()
@@ -222,7 +226,17 @@ void loop()
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
                 case Focuser_Menu:
-                    waitForButtonRelease = processFocuserKeys();
+                    {
+                        const app::MenuKeyResult result = focusMenu.handleKey(screenInput(), *ui.axes);
+                        if (result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
     #endif
 
@@ -325,7 +339,10 @@ void loop()
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
                 else if (activeMenu == Focuser_Menu)
                 {
-                    printFocusSubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        focusMenu.render(*ui.axes, *menuDisplayPort);
+                    }
                 }
     #endif
 
