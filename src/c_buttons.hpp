@@ -3,7 +3,6 @@
 #include "LcdButtons.hpp"
 #include "app/UiScreens.hpp"
 #include "app/BoardWiring.hpp"
-#include "c65_startup.hpp"
 #include "c76_menuCAL.hpp"
 
 #include "app/ui/screens/DecMenu.hpp"
@@ -40,7 +39,7 @@ app::FocusMenu focusMenu;
 bool startupAwaitingHa()
 {
     #if SUPPORT_GUIDED_STARTUP == 1
-    return startupState == StartupWaitForHACompletion;
+    return app::startupWizard.step() == app::StartupWizard::Step::WaitForHaCompletion;
     #else
     return false;
     #endif
@@ -51,10 +50,61 @@ bool startupAwaitingHa()
 bool startupAwaitingPole()
 {
     #if SUPPORT_GUIDED_STARTUP == 1
-    return startupState == StartupWaitForPoleCompletion;
+    return app::startupWizard.step() == app::StartupWizard::Step::WaitForPoleCompletion;
     #else
     return false;
     #endif
+}
+
+/// Applies what the startup wizard asked for. The wizard knows the sequence; the menu, the flags and
+/// the tracking toggle are the loop's, so it says what it wants and this does it.
+void applyStartupOutcome(const app::StartupOutcome &outcome)
+{
+    switch (outcome.action)
+    {
+        case app::StartupAction::HandOverToControlMenu:
+            inStartup      = false;
+            okToUpdateMenu = false;
+            if (outcome.caption != nullptr && menuDisplayPort != nullptr)
+            {
+                menuDisplayPort->writeLine(0, outcome.caption);
+            }
+            lcdMenu.setActive(Control_Menu);
+            app::controlMenu.startManual();
+            break;
+
+        case app::StartupAction::HandOverToCalibration:
+            inStartup = false;
+            if (outcome.caption != nullptr && menuDisplayPort != nullptr)
+            {
+                menuDisplayPort->writeLine(0, outcome.caption);
+            }
+            lcdMenu.setActive(Calibration_Menu);
+            break;
+
+        case app::StartupAction::HandOverToHaMenu:
+            inStartup = false;
+            if (outcome.caption != nullptr && menuDisplayPort != nullptr)
+            {
+                menuDisplayPort->writeLine(0, outcome.caption);
+            }
+            lcdMenu.setActive(HA_Menu);
+            break;
+
+        case app::StartupAction::Completed:
+            inStartup      = false;
+            okToUpdateMenu = true;
+    #if TRACK_ON_BOOT == 1
+            ui.motion->startSlewing(TRACKING);
+    #endif
+            lcdMenu.setActive(RA_Menu);
+            lcdMenu.updateDisplay();
+            break;
+
+        case app::StartupAction::None:
+        default:
+            break;
+    }
 }
 
 /// What the loop hands a converted screen: the key that just settled and the key held now.
@@ -178,7 +228,12 @@ void loop()
     #if SUPPORT_GUIDED_STARTUP == 1
         if (inStartup)
         {
-            waitForButtonRelease = processStartupKeys();
+            const app::StartupOutcome outcome = app::startupWizard.handleKey(screenInput(), ui);
+            applyStartupOutcome(outcome);
+            if (outcome.result == app::MenuKeyResult::WaitForRelease)
+            {
+                waitForButtonRelease = true;
+            }
         }
         else
     #endif
@@ -275,8 +330,8 @@ void loop()
                         if (haOutcome.resumeStartup)
                         {
     #if SUPPORT_GUIDED_STARTUP == 1
-                            startupState = StartupHAConfirmed;
-                            inStartup    = true;
+                            app::startupWizard.haConfirmed();
+                            inStartup = true;
     #endif
                         }
 
@@ -333,8 +388,8 @@ void loop()
                         if (outcome.resumeStartup)
                         {
         #if SUPPORT_GUIDED_STARTUP == 1
-                            startupState = StartupPoleConfirmed;
-                            inStartup    = true;
+                            app::startupWizard.poleConfirmed();
+                            inStartup = true;
         #endif
                         }
                         if (outcome.result == app::MenuKeyResult::NextScreen)
@@ -395,7 +450,10 @@ void loop()
     #if SUPPORT_GUIDED_STARTUP == 1
         if (inStartup)
         {
-            printStartupMenu();
+            if (menuDisplayPort != nullptr)
+            {
+                app::startupWizard.render(*menuDisplayPort);
+            }
         }
         else
     #endif

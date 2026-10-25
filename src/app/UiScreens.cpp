@@ -10,6 +10,10 @@ SlewStatusView slewStatusView;
 ControlMenu controlMenu;
 HaMenu haMenu;
 
+/// The wizard's route depends on two board facts, which is why it is built here rather than in the
+/// screen.
+StartupWizard startupWizard(USE_GYRO_LEVEL == 1, USE_GPS == 1);
+
 #if SUPPORT_POINTS_OF_INTEREST == 1
 PoiMenu poiMenu;
 #endif

@@ -4,6 +4,8 @@
 
     #if SUPPORT_CALIBRATION == 1
 
+        #include "app/UiScreens.hpp"
+
         #if USE_GYRO_LEVEL == 1
             #include "app/BoardWiring.hpp"
         #endif
@@ -230,7 +232,7 @@ bool processCalibrationKeys()
         gyroStarted = true;
     }
 
-    if ((startupState == StartupWaitForRollCompletion) && (calState != ROLL_OFFSET_CALIBRATION))
+    if (((app::startupWizard.step() == app::StartupWizard::Step::WaitForRollCompletion)) && (calState != ROLL_OFFSET_CALIBRATION))
     {
         LOG(DEBUG_INFO, "[CAL]: In Startup, so going to Roll confirm!");
         calState = ROLL_OFFSET_CALIBRATION;
@@ -524,13 +526,13 @@ bool processCalibrationKeys()
                 {
                     if (key == btnSELECT)
                     {
-                        if (startupState == StartupWaitForRollCompletion)
+                        if ((app::startupWizard.step() == app::StartupWizard::Step::WaitForRollCompletion))
                         {
                             LOG(DEBUG_INFO, "[CAL]: Confirmed roll. Going back to Startup, Roll confirmed!");
                             gotoNextMenu();  // Turns of Gyro
-                            inStartup    = true;
-                            startupState = StartupRollConfirmed;
-                            calState     = HIGHLIGHT_FIRST;
+                            inStartup = true;
+                            app::startupWizard.rollConfirmed();
+                            calState = HIGHLIGHT_FIRST;
                         }
                         else
                         {
@@ -542,14 +544,14 @@ bool processCalibrationKeys()
                     }
                     else if (key == btnLEFT)
                     {
-                        if (startupState != StartupWaitForRollCompletion)
+                        if ((app::startupWizard.step() != app::StartupWizard::Step::WaitForRollCompletion))
                         {
                             calState = HIGHLIGHT_ROLL_LEVEL;
                         }
                     }
                     else if (key == btnRIGHT)
                     {
-                        if (startupState != StartupWaitForRollCompletion)
+                        if ((app::startupWizard.step() != app::StartupWizard::Step::WaitForRollCompletion))
                         {
                             gotoNextMenu();
                             calState = HIGHLIGHT_ROLL_LEVEL;

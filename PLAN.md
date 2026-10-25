@@ -875,9 +875,18 @@ format, the two sensor helpers and the utility grab-bag.*
   unused until now) is backed by `adapters::TinyGpsAdapter` in `BoardWiring`, exposed as `gpsPort`,
   and `:gT#` uses the same fix-applying helper the screen does instead of calling into a menu
   header. `c72_menuHA.hpp` and `c72_menuHA_GPS.hpp` are deleted.
-- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the other
-  three screens: CAL/startup), 8.9 (test console), 8.10 (`Utility` and the empty root). The root is
-  down from 47 files to 22.
+- 🟡 **8.8b — the guided startup converted.** `app::StartupWizard` is the state machine without the
+  globals: it returns a `StartupAction` (`HandOverToControlMenu`, `HandOverToCalibration`,
+  `HandOverToHaMenu`, `Completed`) plus the one-line caption the legacy code painted before the
+  switch, and `c_buttons` applies them — the menu switch, the two loop flags and the tracking
+  toggle are the loop's, not the wizard's. The three confirmations that happen *inside* another
+  screen come back through `rollConfirmed()`/`haConfirmed()`/`poleConfirmed()`, which is what those
+  screens report instead of assigning `startupState`, and the two facts that change the route
+  (level sensor, GPS) are constructor arguments, so the wizard is driven on the host by 10 tests.
+  The debug `LOG()` lines the legacy wizard emitted are gone with it; `LOG()` itself dies in 8.10.
+- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the last
+  screen: CAL), 8.9 (test console), 8.10 (`Utility` and the empty root). The root is down from 47
+  files to 21.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

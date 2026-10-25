@@ -45,7 +45,7 @@ class FakeMountReadModel : public ports::IMountReadModel
 
     core::DayTime currentRA() const override
     {
-        return core::DayTime();
+        return currentRaValue;
     }
 
     core::Declination currentDEC() const override
@@ -188,8 +188,9 @@ class FakeMountReadModel : public ports::IMountReadModel
     {
     }
 
-    /// The target the screen writes; a test asserts on these directly.
+    /// The target the screen writes, and the current position it reads.
     core::DayTime targetRaValue;
+    core::DayTime currentRaValue;
     core::Declination targetDecValue;
 };
 

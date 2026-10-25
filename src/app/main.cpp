@@ -32,7 +32,6 @@
 #ifndef NEW_STEPPER_LIB
     #include "../hal/InterruptCallback.hpp"
 #endif
-#include "../c65_startup.hpp"
 #include "../c76_menuCAL.hpp"
 #include "../c_buttons.hpp"
 #include "../app/SerialPump.hpp"
