@@ -778,9 +778,17 @@ format, the two sensor helpers and the utility grab-bag.*
   drawing from the `InfoDisplayState` snapshot and keeping the boot console. `InfoDisplayRender` and
   `SSD1306_128x64_Display` are deleted; `InfoDisplayPanel` takes the port, so the refresh policy
   knows nothing about a renderer. The drawing moved verbatim — the frame is unchanged.
-- **8.4b (next):** the pixel arithmetic (`xRAPixel`/`yDECPixel`, markers, progress) and the console
-  ring still live in the adapter; they move to `core/InfoDisplayLayout` + `core/ConsoleLog` with the
-  frozen-pixel tests, at which point the adapter is only a translator to `hal::IOledPanel`.
+- ✅ **8.4b** `core::InfoDisplayLayout` (pixel mapping, marker formulas, progress width — parameterised
+  by an `InfoDisplayScale` the adapter fills, so no product `#ifdef` reaches `core/`) and
+  `core::ConsoleLog` (fixed lines, uppercased on store). 14 frozen-value tests; the adapter is now a
+  translator from the snapshot to `hal::IOledPanel` calls. Verified on `esp32` with the 128x64 panel
+  **and** with the 128x32 OLED menu panel enabled.
+- 🟡 **8.5a** `EPROMStore` → `adapters::EepromSettingsFormat`, speaking `core::` types; `OAT_SNPRINTF`
+  and `OAT_LOG` moved to `ports/LogFormat.hpp` so an adapter can log without the board
+  configuration. `mksgenlv21` −170 B flash, RAM unchanged.
+- **8.5b (next):** the four steps-per-degree getters still fall back to board constants
+  (`RA_STEPS_PER_DEGREE`, …), which keeps the file out of the host build. Injecting those defaults
+  plus the microstep ratios is what makes the round-trip and migration tests possible.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
@@ -802,8 +810,8 @@ None of this is a design question any more. Every surface the UI needs exists: `
 | 8.1 ✅ | **Menu model + line composer** | `LcdMenu`'s item list, navigation, `updateDisplay` | `core/menu/MenuModel`, `core/menu/MenuLine` | ~200 | low — pure, byte-compared |
 | 8.2 ✅ | **Display port implementations** | `LcdMenu`'s three panel branches | `hal/arduino/{CharLcd,I2cCharLcd,U8x8CharLcd}` + `adapters/{LcdMenuDisplay,NullDisplay}` | ~300 | medium — three panel families, one per board |
 | 8.3 ✅ | **Button port** | `LcdButtons`' three decoders | `core/ButtonDebounce` + `hal/*/…Buttons` + `adapters/DebouncedButtons` | ~155 | medium — the 5 ms rule is only observable on-device |
-| 8.4a ✅ / 8.4b | **Status panel** (closes 7.3.1) | `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | `core/InfoDisplayLayout`, `core/ConsoleLog`, `adapters/Ssd1306InfoDisplay` | ~680 | medium — frozen pixels |
-| 8.5 | **Settings format** | `EPROMStore` | `adapters/EepromSettingsFormat` + its first tests | ~1,000 | low — mechanical, and finally host-testable |
+| 8.4 ✅ | **Status panel** (closes 7.3.1) | `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | `core/InfoDisplayLayout`, `core/ConsoleLog`, `adapters/Ssd1306InfoDisplay` | ~680 | medium — frozen pixels |
+| 8.5a ✅ / 8.5b | **Settings format** | `EPROMStore` | `adapters/EepromSettingsFormat` + its first tests | ~1,000 | low — mechanical, and finally host-testable |
 | 8.6 | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
 | 8.7 | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
 | 8.8 | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
