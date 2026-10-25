@@ -7,7 +7,7 @@
 #include "../../Configuration.hpp"
 #include "BoardWiring.hpp"
 
-#include "EPROMStore.hpp"
+#include "adapters/EepromSettingsFormat.hpp"
 #include "Utility.hpp"
 #include "app/MountConfigBuilder.hpp"
 #include "hal/InMemoryEeprom.hpp"
@@ -102,9 +102,9 @@ hal::ArduinoEeprom eeprom(EEPROM);
 
 adapters::EepromPersistentStore persistentStore(eeprom, hal::eeprom::STORE_SIZE);
 
-// `EEPROMStore` is the single writer of the on-device format; the settings port is the typed
-// view the domain consumes.
-EEPROMStore eepromStore(persistentStore, *logSink);
+// The on-device format has a single writer; the settings port is the typed view the domain
+// consumes.
+adapters::EepromSettingsFormat eepromStore(persistentStore, *logSink);
 adapters::MountSettingsStore settingsStore(eepromStore);
 
 // --- the menu display and its keys -----------------------------------------------------

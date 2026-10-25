@@ -1,35 +1,40 @@
 #pragma once
 
-#include "DayTime.hpp"
-#include "Latitude.hpp"
-#include "Longitude.hpp"
+#include "core/types/DayTime.hpp"
+#include "core/types/Latitude.hpp"
+#include "core/types/Longitude.hpp"
 #include "hal/EepromLayout.hpp"
 #include "ports/ILogger.hpp"
 #include "ports/IPersistentStore.hpp"
 
-// Platform independant abstraction of the EEPROM storage capability of the boards.
-// This is needed because the ESP boards require two things that the Arduino boards don't:
-//  1) It wants to know how many bytes you want to use (at most)
-//  2) It wants you to call a commit() function after a write() to actual persist the data.
-//
-// The byte medium and the log sink are injected by the composition root, so this class holds
-// no global state: one instance per firmware, built in `app/BoardWiring.cpp`.
-class EEPROMStore
+namespace adapters
+{
+
+/// The on-device settings format: what each persisted value means and where it lives.
+///
+/// Not a storage backend — the uint8_t medium arrives as a `ports::IPersistentStore`, because the ESP
+/// boards want a size up front and an explicit commit while the AVR boards do not. The log sink is
+/// injected too, so the class holds no global state: one instance per firmware, built by the
+/// composition root.
+///
+/// The layout itself (magic markers, flags, addresses) lives in `hal/EepromLayout.hpp` so it can be
+/// pinned by a test without touching a single uint8_t of storage.
+class EepromSettingsFormat
 {
   public:
-    EEPROMStore(ports::IPersistentStore &persistent, ports::ILogger &logger);
+    EepromSettingsFormat(ports::IPersistentStore &persistent, ports::ILogger &logger);
 
     void initialize();
     void clearConfiguration();
 
-    DayTime getHATime();
-    void storeHATime(DayTime const &ha);
+    core::DayTime getHATime();
+    void storeHATime(const core::DayTime &ha);
 
     int getUtcOffset();
     void storeUtcOffset(int utcOffset);
 
-    byte getBrightness();
-    void storeBrightness(byte brightness);
+    uint8_t getBrightness();
+    void storeBrightness(uint8_t brightness);
 
     float getRAStepsPerDegree();
     void storeRAStepsPerDegree(float raStepsPerDegree);
@@ -49,11 +54,11 @@ class EEPROMStore
     int16_t getBacklashCorrectionSteps();
     void storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps);
 
-    Latitude getLatitude();
-    void storeLatitude(Latitude const &latitude);
+    core::Latitude getLatitude();
+    void storeLatitude(const core::Latitude &latitude);
 
-    Longitude getLongitude();
-    void storeLongitude(Longitude const &longitude);
+    core::Longitude getLongitude();
+    void storeLongitude(const core::Longitude &longitude);
 
     float getPitchCalibrationAngle();
     void storePitchCalibrationAngle(float pitchCalibrationAngle);
@@ -124,3 +129,5 @@ class EEPROMStore
     /// pointer, hence the `&_log` at the call sites below.
     ports::ILogger &_log;
 };
+
+}  // namespace adapters

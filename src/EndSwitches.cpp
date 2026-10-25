@@ -1,6 +1,6 @@
 #include "../Configuration.hpp"
 #include "Utility.hpp"
-#include "EPROMStore.hpp"
+#include "adapters/EepromSettingsFormat.hpp"
 #include "Types.hpp"
 #include "EndSwitches.hpp"
 #include "libs/MappedDict/MappedDict.hpp"

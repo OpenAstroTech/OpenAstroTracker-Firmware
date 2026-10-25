@@ -42,3 +42,24 @@ class LogFormat
 #else
     #define OAT_LOG_FORMAT(literal) ports::LogFormat(literal)
 #endif
+
+/// Wraps a literal so it stays in program memory on AVR.
+#if defined(__AVR__)
+    #define OAT_SNPRINTF(buffer, size, format, ...) snprintf_P((buffer), (size), PSTR(format), ##__VA_ARGS__)
+#else
+    #include <stdio.h>
+    #define OAT_SNPRINTF(buffer, size, format, ...) snprintf((buffer), (size), (format), ##__VA_ARGS__)
+#endif
+
+// The level comes from the build's `DEBUG_LEVEL`, so a build that logs nothing emits no call and
+// does not even evaluate the arguments.
+#if DEBUG_LEVEL != 0
+    /// One diagnostic line through a `ports::ILogger`.
+    ///
+    /// Same shape as the legacy `LOG()`: the format literal stays in flash on AVR
+    /// (`OAT_LOG_FORMAT` is `PSTR()` there) and the whole call compiles out when `DEBUG_LEVEL` is
+    /// `DEBUG_NONE`.
+    #define OAT_LOG(logger, level, format, ...) (logger)->log((level), OAT_LOG_FORMAT(format), ##__VA_ARGS__)
+#else
+    #define OAT_LOG(logger, level, format, ...)
+#endif

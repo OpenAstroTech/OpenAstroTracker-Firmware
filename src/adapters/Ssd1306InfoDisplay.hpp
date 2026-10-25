@@ -1,9 +1,11 @@
 #pragma once
 
 #include "../../Configuration.hpp"
+#include "core/ConsoleLog.hpp"
+#include "core/InfoDisplayLayout.hpp"
 #include "hal/WarningGuard.hpp"
-#include "ports/IInfoDisplay.hpp"
 #include "ports/IClock.hpp"
+#include "ports/IInfoDisplay.hpp"
 
 PUSH_NO_WARNINGS
 #include <Arduino.h>
@@ -28,8 +30,8 @@ namespace adapters
 class Ssd1306InfoDisplay final : public ports::IInfoDisplay
 {
   public:
-    static constexpr int kMaxConsoleLines     = 16;
-    static constexpr int kConsoleVisibleLines = 6;
+    static constexpr int kMaxConsoleLines     = core::ConsoleLog::kCapacity;
+    static constexpr int kConsoleVisibleLines = core::ConsoleLog::kVisible;
 
     Ssd1306InfoDisplay(hal::IOledPanel &panel, ports::IClock &clock);
 
@@ -60,34 +62,19 @@ class Ssd1306InfoDisplay final : public ports::IInfoDisplay
     void drawCoordinates(const ports::InfoDisplayState &state);
     void drawMountPosition(const ports::InfoDisplayState &state);
     void drawStatus(const ports::InfoDisplayState &state);
-    int xRAPixel(float ra);
-    int yDECPixel(float dec);
+    int xRAPixel(float ra) const;
+    int yDECPixel(float dec) const;
+
+    /// The panel's own scale geometry. The DEC span is the one thing that differs per product:
+    /// the mount and explorer firmware map the whole circle, the tracker half of it.
+    core::InfoDisplayScale scale() const;
 
     hal::IOledPanel &_panel;
     ports::IClock &_clock;
+    core::ConsoleLog _console;
     bool _consoleMode;
-    String _textList[kMaxConsoleLines];
-    int _curLine;
     char _commLetter;
     long _lastNumCmds;
-
-#if defined(OAM) || defined(OAE)
-    static constexpr float kBottomDec = -180.0f;
-    static constexpr float kRangeDec  = 360.0f;
-#else
-    static constexpr float kBottomDec = -90.0f;
-    static constexpr float kRangeDec  = 270.0f;
-#endif
-    static constexpr float kLeftRa  = -6.0f;
-    static constexpr float kRightRa = 6.0f;
-
-    static constexpr int kLeftEdgeMount = 69;  // x position where the RA scale starts
-    static constexpr int kRaSize        = 41;  // width of the RA scale
-    static constexpr int kRaScalePos    = 51;  // y position of the RA scale dotted line
-
-    static constexpr int kTopEdgeMount = 14;
-    static constexpr int kDecSize      = 43;
-    static constexpr int kDecScalePos  = 115;
 
     static constexpr int kStatusBounceHeight = 63 - 11;
 };

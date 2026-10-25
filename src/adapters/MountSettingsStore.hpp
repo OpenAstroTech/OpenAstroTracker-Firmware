@@ -1,13 +1,13 @@
 #pragma once
 
-#include "EPROMStore.hpp"
+#include "adapters/EepromSettingsFormat.hpp"
 #include "ports/IMountSettings.hpp"
 
 namespace adapters
 {
-/// `ports::IMountSettings` over `EEPROMStore`.
+/// `ports::IMountSettings` over `EepromSettingsFormat`.
 ///
-/// The typed accessors and the on-device encoding stay in `EEPROMStore`: it is the single writer
+/// The typed accessors and the on-device encoding stay in `EepromSettingsFormat`: it is the single writer
 /// of that format. This adapter gives the domain an injectable handle, so `Mount` (and the
 /// controllers) never name the store and a test can substitute the port.
 ///
@@ -16,7 +16,7 @@ namespace adapters
 class MountSettingsStore final : public ports::IMountSettings
 {
   public:
-    explicit MountSettingsStore(EEPROMStore &store) : _store(store)
+    explicit MountSettingsStore(EepromSettingsFormat &store) : _store(store)
     {
     }
 
@@ -226,7 +226,7 @@ class MountSettingsStore final : public ports::IMountSettings
     }
 
   private:
-    EEPROMStore &_store;
+    EepromSettingsFormat &_store;
 };
 
 }  // namespace adapters

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Configuration.hpp"
-#include "EPROMStore.hpp"
+#include "adapters/EepromSettingsFormat.hpp"
 
 #if DISPLAY_TYPE > 0
     #if USE_GPS == 0

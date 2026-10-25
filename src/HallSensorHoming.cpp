@@ -2,7 +2,7 @@
 #include "Utility.hpp"
 #include "Types.hpp"
 #include "core/MountState.hpp"
-#include "EPROMStore.hpp"
+#include "adapters/EepromSettingsFormat.hpp"
 #include "HallSensorHoming.hpp"
 #include "Utility.hpp"
 #include "libs/MappedDict/MappedDict.hpp"

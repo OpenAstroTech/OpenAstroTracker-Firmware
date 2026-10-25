@@ -16,8 +16,8 @@
 #include "MountExecutor.hpp"
 #include "a_inits.hpp"
 
-#include "EPROMStore.hpp"
 #include "adapters/ArduinoClock.hpp"
+#include "adapters/EepromSettingsFormat.hpp"
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/InfoDisplayPanel.hpp"
 #include "adapters/MountSettingsStore.hpp"
@@ -56,7 +56,7 @@ extern ports::IGyro *gyro;
 
 /// The on-device settings format. One instance, built here so nothing else constructs or
 /// statically reaches for it.
-extern EEPROMStore eepromStore;
+extern adapters::EepromSettingsFormat eepromStore;
 
 /// The typed view of `eepromStore` the domain consumes.
 extern adapters::MountSettingsStore settingsStore;

@@ -11,32 +11,10 @@
 String getLogBuffer();
 int freeMemory();
 
-/// Formatted output whose format string stays in flash on AVR.
-///
-/// `sprintf`/`snprintf` take a plain `const char *`, and on AVR a plain literal is linked
-/// into `.data` — i.e. it occupies SRAM. `OAT_SNPRINTF` is the same call with the format
-/// in program memory: `snprintf_P` + `PSTR()` on AVR, a plain `snprintf` elsewhere. It
-/// also takes the buffer size, which the `sprintf` sites never passed (so it truncates
-/// instead of overflowing).
-///
-/// This is the buffer-writing sibling of `OAT_LOG`; `lcdMenu.printMenu(F("..."))` covers
-/// the sites that pass a literal to `String`.
-#if defined(__AVR__)
-    #define OAT_SNPRINTF(buffer, size, format, ...) snprintf_P((buffer), (size), PSTR(format), ##__VA_ARGS__)
-#else
-    #define OAT_SNPRINTF(buffer, size, format, ...) snprintf((buffer), (size), (format), ##__VA_ARGS__)
-#endif
-
+// `OAT_SNPRINTF` and `OAT_LOG` live in ports/LogFormat.hpp, next to the `LogFormat` handle they
+// build; this header includes them for the sites that still use the legacy macros.
 #if DEBUG_LEVEL != 0
     #define LOG(level, format, ...) logv((level), (F(format)), ##__VA_ARGS__)
-
-    /// One diagnostic line through a `ports::ILogger`.
-    ///
-    /// Same shape as `LOG()`: the format literal stays in flash on AVR
-    /// (`OAT_LOG_FORMAT` is `PSTR()` there) and the whole call compiles out when
-    /// `DEBUG_LEVEL` is `DEBUG_NONE`, so arguments are not even evaluated. The
-    /// logger then filters on the level bits at run time.
-    #define OAT_LOG(logger, level, format, ...) (logger)->log((level), OAT_LOG_FORMAT(format), ##__VA_ARGS__)
 
 // Realtime timer class using microseconds to time stuff
 class RealTime

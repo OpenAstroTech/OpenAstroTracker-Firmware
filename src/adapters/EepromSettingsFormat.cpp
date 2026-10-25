@@ -1,8 +1,12 @@
-#include "inc/Globals.hpp"
+#include "adapters/EepromSettingsFormat.hpp"
 
 #include "../Configuration.hpp"
+#include "../Constants.hpp"
 #include "Utility.hpp"
-#include "EPROMStore.hpp"
+#include "ports/LogFormat.hpp"
+
+namespace adapters
+{
 
 // The platform-independant EEPROM class
 //
@@ -13,11 +17,12 @@
 // is decided once, in the composition root.
 using namespace hal::eeprom;
 
-EEPROMStore::EEPROMStore(ports::IPersistentStore &persistent, ports::ILogger &logger) : _persistent(persistent), _log(logger)
+EepromSettingsFormat::EepromSettingsFormat(ports::IPersistentStore &persistent, ports::ILogger &logger)
+    : _persistent(persistent), _log(logger)
 {
 }
 
-void EEPROMStore::initialize()
+void EepromSettingsFormat::initialize()
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Startup with %d bytes", STORE_SIZE);
 
@@ -25,42 +30,42 @@ void EEPROMStore::initialize()
 }
 
 // Update the given location with the given value
-void EEPROMStore::update(uint8_t location, uint8_t value)
+void EepromSettingsFormat::update(uint8_t location, uint8_t value)
 {
     _persistent.writeByte(location, value);
 }
 
 // Complete the transaction
-void EEPROMStore::commit()
+void EepromSettingsFormat::commit()
 {
     _persistent.commit();
 }
 
 // Read the value at the given location
-uint8_t EEPROMStore::read(uint8_t location)
+uint8_t EepromSettingsFormat::read(uint8_t location)
 {
     return _persistent.readByte(location);
 }
 
-void EEPROMStore::displayContents()
+void EepromSettingsFormat::displayContents()
 {
 #if (DEBUG_LEVEL & (DEBUG_INFO | DEBUG_EEPROM))
-    // Read the magic marker byte and state
+    // Read the magic marker uint8_t and state
     uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Magic Marker: 0x%04X", marker);
 
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Values? %s", ((marker & MAGIC_MARKER_MASK) == MAGIC_MARKER_VALUE) ? "Yes" : "No");
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Extended values? %s", ((marker & EXTENDED_FLAG) == EXTENDED_FLAG) ? "Yes" : "No");
-    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: IsPresent(EXTENDED)? %s", (EEPROMStore::isPresent(EXTENDED_FLAG) ? "Yes" : "No"));
-    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored HATime: %s", getHATime().ToString());
+    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: IsPresent(EXTENDED)? %s", (EepromSettingsFormat::isPresent(EXTENDED_FLAG) ? "Yes" : "No"));
+    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored HATime: %.4f hours", getHATime().getTotalHours());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored UTC Offset: %d", getUtcOffset());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Brightness: %d", getBrightness());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored RA Steps per Degree: %f", getRAStepsPerDegree());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored DEC Steps per Degree: %f", getDECStepsPerDegree());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Speed Factor: %f", getSpeedFactor());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Backlash Correction Steps: %d", getBacklashCorrectionSteps());
-    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Latitude: %s", getLatitude().ToString());
-    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Longitude: %s", getLongitude().ToString());
+    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Latitude: %.4f hours", getLatitude().getTotalHours());
+    OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Longitude: %.4f hours", getLongitude().getTotalHours());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Pitch Calibration Angle: %f", getPitchCalibrationAngle());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored Roll Calibration Angle: %f", getRollCalibrationAngle());
     OAT_LOG(&_log, DEBUG_INFO, "[EEPROM]: Stored RA Homing Offset: %ld", getRAHomingOffset());
@@ -79,14 +84,14 @@ void EEPROMStore::displayContents()
 // HELPER FUNCTIONS
 
 // Helper to update the given location with the given 8-bit value
-void EEPROMStore::updateUint8(EEPROMStore::ItemAddress location, uint8_t value)
+void EepromSettingsFormat::updateUint8(EepromSettingsFormat::ItemAddress location, uint8_t value)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Writing8 0x%04X (%d) to %d", value, value, location);
     update(location, value);
 }
 
 // Helper to read an 8-bit value from the given location
-uint8_t EEPROMStore::readUint8(EEPROMStore::ItemAddress location)
+uint8_t EepromSettingsFormat::readUint8(EepromSettingsFormat::ItemAddress location)
 {
     uint8_t value;
     value = read(location);
@@ -95,14 +100,14 @@ uint8_t EEPROMStore::readUint8(EEPROMStore::ItemAddress location)
 }
 
 // Helper to update the given location with the given 8-bit value
-void EEPROMStore::updateInt8(EEPROMStore::ItemAddress location, int8_t value)
+void EepromSettingsFormat::updateInt8(EepromSettingsFormat::ItemAddress location, int8_t value)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Writing8 0x%04X (%d) to %d", value, value, location);
     update(location, static_cast<uint8_t>(value));
 }
 
 // Helper to read an 8-bit value from the given location
-int8_t EEPROMStore::readInt8(EEPROMStore::ItemAddress location)
+int8_t EepromSettingsFormat::readInt8(EepromSettingsFormat::ItemAddress location)
 {
     int8_t value;
     value = static_cast<int8_t>(read(location));
@@ -111,7 +116,7 @@ int8_t EEPROMStore::readInt8(EEPROMStore::ItemAddress location)
 }
 
 // Helper to update the given location with the given 16-bit value
-void EEPROMStore::updateInt16(EEPROMStore::ItemAddress location, int16_t value)
+void EepromSettingsFormat::updateInt16(EepromSettingsFormat::ItemAddress location, int16_t value)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Writing16 0x%04X (%d) to %d", value, value, location);
     update(location, value & 0x00FF);
@@ -119,7 +124,7 @@ void EEPROMStore::updateInt16(EEPROMStore::ItemAddress location, int16_t value)
 }
 
 // Helper to read a 16-bit value from the given location
-int16_t EEPROMStore::readInt16(EEPROMStore::ItemAddress location)
+int16_t EepromSettingsFormat::readInt16(EepromSettingsFormat::ItemAddress location)
 {
     uint8_t valLo   = read(location);
     uint8_t valHi   = read(location + 1);
@@ -130,7 +135,7 @@ int16_t EEPROMStore::readInt16(EEPROMStore::ItemAddress location)
 }
 
 // Helper to update the given location with the given 16-bit value
-void EEPROMStore::updateUint16(EEPROMStore::ItemAddress location, uint16_t value)
+void EepromSettingsFormat::updateUint16(EepromSettingsFormat::ItemAddress location, uint16_t value)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Writing16 0x%04X (%d) to %d", value, value, location);
     update(location, value & 0x00FF);
@@ -138,7 +143,7 @@ void EEPROMStore::updateUint16(EEPROMStore::ItemAddress location, uint16_t value
 }
 
 // Helper to read a 16-bit value from the given location
-uint16_t EEPROMStore::readUint16(EEPROMStore::ItemAddress location)
+uint16_t EepromSettingsFormat::readUint16(EepromSettingsFormat::ItemAddress location)
 {
     uint8_t valLo  = read(location);
     uint8_t valHi  = read(location + 1);
@@ -148,7 +153,7 @@ uint16_t EEPROMStore::readUint16(EEPROMStore::ItemAddress location)
 }
 
 // Helper to update the given location with the given 32-bit value
-void EEPROMStore::updateInt32(EEPROMStore::ItemAddress location, int32_t value)
+void EepromSettingsFormat::updateInt32(EepromSettingsFormat::ItemAddress location, int32_t value)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Writing32 0x%08lX (%ld) to %d", static_cast<unsigned long>(value), value, location);
     update(location, value & 0x00FF);
@@ -158,7 +163,7 @@ void EEPROMStore::updateInt32(EEPROMStore::ItemAddress location, int32_t value)
 }
 
 // Helper to read a 32-bit value from the given location
-int32_t EEPROMStore::readInt32(EEPROMStore::ItemAddress location)
+int32_t EepromSettingsFormat::readInt32(EepromSettingsFormat::ItemAddress location)
 {
     uint8_t val1    = read(location);
     uint8_t val2    = read(location + 1);
@@ -173,7 +178,7 @@ int32_t EEPROMStore::readInt32(EEPROMStore::ItemAddress location)
 // Check if the specified item is present in the core set.
 // Returns: true - if marker is present and item flag is set
 //          false - otherwise
-bool EEPROMStore::isPresent(ItemFlag item)
+bool EepromSettingsFormat::isPresent(ItemFlag item)
 {
     uint16_t marker = readUint16(MAGIC_MARKER_AND_FLAGS_ADDR);
 
@@ -197,7 +202,7 @@ bool EEPROMStore::isPresent(ItemFlag item)
 // Check if the specified item is present in the extended set.
 // Returns: true - if marker is present, estended values are present, and the extended item flag is set
 //          false - otherwise
-bool EEPROMStore::isPresentExtended(ExtendedItemFlag item)
+bool EepromSettingsFormat::isPresentExtended(ExtendedItemFlag item)
 {
     // Check if any extended data is present
     if (!isPresent(EXTENDED_FLAG))
@@ -214,7 +219,7 @@ bool EEPROMStore::isPresentExtended(ExtendedItemFlag item)
 
 // Updates the core flags for the specified item to indicate it is present.
 // Note it is only possible to add items, not to remove them.
-void EEPROMStore::updateFlags(ItemFlag item)
+void EepromSettingsFormat::updateFlags(ItemFlag item)
 {
     uint16_t newMarkerAndFlags(MAGIC_MARKER_VALUE | item);
 
@@ -231,7 +236,7 @@ void EEPROMStore::updateFlags(ItemFlag item)
 
 // Updates the core & extended flags for the specified extended item to indicate it is present.
 // Note it is only possible to add items, not to remove them.
-void EEPROMStore::updateFlagsExtended(ExtendedItemFlag item)
+void EepromSettingsFormat::updateFlagsExtended(ExtendedItemFlag item)
 {
     uint16_t extendedFlags(0);
     // Grab any existing flags, if they're there
@@ -249,7 +254,7 @@ void EEPROMStore::updateFlagsExtended(ExtendedItemFlag item)
 // APPLICATION INTERFACE
 
 // Erase all data in the store.
-void EEPROMStore::clearConfiguration()
+void EepromSettingsFormat::clearConfiguration()
 {
     for (int i = 0; i < STORE_SIZE; i++)
     {
@@ -259,15 +264,15 @@ void EEPROMStore::clearConfiguration()
 }
 
 // Return the saved Hour Angle (HA)
-DayTime EEPROMStore::getHATime()
+core::DayTime EepromSettingsFormat::getHATime()
 {
     // There is no item flag for HA - it is assumed to always be present
 
-    return DayTime(readUint8(HA_HOUR_ADDR), readUint8(HA_MINUTE_ADDR), 0);
+    return core::DayTime(readUint8(HA_HOUR_ADDR), readUint8(HA_MINUTE_ADDR), 0);
 }
 
 // Store the Hour Angle (HA)
-void EEPROMStore::storeHATime(DayTime const &ha)
+void EepromSettingsFormat::storeHATime(const core::DayTime &ha)
 {
     // There is no item flag for HA - it is assumed to always be present
 
@@ -276,7 +281,7 @@ void EEPROMStore::storeHATime(DayTime const &ha)
     commit();  // Complete the transaction
 }
 
-int EEPROMStore::getUtcOffset()
+int EepromSettingsFormat::getUtcOffset()
 {
     int utcOffset = 0;
     if (isPresentExtended(UTC_OFFSET_MARKER_FLAG))
@@ -292,7 +297,7 @@ int EEPROMStore::getUtcOffset()
     return utcOffset;
 }
 
-void EEPROMStore::storeUtcOffset(int utcOffset)
+void EepromSettingsFormat::storeUtcOffset(int utcOffset)
 {
     updateInt8(UTC_OFFSET_ADDR, utcOffset);
     updateFlagsExtended(UTC_OFFSET_MARKER_FLAG);
@@ -300,18 +305,18 @@ void EEPROMStore::storeUtcOffset(int utcOffset)
 }
 
 // Return the dimensionless brightness value for the display.
-byte EEPROMStore::getBrightness()
+uint8_t EepromSettingsFormat::getBrightness()
 {
     // There is no item flag for brightness - it is assumed to always be present
 
-    byte brightness = readUint8(LCD_BRIGHTNESS_ADDR);
+    uint8_t brightness = readUint8(LCD_BRIGHTNESS_ADDR);
     if (brightness == 0)
         brightness = 10;  // Have a reasonable minimum in case nothing is stored
     return brightness;    // dimensionless scalar
 }
 
 // Store the dimensionless brightness value for the display.
-void EEPROMStore::storeBrightness(byte brightness)
+void EepromSettingsFormat::storeBrightness(uint8_t brightness)
 {
     // There is no item flag for brightness - it is assumed to always be present
     updateUint8(LCD_BRIGHTNESS_ADDR, brightness);
@@ -320,7 +325,7 @@ void EEPROMStore::storeBrightness(byte brightness)
 
 // Return the RA steps per degree (actually microsteps per degree).
 // If it is not present then the default uncalibrated RA_STEPS_PER_DEGREE value is returned.
-float EEPROMStore::getRAStepsPerDegree()
+float EepromSettingsFormat::getRAStepsPerDegree()
 {
     float raStepsPerDegree(RA_STEPS_PER_DEGREE);  // Default value
 
@@ -346,7 +351,7 @@ float EEPROMStore::getRAStepsPerDegree()
 }
 
 // Store the RA steps per degree (actually microsteps per degree).
-void EEPROMStore::storeRAStepsPerDegree(float raStepsPerDegree)
+void EepromSettingsFormat::storeRAStepsPerDegree(float raStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
     const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
@@ -360,7 +365,7 @@ void EEPROMStore::storeRAStepsPerDegree(float raStepsPerDegree)
 
 // Return the DEC steps per degree for guiding (actually microsteps per degree).
 // If it is not present then the default uncalibrated DEC_STEPS_PER_DEGREE value is returned.
-float EEPROMStore::getDECStepsPerDegree()
+float EepromSettingsFormat::getDECStepsPerDegree()
 {
     float decStepsPerDegree(DEC_STEPS_PER_DEGREE);  // Default value
 
@@ -386,7 +391,7 @@ float EEPROMStore::getDECStepsPerDegree()
 }
 
 // Store the DEC steps per degree for guiding (actually microsteps per degree).
-void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
+void EepromSettingsFormat::storeDECStepsPerDegree(float decStepsPerDegree)
 {
     const float factor = SteppingStorageNormalized / DEC_SLEW_MICROSTEPPING;
     int32_t val        = decStepsPerDegree * factor;
@@ -399,7 +404,7 @@ void EEPROMStore::storeDECStepsPerDegree(float decStepsPerDegree)
 
 // Return the AZ steps per degree (actually microsteps per degree).
 // If it is not present then the default uncalibrated AZ_STEPS_PER_DEGREE value is returned.
-float EEPROMStore::getAZStepsPerDegree()
+float EepromSettingsFormat::getAZStepsPerDegree()
 {
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
     float azStepsPerDegree(AZIMUTH_STEPS_PER_REV / 360);  // Default value
@@ -427,7 +432,7 @@ float EEPROMStore::getAZStepsPerDegree()
 }
 
 // Store the AZ steps per degree (actually microsteps per degree).
-void EEPROMStore::storeAZStepsPerDegree(float azStepsPerDegree)
+void EepromSettingsFormat::storeAZStepsPerDegree(float azStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -446,7 +451,7 @@ void EEPROMStore::storeAZStepsPerDegree(float azStepsPerDegree)
 
 // Return the ALT steps per degree (actually microsteps per degree).
 // If it is not present then the default uncalibrated ALT_STEPS_PER_DEGREE value is returned.
-float EEPROMStore::getALTStepsPerDegree()
+float EepromSettingsFormat::getALTStepsPerDegree()
 {
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     float azStepsPerDegree(ALTITUDE_STEPS_PER_REV / 360);  // Default value
@@ -474,7 +479,7 @@ float EEPROMStore::getALTStepsPerDegree()
 }
 
 // Store the ALT steps per degree (actually microsteps per degree).
-void EEPROMStore::storeALTStepsPerDegree(float azStepsPerDegree)
+void EepromSettingsFormat::storeALTStepsPerDegree(float azStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
@@ -491,7 +496,7 @@ void EEPROMStore::storeALTStepsPerDegree(float azStepsPerDegree)
 #endif
 }
 
-int16_t EEPROMStore::getLastFlashedVersion()
+int16_t EepromSettingsFormat::getLastFlashedVersion()
 {
     if (isPresentExtended(LAST_FLASHED_MARKER_FLAG))
     {
@@ -507,7 +512,7 @@ int16_t EEPROMStore::getLastFlashedVersion()
     return 0;
 }
 
-void EEPROMStore::storeLastFlashedVersion(int16_t version)
+void EepromSettingsFormat::storeLastFlashedVersion(int16_t version)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Last flashed version (%d)", version);
     updateInt16(LAST_FLASHED_VERSION, version);
@@ -517,7 +522,7 @@ void EEPROMStore::storeLastFlashedVersion(int16_t version)
 
 // Return the Speed Factor scalar (dimensionless).
 // If it is not present then the default uncalibrated value of 1.0 is returned.
-float EEPROMStore::getSpeedFactor()
+float EepromSettingsFormat::getSpeedFactor()
 {
     float speedFactor(1.0);  // Default uncalibrated value
 
@@ -537,7 +542,7 @@ float EEPROMStore::getSpeedFactor()
 }
 
 // Store the Speed Factor (dimensionless).
-void EEPROMStore::storeSpeedFactor(float speedFactor)
+void EepromSettingsFormat::storeSpeedFactor(float speedFactor)
 {
     // Store the fractional speed factor since it is a number very close to 1
     int32_t val = (speedFactor - 1.0f) * 10000.0f;
@@ -553,7 +558,7 @@ void EEPROMStore::storeSpeedFactor(float speedFactor)
 
 // Return the Backlash Correction step count (microsteps).
 // If it is not present then the default value from the configuration is returned.
-int16_t EEPROMStore::getBacklashCorrectionSteps()
+int16_t EepromSettingsFormat::getBacklashCorrectionSteps()
 {
     // Use nominal default values
     int16_t backlashCorrectionSteps(BACKLASH_STEPS);
@@ -572,7 +577,7 @@ int16_t EEPROMStore::getBacklashCorrectionSteps()
 }
 
 // Store the Backlash Correction step count (microsteps).
-void EEPROMStore::storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps)
+void EepromSettingsFormat::storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Write: Updating Backlash to %d", backlashCorrectionSteps);
 
@@ -581,16 +586,16 @@ void EEPROMStore::storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps)
     commit();  // Complete the transaction
 }
 
-// Return the stored location Latitude.
+// Return the stored location core::Latitude.
 // If it is not present then the default value of 45 degrees North is returned.
-Latitude EEPROMStore::getLatitude()
+core::Latitude EepromSettingsFormat::getLatitude()
 {
-    Latitude latitude(45.0);  // Default value (degrees, +ve is North)
+    core::Latitude latitude(45.0);  // Default value (degrees, +ve is North)
 
     if (isPresent(LATITUDE_FLAG))
     {
-        latitude = Latitude(1.0f * readInt16(LATITUDE_ADDR) / 100.0f);
-        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Latitude Marker OK! Latitude is %s", latitude.ToString());
+        latitude = core::Latitude(1.0f * readInt16(LATITUDE_ADDR) / 100.0f);
+        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: core::Latitude Marker OK! core::Latitude is %s", latitude.ToString());
     }
     else
     {
@@ -600,28 +605,28 @@ Latitude EEPROMStore::getLatitude()
     return latitude;  // Object
 }
 
-// Store the configured location Latitude.
-void EEPROMStore::storeLatitude(Latitude const &latitude)
+// Store the configured location core::Latitude.
+void EepromSettingsFormat::storeLatitude(const core::Latitude &latitude)
 {
     int32_t val = static_cast<int32_t>(roundf(latitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Latitude as %ld (%f)", val, latitude.getTotalHours());
+    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing core::Latitude as %ld (%f)", val, latitude.getTotalHours());
 
     updateInt16(LATITUDE_ADDR, val);
     updateFlags(LATITUDE_FLAG);
     commit();  // Complete the transaction
 }
 
-// Return the stored location Longitude.
+// Return the stored location core::Longitude.
 // If it is not present then the default value of 100 degrees East is returned.
-Longitude EEPROMStore::getLongitude()
+core::Longitude EepromSettingsFormat::getLongitude()
 {
-    Longitude longitude(100.0);  // Default value (degrees, +ve is East)
+    core::Longitude longitude(100.0);  // Default value (degrees, +ve is East)
 
     if (isPresent(LONGITUDE_FLAG))
     {
-        longitude = Longitude(1.0f * readInt16(LONGITUDE_ADDR) / 100.0f);
-        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Longitude Marker OK! Longitude is %s", longitude.ToString());
+        longitude = core::Longitude(1.0f * readInt16(LONGITUDE_ADDR) / 100.0f);
+        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: core::Longitude Marker OK! core::Longitude is %s", longitude.ToString());
     }
     else
     {
@@ -631,12 +636,12 @@ Longitude EEPROMStore::getLongitude()
     return longitude;  // Object
 }
 
-// Store the configured location Longitude.
-void EEPROMStore::storeLongitude(Longitude const &longitude)
+// Store the configured location core::Longitude.
+void EepromSettingsFormat::storeLongitude(const core::Longitude &longitude)
 {
     int32_t val = static_cast<int32_t>(roundf(longitude.getTotalHours() * 100.0f));
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Longitude as %ld (%f)", val, longitude.getTotalHours());
+    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing core::Longitude as %ld (%f)", val, longitude.getTotalHours());
 
     updateInt16(LONGITUDE_ADDR, val);
     updateFlags(LONGITUDE_FLAG);
@@ -645,7 +650,7 @@ void EEPROMStore::storeLongitude(Longitude const &longitude)
 
 // Return the stored Pitch Calibration Angle (degrees).
 // If it is not present then the default value of 0 degrees.
-float EEPROMStore::getPitchCalibrationAngle()
+float EepromSettingsFormat::getPitchCalibrationAngle()
 {
     float pitchCalibrationAngle(0);  // degrees
 
@@ -664,7 +669,7 @@ float EEPROMStore::getPitchCalibrationAngle()
 }
 
 // Store the configured Pitch Calibration Angle (degrees).
-void EEPROMStore::storePitchCalibrationAngle(float pitchCalibrationAngle)
+void EepromSettingsFormat::storePitchCalibrationAngle(float pitchCalibrationAngle)
 {
     int32_t val = (pitchCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
@@ -677,7 +682,7 @@ void EEPROMStore::storePitchCalibrationAngle(float pitchCalibrationAngle)
 
 // Return the stored Roll Calibration Angle (degrees).
 // If it is not present then the default value of 0 degrees.
-float EEPROMStore::getRollCalibrationAngle()
+float EepromSettingsFormat::getRollCalibrationAngle()
 {
     float rollCalibrationAngle(0);  // degrees
 
@@ -696,7 +701,7 @@ float EEPROMStore::getRollCalibrationAngle()
 }
 
 // Store the configured Roll Calibration Angle (degrees).
-void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
+void EepromSettingsFormat::storeRollCalibrationAngle(float rollCalibrationAngle)
 {
     int32_t val = (rollCalibrationAngle * 100) + 16384;
     val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
@@ -709,7 +714,7 @@ void EEPROMStore::storeRollCalibrationAngle(float rollCalibrationAngle)
 
 // Return the stored DEC Lower Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-float EEPROMStore::getDECLowerLimit()
+float EepromSettingsFormat::getDECLowerLimit()
 {
     float decLowerLimit(0);  // limit angle (deg)
 
@@ -728,7 +733,7 @@ float EEPROMStore::getDECLowerLimit()
 }
 
 // Store the configured DEC Lower Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECLowerLimit(float decLowerLimit)
+void EepromSettingsFormat::storeDECLowerLimit(float decLowerLimit)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Lower Limit to %ld", decLowerLimit);
 
@@ -740,7 +745,7 @@ void EEPROMStore::storeDECLowerLimit(float decLowerLimit)
 
 // Return the stored DEC Upper Limit (slew microsteps relative to home).
 // If it is not present then the default value of 0 steps (limits are disabled).
-float EEPROMStore::getDECUpperLimit()
+float EepromSettingsFormat::getDECUpperLimit()
 {
     float decUpperLimit(0);  // limit angle (deg)
 
@@ -759,7 +764,7 @@ float EEPROMStore::getDECUpperLimit()
 }
 
 // Store the configured DEC Upper Limit Pos (slew microsteps relative to home).
-void EEPROMStore::storeDECUpperLimit(float decUpperLimit)
+void EepromSettingsFormat::storeDECUpperLimit(float decUpperLimit)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Upper Limit to %ld", decUpperLimit);
 
@@ -770,7 +775,7 @@ void EEPROMStore::storeDECUpperLimit(float decUpperLimit)
 }
 
 // Get the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
-int32_t EEPROMStore::getRAHomingOffset()
+int32_t EepromSettingsFormat::getRAHomingOffset()
 {
     int32_t raHomingOffset(0);  // microsteps (slew)
 
@@ -788,7 +793,7 @@ int32_t EEPROMStore::getRAHomingOffset()
 }
 
 // Get the configured DEC Homing offset for Hall sensor homing (slew microsteps relative to home).
-int32_t EEPROMStore::getDECHomingOffset()
+int32_t EepromSettingsFormat::getDECHomingOffset()
 {
     int32_t decHomingOffset(0);  // microsteps (slew)
 
@@ -806,7 +811,7 @@ int32_t EEPROMStore::getDECHomingOffset()
 }
 
 // Store the configured RA Homing offset for Hall sensor homing (slew microsteps relative to home).
-void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
+void EepromSettingsFormat::storeRAHomingOffset(int32_t raHomingOffset)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Write: Updating RA Homing offset to %ld", raHomingOffset);
 
@@ -816,7 +821,7 @@ void EEPROMStore::storeRAHomingOffset(int32_t raHomingOffset)
 }
 
 // Store the configured DEC Homing offset for Hall sensor homing (slew microsteps relative to home).
-void EEPROMStore::storeDECHomingOffset(int32_t decHomingOffset)
+void EepromSettingsFormat::storeDECHomingOffset(int32_t decHomingOffset)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Write: Updating DEC Homing offset to %ld", decHomingOffset);
 
@@ -826,7 +831,7 @@ void EEPROMStore::storeDECHomingOffset(int32_t decHomingOffset)
 }
 
 // Get the current AZ position from home (in steps)
-int32_t EEPROMStore::getAZPosition()
+int32_t EepromSettingsFormat::getAZPosition()
 {
     int32_t azPosition(0);  // microsteps (slew)
 
@@ -844,7 +849,7 @@ int32_t EEPROMStore::getAZPosition()
 }
 
 // Store the current AZ position (in steps)
-void EEPROMStore::storeAZPosition(int32_t azPosition)
+void EepromSettingsFormat::storeAZPosition(int32_t azPosition)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Write: Updating AZ Position to %ld", azPosition);
 
@@ -854,7 +859,7 @@ void EEPROMStore::storeAZPosition(int32_t azPosition)
 }
 
 // Get the current ALT position from home (in steps)
-int32_t EEPROMStore::getALTPosition()
+int32_t EepromSettingsFormat::getALTPosition()
 {
     int32_t altPosition(0);  // microsteps (slew)
 
@@ -872,7 +877,7 @@ int32_t EEPROMStore::getALTPosition()
 }
 
 // Store the current ALT position in steps
-void EEPROMStore::storeALTPosition(int32_t altPosition)
+void EepromSettingsFormat::storeALTPosition(int32_t altPosition)
 {
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Write: Updating ALT Position to %ld", altPosition);
 
@@ -880,3 +885,5 @@ void EEPROMStore::storeALTPosition(int32_t altPosition)
     updateFlagsExtended(ALT_POSITION_MARKER_FLAG);
     commit();  // Complete the transaction
 }
+
+}  // namespace adapters

@@ -9,7 +9,7 @@ namespace hal
 ///
 /// This header describes a storage format, not domain behaviour, and has no
 /// Arduino or firmware dependencies so it can be unit-tested on the host.
-/// EEPROMStore is the only reader/writer of this layout today; Phase 2 wraps
+/// `adapters::EepromSettingsFormat` is the only reader/writer of this layout; Phase 2 wraps
 /// it in an IPersistentStore port + adapter.
 ///
 /// EEPROM storage location 5 ("magic marker") must be 0xCE or 0xCF for the

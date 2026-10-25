@@ -14,7 +14,7 @@ namespace adapters
 /// The domain sees durable bytes at an address; the backend decides whether that
 /// means an EEPROM cell (AVR), a flash-backed emulation that needs `begin`/`commit`
 /// (ESP32, RP2040) or plain RAM (`USE_DUMMY_EEPROM`). The on-device layout — magic
-/// markers, item flags, addresses and value encodings — stays with `EEPROMStore`,
+/// markers, item flags, addresses and value encodings — stays with `EepromSettingsFormat`,
 /// which is the single writer of this format.
 class EepromPersistentStore final : public ports::IPersistentStore
 {
