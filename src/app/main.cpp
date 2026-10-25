@@ -428,7 +428,7 @@ void setup()
     MeadeCommandPorts commandPorts;
     commandPorts.configuration = &mount;
     commandPorts.axes          = &mount;
-    commandPorts.readModel     = &mount;
+    commandPorts.readModel     = &mount.readout();
     commandPorts.siteTime      = &siteTimePort;
     commandPorts.events        = &mountCoordinator;
     commandPorts.clock         = &clockPort;

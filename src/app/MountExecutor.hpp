@@ -92,7 +92,7 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMountReadModel
+class MountExecutor final : public ports::IMountOptionalAxes
 {
   public:
     /// Every controller the mount drives, in one object. The composition root owns it and builds
@@ -191,35 +191,35 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
 #endif
 
     // Get the current RA tracking speed factor
-    float getSpeedCalibration() override;
+    float getSpeedCalibration();
 
     // Set the current RA tracking speed factor
-    void setSpeedCalibration(float val, bool saveToStorage) override;
+    void setSpeedCalibration(float val, bool saveToStorage);
 
 #if USE_GYRO_LEVEL == 1
     // Get the current pitch angle calibraton
-    float getPitchCalibrationAngle() override;
+    float getPitchCalibrationAngle();
 
     // Set the current pitch angle calibration
-    void setPitchCalibrationAngle(float angle) override;
+    void setPitchCalibrationAngle(float angle);
 
     // Get the current roll angle calibration
-    float getRollCalibrationAngle() override;
+    float getRollCalibrationAngle();
 
     // Set the current pitch angle calibration
-    void setRollCalibrationAngle(float angle) override;
+    void setRollCalibrationAngle(float angle);
 #endif
 
     // Returns the number of slew microsteps the given motor turns to move one degree
-    float getStepsPerDegree(StepperAxis which) override;
+    float getStepsPerDegree(StepperAxis which);
 
     // Function to set the number of slew microsteps the given motor turns to move one
     // degree for each axis. This function stores the value in persistent storage
-    void setStepsPerDegree(StepperAxis which, float steps) override;
+    void setStepsPerDegree(StepperAxis which, float steps);
 
     // Sets the slew rate of the mount. rate is between 1 (slowest) and 4 (fastest)
-    void setSlewRate(int rate) override;
-    int getSlewRate() override;
+    void setSlewRate(int rate);
+    int getSlewRate();
 
     // Get the number of hours we've been tracking
     float getTrackedHours() const;
@@ -228,28 +228,28 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     const DayTime HA() const;
 
     // Get a reference to the target RA value.
-    core::DayTime &targetRA() override;
+    core::DayTime &targetRA();
 
     // Get a reference to the target DEC value.
-    core::Declination &targetDEC() override;
+    core::Declination &targetDEC();
 
     // Get current RA value.
-    core::DayTime currentRA() const override;
+    core::DayTime currentRA() const;
 
     // Get current DEC value.
-    core::Declination currentDEC() const override;
+    core::Declination currentDEC() const;
 
     // Set the current RA and DEC position to be the given coordinates
-    void syncPosition(const core::DayTime &ra, const core::Declination &dec) override;
+    void syncPosition(const core::DayTime &ra, const core::Declination &dec);
 
-    void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos) override;
+    void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
 
     // Calculates movement parameters and program steppers to move
     // there. Must call loop() frequently to actually move.
-    void startSlewingToTarget() override;
+    void startSlewingToTarget();
 
     // Sends the mount to the home position
-    void startSlewingToHome() override;
+    void startSlewingToHome();
 
     // Move AZ and ALT motors to their zero position
     void moveAZALTToHome() override;
@@ -257,11 +257,11 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     void setAZALTHome() override;
 
     // Various status query functions
-    bool isSlewingRAorDEC() const override;
-    bool isSlewingIdle() const override;
-    bool isSlewingTRK() const override;
+    bool isSlewingRAorDEC() const;
+    bool isSlewingIdle() const;
+    bool isSlewingTRK() const;
     bool isParking() const;
-    bool isGuiding() const override;
+    bool isGuiding() const;
     bool isFindingHome() const;
     bool isRunningAZ() const;
     bool isRunningALT() const;
@@ -270,11 +270,11 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     float getFocusSpeed() const override;
 
     // Starts manual slewing in one of eight directions or tracking
-    void startSlewing(int direction) override;
+    void startSlewing(int direction);
 
     // Stop manual slewing in one of two directions or tracking. NS is the same. EW is the same
-    void stopSlewing(int direction) override;
-    void stopSlewing(StepperAxis axis) override;
+    void stopSlewing(int direction);
+    void stopSlewing(StepperAxis axis);
 
     // Block until the motors specified (NORTH, EAST, TRACKING, etc.) are stopped
     void waitUntilStopped(byte direction);
@@ -286,33 +286,33 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     void delay(int ms);
 
     // Gets the position in one of eight directions or tracking
-    long getCurrentStepperPosition(int direction) override;
+    long getCurrentStepperPosition(int direction);
 
     // Set the tracking stepper position
-    void setTrackingStepperPos(long stepPos) override;
+    void setTrackingStepperPos(long stepPos);
 
     // Process any stepper movement.
     void loop();
 
     // Set the current stepper positions to be home.
-    void setHome(bool clearZeroPos) override;
+    void setHome(bool clearZeroPos);
 
     // Set the DEC limit position to the given angle in degrees (saved as DEC steps).
     // If upper is true, sets the upper limit, else the lower limit.
     // If limitAngle is 0, limit is set to current position.
-    void setDecLimitPosition(bool upper, float limitAngle = 0) override;
+    void setDecLimitPosition(bool upper, float limitAngle = 0);
 
     // Clear the DEC limit position. If upper is true, clears upper limit, else the lower limit.
-    void clearDecLimitPosition(bool upper) override;
+    void clearDecLimitPosition(bool upper);
 
     // Get the DEC limit positions
-    void getDecLimitPositions(float &lowerLimit, float &upperLimit) override;
+    void getDecLimitPositions(float &lowerLimit, float &upperLimit);
 
     // Asynchronously parks the mount. Moves to the home position and stops all motors.
-    void park() override;
+    void park();
 
     // Runs the RA motor at twice the speed (or stops it), or the DEC motor at tracking speed for the given duration in ms.
-    void guidePulse(byte direction, int duration) override;
+    void guidePulse(byte direction, int duration);
 
     // Stops given guide operations in progress.
     void stopGuiding(bool ra = true, bool dec = true);
@@ -327,7 +327,7 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     String getStatusStateString();
 
     // Returns a comma-delimited string with all the mounts' information
-    const char *getStatusString() override;
+    const char *getStatusString();
 
     void setStatus(int state);
     void setStatusFlag(int flag);
@@ -338,43 +338,43 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     /// from inside the code that published. Registration is per sink, so removing one leaves
     /// the other in place.
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
-    float getSpeed(int direction) override;
+    float getSpeed(int direction);
 
     // See if a slew to target is in progress and return the percentage along the path
-    bool getStepperProgress(int &raPercentage, int &decPercentage) override;
+    bool getStepperProgress(int &raPercentage, int &decPercentage);
 
     /// How far each axis was asked to move by the slew in flight. Only the progress display reads
     /// these, to decide which of the two axes it should show a bar for; ``getStepperProgress``
     /// already folds them into percentages.
-    float plannedRaSteps() const override;
-    float plannedDecSteps() const override;
+    float plannedRaSteps() const;
+    float plannedDecSteps() const;
 
     // Called by Meade processor every time a command is received.
-    void commandReceived() override;
+    void commandReceived();
     // --- ports::IMountReadModel (UI-facing reads) ------------------------------------------
 
-    core::DayTime hourAngle() override;
-    long getCurrentStepperPosition(StepperAxis axis) override;
-    bool isAxisRunning(StepperAxis axis) override;
-    const char *raText(uint8_t type, uint8_t active = 0) override;
-    const char *decText(uint8_t type, uint8_t active = 0) override;
+    core::DayTime hourAngle();
+    long getCurrentStepperPosition(StepperAxis axis);
+    bool isAxisRunning(StepperAxis axis);
+    const char *raText(uint8_t type, uint8_t active = 0);
+    const char *decText(uint8_t type, uint8_t active = 0);
 
-    long getNumCommandsReceived() override
+    long getNumCommandsReceived()
     {
         return _readout.getNumCommandsReceived();
     }
 
 #if SUPPORT_DRIFT_ALIGNMENT == 1
     // Starts the drift alignment phase machine; `loop()` ticks it.
-    void startDriftAlignment(int durationSecs) override;
+    void startDriftAlignment(int durationSecs);
     void updateDriftAlignment(unsigned long now);
 #endif
 
     // Toggle the state where we run the motors at a constant speed
-    void setManualSlewMode(bool state) override;
+    void setManualSlewMode(bool state);
 
     // Set the speed of the given motor
-    void setSpeed(StepperAxis which, float speedDegsPerSec) override;
+    void setSpeed(StepperAxis which, float speedDegsPerSec);
 
     /// Creates the end switches this board has. A board without them calls a function
     /// that creates nothing, and every reader below null-checks instead of branching on a
@@ -399,7 +399,7 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     void focusStop() override;
 
 #if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
-    bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance) override;
+    bool findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance);
 #endif
     /// Advances whichever hall-sensor homing run is active; a no-op on a board without
     /// one. Called once per tick, so the mount loop needs no `#if` for it.
@@ -407,50 +407,50 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
 
     /// Polls the RA/DEC end switches, if this board has them. No-op otherwise.
     void pollEndSwitches();
-    const char *getAutoHomingStates() const override;
+    const char *getAutoHomingStates() const;
     String homingStateText(bool present, const HallSensorHoming *sensor) const;
 
-    void setHomingOffset(StepperAxis axis, long offset) override;
-    long getHomingOffset(StepperAxis axis) override;
+    void setHomingOffset(StepperAxis axis, long offset);
+    long getHomingOffset(StepperAxis axis);
 
     // Move the given stepper motor by the given amount of steps.
-    void moveStepperBy(StepperAxis which, long steps) override;
+    void moveStepperBy(StepperAxis which, long steps);
 
     // Move the given stepper motor to the given step position.
-    void moveStepperTo(StepperAxis which, long position) override;
+    void moveStepperTo(StepperAxis which, long position);
 
     // Set the number of steps to use for backlash correction
-    void setBacklashCorrection(int steps) override;
+    void setBacklashCorrection(int steps);
 
     // Get the number of steps to use for backlash correction
-    int getBacklashCorrection() override;
+    int getBacklashCorrection();
 
     // Read the saved configuration from persistent storage
     void readConfiguration();
 
     // Clear all saved configuration data from persistent storage
-    void clearConfiguration() override;
+    void clearConfiguration();
 
     // Get Mount configuration data
-    const char *getMountHardwareInfo() override;
+    const char *getMountHardwareInfo();
 
     // Get info about the configured steppers and drivers
-    const char *getStepperInfo() override;
+    const char *getStepperInfo();
 
     // Returns a flag indicating whether the mount is fully booted.
-    bool isBootComplete() override;
+    bool isBootComplete();
 
     // Let the mount know that the system has finished booting
     void bootComplete();
 
-    core::DayTime calculateLst() override;
-    core::DayTime calculateHa() override;
+    core::DayTime calculateLst();
+    core::DayTime calculateHa();
 
     // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
     byte slewStatus() const;
 
     // Returns the remaining tracking time available and stops tracking if it reaches zero.
-    float checkRALimit() override;
+    float checkRALimit();
 
     // Calculate the stepper positions for the current target coordinates
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;

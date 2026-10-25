@@ -215,7 +215,7 @@ struct UiPortsInit {
     {
         ui.motion    = &mount;
         ui.config    = &mount;
-        ui.read      = &mount;
+        ui.read      = &mount.readout();
         ui.siteTime  = &siteTimePort;
         ui.axes      = &mount;
         ui.clock     = &clockPort;

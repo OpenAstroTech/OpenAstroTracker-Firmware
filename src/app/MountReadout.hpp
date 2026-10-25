@@ -9,7 +9,10 @@
 #include "../core/SiteTime.hpp"
 #include "../core/types/DayTime.hpp"
 #include "../core/types/Declination.hpp"
+#include "../DayTime.hpp"
 #include "../ports/IClock.hpp"
+#include "../ports/ILogger.hpp"
+#include "../ports/IMountReadModel.hpp"
 #include "../ports/IInfoDisplay.hpp"
 #include "AxisBank.hpp"
 
@@ -32,7 +35,7 @@ namespace app
 /// them: `scratchBuffer` backs `RAString`/`DECString` and the two `*Text` port methods, and
 /// `_readoutScratch`/`_infoStatusScratch` back the status strings. The rule the ports state —
 /// "valid until the next call to the same method" — is unchanged by the move.
-class MountReadout final : public ports::IInfoDisplaySource
+class MountReadout final : public ports::IMountReadModel, public ports::IInfoDisplaySource
 {
   public:
     /// `checkRALimit()` is the one read this class cannot make for itself: reaching the limit *stops
@@ -62,7 +65,9 @@ class MountReadout final : public ports::IInfoDisplaySource
                  core::Declination &targetDec,
                  float &zeroPosDec,
                  ports::IClock &clock,
+                 ports::ILogger &logger,
                  long &commandsReceived,
+                 bool &bootComplete,
                  RaLimitQuery raLimit);
 
     core::DayTime currentRA() const;
@@ -90,6 +95,33 @@ class MountReadout final : public ports::IInfoDisplaySource
     long getCurrentStepperPosition(StepperAxis which);
     long getCurrentStepperPosition(int direction);
     core::DayTime calculateLst();
+    core::DayTime calculateHa();
+
+    /// The targets are the executor's storage, handed out writable because `:Sr#`/`:Sd#` write them
+    /// in place — the port has always exposed them that way.
+    core::DayTime &targetRA();
+    core::Declination &targetDEC();
+    core::DayTime hourAngle();
+
+    void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
+    void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;
+
+    bool isSlewingIdle() const;
+    bool isParking() const;
+    float plannedRaSteps() const;
+    float plannedDecSteps() const;
+    bool isBootComplete();
+
+    /// The port asks this, and the answer comes from the executor through `_raLimit`: reaching the
+    /// limit stops the tracker, so the decision is not this class's to make.
+    float checkRALimit() override;
+
+    /// The command counter lives in the executor (the command layer is its only writer), so this
+    /// reads and bumps it through a reference.
+    void commandReceived() override;
+
+    float getTrackedHours() const;
+    const DayTime HA() const;
 
     /// `ports::IInfoDisplaySource`: the one frame the status panel draws.
     void fillInfoDisplayState(ports::InfoDisplayState &state) override;
@@ -101,7 +133,7 @@ class MountReadout final : public ports::IInfoDisplaySource
     const char *getStepperInfo();
     const char *getMountHardwareInfo();
     const char *getAutoHomingStates() const;
-    long getNumCommandsReceived();
+    long getNumCommandsReceived() override;
 
     /// The status line the panel shows, pointing into this class's buffer so it survives the call.
     const char *panelStatusText();
@@ -118,7 +150,9 @@ class MountReadout final : public ports::IInfoDisplaySource
     core::Declination &_targetDec;
     float &_zeroPosDec;
     ports::IClock &_clock;
+    ports::ILogger &_logger;
     long &_commandsReceived;
+    bool &_bootComplete;
     RaLimitQuery _raLimit;
 
     mutable String _readoutScratch;

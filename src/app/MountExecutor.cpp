@@ -90,7 +90,9 @@ MountExecutor::MountExecutor(const MountDeps &deps, const core::MountConfig &con
                                                                         _targetDEC,
                                                                         _zeroPosDEC,
                                                                         *deps.clock,
+                                                                        *deps.logger,
                                                                         _commandReceived,
+                                                                        _bootComplete,
                                                                         {this, hoursToLimitThunk})
 {
     _commandReceived = 0;
@@ -558,16 +560,6 @@ int MountExecutor::getSlewRate()
 // HA
 //
 /////////////////////////////////
-const DayTime MountExecutor::HA() const
-{
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: Get HA.");
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: Polaris adjust: %s", DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND).ToString());
-    DayTime ha = DayTime(_siteTime.lst());
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: LST: %s", DayTime(_siteTime.lst()).ToString());
-    ha.subtractTime(DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
-    // LOG(DEBUG_MOUNT, "[MOUNT]: GetHA: LST-Polaris is HA %s", ha.ToString());
-    return ha;
-}
 
 /////////////////////////////////
 //
@@ -575,10 +567,6 @@ const DayTime MountExecutor::HA() const
 //
 /////////////////////////////////
 // Get a reference to the target RA value.
-core::DayTime &MountExecutor::targetRA()
-{
-    return _targetRA;
-}
 
 /////////////////////////////////
 //
@@ -586,10 +574,6 @@ core::DayTime &MountExecutor::targetRA()
 //
 /////////////////////////////////
 // Get a reference to the target DEC value.
-core::Declination &MountExecutor::targetDEC()
-{
-    return _targetDEC;
-}
 
 // Get current RA value.
 
@@ -1013,10 +997,6 @@ void MountExecutor::guidePulse(byte direction, int duration)
 //
 // Keeps track of how many Meade commands have been processed.
 /////////////////////////////////
-void MountExecutor::commandReceived()
-{
-    _commandReceived++;
-}
 
 #if SUPPORT_DRIFT_ALIGNMENT == 1
 /////////////////////////////////
@@ -1534,22 +1514,11 @@ bool MountExecutor::isSlewingRAorDEC() const
     return (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
 }
 
-bool MountExecutor::isSlewingIdle() const
-{
-    if (isParking())
-        return false;
-    return (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == 0;
-}
-
 /////////////////////////////////
 //
 // isParking
 //
 /////////////////////////////////
-bool MountExecutor::isParking() const
-{
-    return _coordinator.parking().isParking();
-}
 
 void MountExecutor::applyParkingStatus()
 {
@@ -2218,10 +2187,6 @@ void MountExecutor::bootComplete()
 // isBootComplete
 //
 /////////////////////////////////
-bool MountExecutor::isBootComplete()
-{
-    return _bootComplete;
-}
 
 /////////////////////////////////
 //
@@ -2388,16 +2353,6 @@ float MountExecutor::getSpeed(int direction)
 //
 // This code calculates the stepper locations to move to, given the right ascension and declination
 /////////////////////////////////
-void MountExecutor::calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos)
-{
-    DayTime savedRA      = _targetRA;
-    Declination savedDec = _targetDEC;
-    _targetRA            = DayTime(raCoord);
-    _targetDEC           = Declination::FromSeconds(decCoord * 3600.0f);
-    calculateRAandDECSteppers(raPos, decPos);
-    _targetRA  = savedRA;
-    _targetDEC = savedDec;
-}
 
 /////////////////////////////////
 //
@@ -2405,139 +2360,6 @@ void MountExecutor::calculateStepperPositions(float raCoord, float decCoord, lon
 //
 // This code tells the steppers to what location to move to, given the select right ascension and declination
 /////////////////////////////////
-void MountExecutor::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6]) const
-{
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersPre: Current : RA: %s, DEC: %s",
-            DayTime(currentRA()).ToString(),
-            Declination(currentDEC()).ToString());
-    OAT_LOG(
-        _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s", _targetRA.ToString(), _targetDEC.ToString());
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", DayTime(_siteTime.raZeroPoint()).ToString());
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroDEC : %f", _zeroPosDEC);
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersPre: Stepper: RA: %ld, DEC: %ld, TRK: %ld",
-            _axes.ra()->currentPosition(),
-            _axes.dec()->currentPosition(),
-            _axes.tracking()->currentPosition());
-    DayTime raTarget      = _targetRA;
-    Declination decTarget = _targetDEC;
-
-    // Calculate how far from the home position this new target is.
-    raTarget.subtractTime(DayTime(_siteTime.raZeroPoint()));
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
-            raTarget.ToString(),
-            _targetDEC.ToString());
-
-    // Total hours of tracking-to-date
-    const float trackedHours = getTrackedHours();
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: Tracked time is %ld steps (%f h).",
-            _axes.tracking()->currentPosition(),
-            trackedHours);
-
-    core::SlewGeometryFacts facts;
-    facts.targetRaHours      = _targetRA.getTotalHours();
-    facts.targetDecDegrees   = decTarget.getTotalDegrees();
-    facts.zeroPosRaHours     = DayTime(_siteTime.raZeroPoint()).getTotalHours();
-    facts.zeroPosDecDegrees  = _zeroPosDEC;
-    facts.trackedHours       = trackedHours;
-    facts.raStepsPerDegree   = _settings.stepsPerDegree(RA_STEPS);
-    facts.decStepsPerDegree  = _settings.stepsPerDegree(DEC_STEPS);
-    facts.raLimitLeftHours   = RA_LIMIT_LEFT;
-    facts.raLimitRightHours  = RA_LIMIT_RIGHT;
-    facts.northernHemisphere = inNorthernHemisphere;
-
-    const core::SlewGeometry geometry = core::buildSlewGeometry(facts);
-
-    if (!inNorthernHemisphere)
-    {
-        OAT_LOG(
-            _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", geometry.moveDEC);
-    }
-
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: Target hrs pos RA: Delta:%f (moveRA: %f), DEC: %s (moveDEC: %f)",
-            geometry.homeTargetDeltaRA,
-            geometry.moveRA,
-            decTarget.ToString(),
-            geometry.moveDEC);
-
-    /*
-  * Current RA wheel has a rotation limit of around 7 hours in each direction from home position.
-  * Since tracking does not trigger the meridian flip, we try to extend the possible tracking time 
-  * without reaching the RA ring end by executing the meridian flip before slewing to the target.
-  * For this flip the RA and DEC rings have to be flipped by 180° (which is 12 RA hours). Based
-  * on the physical RA ring limits, this means that the flip can only be executed during +/-[5h to 7h]
-  * sections around the home position of RA. The tracking time will still be limited to around 2h in
-  * worst case if the target is located right before the 5h mark during slewing. 
-  */
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", geometry.raLimitL, geometry.raLimitR);
-
-    const core::SlewResult result = core::calculateStepperPositions(geometry);
-
-    if (pSolutions != nullptr)
-    {
-        for (int i = 0; i < 6; i++)
-        {
-            pSolutions[i] = result.solutions[i];
-        }
-    }
-
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 1: %f, %f", -geometry.moveRA, geometry.moveDEC);
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 2: %f, %f", -(geometry.moveRA - 12.0f), -geometry.moveDEC);
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 3: %f, %f", -(geometry.moveRA + 12.0f), -geometry.moveDEC);
-
-    switch (result.selected)
-    {
-        case core::SlewSolution::FlipUpper:
-            OAT_LOG(
-                _deps.logger,
-                DEBUG_COORD_CALC,
-                "[MOUNT]: CalcSteppersIn: Using Solution 2, since hometargetDeltaRA %f (RA:%f) is past max limit %f, inverting both axes",
-                geometry.homeTargetDeltaRA,
-                geometry.moveRA,
-                geometry.raLimitR);
-            break;
-        case core::SlewSolution::FlipLower:
-            OAT_LOG(
-                _deps.logger,
-                DEBUG_COORD_CALC,
-                "[MOUNT]: CalcSteppersIn: Using solution 3 since homeTargetDeltaRA %f (RA:%f) is past min limit: %f, inverting both axes",
-                geometry.homeTargetDeltaRA,
-                geometry.moveRA,
-                geometry.raLimitL);
-            break;
-        case core::SlewSolution::Direct:
-            OAT_LOG(_deps.logger,
-                    DEBUG_COORD_CALC,
-                    "[MOUNT]: CalcSteppersIn: Using solution 1 since targetRA %f is in range. RA: %f, DEC: %f",
-                    geometry.homeTargetDeltaRA,
-                    geometry.moveRA,
-                    geometry.moveDEC);
-            break;
-    }
-
-    // zeroPosDEC is the accumulated offset from zero (home) in degrees that one or more Sync commands have applied.
-    OAT_LOG(
-        _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f", result.adjustedRA, result.adjustedDEC);
-    OAT_LOG(_deps.logger,
-            DEBUG_COORD_CALC,
-            "[MOUNT]: CalcSteppersIn: adjusted DEC by _zeroPosDEC: %f => DEC: %f",
-            _zeroPosDEC,
-            result.adjustedDEC - _zeroPosDEC);
-
-    targetRASteps  = result.targetRASteps;
-    targetDECSteps = result.targetDECSteps;
-    OAT_LOG(
-        _deps.logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: ResultTarget Steps RA: %ld, DEC: %ld", targetRASteps, targetDECSteps);
-}
 
 /////////////////////////////////
 //
@@ -2689,26 +2511,12 @@ void MountExecutor::moveStepperTo(StepperAxis axis, long position)
 // IMountReadModel — the UI-facing reads
 //
 /////////////////////////////////
-core::DayTime MountExecutor::hourAngle()
-{
-    return HA();
-}
 
 /////////////////////////////////
 //
 // IInfoDisplaySource
 //
 /////////////////////////////////
-
-float MountExecutor::plannedRaSteps() const
-{
-    return _coordinator.slew().totalRaSteps();
-}
-
-float MountExecutor::plannedDecSteps() const
-{
-    return _coordinator.slew().totalDecSteps();
-}
 
 // Return a string of RA in the given format. For LCDSTRING, active determines where the cursor is
 
@@ -2723,14 +2531,6 @@ float MountExecutor::plannedDecSteps() const
 // calculateHa
 //
 /////////////////////////////////
-core::DayTime MountExecutor::calculateHa()
-{
-    DayTime lst = calculateLst();
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
-    DayTime ha = core::SiderealClock::hourAngle(lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
-    return ha;
-}
 
 /////////////////////////////////
 //
@@ -2802,11 +2602,6 @@ void MountExecutor::testUART_vactual(ports::IMotorDriver *driver, int _speed, in
 }
     #endif
 #endif
-
-float MountExecutor::getTrackedHours() const
-{
-    return _coordinator.tracking().trackedHours();
-}
 
 /////////////////////////////////
 //
@@ -2971,6 +2766,31 @@ long MountExecutor::getCurrentStepperPosition(int direction)
 core::DayTime MountExecutor::calculateLst()
 {
     return _readout.calculateLst();
+}
+
+core::DayTime &MountExecutor::targetRA()
+{
+    return _readout.targetRA();
+}
+
+core::Declination &MountExecutor::targetDEC()
+{
+    return _readout.targetDEC();
+}
+
+float MountExecutor::getTrackedHours() const
+{
+    return _readout.getTrackedHours();
+}
+
+bool MountExecutor::isParking() const
+{
+    return _readout.isParking();
+}
+
+void MountExecutor::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6]) const
+{
+    _readout.calculateRAandDECSteppers(targetRASteps, targetDECSteps, pSolutions);
 }
 
 }  // namespace app
