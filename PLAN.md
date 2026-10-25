@@ -817,9 +817,16 @@ format, the two sensor helpers and the utility grab-bag.*
   motion port, including the exact 16-character rows. The menu ids moved to
   `app/ui/MenuIds.hpp`, `toCoreButton()` bridges the legacy key enum, `menuDisplayPort` exposes the
   display, and `c725_menuHOME.hpp` is deleted. Established pattern for the remaining ten screens.
+- 🟡 **8.8b — RA and DEC converted as one screen.** `app::CoordinateMenu` is the shared behaviour
+  (field cursor, auto-repeating nudge at 200 ms, target-vs-current toggle, slew/stop) parameterised
+  by the axis, with `RaMenu`/`DecMenu` as the two names the loop uses; the one real difference is
+  preserved (RA waits for the axes to stop before the go-to, DEC does not). `app::UiPorts` became
+  header-only so `app/ui` links on the host, and `MenuKeyInput` now carries the held key as well as
+  the edge, because these screens act on a held key. 9 tests, including both exact row widths.
+  `c70_menuRA.hpp` and `c71_menuDEC.hpp` are deleted.
 - **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the other
-  ten screens), 8.9 (test console), 8.10 (`Utility` and the empty root). The root is down from 47
-  files to 32, and everything left in it is the UI block those slices move.
+  nine screens: POI/HA/GPS/CTRL/CAL/FOC/INFO/startup/slew-status), 8.9 (test console), 8.10
+  (`Utility` and the empty root). The root is down from 47 files to 30.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
