@@ -1,7 +1,7 @@
 #include "StepPump.hpp"
 
-#include "../EndSwitches.hpp"
-#include "../HallSensorHoming.hpp"
+#include "EndSwitchMonitor.hpp"
+#include "HomingRunner.hpp"
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
 

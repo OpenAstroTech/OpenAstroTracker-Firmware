@@ -1,11 +1,12 @@
+#include "HomingRunner.hpp"
+
 #include "../Configuration.hpp"
-#include "Utility.hpp"
-#include "Types.hpp"
-#include "core/MountState.hpp"
-#include "adapters/EepromSettingsFormat.hpp"
-#include "HallSensorHoming.hpp"
-#include "Utility.hpp"
-#include "libs/MappedDict/MappedDict.hpp"
+#include "../Utility.hpp"
+#include "../core/MountState.hpp"
+#include "../libs/MappedDict/MappedDict.hpp"
+
+namespace app
+{
 
 /////////////////////////////////
 //
@@ -223,3 +224,5 @@ void HallSensorHoming::logTransition(core::HomingState previous, const core::Hom
             break;
     }
 }
+
+}  // namespace app

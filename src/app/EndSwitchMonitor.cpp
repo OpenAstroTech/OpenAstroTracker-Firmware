@@ -1,9 +1,11 @@
+#include "EndSwitchMonitor.hpp"
+
 #include "../Configuration.hpp"
-#include "Utility.hpp"
-#include "adapters/EepromSettingsFormat.hpp"
-#include "Types.hpp"
-#include "EndSwitches.hpp"
-#include "libs/MappedDict/MappedDict.hpp"
+#include "../Utility.hpp"
+#include "../core/MountState.hpp"
+
+namespace app
+{
 
 /////////////////////////////////
 //
@@ -170,3 +172,5 @@ void EndSwitch::checkSwitchState()
             _axis == StepperAxis::RA_STEPS ? "RA" : "DEC");
     }
 }
+
+}  // namespace app

@@ -3,8 +3,8 @@
 #include "BoardWiring.hpp"
 
 #include "../Utility.hpp"
-#include "../EndSwitches.hpp"
-#include "../HallSensorHoming.hpp"
+#include "EndSwitchMonitor.hpp"
+#include "HomingRunner.hpp"
 #include "../adapters/GpioEndSwitch.hpp"
 #include "../adapters/HallHomingSensor.hpp"
 #include "../adapters/StatusFlags.hpp"

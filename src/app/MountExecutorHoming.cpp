@@ -1,8 +1,8 @@
 #include "MountExecutor.hpp"
 
 #include "../Utility.hpp"
-#include "../EndSwitches.hpp"
-#include "../HallSensorHoming.hpp"
+#include "EndSwitchMonitor.hpp"
+#include "HomingRunner.hpp"
 
 namespace app
 {

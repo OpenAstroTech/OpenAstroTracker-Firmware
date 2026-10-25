@@ -17,10 +17,12 @@
 #include "../ports/IInfoDisplay.hpp"
 #include "AxisBank.hpp"
 
-class HallSensorHoming;
 
 namespace app
 {
+
+class HallSensorHoming;
+class EndSwitch;
 
 /// Everything the mount says about itself: the coordinate readouts, the status strings and the
 /// motion predicates.

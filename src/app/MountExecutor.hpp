@@ -47,8 +47,6 @@
 
 class LcdMenu;
 class TMC2209Stepper;
-class HallSensorHoming;
-class EndSwitch;
 
 // Focuser support
 // The focuser's direction and mode are domain vocabulary, so they live in `core/` with
@@ -74,6 +72,9 @@ using FocuserDirection = core::FocuserDirection;
 //////////////////////////////////////////////////////////////////
 namespace app
 {
+
+class HallSensorHoming;
+class EndSwitch;
 
 /// Everything `MountExecutor` is handed by the composition root (`app/BoardWiring.*`).
 ///

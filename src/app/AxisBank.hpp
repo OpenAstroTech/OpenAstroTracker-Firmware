@@ -8,10 +8,12 @@
 #include "BoardPresence.hpp"
 
 class EndSwitch;
-class HallSensorHoming;
 
 namespace app
 {
+
+class HallSensorHoming;
+class EndSwitch;
 
 /// The hardware this board has: seven axes, five drivers, four sensors, and the limits the axes
 /// run at.
