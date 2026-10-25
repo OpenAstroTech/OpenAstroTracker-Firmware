@@ -11,6 +11,7 @@
 #include "AxisBank.hpp"
 #include "BoardPresence.hpp"
 #include "MountReadout.hpp"
+#include "MountSettings.hpp"
 #include "../core/AzAltController.hpp"
 #include "../core/EventBus.hpp"
 #include "../core/FocusController.hpp"
@@ -527,11 +528,6 @@ class MountExecutor final : public ports::IMountOptionalAxes
     /// The live, EEPROM-backed motion settings: u-steps/degree, backlash, slew rate, DEC limits.
     core::MountRuntimeSettings _settings;
 
-#if USE_GYRO_LEVEL == 1
-    float _pitchCalibrationAngle;
-    float _rollCalibrationAngle;
-#endif
-
     /// Latitude, longitude, local sidereal time and the session clock, in one object.
     core::SiteTime _siteTime;
 
@@ -553,6 +549,9 @@ class MountExecutor final : public ports::IMountOptionalAxes
     /// The read model's formatting half. Declared after every member it references, because it is
     /// constructed from references to them.
     MountReadout _readout;
+
+    /// The write half of the configuration: every setting that reaches the EEPROM.
+    MountSettings _persisted;
 
     unsigned long _lastMountPrint = 0;
 

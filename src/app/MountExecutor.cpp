@@ -78,6 +78,13 @@ float hoursToLimitThunk(void *context)
 {
     return static_cast<MountExecutor *>(context)->checkRALimit();
 }
+
+/// A settings write has to recompute the tracking rate while the mount is tracking, which is a
+/// motion consequence the settings class must not decide for itself.
+bool isTrackingThunk(void *context)
+{
+    return static_cast<MountExecutor *>(context)->isSlewingTRK();
+}
 }  // namespace
 
 MountExecutor::MountExecutor(const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator)
@@ -93,7 +100,8 @@ MountExecutor::MountExecutor(const MountDeps &deps, const core::MountConfig &con
                                                                         *deps.logger,
                                                                         _commandReceived,
                                                                         _bootComplete,
-                                                                        {this, hoursToLimitThunk})
+                                                                        {this, hoursToLimitThunk}),
+      _persisted(_settings, *deps.settings, _axes, coordinator, *deps.logger, {this, isTrackingThunk})
 {
     _commandReceived = 0;
 
@@ -127,10 +135,7 @@ void MountExecutor::initializeVariables()
     _coordinator.slew().end();
     _coordinator.parking().clear();
     applyParkingStatus();
-#if USE_GYRO_LEVEL == 1
-    _pitchCalibrationAngle = 0;
-    _rollCalibrationAngle  = 0;
-#endif
+    _persisted.reset();
 
     _siteTime.setLocalUtcOffset(0);
     _siteTime.setLocalStartDate({2021, 1, 1});
@@ -376,6 +381,97 @@ bool MountExecutor::isParking() const
 void MountExecutor::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6]) const
 {
     _readout.calculateRAandDECSteppers(targetRASteps, targetDECSteps, pSolutions);
+}
+
+/////////////////////////////////
+//
+// The configuration forwards
+//
+// `app::MountSettings` owns the write side of the configuration; the executor keeps the
+// `ports::IMountConfiguration` entry points so the menu screens and the command layer still talk
+// to one object, exactly as they do for the read model.
+//
+/////////////////////////////////
+float MountExecutor::getSpeedCalibration()
+{
+    return _persisted.getSpeedCalibration();
+}
+
+void MountExecutor::setSpeedCalibration(float value, bool saveToStorage)
+{
+    _persisted.setSpeedCalibration(value, saveToStorage);
+}
+
+#if USE_GYRO_LEVEL == 1
+float MountExecutor::getPitchCalibrationAngle()
+{
+    return _persisted.getPitchCalibrationAngle();
+}
+
+void MountExecutor::setPitchCalibrationAngle(float angle)
+{
+    _persisted.setPitchCalibrationAngle(angle);
+}
+
+float MountExecutor::getRollCalibrationAngle()
+{
+    return _persisted.getRollCalibrationAngle();
+}
+
+void MountExecutor::setRollCalibrationAngle(float angle)
+{
+    _persisted.setRollCalibrationAngle(angle);
+}
+#endif
+
+void MountExecutor::setStepsPerDegree(StepperAxis which, float steps)
+{
+    _persisted.setStepsPerDegree(which, steps);
+}
+
+int MountExecutor::getBacklashCorrection()
+{
+    return _persisted.getBacklashCorrection();
+}
+
+void MountExecutor::setBacklashCorrection(int steps)
+{
+    _persisted.setBacklashCorrection(steps);
+}
+
+void MountExecutor::setSlewRate(int rate)
+{
+    _persisted.setSlewRate(rate);
+}
+
+int MountExecutor::getSlewRate()
+{
+    return _persisted.getSlewRate();
+}
+
+void MountExecutor::setHomingOffset(StepperAxis axis, long offset)
+{
+    _persisted.setHomingOffset(axis, offset);
+}
+
+long MountExecutor::getHomingOffset(StepperAxis axis)
+{
+    return _persisted.getHomingOffset(axis);
+}
+
+void MountExecutor::setDecLimitPosition(bool upper, float limitAngle)
+{
+    _persisted.setDecLimitPosition(upper, limitAngle);
+}
+
+void MountExecutor::clearDecLimitPosition(bool upper)
+{
+    _persisted.clearDecLimitPosition(upper);
+}
+
+void MountExecutor::getDecLimitPositions(float &lowerLimit, float &upperLimit)
+{
+    _persisted.getDecLimitPositions(lowerLimit, upperLimit);
 }
 
 }  // namespace app
