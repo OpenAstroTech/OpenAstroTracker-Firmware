@@ -1,5 +1,9 @@
 #pragma once
 
+// Arduino first: `String` is `arduino::String` on RP2040, and the value-type overlays below
+// forward-declare it. Including them before Arduino.h makes that declaration a conflict there.
+#include "../inc/Globals.hpp"
+
 #include "../Declination.hpp"
 #include "../Latitude.hpp"
 #include "../Longitude.hpp"
