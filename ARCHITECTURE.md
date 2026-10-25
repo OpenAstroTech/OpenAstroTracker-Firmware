@@ -179,6 +179,13 @@ OpenAstroTracker-Firmware/
 │   │   ├── SensorWiring.hpp/.cpp        # builds end switches and hall sensors (done)
 │   │   ├── StepPump.hpp/.cpp            # the ISR/task step-generation pump (done)
 │   │   ├── MountExecutor.hpp/.cpp       # the motion executor; IMountOptionalAxes (was src/Mount.*)
+│   │   ├── MountExecutorSlew.cpp        # admission, start/stop, manual slew, speed, axis moves
+│   │   ├── MountExecutorGuide.cpp       # guide pulses + drift alignment
+│   │   ├── MountExecutorHoming.cpp      # homing, end switches
+│   │   ├── MountExecutorOptionalAxes.cpp# AZ/ALT + focus
+│   │   ├── MountExecutorConfig.cpp      # EEPROM, hemisphere, calibration, limits
+│   │   ├── MountExecutorTick.cpp        # loop, delay
+│   │   ├── MountExecutorWiring.cpp      # attach*, driver UART self-test
 │   │   ├── AxisBank.hpp/.cpp            # owns the axes, drivers, sensors and their limits (done)
 │   │   ├── BoardPresence.hpp            # compile-time "which parts does this board have" (done)
 │   │   ├── MountReadout.hpp/.cpp        # all reads: IMountReadModel + IInfoDisplaySource (done)
