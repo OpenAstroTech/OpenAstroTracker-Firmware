@@ -19,7 +19,10 @@ void processSerialData();
 void serialLoop()
 {
     mount.loop();
-    displayLcdSlewStatusThrottled(ui, lcdMenu);
+    if (menuDisplayPort != nullptr)
+    {
+        app::slewStatusView.renderThrottled(*ui.read, true, ui.clock->now(), *menuDisplayPort);
+    }
     serviceInfoDisplay();
 
     // Deferred Meade replies whose deadline ran out while nothing else was talking. The

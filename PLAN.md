@@ -845,9 +845,27 @@ format, the two sensor helpers and the utility grab-bag.*
   an info panel — the backend now drops those macros at its own header and names the two states it
   uses; and `OAT_SNPRINTF` expanded to `snprintf_P` on AVR without `<stdio.h>` having been included,
   which no AVR build had reached because every previous user was display-guarded.
+- 🟡 **8.8b — POI, the slew-progress view and CTRL converted.** `app::PoiMenu` keeps the table
+  (`app/ui/PointOfInterestTable.hpp`, now `constexpr`) and the three trailing commands, and it keeps
+  the legacy declination conversion for a *southern* mount — the sign convention differs from
+  `core::Declination::celestialToAxisSeconds()`, which is what `Declination::ParseFromMeade()` uses,
+  so fixing it would move where a southern mount slews. Recorded as a quirk, not fixed.
+  `app::SlewStatusView` replaces `LcdSlewStatus`, which was the last place the menu LCD was painted
+  from a free function; it paints only the rows a move owns and leaves the rest of the screen alone,
+  which is what lets a one-axis move draw over the middle of the menu. `app::ControlMenu` replaces
+  `c75_menuCTRL.hpp` and reports its side effects (`suspendMenuUpdate`, `resumeStartup`,
+  `serialChanged`, `serialActive`) instead of assigning the loop's globals. Two legacy details are
+  pinned by tests: the ten-pass "confirm the held key" countdown could never arm itself (it was only
+  ever started from a state in which it was already running), so the mount is in fact commanded on
+  the first pass of each new key — the counter is gone and the behaviour is kept; and the home
+  prompt's markers bracket the *words*, `>Yes< No`, not the whole row.
+  The screens are now singletons declared in `app/UiScreens.hpp` and defined in `app/UiScreens.cpp`,
+  next to the two predicates that need board configuration (`serialHostOwnsDisplay`,
+  `startupAwaitingPole`) — a firmware-only translation unit, because `Configuration.hpp` refuses to
+  compile without a board.
 - **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the other
-  seven screens: POI/HA/GPS/CTRL/CAL/startup/slew-status), 8.9 (test console), 8.10 (`Utility` and
-  the empty root). The root is down from 47 files to 28.
+  four screens: HA/GPS/CAL/startup), 8.9 (test console), 8.10 (`Utility` and the empty root). The
+  root is down from 47 files to 24.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

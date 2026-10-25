@@ -1,18 +1,19 @@
 #pragma once
 
 #include "LcdButtons.hpp"
+#include "app/UiScreens.hpp"
 #include "app/BoardWiring.hpp"
 #include "c65_startup.hpp"
-#include "c722_menuPOI.hpp"
 #include "c72_menuHA.hpp"
 #include "c72_menuHA_GPS.hpp"
-#include "c75_menuCTRL.hpp"
 #include "c76_menuCAL.hpp"
 
 #include "app/ui/screens/DecMenu.hpp"
 #include "app/ui/screens/FocusMenu.hpp"
 #include "app/ui/screens/HomeMenu.hpp"
+#include "app/ui/SlewStatusView.hpp"
 #include "app/ui/screens/InfoMenu.hpp"
+#include "app/ui/screens/PoiMenu.hpp"
 #include "app/ui/screens/RaMenu.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
@@ -36,23 +37,16 @@ app::DecMenu decMenu;
 app::FocusMenu focusMenu;
 #endif
 
-    #if SUPPORT_INFO_DISPLAY == 1
-app::InfoMenu infoMenu;
-
-/// The board facts the status screen shows. The gyro is optional, so the sensor is only asked when
-/// the board has one.
-app::InfoMenuEnvironment infoEnvironment()
+/// True while the guided startup waits for the pole alignment, which changes what SELECT means in
+/// the control menu.
+bool startupAwaitingPole()
 {
-    app::InfoMenuEnvironment environment;
-    environment.version         = VERSION;
-    environment.freeMemoryBytes = freeMemory();
-        #if USE_GYRO_LEVEL == 1
-    environment.gyroTemperatureC = gyro->temperature();
-    environment.hasGyro          = true;
-        #endif
-    return environment;
-}
+    #if SUPPORT_GUIDED_STARTUP == 1
+    return startupState == StartupWaitForPoleCompletion;
+    #else
+    return false;
     #endif
+}
 
 /// What the loop hands a converted screen: the key that just settled and the key held now.
 app::MenuKeyInput screenInput()
@@ -120,9 +114,9 @@ void loop()
 
     // The slew progress view owns the screen only while an axis is moving; the rest of the time
     // the menu draws it. This used to be a call from inside `Mount::loop()`.
-    if (ui.read->isAxisRunning(RA_STEPS) || ui.read->isAxisRunning(DEC_STEPS))
+    if ((ui.read->isAxisRunning(RA_STEPS) || ui.read->isAxisRunning(DEC_STEPS)) && (menuDisplayPort != nullptr))
     {
-        displayLcdSlewStatusThrottled(ui, lcdMenu);
+        app::slewStatusView.renderThrottled(*ui.read, app::serialHostOwnsDisplay(), ui.clock->now(), *menuDisplayPort);
     }
 
     // Update the LCD display
@@ -210,7 +204,17 @@ void loop()
                     break;
     #if SUPPORT_POINTS_OF_INTEREST == 1
                 case POI_Menu:
-                    waitForButtonRelease = processPOIKeys();
+                    {
+                        const app::MenuKeyResult result = app::poiMenu.handleKey(screenInput(), *ui.read, *ui.motion, inNorthernHemisphere);
+                        if (result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
     #else
                 case Home_Menu:
@@ -260,14 +264,44 @@ void loop()
 
     #if SUPPORT_MANUAL_CONTROL == 1
                 case Control_Menu:
-                    waitForButtonRelease = processControlKeys();
+                    {
+                        const app::ControlMenuOutcome outcome =
+                            app::controlMenu.handleKey(screenInput(), *ui.motion, app::serialHostOwnsDisplay(), startupAwaitingPole());
+                        if (outcome.serialChanged)
+                        {
+                            inSerialControl = outcome.serialActive;
+                        }
+                        if (outcome.suspendMenuUpdate)
+                        {
+                            okToUpdateMenu = false;
+                        }
+                        if (outcome.resumeMenuUpdate)
+                        {
+                            okToUpdateMenu = true;
+                        }
+                        if (outcome.resumeStartup)
+                        {
+        #if SUPPORT_GUIDED_STARTUP == 1
+                            startupState = StartupPoleConfirmed;
+                            inStartup    = true;
+        #endif
+                        }
+                        if (outcome.result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (outcome.result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
     #endif
 
     #if SUPPORT_INFO_DISPLAY == 1
                 case Status_Menu:
                     {
-                        const app::MenuKeyResult result = infoMenu.handleKey(screenInput());
+                        const app::MenuKeyResult result = app::infoMenu.handleKey(screenInput());
                         if (result == app::MenuKeyResult::NextScreen)
                         {
                             lcdMenu.setNextActive();
@@ -336,7 +370,10 @@ void loop()
     #if SUPPORT_POINTS_OF_INTEREST == 1
                 else if (activeMenu == POI_Menu)
                 {
-                    printPOISubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        app::poiMenu.render(*ui.read, *menuDisplayPort);
+                    }
                 }
     #else
                 else if (activeMenu == Home_Menu)
@@ -354,7 +391,10 @@ void loop()
     #if SUPPORT_MANUAL_CONTROL == 1
                 else if (activeMenu == Control_Menu)
                 {
-                    printControlSubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        app::controlMenu.render(*ui.read, app::serialHostOwnsDisplay(), ui.clock->now(), *menuDisplayPort);
+                    }
                 }
     #endif
     #if SUPPORT_CALIBRATION == 1
@@ -379,8 +419,8 @@ void loop()
                 {
                     if (menuDisplayPort != nullptr)
                     {
-                        const app::InfoMenuEnvironment environment = infoEnvironment();
-                        infoMenu.render(*ui.read, *ui.config, *ui.siteTime, environment, ui.clock->now(), *menuDisplayPort);
+                        const app::InfoMenuEnvironment environment = app::infoEnvironment();
+                        app::infoMenu.render(*ui.read, *ui.config, *ui.siteTime, environment, ui.clock->now(), *menuDisplayPort);
                     }
                 }
     #endif

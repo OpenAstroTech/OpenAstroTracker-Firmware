@@ -14,7 +14,7 @@ namespace fakes
 /// The coordinate readouts are driven by the `TARGET_STRING` / `CURRENT_STRING` flag the caller
 /// passes, because that is the only distinction the screens make; the fake records the exact flag
 /// word so a test can assert what was asked for.
-class FakeMountReadModel final : public ports::IMountReadModel
+class FakeMountReadModel : public ports::IMountReadModel
 {
   public:
     long raStepperPosition  = 0;
@@ -25,6 +25,15 @@ class FakeMountReadModel final : public ports::IMountReadModel
     const char *raCurrentText  = "01:02:03";
     const char *decTargetText  = "+00@00:00";
     const char *decCurrentText = "-12@34:56";
+
+    bool slewingIdle = true;
+
+    /// A move counts as planned when this is non-zero, so the slew-status view has rows to draw.
+    float plannedRaStepsValue  = 0.0F;
+    float plannedDecStepsValue = 0.0F;
+
+    int raPercentValue  = 100;
+    int decPercentValue = 100;
 
     core::DayTime lstTime;
     core::DayTime haTime;
@@ -46,12 +55,12 @@ class FakeMountReadModel final : public ports::IMountReadModel
 
     core::DayTime &targetRA() override
     {
-        return _ra;
+        return targetRaValue;
     }
 
     core::Declination &targetDEC() override
     {
-        return _dec;
+        return targetDecValue;
     }
 
     core::DayTime calculateHa() override
@@ -108,24 +117,24 @@ class FakeMountReadModel final : public ports::IMountReadModel
 
     bool isSlewingIdle() const override
     {
-        return true;
+        return slewingIdle;
     }
 
     bool getStepperProgress(int &raPercentage, int &decPercentage) override
     {
-        raPercentage  = 0;
-        decPercentage = 0;
-        return false;
+        raPercentage  = raPercentValue;
+        decPercentage = decPercentValue;
+        return (raPercentValue < 100) || (decPercentValue < 100);
     }
 
     float plannedRaSteps() const override
     {
-        return 0.0F;
+        return plannedRaStepsValue;
     }
 
     float plannedDecSteps() const override
     {
-        return 0.0F;
+        return plannedDecStepsValue;
     }
 
     bool isBootComplete() override
@@ -179,9 +188,9 @@ class FakeMountReadModel final : public ports::IMountReadModel
     {
     }
 
-  private:
-    core::DayTime _ra;
-    core::Declination _dec;
+    /// The target the screen writes; a test asserts on these directly.
+    core::DayTime targetRaValue;
+    core::Declination targetDecValue;
 };
 
 /// A `ports::IMountConfiguration` whose only interesting answers are the four the status screen

@@ -32,12 +32,9 @@
 #ifndef NEW_STEPPER_LIB
     #include "../hal/InterruptCallback.hpp"
 #endif
-#include "../LcdSlewStatus.hpp"
 #include "../c65_startup.hpp"
-#include "../c722_menuPOI.hpp"
 #include "../c72_menuHA.hpp"
 #include "../c72_menuHA_GPS.hpp"
-#include "../c75_menuCTRL.hpp"
 #include "../c76_menuCAL.hpp"
 #include "../c_buttons.hpp"
 #include "../app/SerialPump.hpp"
