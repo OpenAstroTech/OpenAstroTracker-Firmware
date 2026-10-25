@@ -5,7 +5,6 @@
 #include "HomingRunner.hpp"
 #include "EndSwitchMonitor.hpp"
 #include "MountExecutor.hpp"
-#include "../Sidereal.hpp"
 #include "../core/CalendarMath.hpp"
 #include "../core/CoordinateFormatter.hpp"
 #include "../core/CoordinateText.hpp"
