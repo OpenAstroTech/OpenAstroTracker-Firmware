@@ -20,9 +20,9 @@ void HomeMenu::enter()
     _selection = 0;
 }
 
-MenuKeyResult HomeMenu::handleKey(core::Button key, ports::IMountMotion &motion)
+MenuKeyResult HomeMenu::handleKey(const MenuKeyInput &input, ports::IMountMotion &motion)
 {
-    switch (key)
+    switch (input.edge)
     {
         case core::Button::Select:
             if (_selection == 0)

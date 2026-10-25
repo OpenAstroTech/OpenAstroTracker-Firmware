@@ -11,6 +11,12 @@ using fakes::FakeDisplay;
 namespace
 {
 
+/// A press: the key settled on this value, and it is what is held.
+app::MenuKeyInput pressed(Button key)
+{
+    return app::MenuKeyInput {key, key};
+}
+
 /// The motion port the home screen talks to, recording what it was asked to do.
 class RecordingMotion final : public ports::IMountMotion
 {
@@ -87,7 +93,7 @@ TEST(HomeMenuTest, FirstChoiceStartsTheHomeSlew)
     RecordingMotion motion;
     menu.enter();
 
-    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(Button::Select, motion));
+    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(pressed(Button::Select), motion));
     EXPECT_EQ(1, motion.startSlewingToHomeCalls);
     EXPECT_EQ(0, motion.startSlewingCalls);
 }
@@ -98,8 +104,8 @@ TEST(HomeMenuTest, SecondChoiceUnparksWhenTheMountIsIdle)
     RecordingMotion motion;
     menu.enter();
 
-    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(Button::Down, motion));
-    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(Button::Select, motion));
+    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(pressed(Button::Down), motion));
+    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(pressed(Button::Select), motion));
 
     EXPECT_EQ(0, motion.parkCalls);
     EXPECT_EQ(1, motion.startSlewingCalls);
@@ -113,8 +119,8 @@ TEST(HomeMenuTest, SecondChoiceParksWhileTracking)
     motion.tracking = true;
     menu.enter();
 
-    menu.handleKey(Button::Up, motion);
-    menu.handleKey(Button::Select, motion);
+    menu.handleKey(pressed(Button::Up), motion);
+    menu.handleKey(pressed(Button::Select), motion);
 
     EXPECT_EQ(1, motion.parkCalls);
     EXPECT_EQ(0, motion.startSlewingCalls);
@@ -126,12 +132,12 @@ TEST(HomeMenuTest, LeftAndDownBothToggleTheChoice)
     RecordingMotion motion;
     menu.enter();
 
-    menu.handleKey(Button::Left, motion);
-    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(Button::Select, motion));
+    menu.handleKey(pressed(Button::Left), motion);
+    EXPECT_EQ(MenuKeyResult::WaitForRelease, menu.handleKey(pressed(Button::Select), motion));
     EXPECT_EQ(0, motion.startSlewingToHomeCalls);  // the second choice was active
 
-    menu.handleKey(Button::Down, motion);
-    menu.handleKey(Button::Select, motion);
+    menu.handleKey(pressed(Button::Down), motion);
+    menu.handleKey(pressed(Button::Select), motion);
     EXPECT_EQ(1, motion.startSlewingToHomeCalls);  // back on the first
 }
 
@@ -140,7 +146,7 @@ TEST(HomeMenuTest, RightAsksForTheNextScreen)
     HomeMenu menu;
     RecordingMotion motion;
 
-    EXPECT_EQ(MenuKeyResult::NextScreen, menu.handleKey(Button::Right, motion));
+    EXPECT_EQ(MenuKeyResult::NextScreen, menu.handleKey(pressed(Button::Right), motion));
 }
 
 TEST(HomeMenuTest, NoKeyIsIgnored)
@@ -148,7 +154,7 @@ TEST(HomeMenuTest, NoKeyIsIgnored)
     HomeMenu menu;
     RecordingMotion motion;
 
-    EXPECT_EQ(MenuKeyResult::Ignored, menu.handleKey(Button::None, motion));
+    EXPECT_EQ(MenuKeyResult::Ignored, menu.handleKey(pressed(Button::None), motion));
 }
 
 TEST(HomeMenuTest, TheIdleRowShowsTheUnparkChoiceWithTheSelectorFirst)
@@ -178,7 +184,7 @@ TEST(HomeMenuTest, TheSelectorMovesToTheSecondChoice)
 {
     HomeMenu menu;
     RecordingMotion motion;
-    menu.handleKey(Button::Down, motion);
+    menu.handleKey(pressed(Button::Down), motion);
 
     FakeDisplay display;
     menu.render(motion, display);

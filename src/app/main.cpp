@@ -34,8 +34,6 @@
 #endif
 #include "../LcdSlewStatus.hpp"
 #include "../c65_startup.hpp"
-#include "../c70_menuRA.hpp"
-#include "../c71_menuDEC.hpp"
 #include "../c722_menuPOI.hpp"
 #include "../c72_menuHA.hpp"
 #include "../c72_menuHA_GPS.hpp"

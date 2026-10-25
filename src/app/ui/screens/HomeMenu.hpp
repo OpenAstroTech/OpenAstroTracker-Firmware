@@ -20,7 +20,7 @@ class HomeMenu
     /// Clears the choice, as entering the menu item always did.
     void enter();
 
-    MenuKeyResult handleKey(core::Button key, ports::IMountMotion &motion);
+    MenuKeyResult handleKey(const MenuKeyInput &input, ports::IMountMotion &motion);
 
     void render(const ports::IMountMotion &motion, ports::IDisplay &display) const;
 

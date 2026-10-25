@@ -3,8 +3,6 @@
 #include "LcdButtons.hpp"
 #include "app/BoardWiring.hpp"
 #include "c65_startup.hpp"
-#include "c70_menuRA.hpp"
-#include "c71_menuDEC.hpp"
 #include "c722_menuPOI.hpp"
 #include "c72_menuHA.hpp"
 #include "c72_menuHA_GPS.hpp"
@@ -13,7 +11,9 @@
 #include "c77_menuFOC.hpp"
 #include "c78_menuINFO.hpp"
 
+#include "app/ui/screens/DecMenu.hpp"
 #include "app/ui/screens/HomeMenu.hpp"
+#include "app/ui/screens/RaMenu.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
     #include "app/SerialPump.hpp"
@@ -27,8 +27,18 @@ lcdButton_t lastKey = btnNONE;
 lcdButton_t lcd_key;
 unsigned long lastTrackingStatusPrint = 0;
 
-/// The converted screen owns its own selection; the legacy global `subGoIndex` did the same.
+/// The converted screens own their own selection and field cursor.
 app::HomeMenu homeMenu;
+app::RaMenu raMenu;
+app::DecMenu decMenu;
+
+/// What the loop hands a converted screen: the key that just settled and the key held now.
+app::MenuKeyInput screenInput()
+{
+    lcdButton_t edgeKey;
+    const bool changed = lcdButtons.keyChanged(&edgeKey);
+    return app::MenuKeyInput{changed ? toCoreButton(edgeKey) : core::Button::None, toCoreButton(lcdButtons.currentState())};
+}
 
 void loop()
 {
@@ -151,10 +161,30 @@ void loop()
             switch (lcdMenu.getActive())
             {
                 case RA_Menu:
-                    waitForButtonRelease = processRAKeys();
+                    {
+                        const app::MenuKeyResult result = raMenu.handleKey(screenInput(), ui);
+                        if (result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
                 case DEC_Menu:
-                    waitForButtonRelease = processDECKeys();
+                    {
+                        const app::MenuKeyResult result = decMenu.handleKey(screenInput(), ui);
+                        if (result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
     #if SUPPORT_POINTS_OF_INTEREST == 1
                 case POI_Menu:
@@ -249,11 +279,17 @@ void loop()
                 int activeMenu = lcdMenu.getActive();
                 if (activeMenu == RA_Menu)
                 {
-                    printRASubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        raMenu.render(ui, *menuDisplayPort);
+                    }
                 }
                 else if (activeMenu == DEC_Menu)
                 {
-                    printDECSubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        decMenu.render(ui, *menuDisplayPort);
+                    }
                 }
     #if SUPPORT_POINTS_OF_INTEREST == 1
                 else if (activeMenu == POI_Menu)

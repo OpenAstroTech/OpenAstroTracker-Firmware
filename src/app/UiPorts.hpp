@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Types.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IMountConfiguration.hpp"
 #include "ports/IMountMotion.hpp"
@@ -31,14 +32,35 @@ struct UiPorts {
 
     /// Same contract as `app::MountExecutor::delay()`: keeps the step generator running for `ms` without
     /// touching `millis()` or `yield()` directly.
-    void delay(int ms);
+    void delay(int ms)
+    {
+        const unsigned long start = clock->now();
+        while (clock->now() - start < static_cast<unsigned long>(ms))
+        {
+            scheduler->yield();
+        }
+    }
 
     /// One main-loop pass of the mount's bookkeeping.
-    void tick();
+    void tick()
+    {
+        if (loop != nullptr)
+        {
+            loop();
+        }
+    }
 
     /// Blocks until the axes named by `direction` (the `EAST|WEST|…|FOCUSING` bit set) stop.
     /// Ticks the mount between checks, as `app::MountExecutor::waitUntilStopped()` did.
-    void waitUntilStopped(int direction);
+    void waitUntilStopped(int direction)
+    {
+        while (((direction & (EAST | WEST)) && read->isAxisRunning(RA_STEPS))
+               || ((direction & (NORTH | SOUTH)) && read->isAxisRunning(DEC_STEPS)) || ((direction & FOCUSING) && axes->isRunningFocus()))
+        {
+            tick();
+            scheduler->yield();
+        }
+    }
 
     /// The main-loop tick, so a wait keeps the mount's bookkeeping current. Set by the
     /// composition root; a wait with no tick still terminates, just without updating state.
