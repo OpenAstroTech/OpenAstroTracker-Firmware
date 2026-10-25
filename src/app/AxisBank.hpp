@@ -7,13 +7,13 @@
 #include "../ports/IStepperAxis.hpp"
 #include "BoardPresence.hpp"
 
-class EndSwitch;
+class EndSwitchMonitor;
 
 namespace app
 {
 
 class HallSensorHoming;
-class EndSwitch;
+class EndSwitchMonitor;
 
 /// The hardware this board has: seven axes, five drivers, four sensors, and the limits the axes
 /// run at.
@@ -59,8 +59,8 @@ class AxisBank
     /// The end switches and hall sensors, null where this board has none. Created once: the homing
     /// state machine restarts itself on each run, so a single instance per axis is enough.
     struct Sensors {
-        EndSwitch *raEndSwitch      = nullptr;
-        EndSwitch *decEndSwitch     = nullptr;
+        EndSwitchMonitor *raEndSwitch      = nullptr;
+        EndSwitchMonitor *decEndSwitch     = nullptr;
         HallSensorHoming *raHoming  = nullptr;
         HallSensorHoming *decHoming = nullptr;
     };
@@ -136,12 +136,12 @@ class AxisBank
         return _focusDriver;
     }
 
-    EndSwitch *raEndSwitch() const
+    EndSwitchMonitor *raEndSwitch() const
     {
         return _raEndSwitch;
     }
 
-    EndSwitch *decEndSwitch() const
+    EndSwitchMonitor *decEndSwitch() const
     {
         return _decEndSwitch;
     }
@@ -199,8 +199,8 @@ class AxisBank
     ports::IMotorDriver *_altDriver   = nullptr;
     ports::IMotorDriver *_focusDriver = nullptr;
 
-    EndSwitch *_raEndSwitch      = nullptr;
-    EndSwitch *_decEndSwitch     = nullptr;
+    EndSwitchMonitor *_raEndSwitch      = nullptr;
+    EndSwitchMonitor *_decEndSwitch     = nullptr;
     HallSensorHoming *_raHoming  = nullptr;
     HallSensorHoming *_decHoming = nullptr;
 

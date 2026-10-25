@@ -52,14 +52,14 @@ void attachSensors(app::MountExecutor &mount)
     app::AxisBank::Sensors sensors;
 
 #if USE_RA_END_SWITCH == 1
-    sensors.raEndSwitch = new EndSwitch(ui,
+    sensors.raEndSwitch = new EndSwitchMonitor(ui,
                                         StepperAxis::RA_STEPS,
                                         makeEndSwitch(RA_ENDSWITCH_EAST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE),
                                         makeEndSwitch(RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE));
 #endif
 
 #if USE_DEC_END_SWITCH == 1
-    sensors.decEndSwitch = new EndSwitch(ui,
+    sensors.decEndSwitch = new EndSwitchMonitor(ui,
                                          StepperAxis::DEC_STEPS,
                                          makeEndSwitch(DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE),
                                          makeEndSwitch(DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE));
