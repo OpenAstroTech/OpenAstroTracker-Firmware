@@ -1,7 +1,6 @@
 #pragma once
 #include "../Configuration.hpp"
 
-
 #if USE_GYRO_LEVEL == 1
     #include "app/BoardWiring.hpp"
 #endif

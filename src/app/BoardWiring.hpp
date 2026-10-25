@@ -25,6 +25,7 @@
 #include "UiPorts.hpp"
 #include "StepPump.hpp"
 #include "adapters/NullGyro.hpp"
+#include "ports/IGps.hpp"
 #include "ports/IGyro.hpp"
 #include "hal/arduino/ArduinoSystemClock.hpp"
 #include "hal/arduino/ArduinoGpioPin.hpp"
@@ -55,6 +56,10 @@ extern adapters::ArduinoScheduler schedulerPort;
 // "not available" answer instead of a compile-time branch.
 
 extern ports::IGyro *gyro;
+
+/// The GPS receiver, or null on a board with no receiver wired. The HA screen is the only consumer;
+/// a null receiver turns it into the manual hour-angle editor.
+extern ports::IGps *gpsPort;
 
 // --- persistence -----------------------------------------------------------------------
 

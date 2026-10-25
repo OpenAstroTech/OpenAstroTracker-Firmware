@@ -33,8 +33,6 @@
     #include "../hal/InterruptCallback.hpp"
 #endif
 #include "../c65_startup.hpp"
-#include "../c72_menuHA.hpp"
-#include "../c72_menuHA_GPS.hpp"
 #include "../c76_menuCAL.hpp"
 #include "../c_buttons.hpp"
 #include "../app/SerialPump.hpp"
@@ -424,6 +422,7 @@ void setup()
     commandPorts.events        = &mountCoordinator;
     commandPorts.clock         = &clockPort;
     commandPorts.gyro          = gyro;
+    commandPorts.gps           = gpsPort;
     MeadeCommandAdapter::createProcessor(commandPorts, &lcdMenu);
     updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 

@@ -6,6 +6,7 @@
 #include "ports/IMountMotion.hpp"
 #include "ports/IMountOptionalAxes.hpp"
 #include "ports/IMountReadModel.hpp"
+#include "ports/IMountSettings.hpp"
 #include "ports/IMountSiteTime.hpp"
 #include "ports/IScheduler.hpp"
 
@@ -25,6 +26,7 @@ struct UiPorts {
     ports::IMountMotion *motion        = nullptr;
     ports::IMountConfiguration *config = nullptr;
     ports::IMountReadModel *read       = nullptr;
+    ports::IMountSettings *settings    = nullptr;
     ports::IMountSiteTime *siteTime    = nullptr;
     ports::IMountOptionalAxes *axes    = nullptr;
     ports::IClock *clock               = nullptr;

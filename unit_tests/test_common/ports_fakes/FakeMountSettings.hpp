@@ -13,6 +13,9 @@ namespace fakes
 class FakeMountSettings final : public ports::IMountSettings
 {
   public:
+    /// How many times the hour angle was persisted.
+    int storeHaCalls = 0;
+
     core::DayTime getHATime() override
     {
         return haTime;
@@ -21,6 +24,7 @@ class FakeMountSettings final : public ports::IMountSettings
     void storeHATime(const core::DayTime &value) override
     {
         haTime = value;
+        storeHaCalls++;
     }
 
     int getUtcOffset() override

@@ -8,6 +8,7 @@
 #include "BoardWiring.hpp"
 
 #include "adapters/EepromSettingsFormat.hpp"
+#include "adapters/TinyGpsAdapter.hpp"
 #include "Utility.hpp"
 #include "app/MountConfigBuilder.hpp"
 #include "hal/InMemoryEeprom.hpp"
@@ -46,6 +47,13 @@ POP_NO_WARNINGS
 
 #if USE_GPS == 1
 TinyGPSPlus gps;
+
+/// The receiver, behind the port the HA screen talks to. `begin()` is a no-op: `setup()` opens the
+/// stream, and the adapter only decodes what arrives on it.
+adapters::TinyGpsAdapter gpsAdapter(GPS_SERIAL_PORT);
+ports::IGps *gpsPort = &gpsAdapter;
+#else
+ports::IGps *gpsPort = nullptr;
 #endif
 
 #if SUPPORT_GUIDED_STARTUP == 1
@@ -309,6 +317,7 @@ struct UiPortsInit {
         ui.motion    = &mount;
         ui.config    = &mount;
         ui.read      = &mount.readout();
+        ui.settings  = &settingsStore;
         ui.siteTime  = &siteTimePort;
         ui.axes      = &mount;
         ui.clock     = &clockPort;

@@ -8,6 +8,7 @@ namespace app
 
 SlewStatusView slewStatusView;
 ControlMenu controlMenu;
+HaMenu haMenu;
 
 #if SUPPORT_POINTS_OF_INTEREST == 1
 PoiMenu poiMenu;

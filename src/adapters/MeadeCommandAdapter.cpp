@@ -15,7 +15,6 @@
 #include <string.h>
 
 #if USE_GPS == 1
-bool gpsAqcuisitionComplete(int &indicator);  // defined in c72_menuHA_GPS.hpp
 #endif
 
 namespace meade = oat::core::meade;
@@ -58,6 +57,7 @@ MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, LcdMenu
     _events   = ports.events;
     _clock    = ports.clock;
     _gyro     = ports.gyro;
+    _gps      = ports.gps;
 
     // Deferred replies complete on mount events, so the command layer is a subscriber like the
     // status display.
@@ -343,6 +343,33 @@ const char *MeadeCommandAdapter::onSiteName(uint8_t index)
 /////////////////////////////
 // GPS CONTROL
 /////////////////////////////
+bool MeadeCommandAdapter::acquireGpsFix()
+{
+    if (_gps == nullptr)
+    {
+        return false;
+    }
+
+    _gps->poll();
+    const ports::GpsFix fix = _gps->fix();
+
+    // The same window the HA screen uses: a fix is usable when the location is valid, recent and
+    // not the null island.
+    constexpr uint32_t kMaximumFixAgeMs = 30000UL;
+    if (!fix.locationValid || (fix.locationAgeMs >= kMaximumFixAgeMs) || (fix.longitude == 0.0))
+    {
+        return false;
+    }
+
+    core::DayTime utcNow(fix.hour, fix.minute, fix.second);
+    utcNow.addHours(_siteTime->getLocalUtcOffset());
+    _siteTime->setLocalStartTime(utcNow);
+    _siteTime->setLocalStartDate(fix.year, fix.month, fix.day);
+    _siteTime->setLatitude(core::Latitude(static_cast<float>(fix.latitude)));
+    _siteTime->setLongitude(core::Longitude(static_cast<float>(fix.longitude)));
+    return true;
+}
+
 bool MeadeCommandAdapter::onStartGpsAcquisition(const char *timeoutPayload)
 {
 #if USE_GPS == 1
@@ -363,10 +390,15 @@ bool MeadeCommandAdapter::onStartGpsAcquisition(const char *timeoutPayload)
     constexpr unsigned long kMaxWaitPerCall = 250UL;
     const unsigned long deadline            = millis() + ((budgetMs < kMaxWaitPerCall) ? budgetMs : kMaxWaitPerCall);
 
-    int indicator = 0;
+    if (_gps == nullptr)
+    {
+        LOG(DEBUG_MEADE, "[MEADE]: GPS startup, no receiver on this board");
+        return false;
+    }
+
     do
     {
-        if (gpsAqcuisitionComplete(indicator))
+        if (this->acquireGpsFix())
         {
             LOG(DEBUG_MEADE, "[MEADE]: GPS startup, GPS acquired");
             return true;

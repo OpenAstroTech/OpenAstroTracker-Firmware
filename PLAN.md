@@ -863,9 +863,21 @@ format, the two sensor helpers and the utility grab-bag.*
   next to the two predicates that need board configuration (`serialHostOwnsDisplay`,
   `startupAwaitingPole`) — a firmware-only translation unit, because `Configuration.hpp` refuses to
   compile without a board.
+- 🟡 **8.8b — the HA screen converted, in both of its shapes.** `app::HaMenu` is one class with a
+  receiver pointer: with a GPS it walks "Found n sats" → "Sync" → "Set" → manual entry and applies a
+  fresh fix to the site and the clock; without one it is the plain editor whose arrows auto-repeat
+  while held (which is why the legacy no-GPS screen called `delay(200)` from inside its key
+  handler). The receiver arrives per call rather than in the constructor, so nothing has to agree
+  about static initialisation order and the tests drive a fake. Two legacy asymmetries are kept:
+  storing the hour angle resumes tracking on a board *without* a receiver and not with one, and
+  RIGHT is swallowed while the wizard waits instead of confirming it.
+  The GPS plumbing that used to live in the screen is now shared: `ports::IGps` (already in the tree,
+  unused until now) is backed by `adapters::TinyGpsAdapter` in `BoardWiring`, exposed as `gpsPort`,
+  and `:gT#` uses the same fix-applying helper the screen does instead of calling into a menu
+  header. `c72_menuHA.hpp` and `c72_menuHA_GPS.hpp` are deleted.
 - **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the other
-  four screens: HA/GPS/CAL/startup), 8.9 (test console), 8.10 (`Utility` and the empty root). The
-  root is down from 47 files to 24.
+  three screens: CAL/startup), 8.9 (test console), 8.10 (`Utility` and the empty root). The root is
+  down from 47 files to 22.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

@@ -326,6 +326,10 @@ class FakeSiteTime final : public ports::IMountSiteTime
     LocalDate localDate           = {2024, 7, 9};
     int utcOffset                 = 1;
 
+    /// The last hour angle written, and how many times it was written.
+    core::DayTime lastHa;
+    int setHaCalls = 0;
+
     core::Latitude latitude() const override
     {
         return siteLatitude;
@@ -371,8 +375,10 @@ class FakeSiteTime final : public ports::IMountSiteTime
     void setLST(const core::DayTime &) override
     {
     }
-    void setHA(const core::DayTime &) override
+    void setHA(const core::DayTime &value) override
     {
+        lastHa = value;
+        setHaCalls++;
     }
 };
 

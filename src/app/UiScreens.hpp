@@ -4,6 +4,7 @@
 
 #include "app/ui/SlewStatusView.hpp"
 #include "app/ui/screens/ControlMenu.hpp"
+#include "app/ui/screens/HaMenu.hpp"
 #include "app/ui/screens/InfoMenu.hpp"
 #include "app/ui/screens/PoiMenu.hpp"
 
@@ -27,6 +28,7 @@ InfoMenuEnvironment infoEnvironment();
 #endif
 
 extern ControlMenu controlMenu;
+extern HaMenu haMenu;
 
 /// True while a serial host owns the display; a board without serial control never is.
 bool serialHostOwnsDisplay();

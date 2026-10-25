@@ -4,8 +4,6 @@
 #include "app/UiScreens.hpp"
 #include "app/BoardWiring.hpp"
 #include "c65_startup.hpp"
-#include "c72_menuHA.hpp"
-#include "c72_menuHA_GPS.hpp"
 #include "c76_menuCAL.hpp"
 
 #include "app/ui/screens/DecMenu.hpp"
@@ -33,9 +31,20 @@ app::HomeMenu homeMenu;
 app::RaMenu raMenu;
 app::DecMenu decMenu;
 
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+    #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 app::FocusMenu focusMenu;
-#endif
+    #endif
+
+/// True while the guided startup waits for the hour angle, which is the only state in which the HA
+/// screen reports back to it.
+bool startupAwaitingHa()
+{
+    #if SUPPORT_GUIDED_STARTUP == 1
+    return startupState == StartupWaitForHACompletion;
+    #else
+    return false;
+    #endif
+}
 
 /// True while the guided startup waits for the pole alignment, which changes what SELECT means in
 /// the control menu.
@@ -53,7 +62,7 @@ app::MenuKeyInput screenInput()
 {
     lcdButton_t edgeKey;
     const bool changed = lcdButtons.keyChanged(&edgeKey);
-    return app::MenuKeyInput{changed ? toCoreButton(edgeKey) : core::Button::None, toCoreButton(lcdButtons.currentState())};
+    return app::MenuKeyInput {changed ? toCoreButton(edgeKey) : core::Button::None, toCoreButton(lcdButtons.currentState())};
 }
 
 void loop()
@@ -237,7 +246,49 @@ void loop()
     #endif
 
                 case HA_Menu:
-                    waitForButtonRelease = processHAKeys();
+                    {
+                        // The receiver decides which shape the screen has, and the board only knows
+                        // that once it is wired, so the first visit puts the screen in its mode.
+                        static bool haInitialised = false;
+                        if (!haInitialised)
+                        {
+                            app::haMenu.enter(gpsPort != nullptr);
+                            haInitialised = true;
+                        }
+
+                        app::HaMenuOutcome haOutcome;
+                        const app::MenuKeyResult result = app::haMenu.handleKey(screenInput(), ui, gpsPort, startupAwaitingHa(), haOutcome);
+
+                        if (haOutcome.haStored)
+                        {
+                            if (menuDisplayPort != nullptr)
+                            {
+                                menuDisplayPort->writeLine(1, "Stored.");
+                            }
+                            ui.delay(500);
+    #if USE_GPS == 0
+                            // Without a receiver, storing the hour angle is also what makes the
+                            // mount start tracking; with one, the receiver is already running.
+                            ui.motion->startSlewing(TRACKING);
+    #endif
+                        }
+                        if (haOutcome.resumeStartup)
+                        {
+    #if SUPPORT_GUIDED_STARTUP == 1
+                            startupState = StartupHAConfirmed;
+                            inStartup    = true;
+    #endif
+                        }
+
+                        if (result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
 
     #if SUPPORT_CALIBRATION == 1
@@ -265,8 +316,8 @@ void loop()
     #if SUPPORT_MANUAL_CONTROL == 1
                 case Control_Menu:
                     {
-                        const app::ControlMenuOutcome outcome =
-                            app::controlMenu.handleKey(screenInput(), *ui.motion, app::serialHostOwnsDisplay(), startupAwaitingPole());
+                        const app::ControlMenuOutcome outcome
+                            = app::controlMenu.handleKey(screenInput(), *ui.motion, app::serialHostOwnsDisplay(), startupAwaitingPole());
                         if (outcome.serialChanged)
                         {
                             inSerialControl = outcome.serialActive;
@@ -386,7 +437,10 @@ void loop()
     #endif
                 else if (activeMenu == HA_Menu)
                 {
-                    printHASubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        app::haMenu.render(*ui.read, *menuDisplayPort);
+                    }
                 }
     #if SUPPORT_MANUAL_CONTROL == 1
                 else if (activeMenu == Control_Menu)
