@@ -14,6 +14,18 @@ PUSH_NO_WARNINGS
     #include <LiquidTWI2.h>
 POP_NO_WARNINGS
 
+// The panel library defines the backlight colours as macros — `WHITE` in particular collides with
+// the SSD1306 driver's colour enum when a board has both a menu panel and an info panel. The
+// backend uses them through the two named constants below instead, so they stop at this header.
+    #undef OFF
+    #undef RED
+    #undef YELLOW
+    #undef GREEN
+    #undef TEAL
+    #undef BLUE
+    #undef VIOLET
+    #undef WHITE
+
     #include "hal/ICharLcd.hpp"
 
 namespace hal

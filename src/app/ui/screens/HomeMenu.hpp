@@ -25,7 +25,8 @@ class HomeMenu
     void render(const ports::IMountMotion &motion, ports::IDisplay &display) const;
 
   private:
-    uint8_t _selection;
+    /// A fresh screen starts on the first choice, as the legacy global did.
+    uint8_t _selection = 0;
 };
 
 }  // namespace app

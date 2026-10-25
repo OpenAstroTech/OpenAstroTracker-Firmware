@@ -8,11 +8,11 @@
 #include "c72_menuHA_GPS.hpp"
 #include "c75_menuCTRL.hpp"
 #include "c76_menuCAL.hpp"
-#include "c78_menuINFO.hpp"
 
 #include "app/ui/screens/DecMenu.hpp"
 #include "app/ui/screens/FocusMenu.hpp"
 #include "app/ui/screens/HomeMenu.hpp"
+#include "app/ui/screens/InfoMenu.hpp"
 #include "app/ui/screens/RaMenu.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
@@ -35,6 +35,24 @@ app::DecMenu decMenu;
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
 app::FocusMenu focusMenu;
 #endif
+
+    #if SUPPORT_INFO_DISPLAY == 1
+app::InfoMenu infoMenu;
+
+/// The board facts the status screen shows. The gyro is optional, so the sensor is only asked when
+/// the board has one.
+app::InfoMenuEnvironment infoEnvironment()
+{
+    app::InfoMenuEnvironment environment;
+    environment.version         = VERSION;
+    environment.freeMemoryBytes = freeMemory();
+        #if USE_GYRO_LEVEL == 1
+    environment.gyroTemperatureC = gyro->temperature();
+    environment.hasGyro          = true;
+        #endif
+    return environment;
+}
+    #endif
 
 /// What the loop hands a converted screen: the key that just settled and the key held now.
 app::MenuKeyInput screenInput()
@@ -248,7 +266,17 @@ void loop()
 
     #if SUPPORT_INFO_DISPLAY == 1
                 case Status_Menu:
-                    waitForButtonRelease = processStatusKeys();
+                    {
+                        const app::MenuKeyResult result = infoMenu.handleKey(screenInput());
+                        if (result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
     #endif
             }
@@ -349,7 +377,11 @@ void loop()
     #if SUPPORT_INFO_DISPLAY == 1
                 else if (activeMenu == Status_Menu)
                 {
-                    printStatusSubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        const app::InfoMenuEnvironment environment = infoEnvironment();
+                        infoMenu.render(*ui.read, *ui.config, *ui.siteTime, environment, ui.clock->now(), *menuDisplayPort);
+                    }
                 }
     #endif
             }

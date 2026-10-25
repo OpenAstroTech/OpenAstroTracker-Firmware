@@ -45,6 +45,7 @@ class LogFormat
 
 /// Wraps a literal so it stays in program memory on AVR.
 #if defined(__AVR__)
+    #include <stdio.h>  // `snprintf_P`, which avr-libc keeps beside `snprintf`
     #define OAT_SNPRINTF(buffer, size, format, ...) snprintf_P((buffer), (size), PSTR(format), ##__VA_ARGS__)
 #else
     #include <stdio.h>

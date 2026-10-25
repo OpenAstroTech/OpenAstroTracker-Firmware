@@ -8,6 +8,15 @@
 
     #include <string.h>
 
+namespace
+{
+
+/// `LiquidTWI2`'s backlight states, spelled out because the header drops its macros.
+constexpr uint8_t kBacklightOn  = 0x1;  // `RED`: the single-line expander backlight
+constexpr uint8_t kBacklightOff = 0x0;
+
+}  // namespace
+
 namespace hal
 {
 
@@ -19,7 +28,7 @@ bool I2cCharLcd::begin(uint8_t columns, uint8_t rows)
 {
     _lcd.setMCPType(_sixteenBitExpander ? LTI_TYPE_MCP23017 : LTI_TYPE_MCP23008);
     _lcd.begin(columns, rows);
-    _lcd.setBacklight(RED);
+    _lcd.setBacklight(kBacklightOn);
     return true;
 }
 
@@ -64,7 +73,7 @@ void I2cCharLcd::writeSymbol(CharSymbol symbol)
 void I2cCharLcd::setBacklightLevel(uint8_t level)
 {
     // The expander's backlight is a single on/off line: no dimming.
-    _lcd.setBacklight(level > 0 ? RED : OFF);
+    _lcd.setBacklight(level > 0 ? kBacklightOn : kBacklightOff);
 }
 
 uint8_t I2cCharLcd::readExpanderButtons()

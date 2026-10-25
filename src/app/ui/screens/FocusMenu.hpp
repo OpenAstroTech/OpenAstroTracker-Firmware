@@ -30,8 +30,10 @@ class FocusMenu
         Adjust,
     };
 
-    State _state;
-    uint8_t _rateIndex;
+    /// The legacy screen initialised its globals in place, so a fresh screen starts on the first
+    /// row and at rate 4 — the same values `enter()` restores.
+    State _state       = State::Highlight;
+    uint8_t _rateIndex = 3;
 };
 
 }  // namespace app

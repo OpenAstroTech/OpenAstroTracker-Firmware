@@ -832,9 +832,22 @@ format, the two sensor helpers and the utility grab-bag.*
   column. `FakeOptionalAxes` is the first fake to have to satisfy the full
   `IMountOptionalAxes : IMountConfiguration : IMountMotion` chain. `c77_menuFOC.hpp` is deleted;
   `c_buttons.hpp` calls `handleKey()`/`render()` under `#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE`.
+- 🟡 **8.8b — the INFO screen converted.** `app::InfoMenu` holds the sixteen-entry list and the
+  three sub-pages, and paints at most once per 200 ms like the legacy screen; a key press clears the
+  timer so the next pass repaints straight away. The platform facts (version, free memory, gyro
+  temperature) arrive as an `InfoMenuEnvironment` value the loop fills in, which is what keeps the
+  screen Arduino-free — and `hasGyro` preserves the legacy behaviour of *stepping over* the gyro
+  entry on a board without the sensor, so a paint can move the selection. 15 tests. `c78_menuINFO.hpp`
+  is deleted.
+  This slice also turned up two real defects the headless-only builds had hidden:
+  `LiquidTWI2.h` defines `WHITE` (and the other backlight colours) as macros, which collided with the
+  SSD1306 driver's `OLEDDISPLAY_COLOR` enum as soon as one translation unit saw both a menu panel and
+  an info panel — the backend now drops those macros at its own header and names the two states it
+  uses; and `OAT_SNPRINTF` expanded to `snprintf_P` on AVR without `<stdio.h>` having been included,
+  which no AVR build had reached because every previous user was display-guarded.
 - **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the other
-  eight screens: POI/HA/GPS/CTRL/CAL/INFO/startup/slew-status), 8.9 (test console), 8.10
-  (`Utility` and the empty root). The root is down from 47 files to 29.
+  seven screens: POI/HA/GPS/CTRL/CAL/startup/slew-status), 8.9 (test console), 8.10 (`Utility` and
+  the empty root). The root is down from 47 files to 28.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
