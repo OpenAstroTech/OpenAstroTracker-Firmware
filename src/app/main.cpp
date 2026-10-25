@@ -37,7 +37,6 @@
 #include "../c70_menuRA.hpp"
 #include "../c71_menuDEC.hpp"
 #include "../c722_menuPOI.hpp"
-#include "../c725_menuHOME.hpp"
 #include "../c72_menuHA.hpp"
 #include "../c72_menuHA_GPS.hpp"
 #include "../c75_menuCTRL.hpp"

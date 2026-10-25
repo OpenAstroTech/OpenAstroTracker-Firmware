@@ -19,6 +19,9 @@ enum lcdButton_t
     btnINVALID,
 };
 
+/// The legacy key vocabulary translated to the port's, for the screens that still speak `lcdButton_t`.
+core::Button toCoreButton(lcdButton_t key);
+
 class LcdButtons
 {
   public:

@@ -74,20 +74,8 @@ extern TinyGPSPlus gps;
 // End Driver Definitions ///////////////
 /////////////////////////////////////////
 
-// Menu IDs
-#define RA_Menu          1
-#define DEC_Menu         2
-#define HA_Menu          3
-#define Heat_Menu        4
-#define Calibration_Menu 5
-#define Focuser_Menu     6
-#define Control_Menu     7
-#define Home_Menu        8
-#define POI_Menu         9
-#define Status_Menu      10
-
-// How many menu items at most?
-#define MAXMENUITEMS 11
+// The menu ids and the item-table size live with the UI now.
+#include "app/ui/MenuIds.hpp"
 
 // These are defined once, in `app/BoardWiring.cpp`, so this header can be included from more
 // than one translation unit. They are UI state, which is why the composition root owns them.

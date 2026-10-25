@@ -39,6 +39,10 @@
 extern LcdMenu lcdMenu;
 extern LcdButtons lcdButtons;
 
+/// The menu display behind `lcdMenu`, for the screens that are already port-based (null on a
+/// headless board).
+extern ports::IDisplay *menuDisplayPort;
+
 // --- the infrastructure the domain runs on --------------------------------------------
 
 extern hal::ArduinoSystemClock arduinoSystemClock;

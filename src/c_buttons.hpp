@@ -13,6 +13,8 @@
 #include "c77_menuFOC.hpp"
 #include "c78_menuINFO.hpp"
 
+#include "app/ui/screens/HomeMenu.hpp"
+
 #if SUPPORT_SERIAL_CONTROL == 1
     #include "app/SerialPump.hpp"
 #endif
@@ -24,6 +26,9 @@ lcdButton_t lastKey = btnNONE;
 
 lcdButton_t lcd_key;
 unsigned long lastTrackingStatusPrint = 0;
+
+/// The converted screen owns its own selection; the legacy global `subGoIndex` did the same.
+app::HomeMenu homeMenu;
 
 void loop()
 {
@@ -157,7 +162,21 @@ void loop()
                     break;
     #else
                 case Home_Menu:
-                    waitForButtonRelease = processHomeKeys();
+                    {
+                        lcdButton_t homeKey;
+                        if (lcdButtons.keyChanged(&homeKey))
+                        {
+                            const app::MenuKeyResult result = homeMenu.handleKey(toCoreButton(homeKey), *ui.motion);
+                            if (result == app::MenuKeyResult::NextScreen)
+                            {
+                                lcdMenu.setNextActive();
+                            }
+                            else if (result == app::MenuKeyResult::WaitForRelease)
+                            {
+                                waitForButtonRelease = true;
+                            }
+                        }
+                    }
                     break;
     #endif
 
@@ -244,7 +263,10 @@ void loop()
     #else
                 else if (activeMenu == Home_Menu)
                 {
-                    printHomeSubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        homeMenu.render(*ui.motion, *menuDisplayPort);
+                    }
                 }
     #endif
                 else if (activeMenu == HA_Menu)

@@ -186,10 +186,15 @@ LcdMenu lcdMenu(&menuDisplay, menuEntries, MAXMENUITEMS);
 adapters::DebouncedButtons lcdButtonSource(lcdKeyPad, clockPort);
 LcdButtons lcdButtons(&lcdButtonSource);
 
+/// The display as the screens see it: the same object `lcdMenu` paints through, exposed so a
+/// converted screen can write rows without going through the legacy shim.
+ports::IDisplay *menuDisplayPort = &menuDisplay;
+
 #else  // Headless: the shims are empty shells, so a board with no panel pays nothing for the UI.
 
 LcdMenu lcdMenu(nullptr, nullptr, 0);
 LcdButtons lcdButtons(nullptr);
+ports::IDisplay *menuDisplayPort = nullptr;
 
 #endif
 

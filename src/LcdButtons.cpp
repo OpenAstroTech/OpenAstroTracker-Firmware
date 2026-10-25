@@ -36,7 +36,29 @@
         return true;
     }
 
-    lcdButton_t LcdButtons::toLcd(core::Button key)
+    core::Button toCoreButton(lcdButton_t key)
+{
+    switch (key)
+    {
+        case btnRIGHT:
+            return core::Button::Right;
+        case btnUP:
+            return core::Button::Up;
+        case btnDOWN:
+            return core::Button::Down;
+        case btnLEFT:
+            return core::Button::Left;
+        case btnSELECT:
+            return core::Button::Select;
+        case btnINVALID:
+            return core::Button::Invalid;
+        case btnNONE:
+        default:
+            return core::Button::None;
+    }
+}
+
+lcdButton_t LcdButtons::toLcd(core::Button key)
     {
         switch (key)
         {
@@ -79,6 +101,28 @@ bool LcdButtons::keyChanged(lcdButton_t *pNewKey)
 {
     (void) pNewKey;
     return false;
+}
+
+core::Button toCoreButton(lcdButton_t key)
+{
+    switch (key)
+    {
+        case btnRIGHT:
+            return core::Button::Right;
+        case btnUP:
+            return core::Button::Up;
+        case btnDOWN:
+            return core::Button::Down;
+        case btnLEFT:
+            return core::Button::Left;
+        case btnSELECT:
+            return core::Button::Select;
+        case btnINVALID:
+            return core::Button::Invalid;
+        case btnNONE:
+        default:
+            return core::Button::None;
+    }
 }
 
 lcdButton_t LcdButtons::toLcd(core::Button key)
