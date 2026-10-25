@@ -10,6 +10,7 @@
 #include "../core/types/DayTime.hpp"
 #include "../core/types/Declination.hpp"
 #include "../DayTime.hpp"
+#include "../Declination.hpp"
 #include "../ports/IClock.hpp"
 #include "../ports/ILogger.hpp"
 #include "../ports/IMountReadModel.hpp"
@@ -61,8 +62,8 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
                  core::MountRuntimeSettings &settings,
                  const core::MountConfig &config,
                  core::SiteTime &siteTime,
-                 core::DayTime &targetRa,
-                 core::Declination &targetDec,
+                 DayTime &targetRa,
+                 Declination &targetDec,
                  float &zeroPosDec,
                  ports::IClock &clock,
                  ports::ILogger &logger,
@@ -146,8 +147,8 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
     core::MountRuntimeSettings &_settings;
     const core::MountConfig &_config;
     core::SiteTime &_siteTime;
-    core::DayTime &_targetRa;
-    core::Declination &_targetDec;
+    DayTime &_targetRa;
+    Declination &_targetDec;
     float &_zeroPosDec;
     ports::IClock &_clock;
     ports::ILogger &_logger;

@@ -30,8 +30,8 @@ MountReadout::MountReadout(AxisBank &axes,
                            core::MountRuntimeSettings &settings,
                            const core::MountConfig &config,
                            core::SiteTime &siteTime,
-                           core::DayTime &targetRa,
-                           core::Declination &targetDec,
+                           DayTime &targetRa,
+                           Declination &targetDec,
                            float &zeroPosDec,
                            ports::IClock &clock,
                            ports::ILogger &logger,
@@ -652,15 +652,15 @@ void MountReadout::calculateStepperPositions(float raCoord, float decCoord, long
 
 void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6]) const
 {
-    OAT_LOG(_logger,
+    OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersPre: Current : RA: %s, DEC: %s",
             DayTime(currentRA()).ToString(),
             Declination(currentDEC()).ToString());
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s", _targetRa.ToString(), _targetDec.ToString());
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", DayTime(_siteTime.raZeroPoint()).ToString());
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroDEC : %f", _zeroPosDec);
-    OAT_LOG(_logger,
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s", _targetRa.ToString(), _targetDec.ToString());
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", DayTime(_siteTime.raZeroPoint()).ToString());
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroDEC : %f", _zeroPosDec);
+    OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersPre: Stepper: RA: %ld, DEC: %ld, TRK: %ld",
             _axes.ra()->currentPosition(),
@@ -671,7 +671,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
 
     // Calculate how far from the home position this new target is.
     raTarget.subtractTime(DayTime(_siteTime.raZeroPoint()));
-    OAT_LOG(_logger,
+    OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
             raTarget.ToString(),
@@ -679,7 +679,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
 
     // Total hours of tracking-to-date
     const float trackedHours = getTrackedHours();
-    OAT_LOG(_logger,
+    OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Tracked time is %ld steps (%f h).",
             _axes.tracking()->currentPosition(),
@@ -701,10 +701,10 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
 
     if (!inNorthernHemisphere)
     {
-        OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", geometry.moveDEC);
+        OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", geometry.moveDEC);
     }
 
-    OAT_LOG(_logger,
+    OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Target hrs pos RA: Delta:%f (moveRA: %f), DEC: %s (moveDEC: %f)",
             geometry.homeTargetDeltaRA,
@@ -721,7 +721,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
   * sections around the home position of RA. The tracking time will still be limited to around 2h in
   * worst case if the target is located right before the 5h mark during slewing. 
   */
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", geometry.raLimitL, geometry.raLimitR);
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Limits are : %f to %f", geometry.raLimitL, geometry.raLimitR);
 
     const core::SlewResult result = core::calculateStepperPositions(geometry);
 
@@ -733,15 +733,15 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
         }
     }
 
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 1: %f, %f", -geometry.moveRA, geometry.moveDEC);
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 2: %f, %f", -(geometry.moveRA - 12.0f), -geometry.moveDEC);
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 3: %f, %f", -(geometry.moveRA + 12.0f), -geometry.moveDEC);
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 1: %f, %f", -geometry.moveRA, geometry.moveDEC);
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 2: %f, %f", -(geometry.moveRA - 12.0f), -geometry.moveDEC);
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Solution 3: %f, %f", -(geometry.moveRA + 12.0f), -geometry.moveDEC);
 
     switch (result.selected)
     {
         case core::SlewSolution::FlipUpper:
             OAT_LOG(
-                _logger,
+                &_logger,
                 DEBUG_COORD_CALC,
                 "[MOUNT]: CalcSteppersIn: Using Solution 2, since hometargetDeltaRA %f (RA:%f) is past max limit %f, inverting both axes",
                 geometry.homeTargetDeltaRA,
@@ -750,7 +750,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
             break;
         case core::SlewSolution::FlipLower:
             OAT_LOG(
-                _logger,
+                &_logger,
                 DEBUG_COORD_CALC,
                 "[MOUNT]: CalcSteppersIn: Using solution 3 since homeTargetDeltaRA %f (RA:%f) is past min limit: %f, inverting both axes",
                 geometry.homeTargetDeltaRA,
@@ -758,7 +758,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
                 geometry.raLimitL);
             break;
         case core::SlewSolution::Direct:
-            OAT_LOG(_logger,
+            OAT_LOG(&_logger,
                     DEBUG_COORD_CALC,
                     "[MOUNT]: CalcSteppersIn: Using solution 1 since targetRA %f is in range. RA: %f, DEC: %f",
                     geometry.homeTargetDeltaRA,
@@ -768,8 +768,8 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
     }
 
     // zeroPosDEC is the accumulated offset from zero (home) in degrees that one or more Sync commands have applied.
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f", result.adjustedRA, result.adjustedDEC);
-    OAT_LOG(_logger,
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Adjusted Target. RA: %f, DEC: %f", result.adjustedRA, result.adjustedDEC);
+    OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: adjusted DEC by _zeroPosDec: %f => DEC: %f",
             _zeroPosDec,
@@ -777,7 +777,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
 
     targetRASteps  = result.targetRASteps;
     targetDECSteps = result.targetDECSteps;
-    OAT_LOG(_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: ResultTarget Steps RA: %ld, DEC: %ld", targetRASteps, targetDECSteps);
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: ResultTarget Steps RA: %ld, DEC: %ld", targetRASteps, targetDECSteps);
 }
 
 core::DayTime MountReadout::hourAngle()
@@ -798,9 +798,9 @@ float MountReadout::plannedDecSteps() const
 core::DayTime MountReadout::calculateHa()
 {
     DayTime lst = calculateLst();
-    OAT_LOG(_logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
+    OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
     DayTime ha = core::SiderealClock::hourAngle(lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
-    OAT_LOG(_logger, DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
+    OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
     return ha;
 }
 
