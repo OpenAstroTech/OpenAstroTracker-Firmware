@@ -9,6 +9,7 @@
 #include "../core/SiteTime.hpp"
 #include "../core/types/DayTime.hpp"
 #include "../core/types/Declination.hpp"
+#include "../ports/IClock.hpp"
 #include "../ports/IInfoDisplay.hpp"
 #include "AxisBank.hpp"
 
@@ -31,9 +32,23 @@ namespace app
 /// them: `scratchBuffer` backs `RAString`/`DECString` and the two `*Text` port methods, and
 /// `_readoutScratch`/`_infoStatusScratch` back the status strings. The rule the ports state —
 /// "valid until the next call to the same method" — is unchanged by the move.
-class MountReadout
+class MountReadout final : public ports::IInfoDisplaySource
 {
   public:
+    /// `checkRALimit()` is the one read this class cannot make for itself: reaching the limit *stops
+    /// the tracker*, so the decision belongs to the motion executor and the answer is asked for
+    /// through this callback. A function pointer and a context rather than a virtual, for the same
+    /// reason `SiteTimePort::LatitudeObserver` is one: a vtable costs SRAM on AVR.
+    struct RaLimitQuery {
+        void *context;
+        float (*hoursToLimit)(void *context);
+
+        bool valid() const
+        {
+            return hoursToLimit != nullptr;
+        }
+    };
+
     /// The mount's coordinate state is shared with the executor, which owns it and mutates it
     /// when it moves an axis or writes a target. Everything is held by reference for that reason:
     /// this class reports, it does not own. The two coordinates are mutable references because
@@ -45,7 +60,10 @@ class MountReadout
                  core::SiteTime &siteTime,
                  core::DayTime &targetRa,
                  core::Declination &targetDec,
-                 float &zeroPosDec);
+                 float &zeroPosDec,
+                 ports::IClock &clock,
+                 long &commandsReceived,
+                 RaLimitQuery raLimit);
 
     core::DayTime currentRA() const;
     core::Declination currentDEC() const;
@@ -64,7 +82,17 @@ class MountReadout
     bool isFindingHome() const;
 
     bool getStepperProgress(int &raPercentage, int &decPercentage);
-    ports::InfoDisplayActivity activity();
+    ports::InfoDisplayActivity activity() override;
+
+    float getStepsPerDegree(StepperAxis which);
+    bool isRunningAZ() const;
+    bool isRunningALT() const;
+    long getCurrentStepperPosition(StepperAxis which);
+    long getCurrentStepperPosition(int direction);
+    core::DayTime calculateLst();
+
+    /// `ports::IInfoDisplaySource`: the one frame the status panel draws.
+    void fillInfoDisplayState(ports::InfoDisplayState &state) override;
 
     /// The status strings. The `String` ones are internal to the class; the `const char *` ones are
     /// the ports, and their storage rule is the one the port documents.
@@ -73,6 +101,7 @@ class MountReadout
     const char *getStepperInfo();
     const char *getMountHardwareInfo();
     const char *getAutoHomingStates() const;
+    long getNumCommandsReceived();
 
     /// The status line the panel shows, pointing into this class's buffer so it survives the call.
     const char *panelStatusText();
@@ -88,6 +117,9 @@ class MountReadout
     core::DayTime &_targetRa;
     core::Declination &_targetDec;
     float &_zeroPosDec;
+    ports::IClock &_clock;
+    long &_commandsReceived;
+    RaLimitQuery _raLimit;
 
     mutable String _readoutScratch;
     String _infoStatusScratch;

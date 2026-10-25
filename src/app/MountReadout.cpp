@@ -9,6 +9,7 @@
 #include "../core/ActivityState.hpp"
 #include "../core/meade/MountStatusReport.hpp"
 #include "../core/SlewProgressReport.hpp"
+#include "../ports/IClock.hpp"
 #include "../Declination.hpp"
 
 // slewStatus()
@@ -29,10 +30,18 @@ MountReadout::MountReadout(AxisBank &axes,
                            core::SiteTime &siteTime,
                            core::DayTime &targetRa,
                            core::Declination &targetDec,
-                           float &zeroPosDec)
+                           float &zeroPosDec,
+                           ports::IClock &clock,
+                           long &commandsReceived,
+                           RaLimitQuery raLimit)
     : _axes(axes), _coordinator(coordinator), _settings(settings), _config(config), _siteTime(siteTime), _targetRa(targetRa),
-      _targetDec(targetDec), _zeroPosDec(zeroPosDec)
+      _targetDec(targetDec), _zeroPosDec(zeroPosDec), _clock(clock), _commandsReceived(commandsReceived), _raLimit(raLimit)
 {
+}
+
+long MountReadout::getNumCommandsReceived()
+{
+    return _commandsReceived;
 }
 
 const char *MountReadout::panelStatusText()
@@ -448,6 +457,133 @@ String MountReadout::RAString(byte type, byte active)
         core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/false);
     }
     return String(scratchBuffer);
+}
+
+float MountReadout::getStepsPerDegree(StepperAxis which)
+{
+    if (which == RA_STEPS)
+    {
+        return _settings.stepsPerDegree(RA_STEPS);  // u-steps/degree
+    }
+    if (which == DEC_STEPS)
+    {
+        return _settings.stepsPerDegree(DEC_STEPS);  // u-steps/degree
+    }
+    if (which == AZIMUTH_STEPS)
+    {
+        return kHasAzStepper ? _axes.azStepsPerDegree() : 1;  // u-steps/degree
+    }
+    if (which == ALTITUDE_STEPS)
+    {
+        return kHasAltStepper ? _axes.altStepsPerDegree() : 1;  // u-steps/degree
+    }
+
+    return 0;
+}
+
+bool MountReadout::isRunningAZ() const
+{
+    return kHasAzStepper && _axes.az()->isRunning();
+}
+
+bool MountReadout::isRunningALT() const
+{
+    return kHasAltStepper && _axes.alt()->isRunning();
+}
+
+long MountReadout::getCurrentStepperPosition(int direction)
+{
+    if (direction & TRACKING)
+    {
+        return _axes.tracking()->currentPosition();
+    }
+    if (direction & (NORTH | SOUTH))
+    {
+        return _axes.dec()->currentPosition();
+    }
+    if (direction & (EAST | WEST))
+    {
+        return _axes.ra()->currentPosition();
+    }
+    return 0;
+}
+
+long MountReadout::getCurrentStepperPosition(StepperAxis axis)
+{
+    if (axis == StepperAxis::DEC_STEPS)
+    {
+        return _axes.dec()->currentPosition();
+    }
+    if (axis == StepperAxis::RA_STEPS)
+    {
+        return _axes.ra()->currentPosition();
+    }
+    if (axis == StepperAxis::FOCUS_STEPS)
+    {
+        if (kHasFocusStepper)
+        {
+            return _axes.focus()->currentPosition();
+        }
+    }
+    if (axis == StepperAxis::ALTITUDE_STEPS)
+    {
+        if (kHasAltStepper)
+        {
+            return _axes.alt()->currentPosition();
+        }
+    }
+    if (axis == StepperAxis::AZIMUTH_STEPS)
+    {
+        if (kHasAzStepper)
+        {
+            return _axes.az()->currentPosition();
+        }
+    }
+    return 0;
+}
+
+void MountReadout::fillInfoDisplayState(ports::InfoDisplayState &state)
+{
+    state.raSteps           = getCurrentStepperPosition(StepperAxis::RA_STEPS);
+    state.decSteps          = getCurrentStepperPosition(StepperAxis::DEC_STEPS);
+    state.trkSteps          = getCurrentStepperPosition(TRACKING);
+    state.raStepsPerDegree  = getStepsPerDegree(StepperAxis::RA_STEPS);
+    state.decStepsPerDegree = getStepsPerDegree(StepperAxis::DEC_STEPS);
+
+    state.raRunning  = isAxisRunning(RA_STEPS);
+    state.decRunning = isAxisRunning(DEC_STEPS);
+    state.altRunning = isRunningALT();
+    state.azRunning  = isRunningAZ();
+    state.trkRunning = isSlewingTRK();
+    state.guiding    = isGuiding();
+
+    state.tracking = _coordinator.state().test(STATUS_TRACKING);
+    state.slewing  = _coordinator.state().test(STATUS_SLEWING);
+    state.parked   = _coordinator.state().isParked();
+
+    state.commandsReceived = _commandsReceived;
+
+    state.progressActive = getStepperProgress(state.raProgressPercent, state.decProgressPercent);
+
+    state.latitudeHours  = _siteTime.latitude().getTotalHours();
+    state.longitudeHours = _siteTime.longitude().getTotalHours();
+    state.hoursToLimit   = _raLimit.valid() ? _raLimit.hoursToLimit(_raLimit.context) : 0.0f;
+    state.lst            = calculateLst();
+
+    // The panel's coordinate text is the LCD shape the renderer drew before, produced here so the
+    // renderer needs no formatter and no mount.
+    const String raText  = RAString(LCD_STRING | CURRENT_STRING);
+    const String decText = DECString(LCD_STRING | CURRENT_STRING);
+    snprintf(state.raText, sizeof(state.raText), "%s", raText.c_str());
+    snprintf(state.decText, sizeof(state.decText), "%s", decText.c_str());
+
+    // The status line outlives this call because it is copied into the scratch above.
+    state.statusText = panelStatusText();
+}
+
+core::DayTime MountReadout::calculateLst()
+{
+    return _siteTime.lstAt(_clock.now());
 }
 
 }  // namespace app

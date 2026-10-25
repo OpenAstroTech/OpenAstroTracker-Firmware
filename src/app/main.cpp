@@ -116,7 +116,7 @@ void setup()
     #endif
     if (infoDisplay != nullptr)
     {
-        infoDisplayPanel = new adapters::InfoDisplayPanel(mount, *infoDisplay, clockPort, mountCoordinator);
+        infoDisplayPanel = new adapters::InfoDisplayPanel(mount.readout(), *infoDisplay, clockPort, mountCoordinator);
         infoDisplayPanel->begin();
         addConsoleText(F("BOOTING " VERSION));
     }

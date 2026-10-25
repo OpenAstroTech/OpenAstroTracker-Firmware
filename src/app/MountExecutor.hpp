@@ -92,7 +92,7 @@ struct MountDeps {
     hal::IGpioPin *focusEnablePin = nullptr;
 };
 
-class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMountReadModel, public ports::IInfoDisplaySource
+class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMountReadModel
 {
   public:
     /// Every controller the mount drives, in one object. The composition root owns it and builds
@@ -109,6 +109,13 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     MountExecutor(const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator);
 
     void initializeVariables();
+
+    /// The status panel's view of the mount. The panel is a pure reader, so it takes the read
+    /// model rather than the executor that moves things.
+    MountReadout &readout()
+    {
+        return _readout;
+    }
 
     /// The hardware this board has. Exposed so the step pump can hold a reference to it: the axes
     /// are built in `setup()` while the pump is a static, so a copy would capture the empty bank.
@@ -344,9 +351,6 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
 
     // Called by Meade processor every time a command is received.
     void commandReceived() override;
-    // --- ports::IInfoDisplaySource ---------------------------------------------------------
-
-    /// Which axes are moving this frame, for the panel's refresh policy.
     // --- ports::IMountReadModel (UI-facing reads) ------------------------------------------
 
     core::DayTime hourAngle() override;
@@ -355,15 +359,9 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
     const char *raText(uint8_t type, uint8_t active = 0) override;
     const char *decText(uint8_t type, uint8_t active = 0) override;
 
-    ports::InfoDisplayActivity activity() override;
-
-    /// Fills one frame's worth of panel state. Everything the renderer shows comes from here,
-    /// so the renderer never reads the mount.
-    void fillInfoDisplayState(ports::InfoDisplayState &state) override;
-
     long getNumCommandsReceived() override
     {
-        return _commandReceived;
+        return _readout.getNumCommandsReceived();
     }
 
 #if SUPPORT_DRIFT_ALIGNMENT == 1

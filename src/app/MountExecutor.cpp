@@ -70,9 +70,28 @@ namespace app
 // CTOR
 //
 /////////////////////////////////
+namespace
+{
+/// The readout cannot evaluate the RA limit itself — reaching it stops the tracker — so the
+/// executor answers through this thunk. Same shape as `SiteTimePort::LatitudeObserver`.
+float hoursToLimitThunk(void *context)
+{
+    return static_cast<MountExecutor *>(context)->checkRALimit();
+}
+}  // namespace
+
 MountExecutor::MountExecutor(const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator)
-    : _deps(deps), _config(config), _coordinator(coordinator),
-      _readout(_axes, coordinator, _settings, config, _siteTime, _targetRA, _targetDEC, _zeroPosDEC)
+    : _deps(deps), _config(config), _coordinator(coordinator), _readout(_axes,
+                                                                        coordinator,
+                                                                        _settings,
+                                                                        config,
+                                                                        _siteTime,
+                                                                        _targetRA,
+                                                                        _targetDEC,
+                                                                        _zeroPosDEC,
+                                                                        *deps.clock,
+                                                                        _commandReceived,
+                                                                        {this, hoursToLimitThunk})
 {
     _commandReceived = 0;
 
@@ -459,28 +478,6 @@ void MountExecutor::setRollCalibrationAngle(float angle)
     _deps.settings->storeRollCalibrationAngle(_rollCalibrationAngle);
 }
 #endif
-
-float MountExecutor::getStepsPerDegree(StepperAxis which)
-{
-    if (which == RA_STEPS)
-    {
-        return _settings.stepsPerDegree(RA_STEPS);  // u-steps/degree
-    }
-    if (which == DEC_STEPS)
-    {
-        return _settings.stepsPerDegree(DEC_STEPS);  // u-steps/degree
-    }
-    if (which == AZIMUTH_STEPS)
-    {
-        return kHasAzStepper ? _axes.azStepsPerDegree() : 1;  // u-steps/degree
-    }
-    if (which == ALTITUDE_STEPS)
-    {
-        return kHasAltStepper ? _axes.altStepsPerDegree() : 1;  // u-steps/degree
-    }
-
-    return 0;
-}
 
 /////////////////////////////////
 //
@@ -1249,20 +1246,12 @@ void MountExecutor::park()
 // isRunningAZ
 //
 /////////////////////////////////
-bool MountExecutor::isRunningAZ() const
-{
-    return kHasAzStepper && _axes.az()->isRunning();
-}
 
 /////////////////////////////////
 //
 // isRunningALT
 //
 /////////////////////////////////
-bool MountExecutor::isRunningALT() const
-{
-    return kHasAltStepper && _axes.alt()->isRunning();
-}
 
 /////////////////////////////////
 //
@@ -1776,57 +1765,6 @@ void MountExecutor::waitUntilAllStopped()
         loop();
         yield();
     }
-}
-
-long MountExecutor::getCurrentStepperPosition(int direction)
-{
-    if (direction & TRACKING)
-    {
-        return _axes.tracking()->currentPosition();
-    }
-    if (direction & (NORTH | SOUTH))
-    {
-        return _axes.dec()->currentPosition();
-    }
-    if (direction & (EAST | WEST))
-    {
-        return _axes.ra()->currentPosition();
-    }
-    return 0;
-}
-
-long MountExecutor::getCurrentStepperPosition(StepperAxis axis)
-{
-    if (axis == StepperAxis::DEC_STEPS)
-    {
-        return _axes.dec()->currentPosition();
-    }
-    if (axis == StepperAxis::RA_STEPS)
-    {
-        return _axes.ra()->currentPosition();
-    }
-    if (axis == StepperAxis::FOCUS_STEPS)
-    {
-        if (kHasFocusStepper)
-        {
-            return _axes.focus()->currentPosition();
-        }
-    }
-    if (axis == StepperAxis::ALTITUDE_STEPS)
-    {
-        if (kHasAltStepper)
-        {
-            return _axes.alt()->currentPosition();
-        }
-    }
-    if (axis == StepperAxis::AZIMUTH_STEPS)
-    {
-        if (kHasAzStepper)
-        {
-            return _axes.az()->currentPosition();
-        }
-    }
-    return 0;
 }
 
 /////////////////////////////////
@@ -2762,45 +2700,6 @@ core::DayTime MountExecutor::hourAngle()
 //
 /////////////////////////////////
 
-void MountExecutor::fillInfoDisplayState(ports::InfoDisplayState &state)
-{
-    state.raSteps           = getCurrentStepperPosition(StepperAxis::RA_STEPS);
-    state.decSteps          = getCurrentStepperPosition(StepperAxis::DEC_STEPS);
-    state.trkSteps          = getCurrentStepperPosition(TRACKING);
-    state.raStepsPerDegree  = getStepsPerDegree(StepperAxis::RA_STEPS);
-    state.decStepsPerDegree = getStepsPerDegree(StepperAxis::DEC_STEPS);
-
-    state.raRunning  = isAxisRunning(RA_STEPS);
-    state.decRunning = isAxisRunning(DEC_STEPS);
-    state.altRunning = isRunningALT();
-    state.azRunning  = isRunningAZ();
-    state.trkRunning = isSlewingTRK();
-    state.guiding    = isGuiding();
-
-    state.tracking = _coordinator.state().test(STATUS_TRACKING);
-    state.slewing  = _coordinator.state().test(STATUS_SLEWING);
-    state.parked   = _coordinator.state().isParked();
-
-    state.commandsReceived = getNumCommandsReceived();
-
-    state.progressActive = getStepperProgress(state.raProgressPercent, state.decProgressPercent);
-
-    state.latitudeHours  = _siteTime.latitude().getTotalHours();
-    state.longitudeHours = _siteTime.longitude().getTotalHours();
-    state.hoursToLimit   = checkRALimit();
-    state.lst            = calculateLst();
-
-    // The panel's coordinate text is the LCD shape the renderer drew before, produced here so the
-    // renderer needs no formatter and no mount.
-    const String raText  = RAString(LCD_STRING | CURRENT_STRING);
-    const String decText = DECString(LCD_STRING | CURRENT_STRING);
-    snprintf(state.raText, sizeof(state.raText), "%s", raText.c_str());
-    snprintf(state.decText, sizeof(state.decText), "%s", decText.c_str());
-
-    // The status line outlives this call because it is copied into the readout's scratch.
-    state.statusText = _readout.panelStatusText();
-}
-
 float MountExecutor::plannedRaSteps() const
 {
     return _coordinator.slew().totalRaSteps();
@@ -2818,10 +2717,6 @@ float MountExecutor::plannedDecSteps() const
 // calculateLst
 //
 /////////////////////////////////
-core::DayTime MountExecutor::calculateLst()
-{
-    return _siteTime.lstAt(_deps.clock->now());
-}
 
 /////////////////////////////////
 //
@@ -3023,11 +2918,6 @@ bool MountExecutor::getStepperProgress(int &raPercentage, int &decPercentage)
     return _readout.getStepperProgress(raPercentage, decPercentage);
 }
 
-ports::InfoDisplayActivity MountExecutor::activity()
-{
-    return _readout.activity();
-}
-
 String MountExecutor::getStatusStateString()
 {
     return _readout.getStatusStateString();
@@ -3051,6 +2941,36 @@ const char *MountExecutor::getMountHardwareInfo()
 const char *MountExecutor::getAutoHomingStates() const
 {
     return _readout.getAutoHomingStates();
+}
+
+float MountExecutor::getStepsPerDegree(StepperAxis which)
+{
+    return _readout.getStepsPerDegree(which);
+}
+
+bool MountExecutor::isRunningAZ() const
+{
+    return _readout.isRunningAZ();
+}
+
+bool MountExecutor::isRunningALT() const
+{
+    return _readout.isRunningALT();
+}
+
+long MountExecutor::getCurrentStepperPosition(StepperAxis which)
+{
+    return _readout.getCurrentStepperPosition(which);
+}
+
+long MountExecutor::getCurrentStepperPosition(int direction)
+{
+    return _readout.getCurrentStepperPosition(direction);
+}
+
+core::DayTime MountExecutor::calculateLst()
+{
+    return _readout.calculateLst();
 }
 
 }  // namespace app
