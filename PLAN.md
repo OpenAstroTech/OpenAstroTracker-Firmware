@@ -795,6 +795,17 @@ format, the two sensor helpers and the utility grab-bag.*
   no-allocation, no-logging shape because it still runs in the step generator.
 - **8.6b (next):** the seven-state machine is still interleaved with the port reads; extracting it
   as `core::EndSwitchState` is what gives it tests.
+- ✅ **8.5b** the board defaults (four steps-per-degree figures, backlash, the microstep ratios the
+  stored numbers are normalised against) are injected as an `AxisDefaults` value the composition root
+  builds, so `EepromSettingsFormat` compiles and runs on the host: 8 tests cover the blank-store
+  defaults, every accessor's round trip, `clearConfiguration()` and the version field. `core/MathUtil.hpp`
+  carries `clamp`/`adjustWrap`/`adjustClamp` so the adapter needs neither `Utility.hpp` nor the board
+  configuration. Cost: `mksgenlv21` +54 B RAM (the defaults are data now, not immediates) and +570 B
+  flash. Two pre-existing quirks the tests pinned down and deliberately preserved: a speed factor
+  below 1.0 has never round-tripped (the stored delta is read back unsigned), and a cleared store
+  reports the display's default brightness rather than zero.
+- ✅ **8.7a** `src/Sidereal.*` and `src/RightAscension.*` deleted: both had no callers — the sidereal
+  math is `core::SiderealClock`, and the RA type in use is `core::RightAscension`.
 - **Remaining:** 8.7 (type overlays, `Types.hpp`, `inc/Globals`), 8.8 (the screens → `app/ui/`),
   8.9 (test console), 8.10 (`Utility` and the empty root). The root is down from 47 files to 37,
   and everything left in it is the UI block those three slices move.
@@ -822,7 +833,7 @@ None of this is a design question any more. Every surface the UI needs exists: `
 | 8.4 ✅ | **Status panel** (closes 7.3.1) | `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | `core/InfoDisplayLayout`, `core/ConsoleLog`, `adapters/Ssd1306InfoDisplay` | ~680 | medium — frozen pixels |
 | 8.5a ✅ / 8.5b | **Settings format** | `EPROMStore` | `adapters/EepromSettingsFormat` + its first tests | ~1,000 | low — mechanical, and finally host-testable |
 | 8.6a ✅ / 8.6b | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
-| 8.7 | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
+| 8.7a ✅ / 8.7b | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
 | 8.8 | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
 | 8.9 | **Factory test console** | `testmenu.*`, `testmenudef.hpp` | `app/test/TestConsole` | ~860 | low — build-flag gated |
 | 8.10 | **Utilities, and the empty root** | `Utility.*`, `macros/` usage | `core/MathUtil.hpp`, `adapters/SerialLogger`, `hal/arduino/` | ~650 | low |
