@@ -11,16 +11,16 @@
     // You add a string and an id item and this class handles the display and navigation
     // Create a new menu, using the given number of LCD display columns and rows
     #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
-    : _lcd(LCD_PIN8, LCD_PIN9, LCD_PIN4, LCD_PIN5, LCD_PIN6, LCD_PIN7), _cols(cols), _rows(rows), _maxItems(maxItems),
+LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
+    : _lcd(LCD_PIN8, LCD_PIN9, LCD_PIN4, LCD_PIN5, LCD_PIN6, LCD_PIN7), _cols(cols), _rows(rows),
       _charHeightRows(1),  // 1 character = 1 row
-      _settings(settings)
+      _model(storage, capacity), _settings(settings)
 {
 }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
-    : _lcd(0x20), _cols(cols), _rows(rows), _maxItems(maxItems), _charHeightRows(1),  // 1 character = 1 row
-      _settings(settings)
+LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
+    : _lcd(0x20), _cols(cols), _rows(rows), _charHeightRows(1),  // 1 character = 1 row
+      _model(storage, capacity), _settings(settings)
 {
         #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
     _lcd.setMCPType(LTI_TYPE_MCP23017);
@@ -29,9 +29,9 @@ LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *sett
         #endif
 }
     #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
-    : _cols(cols), _rows(rows), _maxItems(maxItems), _charHeightRows(2),  // For 7x14 font 1 character = 2 rows (2x8 pixels)
-      _settings(settings)
+LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
+    : _cols(cols), _rows(rows), _charHeightRows(2),  // For 7x14 font 1 character = 2 rows (2x8 pixels)
+      _model(storage, capacity), _settings(settings)
 {
 }
     #endif
@@ -61,15 +61,12 @@ void LcdMenu::startup()
     LOG(DEBUG_INFO, "[LCD]: Brightness from EEPROM is %d", _brightness);
     setBacklightBrightness(_brightness, false);
 
-    _numMenuItems    = 0;
-    _activeMenuIndex = 0;
-    _longestDisplay  = 0;
-    _columns         = _cols;
-    _activeRow       = -1;
-    _activeCol       = -1;
-    _lastDisplay[0]  = "";
-    _lastDisplay[1]  = "";
-    _menuItems       = new MenuItem *[_maxItems];
+    _model.clear();
+    _columns        = _cols;
+    _activeRow      = -1;
+    _activeCol      = -1;
+    _lastDisplay[0] = "";
+    _lastDisplay[1] = "";
 
     #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
     // Create special characters for degrees and arrows
@@ -137,43 +134,25 @@ bool LcdMenu::testIfLcdIsBad()
 }
     #endif
 
-// Find a menu item by its ID
-MenuItem *LcdMenu::findById(byte id)
-{
-    for (byte i = 0; i < _numMenuItems; i++)
-    {
-        if (_menuItems[i]->id() == id)
-        {
-            return _menuItems[i];
-        }
-    }
-    return NULL;
-}
-
 // Add a new menu item to the list (order matters)
 void LcdMenu::addItem(const char *disp, byte id)
 {
-    _menuItems[_numMenuItems++] = new MenuItem(disp, id);
-    _longestDisplay             = max((size_t) _longestDisplay, strlen(disp));
+    if (!_model.add(disp, id))
+    {
+        LOG(DEBUG_ERROR, "[LCD]: Menu item table is full, dropping %s", disp);
+    }
 }
 
 // Get the currently active item ID
 byte LcdMenu::getActive()
 {
-    return _menuItems[_activeMenuIndex]->id();
+    return _model.activeId();
 }
 
 // Set the active menu item
 void LcdMenu::setActive(byte id)
 {
-    for (byte i = 0; i < _numMenuItems; i++)
-    {
-        if (_menuItems[i]->id() == id)
-        {
-            _activeMenuIndex = i;
-            break;
-        }
-    }
+    _model.setActive(id);
 }
 
 // Pass thru utility function
@@ -255,7 +234,7 @@ void LcdMenu::getBacklightBrightnessRange(int *minPtr, int *maxPtr) const
 // Go to the next menu item from currently active one
 void LcdMenu::setNextActive()
 {
-    _activeMenuIndex = adjustWrap(_activeMenuIndex, 1, 0, _numMenuItems - 1);
+    _model.next();
 
     // Update the display
     updateDisplay();
@@ -275,53 +254,12 @@ void LcdMenu::setNextActive()
 void LcdMenu::updateDisplay()
 {
     char bufMenu[17];
-    char *pBufMenu      = &bufMenu[0];
-    String menuString   = "";
-    byte offsetToActive = 0;
-    byte offset         = 0;
-
-    char scratchBuffer[12];
-    // Build the entire menu string
-    for (byte i = 0; i < _numMenuItems; i++)
-    {
-        MenuItem *item = _menuItems[i];
-        bool isActive  = i == _activeMenuIndex;
-        sprintf(scratchBuffer, "%c%s%c", isActive ? '>' : ' ', item->display(), isActive ? '<' : ' ');
-
-        // For the active item remember where it starts in the string and insert selector arrows
-        offsetToActive = isActive ? offset : offsetToActive;
-        menuString += String(scratchBuffer);
-        offset += strlen(scratchBuffer);
-    }
 
     _lcd.setCursor(0, 0);
-    _activeRow        = 0;
-    _activeCol        = 0;
-    int usableColumns = _columns - 1;  // Leave off last one to have distance to tracking indicator
+    _activeRow = 0;
+    _activeCol = 0;
 
-    // Determine where to place the active menu item. (empty space around longest item divided by two).
-    int margin           = (usableColumns - (_longestDisplay)) / 2;
-    int offsetIntoString = offsetToActive - margin;
-
-    // Pad the front if we don't have enough to offset the string to the arrow locations (happens on first item(s))
-    while (offsetIntoString < 0)
-    {
-        *(pBufMenu++) = ' ';
-        offsetIntoString++;
-    }
-
-    // Display the actual menu string
-    while ((pBufMenu < bufMenu + usableColumns) && (offsetIntoString < (int) menuString.length()))
-    {
-        *(pBufMenu++) = menuString[offsetIntoString++];
-    }
-
-    // Pad the end with spaces so the display is cleared when getting to the last item(s).
-    while (pBufMenu < bufMenu + _columns)
-    {
-        *(pBufMenu++) = ' ';
-    }
-    *(pBufMenu++) = 0;
+    core::composeMenuRow(bufMenu, sizeof(bufMenu), _model, _columns);
 
     printMenu(String(bufMenu));
 
@@ -447,13 +385,12 @@ byte LcdMenu::NoTrackingBitmap[8] = {B10000, B00000, B10000, B00010, B10000, B00
 
 #else  // Headless (i.e. DISPLAY_TYPE == 0)
 
-LcdMenu::LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings)
+LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
 {
-}
-
-MenuItem *LcdMenu::findById(byte id)
-{
-    return NULL;
+    // A headless build has no display, so it carries no menu model at all.
+    (void) storage;
+    (void) capacity;
+    (void) settings;
 }
 
 void LcdMenu::addItem(const char *disp, byte id)

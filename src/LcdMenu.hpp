@@ -1,6 +1,7 @@
 #ifndef _LCDMENU_HPP_
 #define _LCDMENU_HPP_
 
+#include "core/menu/MenuModel.hpp"
 #include "ports/IMountSettings.hpp"
 
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
@@ -11,39 +12,15 @@
     #include <U8x8lib.h>  // https://github.com/olikraus/u8g2
 #endif
 
-// A single menu item (like RA, HEAT, POL, etc.)
-// The ID is just a number, it has no relevance for the order of the items
-// The display is what is shown on the menu.
-class MenuItem
-{
-    const char *_display;  // What to display on the screen
-    byte _id;              // The ID of the menu item
-  public:
-    MenuItem(const char *display, byte id)
-    {
-        _display = display;
-        _id      = id;
-    }
-
-    const char *display()
-    {
-        return _display;
-    }
-
-    byte id()
-    {
-        return _id;
-    }
-};
-
 // Class that drives the LCD screen with a menu
 // You add a string and an id item and this class handles the display and navigation
 class LcdMenu
 {
   public:
-    // Create a new menu, using the given number of LCD display columns and rows. The settings
-    // store is where the backlight level is persisted; null keeps the level in RAM only.
-    LcdMenu(byte cols, byte rows, int maxItems, ports::IMountSettings *settings = nullptr);
+    // Create a new menu, using the given number of LCD display columns and rows. `storage` is the
+    // caller-owned item table (the model never allocates) and the settings store is where the
+    // backlight level is persisted; null keeps the level in RAM only.
+    LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings = nullptr);
 
     void startup();
 
@@ -51,9 +28,6 @@ class LcdMenu
     // Function to test LCD hardware, some units are shipped with defects
     static bool testIfLcdIsBad();
 #endif
-
-    // Find a menu item by its ID
-    MenuItem *findById(byte id);
 
     // Add a new menu item to the list (order matters)
     void addItem(const char *disp, byte id);
@@ -111,14 +85,10 @@ class LcdMenu
 
     byte const _cols;
     byte const _rows;
-    byte const _maxItems;
     byte const _charHeightRows;  // Height of character in display native rows
     bool _lcdBadHw;
 
-    MenuItem **_menuItems;  // The first menu item (linked list)
-    byte _numMenuItems;
-    byte _activeMenuIndex;
-    byte _longestDisplay;    // The number of characters in the longest menu item
+    core::MenuModel _model;  // The item table the caller handed us, plus the selection
     byte _columns;           // The number of columns in the LCD display
     byte _activeRow;         // The row that the LCD cursor is on
     byte _activeCol;         // The column that the LCD cursor is on

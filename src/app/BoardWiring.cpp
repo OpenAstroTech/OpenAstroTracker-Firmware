@@ -100,7 +100,11 @@ adapters::MountSettingsStore settingsStore(eepromStore);
 //
 // After the settings store: the menu asks it for the persisted backlight level.
 
-LcdMenu lcdMenu(16, 2, MAXMENUITEMS, &settingsStore);
+/// The menu's item table. Caller-owned so the menu itself never allocates; a headless board has
+/// no menu, so it only carries a single entry.
+constexpr byte kMenuCapacity = (DISPLAY_TYPE > 0) ? MAXMENUITEMS : 1;
+core::MenuEntry menuEntries[kMenuCapacity];
+LcdMenu lcdMenu(16, 2, menuEntries, kMenuCapacity, &settingsStore);
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
 LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
 #endif
