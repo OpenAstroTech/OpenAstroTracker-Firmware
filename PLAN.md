@@ -789,6 +789,15 @@ format, the two sensor helpers and the utility grab-bag.*
 - **8.5b (next):** the four steps-per-degree getters still fall back to board constants
   (`RA_STEPS_PER_DEGREE`, …), which keeps the file out of the host build. Injecting those defaults
   plus the microstep ratios is what makes the round-trip and migration tests possible.
+- 🟡 **8.6a** `src/EndSwitches.*` and `src/HallSensorHoming.*` moved to `app/EndSwitchMonitor.*` and
+  `app/HomingRunner.*` inside `namespace app`. They were already port-based, so the move is an
+  address change: `mksgenlv21` RAM unchanged, +4 B flash. The end-switch poll keeps its
+  no-allocation, no-logging shape because it still runs in the step generator.
+- **8.6b (next):** the seven-state machine is still interleaved with the port reads; extracting it
+  as `core::EndSwitchState` is what gives it tests.
+- **Remaining:** 8.7 (type overlays, `Types.hpp`, `inc/Globals`), 8.8 (the screens → `app/ui/`),
+  8.9 (test console), 8.10 (`Utility` and the empty root). The root is down from 47 files to 37,
+  and everything left in it is the UI block those three slices move.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
@@ -812,7 +821,7 @@ None of this is a design question any more. Every surface the UI needs exists: `
 | 8.3 ✅ | **Button port** | `LcdButtons`' three decoders | `core/ButtonDebounce` + `hal/*/…Buttons` + `adapters/DebouncedButtons` | ~155 | medium — the 5 ms rule is only observable on-device |
 | 8.4 ✅ | **Status panel** (closes 7.3.1) | `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | `core/InfoDisplayLayout`, `core/ConsoleLog`, `adapters/Ssd1306InfoDisplay` | ~680 | medium — frozen pixels |
 | 8.5a ✅ / 8.5b | **Settings format** | `EPROMStore` | `adapters/EepromSettingsFormat` + its first tests | ~1,000 | low — mechanical, and finally host-testable |
-| 8.6 | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
+| 8.6a ✅ / 8.6b | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
 | 8.7 | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
 | 8.8 | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
 | 8.9 | **Factory test console** | `testmenu.*`, `testmenudef.hpp` | `app/test/TestConsole` | ~860 | low — build-flag gated |
