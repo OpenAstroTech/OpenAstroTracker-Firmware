@@ -1,400 +1,175 @@
-#include "inc/Globals.hpp"
-#include "../Configuration.hpp"
-#include "Utility.hpp"
-#include "libs/MappedDict/MappedDict.hpp"
-#include "EPROMStore.hpp"
 #include "LcdMenu.hpp"
 
-#if DISPLAY_TYPE != DISPLAY_TYPE_NONE
+#include "../Configuration.hpp"
+#include "Utility.hpp"
+#include "core/menu/MenuLine.hpp"
 
-    // Class that drives the LCD screen with a menu
-    // You add a string and an id item and this class handles the display and navigation
-    // Create a new menu, using the given number of LCD display columns and rows
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
-    : _lcd(LCD_PIN8, LCD_PIN9, LCD_PIN4, LCD_PIN5, LCD_PIN6, LCD_PIN7), _cols(cols), _rows(rows),
-      _charHeightRows(1),  // 1 character = 1 row
-      _model(storage, capacity), _settings(settings)
+#if DISPLAY_TYPE > 0
+
+    LcdMenu::LcdMenu(ports::IDisplay *display, core::MenuEntry *storage, byte capacity)
+        : _display(display), _model(storage, capacity), _activeRow(0), _activeCol(0)
+    {
+    }
+
+    void LcdMenu::startup()
+    {
+        LOG(DEBUG_INFO, "[LCD]: LcdMenu startup");
+
+        _model.clear();
+        _activeRow = 0;
+        _activeCol = 0;
+
+        if (_display != nullptr)
+        {
+            _display->begin();
+        }
+    }
+
+    // Add a new menu item to the list (order matters)
+    void LcdMenu::addItem(const char *disp, byte id)
+    {
+        if (!_model.add(disp, id))
+        {
+            LOG(DEBUG_ERROR, "[LCD]: Menu item table is full, dropping %s", disp);
+        }
+    }
+
+    // Get the currently active item ID
+    byte LcdMenu::getActive()
+    {
+        return _model.activeId();
+    }
+
+    // Set the active menu item
+    void LcdMenu::setActive(byte id)
+    {
+        _model.setActive(id);
+    }
+
+    void LcdMenu::setCursor(byte col, byte row)
+    {
+        _activeRow = row;
+        _activeCol = col;
+    }
+
+    void LcdMenu::clear()
+    {
+        if (_display != nullptr)
+        {
+            _display->clear();
+        }
+    }
+
+    void LcdMenu::setBacklightBrightness(int level, bool persist)
+    {
+        if (_display == nullptr)
+        {
+            return;
+        }
+
+        const uint8_t clamped = (level < 0) ? 0 : static_cast<uint8_t>(level);
+        _display->setBacklight(clamped, persist);
+
+        if (persist)
+        {
+            LOG(DEBUG_INFO, "[LCD]: Saving %d as brightness", _display->backlight());
+        }
+    }
+
+    int LcdMenu::getBacklightBrightness() const
+    {
+        return (_display != nullptr) ? _display->backlight() : 0;
+    }
+
+    void LcdMenu::getBacklightBrightnessRange(int *minPtr, int *maxPtr) const
+    {
+        uint8_t minimum = 0;
+        uint8_t maximum = 0;
+        if (_display != nullptr)
+        {
+            _display->backlightRange(&minimum, &maximum);
+        }
+        if (minPtr != nullptr)
+        {
+            *minPtr = minimum;
+        }
+        if (maxPtr != nullptr)
+        {
+            *maxPtr = maximum;
+        }
+    }
+
+    void LcdMenu::setNextActive()
+    {
+        _model.next();
+
+        updateDisplay();
+
+        // Clear the submenu line, in case the new menu does not print anything there.
+        setCursor(0, 1);
+        printMenu(String(""));
+    }
+
+    void LcdMenu::updateDisplay()
+    {
+        if (_display == nullptr)
+        {
+            return;
+        }
+
+        // Room for the longest supported row plus its terminator; the composer truncates to the panel.
+        char bufMenu[26];
+        core::composeMenuRow(bufMenu, sizeof(bufMenu), _model, _display->columns());
+
+        setCursor(0, 0);
+        printMenu(String(bufMenu));
+        setCursor(0, 1);
+    }
+
+    void LcdMenu::printMenu(String line)
+    {
+        if (_display == nullptr)
+        {
+            return;
+        }
+
+        if (_activeCol == 0)
+        {
+            _display->writeLine(_activeRow, line.c_str());
+            return;
+        }
+
+        for (unsigned int i = 0; i < line.length(); i++)
+        {
+            _display->writeCell(_activeRow, static_cast<uint8_t>(_activeCol + i), line[i]);
+        }
+    }
+
+    void LcdMenu::printAt(byte col, byte row, char ch)
+    {
+        if (_display != nullptr)
+        {
+            _display->writeCell(row, col, ch);
+        }
+    }
+
+#else  // Headless boards carry no menu at all.
+
+LcdMenu::LcdMenu(ports::IDisplay *display, core::MenuEntry *storage, byte capacity)
 {
+    (void) display;
+    (void) storage;
+    (void) capacity;
 }
-    #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
-    : _lcd(0x20), _cols(cols), _rows(rows), _charHeightRows(1),  // 1 character = 1 row
-      _model(storage, capacity), _settings(settings)
-{
-        #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-    _lcd.setMCPType(LTI_TYPE_MCP23017);
-        #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008
-    _lcd.setMCPType(LTI_TYPE_MCP23008);
-        #endif
-}
-    #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
-    : _cols(cols), _rows(rows), _charHeightRows(2),  // For 7x14 font 1 character = 2 rows (2x8 pixels)
-      _model(storage, capacity), _settings(settings)
-{
-}
-    #endif
 
 void LcdMenu::startup()
 {
-    LOG(DEBUG_INFO, "[LCD]: LcdMenu startup");
-
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-    _lcd.begin(_cols, _rows);
-        #if defined(LCD_BRIGHTNESS_PIN)
-    _lcdBadHw = testIfLcdIsBad();
-        #endif
-    #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-    _lcd.begin(_cols, _rows);
-    _lcd.setBacklight(RED);
-    _lcdBadHw = false;
-    #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    _lcd.begin();
-    _lcd.setPowerSave(0);
-    _lcd.clear();
-    _lcd.setFont(u8x8_font_7x14_1x2_f);  // Each 7x14 character takes up 2 8-pixel rows
-    _lcdBadHw = false;
-    #endif
-
-    _brightness = (_settings != nullptr) ? _settings->getBrightness() : 10;
-    LOG(DEBUG_INFO, "[LCD]: Brightness from EEPROM is %d", _brightness);
-    setBacklightBrightness(_brightness, false);
-
-    _model.clear();
-    _columns        = _cols;
-    _activeRow      = -1;
-    _activeCol      = -1;
-    _lastDisplay[0] = "";
-    _lastDisplay[1] = "";
-
-    #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    // Create special characters for degrees and arrows
-    _lcd.createChar(_degrees, DegreesBitmap);
-    _lcd.createChar(_minutes, MinutesBitmap);
-    _lcd.createChar(_leftArrow, LeftArrowBitmap);
-    _lcd.createChar(_rightArrow, RightArrowBitmap);
-    _lcd.createChar(_upArrow, UpArrowBitmap);
-    _lcd.createChar(_downArrow, DownArrowBitmap);
-    _lcd.createChar(_tracking, TrackingBitmap);
-    _lcd.createChar(_noTracking, NoTrackingBitmap);
-    #endif
-}
-
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
-/**
- * @brief Check to see if there is a problem in the LCD backlight circuit
- * @details The 'broken' designs connect D10 directly to the base of
- * an NPN transistor. This will cause a short when D10 is set to HIGH as there
- * is no current limiting resistor in the path between D10 to the base and the
- * emitter to ground.
- * Adapted from https://forum.arduino.cc/index.php?topic=96747.0
- * Link also notes a HW fix that can be applied to enable full brightness.
- * @returns true if the LCD was manufactured incorrectly, false otherwise
- */
-bool LcdMenu::testIfLcdIsBad()
-{
-    /*
-     * Set the pin to an input with pullup disabled, this should be safe on all shields.
-     * The reason for the digitalWrite() first is that only the newer Arduino
-     * cores disable the pullup when setting the pin to INPUT.
-     * On boards that have a pullup on the transistor base,
-     * this should cause the backlight to be on.
-     */
-    digitalWrite(LCD_BRIGHTNESS_PIN, LOW);
-    pinMode(LCD_BRIGHTNESS_PIN, INPUT);
-
-    /*
-     * Since the pullup was turned off above by setting the pin to input mode,
-     * it should drive the pin LOW which should be safe given the known design flaw.
-     */
-    pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
-
-    /*
-     * !!! WARNING !!!
-     * This line is NOT safe thing to use on the broken designs!
-     */
-    digitalWrite(LCD_BRIGHTNESS_PIN, HIGH);
-
-    // Now see if a short is pulling down the HIGH output.
-    delayMicroseconds(5);  // Give some time for the signal to drop
-    const int pinValue = digitalRead(LCD_BRIGHTNESS_PIN);
-
-    // Restore the pin to a safe state: Input with pullup turned off
-    digitalWrite(LCD_BRIGHTNESS_PIN, LOW);
-    pinMode(LCD_BRIGHTNESS_PIN, INPUT);
-
-    /*
-     * If the level read back is not HIGH then there is a problem because the
-     * pin is being driven HIGH by the AVR.
-     */
-    const bool lcdIsBad = (pinValue != HIGH);
-    LOG(DEBUG_INFO, "[LCD]: HW is bad? %s", lcdIsBad ? "YES" : "NO");
-    return lcdIsBad;
-}
-    #endif
-
-// Add a new menu item to the list (order matters)
-void LcdMenu::addItem(const char *disp, byte id)
-{
-    if (!_model.add(disp, id))
-    {
-        LOG(DEBUG_ERROR, "[LCD]: Menu item table is full, dropping %s", disp);
-    }
-}
-
-// Get the currently active item ID
-byte LcdMenu::getActive()
-{
-    return _model.activeId();
-}
-
-// Set the active menu item
-void LcdMenu::setActive(byte id)
-{
-    _model.setActive(id);
-}
-
-// Pass thru utility function
-void LcdMenu::setCursor(byte col, byte row)
-{
-    _activeRow = row;
-    _activeCol = col;
-}
-
-// Pass thru utility function
-void LcdMenu::clear()
-{
-    _lcd.clear();
-}
-
-// Set the brightness of the backlight
-void LcdMenu::setBacklightBrightness(int level, bool persist)
-{
-    _brightness = level;
-
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD && defined(LCD_BRIGHTNESS_PIN)
-    // Not supported on ESP32 due to lack of built-in analogWrite()
-    if (_lcdBadHw)
-    {
-        // On 'bad' hardware you can only turn off or on
-        if (_brightness > 0)
-        {
-            pinMode(LCD_BRIGHTNESS_PIN, INPUT);
-        }
-        else
-        {
-            pinMode(LCD_BRIGHTNESS_PIN, OUTPUT);
-        }
-    }
-    else
-    {
-        analogWrite(LCD_BRIGHTNESS_PIN, _brightness);
-    }
-    #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-        // Nothing to do?
-    #elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    _lcd.setContrast(_brightness);
-    #endif
-
-    if (persist)
-    {
-        LOG(DEBUG_INFO, "[LCD]: Saving %d as brightness", _brightness);
-        if (_settings != nullptr)
-        {
-            _settings->storeBrightness(_brightness);
-        }
-    }
-}
-
-// Get the current brightness
-int LcdMenu::getBacklightBrightness() const
-{
-    return _brightness;
-}
-
-void LcdMenu::getBacklightBrightnessRange(int *minPtr, int *maxPtr) const
-{
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-    if (_lcdBadHw)
-    {
-        // Bad LCD displays are either on or off
-        *minPtr = 0;
-        *maxPtr = 1;
-    }
-    else
-    #endif
-    {
-        // Full range otherwise
-        *minPtr = 0;
-        *maxPtr = 255;
-    }
-}
-
-// Go to the next menu item from currently active one
-void LcdMenu::setNextActive()
-{
-    _model.next();
-
-    // Update the display
-    updateDisplay();
-
-    // Clear submenu line, in case new menu doesn't print anything.
-    _lcd.setCursor(0, 1 * _charHeightRows);
-    for (byte i = 0; i < _columns; i++)
-    {
-        _lcd.print(" ");
-    }
-}
-
-// Update the display of the LCD with the current menu settings
-// This iterates over the menu items, building a menu string by concatenating their display string.
-// It also places the selector arrows around the active one.
-// It then sends the string to the LCD, keeping the selector arrows centered in the same place.
-void LcdMenu::updateDisplay()
-{
-    char bufMenu[17];
-
-    _lcd.setCursor(0, 0);
-    _activeRow = 0;
-    _activeCol = 0;
-
-    core::composeMenuRow(bufMenu, sizeof(bufMenu), _model, _columns);
-
-    printMenu(String(bufMenu));
-
-    setCursor(0, 1);
-}
-
-// Print the given character to the LCD, converting some special ones to our bitmaps
-void LcdMenu::printChar(char ch)
-{
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    struct charData_t {
-        const uint8_t *font;
-        uint8_t encoding;
-    };
-
-    MappedDict<char, charData_t>::DictEntry_t lookupTable[] = {
-        {'>', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 14}},  // Right arrow
-        {'<', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 13}},  // Left arrow
-        {'^', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 15}},  // Up arrow
-        {'~', {.font = u8x8_font_open_iconic_arrow_1x1, .encoding = 64 + 12}},  // Down arrow
-        {'@', {.font = u8x8_font_7x14_1x2_f, .encoding = 176}},                 // Degrees
-        {'&', {.font = u8x8_font_open_iconic_thing_1x1, .encoding = 64 + 15}},  // Tracking
-        {'`', {.font = u8x8_font_open_iconic_thing_1x1, .encoding = 64 + 4}},   // Not tracking
-    };
-    auto buttonLookup      = MappedDict<char, charData_t>(lookupTable, ARRAY_SIZE(lookupTable));
-    charData_t specialChar = {};
-    const bool charInTable = buttonLookup.tryGet(ch, &specialChar);
-    if (charInTable)
-    {
-        _lcd.setFont(specialChar.font);
-        _lcd.drawGlyph(_lcd.tx, _lcd.ty, specialChar.encoding);
-    }
-    else
-    {
-        _lcd.setFont(u8x8_font_7x14_1x2_f);
-        _lcd.drawGlyph(_lcd.tx, _lcd.ty, ch);
-    }
-
-    _lcd.tx += 1;
-    #else
-    MappedDict<char, specialChar_t>::DictEntry_t lookupTable[] = {
-        {'>', _rightArrow},
-        {'<', _leftArrow},
-        {'^', _upArrow},
-        {'~', _downArrow},
-        {'@', _degrees},
-        {'\'', _minutes},
-        {'&', _tracking},
-        {'`', _noTracking},
-    };
-    auto buttonLookup = MappedDict<char, specialChar_t>(lookupTable, ARRAY_SIZE(lookupTable));
-    specialChar_t specialChar;
-    const bool charInTable = buttonLookup.tryGet(ch, &specialChar);
-    if (charInTable)
-    {
-        _lcd.write(specialChar);
-    }
-    else
-    {
-        _lcd.print(ch);
-    }
-    #endif
-}
-
-// Print a character at a specific position
-void LcdMenu::printAt(int col, int row, char ch)
-{
-    _lcd.setCursor(col, _charHeightRows * row);
-    printChar(ch);
-}
-
-    #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-uint8_t LcdMenu::readButtons()
-{
-    return _lcd.readButtons();
-}
-    #endif
-
-// Print a string to the LCD at the current cursor position, substituting the special arrows and padding with spaces to the end
-void LcdMenu::printMenu(String line)
-{
-    if ((_lastDisplay[_activeRow] != line) || (_activeCol != 0))
-    {
-        _lastDisplay[_activeRow] = line;
-
-        _lcd.setCursor(_activeCol, _charHeightRows * _activeRow);
-        int spaces = _columns - line.length();
-        for (char i : line)
-        {
-            printChar(i);
-        }
-
-        // Clear the rest of the display
-        while (spaces > 0)
-        {
-            _lcd.print(" ");
-            spaces--;
-        }
-    }
-}
-
-    #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-
-// The right arrow bitmap
-byte LcdMenu::RightArrowBitmap[8] = {B00000, B01000, B01100, B01110, B01100, B01000, B00000, B00000};
-
-// The left arrow bitmap
-byte LcdMenu::LeftArrowBitmap[8] = {B00000, B00010, B00110, B01110, B00110, B00010, B00000, B00000};
-
-byte LcdMenu::UpArrowBitmap[8] = {B00100, B01110, B11111, B00100, B00100, B00100, B00100, B00100};
-
-byte LcdMenu::DownArrowBitmap[8] = {B000100, B000100, B000100, B000100, B000100, B011111, B001110, B000100};
-
-byte LcdMenu::DegreesBitmap[8] = {B01100, B10010, B10010, B01100, B00000, B00000, B00000, B00000};
-
-byte LcdMenu::MinutesBitmap[8] = {B01000, B01000, B01000, B00000, B00000, B00000, B00000, B00000};
-
-byte LcdMenu::TrackingBitmap[8] = {B10111, B00010, B10010, B00010, B10111, B00101, B10110, B00101};
-
-byte LcdMenu::NoTrackingBitmap[8] = {B10000, B00000, B10000, B00010, B10000, B00000, B10000, B00000};
-
-    #endif
-
-#else  // Headless (i.e. DISPLAY_TYPE == 0)
-
-LcdMenu::LcdMenu(byte cols, byte rows, core::MenuEntry *storage, byte capacity, ports::IMountSettings *settings)
-{
-    // A headless build has no display, so it carries no menu model at all.
-    (void) storage;
-    (void) capacity;
-    (void) settings;
 }
 
 void LcdMenu::addItem(const char *disp, byte id)
 {
+    (void) disp;
+    (void) id;
 }
 
 byte LcdMenu::getActive()
@@ -404,14 +179,40 @@ byte LcdMenu::getActive()
 
 void LcdMenu::setActive(byte id)
 {
+    (void) id;
 }
 
 void LcdMenu::setCursor(byte col, byte row)
 {
+    (void) col;
+    (void) row;
 }
 
 void LcdMenu::clear()
 {
+}
+
+void LcdMenu::setBacklightBrightness(int level, bool persist)
+{
+    (void) level;
+    (void) persist;
+}
+
+int LcdMenu::getBacklightBrightness() const
+{
+    return 0;
+}
+
+void LcdMenu::getBacklightBrightnessRange(int *minPtr, int *maxPtr) const
+{
+    if (minPtr != nullptr)
+    {
+        *minPtr = 0;
+    }
+    if (maxPtr != nullptr)
+    {
+        *maxPtr = 0;
+    }
 }
 
 void LcdMenu::setNextActive()
@@ -424,14 +225,14 @@ void LcdMenu::updateDisplay()
 
 void LcdMenu::printMenu(String line)
 {
+    (void) line;
 }
 
-void LcdMenu::printChar(char ch)
+void LcdMenu::printAt(byte col, byte row, char ch)
 {
-}
-
-void LcdMenu::printAt(int col, int row, char ch)
-{
+    (void) col;
+    (void) row;
+    (void) ch;
 }
 
 #endif

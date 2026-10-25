@@ -22,6 +22,16 @@
 #include "adapters/SiteTimePort.hpp"
 #include "hal/esp32/Esp32WifiStack.hpp"
 #include "hal/arduino/ArduinoI2cBus.hpp"
+#include "adapters/DebouncedButtons.hpp"
+#include "adapters/LcdMenuDisplay.hpp"
+#include "adapters/NullDisplay.hpp"
+#include "hal/NullButtonMatrix.hpp"
+#include "hal/arduino/AnalogKeyPad.hpp"
+#include "hal/arduino/CharLcd.hpp"
+#include "hal/arduino/I2cCharLcd.hpp"
+#include "hal/arduino/I2cExpanderButtons.hpp"
+#include "hal/arduino/JoystickButtons.hpp"
+#include "hal/arduino/U8x8CharLcd.hpp"
 
 PUSH_NO_WARNINGS
 #include <EEPROM.h>
@@ -96,22 +106,60 @@ adapters::EepromPersistentStore persistentStore(eeprom, hal::eeprom::STORE_SIZE)
 EEPROMStore eepromStore(persistentStore, *logSink);
 adapters::MountSettingsStore settingsStore(eepromStore);
 
-// --- the display and menu singletons ---------------------------------------------------
+// --- the menu display and its keys -----------------------------------------------------
 //
-// After the settings store: the menu asks it for the persisted backlight level.
+// One `#if` selects the panel family; everything above it sees `ports::IDisplay` and
+// `ports::IButtons`, and the libraries stay in `hal/arduino/`. The panel is a board fact that
+// nothing discovers at run time, so linking all four drivers to make it a runtime choice would
+// only cost flash.
 
-/// The menu's item table. Caller-owned so the menu itself never allocates; a headless board has
-/// no menu, so it only carries a single entry.
-constexpr byte kMenuCapacity = (DISPLAY_TYPE > 0) ? MAXMENUITEMS : 1;
-core::MenuEntry menuEntries[kMenuCapacity];
-LcdMenu lcdMenu(16, 2, menuEntries, kMenuCapacity, &settingsStore);
+constexpr byte kMenuColumns = 16;
+constexpr byte kMenuRows    = 2;
+
 #if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-LcdButtons lcdButtons(LCD_KEY_SENSE_PIN, &lcdMenu);
+    #if defined(LCD_BRIGHTNESS_PIN)
+// The backlight is a PWM pin on the shield. The known-bad boards short it and can only switch it.
+hal::ArduinoGpioPin lcdBacklightPin(LCD_BRIGHTNESS_PIN);
+const bool lcdBacklightShorted = hal::backlightPinIsShorted(LCD_BRIGHTNESS_PIN);
+hal::CharLcd lcdPanel(LCD_PIN8, LCD_PIN9, LCD_PIN4, LCD_PIN5, LCD_PIN6, LCD_PIN7, &lcdBacklightPin, lcdBacklightShorted);
+const adapters::LcdMenuDisplay::BacklightRange lcdBacklightRange = {0, static_cast<uint8_t>(lcdBacklightShorted ? 1 : 255)};
+    #else
+hal::CharLcd lcdPanel(LCD_PIN8, LCD_PIN9, LCD_PIN4, LCD_PIN5, LCD_PIN6, LCD_PIN7);
+const adapters::LcdMenuDisplay::BacklightRange lcdBacklightRange = {0, 255};
+    #endif
+hal::ArduinoGpioPin lcdKeySensePin(LCD_KEY_SENSE_PIN);
+hal::AnalogKeyPad lcdKeyPad(lcdKeySensePin);
+
+#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008
+hal::I2cCharLcd lcdPanel(0x20, DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017);
+const adapters::LcdMenuDisplay::BacklightRange lcdBacklightRange = {0, 255};
+hal::I2cExpanderButtons lcdKeyPad(lcdPanel);
+
+#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
+hal::U8x8CharLcd lcdPanel;
+const adapters::LcdMenuDisplay::BacklightRange lcdBacklightRange = {0, 255};
+hal::ArduinoGpioPin lcdJoyXPin(LCD_KEY_SENSE_X_PIN);
+hal::ArduinoGpioPin lcdJoyYPin(LCD_KEY_SENSE_Y_PIN);
+hal::ArduinoGpioPin lcdJoyPushPin(LCD_KEY_SENSE_PUSH_PIN);
+hal::JoystickButtons lcdKeyPad(lcdJoyXPin, lcdJoyYPin, lcdJoyPushPin);
 #endif
 
-#if DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017 || DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008                           \
-    || DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-LcdButtons lcdButtons(&lcdMenu);
+#if DISPLAY_TYPE > 0
+
+adapters::LcdMenuDisplay menuDisplay(lcdPanel, &settingsStore, kMenuColumns, kMenuRows, lcdBacklightRange);
+
+/// The menu's item table. Caller-owned so the menu itself never allocates.
+core::MenuEntry menuEntries[MAXMENUITEMS];
+LcdMenu lcdMenu(&menuDisplay, menuEntries, MAXMENUITEMS);
+
+adapters::DebouncedButtons lcdButtonSource(lcdKeyPad, clockPort);
+LcdButtons lcdButtons(&lcdButtonSource);
+
+#else  // Headless: the shims are empty shells, so a board with no panel pays nothing for the UI.
+
+LcdMenu lcdMenu(nullptr, nullptr, 0);
+LcdButtons lcdButtons(nullptr);
+
 #endif
 
 // Driver enable lines. Only declared where the executor drives them: the RA/DEC writes

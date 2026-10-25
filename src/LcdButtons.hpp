@@ -1,9 +1,13 @@
-#ifndef LCDBUTTONS_HPP_
-#define LCDBUTTONS_HPP_
+#pragma once
 
-#include "inc/Globals.hpp"
+#include "../Configuration.hpp"
+#include "core/Button.hpp"
+#include "ports/IButtons.hpp"
 
-// LCD shield buttons
+// The screens' view of the keys.
+//
+// The panel is behind `ports::IButtons`, which already debounces; this enum is the vocabulary the
+// screen headers still use (`btnUP`, `btnSELECT`, …) and disappears with them (PLAN.md 8.8).
 enum lcdButton_t
 {
     btnRIGHT,
@@ -15,42 +19,30 @@ enum lcdButton_t
     btnINVALID,
 };
 
-// Forward declaration
-class LcdMenu;
-
 class LcdButtons
 {
   public:
-    LcdButtons(byte pin, LcdMenu *lcdMenu);
-    LcdButtons(LcdMenu *lcdMenu);
+    explicit LcdButtons(ports::IButtons *buttons);
 
-    lcdButton_t currentKey()
-    {
-        checkKey();
-        return _newKey;
-    }
+    // The key held now, once it has settled
+    lcdButton_t currentKey();
 
+    // The same key in the legacy spelling; kept because the screens call both
     lcdButton_t currentState()
     {
-        checkKey();
-        return _currentKey;
+        return currentKey();
     }
 
+    // Raw reading of the resistive ladder, for the key diagnostic screen
     int currentAnalogState();
 
+    // True once per press or release of the settled key
     bool keyChanged(lcdButton_t *pNewKey);
 
   private:
-    void checkKey();
+    static lcdButton_t toLcd(core::Button key);
 
-  private:
-    unsigned long _lastKeyChange;
-    byte _analogPin;
-    lcdButton_t _lastKey;
-    lcdButton_t _newKey;
-    lcdButton_t _lastNewKey;
-    lcdButton_t _currentKey;
-    LcdMenu *_lcdMenu;
+#if DISPLAY_TYPE > 0
+    ports::IButtons *_buttons;
+#endif
 };
-
-#endif  // LCDBUTTONS_HPP_
