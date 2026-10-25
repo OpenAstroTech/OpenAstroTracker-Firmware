@@ -178,7 +178,10 @@ OpenAstroTracker-Firmware/
 │   │   ├── DriverWiring.hpp/.cpp        # builds + programs the TMC2209 UART drivers (done)
 │   │   ├── SensorWiring.hpp/.cpp        # builds end switches and hall sensors (done)
 │   │   ├── StepPump.hpp/.cpp            # the ISR/task step-generation pump (done)
-│   │   ├── MountExecutor.hpp/.cpp       # axes + drivers + sensors + the ports the UI calls (was src/Mount.*)
+│   │   ├── MountExecutor.hpp/.cpp       # the motion executor + the ports the UI calls (was src/Mount.*)
+│   │   ├── AxisBank.hpp/.cpp            # owns the axes, drivers, sensors and their limits (done)
+│   │   ├── BoardPresence.hpp            # compile-time "which parts does this board have" (done)
+│   │   ├── MountReadout.hpp/.cpp        # the read model's formatting half (done)
 │   │   └── MountConfigBuilder.hpp       # Configuration*.hpp -> runtime MountConfig (done)
 │   │
 │   ├── adapters/                        # PORT -> HAL GLUE
