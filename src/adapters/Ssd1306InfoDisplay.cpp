@@ -48,12 +48,21 @@ namespace adapters
 {
 
 Ssd1306InfoDisplay::Ssd1306InfoDisplay(hal::IOledPanel &panel, ports::IClock &clock)
-    : _panel(panel), _clock(clock), _consoleMode(true), _curLine(0), _commLetter(' '), _lastNumCmds(0)
+    : _panel(panel), _clock(clock), _consoleMode(true), _commLetter(' '), _lastNumCmds(0)
 {
-    for (int i = 0; i < kMaxConsoleLines; i++)
-    {
-        _textList[i] = "";
-    }
+}
+
+core::InfoDisplayScale Ssd1306InfoDisplay::scale() const
+{
+    #if defined(OAM) || defined(OAE)
+    constexpr float bottomDec = -180.0f;
+    constexpr float rangeDec  = 360.0f;
+    #else
+    constexpr float bottomDec = -90.0f;
+    constexpr float rangeDec  = 270.0f;
+    #endif
+    // 69/41/51 and 14/43/115 are the panel's pixel layout: RA scale, DEC scale and their lines.
+    return {69, 41, 51, 14, 43, 115, -6.0f, 6.0f, bottomDec, rangeDec};
 }
 
 bool Ssd1306InfoDisplay::begin()
@@ -92,32 +101,14 @@ void Ssd1306InfoDisplay::render(const ports::InfoDisplayState &state)
 
 int Ssd1306InfoDisplay::addConsoleText(const String &text)
 {
-    int line;
-    if (_curLine > kMaxConsoleLines - 1)
-    {
-        for (int i = 0; i < kMaxConsoleLines - 1; i++)
-        {
-            _textList[i] = _textList[i + 1];
-        }
-        _curLine = kMaxConsoleLines - 1;
-        line     = _curLine;
-    }
-    else
-    {
-        line = _curLine++;
-    }
-
-    _textList[line] = text;
+    const int line = _console.add(text.c_str());
     renderConsole();
     return line;
 }
 
 void Ssd1306InfoDisplay::updateConsoleText(int line, const String &text)
 {
-    if (line >= 0 && line < kMaxConsoleLines)
-    {
-        _textList[line] = text;
-    }
+    _console.update(line, text.c_str());
     renderConsole();
 }
 
@@ -138,11 +129,11 @@ void Ssd1306InfoDisplay::drawHeader()
 
     _panel.setFont(hal::OledFont::Bitmap5x7);
     #ifdef OAE
-    _panel.drawString(32, 6, F("OpenAstroExplorer"));
+    _panel.drawString(32, 6, "OpenAstroExplorer");
     #elif defined(OAM)
-    _panel.drawString(32, 6, F("OpenAstroMount"));
+    _panel.drawString(32, 6, "OpenAstroMount");
     #else
-    _panel.drawString(32, 6, F("OpenAstroTracker"));
+    _panel.drawString(32, 6, "OpenAstroTracker");
     #endif
 }
 
@@ -150,15 +141,14 @@ void Ssd1306InfoDisplay::drawConsole()
 {
     int y = 21;
     _panel.setFont(hal::OledFont::Bitmap3x5);
-    const int indexStart = max(0, _curLine - kConsoleVisibleLines);
-    const int indexEnd   = min(indexStart + kConsoleVisibleLines, kMaxConsoleLines);
-    for (int i = indexStart; i < indexEnd; i++)
+    const int first = _console.firstVisible();
+    const int count = _console.visibleCount();
+    for (int i = first; i < first + count; i++)
     {
-        if (_textList[i].length() != 0)
+        const char *text = _console.line(i);
+        if (text[0] != '\0')
         {
-            String text = _textList[i];
-            text.toUpperCase();
-            _panel.drawString(0, y, text.c_str());
+            _panel.drawString(0, y, text);
         }
         y += 7;
     }
@@ -192,20 +182,20 @@ void Ssd1306InfoDisplay::drawIndicators(const ports::InfoDisplayState &state)
         const int index     = timeSecs % 5;         // Cycle through the data readouts
 
         _panel.setFont(hal::OledFont::CommSymbols);
-        _panel.drawString(11, 59, F("L"));  // Memory chip icon
+        _panel.drawString(11, 59, "L");  // Memory chip icon
         _panel.setFont(hal::OledFont::Bitmap3x5);
         const long availMem = freeMemory();
         if (availMem > 999999)
         {
-            _panel.drawString(20, 59, String(availMem / 1024 / 1024, 1) + "M");
+            _panel.drawString(20, 59, (String(availMem / 1024 / 1024, 1) + "M").c_str());
         }
         else if (availMem > 9999)
         {
-            _panel.drawString(20, 59, String(availMem / 1024) + "K");
+            _panel.drawString(20, 59, (String(availMem / 1024) + "K").c_str());
         }
         else
         {
-            _panel.drawString(20, 59, String(availMem));
+            _panel.drawString(20, 59, String(availMem).c_str());
         }
 
         switch (index)
@@ -213,12 +203,12 @@ void Ssd1306InfoDisplay::drawIndicators(const ports::InfoDisplayState &state)
             case 0:
                 {
                     core::DayTime dt(state.hoursToLimit);
-                    drawTime(F("REM "), dt);
+                    drawTime("REM ", dt);
                 }
                 break;
             case 1:
                 {
-                    drawTime(F("LST "), state.lst);
+                    drawTime("LST ", state.lst);
                 }
                 break;
             case 2:
@@ -228,14 +218,14 @@ void Ssd1306InfoDisplay::drawIndicators(const ports::InfoDisplayState &state)
                     int days      = (int) (now / msPerDay);
                     now -= days * msPerDay;
                     core::DayTime elapsed(1.0 * now / (1000.0 * 3600.0));
-                    drawTime(F("UPT "), elapsed);
+                    drawTime("UPT ", elapsed);
                 }
                 break;
             case 3:
                 {
                     // Bitmap3x5 has no lowercase glyphs; uppercase so release-please's
                     // "v" version prefix renders as V instead of an out-of-range glyph.
-                    String fw = String(F(" FW ")) + String(VERSION);
+                    String fw = String(" FW ") + String(VERSION);
                     fw.toUpperCase();
                     _panel.drawString(55, 59, fw.c_str());
                 }
@@ -263,8 +253,8 @@ void Ssd1306InfoDisplay::drawProgressBar(int percRA, int percDEC)
 {
     _panel.setColor(hal::OledColor::White);
     _panel.drawVerticalLine(127, 60, 4);
-    _panel.fillRect(0, 60, (int) round(1.28f * percRA), 2);
-    _panel.fillRect(0, 62, (int) round(1.28f * percDEC), 2);
+    _panel.fillRect(0, 60, core::progressBarWidth(percRA), 2);
+    _panel.fillRect(0, 62, core::progressBarWidth(percDEC), 2);
 }
 
 void Ssd1306InfoDisplay::drawStepperState(const char *name, bool active, int xoff, int width, int textOffX)
@@ -286,16 +276,16 @@ void Ssd1306InfoDisplay::drawStepperState(const char *name, bool active, int xof
 void Ssd1306InfoDisplay::drawStepperStates(const ports::InfoDisplayState &state)
 {
     _panel.setFont(hal::OledFont::Bitmap5x7);
-    drawStepperState(F("RA"), state.raRunning, 0, 15);
-    drawStepperState(F("DEC"), state.decRunning, 16, 21);
+    drawStepperState("RA", state.raRunning, 0, 15);
+    drawStepperState("DEC", state.decRunning, 16, 21);
     #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    drawStepperState(F("ALT"), state.altRunning, 38, 21);
+    drawStepperState("ALT", state.altRunning, 38, 21);
     #endif
     #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    drawStepperState(F("AZ"), state.azRunning, 60, 16);
+    drawStepperState("AZ", state.azRunning, 60, 16);
     #endif
-    drawStepperState(F("GDE"), state.guiding, 83, 21);
-    drawStepperState(F("TRK"), state.trkRunning, 105, 23, 1);
+    drawStepperState("GDE", state.guiding, 83, 21);
+    drawStepperState("TRK", state.trkRunning, 105, 23, 1);
 }
 
 void Ssd1306InfoDisplay::drawCommunicationStatus(const ports::InfoDisplayState &state)
@@ -372,83 +362,78 @@ void Ssd1306InfoDisplay::drawCoordinates(const ports::InfoDisplayState &state)
     drawCoordinate(0, 42, state.decText);
 }
 
-int Ssd1306InfoDisplay::xRAPixel(float ra)
+int Ssd1306InfoDisplay::xRAPixel(float ra) const
 {
-    const float rangeRA = kRightRa - kLeftRa;
-    const int x         = 4 + (int) round(1.0f * (kRaSize - 9) * ((ra - kLeftRa) / rangeRA));
-    return (kLeftEdgeMount + x);
+    return core::xRAPixel(scale(), ra);
 }
 
-int Ssd1306InfoDisplay::yDECPixel(float dec)
+int Ssd1306InfoDisplay::yDECPixel(float dec) const
 {
-    const int y = (int) round(1.0f * (kDecSize) * ((dec - kBottomDec) / kRangeDec));
-    return (kTopEdgeMount + kDecSize - y);
+    return core::yDECPixel(scale(), dec);
 }
 
 void Ssd1306InfoDisplay::drawMountPosition(const ports::InfoDisplayState &state)
 {
+    const core::InfoDisplayScale g = scale();
     _panel.setColor(hal::OledColor::White);
     _panel.setFont(hal::OledFont::Bitmap3x5);
 
     // DEC tick marks
-    for (int p = kTopEdgeMount; p <= kTopEdgeMount + kDecSize; p += 2)
+    for (int p = g.topEdgeMount; p <= g.topEdgeMount + g.decSize; p += 2)
     {
-        _panel.setPixel(kDecScalePos, p);
+        _panel.setPixel(g.decScalePos, p);
     }
     #if defined(OAM) || defined(OAE)
-    _panel.drawHorizontalLine(kDecScalePos - 1, yDECPixel(-180.0), 2);
+    _panel.drawHorizontalLine(g.decScalePos - 1, yDECPixel(-180.0), 2);
     #endif
-    _panel.drawHorizontalLine(kDecScalePos - 1, yDECPixel(-90.0), 2);
-    _panel.drawHorizontalLine(kDecScalePos - 1, yDECPixel(0.0), 2);
-    _panel.drawHorizontalLine(kDecScalePos - 1, yDECPixel(90.0), 2);
-    _panel.drawHorizontalLine(kDecScalePos - 1, yDECPixel(180.0), 2);
+    _panel.drawHorizontalLine(g.decScalePos - 1, yDECPixel(-90.0), 2);
+    _panel.drawHorizontalLine(g.decScalePos - 1, yDECPixel(0.0), 2);
+    _panel.drawHorizontalLine(g.decScalePos - 1, yDECPixel(90.0), 2);
+    _panel.drawHorizontalLine(g.decScalePos - 1, yDECPixel(180.0), 2);
 
     // DEC tick labels
     #if defined(OAM) || defined(OAE)
-    _panel.drawString(kDecScalePos + 6, yDECPixel(-180.0f) - 2, F("180"));
-    _panel.drawHorizontalLine(kDecScalePos + 3, yDECPixel(-180.0), 2);  // Smaller minus sign
+    _panel.drawString(g.decScalePos + 6, yDECPixel(-180.0f) - 2, "180");
+    _panel.drawHorizontalLine(g.decScalePos + 3, yDECPixel(-180.0), 2);  // Smaller minus sign
     #endif
-    _panel.drawString(kDecScalePos + 6, yDECPixel(-90.0f) - 2, F("90"));
-    _panel.drawHorizontalLine(kDecScalePos + 3, yDECPixel(-90.0), 2);  // Smaller minus sign
-    _panel.drawString(kDecScalePos + 3, yDECPixel(0.0f) - 2, "0");
-    _panel.drawString(kDecScalePos + 3, yDECPixel(90.0f) - 2, F("90"));
-    _panel.drawString(kDecScalePos + 3, yDECPixel(180.0f) - 2, F("180"));
+    _panel.drawString(g.decScalePos + 6, yDECPixel(-90.0f) - 2, "90");
+    _panel.drawHorizontalLine(g.decScalePos + 3, yDECPixel(-90.0), 2);  // Smaller minus sign
+    _panel.drawString(g.decScalePos + 3, yDECPixel(0.0f) - 2, "0");
+    _panel.drawString(g.decScalePos + 3, yDECPixel(90.0f) - 2, "90");
+    _panel.drawString(g.decScalePos + 3, yDECPixel(180.0f) - 2, "180");
 
     // DEC position marker
-    const float decDegrees = state.decSteps / state.decStepsPerDegree;
-    const int yMark        = yDECPixel(decDegrees);
-    _panel.setPixel(kDecScalePos - 2, yMark);
-    _panel.drawVerticalLine(kDecScalePos - 3, yMark - 1, 3);
-    _panel.drawVerticalLine(kDecScalePos - 4, yMark - 2, 5);
+    const int yMark = yDECPixel(core::markerDecDegrees(state.decSteps, state.decStepsPerDegree));
+    _panel.setPixel(g.decScalePos - 2, yMark);
+    _panel.drawVerticalLine(g.decScalePos - 3, yMark - 1, 3);
+    _panel.drawVerticalLine(g.decScalePos - 4, yMark - 2, 5);
 
     // RA tick marks
-    for (int p = kLeftEdgeMount; p <= kLeftEdgeMount + kRaSize; p += 2)
+    for (int p = g.leftEdgeMount; p <= g.leftEdgeMount + g.raSize; p += 2)
     {
-        _panel.setPixel(p, kRaScalePos);
+        _panel.setPixel(p, g.raScalePos);
     }
-    _panel.drawVerticalLine(xRAPixel(-6.0f), kRaScalePos - 1, 2);
-    _panel.drawVerticalLine(xRAPixel(-3.0f), kRaScalePos - 1, 2);
-    _panel.drawVerticalLine(xRAPixel(0.0f), kRaScalePos - 1, 2);
-    _panel.drawVerticalLine(xRAPixel(3.0f), kRaScalePos - 1, 2);
-    _panel.drawVerticalLine(xRAPixel(6.0f), kRaScalePos - 1, 2);
+    _panel.drawVerticalLine(xRAPixel(-6.0f), g.raScalePos - 1, 2);
+    _panel.drawVerticalLine(xRAPixel(-3.0f), g.raScalePos - 1, 2);
+    _panel.drawVerticalLine(xRAPixel(0.0f), g.raScalePos - 1, 2);
+    _panel.drawVerticalLine(xRAPixel(3.0f), g.raScalePos - 1, 2);
+    _panel.drawVerticalLine(xRAPixel(6.0f), g.raScalePos - 1, 2);
 
     // RA tick labels
-    _panel.drawString(xRAPixel(-6.0f) - 1, kRaScalePos + 2, "6");
-    _panel.drawHorizontalLine(xRAPixel(-6.0f) - 4, kRaScalePos + 2 + 2, 2);  // Smaller minus sign
-    _panel.drawString(xRAPixel(-3.0f) - 1, kRaScalePos + 2, "3");
-    _panel.drawHorizontalLine(xRAPixel(-3.0f) - 4, kRaScalePos + 2 + 2, 2);  // Smaller minus sign
-    _panel.drawString(xRAPixel(0.0f) - 1, kRaScalePos + 2, "0");
-    _panel.drawString(xRAPixel(3.0f) - 1, kRaScalePos + 2, "3");
-    _panel.drawString(xRAPixel(6.0f) - 1, kRaScalePos + 2, "6");
-
-    const float trkSteps = 1.0f * state.trkSteps / (1.0f * RA_TRACKING_MICROSTEPPING / RA_SLEW_MICROSTEPPING);
-    const float raHours  = (trkSteps + state.raSteps) / state.raStepsPerDegree / 15.0f;
+    _panel.drawString(xRAPixel(-6.0f) - 1, g.raScalePos + 2, "6");
+    _panel.drawHorizontalLine(xRAPixel(-6.0f) - 4, g.raScalePos + 2 + 2, 2);  // Smaller minus sign
+    _panel.drawString(xRAPixel(-3.0f) - 1, g.raScalePos + 2, "3");
+    _panel.drawHorizontalLine(xRAPixel(-3.0f) - 4, g.raScalePos + 2 + 2, 2);  // Smaller minus sign
+    _panel.drawString(xRAPixel(0.0f) - 1, g.raScalePos + 2, "0");
+    _panel.drawString(xRAPixel(3.0f) - 1, g.raScalePos + 2, "3");
+    _panel.drawString(xRAPixel(6.0f) - 1, g.raScalePos + 2, "6");
 
     // RA position marker
-    const int xMark = xRAPixel(raHours);
-    _panel.setPixel(xMark, kRaScalePos - 2);
-    _panel.drawHorizontalLine(xMark - 1, kRaScalePos - 3, 3);
-    _panel.drawHorizontalLine(xMark - 2, kRaScalePos - 4, 5);
+    const int xMark = xRAPixel(
+        core::markerRaHours(state.trkSteps, state.raSteps, state.raStepsPerDegree, RA_TRACKING_MICROSTEPPING, RA_SLEW_MICROSTEPPING));
+    _panel.setPixel(xMark, g.raScalePos - 2);
+    _panel.drawHorizontalLine(xMark - 1, g.raScalePos - 3, 3);
+    _panel.drawHorizontalLine(xMark - 2, g.raScalePos - 4, 5);
 }
 
 void Ssd1306InfoDisplay::drawStatus(const ports::InfoDisplayState &state)

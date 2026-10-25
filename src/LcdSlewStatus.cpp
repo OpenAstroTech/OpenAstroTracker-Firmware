@@ -1,6 +1,7 @@
 #include "LcdSlewStatus.hpp"
 
 #include "Configuration.hpp"
+#include "Utility.hpp"
 #include "hal/WarningGuard.hpp"
 
 PUSH_NO_WARNINGS

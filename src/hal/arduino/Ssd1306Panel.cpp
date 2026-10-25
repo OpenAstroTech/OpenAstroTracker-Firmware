@@ -20,7 +20,7 @@ const uint8_t *fontTable(OledFont font)
         case OledFont::CommSymbols:
             return CommSymbols;
         case OledFont::OatLogo:
-            return OatLogo;
+            return OATLogo;
         case OledFont::Bitmap3x5:
         default:
             return Bitmap3x5;

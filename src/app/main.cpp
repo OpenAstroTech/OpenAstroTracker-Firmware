@@ -8,13 +8,13 @@
 #include "MountExecutor.hpp"
 
 #include "BoardWiring.hpp"
+
+#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+    #include "../adapters/Ssd1306InfoDisplay.hpp"
+#endif
 #include "DriverWiring.hpp"
 #include "MotorWiring.hpp"
 #include "SensorWiring.hpp"
-
-#if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
-    #include "../SSD1306_128x64_Display.hpp"
-#endif
 
 #include "../a_inits.hpp"
 #if defined(OAT_DEBUG_BUILD)
