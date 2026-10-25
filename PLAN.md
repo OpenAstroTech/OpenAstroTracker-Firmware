@@ -810,9 +810,16 @@ format, the two sensor helpers and the utility grab-bag.*
   reports the display's default brightness rather than zero.
 - ✅ **8.7a** `src/Sidereal.*` and `src/RightAscension.*` deleted: both had no callers — the sidereal
   math is `core::SiderealClock`, and the RA type in use is `core::RightAscension`.
-- **Remaining:** 8.7 (type overlays, `Types.hpp`, `inc/Globals`), 8.8 (the screens → `app/ui/`),
-  8.9 (test console), 8.10 (`Utility` and the empty root). The root is down from 47 files to 37,
-  and everything left in it is the UI block those three slices move.
+- 🟡 **8.8a — `app/ui/` is open and the GO screen is converted.** `src/app/ui/` is compiled by
+  `[env:native]`, `test_ui` is in `test_filter`, and `app/ui/screens/HomeMenu` is a class taking
+  `core::Button` + `ports::IMountMotion` + `ports::IDisplay` explicitly — no `lcdMenu`, no
+  `lcdButtons`, no `String`, no `millis()`. 9 tests drive it with a `FakeDisplay` and a recording
+  motion port, including the exact 16-character rows. The menu ids moved to
+  `app/ui/MenuIds.hpp`, `toCoreButton()` bridges the legacy key enum, `menuDisplayPort` exposes the
+  display, and `c725_menuHOME.hpp` is deleted. Established pattern for the remaining ten screens.
+- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the other
+  ten screens), 8.9 (test console), 8.10 (`Utility` and the empty root). The root is down from 47
+  files to 32, and everything left in it is the UI block those slices move.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
@@ -838,7 +845,7 @@ None of this is a design question any more. Every surface the UI needs exists: `
 | 8.5a ✅ / 8.5b | **Settings format** | `EPROMStore` | `adapters/EepromSettingsFormat` + its first tests | ~1,000 | low — mechanical, and finally host-testable |
 | 8.6 ✅ | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
 | 8.7a ✅ / 8.7b | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
-| 8.8 | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
+| 8.8a ✅ / 8.8b | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
 | 8.9 | **Factory test console** | `testmenu.*`, `testmenudef.hpp` | `app/test/TestConsole` | ~860 | low — build-flag gated |
 | 8.10 | **Utilities, and the empty root** | `Utility.*`, `macros/` usage | `core/MathUtil.hpp`, `adapters/SerialLogger`, `hal/arduino/` | ~650 | low |
 
