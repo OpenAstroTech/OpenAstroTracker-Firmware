@@ -183,7 +183,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── MountExecutorGuide.cpp       # guide pulses + drift alignment
 │   │   ├── MountExecutorHoming.cpp      # homing, end switches
 │   │   ├── MountExecutorOptionalAxes.cpp# AZ/ALT + focus
-│   │   ├── MountExecutorConfig.cpp      # EEPROM, hemisphere, calibration, limits
+│   │   ├── MountExecutorConfig.cpp      # EEPROM load/migrate, hemisphere
 │   │   ├── MountExecutorTick.cpp        # loop, delay
 │   │   ├── MountExecutorWiring.cpp      # attach*, driver UART self-test
 │   │   ├── AxisBank.hpp/.cpp            # owns the axes, drivers, sensors and their limits (done)
