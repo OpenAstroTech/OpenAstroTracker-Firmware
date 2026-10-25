@@ -142,8 +142,11 @@ What is left is UI, and it is listed with its exit in
 hardware helpers (`Gyro`, `HallSensorHoming`, `EndSwitches`) whose ports exist but have no adapter,
 and the four composition-root/loop files that should move to `src/app/`. None of them is a design
 question any more; each is a bounded piece of work. **Phase 7 (below) is the plan that finishes this
-list and deletes the legacy root.** Hardware verification is a single pass after the refactor, run
-from [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md); it does not gate individual steps.
+list and deletes the legacy root's non-UI half; Phase 8 then finishes the UI half — the menu
+framework, the eleven screens, both displays, the settings format and the last two sensor helpers —
+and leaves nothing but directories at the top of `src/`.** Hardware verification is a single pass
+after the refactor, run from [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md); it does not gate individual
+steps.
 
 ---
 
@@ -751,6 +754,173 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 
 ---
 
+### Phase 8 — Empty the `src/` root: the UI, the displays and the last peripherals
+
+*Status: **in progress** — 8.1, 8.2, 8.3 and 8.4a have landed; 8.4b and 8.5–8.10 remain. Phase 7
+dissolved the facade, so no UI, adapter or peripheral file holds a `Mount` pointer any more. What is
+still at the top of `src/` is the eleven menu screens, the type overlays they speak, the settings
+format, the two sensor helpers and the utility grab-bag.*
+
+**Landed so far:**
+
+- ✅ **8.1** `core/menu/MenuModel` + `core/menu/MenuLine` (19 host tests). `LcdMenu` keeps only the
+  item table and selection; the caller owns the table, so the two `new`s in the UI path are gone.
+  `mksgenlv21` 6741 → 6744 B RAM, no flash change; −66 B of heap.
+- ✅ **8.2 + 8.3** `hal::ICharLcd` (rewritten around a shared `CharSymbol` list) with
+  `CharLcd`/`I2cCharLcd`/`U8x8CharLcd` backends, `adapters::LcdMenuDisplay` as the one
+  `ports::IDisplay`, `hal::IButtonMatrix` backends for all three keypads, `core::ButtonDebounce`,
+  the new `ports::IButtons` and `adapters::DebouncedButtons`. `LcdMenu`/`LcdButtons` are shims over
+  the ports; one `#if DISPLAY_TYPE` chooses the family in `app/BoardWiring.cpp`. Panel backends
+  compile out entirely on a headless board: `mksgenlv21` 6741 → 6742 B RAM, +62 B flash.
+  21 new host tests, and the 24-combination `esp32` matrix (every display variant) is green.
+- ✅ **8.4a** `hal::Ssd1306Panel` is the only place `SSD1306Wire` is named (font tables moved to
+  `hal/arduino/OledFonts.hpp`) and `adapters::Ssd1306InfoDisplay implements ports::IInfoDisplay`,
+  drawing from the `InfoDisplayState` snapshot and keeping the boot console. `InfoDisplayRender` and
+  `SSD1306_128x64_Display` are deleted; `InfoDisplayPanel` takes the port, so the refresh policy
+  knows nothing about a renderer. The drawing moved verbatim — the frame is unchanged.
+- **8.4b (next):** the pixel arithmetic (`xRAPixel`/`yDECPixel`, markers, progress) and the console
+  ring still live in the adapter; they move to `core/InfoDisplayLayout` + `core/ConsoleLog` with the
+  frozen-pixel tests, at which point the adapter is only a translator to `hal::IOledPanel`.
+
+**Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
+
+- **47 files, 10,497 lines** directly in `src/`; 1,890 of them are the OLED font tables ([`src/fonts128x64.h`](src/fonts128x64.h)).
+- **Menu framework:** [`src/LcdMenu.cpp`](src/LcdMenu.cpp) (500 lines, **19** `#if`, 10 `String`) + [`src/LcdMenu.hpp`](src/LcdMenu.hpp) (158 lines, **11** `#if`). It holds `LiquidCrystal`, `LiquidTWI2` or `U8X8_SSD1306` **by value** behind those `#if`s, and it is the last **heap allocation in the UI path**: `new MenuItem *[_maxItems]` plus one `new MenuItem(...)` per item, never freed.
+- **Buttons:** [`src/LcdButtons.cpp`](src/LcdButtons.cpp) (155 lines, 7 `#if`) — three different decoders (resistive ladder thresholds, joystick deadband on three ADC pins, MCP23008/17 bitmask) and the 5 ms commit rule, all inline in one method.
+- **Screens:** 2,772 lines across eleven headers ([`c65_startup.hpp`](src/c65_startup.hpp) … [`c78_menuINFO.hpp`](src/c78_menuINFO.hpp)) plus [`c_buttons.hpp`](src/c_buttons.hpp) (293) — 3,065 in total — all free functions in headers included into one translation unit, with **67** compile-time branches across the screens (18 more in the loop) (`c76_menuCAL.hpp` alone has 35 in 1,195 lines). They are the only remaining consumers of `lcdButton_t`, `lcdMenu.*`, `inc/Globals.hpp` and the `LOG()` macro.
+- **Status panel:** [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp) (427 lines, 32 `String`) + [`src/InfoDisplayRender.hpp`](src/InfoDisplayRender.hpp) (140 lines, a 16-entry `String` console ring) + the font tables. The frame already arrives as a `ports::InfoDisplayState` POD — the renderer just has no port to implement.
+- **Settings:** [`src/EPROMStore.cpp`](src/EPROMStore.cpp) (882 lines, 5 `String`) — the persisted *format*, over an injected `ports::IPersistentStore`, with **no host test**.
+- **Peripherals:** [`src/EndSwitches.cpp`](src/EndSwitches.cpp) (172 lines) and [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp) (225 lines, 8 `String`) — both already take ports, both still in the root.
+- **Support:** [`src/Utility.cpp`](src/Utility.cpp) (439) + [`.hpp`](src/Utility.hpp) (209), [`src/Types.hpp`](src/Types.hpp), the six type overlays, [`src/a_inits.hpp`](src/a_inits.hpp), [`src/inc/Globals.hpp`](src/inc/Globals.hpp), [`src/testmenu.cpp`](src/testmenu.cpp) (672, 31 `String`).
+
+None of this is a design question any more. Every surface the UI needs exists: `ports::IDisplay`, `ports::IInfoDisplay`, `hal::ICharLcd`, `hal::IOledPanel`, `hal::IButtonMatrix`, and the seven pointers in [`app::UiPorts`](src/app/UiPorts.hpp). What is missing is (a) implementations of those ports, (b) a home for the screens outside `src/`, and (c) the type/utility cleanup that stops the UI speaking `String`, `millis()` and file-static buffers. **Exit criterion: `src/` contains only directories** (`core/ ports/ adapters/ hal/ app/ macros/ libs/`), and no file above `hal/` names a display or button library.
+
+#### Slices, in dependency order
+
+| # | Slice | Source | Target | Lines out | Risk |
+|---|---|---|---|---|---|
+| 8.1 ✅ | **Menu model + line composer** | `LcdMenu`'s item list, navigation, `updateDisplay` | `core/menu/MenuModel`, `core/menu/MenuLine` | ~200 | low — pure, byte-compared |
+| 8.2 ✅ | **Display port implementations** | `LcdMenu`'s three panel branches | `hal/arduino/{CharLcd,I2cCharLcd,U8x8CharLcd}` + `adapters/{LcdMenuDisplay,NullDisplay}` | ~300 | medium — three panel families, one per board |
+| 8.3 ✅ | **Button port** | `LcdButtons`' three decoders | `core/ButtonDebounce` + `hal/*/…Buttons` + `adapters/DebouncedButtons` | ~155 | medium — the 5 ms rule is only observable on-device |
+| 8.4a ✅ / 8.4b | **Status panel** (closes 7.3.1) | `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | `core/InfoDisplayLayout`, `core/ConsoleLog`, `adapters/Ssd1306InfoDisplay` | ~680 | medium — frozen pixels |
+| 8.5 | **Settings format** | `EPROMStore` | `adapters/EepromSettingsFormat` + its first tests | ~1,000 | low — mechanical, and finally host-testable |
+| 8.6 | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
+| 8.7 | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
+| 8.8 | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
+| 8.9 | **Factory test console** | `testmenu.*`, `testmenudef.hpp` | `app/test/TestConsole` | ~860 | low — build-flag gated |
+| 8.10 | **Utilities, and the empty root** | `Utility.*`, `macros/` usage | `core/MathUtil.hpp`, `adapters/SerialLogger`, `hal/arduino/` | ~650 | low |
+
+Dependency shape: 8.8 needs 8.1–8.3 and 8.7 (it renders through `ports::IDisplay`, reads `ports::IButtons`, and speaks the `core::` value types); 8.9 sits on 8.8's host loop; 8.10 is last because it deletes the `LOG()` macro every other slice removes a call site of. 8.1–8.7 are mutually independent and can land in any order — the order above is simply the one that keeps each commit small.
+
+#### 8.1 `core/menu/` — the menu model and its line composer
+
+The menu's *decisions* are: which item is active, what the next one is, which slice of the item list fits on screen, and where the selector arrows go. The panel is the only thing that needs to know what a `>` looks like in its own glyph set.
+
+1. `src/core/menu/MenuModel.hpp/.cpp` — a **fixed-capacity** item table (`MenuItem { const char *display; uint8_t id; }`, capacity supplied by the caller, `MAXMENUITEMS` is 11 today) with `add`, `findById`, `active`, `setActive`, `next`, `indexOf`, `longestDisplay`. That deletes both heap allocations — the UI path then allocates nothing, which matters more on AVR than anywhere else in the tree.
+2. `src/core/menu/MenuLine.hpp/.cpp` — `compose(char *out, size_t capacity, const MenuModel &, uint8_t columns)`: the visible window, the `<`/`>` markers and the pad-to-columns rule, moved verbatim from `LcdMenu::updateDisplay`. `_lastDisplay[2]` diffing stays in the adapter — it is a redraw optimisation, not a decision.
+3. `unit_tests/test_core/menu/test_menu_model.cpp` + `test_menu_line.cpp` — wrap-around, single item, more items than columns, the longest item, markers at both edges, and the exact 16-character row for the shipped 11-item menu.
+
+**Freeze:** the composed rows are byte-compared against today's `updateDisplay` output; `HARDWARE_TESTS.md` §11 stays the on-device confirmation.
+
+#### 8.2 `ports::IDisplay` gets its implementations, and the panels become HAL
+
+1. **HAL backends — all three are `hal::ICharLcd`, which is the useful finding here:** every menu panel the firmware supports is a *character grid* (16×2 on the LCDs, 16×2 of 7×14 font cells on the 128×32 OLED), so one HAL contract covers all of them and `ports::IDisplay` stays the text grid it already is.
+   - `hal/arduino/CharLcd` — over `LiquidCrystal`.
+   - `hal/arduino/I2cCharLcd` — over `LiquidTWI2`, including the MCP23008/17 type select. The expander's own `readButtons()` is reached from the button backend in 8.3, which takes the same `LiquidTWI2` — that is why the button path and the display path must be built from one object.
+   - `hal/arduino/U8x8CharLcd` — over `U8X8_SSD1306_128X32_UNIVISION_HW_I2C` with `u8x8_font_7x14_1x2_f` (one character = two 8-pixel rows), where `backlight(level)` maps to `setContrast`.
+2. **Adapter:** **one** `adapters::LcdMenuDisplay` implements `ports::IDisplay` over any `hal::ICharLcd`, plus `adapters::NullDisplay` as the `DISPLAY_TYPE_NONE` answer so the screens need no `#if`. The eight 5×8 glyph bitmaps, the `°`/`'` substitutions, the `analogWrite` backlight and the "bad LCD" transistor test move into it — they are panel capabilities, not decisions — and a capability flag (from the backend and the board config) says whether custom glyphs exist, which is what the 128×32 OLED lacks.
+3. **Port shape:** `ports::IDisplay` gains `writeCell(uint8_t row, uint8_t column, char glyph)`. Whole-line `writeLine` plus one cell covers every write the UI does (`printAt(15, 0, …)` is the tracking marker) without dragging a cursor API — and therefore `setCursor`/`printMenu` ordering state — across the port.
+4. **One `#if` remains, in the composition root.** `app/BoardWiring.cpp` selects the backend from `DISPLAY_TYPE`, exactly as Phase 4 kept the driver selection there: the panel is a board fact that no board discovers at runtime, and linking all three driver libraries to make it a runtime choice would cost flash the AVR part does not have. Nothing below `app/` sees `DISPLAY_TYPE`.
+5. `LcdMenu` becomes a shim delegating to `core::MenuModel` + `ports::IDisplay` for this step, so 8.1/8.2 land green while the screens still call `lcdMenu.*`; it is deleted in 8.8 with them.
+
+**Cost:** net **flash-negative** on AVR (the glyph tables and the menu logic leave the class), and RAM-neutral; the figure goes in the commit message as usual.
+
+#### 8.3 `ports::IButtons` and the three decoders
+
+1. **Decode moves down.** The three paths in `LcdButtons::checkKey()` become `hal/arduino/AnalogKeyPad` (resistive ladder: the 50/240/400/600/920 thresholds), `hal/esp32/JoystickButtons` (three ADC pins, midscale 2048, deadband 500, active-low push), and `hal/arduino/I2cExpanderButtons` (the MCP `BUTTON_*` bitmask) — each implementing the existing `hal::IButtonMatrix`, which was written for exactly this split ("debouncing and repeat handling stay above this layer").
+2. **Debounce moves to `core::ButtonDebounce`** — the 5 ms commit as a pure state machine over `(raw, now)`, including the rollover-safe subtraction that the current `millis() - _lastKeyChange > 5` gets right and a naive `_lastKeyChange + 5 < now` would not. Tests: bounce shorter than 5 ms, hold, release, and a `now` that has wrapped past `0xFFFFFFFF`.
+3. **New port `ports::IButtons`** — `hal::Button pressed()` plus `bool keyChanged(hal::Button *out)`; `adapters::DebouncedButtons` composes a `hal::IButtonMatrix`, the core state machine and `ports::IClock`. `app::UiPorts` gains `ports::IButtons *buttons`, and `hal::Button` replaces `lcdButton_t` (`btnUP` → `hal::Button::Up`).
+4. `LcdButtons` becomes a shim for this step, deleted in 8.8.
+
+**Freeze:** the key-diagnostic screen (`LCD_BUTTON_TEST`) prints the raw ADC value and the decoded key; that output is the bench check, and `HARDWARE_TESTS.md` gains it if it is not there.
+
+#### 8.4 The status panel, and the end of `InfoDisplayRender`
+
+The frame is already a `ports::InfoDisplayState` that `app::MountReadout` fills; `adapters::InfoDisplayPanel` already owns the refresh policy and ticks from the main loop. What is missing is the drawing half.
+
+1. `hal/arduino/Ssd1306Panel` implements `hal::IOledPanel` over `SSD1306Wire` (128×64) — a different chip and library from the 128×32 menu panel in 8.2 — and it is **the one place that keeps the ESP32 `pgm_read_byte` workaround** (`#undef`/redefine, because that macro expands in our code and `-Wuseless-cast` cannot be pushed around it). `fonts128x64.h` moves beside it as `hal/arduino/OledFonts.hpp`.
+2. `src/core/InfoDisplayLayout.hpp/.cpp` — the arithmetic: `xRAPixel(ra)` / `yDECPixel(dec)` (including the OAM/OAE `−180…180` versus `−90…180` DEC range split), the mount-position marker rectangle, the sine-table marker, the progress percentage → bar segments, and the safe-time formatting hook. Pure, host-tested with frozen pixel expectations — these numbers have never had a test and are the part most likely to be broken by a careless edit.
+3. `src/core/ConsoleLog.hpp/.cpp` — the boot console: a 16-line ring of fixed `char[16][COLUMNS]`, uppercased on draw, six-line window. Replaces `String _textList[MAX_CONSOLE_LINES]`, which is 16 heap `String`s that only ever hold `F()` literals.
+4. `adapters::Ssd1306InfoDisplay` implements `ports::IInfoDisplay`: `begin()` initialises the `hal::IOledPanel` (with the `INFO_DISPLAY_UPSIDE_DOWN`/`MIRRORED` flips), `render(state)` draws header, scale, status rectangles, coordinates, progress bar and console from the snapshot plus `core::InfoDisplayLayout`.
+5. `adapters::InfoDisplayPanel` takes `ports::IInfoDisplay &` instead of `InfoDisplayRender &`. `addConsoleText`/`updateConsoleText` become methods on `Ssd1306InfoDisplay` taking `const char *` (they take `String` today), so `app/main.cpp`'s eleven boot lines pass `F(...)` directly and allocate nothing.
+
+Deletes `src/InfoDisplayRender.hpp` and `src/SSD1306_128x64_Display.{hpp,cpp}`, and closes **Phase 7 step 3.1**.
+
+**Freeze:** same bytes on the panel; `HARDWARE_TESTS.md` §9.15 (panel framing) and §11.11 (LCD progress timing) stay the on-device checks.
+
+#### 8.5 `EPROMStore` → `adapters::EepromSettingsFormat`, with the first tests it has ever had
+
+`EPROMStore` *is* an adapter — it owns the persisted **format** over an injected `ports::IPersistentStore`, and every platform `#if` left it in Phase 2b. It is in the root only because the menus once called it statically, and nothing does now.
+
+1. Move to `src/adapters/EepromSettingsFormat.{hpp,cpp}`, keep `adapters::MountSettingsStore` as the typed view so nothing above changes, and delete the root pair.
+2. Speak `core::DayTime`/`core::Latitude`/`core::Longitude` — the ports already do, the overlays derive from them (so passing one in costs nothing), and the ~5 callers that need the overlay back already have the `ctor(const core::X &)` convenience. This is what lets 8.7 delete the overlays afterwards.
+3. Add it to `[env:native].build_src_filter` with `hal::InMemoryEeprom` and a fake logger, and add `unit_tests/test_adapters/test_EepromSettingsFormat.cpp`: round-trip every accessor, a blank store, an unknown magic marker, a partially written store, and the `< 11307` version migration that zeroes the AZ/ALT home positions. **882 lines of the persistence path become host-tested for the first time** — `core::PersistentConfig` tests the *rules* today, but nothing tests the byte layout they are applied to.
+
+#### 8.6 The two sensor helpers leave the root
+
+1. `core/EndSwitchState.hpp/.cpp` — the seven-state machine (`SWITCH_AT_MINIMUM`, `WAIT_FOR_STOP_AT_MAXIMUM`, `SWITCH_SLEWING_OFF_*`, …) as a pure transition over `(state, minActive, maxActive, position, direction)`, returning the action to take. **This runs inside the step generator** (`app::StepPump` calls `processEndSwitchState()` per step tick, i.e. in the AVR timer ISR), so the extraction must stay a POD switch with no allocation, no logging and no new virtual dispatch; the actions continue to go through the existing ports.
+2. `app::EndSwitchMonitor` — the part that cannot be pure: it holds the two `ports::IEndSwitch&`, the axis, the UI ports and the position it recorded when the switch fired. `app/SensorWiring.cpp` already builds these objects; this only renames and moves them.
+3. `app::HomingRunner` — `HallSensorHoming` renamed and moved: it already wraps `core::HomingController` and only adds the slew rate to restore and the "was tracking" flag. Its `String`-returning state names become `const char *` from a `core::` table (8 `String` uses and a `MappedDict<…, String>` lookup go), which also removes an allocation from a read the status menu performs every 200 ms.
+4. Tests: `test_core/test_end_switch_state.cpp` — both directions, both limits, the "switch still active after stopping" wait states, and an axis that never reaches a switch.
+
+**Bench note:** this is the one slice in the phase that changes code the ISR executes. It needs the `ramps` end-switch test in `HARDWARE_TESTS.md` before it is called done, not just a green build.
+
+#### 8.7 Retire the type overlays, `Types.hpp` and `inc/Globals` — Phase 7 step 4's remaining half
+
+1. **The overlays** (`DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension`) hold three things: `ParseFromMeade(String const &)`, `ToString()`, and a handful of `LOG()` lines. Two findings decide the shape:
+   - `ParseFromMeade` has **no caller outside the overlay family** — the Meade parser does its own parsing in `core/meade/`, so it is dead code and goes rather than moving.
+   - `ToString()` writes into a **file-static `char achBuf[32]`**, so two values of the *same* overlay in one log line would both print the last one. Today's sites survive only because they pair different types (`OAT_LOG(…, "RA: %s, DEC: %s", _targetRa.ToString(), _targetDec.ToString())` uses two separate static buffers), so the defect is latent — one same-type pair away from being real. The fix is `core::DayTime::toString(char *buffer, size_t capacity)`, with a caller-owned buffer at each of the ~30 `OAT_LOG` sites — the same "buffer owned by the caller" rule 5.2 established for RAM. Pinned by tests.
+2. **`Sidereal`**: the arithmetic is already `core::SiderealClock`; what is left is `calculateByGPS(TinyGPSPlus *)` → `adapters::GpsSidereal` beside `TinyGpsAdapter`, or folded into it.
+3. **`Types.hpp`**: the `NORTH`/`EAST`/`TRACKING`/`LCD_STRING`… `#define`s become the `core::SlewDirection` / `core::CoordinateFormat` enumerators the ports already pin with `static_assert`; `StepperAxis` → `core::StepperAxis`; `LocalDate` → `core::CalendarDate`. `Types.hpp` then only re-exports and is deleted.
+4. **`inc/Globals.hpp`**: `inNorthernHemisphere` is mount state → `core::MountState`; `inSerialControl` is session state → `app::UiSession`; the `<Arduino.h>` include and the two `PUSH/POP_NO_WARNINGS` fallbacks are already `hal/WarningGuard.hpp`'s job (and duplicate `macros/gcc/Macros.hpp` in PlatformIO builds). `inc/` and `Globals.cpp` are then deleted.
+
+#### 8.8 The screens → `src/app/ui/` — Arduino-free, and therefore host-tested
+
+This is the substantive slice, and the one that changes what the project can promise about its UI.
+
+1. **Layout:** `src/app/ui/MenuHost.{hpp,cpp}` (the loop: current screen, the wait-for-release rule, the display/status throttles currently in `c_buttons.hpp`), `src/app/ui/MenuScreen.hpp` (an interface: `enter`, `handleKey`, `render`, `tick`), `src/app/ui/MenuIds.hpp` (the menu IDs and `MAXMENUITEMS`, out of `a_inits.hpp`), and one file per screen under `src/app/ui/screens/`: `StartupWizard`, `RaMenu`, `DecMenu`, `PoIMenu`, `HomeMenu`, `HaMenu`, `HaGpsMenu`, `ControlMenu`, `CalibrationMenu`, `FocusMenu`, `InfoMenu`, plus `SlewStatusView` (the extracted `LcdSlewStatus`).
+2. **Screens are pure presenters over ports.** They speak `app::UiPorts`, `ports::IDisplay`, `ports::IButtons`, `core::` value types and `OAT_SNPRINTF`; they call no Arduino function. `OAT_SNPRINTF` moves from `Utility.hpp` to [`ports/LogFormat.hpp`](src/ports/LogFormat.hpp), next to the `OAT_LOG_FORMAT` it is the sibling of (same PROGMEM reason, same `__AVR__` switch, and a plain `snprintf` on the host) — that is the only platform-aware line `app/ui` needs.
+3. **They become host-tested.** `[env:native].build_src_filter` gains `+<./app/ui>`, `test_filter` gains `test_ui`, and `scripts/check_architecture.py` adds `src/app/ui` to its scanned directories with the `core/` rule set — no `String`, `Serial`, `millis()`, `LOG()` or feature `#ifdef` in a screen, enforced in CI rather than by review. That last part is the real deliverable: today none of these 3,065 lines can be compiled off-target, which is why they have no tests.
+4. **The 67 compile-time branches become runtime checks** on ports that already exist: `USE_GYRO_LEVEL` → `ports::IGyro *` already null-or-real; `SUPPORT_GPS` → `ports::IGps *`; `AZ_STEPPER_TYPE`/`ALT_STEPPER_TYPE`/`FOCUS_STEPPER_TYPE` → `IMountOptionalAxes` (a no-op on a board without the axis); `DISPLAY_TYPE` → `ports::IDisplay::columns()`/`rows()` and the adapter's capability flags. This is Phase 4's rule applied to the UI, and it is what makes one screen testable for every board.
+5. **Behaviour freeze, byte by byte.** `unit_tests/test_ui/` renders each screen in a fixed state against a `FakeDisplay` that records the rows written, and compares them to the strings the current code produces. The screens' visible text is user-facing and frozen: same padding, same abbreviations (`RTrg:`, `DTrg:`), same arrow placement, same throttle intervals.
+6. `c_buttons.hpp`, `a_inits.hpp`'s UI half, and the `loop()` body move here; `app/main.cpp` calls `app::runUi()`. `LcdMenu`/`LcdButtons` are deleted, with the shims from 8.1–8.3.
+
+**Risk note:** `CalibrationMenu` (1,195 lines, 35 `#if`) should be its own commit even inside this slice — it is the one screen whose behaviour is hard to eyeball, and a byte-compare harness for it is worth writing before the move rather than after.
+
+#### 8.9 The factory test console → `app/test/`
+
+`testmenu.cpp` (672 lines, 31 `String`), its header and `testmenudef.hpp` are a `TEST_VERIFY_MODE`-gated console with its own key/command state machine. It becomes `app::TestConsole` over `ports::ITransport` + `UiPorts`, host-testable for the same reason the screens are, and one `#if TEST_VERIFY_MODE` in `app/` selects whether the loop constructs it. `splitStringBy`, `format` and `formatArg` die with their only callers.
+
+#### 8.10 `Utility`, and the empty root
+
+1. `clamp`/`adjustWrap`/`adjustClamp`/`sign` → `core/MathUtil.hpp`, with the tests they never had (wrap on `min == max`, wrap by more than the range, clamp ordering).
+2. `RealTime` (a `micros()`-based pause accumulator, used by the perf timers) → `hal/arduino/`; `PerfMeasure` has no user left and is deleted.
+3. `logv`/`format`/`formatArg`: the `LOG()` macro is gone once 8.8 removes its last call site, so these go with it. The **log ring** is the one thing that must survive: `MeadeCommandAdapter`'s log-dump command calls the free `getLogBuffer()`, which returns a `String` built from a static ring inside `Utility.cpp`. It moves into `adapters::SerialLogger` behind a small `ports::ILogRetention` (`size_t readLog(char *out, size_t capacity)`), which the command adapter takes as a nullable dependency — absent means the same `"Debugging disabled.#"` answer it gives today.
+4. `fabsf`/`roundf`/`atanf`'s Arduino `double`-promotion workarounds move to `hal/arduino/` if any `hal/` backend still needs them; nothing above `hal/` should.
+5. **Done when** `ls src/*.{h,cpp,hpp}` is empty. `macros/` stays (it is force-included by `-include`) and so does `libs/` (`MappedDict` is a generic container used by `app/`; `TimerInterrupt` is `lib_ignore`d per env).
+
+#### Constraints that decide the shape of every slice above
+
+- **The UI allocates nothing.** After 8.1 there is no `new` in the menu path at all, and after 8.4 no `String` in the panel path; fixed-capacity tables and caller-owned buffers are the shape, and the existing stack scratch buffers (`char scratchBuffer[24]` in the screens, `[40]` in the slew view) stay the pattern. The one candidate to stay an Arduino `String` is the adapter's two-value `_lastDisplay` redraw comparison — it is compared, never printed, and becomes a `char[17]` if the AVR measurement says so.
+- **`ramps` is the budget.** Every slice is measured at `DEBUG_NONE` before and after, and a slice that grows static RAM is a failed slice — the same rule as Phase 7. 8.1 deletes the only heap allocation in the UI path and 8.4 deletes sixteen heap `String`s, so both are expected to be RAM-*negative*; a slice that measures worse than that is wrong and gets re-cut rather than accepted.
+- **Visible text and pixels are frozen.** Screen rows, the panel's pixel layout and the log line shape are byte/pixel-compared; `HARDWARE_TESTS.md` §11's deliberate behaviour changes stay the only accepted differences.
+- **One `#if` per panel family, in `app/`.** The display and button backends are selected where the driver backends are selected. Nothing below `app/` may name `DISPLAY_TYPE` or a panel library — that is what makes the screens host-testable, and it is checked by `scripts/check_architecture.py` once 8.8 adds `src/app/ui`.
+- **The ISR path does not grow.** 8.6 is the only slice that touches code the step generator runs; it may not add allocation, logging or a new vtable there.
+
+**Verify (each slice):** `./scripts/test-coverage.sh` green (native suite, `core/` gate ≥ 85 %); `python scripts/check_architecture.py` clean; the seven-board CI matrix green; the RAM figure recorded in the commit message. **Verify (phase):** `src/` holds only directories; `check_architecture.py` reports `src/app/ui` among its scanned directories and zero violations; the native suite covers the menu model, the line composer, the debounce, the panel layout, the console ring, the settings format, the end-switch machine, every screen and the test console; `HARDWARE_TESTS.md` gains the menu/button/panel/end-switch checks this phase makes newly explicit, and the whole refactor still closes with the single hardware pass described at the end of Phase 7.
+
+---
+
 ## Relevant files
 
 ### Already migrated to `core/`
@@ -781,13 +951,12 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 - `unit_tests/test_hal/test_main.cpp` (googletest main) and `unit_tests/test_hal/test_eeprom_layout.cpp` (9 EEPROM layout tests)
 
 ### Phase 2 targets
-- [`src/Gyro.cpp`](src/Gyro.cpp) — behind a new `IGyro` port (MPU6050 access goes through `hal::II2cBus`).
-  - Done: the `IGyro` contract landed in 2a. **The implementation did not** — `src/Gyro.cpp` still drives `Wire`/MPU-6050 directly and still logs through `LOG()`, and nothing consumes the port. It moves with the other hardware-coupled adapters once a controller needs tilt/roll.
+- `src/Gyro.cpp` — behind the `IGyro` port (MPU6050 access through `hal::II2cBus`). **✅ Done in Phase 7:** `adapters::Mpu6050Gyro` / `adapters::NullGyro` replace it and `src/Gyro.*` is deleted.
+- [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp) — still in the root; Phase 8.6 moves them (`core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner`).
 - [`src/Core.cpp`](src/Core.cpp) is back to being a list of includes; the board-specific timer/ISR code it used to end with is now [`src/hal/avr/TimerIsrVectors.cpp`](src/hal/avr/TimerIsrVectors.cpp), [`src/hal/InterruptCallback.cpp`](src/hal/InterruptCallback.cpp) and [`src/hal/avr/InterruptAccelStepper.h`](src/hal/avr/InterruptAccelStepper.h).
   - Done for RP2040 (`hal/rp2040/Rp2040TimerService`). **Not moved for AVR**: there is no AVR HAL backend (2a step 2, 2b step 6), so the timer/ISR vectors stay in `src/` and are deferred to Phase 4's timer-backend work, which belongs in `hal/` (see the Phase 7 correction: timer ownership is not a core concern).
-- [`src/a_inits.hpp`](src/a_inits.hpp), [`src/b_setup.hpp`](src/b_setup.hpp), [`src/f_serial.hpp`](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`.
-  - Not started: `src/app/` still holds only a README and [`src/b_setup.hpp`](src/b_setup.hpp) is the composition root (it builds `MountDeps` and the EEPROM/logger/clock graph).
-- Deferred to Phase 3 (they still call `Mount` directly): [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp). [`src/WifiControl.cpp`](src/WifiControl.cpp) was deferred to Phase 5 and is done: its TCP path is `SerialTransport<128>` over a `hal::ArduinoSerialPort` around the `WiFiClient`, so it shares framing and the reply write with the serial loop.
+- [`src/a_inits.hpp`](src/a_inits.hpp), `src/b_setup.hpp`, [`src/f_serial.hpp`](src/f_serial.hpp) — wiring code gradually migrates into `src/app/`. **✅ Done in Phase 7:** `b_setup.hpp` is deleted (`app/BoardWiring` + `app/main.cpp`), `f_serial.hpp` became `app/SerialPump.hpp`, and what is left in `a_inits.hpp` is the menu IDs and UI globals (Phase 8.7/8.8).
+- Deferred here and still open when Phase 7 closed: [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp), [`src/EndSwitches.cpp`](src/EndSwitches.cpp), [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp), [`src/LcdMenu.cpp`](src/LcdMenu.cpp), [`src/LcdButtons.cpp`](src/LcdButtons.cpp). None of them names `Mount` any more — they take ports — but all five are still in the root, and **Phase 8 is where they land** (8.2–8.4, 8.6). [`src/WifiControl.cpp`](src/WifiControl.cpp) was deferred to Phase 5 and is done: its TCP path is `SerialTransport<128>` over a `hal::ArduinoSerialPort` around the `WiFiClient`, so it shares framing and the reply write with the serial loop.
 
 ### New files created in Phase 2
 - `src/hal/`: the 13 interfaces + `EepromLayout.hpp`, `InMemoryEeprom.hpp`, `WarningGuard.hpp`, and the `arduino/`, `esp32/`, `rp2040/` backends
@@ -801,6 +970,20 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 - [`src/core/meade/PendingReplies.hpp`](src/core/meade/PendingReplies.hpp) — new in step 5: the heap-free table of replies still owed to a host.
 - [`src/ports/IMountReadModel.hpp`](src/ports/IMountReadModel.hpp), [`src/ports/IMountSiteTime.hpp`](src/ports/IMountSiteTime.hpp), [`src/ports/IMountEvents.hpp`](src/ports/IMountEvents.hpp) — new in step 3's fifth slice: the read model, the site/clock and the event stream the command layer needs, so it needs nothing else of `Mount`.
 
+### Phase 8 targets — the remaining `src/` root (all still in place)
+
+Measured: 47 files / 10,497 lines at the top of `src/`, 1,890 of them font tables.
+
+- **Menu framework:** [`src/LcdMenu.cpp`](src/LcdMenu.cpp) (500 lines) / [`src/LcdMenu.hpp`](src/LcdMenu.hpp) (158) — `core/menu/MenuModel` + `core/menu/MenuLine` + `ports::IDisplay` adapters; the class itself is deleted.
+- **Buttons:** [`src/LcdButtons.cpp`](src/LcdButtons.cpp) (155) / [`src/LcdButtons.hpp`](src/LcdButtons.hpp) (55) — `core/ButtonDebounce` + `hal::IButtonMatrix` backends + `ports::IButtons`.
+- **Screens:** [`src/c65_startup.hpp`](src/c65_startup.hpp), [`c70_menuRA.hpp`](src/c70_menuRA.hpp), [`c71_menuDEC.hpp`](src/c71_menuDEC.hpp), [`c722_menuPOI.hpp`](src/c722_menuPOI.hpp), [`c725_menuHOME.hpp`](src/c725_menuHOME.hpp), [`c72_menuHA.hpp`](src/c72_menuHA.hpp), [`c72_menuHA_GPS.hpp`](src/c72_menuHA_GPS.hpp), [`c75_menuCTRL.hpp`](src/c75_menuCTRL.hpp), [`c76_menuCAL.hpp`](src/c76_menuCAL.hpp), [`c77_menuFOC.hpp`](src/c77_menuFOC.hpp), [`c78_menuINFO.hpp`](src/c78_menuINFO.hpp), [`c_buttons.hpp`](src/c_buttons.hpp), [`LcdSlewStatus.cpp`](src/LcdSlewStatus.cpp) — `src/app/ui/` (Arduino-free, `test_ui`).
+- **Status panel:** [`src/SSD1306_128x64_Display.cpp`](src/SSD1306_128x64_Display.cpp) / [`.hpp`](src/SSD1306_128x64_Display.hpp), [`src/InfoDisplayRender.hpp`](src/InfoDisplayRender.hpp), [`src/fonts128x64.h`](src/fonts128x64.h) — `core/InfoDisplayLayout`, `core/ConsoleLog`, `adapters/Ssd1306InfoDisplay`, `hal/arduino/Ssd1306Panel` (`hal::IOledPanel`), `hal/arduino/OledFonts.hpp`.
+- **Settings format:** [`src/EPROMStore.cpp`](src/EPROMStore.cpp) (882) / [`.hpp`](src/EPROMStore.hpp) — `adapters/EepromSettingsFormat` + its first host tests.
+- **Sensor helpers:** [`src/EndSwitches.cpp`](src/EndSwitches.cpp) / [`.hpp`](src/EndSwitches.hpp), [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp) / [`.hpp`](src/HallSensorHoming.hpp) — `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner`.
+- **Type overlays / shims:** [`src/DayTime.*`](src/DayTime.hpp), [`Declination.*`](src/Declination.hpp), [`Latitude.*`](src/Latitude.hpp), [`Longitude.*`](src/Longitude.hpp), [`RightAscension.*`](src/RightAscension.hpp), [`Sidereal.*`](src/Sidereal.hpp), [`src/Types.hpp`](src/Types.hpp), [`src/inc/Globals.hpp`](src/inc/Globals.hpp) / [`Globals.cpp`](src/inc/Globals.cpp), [`src/a_inits.hpp`](src/a_inits.hpp) — core value types + `app/ui/MenuIds.hpp` + `app::UiSession`.
+- **Factory test console:** [`src/testmenu.cpp`](src/testmenu.cpp) (672), [`testmenu.hpp`](src/testmenu.hpp), [`testmenudef.hpp`](src/testmenudef.hpp) — `app/test/TestConsole`.
+- **Utility:** [`src/Utility.cpp`](src/Utility.cpp) / [`.hpp`](src/Utility.hpp) — `core/MathUtil.hpp`, `hal/arduino/` (the `micros()` perf timer), `adapters/SerialLogger` (the log ring behind `ports::ILogRetention`), and `OAT_SNPRINTF` → [`src/ports/LogFormat.hpp`](src/ports/LogFormat.hpp).
+
 ### Infrastructure
 - [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). Phase 2a adds `test_adapters` to `test_filter`, per-board `build_src_filter` HAL exclusions, ETL to `[common].lib_deps` + `[env:native].test_lib_deps`, and the AVR `-std` spike.
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs `./scripts/test-coverage.sh` + publishes `coverage.md` to the step summary; builds 7 boards (ramps, mksgenlv1/v2/v21, esp32, rp2040_jackw01, rp2040_skr_pico).
@@ -813,10 +996,10 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 ## Verification strategy
 
 Automated:
-1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (600 test cases). `test_filter` = `test_core` + `test_hal` + `test_adapters` (covers `test_core/meade/` and `test_core/types/`).
+1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (600 test cases today). `test_filter` = `test_core` + `test_hal` + `test_adapters` (covers `test_core/meade/` and `test_core/types/`); **Phase 8 adds `test_ui`** once the screens are Arduino-free and `[env:native].build_src_filter` picks up `app/ui`.
 2. Every board env in `platformio.ini` (CI matrix: 7 boards) builds green every phase via `matrix_build.py`, which supplies the generated configuration. A bare `pio run -e <board>` additionally needs the developer's untracked `Configuration_local_*.hpp`.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
-4. CI grep check: `core/` contains zero `#include <Arduino.h>` or `#ifdef <FEATURE_FLAG>` (after Phase 4).
+4. CI grep check (`scripts/check_architecture.py`): no `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, `hal/`, `adapters/` or feature `#ifdef` in `core/` or `ports/` (Phase 4); **Phase 8 adds `src/app/ui` to the scanned set** with the same rules, so a screen cannot regress into `String` or `millis()`.
 
 Hardware (one pass, once the refactor is complete):
 1. Run [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) end to end — sections 2–9, the deliberate behaviour changes in §11, and the §10 sign-off table.
@@ -831,6 +1014,8 @@ Hardware behaviour is not a per-phase gate: nothing in the phases above waits on
 - **Test stack:** **Googletest** + **hand-written port fakes** for host-side unit tests. The `native` PIO env uses `test_framework = googletest`. No Unity, no GoogleMock, **no FakeIt/ArduinoFake**. Rationale: every port is a pure abstract interface, `core/` is Arduino-free, and the plan never host-tests `src/` overlays, so an Arduino-API mocking framework adds a dependency without covering anything. ArduinoFake/FakeIt was dropped in Phase 0 (item 5), and its CMake-only stub tree under `unit_tests/test_common/ArduinoFake/` has been deleted.
 - **Migration style:** **Hybrid** — extract pure logic first (Phase 1), then strangler-fig hardware-coupled layers (Phase 2–5).
 - **Config flags:** Migrate to **runtime polymorphism behind interfaces**; composition root reads the `Configuration*.hpp` macros once. `core/` becomes `#ifdef`-free for features.
+- **UI layer (Phase 8):** the screens live in `src/app/ui/`, not in `core/`. They are device policy — what a 16×2 row says — not domain logic, but they are written against ports only (`IDisplay`, `IButtons`, the five `IMount*` surfaces) and are **Arduino-free**, so `[env:native]` compiles them and `test_ui` host-tests them. `check_architecture.py` scans the directory with the `core/` rule set, which is what keeps that true. The renders are a **pure composer** (`core/menu/MenuLine`) plus an adapter that knows the panel's glyphs; the port stays a text grid with one write-cell, so no cursor state crosses it.
+- **Panel and button backend selection stays compile-time, in `app/`.** Phase 4's "no `#ifdef` in domain code" rule is about `core/`/`ports/`; the *choice* of panel (character LCD, I2C expander, SSD1306 menu, none) and of button decoder is a board fact that no board discovers at runtime, and linking all four panel drivers to make it a runtime choice costs AVR flash for nothing. So exactly one `#if DISPLAY_TYPE` remains, in `app/BoardWiring.cpp`, beside the existing driver/axis `#if`s. What the screens see is `ports::IDisplay`'s `columns()`/`rows()` and the adapter's capability flags.
 - **Optional axes:** Use `etl::optional` (from Embedded Template Library) — not `std::optional`. The firmware builds with `-D ETL_NO_STL` on AVR targets. `core/` uses `etl::optional` for consistency across all build targets. **Open:** `-D ETL_NO_STL` is already global via `[env]`, but ETL is not a `lib_deps` entry anywhere (`src/libs/` holds only `MappedDict` and `TimerInterrupt`) and nothing uses `etl::` yet — add ETL to `[common].lib_deps` and `[env:native].test_lib_deps` in Phase 2a before Phase 4 relies on it.
 - **Mount global migration:** `Mount` is currently a global variable (defined as `Mount mount(&lcdMenu);` in `src/b_setup.hpp`; the only `extern Mount mount;` is in `src/testmenu.cpp`). Call sites that use `mount.xxx()` will be migrated using the thin-overlay pattern: existing code delegates through the global during transition; when a module becomes a proper adapter (Phase 2+), it receives injected references instead. No flag day needed.
 - **Stepper axis layering:** `AccelStepperAxis` is neither a `core/` class nor a library-wrapping adapter. `IStepperAxis` (step-level contract) is implemented by one pure `adapters/StepperAxis` over `hal::IStepperMotor`; the motion engine lives in HAL — `hal/arduino/AccelStepperMotor` (`AccelStepper`, shared by ESP32 and RP2040) and `hal/avr/InterruptStepperMotor` (the vendored timer-ISR engines). AVR uses `hal/avr/` like every other platform, not a special no-backend path; the wrapper cost is accepted as negligible now that the optional axes already go through it (Phase 4) and the headless-AVR decision freed the flash. Rationale: `core/` may not include `<Arduino.h>`; library names belong in `hal/`; adapters stay host-testable and library-free; and the libraries are retained, not replaced (out of scope). A domain-side motion planner would be a separate `core/` concept, not this class.

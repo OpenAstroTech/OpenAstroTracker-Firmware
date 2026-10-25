@@ -129,16 +129,20 @@ include a `core/` header that has behaviour.
 ### What still sits outside this layering
 
 The refactor is finished for the command path, the motion path and the controllers. What is left is
-UI and two peripherals, and it is left deliberately rather than by oversight — each item is listed
-with what would finish it:
+the user interface and the last two peripherals. Each item is listed with why it is still there and
+what would finish it; **[PLAN.md](PLAN.md) Phase 8 is the plan that does all of it**, slice by slice
+(8.1–8.10), and its exit criterion is that `src/` holds nothing but directories.
 
 | Still outside | Why it is still there | What would finish it |
 |---|---|---|
-| `LcdMenu`, `LcdButtons`, `c7*_menu*.hpp` | moved: every screen now takes `app::UiPorts` (motion, configuration, read model, site/time, optional axes, clock, scheduler), so it names no `Mount` | the coordinator implements the same ports and `UiPorts` is built from it |
-| `SSD1306_128x64_Display` | renders from `Mount` (pull) behind `InfoDisplayPanel` (push): `Mount` no longer calls it, but it still reads it | render from `ports::IInfoDisplay`'s snapshot struct instead of the mount |
-| `EPROMStore` | static facade kept for the menu screens; `Mount` already uses `ports::IMountSettings` | delete once the menus use the typed store |
-| `Gyro`, `HallSensorHoming`, `EndSwitches` | hardware-coupled helpers `Mount` still calls directly; the `IGyro`, `IHomingSensor` and `IEndSwitch` ports exist but nothing implements them yet | adapters over `hal::II2cBus` / `hal::IGpioPin` — the homing one needs the polling-rate decision recorded in `core/HomingController` |
-| `c_buttons.hpp`, `a_inits.hpp` | the object graph and the entry point have moved to `app/` (`BoardWiring`, `main.cpp`, `SerialPump.hpp`, `MotorWiring`), and `b_setup.hpp` is deleted; what is left is the UI loop and the globals the menu screens still read | move with the menu screens (step 4 of Phase 7); no design change |
+| `LcdMenu`, `LcdButtons` | the framework still owns a `LiquidCrystal` / `LiquidTWI2` / `U8X8_SSD1306` **by value** behind 19 `#if DISPLAY_TYPE`, decodes three keypads inline, and is the last heap allocation in the UI path (`new MenuItem`) | Phase 8.1–8.3: `core/menu/MenuModel` + `core/menu/MenuLine` for the decisions, `core/ButtonDebounce` for the 5 ms rule, and `ports::IDisplay` / `ports::IButtons` adapters over `hal/ICharLcd` and `hal/IButtonMatrix` |
+| `c65`–`c78` screens, `c_buttons.hpp`, `LcdSlewStatus`, `a_inits.hpp` | every screen takes `app::UiPorts`, so none names `Mount` — but they are header-only free functions in one translation unit with 67 compile-time branches, so the host env cannot compile (let alone test) them | Phase 8.8: one file per screen in `src/app/ui/`, Arduino-free, compiled by `[env:native]` and covered by `test_ui`; `c_buttons.hpp` becomes `app::MenuHost`, and the panel/feature `#if`s become runtime checks on the ports |
+| `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | the frame already arrives as a `ports::InfoDisplayState` POD and the panel is pushed by `adapters::InfoDisplayPanel`, but the renderer has no port to implement, keeps a 16-entry heap-`String` console ring, and holds the pixel arithmetic untested | Phase 8.4: `core/InfoDisplayLayout` (pixel mapping, frozen by tests) + `core/ConsoleLog` + `adapters::Ssd1306InfoDisplay implements ports::IInfoDisplay` over a `hal::IOledPanel` backend; the font tables move under `hal/arduino/` |
+| `EPROMStore` | it is an instance built by the composition root and it already reads/writes through `ports::IPersistentStore`, but it still sits in `src/` and 882 lines of byte layout have never been host-tested | Phase 8.5: `adapters/EepromSettingsFormat` + `test_adapters` coverage of every accessor, the magic markers and the version migration |
+| `HallSensorHoming`, `EndSwitches` | both take ports already (`ports::IHomingSensor` / `ports::IEndSwitch`, `ports::IStatusFlags`, `app::UiPorts`), so only their address is wrong — and `EndSwitch` runs inside the step-generator ISR, so moving it is not free | Phase 8.6: `core/EndSwitchState` (POD transition, no allocation/logging/vtable) + `app/EndSwitchMonitor` and `app/HomingRunner` |
+| `Gyro` | **done** — deleted in Phase 7: `adapters::Mpu6050Gyro` / `adapters::NullGyro` over `hal::II2cBus`, chosen by the root | — |
+| type overlays (`DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension`, `Sidereal`), `Types.hpp`, `inc/Globals.hpp`, `Utility` | they exist for the screens: `String`-based parse/format helpers, the direction/format `#define`s, two UI globals, and the `LOG()`/`OAT_SNPRINTF` macros plus the log ring | Phase 8.7 and 8.10: `core::` value types and formatters, `core/MathUtil.hpp`, values into `core::MountState` / `app::UiSession`, the log ring into `adapters::SerialLogger`, and `OAT_SNPRINTF` into `ports/LogFormat.hpp` |
+| `testmenu` | a `TEST_VERIFY_MODE`-gated factory console, `String`-driven, with no host test | Phase 8.9: `app/test/TestConsole` over `ports::ITransport` + `UiPorts` |
 
 ---
 
@@ -189,7 +193,13 @@ OpenAstroTracker-Firmware/
 │   │   ├── AxisBank.hpp/.cpp            # owns the axes, drivers, sensors and their limits (done)
 │   │   ├── BoardPresence.hpp            # compile-time "which parts does this board have" (done)
 │   │   ├── MountReadout.hpp/.cpp        # all reads: IMountReadModel + IInfoDisplaySource (done)
-│   │   └── MountConfigBuilder.hpp       # Configuration*.hpp -> runtime MountConfig (done)
+│   │   ├── MountConfigBuilder.hpp       # Configuration*.hpp -> runtime MountConfig (done)
+│   │   ├── ui/                          # UI SCREENS — Arduino-free, host-tested (PLAN.md 8.8)
+│   │   │   ├── MenuHost.hpp/.cpp        #   the loop: current screen, key routing, throttles
+│   │   │   ├── MenuScreen.hpp           #   enter / handleKey / render / tick
+│   │   │   ├── MenuIds.hpp              #   menu ids + MAXMENUITEMS
+│   │   │   └── screens/                 #   one file per screen (RA, DEC, HA, CAL, INFO, …)
+│   │   └── test/                        # factory test console over ITransport (PLAN.md 8.9)
 │   │
 │   ├── adapters/                        # PORT -> HAL GLUE
 │   │   ├── ArduinoClock.hpp/.cpp        # IClock            <- ISystemClock          (done)
@@ -197,22 +207,26 @@ OpenAstroTracker-Firmware/
 │   │   ├── SerialLogger.hpp/.cpp        # ILogger           <- ISerialPort + clock   (done)
 │   │   ├── NullLogger.hpp               # ILogger           null object for DEBUG_NONE builds (done)
 │   │   ├── EepromPersistentStore.*      # IPersistentStore  <- IEeprom               (done)
-│   │   ├── MountSettingsStore.hpp       # IMountSettings    -> EEPROMStore facade    (done)
+│   │   ├── MountSettingsStore.hpp       # IMountSettings    -> EepromSettingsFormat (done)
+│   │   ├── EepromSettingsFormat.hpp/.cpp# the persisted byte format over IPersistentStore (PLAN.md 8.5)
 │   │   ├── StepperAxis.hpp/.cpp         # IStepperAxis      <- IStepperMotor         (done)
 │   │   ├── Tmc2209Driver.hpp/.cpp       # IMotorDriver      <- TMCStepper            (done)
 │   │   ├── NullMotorDriver.hpp          # IMotorDriver      null object for non-TMC builds (done)
 │   │   ├── TinyGpsAdapter.hpp/.cpp      # IGps              <- TinyGPS++ + Stream    (done)
+│   │   ├── GpsSidereal.hpp/.cpp         # LST from a GPS fix, over IGps  (PLAN.md 8.7)
 │   │   ├── SerialTransport.hpp          # ITransport        <- ISerialPort (serial + Wi-Fi) (done)
 │   │   ├── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- the six mount ports (done)
 │   │   ├── WifiControl.hpp/.cpp          # Meade over TCP + SkyFi UDP discovery (done)
 │   │   ├── TcpConnectionPort.hpp/.cpp    # ISerialPort over ITcpConnection (done)
 │   │   ├── StatusFlags.hpp/.cpp          # IStatusFlags over core::MountState (done)
 │   │   ├── SiteTimePort.hpp/.cpp         # IMountSiteTime over core::SiteTime + store (done)
-│   │   ├── InfoDisplayPanel.hpp/.cpp    # IEventSink        -> InfoDisplayRender     (done)
-│   │   ├── HallHomingSensor.hpp/.cpp    # IHomingSensor     <- IGpioPin              (not built)
-│   │   ├── GpioEndSwitch.hpp/.cpp       # IEndSwitch        <- IGpioPin              (not built)
-│   │   ├── LcdMenuDisplay.hpp/.cpp      # IDisplay          <- ICharLcd / IButtonMatrix (not built)
-│   │   └── Ssd1306InfoDisplay.hpp/.cpp  # IInfoDisplay      <- IOledPanel            (not built)
+│   │   ├── InfoDisplayPanel.hpp/.cpp    # IEventSink + refresh policy -> IInfoDisplay (PLAN.md 8.4)
+│   │   ├── HallHomingSensor.hpp/.cpp    # IHomingSensor     <- IGpioPin              (done)
+│   │   ├── GpioEndSwitch.hpp/.cpp       # IEndSwitch        <- IGpioPin              (done)
+│   │   ├── LcdMenuDisplay.hpp/.cpp      # IDisplay          <- ICharLcd (all 3 menu panels) (PLAN.md 8.2)
+│   │   ├── NullDisplay.hpp              # IDisplay          null object (DISPLAY_TYPE_NONE) (PLAN.md 8.2)
+│   │   ├── DebouncedButtons.hpp/.cpp    # IButtons          <- IButtonMatrix + core::ButtonDebounce (PLAN.md 8.3)
+│   │   └── Ssd1306InfoDisplay.hpp/.cpp  # IInfoDisplay      <- IOledPanel (128x64)   (PLAN.md 8.4)
 │   │
 │   ├── ports/                           # DOMAIN INTERFACES
 │   │   ├── IClock.hpp
@@ -226,6 +240,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── IHomingSensor.hpp
 │   │   ├── IEndSwitch.hpp
 │   │   ├── IDisplay.hpp
+│   │   ├── IButtons.hpp                 # debounced keys (PLAN.md 8.3)
 │   │   ├── IInfoDisplay.hpp             # + InfoDisplayState
 │   │   ├── ITransport.hpp               # + writeResponse (egress for deferred replies)
 │   │   ├── IGps.hpp                     # + GpsFix
@@ -261,14 +276,21 @@ OpenAstroTracker-Firmware/
 │   │   │   ├── ArduinoGpioPin.*         #   IGpioPin
 │   │   │   ├── ArduinoSerialPort.*      #   ISerialPort over any Stream
 │   │   │   ├── ArduinoEeprom.*          #   IEeprom
-│   │   │   └── AccelStepperMotor.*      #   IStepperMotor (ESP32 + RP2040)
+│   │   │   ├── AccelStepperMotor.*      #   IStepperMotor (ESP32 + RP2040)
+│   │   │   ├── CharLcd.*                #   ICharLcd over LiquidCrystal            (PLAN.md 8.2)
+│   │   │   ├── I2cCharLcd.*             #   ICharLcd over LiquidTWI2 (MCP23008/17) (PLAN.md 8.2)
+│   │   │   ├── U8x8CharLcd.*            #   ICharLcd over the 128x32 U8x8 menu panel (PLAN.md 8.2)
+│   │   │   ├── AnalogKeyPad.*           #   IButtonMatrix over a resistive ladder  (PLAN.md 8.3)
+│   │   │   ├── I2cExpanderButtons.*     #   IButtonMatrix over the MCP expander     (PLAN.md 8.3)
+│   │   │   ├── Ssd1306Panel.*           #   IOledPanel over SSD1306Wire (128x64)   (PLAN.md 8.4)
+│   │   │   └── OledFonts.hpp            #   the OLEDDisplay font tables            (PLAN.md 8.4)
 │   │   ├── avr/                         # AVR timer-ISR engines and vectors:
 │   │   │   ├── InterruptAccelStepper.h  #   vendored ISR-driven engine
 │   │   │   ├── InterruptStepperMotor.hpp#   IStepperMotor over an ISR engine
 │   │   │   ├── InterruptStepperFactory.hpp #  one factory per axis role
 │   │   │   ├── StepperConfiguration.hpp #   engine types and slew/trk rates
 │   │   │   └── TimerIsrVectors.cpp      #   TIMER1/3/4/5 ISR vectors
-│   │   ├── esp32/                       # Esp32TimerService, Esp32WifiStack
+│   │   ├── esp32/                       # Esp32TimerService, Esp32WifiStack, JoystickButtons (PLAN.md 8.3)
 │   │   └── rp2040/                      # Rp2040TimerService
 │   │
 │   ├── core/                            # PURE DOMAIN — no Arduino
@@ -287,6 +309,12 @@ OpenAstroTracker-Firmware/
 │   │   │   ├── Latitude.cpp/.hpp
 │   │   │   ├── Longitude.cpp/.hpp
 │   │   │   └── RightAscension.cpp/.hpp
+│   │   ├── menu/                        # MenuModel + MenuLine: items, navigation, selector row (PLAN.md 8.1)
+│   │   ├── InfoDisplayLayout.cpp/.hpp   # RA/DEC -> panel pixels, markers, progress bar (PLAN.md 8.4)
+│   │   ├── ConsoleLog.cpp/.hpp          # the boot console's fixed-capacity line ring (PLAN.md 8.4)
+│   │   ├── ButtonDebounce.hpp           # raw key + time -> committed key (PLAN.md 8.3)
+│   │   ├── EndSwitchState.cpp/.hpp      # end-switch limit state machine (PLAN.md 8.6)
+│   │   ├── MathUtil.hpp                 # clamp / adjustWrap / adjustClamp / sign (PLAN.md 8.10)
 │   │   ├── SiderealClock.cpp/.hpp       # LST and hour-angle math
 │   │   ├── CoordinateMath.cpp/.hpp      # RA/DEC -> stepper positions (+ geometry prep)
 │   │   ├── CalendarMath.cpp/.hpp        # date arithmetic, local -> UTC date
@@ -315,10 +343,10 @@ OpenAstroTracker-Firmware/
 │   │   ├── EventBus.hpp/.cpp            # PositionChanged, SlewStarted, Parked, ...
 │   │   └── MountConfig.hpp              # runtime configuration struct
 │   │
-│   ├── inc/                             # Arduino-facing globals for app/adapters/hal
-│   │   ├── Globals.hpp
-│   │   └── Globals.cpp
-│   ├── macros/gcc/Macros.hpp            # LOG() macro and compiler pragmas
+│   ├── inc/                             # globals for app/adapters/hal (deleted in PLAN.md 8.7:
+│   │   ├── Globals.hpp                  #  the two flags become core::MountState +
+│   │   └── Globals.cpp                  #  app::UiSession state)
+│   ├── macros/gcc/Macros.hpp            # PUSH/POP_NO_WARNINGS pragmas (force-included)
 │   └── libs/                            # vendored libraries
 │       ├── MappedDict/
 │       └── TimerInterrupt/
@@ -340,6 +368,7 @@ OpenAstroTracker-Firmware/
 │   │       └── test_Meade<Family>.cpp
 │   ├── test_hal/
 │   │   └── test_main.cpp
+│   ├── test_ui/                         # screen renders, byte-compared (PLAN.md 8.8)
 │   ├── test_adapters/                   # adapter + fake tests (native env, test_filter)
 │   │   ├── test_main.cpp
 │   │   ├── test_hal_fakes.cpp
@@ -368,6 +397,7 @@ OpenAstroTracker-Firmware/
 |------|-------------|
 | `core/` never includes `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, or a board pin header | `scripts/check_architecture.py`, run by the `architecture` CI job |
 | `core/` and `ports/` contain zero feature `#ifdef`s | `scripts/check_architecture.py`, run by the `architecture` CI job |
+| From PLAN.md Phase 8.8: `src/app/ui/` obeys the same rules as `core/` (it is compiled by `[env:native]` and host-tested), so a menu screen may reach hardware only through a port | `scripts/check_architecture.py` scans `src/app/ui` with the `core/` rule set |
 | `core/` and `ports/` never include `hal/` or `adapters/` (the dependency arrow only points down) | `scripts/check_architecture.py`, run by the `architecture` CI job |
 | Time comes from `IClock`; no direct `millis()` below `adapters/` | Interface contract |
 | Logging goes through `ILogger`; no direct `Serial.print()` below `adapters/` | Interface contract |
@@ -587,7 +617,9 @@ the need in `ports/`, touch hardware only in `hal/` and `adapters/`, and wire th
 | A **port → hardware binding** | an adapter in `src/adapters/`, `final`, holding HAL references | `unit_tests/test_adapters/` over `fakes::Fake*` |
 | A **persisted setting** | a field in `hal/EepromLayout.hpp`, an accessor pair on `ports::IMountSettings`, the read/write in `EepromPersistentStore` + `MountSettingsStore` | `test_hal/test_eeprom_layout.cpp` (layout), `test_adapters` (round-trip) |
 | An **optional axis or peripheral** | a port entry that is a no-op when absent (the null-object shape), not an `#if` | the null object's no-op behaviour, plus the board that has it |
-| A **status panel / display element** | a `core::IEventSink` subscriber fed by `core::EventBus`, ticked from the loop — never called by `Mount` | the board with the panel; the event contract in `test_event_bus` |
+| A **status panel element** (128×64) | the field that feeds it in `ports::InfoDisplayState`, the drawing in `adapters::Ssd1306InfoDisplay` with the arithmetic in `core::InfoDisplayLayout`; the panel's refresh policy is a `core::IEventSink` subscriber fed by `core::EventBus` and ticked from the loop — never called by the executor | `test_core/test_info_display_layout.cpp` (frozen pixels) and the board with the panel |
+| A **menu screen element** | the row it renders in the screen under `src/app/ui/screens/`, composed via `core::MenuLine`; the string only, never the glyph — the adapter owns glyphs and arrows | `unit_tests/test_ui/` (byte-compared rows), `HARDWARE_TESTS.md` on the bench |
+| A **display or keypad backend** | a `hal/<platform>/` backend implementing `hal::ICharLcd` / `hal::IOledPanel` / `hal::IButtonMatrix`, plus one selection line in `app/BoardWiring.cpp` | the board build; the bench |
 | A **board** | `boards/<board>/pins_<board>.h`, `Configuration_local_<board>.hpp`, a PIO env, and the branch in `src/app/BoardWiring.cpp` | `python matrix_build.py -b <board>` |
 
 Two things never move inwards: a library name (belongs in `hal/`) and a wire format (belongs in
