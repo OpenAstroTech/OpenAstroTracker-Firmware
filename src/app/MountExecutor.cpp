@@ -71,7 +71,8 @@ namespace app
 //
 /////////////////////////////////
 MountExecutor::MountExecutor(const MountDeps &deps, const core::MountConfig &config, Coordinator &coordinator)
-    : _deps(deps), _config(config), _coordinator(coordinator)
+    : _deps(deps), _config(config), _coordinator(coordinator),
+      _readout(_axes, coordinator, _settings, config, _siteTime, _targetRA, _targetDEC, _zeroPosDEC)
 {
     _commandReceived = 0;
 
@@ -374,11 +375,6 @@ bool MountExecutor::connectToDriver(const String &driverKind, uint16_t *rmsCurre
     #endif
 #endif
 
-/////////////////////////////////
-//
-// getSpeedCalibration
-//
-/////////////////////////////////
 float MountExecutor::getSpeedCalibration()
 {
     return _coordinator.tracking().calibration();
@@ -464,11 +460,6 @@ void MountExecutor::setRollCalibrationAngle(float angle)
 }
 #endif
 
-/////////////////////////////////
-//
-// getStepsPerDegree
-//
-/////////////////////////////////
 float MountExecutor::getStepsPerDegree(StepperAxis which)
 {
     if (which == RA_STEPS)
@@ -522,164 +513,9 @@ void MountExecutor::setStepsPerDegree(StepperAxis which, float steps)
     }
 }
 
-/////////////////////////////////
-//
-// getBacklashCorrection
-//
-/////////////////////////////////
 int MountExecutor::getBacklashCorrection()
 {
     return _settings.backlashCorrectionSteps();
-}
-
-/////////////////////////////////
-//
-// getMountHardwareInfo
-//
-/////////////////////////////////
-const char *MountExecutor::getStepperInfo()
-{
-    String ret = "";
-
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    ret += "TU";
-#elif RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
-    ret += "TS";
-#elif RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
-    ret += "A";
-#else
-    ret += "?";
-#endif
-
-    ret += ",";
-    ret += String(_config.raSlewMicrosteps);
-    ret += ",";
-    ret += String(_config.raTrackingMicrosteps());
-
-    ret += "|";
-
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    ret += "TU";
-#elif DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE
-    ret += "TS";
-#elif DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
-    ret += "A";
-#else
-    ret += "?";
-#endif
-
-    ret += ",";
-    ret += String(_config.decSlewMicrosteps);
-    ret += ",";
-    ret += String(_config.decGuidingMicrosteps());
-
-    ret += "|";
-
-    _readoutScratch = ret;
-    return _readoutScratch.c_str();
-}
-
-/////////////////////////////////
-//
-// getMountHardwareInfo
-//
-/////////////////////////////////
-const char *MountExecutor::getMountHardwareInfo()
-{
-    String ret = F("Unknown,");
-#if defined(ESP32)
-    ret = F("ESP32,");
-#elif defined(__AVR_ATmega2560__)
-    ret = F("Mega,");
-#elif defined(ARDUINO_ARCH_RP2040)
-    ret = F("RP2040,");
-#endif
-
-    ret += F("NEMA|");
-
-    ret += String(RA_PULLEY_TEETH) + "|";
-    ret += String(RA_STEPPER_SPR) + ",";
-
-    ret += F("NEMA|");
-
-    ret += String(DEC_PULLEY_TEETH) + "|";
-    ret += String(DEC_STEPPER_SPR) + ",";
-
-#if USE_GPS == 1
-    ret += F("GPS,");
-#else
-    ret += F("NO_GPS,");
-#endif
-
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) && (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    ret += F("AUTO_AZ_ALT,");
-#elif (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    ret += F("AUTO_AZ,");
-#elif (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    ret += F("AUTO_ALT,");
-#else
-    ret += F("NO_AZ_ALT,");
-#endif
-
-#if USE_GYRO_LEVEL == 1
-    ret += F("GYRO,");
-#else
-    ret += F("NO_GYRO,");
-#endif
-
-#if DISPLAY_TYPE == DISPLAY_TYPE_NONE
-    ret += F("NO_LCD,");
-#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD
-    ret += F("LCD_KEYPAD,");
-#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23008
-    ret += F("LCD_I2C_MCP23008,");
-#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_KEYPAD_I2C_MCP23017
-    ret += F("LCD_I2C_MCP23017,");
-#elif DISPLAY_TYPE == DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
-    ret += F("LCD_JOY_I2C_SSD1306,");
-#endif
-
-#if INFO_DISPLAY_TYPE == DISPLAY_TYPE_NONE
-    ret += F("NO_INFO_DISP,");
-#elif INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64
-    ret += F("INFO_I2C_SSD1306_128x64,");
-    // To add new display types, format this string in the same way: INFO_<interface>_<chip>_<resolution>
-#else
-    ret += F("INFO_UNKNOWN,");
-#endif
-
-#if FOCUS_STEPPER_TYPE == STEPPER_TYPE_NONE
-    ret += F("NO_FOC,");
-#else
-    ret += F("FOC,");
-#endif
-
-#if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    ret += F("HSAH,");
-#else
-    ret += F("NO_HSAH,");
-#endif
-#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    ret += F("HSAV,");
-#else
-    ret += F("NO_HSAV,");
-#endif
-
-#if (USE_RA_END_SWITCH == 1) || (USE_DEC_END_SWITCH == 1)
-    ret += F("ENDSW");
-    #if (USE_RA_END_SWITCH == 1)
-    ret += F("_RA");
-    #endif
-    #if (USE_DEC_END_SWITCH == 1)
-    ret += F("_DEC");
-    #endif
-    ret += F(",");
-#else
-    ret += F("NO_ENDSW,");
-#endif
-
-    _readoutScratch = ret;
-    return _readoutScratch.c_str();
 }
 
 /////////////////////////////////
@@ -758,43 +594,9 @@ core::Declination &MountExecutor::targetDEC()
     return _targetDEC;
 }
 
-/////////////////////////////////
-//
-// currentRA
-//
-/////////////////////////////////
 // Get current RA value.
-core::DayTime MountExecutor::currentRA() const
-{
-    // The arithmetic lives in core::currentRa; this gathers the six numbers it needs.
-    core::PositionFacts facts;
-    facts.raSteps           = _axes.ra()->currentPosition();
-    facts.decSteps          = _axes.dec()->currentPosition();
-    facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
-    facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
-    facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
-    facts.zeroPosDecDegrees = _zeroPosDEC;
-    return core::currentRa(facts);
-}
 
-/////////////////////////////////
-//
-// currentDEC
-//
-/////////////////////////////////
 // Get current DEC value.
-core::Declination MountExecutor::currentDEC() const
-{
-    // u-steps / u-steps/deg = deg; the arithmetic lives in core::currentDec.
-    core::PositionFacts facts;
-    facts.raSteps           = _axes.ra()->currentPosition();
-    facts.decSteps          = _axes.dec()->currentPosition();
-    facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
-    facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
-    facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
-    facts.zeroPosDecDegrees = _zeroPosDEC;
-    return core::currentDec(facts);
-}
 
 /////////////////////////////////
 //
@@ -1442,35 +1244,6 @@ void MountExecutor::park()
     publishEvent(core::MountEventType::ParkingStarted);
 }
 
-bool MountExecutor::isAxisRunning(StepperAxis axis)
-{
-    switch (axis)
-    {
-        case RA_STEPS:
-            return _axes.ra()->isRunning();
-        case DEC_STEPS:
-            return _axes.dec()->isRunning();
-            if (kHasAltStepper)
-            {
-                case ALTITUDE_STEPS:
-                    return _axes.alt()->isRunning();
-            }
-            if (kHasAzStepper)
-            {
-                case AZIMUTH_STEPS:
-                    return _axes.az()->isRunning();
-            }
-            if (kHasFocusStepper)
-            {
-                case FOCUS_STEPS:
-                    return _axes.focus()->isRunning();
-            }
-        default:
-            break;
-    }
-    return false;
-}
-
 /////////////////////////////////
 //
 // isRunningAZ
@@ -1593,11 +1366,6 @@ bool MountExecutor::isRunningFocus() const
     return _coordinator.focus().isRunning();
 }
 
-/////////////////////////////////
-//
-// getFocusSpeed
-//
-/////////////////////////////////
 float MountExecutor::getFocusSpeed() const
 {
     return _coordinator.focus().speed();
@@ -1764,141 +1532,12 @@ void MountExecutor::clearStatusFlag(int flag)
 
 /////////////////////////////////
 //
-// getStatusString
-//
-/////////////////////////////////
-String MountExecutor::getStatusStateString()
-{
-    // The precedence lives in core::classifyActivity; the words stay here as flash literals,
-    // because on AVR a plain literal is copied into SRAM.
-    switch (core::classifyActivity(_coordinator.state(),
-                                   isFindingHome(),
-                                   isGuiding(),
-                                   _axes.ra()->isRunning() || _axes.dec()->isRunning(),
-                                   _coordinator.state().test(STATUS_TRACKING)))
-    {
-        case core::ActivityState::Parked:
-            return F("Parked");
-        case core::ActivityState::Parking:
-            return F("Parking");
-        case core::ActivityState::Homing:
-            return F("Homing");
-        case core::ActivityState::Guiding:
-            return F("Guiding");
-        case core::ActivityState::SlewToTarget:
-            return F("SlewToTarget");
-        case core::ActivityState::FreeSlew:
-            return F("FreeSlew");
-        case core::ActivityState::ManualSlew:
-            return F("ManualSlew");
-        case core::ActivityState::Tracking:
-            return F("Tracking");
-        case core::ActivityState::Unknown:
-            return String();
-        case core::ActivityState::Idle:
-        default:
-            return F("Idle");
-    }
-}
-/////////////////////////////////
-//
-// getStatusString
-//
-/////////////////////////////////
-const char *MountExecutor::getStatusString()
-{
-    // The field order lives in core::meade; this gathers the facts and keeps the buffer.
-    const bool trackingAxis = _coordinator.state().test(STATUS_TRACKING);
-    const bool raRunning    = _axes.ra()->isRunning();
-    const bool decRunning   = _axes.dec()->isRunning();
-
-    oat::core::meade::MountStatusFacts facts {};
-    _infoStatusScratch = getStatusStateString();
-    facts.activity     = _infoStatusScratch.c_str();
-
-    // The RA/DEC glyphs only appear while a slew is in flight, as before.
-    const bool slewing          = _coordinator.state().test(STATUS_SLEWING);
-    facts.raRunning             = slewing && raRunning;
-    facts.decRunning            = slewing && decRunning;
-    facts.trackingAxisRunning   = slewing && trackingAxis;
-    facts.raTargetBelowCurrent  = _axes.ra()->targetPosition() < _axes.ra()->currentPosition();
-    facts.decTargetBelowCurrent = _axes.dec()->targetPosition() < _axes.dec()->currentPosition();
-    facts.trackingOnly          = isSlewingTRK() && !slewing;
-
-    if (kHasAzStepper)
-    {
-        facts.azRunning            = _axes.az()->isRunning();
-        facts.azTargetBelowCurrent = _axes.az()->targetPosition() < _axes.az()->currentPosition();
-    }
-    if (kHasAltStepper)
-    {
-        facts.altRunning            = _axes.alt()->isRunning();
-        facts.altTargetBelowCurrent = _axes.alt()->targetPosition() < _axes.alt()->currentPosition();
-    }
-    if (kHasFocusStepper)
-    {
-        facts.focusRunning            = _axes.focus()->isRunning();
-        facts.focusTargetBelowCurrent = _axes.focus()->targetPosition() < _axes.focus()->currentPosition();
-        facts.hasFocus                = true;
-        facts.focusSteps              = _axes.focus()->currentPosition();
-    }
-
-    facts.raSteps  = _axes.ra()->currentPosition();
-    facts.decSteps = _axes.dec()->currentPosition();
-    facts.trkSteps = _axes.tracking()->currentPosition();
-    facts.raText   = raText(COMPACT_STRING | CURRENT_STRING);
-    facts.decText  = decText(COMPACT_STRING | CURRENT_STRING);
-
-    char buffer[160] = {0};
-    if (!oat::core::meade::formatMountStatus(buffer, sizeof(buffer), facts))
-    {
-        // The readout the host already has is better than a truncated line.
-        return _readoutScratch.c_str();
-    }
-
-    _readoutScratch = buffer;
-    return _readoutScratch.c_str();
-}
-
-/////////////////////////////////
-//
 // slewStatus
 //
 // Returns the current state of the motors and is a bitfield with these flags:
 // NOT_SLEWING is all zero. SLEWING_DEC, SLEWING_RA, SLEWING_BOTH, SLEWING_TRACKING are bits.
 /////////////////////////////////
-byte MountExecutor::slewStatus() const
-{
-    if (_coordinator.state().isParked())
-    {
-        return NOT_SLEWING;
-    }
-    if (isGuiding())
-    {
-        return NOT_SLEWING;
-    }
-    byte slewState = _axes.ra()->isRunning() ? SLEWING_RA : NOT_SLEWING;
-    slewState |= _axes.dec()->isRunning() ? SLEWING_DEC : NOT_SLEWING;
 
-    slewState |= _coordinator.state().test(STATUS_TRACKING) ? SLEWING_TRACKING : NOT_SLEWING;
-    return slewState;
-}
-
-/////////////////////////////////
-//
-// isGuiding
-//
-/////////////////////////////////
-bool MountExecutor::isGuiding() const
-{
-    return _coordinator.state().test(STATUS_GUIDE_PULSE);
-}
-
-/////////////////////////////////
-//
-// isSlewingDECorRA
-//
-/////////////////////////////////
 bool MountExecutor::isSlewingRAorDEC() const
 {
     if (isParking())
@@ -1906,26 +1545,11 @@ bool MountExecutor::isSlewingRAorDEC() const
     return (slewStatus() & (SLEWING_DEC | SLEWING_RA)) != 0;
 }
 
-/////////////////////////////////
-//
-// isSlewingIdle
-//
-/////////////////////////////////
 bool MountExecutor::isSlewingIdle() const
 {
     if (isParking())
         return false;
     return (slewStatus() & (SLEWING_DEC | SLEWING_RA)) == 0;
-}
-
-/////////////////////////////////
-//
-// isSlewingTRK
-//
-/////////////////////////////////
-bool MountExecutor::isSlewingTRK() const
-{
-    return (slewStatus() & SLEWING_TRACKING) != 0;
 }
 
 /////////////////////////////////
@@ -1946,16 +1570,6 @@ void MountExecutor::applyParkingStatus()
     {
         setStatusFlag(bit);
     }
-}
-
-/////////////////////////////////
-//
-// isFindingHome
-//
-/////////////////////////////////
-bool MountExecutor::isFindingHome() const
-{
-    return _coordinator.state().test(STATUS_FINDING_HOME);
 }
 
 core::MountActivityFacts MountExecutor::activityFacts() const
@@ -2164,11 +1778,6 @@ void MountExecutor::waitUntilAllStopped()
     }
 }
 
-/////////////////////////////////
-//
-// getCurrentStepperPosition
-//
-/////////////////////////////////
 long MountExecutor::getCurrentStepperPosition(int direction)
 {
     if (direction & TRACKING)
@@ -2239,11 +1848,6 @@ void MountExecutor::setHomingOffset(StepperAxis axis, long offset)
     }
 }
 
-/////////////////////////////////
-//
-// getHomingOffset
-//
-/////////////////////////////////
 long MountExecutor::getHomingOffset(StepperAxis axis)
 {
     if (axis == StepperAxis::RA_STEPS)
@@ -2345,29 +1949,8 @@ void MountExecutor::pollEndSwitches()
     }
 }
 
-const char *MountExecutor::getAutoHomingStates() const
-{
-    String state = homingStateText(kHasRaHoming && (_axes.raHoming() != nullptr), _axes.raHoming());
-    state += "|";
-    state += homingStateText(kHasDecHoming && (_axes.decHoming() != nullptr), _axes.decHoming());
-    _readoutScratch = state;
-    return _readoutScratch.c_str();
-}
-
 /// The Meade status fragment for one axis' sensor. A board without the sensor reports the
 /// same "NEVER RUN"/empty shape a sensor that has never homed does.
-String MountExecutor::homingStateText(bool present, const HallSensorHoming *sensor) const
-{
-    if (!present)
-    {
-        return String();
-    }
-    if (!sensor->isIdleOrComplete())
-    {
-        return sensor->getHomingState(sensor->getHomingState());
-    }
-    return sensor->getLastResult();
-}
 
 #if (USE_RA_END_SWITCH == 1 || USE_DEC_END_SWITCH == 1)
 /////////////////////////////////
@@ -2779,11 +2362,6 @@ void MountExecutor::clearDecLimitPosition(bool upper)
     }
 }
 
-/////////////////////////////////
-//
-// getDecLimitPositions
-//
-/////////////////////////////////
 void MountExecutor::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 {
     lowerLimit = -1.0f * _settings.decLowerLimitSteps() / _settings.stepsPerDegree(DEC_STEPS);
@@ -3178,27 +2756,11 @@ core::DayTime MountExecutor::hourAngle()
     return HA();
 }
 
-const char *MountExecutor::raText(uint8_t type, uint8_t active)
-{
-    RAString(type, active);
-    return scratchBuffer;
-}
-
-const char *MountExecutor::decText(uint8_t type, uint8_t active)
-{
-    DECString(type, active);
-    return scratchBuffer;
-}
-
 /////////////////////////////////
 //
 // IInfoDisplaySource
 //
 /////////////////////////////////
-ports::InfoDisplayActivity MountExecutor::activity()
-{
-    return ports::InfoDisplayActivity {isAxisRunning(RA_STEPS), isAxisRunning(DEC_STEPS)};
-}
 
 void MountExecutor::fillInfoDisplayState(ports::InfoDisplayState &state)
 {
@@ -3235,25 +2797,10 @@ void MountExecutor::fillInfoDisplayState(ports::InfoDisplayState &state)
     snprintf(state.raText, sizeof(state.raText), "%s", raText.c_str());
     snprintf(state.decText, sizeof(state.decText), "%s", decText.c_str());
 
-    // The status line outlives this call because it is copied into a member-backed scratch.
-    _infoStatusScratch = getStatusStateString();
-    state.statusText   = _infoStatusScratch.c_str();
+    // The status line outlives this call because it is copied into the readout's scratch.
+    state.statusText = _readout.panelStatusText();
 }
 
-/////////////////////////////////
-//
-// getStepperProgress
-//
-/////////////////////////////////
-bool MountExecutor::getStepperProgress(int &raPercentage, int &decPercentage)
-{
-    // The rules live in core::SlewProgressReport; this gathers the four numbers it needs.
-    const core::SlewProgress progress = core::SlewProgressReport::evaluate(
-        _coordinator.slew().totalRaSteps(), _coordinator.slew().totalDecSteps(), _axes.ra()->distanceToGo(), _axes.dec()->distanceToGo());
-    raPercentage  = progress.raPercent;
-    decPercentage = progress.decPercent;
-    return progress.inProgress;
-}
 float MountExecutor::plannedRaSteps() const
 {
     return _coordinator.slew().totalRaSteps();
@@ -3264,55 +2811,7 @@ float MountExecutor::plannedDecSteps() const
     return _coordinator.slew().totalDecSteps();
 }
 
-String MountExecutor::DECString(byte type, byte active)
-{
-    Declination dec;
-    if ((type & TARGET_STRING) == TARGET_STRING)
-    {
-        dec = _targetDEC;
-    }
-    else
-    {
-        dec = Declination(currentDEC());
-    }
-
-    const core::CoordinateFormat format = core::coordinateFormat(type);
-    core::formatDEC(scratchBuffer, dec, core::decFormat(format));
-
-    if (format == core::CoordinateFormat::LcdMenu)
-    {
-        core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/true);
-    }
-
-    return String(scratchBuffer);
-}
-
-/////////////////////////////////
-//
-// RAString
-//
-/////////////////////////////////
 // Return a string of RA in the given format. For LCDSTRING, active determines where the cursor is
-String MountExecutor::RAString(byte type, byte active)
-{
-    DayTime ra;
-    if ((type & TARGET_STRING) == TARGET_STRING)
-    {
-        ra = _targetRA;
-    }
-    else
-    {
-        ra = currentRA();
-    }
-
-    const core::CoordinateFormat format = core::coordinateFormat(type);
-    core::formatRA(scratchBuffer, sizeof(scratchBuffer), ra, core::raFormat(format));
-    if (format == core::CoordinateFormat::LcdMenu)
-    {
-        core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/false);
-    }
-    return String(scratchBuffer);
-}
 
 /////////////////////////////////
 //
@@ -3453,6 +2952,105 @@ float MountExecutor::checkRALimit()
     _lastTRKCheck = _deps.clock->now();
 
     return result.remainingHours;
+}
+
+/////////////////////////////////
+//
+// The read-model forwards
+//
+// Everything below is `app::MountReadout`'s. The executor keeps the port entry points so the
+// command layer, the menus and its own motion code keep calling one object, and so that the
+// class that decides when to move stays separate from the class that describes where things are.
+//
+/////////////////////////////////
+core::DayTime MountExecutor::currentRA() const
+{
+    return _readout.currentRA();
+}
+
+core::Declination MountExecutor::currentDEC() const
+{
+    return _readout.currentDEC();
+}
+
+String MountExecutor::RAString(byte type, byte active)
+{
+    return _readout.RAString(type, active);
+}
+
+String MountExecutor::DECString(byte type, byte active)
+{
+    return _readout.DECString(type, active);
+}
+
+const char *MountExecutor::raText(uint8_t type, uint8_t active)
+{
+    return _readout.raText(type, active);
+}
+
+const char *MountExecutor::decText(uint8_t type, uint8_t active)
+{
+    return _readout.decText(type, active);
+}
+
+byte MountExecutor::slewStatus() const
+{
+    return _readout.slewStatus();
+}
+
+bool MountExecutor::isAxisRunning(StepperAxis axis)
+{
+    return _readout.isAxisRunning(axis);
+}
+
+bool MountExecutor::isSlewingTRK() const
+{
+    return _readout.isSlewingTRK();
+}
+
+bool MountExecutor::isGuiding() const
+{
+    return _readout.isGuiding();
+}
+
+bool MountExecutor::isFindingHome() const
+{
+    return _readout.isFindingHome();
+}
+
+bool MountExecutor::getStepperProgress(int &raPercentage, int &decPercentage)
+{
+    return _readout.getStepperProgress(raPercentage, decPercentage);
+}
+
+ports::InfoDisplayActivity MountExecutor::activity()
+{
+    return _readout.activity();
+}
+
+String MountExecutor::getStatusStateString()
+{
+    return _readout.getStatusStateString();
+}
+
+const char *MountExecutor::getStatusString()
+{
+    return _readout.getStatusString();
+}
+
+const char *MountExecutor::getStepperInfo()
+{
+    return _readout.getStepperInfo();
+}
+
+const char *MountExecutor::getMountHardwareInfo()
+{
+    return _readout.getMountHardwareInfo();
+}
+
+const char *MountExecutor::getAutoHomingStates() const
+{
+    return _readout.getAutoHomingStates();
 }
 
 }  // namespace app

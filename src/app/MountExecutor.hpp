@@ -6,6 +6,7 @@
 #include "../Types.hpp"
 #include "AxisBank.hpp"
 #include "BoardPresence.hpp"
+#include "MountReadout.hpp"
 #include "../core/AzAltController.hpp"
 #include "../core/EventBus.hpp"
 #include "../core/FocusController.hpp"
@@ -542,22 +543,17 @@ class MountExecutor final : public ports::IMountOptionalAxes, public ports::IMou
 
     long _commandReceived;
 
-    /// Backing store for the `const char *` readouts, which the protocol sends and the info
-    /// display shows. A member rather than a local so the pointer survives the return; the value
-    /// is valid until the next call to the method that filled it.
-    mutable String _readoutScratch;
-
-    /// Backing store for the status line in `InfoDisplayState`, for the same reason.
-    String _infoStatusScratch;
-
     /// The axes, drivers, sensors and limits this board has. The only object that holds them, so
     /// every cluster below reaches the hardware through one owner instead of through loose members
     /// nobody owns. Held by value: same bytes as the pointers it replaces.
     AxisBank _axes;
 
+    /// The read model's formatting half. Declared after every member it references, because it is
+    /// constructed from references to them.
+    MountReadout _readout;
+
     unsigned long _lastMountPrint = 0;
 
-    char scratchBuffer[24];
     bool _bootComplete;
 };
 
