@@ -104,7 +104,37 @@ adapters::EepromPersistentStore persistentStore(eeprom, hal::eeprom::STORE_SIZE)
 
 // The on-device format has a single writer; the settings port is the typed view the domain
 // consumes.
-adapters::EepromSettingsFormat eepromStore(persistentStore, *logSink);
+namespace
+{
+/// The uncalibrated values a blank store answers with. Board facts, so they are read once here; an
+/// axis the board does not have keeps the "no calibration" answer instead of a made-up one.
+adapters::EepromSettingsFormat::AxisDefaults makeSettingsDefaults()
+{
+    adapters::EepromSettingsFormat::AxisDefaults defaults = {
+        RA_STEPS_PER_DEGREE,
+        DEC_STEPS_PER_DEGREE,
+        0.0f,  // AZ, filled in below when the board has one
+        0.0f,  // ALT
+        RA_SLEW_MICROSTEPPING,
+        DEC_SLEW_MICROSTEPPING,
+        1,  // AZ microsteps: a divisor, so never zero
+        1,  // ALT microsteps
+        static_cast<int16_t>(BACKLASH_STEPS),
+    };
+#if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
+    defaults.azStepsPerDegree = AZIMUTH_STEPS_PER_REV / 360.0f;
+    defaults.azMicrosteps     = AZ_MICROSTEPPING;
+#endif
+#if ALT_STEPPER_TYPE != STEPPER_TYPE_NONE
+    defaults.altStepsPerDegree = ALTITUDE_STEPS_PER_REV / 360.0f;
+    defaults.altMicrosteps     = ALT_MICROSTEPPING;
+#endif
+    return defaults;
+}
+}  // namespace
+
+const adapters::EepromSettingsFormat::AxisDefaults settingsDefaults = makeSettingsDefaults();
+adapters::EepromSettingsFormat eepromStore(persistentStore, *logSink, settingsDefaults);
 adapters::MountSettingsStore settingsStore(eepromStore);
 
 // --- the menu display and its keys -----------------------------------------------------

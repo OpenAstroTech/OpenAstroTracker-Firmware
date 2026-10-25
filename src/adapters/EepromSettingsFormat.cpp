@@ -1,8 +1,6 @@
 #include "adapters/EepromSettingsFormat.hpp"
 
-#include "../Configuration.hpp"
 #include "../Constants.hpp"
-#include "Utility.hpp"
 #include "ports/LogFormat.hpp"
 
 namespace adapters
@@ -17,9 +15,12 @@ namespace adapters
 // is decided once, in the composition root.
 using namespace hal::eeprom;
 
-EepromSettingsFormat::EepromSettingsFormat(ports::IPersistentStore &persistent, ports::ILogger &logger)
-    : _persistent(persistent), _log(logger)
+EepromSettingsFormat::EepromSettingsFormat(ports::IPersistentStore &persistent, ports::ILogger &logger, const AxisDefaults &defaults)
+    : _defaults(defaults), _persistent(persistent), _log(logger)
 {
+    // A build with logging compiled out never touches the sink, which is also why a host test can
+    // pass a throwaway one.
+    (void) _log;
 }
 
 void EepromSettingsFormat::initialize()
@@ -324,15 +325,15 @@ void EepromSettingsFormat::storeBrightness(uint8_t brightness)
 }
 
 // Return the RA steps per degree (actually microsteps per degree).
-// If it is not present then the default uncalibrated RA_STEPS_PER_DEGREE value is returned.
+// If it is not present then the default uncalibrated _defaults.raStepsPerDegree value is returned.
 float EepromSettingsFormat::getRAStepsPerDegree()
 {
-    float raStepsPerDegree(RA_STEPS_PER_DEGREE);  // Default value
+    float raStepsPerDegree(_defaults.raStepsPerDegree);  // Default value
 
     if (isPresentExtended(RA_NORM_STEPS_MARKER_FLAG))
     {
         // Latest version stores 100x steps/deg for 256 MS
-        const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
+        const float factor = SteppingStorageNormalized / _defaults.raSlewMicrosteps;
         raStepsPerDegree   = readInt32(RA_NORM_STEPS_DEGREE_ADDR) / factor;
         OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: RA Normed Marker Present! RA steps/deg is %f", raStepsPerDegree);
     }
@@ -354,7 +355,7 @@ float EepromSettingsFormat::getRAStepsPerDegree()
 void EepromSettingsFormat::storeRAStepsPerDegree(float raStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
-    const float factor = SteppingStorageNormalized / RA_SLEW_MICROSTEPPING;
+    const float factor = SteppingStorageNormalized / _defaults.raSlewMicrosteps;
     int32_t val        = raStepsPerDegree * factor;
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing RA steps to %ld (%f)", val, raStepsPerDegree);
 
@@ -364,15 +365,15 @@ void EepromSettingsFormat::storeRAStepsPerDegree(float raStepsPerDegree)
 }
 
 // Return the DEC steps per degree for guiding (actually microsteps per degree).
-// If it is not present then the default uncalibrated DEC_STEPS_PER_DEGREE value is returned.
+// If it is not present then the default uncalibrated _defaults.decStepsPerDegree value is returned.
 float EepromSettingsFormat::getDECStepsPerDegree()
 {
-    float decStepsPerDegree(DEC_STEPS_PER_DEGREE);  // Default value
+    float decStepsPerDegree(_defaults.decStepsPerDegree);  // Default value
 
     if (isPresentExtended(DEC_NORM_STEPS_MARKER_FLAG))
     {
         // This version stored 100x steps/deg for 256 MS
-        const float factor = SteppingStorageNormalized / DEC_SLEW_MICROSTEPPING;
+        const float factor = SteppingStorageNormalized / _defaults.decSlewMicrosteps;
         decStepsPerDegree  = readInt32(DEC_NORM_STEPS_DEGREE_ADDR) / factor;
         OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: DEC Normed Marker Present! DEC steps/deg is %f", decStepsPerDegree);
     }
@@ -393,7 +394,7 @@ float EepromSettingsFormat::getDECStepsPerDegree()
 // Store the DEC steps per degree for guiding (actually microsteps per degree).
 void EepromSettingsFormat::storeDECStepsPerDegree(float decStepsPerDegree)
 {
-    const float factor = SteppingStorageNormalized / DEC_SLEW_MICROSTEPPING;
+    const float factor = SteppingStorageNormalized / _defaults.decSlewMicrosteps;
     int32_t val        = decStepsPerDegree * factor;
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing DEC steps to %ld (%f)", val, decStepsPerDegree);
 
@@ -407,7 +408,7 @@ void EepromSettingsFormat::storeDECStepsPerDegree(float decStepsPerDegree)
 float EepromSettingsFormat::getAZStepsPerDegree()
 {
 #if AZ_STEPPER_TYPE != STEPPER_TYPE_NONE
-    float azStepsPerDegree(AZIMUTH_STEPS_PER_REV / 360);  // Default value
+    float azStepsPerDegree(_defaults.azStepsPerDegree);  // Default value
 #else
     float azStepsPerDegree(1);  // Default value
 #endif
@@ -416,7 +417,7 @@ float EepromSettingsFormat::getAZStepsPerDegree()
     {
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
         // Latest version stores 100x steps/deg for 256 MS
-        const float factor = SteppingStorageNormalized / AZ_MICROSTEPPING;
+        const float factor = SteppingStorageNormalized / _defaults.azMicrosteps;
         azStepsPerDegree   = readInt32(AZ_NORM_STEPS_DEGREE_ADDR) / factor;
         OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: AZ Normed Marker Present! AZ steps/deg is %f", azStepsPerDegree);
 #else
@@ -436,7 +437,7 @@ void EepromSettingsFormat::storeAZStepsPerDegree(float azStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    const float factor = SteppingStorageNormalized / AZ_MICROSTEPPING;
+    const float factor = SteppingStorageNormalized / _defaults.azMicrosteps;
     int32_t val        = azStepsPerDegree * factor;
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing AZ steps to %ld (%f)", val, azStepsPerDegree);
 
@@ -454,7 +455,7 @@ void EepromSettingsFormat::storeAZStepsPerDegree(float azStepsPerDegree)
 float EepromSettingsFormat::getALTStepsPerDegree()
 {
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    float azStepsPerDegree(ALTITUDE_STEPS_PER_REV / 360);  // Default value
+    float azStepsPerDegree(_defaults.altStepsPerDegree);  // Default value
 #else
     float azStepsPerDegree(1);  // Default value
 #endif
@@ -463,7 +464,7 @@ float EepromSettingsFormat::getALTStepsPerDegree()
     {
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
         // Latest version stores 100x steps/deg for 256 MS
-        const float factor = SteppingStorageNormalized / ALT_MICROSTEPPING;
+        const float factor = SteppingStorageNormalized / _defaults.altMicrosteps;
         azStepsPerDegree   = readInt32(ALT_NORM_STEPS_DEGREE_ADDR) / factor;
         OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: ALT Normed Marker Present! ALT steps/deg is %f", azStepsPerDegree);
 #else
@@ -483,7 +484,7 @@ void EepromSettingsFormat::storeALTStepsPerDegree(float azStepsPerDegree)
 {
     // Store steps as 100x steps/deg at 256 MS.
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    const float factor = SteppingStorageNormalized / ALT_MICROSTEPPING;
+    const float factor = SteppingStorageNormalized / _defaults.altMicrosteps;
     int32_t val        = azStepsPerDegree * factor;
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing ALT steps to %ld (%f)", val, azStepsPerDegree);
 
@@ -546,7 +547,7 @@ void EepromSettingsFormat::storeSpeedFactor(float speedFactor)
 {
     // Store the fractional speed factor since it is a number very close to 1
     int32_t val = (speedFactor - 1.0f) * 10000.0f;
-    val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Speed Factor to %ld (%f)", val, speedFactor);
 
     // Speed factor bytes are in split locations :-(
@@ -561,7 +562,7 @@ void EepromSettingsFormat::storeSpeedFactor(float speedFactor)
 int16_t EepromSettingsFormat::getBacklashCorrectionSteps()
 {
     // Use nominal default values
-    int16_t backlashCorrectionSteps(BACKLASH_STEPS);
+    int16_t backlashCorrectionSteps(_defaults.backlashSteps);
 
     if (isPresent(BACKLASH_STEPS_FLAG))
     {
@@ -595,7 +596,7 @@ core::Latitude EepromSettingsFormat::getLatitude()
     if (isPresent(LATITUDE_FLAG))
     {
         latitude = core::Latitude(1.0f * readInt16(LATITUDE_ADDR) / 100.0f);
-        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: core::Latitude Marker OK! core::Latitude is %s", latitude.ToString());
+        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Latitude marker OK! Latitude is %.4f hours", latitude.getTotalHours());
     }
     else
     {
@@ -609,8 +610,8 @@ core::Latitude EepromSettingsFormat::getLatitude()
 void EepromSettingsFormat::storeLatitude(const core::Latitude &latitude)
 {
     int32_t val = static_cast<int32_t>(roundf(latitude.getTotalHours() * 100.0f));
-    val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing core::Latitude as %ld (%f)", val, latitude.getTotalHours());
+    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing latitude as %ld (%f)", val, latitude.getTotalHours());
 
     updateInt16(LATITUDE_ADDR, val);
     updateFlags(LATITUDE_FLAG);
@@ -626,7 +627,7 @@ core::Longitude EepromSettingsFormat::getLongitude()
     if (isPresent(LONGITUDE_FLAG))
     {
         longitude = core::Longitude(1.0f * readInt16(LONGITUDE_ADDR) / 100.0f);
-        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: core::Longitude Marker OK! core::Longitude is %s", longitude.ToString());
+        OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Longitude marker OK! Longitude is %.4f hours", longitude.getTotalHours());
     }
     else
     {
@@ -640,8 +641,8 @@ core::Longitude EepromSettingsFormat::getLongitude()
 void EepromSettingsFormat::storeLongitude(const core::Longitude &longitude)
 {
     int32_t val = static_cast<int32_t>(roundf(longitude.getTotalHours() * 100.0f));
-    val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
-    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing core::Longitude as %ld (%f)", val, longitude.getTotalHours());
+    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing longitude as %ld (%f)", val, longitude.getTotalHours());
 
     updateInt16(LONGITUDE_ADDR, val);
     updateFlags(LONGITUDE_FLAG);
@@ -672,7 +673,7 @@ float EepromSettingsFormat::getPitchCalibrationAngle()
 void EepromSettingsFormat::storePitchCalibrationAngle(float pitchCalibrationAngle)
 {
     int32_t val = (pitchCalibrationAngle * 100) + 16384;
-    val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Pitch calibration %ld (%f)", val, pitchCalibrationAngle);
 
     updateInt16(PITCH_OFFSET_ADDR, val);
@@ -704,7 +705,7 @@ float EepromSettingsFormat::getRollCalibrationAngle()
 void EepromSettingsFormat::storeRollCalibrationAngle(float rollCalibrationAngle)
 {
     int32_t val = (rollCalibrationAngle * 100) + 16384;
-    val         = clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Roll calibration %ld (%f)", val, rollCalibrationAngle);
 
     updateInt16(ROLL_OFFSET_ADDR, val);

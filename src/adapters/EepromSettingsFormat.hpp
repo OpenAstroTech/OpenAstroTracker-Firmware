@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/MathUtil.hpp"
 #include "core/types/DayTime.hpp"
 #include "core/types/Latitude.hpp"
 #include "core/types/Longitude.hpp"
@@ -22,7 +23,24 @@ namespace adapters
 class EepromSettingsFormat
 {
   public:
-    EepromSettingsFormat(ports::IPersistentStore &persistent, ports::ILogger &logger);
+    /// The uncalibrated values a fresh store answers with, and the microstep settings the stored
+    /// numbers are normalised against.
+    ///
+    /// They are board facts, so they arrive from the composition root instead of being read from
+    /// the configuration here: that is what lets this class be tested on the host.
+    struct AxisDefaults {
+        float raStepsPerDegree;
+        float decStepsPerDegree;
+        float azStepsPerDegree;
+        float altStepsPerDegree;
+        int raSlewMicrosteps;
+        int decSlewMicrosteps;
+        int azMicrosteps;
+        int altMicrosteps;
+        int16_t backlashSteps;
+    };
+
+    EepromSettingsFormat(ports::IPersistentStore &persistent, ports::ILogger &logger, const AxisDefaults &defaults);
 
     void initialize();
     void clearConfiguration();
@@ -123,6 +141,10 @@ class EepromSettingsFormat
     uint8_t read(uint8_t location);
     void update(uint8_t location, uint8_t value);
     void commit();
+
+    /// Owned by the composition root for the firmware's lifetime: holding a reference keeps the
+    /// twenty-six bytes of defaults out of every settings object on the 8 KB part.
+    const AxisDefaults &_defaults;
 
     ports::IPersistentStore &_persistent;
     /// The log sink, held by reference because the store never outlives it. `OAT_LOG` takes a
