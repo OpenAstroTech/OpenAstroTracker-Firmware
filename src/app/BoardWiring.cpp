@@ -38,7 +38,8 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 
 #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
-    #include "SSD1306_128x64_Display.hpp"
+    #include "adapters/Ssd1306InfoDisplay.hpp"
+    #include "hal/arduino/Ssd1306Panel.hpp"
 #endif
 
 // --- UI state, declared in `a_inits.hpp` -----------------------------------------------
@@ -228,7 +229,12 @@ app::MountExecutor mount(makeMountDeps(), app::buildMountConfig(), mountCoordina
 // loop ticks the panel (Phase 6). A board without the panel compiles none of this and the helpers
 // below are empty.
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-InfoDisplayRender *infoDisplay               = nullptr;
+    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+/// The 128x64 status panel: the library-facing backend, and the adapter that draws the frames.
+hal::Ssd1306Panel infoPanel(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
+adapters::Ssd1306InfoDisplay ssd1306InfoDisplay(infoPanel, clockPort);
+adapters::Ssd1306InfoDisplay *infoDisplay = &ssd1306InfoDisplay;
+    #endif
 adapters::InfoDisplayPanel *infoDisplayPanel = nullptr;
 #endif
 
@@ -350,7 +356,7 @@ void initPersistentStore()
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 int addConsoleText(String text)
 {
-    return (infoDisplay != nullptr) ? infoDisplay->addConsoleText(text, false) : -1;
+    return (infoDisplay != nullptr) ? infoDisplay->addConsoleText(text) : -1;
 }
 
 void updateConsoleText(int line, String newText)

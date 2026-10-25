@@ -107,10 +107,8 @@ void setup()
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
     LOG(DEBUG_ANY, "[SYSTEM]: Get OLED info screen ready...");
     #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
-    LOG(DEBUG_DISPLAY, "[DISPLAY]: Create SSD1306 OLED class...");
-    infoDisplay = new SDD1306OLED128x64(INFO_DISPLAY_I2C_ADDRESS, INFO_DISPLAY_I2C_SDA_PIN, INFO_DISPLAY_I2C_SCL_PIN);
     LOG(DEBUG_ANY, "[SYSTEM]: SSD1306 OLED created... initializing");
-    infoDisplay->init();
+    infoDisplay->begin();
     infoDisplay->setConsoleMode(true);
     LOG(DEBUG_DISPLAY, "[DISPLAY]: Created and initialized SSD1306 OLED class...");
     #endif

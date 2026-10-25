@@ -106,7 +106,13 @@ extern WifiControl wifiControl;
 // --- the optional status panel ---------------------------------------------------------
 
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-extern InfoDisplayRender *infoDisplay;
+    #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
+namespace adapters
+{
+class Ssd1306InfoDisplay;
+}
+extern adapters::Ssd1306InfoDisplay *infoDisplay;
+    #endif
 extern adapters::InfoDisplayPanel *infoDisplayPanel;
 
 /// Appends a line to the panel's console. Returns the line index, or -1 on a board

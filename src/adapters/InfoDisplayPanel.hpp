@@ -5,8 +5,6 @@
 #include "ports/IInfoDisplay.hpp"
 #include "ports/IMountEvents.hpp"
 
-class InfoDisplayRender;
-
 namespace adapters
 {
 /// Drives the optional 128x64 status panel.
@@ -36,7 +34,7 @@ class InfoDisplayPanel final : private ::core::IEventSink
     /// Highest frame rate a transition may ask for, whatever the slew bucket says.
     static constexpr uint32_t kMinimumFrameIntervalMs = 33;  // ~30 Hz
 
-    InfoDisplayPanel(ports::IInfoDisplaySource &source, InfoDisplayRender &panel, ports::IClock &clock, ports::IMountEvents &events);
+    InfoDisplayPanel(ports::IInfoDisplaySource &source, ports::IInfoDisplay &panel, ports::IClock &clock, ports::IMountEvents &events);
 
     /// Subscribes to the mount's events.
     void begin();
@@ -54,7 +52,7 @@ class InfoDisplayPanel final : private ::core::IEventSink
 
     ports::IInfoDisplaySource &_source;
     ports::InfoDisplayState _state {};
-    InfoDisplayRender &_panel;
+    ports::IInfoDisplay &_panel;
     ports::IClock &_clock;
     ports::IMountEvents &_events;
     uint32_t _lastRender = 0;

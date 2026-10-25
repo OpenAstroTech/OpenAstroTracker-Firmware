@@ -1,11 +1,9 @@
 #include "InfoDisplayPanel.hpp"
 
-#include "InfoDisplayRender.hpp"
-
 namespace adapters
 {
 InfoDisplayPanel::InfoDisplayPanel(ports::IInfoDisplaySource &source,
-                                   InfoDisplayRender &panel,
+                                   ports::IInfoDisplay &panel,
                                    ports::IClock &clock,
                                    ports::IMountEvents &events)
     : _source(source), _panel(panel), _clock(clock), _events(events)
@@ -42,7 +40,7 @@ void InfoDisplayPanel::onMountEvent(const ::core::MountEvent &event)
 void InfoDisplayPanel::render()
 {
     _source.fillInfoDisplayState(_state);
-    _panel.renderScreen(_state);
+    _panel.render(_state);
     _lastRender = _clock.now();
     _dirty      = false;
 }
