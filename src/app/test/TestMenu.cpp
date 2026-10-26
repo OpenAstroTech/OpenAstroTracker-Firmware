@@ -1,4 +1,4 @@
-#include "../Configuration.hpp"
+#include "Configuration.hpp"
 #include "Utility.hpp"
 #include "app/MountExecutor.hpp"
 #include "adapters/MeadeCommandAdapter.hpp"
@@ -10,7 +10,7 @@
     #include "app/BoardWiring.hpp"
 
     #include "MappedDict.hpp"
-    #include "testmenu.hpp"
+    #include "app/test/TestMenu.hpp"
 
 TestMenu *TestMenu::_currentMenu               = nullptr;
 TestMenuItem *TestMenu::_backItem              = nullptr;

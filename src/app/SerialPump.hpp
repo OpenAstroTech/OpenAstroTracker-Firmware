@@ -1,8 +1,8 @@
 #pragma once
 
 #if TEST_VERIFY_MODE == 1
-    #include "testmenu.hpp"
-    #include "testmenudef.hpp"
+    #include "app/test/TestMenu.hpp"
+    #include "app/test/TestMenuDefinitions.hpp"
 #endif
 
 #include "app/BoardWiring.hpp"

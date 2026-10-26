@@ -26,7 +26,7 @@
 #endif
 
 #if TEST_VERIFY_MODE == 1
-    #include "../testmenu.hpp"
+    #include "test/TestMenu.hpp"
 #endif
 
 #ifndef NEW_STEPPER_LIB

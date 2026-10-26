@@ -1,5 +1,5 @@
 #if TEST_VERIFY_MODE == 1
-    #include "testmenu.hpp"
+    #include "app/test/TestMenu.hpp"
 
 TestMenuItem connectMenuItems[] = {
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART

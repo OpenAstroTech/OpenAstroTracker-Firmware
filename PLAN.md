@@ -893,9 +893,16 @@ format, the two sensor helpers and the utility grab-bag.*
   details are pinned by tests: the level readout is the sensor minus the stored offset with its
   marker one cell per quarter degree, and `Declination(-2, 42, 11)` is sign-magnitude, so the polar
   step targets -(2°42'11").
-- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.9 (test console),
-  8.10 (`Utility` and the empty root, which also removes `LcdMenu`/`LcdButtons`). The root is down
-  from 47 files to 20.
+- ✅ **8.9 — the factory test console moved to `app/test/`.** `testmenu.hpp`, `testmenu.cpp` and
+  `testmenudef.hpp` became `app/test/TestMenu.{hpp,cpp}` and `app/test/TestMenuDefinitions.hpp`.
+  This is a *move*, not a port conversion, and deliberately so: the console's whole output is a
+  terminal transcript and its input is single characters at a prompt, so a transport port would mean
+  inventing a line-formatting abstraction for code no shipped board compiles. It already does
+  everything it does *to* the mount through `UiPorts`, which is the layering that matters.
+  Compile-verified by building `ramps` with `TEST_VERIFY_MODE 1`.
+- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.10 (`Utility`
+  and the empty root, which also removes `LcdMenu`/`LcdButtons`). The root is down from 47 files to
+  17.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
@@ -922,7 +929,7 @@ None of this is a design question any more. Every surface the UI needs exists: `
 | 8.6 ✅ | **Sensor helpers** | `EndSwitch`, `HallSensorHoming` | `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner` | ~400 | medium — `EndSwitch` runs inside the step ISR |
 | 8.7a ✅ / 8.7b | **Type overlays, `Types.hpp`, `inc/Globals`** (Phase 7 step 4's other half) | `DayTime`…`Sidereal`, `Types.hpp`, `inc/Globals.*` | `core/`, `adapters/GpsSidereal`, `core::MountState`, `app::UiSession` | ~560 | medium — ~30 log sites and one latent aliasing bug |
 | 8.8a ✅ / 8.8b | **The screens** | `c65`–`c78`, `c_buttons`, `LcdSlewStatus`, `a_inits` | `app/ui/` — Arduino-free and host-tested | ~3,200 | high — 67 compile-time branches, the most user-visible code in the tree |
-| 8.9 | **Factory test console** | `testmenu.*`, `testmenudef.hpp` | `app/test/TestConsole` | ~860 | low — build-flag gated |
+| 8.9 ✅ | **Factory test console** | `testmenu.*`, `testmenudef.hpp` | `app/test/TestMenu.*` + `TestMenuDefinitions.hpp` | ~860 | low — build-flag gated |
 | 8.10 | **Utilities, and the empty root** | `Utility.*`, `macros/` usage | `core/MathUtil.hpp`, `adapters/SerialLogger`, `hal/arduino/` | ~650 | low |
 
 Dependency shape: 8.8 needs 8.1–8.3 and 8.7 (it renders through `ports::IDisplay`, reads `ports::IButtons`, and speaks the `core::` value types); 8.9 sits on 8.8's host loop; 8.10 is last because it deletes the `LOG()` macro every other slice removes a call site of. 8.1–8.7 are mutually independent and can land in any order — the order above is simply the one that keeps each commit small.
@@ -1014,7 +1021,11 @@ This is the substantive slice, and the one that changes what the project can pro
 
 #### 8.9 The factory test console → `app/test/`
 
-`testmenu.cpp` (672 lines, 31 `String`), its header and `testmenudef.hpp` are a `TEST_VERIFY_MODE`-gated console with its own key/command state machine. It becomes `app::TestConsole` over `ports::ITransport` + `UiPorts`, host-testable for the same reason the screens are, and one `#if TEST_VERIFY_MODE` in `app/` selects whether the loop constructs it. `splitStringBy`, `format` and `formatArg` die with their only callers.
+`testmenu.cpp` (672 lines, 31 `String`), its header and `testmenudef.hpp` are a `TEST_VERIFY_MODE`-gated console with its own key/command state machine. **Landed as `app/test/TestMenu.{hpp,cpp}` + `TestMenuDefinitions.hpp`: a move, not a port conversion**, and the name stays `TestMenu` because that is what it is — the console is the serial pump in `app/SerialPump.hpp`, which feeds it keys and commands.
+
+Why not port it like the screens: it is a factory diagnostic whose entire output is a terminal transcript (`Serial.print` of ~60 lines, `String`-built submenu tables) and whose inputs are single characters typed at a prompt. A `ports::ITransport` would have to carry a formatted line per call, which is a formatting abstraction invented for code that no shipped board compiles (`TEST_VERIFY_MODE` is 0 in every board config; only `matrix_build.py` varies it). It already speaks `UiPorts` for everything it does *to* the mount — `ui.motion`, `ui.read`, `ui.config` — so the layering that matters is in place; what is left is terminal I/O, which belongs with the terminal.
+
+Verified by building `ramps` with `TEST_VERIFY_MODE 1` (the object is 116 KB of code, so the body really compiles). `splitStringBy`, `format` and `formatArg` die with their only callers in 8.10.
 
 #### 8.10 `Utility`, and the empty root
 
@@ -1096,7 +1107,7 @@ Measured: 47 files / 10,497 lines at the top of `src/`, 1,890 of them font table
 - **Settings format:** [`src/EPROMStore.cpp`](src/EPROMStore.cpp) (882) / [`.hpp`](src/EPROMStore.hpp) — `adapters/EepromSettingsFormat` + its first host tests.
 - **Sensor helpers:** [`src/EndSwitches.cpp`](src/EndSwitches.cpp) / [`.hpp`](src/EndSwitches.hpp), [`src/HallSensorHoming.cpp`](src/HallSensorHoming.cpp) / [`.hpp`](src/HallSensorHoming.hpp) — `core/EndSwitchState` + `app/EndSwitchMonitor`, `app/HomingRunner`.
 - **Type overlays / shims:** [`src/DayTime.*`](src/DayTime.hpp), [`Declination.*`](src/Declination.hpp), [`Latitude.*`](src/Latitude.hpp), [`Longitude.*`](src/Longitude.hpp), [`RightAscension.*`](src/RightAscension.hpp), [`Sidereal.*`](src/Sidereal.hpp), [`src/Types.hpp`](src/Types.hpp), [`src/inc/Globals.hpp`](src/inc/Globals.hpp) / [`Globals.cpp`](src/inc/Globals.cpp), [`src/a_inits.hpp`](src/a_inits.hpp) — core value types + `app/ui/MenuIds.hpp` + `app::UiSession`.
-- **Factory test console:** [`src/testmenu.cpp`](src/testmenu.cpp) (672), [`testmenu.hpp`](src/testmenu.hpp), [`testmenudef.hpp`](src/testmenudef.hpp) — `app/test/TestConsole`.
+- **Factory test console:** ✅ moved to `app/test/` (8.9); it keeps its terminal I/O.
 - **Utility:** [`src/Utility.cpp`](src/Utility.cpp) / [`.hpp`](src/Utility.hpp) — `core/MathUtil.hpp`, `hal/arduino/` (the `micros()` perf timer), `adapters/SerialLogger` (the log ring behind `ports::ILogRetention`), and `OAT_SNPRINTF` → [`src/ports/LogFormat.hpp`](src/ports/LogFormat.hpp).
 
 ### Infrastructure
