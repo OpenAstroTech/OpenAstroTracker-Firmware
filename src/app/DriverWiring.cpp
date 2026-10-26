@@ -2,7 +2,8 @@
 
 #include "../../Configuration.hpp"
 #include "../Utility.hpp"
-#include "../a_inits.hpp"
+/// The TMC2209 sense resistor every StepStick on these boards uses.
+constexpr float kRSense = 0.11F;
 
 #include "BoardWiring.hpp"
 #include "MountConfigBuilder.hpp"
@@ -529,40 +530,40 @@ void attachDrivers(app::MountExecutor &mount)
 
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if SW_SERIAL_UART == 0
-    drivers.ra = buildRADriver(config, &RA_SERIAL_PORT, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
+    drivers.ra = buildRADriver(config, &RA_SERIAL_PORT, kRSense, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
-    drivers.ra = buildRADriver(config, RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, R_SENSE, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
+    drivers.ra = buildRADriver(config, RA_SERIAL_PORT_RX, RA_SERIAL_PORT_TX, kRSense, RA_DRIVER_ADDRESS, RA_RMSCURRENT, RA_STALL_VALUE);
     #endif
 #endif
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
     #if SW_SERIAL_UART == 0
-    drivers.dec = buildDECDriver(config, &DEC_SERIAL_PORT, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
+    drivers.dec = buildDECDriver(config, &DEC_SERIAL_PORT, kRSense, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
     drivers.dec
-        = buildDECDriver(config, DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, R_SENSE, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
+        = buildDECDriver(config, DEC_SERIAL_PORT_RX, DEC_SERIAL_PORT_TX, kRSense, DEC_DRIVER_ADDRESS, DEC_RMSCURRENT, DEC_STALL_VALUE);
     #endif
 #endif
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE) && (AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if SW_SERIAL_UART == 0
-    drivers.az = buildAZDriver(&AZ_SERIAL_PORT, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
+    drivers.az = buildAZDriver(&AZ_SERIAL_PORT, kRSense, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
-    drivers.az = buildAZDriver(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, R_SENSE, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
+    drivers.az = buildAZDriver(AZ_SERIAL_PORT_RX, AZ_SERIAL_PORT_TX, kRSense, AZ_DRIVER_ADDRESS, AZ_RMSCURRENT, AZ_STALL_VALUE);
     #endif
 #endif
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE) && (ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if SW_SERIAL_UART == 0
-    drivers.alt = buildALTDriver(&ALT_SERIAL_PORT, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
+    drivers.alt = buildALTDriver(&ALT_SERIAL_PORT, kRSense, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
-    drivers.alt = buildALTDriver(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, R_SENSE, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
+    drivers.alt = buildALTDriver(ALT_SERIAL_PORT_RX, ALT_SERIAL_PORT_TX, kRSense, ALT_DRIVER_ADDRESS, ALT_RMSCURRENT, ALT_STALL_VALUE);
     #endif
 #endif
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE) && (FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART)
     #if SW_SERIAL_UART == 0
-    drivers.focus = buildFocusDriver(&FOCUS_SERIAL_PORT, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
+    drivers.focus = buildFocusDriver(&FOCUS_SERIAL_PORT, kRSense, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
     #elif SW_SERIAL_UART == 1
     drivers.focus
-        = buildFocusDriver(FOCUS_SERIAL_PORT_RX, FOCUS_SERIAL_PORT_TX, R_SENSE, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
+        = buildFocusDriver(FOCUS_SERIAL_PORT_RX, FOCUS_SERIAL_PORT_TX, kRSense, FOCUS_DRIVER_ADDRESS, FOCUS_RMSCURRENT, FOCUS_STALL_VALUE);
     #endif
 #endif
 

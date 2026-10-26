@@ -14,7 +14,7 @@
 #include "LcdButtons.hpp"
 #include "LcdMenu.hpp"
 #include "MountExecutor.hpp"
-#include "a_inits.hpp"
+#include "LoopState.hpp"
 
 #include "adapters/ArduinoClock.hpp"
 #include "adapters/EepromSettingsFormat.hpp"

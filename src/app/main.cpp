@@ -16,7 +16,6 @@
 #include "MotorWiring.hpp"
 #include "SensorWiring.hpp"
 
-#include "../a_inits.hpp"
 #if defined(OAT_DEBUG_BUILD)
     #if BOARD < 1000
         #include "avr8-stub.h"

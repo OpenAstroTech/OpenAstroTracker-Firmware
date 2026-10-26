@@ -46,8 +46,6 @@ POP_NO_WARNINGS
 // --- UI state, declared in `a_inits.hpp` -----------------------------------------------
 
 #if USE_GPS == 1
-TinyGPSPlus gps;
-
 /// The receiver, behind the port the HA screen talks to. `begin()` is a no-op: `setup()` opens the
 /// stream, and the adapter only decodes what arrives on it.
 adapters::TinyGpsAdapter gpsAdapter(GPS_SERIAL_PORT);
@@ -64,10 +62,6 @@ bool inStartup = false;  // Start with a guided startup
 
 bool okToUpdateMenu                = true;   // Can be used to supress rendering the first line of the menu.
 bool quitSerialOnNextButtonRelease = false;  // Used to detect SELECT button to quit Serial mode.
-
-int RAselect;
-int DECselect;
-int HAselect;
 
 // The infrastructure the domain runs on. Declared before `mount` so it is
 // constructed first; all of these are stateless or trivially initialised.

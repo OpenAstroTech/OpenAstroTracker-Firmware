@@ -909,8 +909,18 @@ format, the two sensor helpers and the utility grab-bag.*
   RP2040). `Types.hpp` became `core/PortVocabulary.hpp`: the direction bitset, the coordinate-format
   selectors, the axis enum and `LocalDate` are the words the ports are written in, and the file was
   already Arduino-free.
-- **Remaining:** 8.10 — `Utility`, `LcdMenu`/`LcdButtons`, `a_inits.hpp` and the loop. The root is
-  down from 47 files to 8.
+- ✅ **`a_inits.hpp` dissolved** (the first third of 8.10). What was in it went where it belonged:
+  the three loop flags (`inStartup`, `okToUpdateMenu`, `quitSerialOnNextButtonRelease`) to
+  `app/LoopState.hpp`, the motor pin aliases into `MotorWiring.cpp` as the configuration pins
+  themselves, and the one `R_SENSE` the driver programming used into `DriverWiring.cpp` as a local
+  constant. Three globals and one `TinyGPSPlus` were dead and are deleted — the GPSCraft object was
+  still holding **181 B of SRAM** on every board with a receiver (`ramps` 6806 → 6625 B,
+  `rp2040_skr_pico` 11772 → 11552 B, `mksgenlv21` 6816 → 6635 B) because the adapter owns its own
+  decoder now.
+- **Remaining:** the last three files — `Utility.{hpp,cpp}` (181 `LOG()` sites still to migrate and
+  the log ring to move into `adapters::SerialLogger`), `LcdMenu.{hpp,cpp}` and
+  `LcdButtons.{hpp,cpp}` (still woven into `c_buttons`, `main.cpp`, `MeadeCommandAdapter`,
+  `WifiControl`, `MountExecutor`), and the loop in `c_buttons.hpp`.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
