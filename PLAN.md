@@ -392,7 +392,9 @@ Recommended slice order (each is an independent step, parallelizable after Phase
    - Tracker-stop compensation is split into `compensationSteps(now)` (pure, keeps value semantics and lets `Mount` log before the move) and `applyCompensation(steps)` (the `runToNewPosition` call plus clearing the request).
    - `detach()` restores what `initializeVariables()` used to do to `_compensateForTrackerOff`/`_trackerStoppedAt` when the mount drops its configuration.
    - Tests: `unit_tests/test_core/test_tracking_controller.cpp` (11 cases) over a new `fakes::FakeStepperAxis` in `unit_tests/test_common/hal_fakes/`.
-2. 🟡 `core/SlewController` — **bookkeeping landed, sequencing deliberately not.** See the note below.
+2. ✅ `core/SlewController` — **bookkeeping landed here; the sequencing closed in Phase 7**, when
+   `Mount` was dissolved and `app::MountExecutor` took the arrival sequence with the coordinator it
+   arbitrates. See the note below.
    - The controller owns what the arrival sequence consults: the requested intent (`Target`/`Home`/`Park`/`Manual`), the independent "heading to the park position" flag, the per-axis total-move figures the progress display divides by, the "an axis was moving last tick" latch, and the backlash-owed flag. Six loose members in `Mount` became one object with tests, and `setHome()`'s reset is expressed as `snapshot()`/`restore()` instead of a hand-rolled save of one bool.
    - **The arrival sequence itself stays in `Mount::loop()` on purpose.** It stops tracking, writes TMC microstep registers, calls `setHome()`, refreshes the display and can start a second move; i.e. it arbitrates between axes and subsystems. That is the coordinator's job (step 10), and extracting it here as a bag of booleans returned to the caller would be a fake refactor. Steps 2 and 10 therefore merge: the sequencing moves when `MountCoordinator` exists to own it.
    - One behaviour trap found while wiring this: `startSlewingToTarget` and `startSlewingToHome` share the same five-line tail, and a single scripted edit set the intent to `Target` in both, silently breaking the parking arrival path. The intent is now set once per function, before the shared tail.
@@ -609,13 +611,10 @@ defers a reply yet, so `PendingReplies` is exercised by tests and idle on the wi
 
 ### Phase 7 — Retire the legacy root: `app/` composes, `Mount` is deleted
 
-*Status: **in progress** — steps 1–3 have landed and step 4 is mostly done; step 5 (the slices that
-actually dissolve `Mount`) is planned below. This phase closes the two
-gaps left after Phase 6: the composition root still lived in `src/b_setup.hpp` (with `a_inits.hpp`,
-`f_serial.hpp`, `c_buttons.hpp` beside it), AVR constructed its engines inside `Mount` instead of
-through `hal/avr/`, and the `Mount` facade is still the object every UI screen talks to. Each step is
-independently shippable; the `Mount` deletion is the last one because it is gated on every remaining
-`mount.*` call site migrating first.*
+*Status: **complete.** The composition root is `src/app/`, the engines and drivers are built by `app/`
+over `hal/`, and `Mount` is deleted — its last responsibilities live in `app::MountExecutor` over
+`core::MountCoordinator`. The slices below record how that happened; the markers on individual steps
+are historical, so read the slice tables in step 5 for what is open rather than finished.*
 
 **Landed so far:**
 
@@ -666,13 +665,13 @@ independently shippable; the `Mount` deletion is the last one because it is gate
    | # | Slice | Source | Target | Lines out | Risk |
    |---|---|---|---|---|---|
    | 5.1 ✅ | **Persistence and migration** | `readPersistentData` (103), `clearConfiguration`, the `lastFlashed < 11307` rule, DEC-limit defaults | `core::PersistentConfig` over `ports::IMountSettings` ↔ (`core::MountRuntimeSettings`, `core::SiteTime`) | ~110 | low — pure data flow, host-testable |
-   | 5.2 ⛔ | **Hardware/stepper info text** | *blocked — see the measurement below* | `getMountHardwareInfo` (104), `getStepperInfo` (~50) | `core::` builders writing into a caller buffer | ~150 | low — formatting only |
+   | 5.2 ✅ | **Hardware/stepper info text** | *unblocked by move, not by extraction — see below* | `getMountHardwareInfo` (104), `getStepperInfo` (~50) | `core::` builders writing into a caller buffer | ~150 | low — formatting only |
    | 5.3 ✅ | **Status and coordinate text** | `getStatusStateString`, `raText`/`decText` remainders, `RAString`/`DECString` leftovers | `core::CoordinateFormatter` + `core::ActivityState` | ~80 | low — frozen strings, byte-compare tests |
-   | 5.4 🟡 | **Motion sequencing** | `startSlewing` (114), `startSlewingToTarget` (59), `startSlewingToHome` (56), `stopGuiding` (57), `moveStepperBy` (89), `setSpeed` (65), `setManualSlewMode` | `core::` plan builders returning a step list; `Mount` executes | ~440 | medium — the sequencing is the domain |
+   | 5.4 ✅ | **Motion sequencing** | `startSlewing` (114), `startSlewingToTarget` (59), `startSlewingToHome` (56), `stopGuiding` (57), `moveStepperBy` (89), `setSpeed` (65), `setManualSlewMode` | `core::` plan builders returning a step list; `Mount` executes | ~440 | medium — the sequencing is the domain |
    | 5.5 ✅ | **Port adapters** | `IStatusFlags`, the `IMountSiteTime` writes, `IInfoDisplaySource` | small `adapters/` classes over `MountCoordinator` + the seam from 5.1 | ~120 | medium — the EEPROM/hemisphere side effects decide the shape |
    | 5.8 ✅ | **Own the settings write path** | the 16 EEPROM-writing methods (`setSpeedCalibration`, `setStepsPerDegree`, `setSlewRate`, backlash, homing offsets, DEC limits, gyro offsets) | `app::MountSettings` — the counterpart to 5.1's `core::PersistentConfig` | ~310 | low — mechanical, but the gyro/UART guards travel with the code |
    | 5.7 ✅ | **Split the executor into classes** | ✅ `app::AxisBank`; ✅ `app::MountReadout` (all of `IMountReadModel` + `IInfoDisplaySource`) | `app/` classes that own what they use; no new virtual interfaces | ~900 | medium — mechanical for the bank, behavioural only where state is shared |
-   | 5.6 🟡 | **The tick** | `interruptLoop` (94) ✅ → `app::StepPump`; `loop` (282) and `updateDriftAlignment` (53) remain | the pump is `app/`'s; the tick still runs on `app::MountExecutor::loop()` | ~430 | high — the AVR backend runs part of it in ISR context, must be bench-verified |
+   | 5.6 ✅ | **The tick** | `interruptLoop` (94) ✅ → `app::StepPump`; `loop` (282) and `updateDriftAlignment` (53) remain | the pump is `app/`'s; the tick still runs on `app::MountExecutor::loop()` | ~430 | high — the AVR backend runs part of it in ISR context, must be bench-verified |
 
    **5.1 Persistence — done.** `core::PersistentConfig` holds `loadPersistedSettings()`, `applyVersionMigration()` (including the 1.13.07 rule that zeroes AZ/ALT home positions) and `decLimitsFromStored()`, with eleven host tests against a new `fakes::FakeMountSettings`. `Mount::readPersistentData()` keeps the side effects (tracking calibration, axis seeding, hemisphere) and its logging; ramps flash dropped 112 bytes.
 
@@ -756,10 +755,10 @@ independently shippable; the `Mount` deletion is the last one because it is gate
 
 ### Phase 8 — Empty the `src/` root: the UI, the displays and the last peripherals
 
-*Status: **in progress** — 8.1, 8.2, 8.3 and 8.4a have landed; 8.4b and 8.5–8.10 remain. Phase 7
-dissolved the facade, so no UI, adapter or peripheral file holds a `Mount` pointer any more. What is
-still at the top of `src/` is the eleven menu screens, the type overlays they speak, the settings
-format, the two sensor helpers and the utility grab-bag.*
+*Status: **complete.** `src/` holds nothing but directories: every screen is an Arduino-free class in
+`app/ui/`, the displays and keypads are `hal/` backends behind ports, the settings format is an
+adapter, and the type overlays speak `core::` values. The per-item markers below are the history of
+the phase; the entries that still say 🟡 landed in the slices that follow them.*
 
 **Landed so far:**
 
@@ -783,13 +782,13 @@ format, the two sensor helpers and the utility grab-bag.*
   `core::ConsoleLog` (fixed lines, uppercased on store). 14 frozen-value tests; the adapter is now a
   translator from the snapshot to `hal::IOledPanel` calls. Verified on `esp32` with the 128x64 panel
   **and** with the 128x32 OLED menu panel enabled.
-- 🟡 **8.5a** `EPROMStore` → `adapters::EepromSettingsFormat`, speaking `core::` types; `OAT_SNPRINTF`
+- ✅ **8.5a** `EPROMStore` → `adapters::EepromSettingsFormat`, speaking `core::` types; `OAT_SNPRINTF`
   and `OAT_LOG` moved to `ports/LogFormat.hpp` so an adapter can log without the board
   configuration. `mksgenlv21` −170 B flash, RAM unchanged.
 - **8.5b (next):** the four steps-per-degree getters still fall back to board constants
   (`RA_STEPS_PER_DEGREE`, …), which keeps the file out of the host build. Injecting those defaults
   plus the microstep ratios is what makes the round-trip and migration tests possible.
-- 🟡 **8.6a** `src/EndSwitches.*` and `src/HallSensorHoming.*` moved to `app/EndSwitchMonitor.*` and
+- ✅ **8.6a** `src/EndSwitches.*` and `src/HallSensorHoming.*` moved to `app/EndSwitchMonitor.*` and
   `app/HomingRunner.*` inside `namespace app`. They were already port-based, so the move is an
   address change: `mksgenlv21` RAM unchanged, +4 B flash. The end-switch poll keeps its
   no-allocation, no-logging shape because it still runs in the step generator.
@@ -810,21 +809,21 @@ format, the two sensor helpers and the utility grab-bag.*
   reports the display's default brightness rather than zero.
 - ✅ **8.7a** `src/Sidereal.*` and `src/RightAscension.*` deleted: both had no callers — the sidereal
   math is `core::SiderealClock`, and the RA type in use is `core::RightAscension`.
-- 🟡 **8.8a — `app/ui/` is open and the GO screen is converted.** `src/app/ui/` is compiled by
+- ✅ **8.8a — `app/ui/` opened and the GO screen converted.** `src/app/ui/` is compiled by
   `[env:native]`, `test_ui` is in `test_filter`, and `app/ui/screens/HomeMenu` is a class taking
   `core::Button` + `ports::IMountMotion` + `ports::IDisplay` explicitly — no `lcdMenu`, no
   `lcdButtons`, no `String`, no `millis()`. 9 tests drive it with a `FakeDisplay` and a recording
   motion port, including the exact 16-character rows. The menu ids moved to
   `app/ui/MenuIds.hpp`, `toCoreButton()` bridges the legacy key enum, `menuDisplayPort` exposes the
   display, and `c725_menuHOME.hpp` is deleted. Established pattern for the remaining ten screens.
-- 🟡 **8.8b — RA and DEC converted as one screen.** `app::CoordinateMenu` is the shared behaviour
+- ✅ **8.8b — RA and DEC converted as one screen.** `app::CoordinateMenu` is the shared behaviour
   (field cursor, auto-repeating nudge at 200 ms, target-vs-current toggle, slew/stop) parameterised
   by the axis, with `RaMenu`/`DecMenu` as the two names the loop uses; the one real difference is
   preserved (RA waits for the axes to stop before the go-to, DEC does not). `app::UiPorts` became
   header-only so `app/ui` links on the host, and `MenuKeyInput` now carries the held key as well as
   the edge, because these screens act on a held key. 9 tests, including both exact row widths.
   `c70_menuRA.hpp` and `c71_menuDEC.hpp` are deleted.
-- 🟡 **8.8b — the FOCUS screen converted.** `app::FocusMenu` keeps the two legacy states
+- ✅ **8.8b — the FOCUS screen converted.** `app::FocusMenu` keeps the two legacy states
   (`Highlight` on the "Focus Adjust" row, `Adjust` on the rate row), and reproduces the rate row
   marker formula exactly — `>` at `6 + rate * 2` and `<` at `8 + rate * 2`, which land on the spaces
   *adjacent* to the selected rate, not around it (`Rate:  1 2 3>4<-`). 8 tests cover both states, the
@@ -832,7 +831,7 @@ format, the two sensor helpers and the utility grab-bag.*
   column. `FakeOptionalAxes` is the first fake to have to satisfy the full
   `IMountOptionalAxes : IMountConfiguration : IMountMotion` chain. `c77_menuFOC.hpp` is deleted;
   `c_buttons.hpp` calls `handleKey()`/`render()` under `#if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE`.
-- 🟡 **8.8b — the INFO screen converted.** `app::InfoMenu` holds the sixteen-entry list and the
+- ✅ **8.8b — the INFO screen converted.** `app::InfoMenu` holds the sixteen-entry list and the
   three sub-pages, and paints at most once per 200 ms like the legacy screen; a key press clears the
   timer so the next pass repaints straight away. The platform facts (version, free memory, gyro
   temperature) arrive as an `InfoMenuEnvironment` value the loop fills in, which is what keeps the
@@ -845,7 +844,7 @@ format, the two sensor helpers and the utility grab-bag.*
   an info panel — the backend now drops those macros at its own header and names the two states it
   uses; and `OAT_SNPRINTF` expanded to `snprintf_P` on AVR without `<stdio.h>` having been included,
   which no AVR build had reached because every previous user was display-guarded.
-- 🟡 **8.8b — POI, the slew-progress view and CTRL converted.** `app::PoiMenu` keeps the table
+- ✅ **8.8b — POI, the slew-progress view and CTRL converted.** `app::PoiMenu` keeps the table
   (`app/ui/PointOfInterestTable.hpp`, now `constexpr`) and the three trailing commands, and it keeps
   the legacy declination conversion for a *southern* mount — the sign convention differs from
   `core::Declination::celestialToAxisSeconds()`, which is what `Declination::ParseFromMeade()` uses,
@@ -863,7 +862,7 @@ format, the two sensor helpers and the utility grab-bag.*
   next to the two predicates that need board configuration (`serialHostOwnsDisplay`,
   `startupAwaitingPole`) — a firmware-only translation unit, because `Configuration.hpp` refuses to
   compile without a board.
-- 🟡 **8.8b — the HA screen converted, in both of its shapes.** `app::HaMenu` is one class with a
+- ✅ **8.8b — the HA screen converted, in both of its shapes.** `app::HaMenu` is one class with a
   receiver pointer: with a GPS it walks "Found n sats" → "Sync" → "Set" → manual entry and applies a
   fresh fix to the site and the clock; without one it is the plain editor whose arrows auto-repeat
   while held (which is why the legacy no-GPS screen called `delay(200)` from inside its key
@@ -875,7 +874,7 @@ format, the two sensor helpers and the utility grab-bag.*
   unused until now) is backed by `adapters::TinyGpsAdapter` in `BoardWiring`, exposed as `gpsPort`,
   and `:gT#` uses the same fix-applying helper the screen does instead of calling into a menu
   header. `c72_menuHA.hpp` and `c72_menuHA_GPS.hpp` are deleted.
-- 🟡 **8.8b — the guided startup converted.** `app::StartupWizard` is the state machine without the
+- ✅ **8.8b — the guided startup converted.** `app::StartupWizard` is the state machine without the
   globals: it returns a `StartupAction` (`HandOverToControlMenu`, `HandOverToCalibration`,
   `HandOverToHaMenu`, `Completed`) plus the one-line caption the legacy code painted before the
   switch, and `c_buttons` applies them — the menu switch, the two loop flags and the tracking
@@ -946,8 +945,11 @@ format, the two sensor helpers and the utility grab-bag.*
 **Phase 8 is complete.** Every screen, the display and button backends, the settings format, the
 sensor helpers, the type overlays, the ports' vocabulary, the factory console and the loop now live
 in the layer that owns them. Measured over the phase on `mksgenlv21`: 6741 → **6663 B RAM** and
-179530 → **179812 B flash**; `ramps`: 6741 → **6653 B** / **179260 B**. `pio test -e native` runs
-936 cases (from 509 at the start of the phase), `scripts/check_architecture.py` is clean, and every
+179530 → **179812 B flash**; `ramps`: 6741 → **6653 B** / **179260 B**. The follow-up sweep that
+deleted `src/inc/` (8.7 step 4) moved `ramps` again, to **6586 B RAM** (−67 B: the two globals and
+the dead `Declination` formatting) and **179324 B flash** (+64 B: one read-model vtable entry and the
+serial-control callback). `pio test -e native` runs
+939 cases (from 509 at the start of the phase), `scripts/check_architecture.py` is clean, and every
 board builds — including `esp32` with the joystick panel and the info panel, and `ramps` with
 `TEST_VERIFY_MODE 1`.
 
@@ -1090,9 +1092,28 @@ Verified by building `ramps` with `TEST_VERIFY_MODE 1` (the object is 116 KB of 
 - **One `#if` per panel family, in `app/`.** The display and button backends are selected where the driver backends are selected. Nothing below `app/` may name `DISPLAY_TYPE` or a panel library — that is what makes the screens host-testable, and it is checked by `scripts/check_architecture.py` once 8.8 adds `src/app/ui`.
 - **The ISR path does not grow.** 8.6 is the only slice that touches code the step generator runs; it may not add allocation, logging or a new vtable there.
 
-**Verify (each slice):** `./scripts/test-coverage.sh` green (native suite, `core/` gate ≥ 85 %); `python scripts/check_architecture.py` clean; the seven-board CI matrix green; the RAM figure recorded in the commit message. **Verify (phase):** `src/` holds only directories; `check_architecture.py` reports `src/app/ui` among its scanned directories and zero violations; the native suite covers the menu model, the line composer, the debounce, the panel layout, the console ring, the settings format, the end-switch machine, every screen and the test console; `HARDWARE_TESTS.md` gains the menu/button/panel/end-switch checks this phase makes newly explicit, and the whole refactor still closes with the single hardware pass described at the end of Phase 7.
+**Verify (each slice):** `./scripts/test-coverage.sh` green (native suite, `core/` gate ≥ 85 %); `python scripts/check_architecture.py` clean; the seven-board CI matrix green; the RAM figure recorded in the commit message. **Verify (phase):** met — `src/` holds only directories; `check_architecture.py` scans `src/core`, `src/ports` **and `src/app/ui`** (145 files, zero violations); the native suite (939 cases) covers the menu model, the line composer, the debounce, the panel layout, the console ring, the settings format, the end-switch machine and all eleven screens. The factory console (`app/test/`) is **compile-verified only** — `TEST_VERIFY_MODE` is 0 on every shipped board and the console is terminal I/O, which is why 8.9 kept it a move rather than a port conversion; building `ramps` with `TEST_VERIFY_MODE 1` is its check. `HARDWARE_TESTS.md` gained the key-decoder and menu-ownership checks (§9.5, 9.16, 9.17, 9.18), and the whole refactor still closes with the single hardware pass described at the end of Phase 7.
 
 ---
+
+### What is still open after Phase 8
+
+Everything structural is done; these are the items the phase did **not** close, verified against the tree:
+
+| # | Item | State |
+|---|------|-------|
+| 1 | **Hardware verification pass** | Open, and it is the only remaining gate. [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) §10's sign-off table is empty, and the twelve deliberate behaviour changes in §11 have not been confirmed on a board. Run it once, record the result in §10. |
+| 2 | **Characterization / golden-master tests** | Open (Further Considerations 3). Capture known-good (RA, DEC → stepper position) pairs from real hardware for the meridian-flip selector. |
+| 3 | **`MeadeCommandAdapter::instance()`** | Open (Further Considerations 4). Still a true singleton; removing it is a small change in `app/SerialPump.hpp` + `adapters::WifiControl` wiring. |
+| 4 | **Factory console host test** | Deliberately not done: `app/test/` is compile-verified (`ramps` + `TEST_VERIFY_MODE 1`), not host-tested — see the phase verify note above. |
+
+Closed as part of the sweep that wrote this section:
+
+- `scripts/check_architecture.py` now scans `src/app/ui` (8.8 step 3). It was clean the day it was added, so the rule ARCHITECTURE.md §5 already claimed is now enforced by CI.
+- `src/inc/Globals.hpp`/`.cpp` are **deleted** (8.7 step 4). `inNorthernHemisphere` is `core::MountState`'s hemisphere accessor (three host tests), and the command adapter publishes `inSerialControl` through `serialControlChanged` in `MeadeCommandPorts` into `app::UiSession`. Removing the header exposed eleven files that had been getting `<Arduino.h>` transitively; each now includes it under `PUSH_NO_WARNINGS`, as the old header did.
+- `unit_tests/test_embedded/` is **deleted** — dead since 8.7a, and it could not compile (`Sidereal.hpp` is gone).
+- A latent `DEBUG_ERROR` in `app/MenuSurface.cpp` (never defined in `Constants.hpp`) was fixed; it broke every `DEBUG_ANY` build in the matrix.
+
 
 ## Relevant files
 
@@ -1143,9 +1164,10 @@ Verified by building `ramps` with `TEST_VERIFY_MODE 1` (the object is 116 KB of 
 - [`src/core/meade/PendingReplies.hpp`](src/core/meade/PendingReplies.hpp) — new in step 5: the heap-free table of replies still owed to a host.
 - [`src/ports/IMountReadModel.hpp`](src/ports/IMountReadModel.hpp), [`src/ports/IMountSiteTime.hpp`](src/ports/IMountSiteTime.hpp), [`src/ports/IMountEvents.hpp`](src/ports/IMountEvents.hpp) — new in step 3's fifth slice: the read model, the site/clock and the event stream the command layer needs, so it needs nothing else of `Mount`.
 
-### Phase 8 targets — the remaining `src/` root (all still in place)
+### Phase 8 targets — what used to be the `src/` root (all deleted)
 
-Measured: 47 files / 10,497 lines at the top of `src/`, 1,890 of them font tables.
+Kept as the record of what moved where. Measured before the phase: 47 files / 10,497 lines at the top
+of `src/`, 1,890 of them font tables. Every path below is gone; the "→" is its replacement.
 
 - **Menu framework:** [`src/LcdMenu.cpp`](src/LcdMenu.cpp) (500 lines) / [`src/LcdMenu.hpp`](src/LcdMenu.hpp) (158) — `core/menu/MenuModel` + `core/menu/MenuLine` + `ports::IDisplay` adapters; the class itself is deleted.
 - **Buttons:** [`src/LcdButtons.cpp`](src/LcdButtons.cpp) (155) / [`src/LcdButtons.hpp`](src/LcdButtons.hpp) (55) — `core/ButtonDebounce` + `hal::IButtonMatrix` backends + `ports::IButtons`.
@@ -1158,10 +1180,10 @@ Measured: 47 files / 10,497 lines at the top of `src/`, 1,890 of them font table
 - **Utility:** [`src/Utility.cpp`](src/Utility.cpp) / [`.hpp`](src/Utility.hpp) — `core/MathUtil.hpp`, `hal/arduino/` (the `micros()` perf timer), `adapters/SerialLogger` (the log ring behind `ports::ILogRetention`), and `OAT_SNPRINTF` → [`src/ports/LogFormat.hpp`](src/ports/LogFormat.hpp).
 
 ### Infrastructure
-- [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). Phase 2a adds `test_adapters` to `test_filter`, per-board `build_src_filter` HAL exclusions, ETL to `[common].lib_deps` + `[env:native].test_lib_deps`, and the AVR `-std` spike.
+- [`platformio.ini`](platformio.ini) — `native` env with coverage flags (`build_src_flags` + `LINKFLAGS`), coverage extra script, `test_filter = test_core` + `test_hal` (catches `test_core/meade/` too; `test_hal` holds the EEPROM layout tests). **Now:** `test_filter = test_core + test_hal + test_adapters + test_ui`, `[env:native].build_src_filter` compiles `core/`, `ports/`, `adapters/` and `app/ui/`, per-board `build_src_filter` excludes the HAL it does not use, and ETL is in `[common].lib_deps` + `[env:native].lib_deps`.
 - [`.github/workflows/ci.yml`](.github/workflows/ci.yml) — runs `./scripts/test-coverage.sh` + publishes `coverage.md` to the step summary; builds 7 boards (ramps, mksgenlv1/v2/v21, esp32, rp2040_jackw01, rp2040_skr_pico).
 - [`unit_tests/test_common/`](unit_tests/test_common/) — expand with hand-written port fakes (`hal_fakes/`) for Phase 2+; no ArduinoFake/FakeIt. The empty `test_common/ArduinoFake/` CMake stub tree has been deleted.
-- [`unit_tests/test_embedded/`](unit_tests/test_embedded/) — a stale Unity test (`main.cpp` + `test_sidereal.h`) that no `test_filter` or `test_ignore` path runs. Decide to delete or revive it; it currently contributes nothing to the suite.
+- ~~`unit_tests/test_embedded/`~~ — **deleted.** It was a stale Unity test (`main.cpp` + `test_sidereal.h`) that no `test_filter` ran, and it could not have compiled: it included `Sidereal.hpp`, deleted in 8.7a. Its subject is covered by `unit_tests/test_core/test_sidereal.cpp`.
 - [`Configuration.hpp`](Configuration.hpp), [`Configuration_adv.hpp`](Configuration_adv.hpp) — read once by `MountConfig` builder in Phase 4.
 
 ---
@@ -1169,10 +1191,10 @@ Measured: 47 files / 10,497 lines at the top of `src/`, 1,890 of them font table
 ## Verification strategy
 
 Automated:
-1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (600 test cases today). `test_filter` = `test_core` + `test_hal` + `test_adapters` (covers `test_core/meade/` and `test_core/types/`); **Phase 8 adds `test_ui`** once the screens are Arduino-free and `[env:native].build_src_filter` picks up `app/ui`.
+1. `./scripts/test-coverage.sh` — full host test suite, runs every PR (**939 test cases today**). `test_filter` = `test_core` + `test_hal` + `test_adapters` + `test_ui`, and `[env:native].build_src_filter` compiles `core/`, `ports/`, `adapters/` and `app/ui/` (the rest of `app/` is firmware-only).
 2. Every board env in `platformio.ini` (CI matrix: 7 boards) builds green every phase via `matrix_build.py`, which supplies the generated configuration. A bare `pio run -e <board>` additionally needs the developer's untracked `Configuration_local_*.hpp`.
 3. Coverage gate via gcovr in CI — ratchets up phase by phase; `core/` final target ≥ 85%.
-4. CI grep check (`scripts/check_architecture.py`): no `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, `hal/`, `adapters/` or feature `#ifdef` in `core/` or `ports/` (Phase 4); **Phase 8 adds `src/app/ui` to the scanned set** with the same rules, so a screen cannot regress into `String` or `millis()`.
+4. CI grep check (`scripts/check_architecture.py`): no `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, `hal/`, `adapters/` or feature `#ifdef` in `core/` or `ports/` (Phase 4), and the same rules for `src/app/ui/` (Phase 8) — so a screen cannot regress into `String` or `millis()`.
 
 Hardware (one pass, once the refactor is complete):
 1. Run [`HARDWARE_TESTS.md`](HARDWARE_TESTS.md) end to end — sections 2–9, the deliberate behaviour changes in §11, and the §10 sign-off table.
@@ -1219,7 +1241,7 @@ Hardware behaviour is not a per-phase gate: nothing in the phases above waits on
 
 ## Further Considerations
 
-1. **C++ standard.** Measured: only `esp32`, `oaeboardv1` and `native` pass `-std=gnu++17`; the four AVR envs pass no `-std` and inherit **gnu++11** from the Arduino core, on **avr-gcc 7.3.0** — and they already compile all of `src/core/**`. So `core/` must stay C++11-compatible until a spike proves AVR accepts more: `etl::optional` is fine (header-only, C++11-safe), **`if constexpr` is not available**. Phase 2a step 4 includes the spike (`-std=gnu++14`, then `gnu++17`, on `ramps`) and records the outcome; if it fails, `core/` stays C++11 and optional axes use `etl::optional` plus explicit branches.
+1. **C++ standard — settled: `core/` stays C++11.** The Phase 2a spike ran and the decision is recorded there (step 4): the firmware still supports Arduino IDE builds, which compile AVR sketches with the core's default standard, so C++17 in `core/` would silently break that path. `etl::optional` is header-only and C++11-safe; **`if constexpr` is not available** in `core/`. Only `esp32`, `oaeboardv1` and `native` pass `-std=gnu++17`.
 2. **Binary size on AVR_MEGA2560.** Polymorphism + extra indirection costs flash on AVR. The toolchain errors if flash is exceeded, so no explicit budget is needed. *Mitigation:* keep vtables small (≤ ~12 ports), mark adapters `final`, allow link-time devirtualization. If flash still overflows, accept template-based static dispatch for the hot path (`SlewController<RaAxis, DecAxis>`) — adds complexity but keeps AVR shipping.
 3. **Characterization / golden-master tests.** A future task: capture known-good (RA,DEC → stepper position) pairs from real hardware for the `calculateRAandDECSteppers` math. This would serve as regression tests for the meridian-flip solution selector — the highest-risk coordinate math in the system. Not part of Phase 1; left as a follow-up task after extraction is complete and the pure math is independently testable on native.
-4. **MeadeCommandProcessor singleton.** `MeadeCommandProcessor::instance()` is a true singleton (unlike `Mount`, which is a global). It's accessed from `f_serial.hpp`, `WifiControl.cpp`, `c_buttons.hpp`, and `testmenu.cpp`. Phase 5 moves it to `src/adapters/MeadeCommandAdapter`; the singleton pattern should be eliminated there in favor of a non-owning reference from the composition root.
+4. **Meade command singleton — still open.** It did move to `src/adapters/MeadeCommandAdapter`, but `MeadeCommandAdapter::instance()` remains a true singleton (`createProcessor()` `new`s it). Eliminating it means threading a non-owning reference from the composition root into `app/SerialPump.hpp` and `adapters::WifiControl`, which is a small, separate change.

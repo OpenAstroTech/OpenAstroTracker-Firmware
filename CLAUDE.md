@@ -65,17 +65,25 @@ python scripts/MeadeCommandParser.py
 4. **`Configuration_adv.hpp`** - Advanced settings (motor steps, speed, microstepping, TMC driver params)
 5. **`Constants.hpp`** - System constants (board IDs, feature flag values). **Do not modify for user configuration.**
 
-### Core Modules
+### Layers (`src/` holds nothing but directories; no source file lives at its top)
 
-- **`Mount` (src/Mount.hpp/cpp)** - Central controller. Manages stepper motors (RA, DEC, AZ, ALT, Focus), coordinate calculations, slewing, tracking, parking, and guiding. This is by far the largest module (~150KB source).
-- **`MeadeCommandProcessor` (src/MeadeCommandProcessor.hpp/cpp)** - Serial command interface implementing the Meade LX200 protocol. Handles all external communication.
-- **`EPROMStore` (src/EPROMStore.hpp/cpp)** - Platform-agnostic non-volatile storage abstraction (coordinates, calibration, motor config). Uses magic markers `0xCE`/`0xCF` for validation.
-- **`b_setup.hpp`** - Arduino `setup()` implementation and hardware initialization.
-- **`a_inits.hpp`** - Global variable initialization.
+| Layer | Directory | Contains |
+|---|---|---|
+| **core/** | `src/core/` | Pure domain: controllers (`MountCoordinator` + tracking/slew/guiding/homing/focus/parking/az-alt/drift-alignment), `MountState`, `EventBus`, `SiteTime`, the Meade parser (`core/meade/`), the menu model and value types. No Arduino, no `String`, no `millis()` — host-tested. |
+| **ports/** | `src/ports/` | Pure abstract interfaces the domain needs (`IMountMotion`, `IMountReadModel`, `IMountConfiguration`, `IMountSiteTime`, `IDisplay`, `IButtons`, `IClock`, `ILogger`, `IStepperAxis`, …). |
+| **hal/** | `src/hal/` | Hardware abstraction and one backend per platform (`arduino/`, `avr/`, `esp32/`, `rp2040/`): pin toggles, UART, EEPROM, timer services, stepper engines, panels. |
+| **adapters/** | `src/adapters/` | Port implementations that stitch HAL together: `MeadeCommandAdapter`, `StepperAxis`, `EepromSettingsFormat`/`MountSettingsStore`, `SerialLogger`, displays, GPS, Wi-Fi, and the `String`-based wire/format overlays. |
+| **app/** | `src/app/` | Composition root and device policy: `main.cpp` (`setup`/`loop`), `BoardWiring`, `MotorWiring`/`DriverWiring`/`SensorWiring`, `MountExecutor` + `AxisBank`/`MountReadout`/`MountSettings`/`StepPump`, and the Arduino-free, host-tested UI (`app/ui/` screens + `MenuHost`). |
+
+Dependencies point inward: `app → adapters → ports`, `app → hal`, `core → ports`. `core/` and `ports/` may not include `hal/`, `adapters/` or `<Arduino.h>`; `scripts/check_architecture.py` enforces that (and the same rules for `src/app/ui/`).
+
+- **`app::MountExecutor`** (`src/app/MountExecutor*.cpp`) — the actuator side: axes, drivers, microstep switching and the hardware side effects. The decision layer is `core::MountCoordinator`.
+- **`adapters::MeadeCommandAdapter`** (`src/adapters/`) — the Meade LX200 command layer; the parse itself is `core/meade/`.
+- **`adapters::EepromSettingsFormat`** (`src/adapters/`) — the persisted format over `ports::IPersistentStore`; magic markers `0xCE`/`0xCF` live in `hal/EepromLayout.hpp`.
 
 ### Entry Point
 
-`OpenAstroTracker-Firmware.ino` is the Arduino sketch entry point. It delegates to `src/a_inits.hpp` (globals) and `src/b_setup.hpp` (setup/loop).
+`src/app/main.cpp` defines `setup()` and `loop()`; `OpenAstroTracker-Firmware.ino` is an empty Arduino-IDE stub kept only as a sketch anchor. `app/BoardWiring.cpp` owns the object graph.
 
 ### Stepper Control
 
@@ -84,7 +92,7 @@ Two modes depending on platform:
 - **AVR (NEW_STEPPER_LIB)**: Interrupt-driven via Timer 3 (RA) and Timer 4 (DEC) at 2 kHz. Uses `InterruptAccelStepper` library. Configured via `StepperConfiguration.hpp`.
 - **ESP32**: FreeRTOS task on Core 0 at 1 kHz (`stepperControlTask`). Core 1 runs `loop()` for serial/UI.
 
-Both call `Mount::interruptLoop()` for step generation.
+Both call the step pump (`app::StepPump`) for step generation; the engines themselves are `hal/` backends behind `hal::IStepperMotor`.
 
 ### Board Pin Definitions
 
@@ -92,7 +100,7 @@ Board-specific pin mappings live in `boards/<board_name>/pins_<board>.h`. Each b
 
 ### Display & UI
 
-Optional LCD menu system (`LcdMenu`, `LcdButtons`) supporting multiple display types: direct LCD keypad, I2C LCD (MCP23008/MCP23017), and I2C SSD1306 OLED with joystick. An optional separate 128x64 info display shows real-time status.
+The menu screens are classes in `src/app/ui/screens/`, driven by `app::MenuHost.hpp`, written against `ports::IDisplay`/`ports::IButtons` and host-tested byte-by-byte (`unit_tests/test_ui/`). Panel and keypad backends live in `src/hal/` (`hal::ICharLcd` with `CharLcd`/`I2cCharLcd`/`U8x8CharLcd`, `hal::IButtonMatrix` with analog/joystick/I2C-expander decoders) and are selected by exactly one `#if DISPLAY_TYPE` in `app/BoardWiring.cpp`. An optional separate 128×64 info display (`hal::Ssd1306Panel` behind `ports::IInfoDisplay`) shows real-time status.
 
 ## Key Conventions
 

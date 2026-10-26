@@ -134,7 +134,7 @@ controllers; Phase 8 emptied `src/`, slice by slice (8.1–8.10), and its exit c
 
 | Still outside | Why it is still there | What would finish it |
 |---|---|---|
-| ~~everything in `src/`~~ | **Phase 8 is complete: `src/` holds nothing but directories** (`adapters/`, `app/`, `core/`, `hal/`, `inc/`, `libs/`, `macros/`, `ports/`). Every screen is a class in `app/ui/` compiled and tested on the host, the display and button backends are `hal/` behind ports, the settings format is an adapter, the type overlays are `adapters/`, the ports' vocabulary is `core/PortVocabulary.hpp`, and the loop is `app/MenuHost.hpp` | — |
+| ~~everything in `src/`~~ | **Phase 8 is complete: `src/` holds nothing but directories** (`adapters/`, `app/`, `core/`, `hal/`, `libs/`, `macros/`, `ports/`). Every screen is a class in `app/ui/` compiled and tested on the host, the display and button backends are `hal/` behind ports, the settings format is an adapter, the type overlays are `adapters/`, the ports' vocabulary is `core/PortVocabulary.hpp`, and the loop is `app/MenuHost.hpp` | — |
 
 ---
 
@@ -335,9 +335,6 @@ OpenAstroTracker-Firmware/
 │   │   ├── EventBus.hpp/.cpp            # PositionChanged, SlewStarted, Parked, ...
 │   │   └── MountConfig.hpp              # runtime configuration struct
 │   │
-│   ├── inc/                             # globals for app/adapters/hal (deleted in PLAN.md 8.7:
-│   │   ├── Globals.hpp                  #  the two flags become core::MountState +
-│   │   └── Globals.cpp                  #  app::UiSession state)
 │   ├── macros/gcc/Macros.hpp            # PUSH/POP_NO_WARNINGS pragmas (force-included)
 │   └── libs/                            # vendored libraries
 │       ├── MappedDict/
