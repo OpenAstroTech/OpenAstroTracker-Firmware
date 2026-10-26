@@ -5,6 +5,13 @@
 
 #if TEST_VERIFY_MODE == 1
 
+    #include "hal/arduino/FreeMemory.hpp"
+
+/// `case label: return value` — the table builder's shorthand, moved here with its only user.
+    #define CASERETURN(c, r)                                                                                                               \
+        case c:                                                                                                                            \
+            return r
+
 namespace
 {
 

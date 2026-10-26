@@ -937,7 +937,19 @@ format, the two sensor helpers and the utility grab-bag.*
   the `RealTime` class had no users left, and the clamp helpers were already `core::` duplicates.
   Removing the header also exposed four files that had been relying on it to drag in `<Arduino.h>`:
   they now include the core (or just `<WString.h>`) themselves.
-- **Remaining:** **one file** — the loop in `c_buttons.hpp`. `src/` holds nothing else.
+- ✅ **8.10 complete — `src/` holds nothing but directories.** The loop moved to
+  `app/MenuHost.hpp`: the one place that knows which screen is active, and the only remaining
+  `#if`-heavy UI code, which is exactly where the plan wanted it (panel family and feature selection
+  at the top of `app/`). The phase's exit criterion is met: `src/` contains `adapters/`, `app/`,
+  `core/`, `hal/`, `inc/`, `libs/`, `macros/`, `ports/` and no source file at all.
+
+**Phase 8 is complete.** Every screen, the display and button backends, the settings format, the
+sensor helpers, the type overlays, the ports' vocabulary, the factory console and the loop now live
+in the layer that owns them. Measured over the phase on `mksgenlv21`: 6741 → **6663 B RAM** and
+179530 → **179812 B flash**; `ramps`: 6741 → **6653 B** / **179260 B**. `pio test -e native` runs
+936 cases (from 509 at the start of the phase), `scripts/check_architecture.py` is clean, and every
+board builds — including `esp32` with the joystick panel and the info panel, and `ramps` with
+`TEST_VERIFY_MODE 1`.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

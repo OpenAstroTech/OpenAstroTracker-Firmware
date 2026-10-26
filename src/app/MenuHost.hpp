@@ -1,20 +1,28 @@
 #pragma once
 
-#include "app/MenuSurface.hpp"
-#include "app/ui/MenuIds.hpp"
-#include "app/UiScreens.hpp"
-#include "app/BoardWiring.hpp"
+/// The menu loop: the one place that knows which screen is active.
+///
+/// It owns nothing but the dispatch — `app::MenuKeyInput` in from the button port, a screen's
+/// `Outcome` out, and the two rows painted. Every screen is a class in `app/ui/`, so this file is
+/// the last of the `#if`-heavy UI code that *belongs* to the board: the panel family, the feature
+/// selection and the serial path are chosen here, at the top of `app/`, which is where Phase 8
+/// wanted them (PLAN.md 8.8).
 
-#include "app/ui/screens/DecMenu.hpp"
-#include "app/ui/screens/FocusMenu.hpp"
-#include "app/ui/screens/HomeMenu.hpp"
-#include "app/ui/SlewStatusView.hpp"
-#include "app/ui/screens/InfoMenu.hpp"
-#include "app/ui/screens/PoiMenu.hpp"
-#include "app/ui/screens/RaMenu.hpp"
+#include "MenuSurface.hpp"
+#include "ui/MenuIds.hpp"
+#include "UiScreens.hpp"
+#include "BoardWiring.hpp"
+
+#include "ui/screens/DecMenu.hpp"
+#include "ui/screens/FocusMenu.hpp"
+#include "ui/screens/HomeMenu.hpp"
+#include "ui/SlewStatusView.hpp"
+#include "ui/screens/InfoMenu.hpp"
+#include "ui/screens/PoiMenu.hpp"
+#include "ui/screens/RaMenu.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
-    #include "app/SerialPump.hpp"
+    #include "SerialPump.hpp"
 #endif
 
 #if DISPLAY_TYPE > 0
