@@ -1,13 +1,15 @@
+// Board configuration first: `ports/ILogger.hpp` decides at include time whether `OAT_LOG` exists
+// (it reads `DEBUG_LEVEL`), and `SiteTimePort.hpp` pulls the logger in before anything else would
+// have defined it — which silently compiled every log line in this file out on a logging build.
+#include "../../Configuration.hpp"
+
 #include "SiteTimePort.hpp"
 
 #include "core/SiderealClock.hpp"
-
-#include "../../Configuration.hpp"
 #include "ports/ILogger.hpp"
 
 namespace adapters
 {
-
 SiteTimePort::LatitudeObserver SiteTimePort::noObserver()
 {
     LatitudeObserver observer = {nullptr, nullptr};
