@@ -1,10 +1,9 @@
 #pragma once
 
 #include "core/types/Longitude.hpp"
-#include "DayTime.hpp"
+#include "adapters/DayTime.hpp"
 
-// Forward declarations
-class String;
+#include <Arduino.h>  // `String`, which these overlays parse and format
 
 /// Longitude overlay — adds Arduino-dependent formatting and parsing
 /// over core::Longitude.

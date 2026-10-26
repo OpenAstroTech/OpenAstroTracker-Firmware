@@ -1,6 +1,6 @@
 #include "MountReadout.hpp"
 
-#include "../DayTime.hpp"
+#include "adapters/DayTime.hpp"
 #include "HomingRunner.hpp"
 #include "../Utility.hpp"
 #include "../core/CoordinateFormatter.hpp"
@@ -12,7 +12,7 @@
 #include "../core/SlewProgressReport.hpp"
 #include "../core/SiderealClock.hpp"
 #include "../ports/IClock.hpp"
-#include "../Declination.hpp"
+#include "adapters/Declination.hpp"
 
 // slewStatus()
 #define SLEWING_DEC      B00000010

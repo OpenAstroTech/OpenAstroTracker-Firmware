@@ -10,7 +10,7 @@ POP_NO_WARNINGS
 #endif
 
 #include "Utility.hpp"
-#include "DayTime.hpp"
+#include "adapters/DayTime.hpp"
 #include "app/MountExecutor.hpp"
 #include "adapters/MeadeCommandAdapter.hpp"
 

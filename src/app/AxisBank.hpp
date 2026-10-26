@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../Configuration.hpp"
-#include "../Types.hpp"
+#include "core/PortVocabulary.hpp"
 #include "../core/AxisLimits.hpp"
 #include "../ports/IMotorDriver.hpp"
 #include "../ports/IStepperAxis.hpp"

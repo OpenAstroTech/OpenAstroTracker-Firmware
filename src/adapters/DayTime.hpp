@@ -5,8 +5,7 @@
 // A class to handle hours, minutes, seconds in a unified manner, allowing
 // addition of hours, minutes, seconds, other times and conversion to string.
 
-// Forward declarations
-class String;
+#include <Arduino.h>  // `String`, which these overlays parse and format
 
 /// Thin overlay over core::DayTime that adds Arduino-dependent methods
 /// (String-based parsing, formatting, logging).

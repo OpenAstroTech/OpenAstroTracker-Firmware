@@ -1,7 +1,7 @@
 #include "./inc/Globals.hpp"
-#include "../Configuration.hpp"
+#include "Configuration.hpp"
 #include "Utility.hpp"
-#include "Declination.hpp"
+#include "adapters/Declination.hpp"
 
 //////////////////////////////////////////////////////////////////////////////////////
 //

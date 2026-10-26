@@ -1,5 +1,8 @@
-#ifndef _TYPES_HPP_
-#define _TYPES_HPP_
+#pragma once
+
+/// The words the ports are written in: the direction bitset every motion and read call takes, the
+/// coordinate-format selectors the readouts use, the axis identifiers and a plain date. Arduino-free
+/// and dependent on nothing, which is what lets every layer include it.
 
 // The direction argument every motion and read-model call takes. These were `#define`s in the
 // mount's header; they are here because they are the vocabulary of the ports, not of one class,
@@ -42,5 +45,3 @@ struct LocalDate {
     int month;
     int day;
 };
-
-#endif

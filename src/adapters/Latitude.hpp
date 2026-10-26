@@ -1,10 +1,9 @@
 #pragma once
 
 #include "core/types/Latitude.hpp"
-#include "DayTime.hpp"
+#include "adapters/DayTime.hpp"
 
-// Forward declarations
-class String;
+#include <Arduino.h>  // `String`, which these overlays parse and format
 
 /// Latitude overlay — adds Arduino-dependent parsing over core::Latitude.
 /// 90 at north pole, -90 at south pole.

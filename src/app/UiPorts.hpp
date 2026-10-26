@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Types.hpp"
+#include "core/PortVocabulary.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IMountConfiguration.hpp"
 #include "ports/IMountMotion.hpp"

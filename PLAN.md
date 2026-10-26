@@ -900,9 +900,17 @@ format, the two sensor helpers and the utility grab-bag.*
   inventing a line-formatting abstraction for code no shipped board compiles. It already does
   everything it does *to* the mount through `UiPorts`, which is the layering that matters.
   Compile-verified by building `ramps` with `TEST_VERIFY_MODE 1`.
-- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.10 (`Utility`
-  and the empty root, which also removes `LcdMenu`/`LcdButtons`). The root is down from 47 files to
-  17.
+- ✅ **8.7b — the type overlays and the ports' vocabulary are out of the root.** `DayTime`,
+  `Declination`, `Latitude` and `Longitude` moved to `adapters/`: they are `String`-based parsing and
+  formatting over the `core::` values — the Meade wire format and the display buffers — not value
+  types, so `core` is the wrong side of the line. They now include `<Arduino.h>` instead of
+  forward-declaring a global `String`, which is what had been keeping them order-dependent (a
+  forward declaration that landed before the Arduino core's own `String` was a hard error on
+  RP2040). `Types.hpp` became `core/PortVocabulary.hpp`: the direction bitset, the coordinate-format
+  selectors, the axis enum and `LocalDate` are the words the ports are written in, and the file was
+  already Arduino-free.
+- **Remaining:** 8.10 — `Utility`, `LcdMenu`/`LcdButtons`, `a_inits.hpp` and the loop. The root is
+  down from 47 files to 8.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

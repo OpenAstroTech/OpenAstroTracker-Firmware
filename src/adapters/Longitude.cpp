@@ -1,6 +1,6 @@
-#include "../Configuration.hpp"
+#include "Configuration.hpp"
 #include "Utility.hpp"
-#include "Longitude.hpp"
+#include "adapters/Longitude.hpp"
 
 //////////////////////////////////////////////////////////////////////////////////////
 //

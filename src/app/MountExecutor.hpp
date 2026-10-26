@@ -4,10 +4,10 @@
 // forward-declare it. Including them before Arduino.h makes that declaration a conflict there.
 #include "../inc/Globals.hpp"
 
-#include "../Declination.hpp"
-#include "../Latitude.hpp"
-#include "../Longitude.hpp"
-#include "../Types.hpp"
+#include "adapters/Declination.hpp"
+#include "adapters/Latitude.hpp"
+#include "adapters/Longitude.hpp"
+#include "core/PortVocabulary.hpp"
 #include "AxisBank.hpp"
 #include "BoardPresence.hpp"
 #include "MountReadout.hpp"
@@ -53,7 +53,7 @@ class TMC2209Stepper;
 // the controller that acts on them. The aliases keep the public menu and Meade names.
 //
 // The direction bits, coordinate-format selectors and status masks this header used to define
-// now live where their owners are: the bits in `Types.hpp` (they are the ports' vocabulary),
+// now live where their owners are: the bits in `core/PortVocabulary.hpp` (they are the ports' vocabulary),
 // the status masks in `core/MountState.hpp` (they alias `core::StatusBit`).
 using core::FOCUS_BACKWARD;
 using core::FOCUS_FORWARD;

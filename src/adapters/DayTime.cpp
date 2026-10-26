@@ -1,7 +1,7 @@
 #include "inc/Globals.hpp"
-#include "../Configuration.hpp"
+#include "Configuration.hpp"
 #include "Utility.hpp"
-#include "DayTime.hpp"
+#include "adapters/DayTime.hpp"
 
 ///////////////////////////////////
 // DayTime — Arduino-dependent overlay methods
