@@ -128,22 +128,13 @@ include a `core/` header that has behaviour.
 
 ### What still sits outside this layering
 
-The refactor is finished for the command path, the motion path and the controllers. What is left is
-the user interface and the last two peripherals. Each item is listed with why it is still there and
-what would finish it; **[PLAN.md](PLAN.md) Phase 8 is the plan that does all of it**, slice by slice
-(8.1–8.10), and its exit criterion is that `src/` holds nothing but directories.
+**Nothing is left outside it.** Phases 4–7 finished the command path, the motion path and the
+controllers; Phase 8 emptied `src/`, slice by slice (8.1–8.10), and its exit criterion was that
+`src/` holds nothing but directories. It does.
 
 | Still outside | Why it is still there | What would finish it |
 |---|---|---|
-| ~~`LcdMenu`, `LcdButtons`~~ | **done** — deleted. The item table is `core::MenuModel` (caller-owned, no heap), the panel is `ports::IDisplay`, the keys are `ports::IButtons`, and what is left of the old façade is `app::MenuSurface`: the cursor and row painting the loop and the composition root still call, over the model and the display the root already builds | — |
-| `c_buttons.hpp` | **the only screen-related file left in `src/`.** Every screen is now a class in `src/app/ui/` (`app::HomeMenu`, `CoordinateMenu` + `RaMenu`/`DecMenu`, `FocusMenu`, `InfoMenu`, `PoiMenu`, `ControlMenu`, `HaMenu`, `CalibrationMenu`, `StartupWizard`, `SlewStatusView`), Arduino-free, compiled by `[env:native]` and covered by `test_ui` (105 cases). What remains is the loop itself: it dispatches keys, applies each screen's `Outcome`, and paints — the `#if`s it holds are the panel/feature selections, which is where they are allowed to be | Phase 8.10: fold the loop into `app::MenuHost` and delete the file |
-| `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | the frame already arrives as a `ports::InfoDisplayState` POD and the panel is pushed by `adapters::InfoDisplayPanel`, but the renderer has no port to implement, keeps a 16-entry heap-`String` console ring, and holds the pixel arithmetic untested | Phase 8.4: `core/InfoDisplayLayout` (pixel mapping, frozen by tests) + `core/ConsoleLog` + `adapters::Ssd1306InfoDisplay implements ports::IInfoDisplay` over a `hal::IOledPanel` backend; the font tables move under `hal/arduino/` |
-| `EPROMStore` | it is an instance built by the composition root and it already reads/writes through `ports::IPersistentStore`, but it still sits in `src/` and 882 lines of byte layout have never been host-tested | Phase 8.5: `adapters/EepromSettingsFormat` + `test_adapters` coverage of every accessor, the magic markers and the version migration |
-| `HallSensorHoming`, `EndSwitches` | both take ports already (`ports::IHomingSensor` / `ports::IEndSwitch`, `ports::IStatusFlags`, `app::UiPorts`), so only their address is wrong — and `EndSwitch` runs inside the step-generator ISR, so moving it is not free | Phase 8.6: `core/EndSwitchState` (POD transition, no allocation/logging/vtable) + `app/EndSwitchMonitor` and `app/HomingRunner` |
-| `Gyro` | **done** — deleted in Phase 7: `adapters::Mpu6050Gyro` / `adapters::NullGyro` over `hal::II2cBus`, chosen by the root | — |
-| ~~type overlays, `Types.hpp`, `a_inits.hpp`~~ | **done** — the four `String`-based overlays live in `adapters/` (they are wire/display formatting, not value types), `Types.hpp` is `core/PortVocabulary.hpp`, and `a_inits.hpp` dissolved into `app/LoopState.hpp`, `MotorWiring.cpp` and `DriverWiring.cpp` | — |
-| `Utility` | the last root file with substance: the `LOG()` macro (181 call sites still), `freeMemory`, `splitStringBy` and the display-mode helpers, plus the **log ring** `:D#` reads | Phase 8.10: replace `LOG()` with `OAT_LOG`, move the ring into `adapters::SerialLogger` behind `ports::ILogRetention`, and the helpers to their remaining callers |
-| ~~`testmenu`~~ | **done** — moved to `app/test/TestMenu.{hpp,cpp}` as a move, not a port conversion: it is a terminal transcript, and it already does everything it does *to* the mount through `UiPorts` | — |
+| ~~everything in `src/`~~ | **Phase 8 is complete: `src/` holds nothing but directories** (`adapters/`, `app/`, `core/`, `hal/`, `inc/`, `libs/`, `macros/`, `ports/`). Every screen is a class in `app/ui/` compiled and tested on the host, the display and button backends are `hal/` behind ports, the settings format is an adapter, the type overlays are `adapters/`, the ports' vocabulary is `core/PortVocabulary.hpp`, and the loop is `app/MenuHost.hpp` | — |
 
 ---
 
