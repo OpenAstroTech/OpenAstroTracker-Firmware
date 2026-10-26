@@ -2,6 +2,8 @@
 
 #include "Configuration.hpp"
 
+#include "UiSession.hpp"
+
 #include "app/ui/SlewStatusView.hpp"
 #include "app/ui/screens/ControlMenu.hpp"
 #include "app/ui/screens/CalibrationMenu.hpp"
@@ -12,7 +14,6 @@
 
 namespace app
 {
-
 /// The UI singletons. They own nothing but their own selection, and the menu loop is a single task,
 /// so one instance each is the whole lifetime story. Declared in one place so the loop, the serial
 /// path and the startup wizard all name the same object.

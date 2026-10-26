@@ -8,13 +8,12 @@
 
 namespace
 {
-
 /// The axis declination for a celestial coordinate, the way this screen has always computed it:
 /// 90° minus the celestial arc-seconds in the north, 90° plus them in the south.
 ///
 /// The southern branch keeps the positive sign, which is *not* what
 /// `core::Declination::celestialToAxisSeconds()` produces — that one negates for the southern
-/// hemisphere, matching how `Declination::ParseFromMeade()` reads a wire coordinate. The two only
+/// hemisphere, matching how a wire declination is parsed into an axis coordinate. The two only
 /// differ south of the equator, the legacy screen used this one, and changing it here would change
 /// where a southern mount slews. Recorded as a legacy quirk rather than fixed.
 core::Declination axisDeclinationFor(const app::PointOfInterest &point, bool northernHemisphere)
@@ -33,7 +32,6 @@ core::Declination axisDeclinationFor(const app::PointOfInterest &point, bool nor
 
 namespace app
 {
-
 MenuKeyResult PoiMenu::handleKey(const MenuKeyInput &input,
                                  ports::IMountReadModel &read,
                                  ports::IMountMotion &motion,

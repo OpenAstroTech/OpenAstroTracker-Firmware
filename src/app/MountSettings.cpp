@@ -1,3 +1,7 @@
+PUSH_NO_WARNINGS
+#include <Arduino.h>
+POP_NO_WARNINGS
+
 #include "MountSettings.hpp"
 
 #include "core/MathUtil.hpp"
@@ -10,7 +14,6 @@
 
 namespace app
 {
-
 MountSettings::MountSettings(core::MountRuntimeSettings &settings,
                              ports::IMountSettings &store,
                              AxisBank &axes,

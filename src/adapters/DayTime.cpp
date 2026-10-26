@@ -1,4 +1,3 @@
-#include "inc/Globals.hpp"
 #include "Configuration.hpp"
 #include "ports/ILogger.hpp"
 #include "adapters/DayTime.hpp"

@@ -62,7 +62,6 @@ const float siderealDegreesInHour = 14.95904348958;
 
 namespace app
 {
-
 /////////////////////////////////
 //
 // CTOR
@@ -110,7 +109,7 @@ void MountExecutor::initializeVariables()
 {
     // We are now defaulting to northern hemisphere at 45deg. Switching is now supported
     // at runtime when the Latitude is received via Meade command.
-    inNorthernHemisphere = NORTHERN_HEMISPHERE == 1;
+    _coordinator.state().setNorthernHemisphere(NORTHERN_HEMISPHERE == 1);
 
     // u-steps per degree when slewing, plus the motion tuning defaults
     _settings.reset(_config.defaultRaStepsPerDegree, _config.defaultDecStepsPerDegree);
@@ -124,7 +123,7 @@ void MountExecutor::initializeVariables()
     _coordinator.tracking().detach();
     _coordinator.focus().detach();
 
-    _siteTime.setLatitude(core::Latitude(inNorthernHemisphere ? 45.0f : -45.0f));
+    _siteTime.setLatitude(core::Latitude(_coordinator.state().isNorthernHemisphere() ? 45.0f : -45.0f));
     _siteTime.setLongitude(core::Longitude(100.0));
     _zeroPosDEC = 0.0f;
 
@@ -212,7 +211,7 @@ float MountExecutor::checkRALimit()
     facts.homeRaHours        = DayTime(_siteTime.raZeroPoint()).getTotalHours() + getTrackedHours();
     facts.currentRaHours     = currentRA().getTotalHours();
     facts.decAxisDegrees     = (_axes.dec()->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;
-    facts.northernHemisphere = inNorthernHemisphere;
+    facts.northernHemisphere = _coordinator.state().isNorthernHemisphere();
     facts.limitHours         = RA_TRACKING_LIMIT;
 
     const core::RaLimitResult result = core::RaTrackingLimit::evaluate(facts);

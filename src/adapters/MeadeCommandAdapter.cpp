@@ -1,4 +1,6 @@
-#include "../inc/Globals.hpp"
+PUSH_NO_WARNINGS
+#include <Arduino.h>
+POP_NO_WARNINGS
 #include "../Configuration.hpp"
 #include "core/MathUtil.hpp"
 #include "ports/ILogger.hpp"
@@ -49,16 +51,18 @@ MeadeCommandAdapter *MeadeCommandAdapter::instance()
 /////////////////////////////
 MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, ports::IDisplay *display)
 {
-    _config       = ports.configuration;
-    _motion       = ports.configuration;  // IMountConfiguration extends IMountMotion
-    _axes         = ports.axes;
-    _read         = ports.readModel;
-    _siteTime     = ports.siteTime;
-    _events       = ports.events;
-    _clock        = ports.clock;
-    _gyro         = ports.gyro;
-    _gps          = ports.gps;
-    _logRetention = ports.logRetention;
+    _config               = ports.configuration;
+    _motion               = ports.configuration;  // IMountConfiguration extends IMountMotion
+    _axes                 = ports.axes;
+    _read                 = ports.readModel;
+    _siteTime             = ports.siteTime;
+    _events               = ports.events;
+    _clock                = ports.clock;
+    _gyro                 = ports.gyro;
+    _gps                  = ports.gps;
+    _logRetention         = ports.logRetention;
+    _serialControlChanged = ports.serialControlChanged;
+    _serialControlContext = ports.serialControlContext;
 
     // Deferred replies complete on mount events, so the command layer is a subscriber like the
     // status display.
@@ -156,9 +160,17 @@ uint8_t MeadeCommandAdapter::pendingReplies() const
 /////////////////////////////
 // INIT
 /////////////////////////////
+void MeadeCommandAdapter::setSerialControl(bool active)
+{
+    if (_serialControlChanged != nullptr)
+    {
+        _serialControlChanged(active, _serialControlContext);
+    }
+}
+
 void MeadeCommandAdapter::onEnterSerialControl()
 {
-    inSerialControl = true;
+    setSerialControl(true);
     if (_display != nullptr)
     {
         _display->writeLine(0, "Remote control");
@@ -198,7 +210,7 @@ meade::RaCoordinate raFrom(const core::DayTime &t)
     };
 }
 
-meade::DecCoordinate decFrom(const core::Declination &d)
+meade::DecCoordinate decFrom(const core::Declination &d, bool northernHemisphere)
 {
     // The mount stores DEC as an axis coordinate (0 = pole above the mount);
     // Meade clients expect celestial declination. Apply the hemisphere
@@ -206,7 +218,7 @@ meade::DecCoordinate decFrom(const core::Declination &d)
     //
     // The split folds the sign into `deg`, where anything between 0 and -1
     // degrees comes back as +0. Read the sign off the undivided total.
-    const long celestialSeconds = core::Declination::axisToCelestialSeconds(d.getTotalSeconds(), inNorthernHemisphere);
+    const long celestialSeconds = core::Declination::axisToCelestialSeconds(d.getTotalSeconds(), northernHemisphere);
     int deg, min, sec;
     core::DayTime::splitSeconds(celestialSeconds, deg, min, sec);
     return meade::DecCoordinate {
@@ -217,14 +229,15 @@ meade::DecCoordinate decFrom(const core::Declination &d)
     };
 }
 
-Declination decFromWire(meade::DecCoordinate const &d)
+Declination decFromWire(meade::DecCoordinate const &d, bool northernHemisphere)
 {
     // The parser keeps sign and magnitude apart, and they stay apart all the way
     // into the join. Flattening `negative` back into a signed degrees component
     // here would lose it again for "-00*30:00", which is the whole point of the
     // separate flag. celestialSecondsFrom is the declination counterpart of
     // siteSecondsFrom below.
-    return Declination::fromCelestialSeconds(core::Declination::celestialSecondsFrom(d.degrees, d.minutes, d.seconds, d.negative));
+    return Declination::fromCelestialSeconds(core::Declination::celestialSecondsFrom(d.degrees, d.minutes, d.seconds, d.negative),
+                                             northernHemisphere);
 }
 
 // Signed arc-seconds for a magnitude/sign pair. The Latitude and Longitude
@@ -249,12 +262,12 @@ meade::RaCoordinate MeadeCommandAdapter::onTargetRa()
 
 meade::DecCoordinate MeadeCommandAdapter::onCurrentDec()
 {
-    return decFrom(_read->currentDEC());
+    return decFrom(_read->currentDEC(), _read->isNorthernHemisphere());
 }
 
 meade::DecCoordinate MeadeCommandAdapter::onTargetDec()
 {
-    return decFrom(_read->targetDEC());
+    return decFrom(_read->targetDEC(), _read->isNorthernHemisphere());
 }
 
 const char *MeadeCommandAdapter::onMountStatus()
@@ -427,8 +440,8 @@ void MeadeCommandAdapter::onSyncToTarget()
 /////////////////////////////
 bool MeadeCommandAdapter::onSetTargetDec(meade::DecCoordinate dec)
 {
-    _read->targetDEC() = decFromWire(dec);
-    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", Declination(_read->targetDEC()).ToString());
+    _read->targetDEC() = decFromWire(dec, _read->isNorthernHemisphere());
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", Declination(_read->targetDEC()).ToString(_read->isNorthernHemisphere()));
     return true;
 }
 
@@ -461,7 +474,7 @@ bool MeadeCommandAdapter::onSetHourAngle(uint8_t hours, uint8_t minutes)
 
 bool MeadeCommandAdapter::onSyncCoordinates(meade::DecCoordinate dec, meade::RaCoordinate ra)
 {
-    Declination decValue = decFromWire(dec);
+    Declination decValue = decFromWire(dec, _read->isNorthernHemisphere());
     DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
     _motion->syncPosition(raValue, decValue);
     return true;
@@ -660,7 +673,7 @@ long MeadeCommandAdapter::onGetDecHomingOffset()
 }
 bool MeadeCommandAdapter::onGetHemisphere()
 {
-    return inNorthernHemisphere;
+    return _read->isNorthernHemisphere();
 }
 
 oat::core::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
@@ -887,7 +900,7 @@ void MeadeCommandAdapter::onStopSouth()
 void MeadeCommandAdapter::onQuitControlMode()
 {
     // :Qq# does not stop motors, just leaves Control mode.
-    inSerialControl = false;
+    setSerialControl(false);
     // The menu row is repainted by the loop on its next pass; nothing to do here.
 }
 

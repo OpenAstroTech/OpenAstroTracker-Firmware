@@ -71,6 +71,11 @@ class IMountReadModel
 
     virtual bool isGuiding() const = 0;
 
+    /// The hemisphere the site is in. A read fact like the site itself, not a status bit: the POI
+    /// screen converts its declinations by hand for a southern mount, and the direction inversion
+    /// is decided from it. Northern until a site says otherwise, as it always has been.
+    virtual bool isNorthernHemisphere() const = 0;
+
     /// Status readouts, as the strings the protocol sends.
     ///
     /// They return a pointer into storage the mount owns and keeps until the next call to the

@@ -8,7 +8,6 @@
 
 namespace fakes
 {
-
 /// A `ports::IMountReadModel` with every answer under the test's control.
 ///
 /// The coordinate readouts are driven by the `TARGET_STRING` / `CURRENT_STRING` flag the caller
@@ -27,6 +26,9 @@ class FakeMountReadModel : public ports::IMountReadModel
     const char *decCurrentText = "-12@34:56";
 
     bool slewingIdle = true;
+
+    /// The site's hemisphere, as the POI screen asks it. Northern is the default the firmware uses.
+    bool northernHemisphere = true;
 
     /// A move counts as planned when this is non-zero, so the slew-status view has rows to draw.
     float plannedRaStepsValue  = 0.0F;
@@ -145,6 +147,11 @@ class FakeMountReadModel : public ports::IMountReadModel
     bool isGuiding() const override
     {
         return false;
+    }
+
+    bool isNorthernHemisphere() const override
+    {
+        return northernHemisphere;
     }
 
     const char *raText(uint8_t type, uint8_t) override

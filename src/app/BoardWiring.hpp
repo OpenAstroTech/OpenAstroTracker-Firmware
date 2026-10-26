@@ -9,8 +9,6 @@
 //
 // This is the extracted half of the old `b_setup.hpp`; `setup()` lives in `main.cpp` now.
 
-#include "../inc/Globals.hpp"
-
 #include "MountExecutor.hpp"
 #include "LoopState.hpp"
 #include "core/menu/MenuModel.hpp"
@@ -24,6 +22,7 @@
 #include "adapters/MountSettingsStore.hpp"
 #include "adapters/SiteTimePort.hpp"
 #include "UiPorts.hpp"
+#include "UiSession.hpp"
 #include "StepPump.hpp"
 #include "adapters/NullGyro.hpp"
 #include "ports/IGps.hpp"

@@ -11,7 +11,6 @@ POP_NO_WARNINGS
 
 namespace app
 {
-
 void MenuSurface::startup()
 {
     LOG(DEBUG_INFO, "[LCD]: menu startup");
@@ -33,7 +32,7 @@ void MenuSurface::addItem(const char *display, uint8_t id)
 {
     if ((menuModelPort != nullptr) && !menuModelPort->add(display, id))
     {
-        LOG(DEBUG_ERROR, "[LCD]: menu item table is full, dropping %s", display);
+        LOG(DEBUG_INFO, "[LCD]: menu item table is full, dropping %s", display);
     }
 }
 

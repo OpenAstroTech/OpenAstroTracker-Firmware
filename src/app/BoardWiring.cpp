@@ -58,7 +58,7 @@ ports::IGps *gpsPort = nullptr;
 #if SUPPORT_GUIDED_STARTUP == 1
 bool inStartup = true;  // Start with a guided startup
 #else
-bool inStartup = false;  // Start with a guided startup
+bool inStartup       = false;  // Start with a guided startup
 #endif
 
 bool okToUpdateMenu                = true;   // Can be used to supress rendering the first line of the menu.
@@ -307,6 +307,10 @@ app::StepPump stepPump(mountCoordinator.state(), mountCoordinator.focus(), mount
 #endif
 
 app::UiPorts ui;
+
+/// The session flag the command layer sets and the menu reads. Zero-initialised like `ui`.
+app::UiSession uiSession;
+
 // The menu screens' view of the mount: five ports, the clock and the scheduler, all backed by the
 // one `mount` object until the coordinator owns the controllers.
 struct UiPortsInit {

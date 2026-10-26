@@ -1,12 +1,10 @@
 #pragma once
 
-#include "../inc/Globals.hpp"
 #include "../../Configuration.hpp"
 #include "MountExecutor.hpp"
 
 namespace app
 {
-
 /// Builds every axis engine this board has and hands them to the mount.
 ///
 /// Engine construction is the last place the platform `#ifdef`s live: on AVR the interrupt

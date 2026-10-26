@@ -7,7 +7,6 @@
 
 namespace app
 {
-
 /////////////////////////////////
 void MountExecutor::clearConfiguration()
 {
@@ -114,15 +113,15 @@ void MountExecutor::readPersistentData()
 /////////////////////////////////
 void MountExecutor::configureHemisphere(bool inNorthern, bool force)
 {
-    if ((inNorthernHemisphere != inNorthern) || force)
+    if ((_coordinator.state().isNorthernHemisphere() != inNorthern) || force)
     {
         bool wasTracking = isSlewingTRK();
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Hemisphere changed (or forced update) to %s.", inNorthern ? "northern" : "southern");
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Stopping all steppers.");
         stopSlewing(ALL_DIRECTIONS | TRACKING);
         waitUntilStopped(ALL_DIRECTIONS);
-        inNorthernHemisphere = inNorthern;
-        bool invertDir       = inNorthernHemisphere ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
+        _coordinator.state().setNorthernHemisphere(inNorthern);
+        bool invertDir = inNorthern ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Configured RA steppers, DIR Invert is %d", invertDir);
         _axes.ra()->setPinsInverted(invertDir, false, false);
         _axes.tracking()->setPinsInverted(invertDir, false, false);
@@ -138,10 +137,7 @@ void MountExecutor::configureHemisphere(bool inNorthern, bool force)
     }
     else
     {
-        OAT_LOG(_deps.logger,
-                DEBUG_ANY,
-                "[SYSTEM]: Already in %s hemisphere, no action taken.",
-                inNorthernHemisphere ? "northern" : "southern");
+        OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Already in %s hemisphere, no action taken.", inNorthern ? "northern" : "southern");
     }
 }
 

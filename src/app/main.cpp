@@ -2,7 +2,6 @@
 // included; the object graph it builds now lives in `app/BoardWiring.cpp`, and this file is
 // the only translation unit that also pulls in the UI.
 
-#include "../inc/Globals.hpp"
 #include "../../Configuration.hpp"
 #include "ports/ILogger.hpp"
 #include "MountExecutor.hpp"
@@ -195,9 +194,9 @@ void setup()
         #ifdef OAE
     RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
         #elif defined(ARDUINO_ARCH_RP2040)
-    RA_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
+    RA_SERIAL_PORT.begin(115200);   // TMCStepper requires 115200 baud on RP2040
         #else
-    RA_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
         #endif
     //
     #endif
@@ -253,7 +252,7 @@ void setup()
             #if defined(ARDUINO_ARCH_RP2040)
     AZ_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
             #else
-    AZ_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    AZ_SERIAL_PORT.begin(57600);     // Start HardwareSerial comms with driver
             #endif
         #endif
     #endif
@@ -274,7 +273,7 @@ void setup()
             #if defined(ARDUINO_ARCH_RP2040)
     ALT_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
             #else
-    ALT_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
+    ALT_SERIAL_PORT.begin(57600);    // Start HardwareSerial comms with driver
             #endif
         #endif
     #endif
@@ -414,15 +413,16 @@ void setup()
     LOG(DEBUG_ANY, "[SYSTEM]: Initialize LX200 handler...");
     int commandProcessorLine = addConsoleText(F("Init MEADE handler..."));
     MeadeCommandPorts commandPorts;
-    commandPorts.configuration = &mount;
-    commandPorts.axes          = &mount;
-    commandPorts.readModel     = &mount.readout();
-    commandPorts.siteTime      = &siteTimePort;
-    commandPorts.events        = &mountCoordinator;
-    commandPorts.clock         = &clockPort;
-    commandPorts.gyro          = gyro;
-    commandPorts.gps           = gpsPort;
-    commandPorts.logRetention  = logRetention;
+    commandPorts.configuration        = &mount;
+    commandPorts.axes                 = &mount;
+    commandPorts.readModel            = &mount.readout();
+    commandPorts.siteTime             = &siteTimePort;
+    commandPorts.events               = &mountCoordinator;
+    commandPorts.clock                = &clockPort;
+    commandPorts.gyro                 = gyro;
+    commandPorts.gps                  = gpsPort;
+    commandPorts.logRetention         = logRetention;
+    commandPorts.serialControlChanged = [](bool active, void *) { uiSession.serialControl = active; };
     MeadeCommandAdapter::createProcessor(commandPorts, menuDisplayPort);
     updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 
@@ -518,8 +518,8 @@ void setup()
     updateConsoleText(testLine, F("Test UARTs... OK"));
 #endif
 
-    LOG(DEBUG_ANY, "[SYSTEM]: Setting %s hemisphere...", inNorthernHemisphere ? "northern" : "southern");
-    mount.configureHemisphere(inNorthernHemisphere, true);
+    LOG(DEBUG_ANY, "[SYSTEM]: Setting %s hemisphere...", mount.readout().isNorthernHemisphere() ? "northern" : "southern");
+    mount.configureHemisphere(mount.readout().isNorthernHemisphere(), true);
 
 #if TRACK_ON_BOOT == 1
     // Start the tracker.

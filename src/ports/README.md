@@ -41,7 +41,7 @@ Adapters in [`../adapters/`](../adapters/) implement these ports on top of [`../
   built with `OAT_LOG_FORMAT()`, which is `PSTR()` on AVR. That single platform-specific
   line in `LogFormat.hpp` is what keeps the firmware's 273 format literals (13.9 KB) out
   of the ATmega2560's 8 KB of SRAM. Call sites use the `OAT_LOG(logger, level, format, …)`
-  macro in [`../Utility.hpp`](../Utility.hpp), which also compiles the whole call out when
+  macro in [`ILogger.hpp`](ILogger.hpp), which also compiles the whole call out when
   `DEBUG_LEVEL` is `DEBUG_NONE`.
 
 See [PLAN.md](../../PLAN.md) for the target architecture.

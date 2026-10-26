@@ -6,7 +6,6 @@
 
 namespace app
 {
-
 SlewStatusView slewStatusView;
 
 // Everything below is a menu screen: a board without a display compiles nothing of it in, so the
@@ -74,7 +73,7 @@ InfoMenuEnvironment infoEnvironment()
 bool serialHostOwnsDisplay()
 {
 #if SUPPORT_SERIAL_CONTROL == 1
-    return inSerialControl;
+    return uiSession.serialControl;
 #else
     return false;
 #endif

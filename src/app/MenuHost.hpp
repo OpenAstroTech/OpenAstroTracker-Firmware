@@ -200,7 +200,7 @@ void loop()
 
     // Update the LCD display
     unsigned long now = millis();
-    if (!inSerialControl && okToUpdateMenu && !inStartup && !ui.motion->isSlewingRAorDEC())
+    if (!uiSession.serialControl && okToUpdateMenu && !inStartup && !ui.motion->isSlewingRAorDEC())
     {
         // Main menu display
         menu.updateDisplay();
@@ -220,10 +220,10 @@ void loop()
     // On RP2040, the Philhower core does not reliably call serialEvent() for the
     // USB CDC Serial port when a host application opens the port and immediately
     // sends data (e.g. OATControl). Poll explicitly on every loop() iteration so
-    // that commands are always processed regardless of inSerialControl state.
+    // that commands are always processed regardless of the serial-control state.
     processSerialData();
         #endif
-    if (inSerialControl)
+    if (uiSession.serialControl)
     {
         core::Button serialKey = core::Button::None;
         if ((menuButtons != nullptr) && menuButtons->keyChanged(&serialKey))
@@ -291,7 +291,8 @@ void loop()
     #if SUPPORT_POINTS_OF_INTEREST == 1
                 case POI_Menu:
                     {
-                        const app::MenuKeyResult result = app::poiMenu.handleKey(screenInput(), *ui.read, *ui.motion, inNorthernHemisphere);
+                        const app::MenuKeyResult result
+                            = app::poiMenu.handleKey(screenInput(), *ui.read, *ui.motion, ui.read->isNorthernHemisphere());
                         if (result == app::MenuKeyResult::NextScreen)
                         {
                             menu.setNextActive();
@@ -444,7 +445,7 @@ void loop()
                             = app::controlMenu.handleKey(screenInput(), *ui.motion, app::serialHostOwnsDisplay(), startupAwaitingPole());
                         if (outcome.serialChanged)
                         {
-                            inSerialControl = outcome.serialActive;
+                            uiSession.serialControl = outcome.serialActive;
                         }
                         if (outcome.suspendMenuUpdate)
                         {
@@ -527,7 +528,7 @@ void loop()
         else
     #endif
         {
-            if (!inSerialControl)
+            if (!uiSession.serialControl)
             {
                 // For some strange reason, a switch statement here causes a crash and reboot....
                 int activeMenu = menu.getActive();

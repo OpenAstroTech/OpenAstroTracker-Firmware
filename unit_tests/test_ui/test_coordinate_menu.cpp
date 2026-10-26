@@ -13,7 +13,6 @@ using fakes::FakeDisplay;
 
 namespace
 {
-
 app::MenuKeyInput pressed(Button key)
 {
     return MenuKeyInput {key, key};
@@ -102,6 +101,10 @@ class RecordingReadModel final : public ports::IMountReadModel
     bool isGuiding() const override
     {
         return false;
+    }
+    bool isNorthernHemisphere() const override
+    {
+        return true;
     }
     const char *raText(uint8_t, uint8_t) override
     {

@@ -125,3 +125,41 @@ TEST(MountStateTest, SettingParkedIsNotPossibleBecauseParkedIsZero)
     EXPECT_FALSE(state.isParked());  // "parked" is the absence of every other bit
     EXPECT_TRUE(state.test(mask(StatusBit::Tracking)));
 }
+
+// The hemisphere is a site fact, not a status bit: it decides the RA direction inversion and
+// the southern-mount sign conventions. It defaults to northern because that is what the
+// firmware has always assumed before a site is set.
+TEST(MountStateTest, HemisphereDefaultsToNorthern)
+{
+    MountState state;
+
+    EXPECT_TRUE(state.isNorthernHemisphere());
+}
+
+TEST(MountStateTest, HemisphereFollowsTheSite)
+{
+    MountState state;
+
+    state.setNorthernHemisphere(false);
+    EXPECT_FALSE(state.isNorthernHemisphere());
+
+    state.setNorthernHemisphere(true);
+    EXPECT_TRUE(state.isNorthernHemisphere());
+}
+
+TEST(MountStateTest, HemisphereIsNotPartOfTheStatusField)
+{
+    MountState state;
+
+    state.setNorthernHemisphere(false);
+    EXPECT_EQ(0u, state.value());
+    EXPECT_TRUE(state.isParked());
+
+    state.set(mask(StatusBit::Tracking));
+    state.clear(mask(StatusBit::Tracking));
+    state.reset(mask(StatusBit::Parking));
+    EXPECT_FALSE(state.isNorthernHemisphere());
+
+    state.reset(mask(StatusBit::Parked));
+    EXPECT_FALSE(state.isNorthernHemisphere());
+}

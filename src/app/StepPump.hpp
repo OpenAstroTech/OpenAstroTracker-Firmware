@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../inc/Globals.hpp"
 #include "../../Configuration.hpp"
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)
@@ -11,7 +10,6 @@
 
 namespace app
 {
-
 /// The step-generation pump: advances every axis that is mid-move.
 ///
 /// It decides nothing. It reads the status bits and the focus mode and calls `run()`, or

@@ -4,7 +4,6 @@
 
 namespace core
 {
-
 /// What the mount is doing, as the bitfield the firmware has always used.
 ///
 /// The values are the existing `STATUS_*` layout, preserved exactly: the Meade status
@@ -96,8 +95,26 @@ class MountState
         return _bits == 0;
     }
 
+    /// The hemisphere the site is in — a *fact about the mount*, not a status bit, which is why it
+    /// is not part of `_bits` and never reaches the Meade status field. It decides the RA direction
+    /// inversion and the southern-mount sign conventions, and it defaults to northern because that
+    /// is what the firmware assumed before a site was ever stored.
+    ///
+    /// Threading: written only when the site changes and read on the main loop; no step generator
+    /// reads it.
+    bool isNorthernHemisphere() const
+    {
+        return _northernHemisphere;
+    }
+
+    void setNorthernHemisphere(bool northern)
+    {
+        _northernHemisphere = northern;
+    }
+
   private:
-    volatile uint16_t _bits = 0;
+    volatile uint16_t _bits  = 0;
+    bool _northernHemisphere = true;
 };
 
 }  // namespace core

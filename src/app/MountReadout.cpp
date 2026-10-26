@@ -24,7 +24,6 @@
 
 namespace app
 {
-
 MountReadout::MountReadout(AxisBank &axes,
                            core::MountCoordinator &coordinator,
                            core::MountRuntimeSettings &settings,
@@ -639,12 +638,17 @@ bool MountReadout::isBootComplete()
     return _bootComplete;
 }
 
+bool MountReadout::isNorthernHemisphere() const
+{
+    return _coordinator.state().isNorthernHemisphere();
+}
+
 void MountReadout::calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos)
 {
     DayTime savedRA      = _targetRa;
     Declination savedDec = _targetDec;
     _targetRa            = DayTime(raCoord);
-    _targetDec           = Declination::FromSeconds(decCoord * 3600.0f);
+    _targetDec           = Declination::FromSeconds(decCoord * 3600.0f, isNorthernHemisphere());
     calculateRAandDECSteppers(raPos, decPos);
     _targetRa  = savedRA;
     _targetDec = savedDec;
@@ -656,8 +660,12 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersPre: Current : RA: %s, DEC: %s",
             DayTime(currentRA()).ToString(),
-            Declination(currentDEC()).ToString());
-    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s", _targetRa.ToString(), _targetDec.ToString());
+            Declination(currentDEC()).ToString(isNorthernHemisphere()));
+    OAT_LOG(&_logger,
+            DEBUG_COORD_CALC,
+            "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s",
+            _targetRa.ToString(),
+            _targetDec.ToString(isNorthernHemisphere()));
     OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", DayTime(_siteTime.raZeroPoint()).ToString());
     OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroDEC : %f", _zeroPosDec);
     OAT_LOG(&_logger,
@@ -675,7 +683,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
             raTarget.ToString(),
-            _targetDec.ToString());
+            _targetDec.ToString(isNorthernHemisphere()));
 
     // Total hours of tracking-to-date
     const float trackedHours = getTrackedHours();
@@ -695,11 +703,11 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
     facts.decStepsPerDegree  = _settings.stepsPerDegree(DEC_STEPS);
     facts.raLimitLeftHours   = RA_LIMIT_LEFT;
     facts.raLimitRightHours  = RA_LIMIT_RIGHT;
-    facts.northernHemisphere = inNorthernHemisphere;
+    facts.northernHemisphere = isNorthernHemisphere();
 
     const core::SlewGeometry geometry = core::buildSlewGeometry(facts);
 
-    if (!inNorthernHemisphere)
+    if (!isNorthernHemisphere())
     {
         OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: moveDEC inverted for southern Hemisphere => %f", geometry.moveDEC);
     }
@@ -709,7 +717,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
             "[MOUNT]: CalcSteppersIn: Target hrs pos RA: Delta:%f (moveRA: %f), DEC: %s (moveDEC: %f)",
             geometry.homeTargetDeltaRA,
             geometry.moveRA,
-            decTarget.ToString(),
+            decTarget.ToString(isNorthernHemisphere()),
             geometry.moveDEC);
 
     /*

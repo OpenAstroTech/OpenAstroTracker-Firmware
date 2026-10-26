@@ -1,6 +1,9 @@
 #pragma once
 
-#include "../inc/Globals.hpp"
+PUSH_NO_WARNINGS
+#include <Arduino.h>
+POP_NO_WARNINGS
+
 #include "../../Configuration.hpp"
 #include "core/PortVocabulary.hpp"
 #include "../core/MountConfig.hpp"
@@ -17,10 +20,8 @@
 #include "../ports/IInfoDisplay.hpp"
 #include "AxisBank.hpp"
 
-
 namespace app
 {
-
 class HallSensorHoming;
 class EndSwitch;
 
@@ -114,6 +115,7 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
     float plannedRaSteps() const;
     float plannedDecSteps() const;
     bool isBootComplete();
+    bool isNorthernHemisphere() const override;
 
     /// The port asks this, and the answer comes from the executor through `_raLimit`: reaching the
     /// limit stops the tracker, so the decision is not this class's to make.

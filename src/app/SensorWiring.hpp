@@ -1,12 +1,10 @@
 #pragma once
 
-#include "../inc/Globals.hpp"
 #include "../../Configuration.hpp"
 #include "MountExecutor.hpp"
 
 namespace app
 {
-
 /// Builds the end switches and hall sensors this board has, and hands them to the mount.
 ///
 /// Which pins exist, and whether a switch reads high or low, is board knowledge — the same

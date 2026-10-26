@@ -1,8 +1,11 @@
 #pragma once
 
+PUSH_NO_WARNINGS
+#include <Arduino.h>
+POP_NO_WARNINGS
+
 // Arduino first: `String` is `arduino::String` on RP2040, and the value-type overlays below
 // forward-declare it. Including them before Arduino.h makes that declaration a conflict there.
-#include "../inc/Globals.hpp"
 
 #include "adapters/Declination.hpp"
 #include "adapters/Latitude.hpp"
@@ -71,7 +74,6 @@ using FocuserDirection = core::FocuserDirection;
 //////////////////////////////////////////////////////////////////
 namespace app
 {
-
 class HallSensorHoming;
 class EndSwitch;
 

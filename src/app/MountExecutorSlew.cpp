@@ -9,7 +9,6 @@
 
 namespace app
 {
-
 void MountExecutor::syncPosition(const core::DayTime &ra, const core::Declination &dec)
 {
     long solutions[6];
@@ -305,7 +304,7 @@ void MountExecutor::startSlewing(int direction)
     facts.decUpperLimitSteps     = _settings.decUpperLimitSteps();
     facts.decLowerLimitSteps     = _settings.decLowerLimitSteps();
     facts.trackedHours           = getTrackedHours();
-    facts.northernHemisphere     = inNorthernHemisphere;
+    facts.northernHemisphere     = _coordinator.state().isNorthernHemisphere();
 
     const core::ManualSlewTargets targets = core::manualSlewTargets(static_cast<uint8_t>(direction), facts);
 

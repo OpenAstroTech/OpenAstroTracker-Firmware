@@ -44,6 +44,12 @@ struct MeadeCommandPorts {
     ports::IGps *gps = nullptr;
     /// The retained debug log, or null when nothing is retained; `:D#` says so then.
     ports::ILogRetention *logRetention = nullptr;
+    /// Called when the command layer takes the display for a serial host or gives it back. The
+    /// composition root points it at the session flag the menu reads; null on a board without
+    /// serial control. A callback rather than a port because it carries one bit, and a vtable
+    /// would cost AVR SRAM in an object that is a single global.
+    void (*serialControlChanged)(bool active, void *context) = nullptr;
+    void *serialControlContext                               = nullptr;
 };
 
 class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::core::IEventSink
@@ -236,16 +242,22 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     // The mount, as four ports instead of one pointer (PLAN.md Phase 5 step 3). No `Mount *`
     // member: every call site below goes through one of these, which is what makes the command
     // layer's dependency on the mount visible in one place.
-    ports::IMountConfiguration *_config = nullptr;
-    ports::IMountMotion *_motion        = nullptr;
-    ports::IMountOptionalAxes *_axes    = nullptr;
-    ports::IMountReadModel *_read       = nullptr;
-    ports::IMountSiteTime *_siteTime    = nullptr;
-    ports::IMountEvents *_events        = nullptr;
-    ports::IClock *_clock               = nullptr;
-    ports::IGyro *_gyro                 = nullptr;
-    ports::IGps *_gps                   = nullptr;
-    ports::ILogRetention *_logRetention = nullptr;
+    ports::IMountConfiguration *_config                       = nullptr;
+    ports::IMountMotion *_motion                              = nullptr;
+    ports::IMountOptionalAxes *_axes                          = nullptr;
+    ports::IMountReadModel *_read                             = nullptr;
+    ports::IMountSiteTime *_siteTime                          = nullptr;
+    ports::IMountEvents *_events                              = nullptr;
+    ports::IClock *_clock                                     = nullptr;
+    ports::IGyro *_gyro                                       = nullptr;
+    ports::IGps *_gps                                         = nullptr;
+    ports::ILogRetention *_logRetention                       = nullptr;
+    void (*_serialControlChanged)(bool active, void *context) = nullptr;
+    void *_serialControlContext                               = nullptr;
+
+    /// Tells the composition root that a host took the display or left it. `:Qq#` and the enter
+    /// command are the only callers.
+    void setSerialControl(bool active);
 
     /// Pumps the receiver and, on a fresh fix, sets the site and the clock from it. Shared by
     /// `:gT#` and nothing else: the HA screen does the same through its own port.

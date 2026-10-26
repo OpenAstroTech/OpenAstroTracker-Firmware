@@ -1,4 +1,7 @@
-#include "../inc/Globals.hpp"
+PUSH_NO_WARNINGS
+#include <Arduino.h>
+POP_NO_WARNINGS
+
 #include "AxisBank.hpp"
 
 #include "../adapters/NullMotorDriver.hpp"
@@ -12,7 +15,6 @@ adapters::NullMotorDriver nullDriver;
 
 namespace app
 {
-
 AxisBank::AxisBank()
 {
     _stepsPerAzDegree  = AZIMUTH_STEPS_PER_REV / 360.0f;
