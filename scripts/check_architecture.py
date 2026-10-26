@@ -5,6 +5,9 @@
 reach for a hardware API, a platform type, or a compile-time feature switch: that is what
 keeps them host-testable and what makes the `#ifdef`-free promise of Phase 4 achievable.
 
+`src/app/ui/` obeys the same rules (PLAN.md 8.8): it is compiled by `[env:native]` and
+host-tested, so a menu screen may reach hardware only through a port.
+
 Usage:
     python scripts/check_architecture.py          # exit 1 and list violations
     python scripts/check_architecture.py -v       # also print the files scanned
@@ -16,7 +19,7 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SCANNED_DIRS = ("src/core", "src/ports")
+SCANNED_DIRS = ("src/core", "src/ports", "src/app/ui")
 SUFFIXES = (".h", ".hpp", ".cpp")
 
 # Name -> pattern. Matched against the code with comments removed, so prose that mentions
