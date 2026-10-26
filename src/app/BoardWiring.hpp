@@ -11,10 +11,11 @@
 
 #include "../inc/Globals.hpp"
 
-#include "LcdButtons.hpp"
-#include "LcdMenu.hpp"
 #include "MountExecutor.hpp"
 #include "LoopState.hpp"
+#include "core/menu/MenuModel.hpp"
+#include "ports/IButtons.hpp"
+#include "ports/IDisplay.hpp"
 
 #include "adapters/ArduinoClock.hpp"
 #include "adapters/EepromSettingsFormat.hpp"
@@ -37,11 +38,13 @@
 
 // --- the display and menu singletons ---------------------------------------------------
 
-extern LcdMenu lcdMenu;
-extern LcdButtons lcdButtons;
+/// The menu model, or null on a board with no panel.
+extern core::MenuModel *menuModelPort;
 
-/// The menu display behind `lcdMenu`, for the screens that are already port-based (null on a
-/// headless board).
+/// The debounced keys, or null on a board with no panel.
+extern ports::IButtons *menuButtons;
+
+/// The menu display, which is also what the screens paint through (null on a headless board).
 extern ports::IDisplay *menuDisplayPort;
 
 // --- the infrastructure the domain runs on --------------------------------------------

@@ -8,6 +8,8 @@
 #include "MountExecutor.hpp"
 
 #include "BoardWiring.hpp"
+#include "MenuSurface.hpp"
+#include "app/ui/MenuIds.hpp"
 
 #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
     #include "../adapters/Ssd1306InfoDisplay.hpp"
@@ -332,31 +334,31 @@ void setup()
 #if DISPLAY_TYPE != DISPLAY_TYPE_NONE
     LOG(DEBUG_ANY, "[SYSTEM]: Get LCD ready...");
     int lcdLine = addConsoleText(F("Init LCD..."));
-    lcdMenu.startup();
+    menu.startup();
 
     // Show a splash screen
-    lcdMenu.setCursor(0, 0);
+    menu.setCursor(0, 0);
     #ifdef OAM
-    lcdMenu.printMenu(F(" OpenAstroMount"));
+    menu.printMenu(F(" OpenAstroMount"));
     #elif defined(OAE)
-    lcdMenu.printMenu(F("OpenAstroExplorer"));
+    menu.printMenu(F("OpenAstroExplorer"));
     #else
-    lcdMenu.printMenu(F("OpenAstroTracker"));
+    menu.printMenu(F("OpenAstroTracker"));
     #endif
-    lcdMenu.setCursor(5, 1);
-    lcdMenu.printMenu(VERSION);
+    menu.setCursor(5, 1);
+    menu.printMenu(VERSION);
     delay(1000);  // Pause on splash screen
 
     // Check for EEPROM reset (Button down during boot)
     long lcdCheckStart = millis();
-    if (lcdButtons.currentState() == btnDOWN)
+    if ((menuButtons != nullptr) && (menuButtons->pressed() == core::Button::Down))
     {
         // Wait for button release
-        lcdMenu.setCursor(13, 1);
-        lcdMenu.printMenu(F("CLR"));
+        menu.setCursor(13, 1);
+        menu.printMenu(F("CLR"));
         LOG(DEBUG_INFO, "[SYSTEM]: DOWN pressed, waiting for button release!");
         bool timedOut = false;
-        while (lcdButtons.currentState() != btnNONE)
+        while ((menuButtons != nullptr) && (menuButtons->pressed() != core::Button::None))
         {
             delay(10);
             // Wait 3s maximum for button to be released.
@@ -376,31 +378,31 @@ void setup()
     }
 
     // Create the LCD top-level menu items
-    lcdMenu.addItem("RA", RA_Menu);
-    lcdMenu.addItem("DEC", DEC_Menu);
+    menu.addItem("RA", RA_Menu);
+    menu.addItem("DEC", DEC_Menu);
 
     #if SUPPORT_POINTS_OF_INTEREST == 1
-    lcdMenu.addItem("GO", POI_Menu);
+    menu.addItem("GO", POI_Menu);
     #else
-    lcdMenu.addItem("GO", Home_Menu);
+    menu.addItem("GO", Home_Menu);
     #endif
 
-    lcdMenu.addItem("HA", HA_Menu);
+    menu.addItem("HA", HA_Menu);
 
     #if SUPPORT_MANUAL_CONTROL == 1
-    lcdMenu.addItem("CTRL", Control_Menu);
+    menu.addItem("CTRL", Control_Menu);
     #endif
 
     #if SUPPORT_CALIBRATION == 1
-    lcdMenu.addItem("CAL", Calibration_Menu);
+    menu.addItem("CAL", Calibration_Menu);
     #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-    lcdMenu.addItem("FOC", Focuser_Menu);
+    menu.addItem("FOC", Focuser_Menu);
     #endif
 
     #if SUPPORT_INFO_DISPLAY == 1
-    lcdMenu.addItem("INFO", Status_Menu);
+    menu.addItem("INFO", Status_Menu);
     #endif
     updateConsoleText(lcdLine, F("Init LCD... OK"));
 
@@ -420,7 +422,7 @@ void setup()
     commandPorts.clock         = &clockPort;
     commandPorts.gyro          = gyro;
     commandPorts.gps           = gpsPort;
-    MeadeCommandAdapter::createProcessor(commandPorts, &lcdMenu);
+    MeadeCommandAdapter::createProcessor(commandPorts, menuDisplayPort);
     updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 
 #if (WIFI_ENABLED == 1)

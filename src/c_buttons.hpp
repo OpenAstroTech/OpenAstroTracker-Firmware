@@ -1,6 +1,7 @@
 #pragma once
 
-#include "LcdButtons.hpp"
+#include "app/MenuSurface.hpp"
+#include "app/ui/MenuIds.hpp"
 #include "app/UiScreens.hpp"
 #include "app/BoardWiring.hpp"
 
@@ -18,10 +19,10 @@
 
 #if DISPLAY_TYPE > 0
     #if LCD_BUTTON_TEST == 1
-lcdButton_t lastKey = btnNONE;
+core::Button lastKey = core::Button::None;
     #endif
 
-lcdButton_t lcd_key;
+core::Button lcd_key;
 unsigned long lastTrackingStatusPrint = 0;
 
 /// The converted screens own their own selection and field cursor.
@@ -79,7 +80,7 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
             {
                 menuDisplayPort->writeLine(0, outcome.caption);
             }
-            lcdMenu.setActive(Control_Menu);
+            menu.setActive(Control_Menu);
             app::controlMenu.startManual();
             break;
 
@@ -89,7 +90,7 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
             {
                 menuDisplayPort->writeLine(0, outcome.caption);
             }
-            lcdMenu.setActive(Calibration_Menu);
+            menu.setActive(Calibration_Menu);
             break;
 
         case app::StartupAction::HandOverToHaMenu:
@@ -98,7 +99,7 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
             {
                 menuDisplayPort->writeLine(0, outcome.caption);
             }
-            lcdMenu.setActive(HA_Menu);
+            menu.setActive(HA_Menu);
             break;
 
         case app::StartupAction::Completed:
@@ -107,8 +108,8 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
     #if TRACK_ON_BOOT == 1
             ui.motion->startSlewing(TRACKING);
     #endif
-            lcdMenu.setActive(RA_Menu);
-            lcdMenu.updateDisplay();
+            menu.setActive(RA_Menu);
+            menu.updateDisplay();
             break;
 
         case app::StartupAction::None:
@@ -120,9 +121,10 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
 /// What the loop hands a converted screen: the key that just settled and the key held now.
 app::MenuKeyInput screenInput()
 {
-    lcdButton_t edgeKey;
-    const bool changed = lcdButtons.keyChanged(&edgeKey);
-    return app::MenuKeyInput {changed ? toCoreButton(edgeKey) : core::Button::None, toCoreButton(lcdButtons.currentState())};
+    core::Button edgeKey    = core::Button::None;
+    const bool changed      = (menuButtons != nullptr) && menuButtons->keyChanged(&edgeKey);
+    const core::Button held = (menuButtons != nullptr) ? menuButtons->pressed() : core::Button::None;
+    return app::MenuKeyInput {changed ? edgeKey : core::Button::None, held};
 }
 
 void loop()
@@ -130,36 +132,36 @@ void loop()
     #if LCD_BUTTON_TEST == 1
     int adc_key_in;
 
-    lcdMenu.setCursor(0, 0);
-    lcdMenu.printMenu("Key Diagnostic");
-    lcd_key      = lcdButtons.currentState();
-    int key      = lcdButtons.currentKey();
-    bool changed = lcdButtons.keyChanged(&lastKey);
+    menu.setCursor(0, 0);
+    menu.printMenu("Key Diagnostic");
+    lcd_key       = (menuButtons != nullptr) ? menuButtons->pressed() : core::Button::None;
+    const int key = static_cast<int>(lcd_key);
+    bool changed  = (menuButtons != nullptr) && menuButtons->keyChanged(&lastKey);
 
-    adc_key_in = lcdButtons.currentAnalogState();
+    adc_key_in = (menuButtons != nullptr) ? static_cast<int>(menuButtons->rawValue()) : 0;
 
-    lcdMenu.setCursor(0, 1);
+    menu.setCursor(0, 1);
     char buf[128];
     sprintf(buf, "A:%4d %d ", adc_key_in, key);
     String state = String(buf);
     switch (lcd_key)
     {
-        case btnNONE:
+        case core::Button::None:
             state += "None";
             break;
-        case btnSELECT:
+        case core::Button::Select:
             state += "Select";
             break;
-        case btnLEFT:
+        case core::Button::Left:
             state += "Left";
             break;
-        case btnRIGHT:
+        case core::Button::Right:
             state += "Right";
             break;
-        case btnUP:
+        case core::Button::Up:
             state += "Up";
             break;
-        case btnDOWN:
+        case core::Button::Down:
             state += "Down";
             break;
         default:
@@ -167,10 +169,10 @@ void loop()
             break;
     }
 
-    lcdMenu.printMenu(state);
+    menu.printMenu(state);
     if (changed)
     {
-        Serial.println(lastKey);
+        Serial.println(static_cast<int>(lastKey));
     }
 
     return;
@@ -193,17 +195,17 @@ void loop()
     if (!inSerialControl && okToUpdateMenu && !inStartup && !ui.motion->isSlewingRAorDEC())
     {
         // Main menu display
-        lcdMenu.updateDisplay();
+        menu.updateDisplay();
     }
 
     // Tracking marker
     if ((ui.read->isBootComplete()) && (now - lastTrackingStatusPrint > 200))
     {
-        lcdMenu.printAt(15, 0, ui.motion->isSlewingTRK() ? '&' : '`');
+        menu.printAt(15, 0, ui.motion->isSlewingTRK() ? '&' : '`');
         lastTrackingStatusPrint = now;
     }
 
-    lcdMenu.setCursor(0, 1);
+    menu.setCursor(0, 1);
 
     #if SUPPORT_SERIAL_CONTROL == 1
         #if defined(ARDUINO_ARCH_RP2040)
@@ -215,13 +217,15 @@ void loop()
         #endif
     if (inSerialControl)
     {
-        if (lcdButtons.keyChanged(&lcd_key))
+        core::Button serialKey = core::Button::None;
+        if ((menuButtons != nullptr) && menuButtons->keyChanged(&serialKey))
         {
-            if (lcd_key == btnSELECT)
+            lcd_key = serialKey;
+            if (lcd_key == core::Button::Select)
             {
                 quitSerialOnNextButtonRelease = true;
             }
-            else if ((lcd_key == btnNONE) && quitSerialOnNextButtonRelease)
+            else if ((lcd_key == core::Button::None) && quitSerialOnNextButtonRelease)
             {
                 MeadeCommandAdapter::instance()->processCommand(":Qq#");
                 quitSerialOnNextButtonRelease = false;
@@ -248,14 +252,14 @@ void loop()
         else
     #endif
         {
-            switch (lcdMenu.getActive())
+            switch (menu.getActive())
             {
                 case RA_Menu:
                     {
                         const app::MenuKeyResult result = raMenu.handleKey(screenInput(), ui);
                         if (result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -268,7 +272,7 @@ void loop()
                         const app::MenuKeyResult result = decMenu.handleKey(screenInput(), ui);
                         if (result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -282,7 +286,7 @@ void loop()
                         const app::MenuKeyResult result = app::poiMenu.handleKey(screenInput(), *ui.read, *ui.motion, inNorthernHemisphere);
                         if (result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -293,13 +297,13 @@ void loop()
     #else
                 case Home_Menu:
                     {
-                        lcdButton_t homeKey;
-                        if (lcdButtons.keyChanged(&homeKey))
+                        core::Button homeKey = core::Button::None;
+                        if ((menuButtons != nullptr) && menuButtons->keyChanged(&homeKey))
                         {
-                            const app::MenuKeyResult result = homeMenu.handleKey(toCoreButton(homeKey), *ui.motion);
+                            const app::MenuKeyResult result = homeMenu.handleKey(homeKey, *ui.motion);
                             if (result == app::MenuKeyResult::NextScreen)
                             {
-                                lcdMenu.setNextActive();
+                                menu.setNextActive();
                             }
                             else if (result == app::MenuKeyResult::WaitForRelease)
                             {
@@ -347,7 +351,7 @@ void loop()
 
                         if (result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -399,7 +403,7 @@ void loop()
 
                         if (outcome.result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (outcome.result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -415,7 +419,7 @@ void loop()
                         const app::MenuKeyResult result = focusMenu.handleKey(screenInput(), *ui.axes);
                         if (result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -451,7 +455,7 @@ void loop()
                         }
                         if (outcome.result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (outcome.result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -467,7 +471,7 @@ void loop()
                         const app::MenuKeyResult result = app::infoMenu.handleKey(screenInput());
                         if (result == app::MenuKeyResult::NextScreen)
                         {
-                            lcdMenu.setNextActive();
+                            menu.setNextActive();
                         }
                         else if (result == app::MenuKeyResult::WaitForRelease)
                         {
@@ -481,14 +485,14 @@ void loop()
 
         if (waitForButtonRelease)
         {
-            if (lcdButtons.currentState() != btnNONE)
+            if ((menuButtons != nullptr) && (menuButtons->pressed() != core::Button::None))
             {
                 do
                 {
-                    lcdButton_t waitKey;
-                    if (lcdButtons.keyChanged(&waitKey))
+                    core::Button waitKey = core::Button::None;
+                    if (menuButtons->keyChanged(&waitKey))
                     {
-                        if (waitKey == btnNONE)
+                        if (waitKey == core::Button::None)
                         {
                             break;
                         }
@@ -502,7 +506,7 @@ void loop()
         }
 
         // Input handled, do output
-        lcdMenu.setCursor(0, 1);
+        menu.setCursor(0, 1);
 
     #if SUPPORT_GUIDED_STARTUP == 1
         if (inStartup)
@@ -518,7 +522,7 @@ void loop()
             if (!inSerialControl)
             {
                 // For some strange reason, a switch statement here causes a crash and reboot....
-                int activeMenu = lcdMenu.getActive();
+                int activeMenu = menu.getActive();
                 if (activeMenu == RA_Menu)
                 {
                     if (menuDisplayPort != nullptr)

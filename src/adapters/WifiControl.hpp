@@ -8,7 +8,6 @@
     #define WIFI_UDP_DISCOVERY_PORT 4031
 
 // Forward declarations
-class LcdMenu;
 class MeadeCommandAdapter;
 
 /// The Wi-Fi control path: bring the stack up, accept TCP peers that speak the same Meade
@@ -20,7 +19,7 @@ class MeadeCommandAdapter;
 class WifiControl
 {
   public:
-    WifiControl(hal::IWifiStack &stack, void (*mountTick)(), LcdMenu *lcdMenu);
+    WifiControl(hal::IWifiStack &stack, void (*mountTick)());
     ~WifiControl();
     void setup();
     void loop();
@@ -38,7 +37,6 @@ class WifiControl
     hal::WifiStatus _status = hal::WifiStatus::Disconnected;
     hal::IWifiStack &_stack;
     void (*_mountTick)();
-    LcdMenu *_lcdMenu;
     MeadeCommandAdapter *_cmdProcessor;
 
     hal::ITcpListener *_tcpServer = nullptr;

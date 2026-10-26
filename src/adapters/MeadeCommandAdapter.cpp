@@ -1,7 +1,6 @@
 #include "../inc/Globals.hpp"
 #include "../Configuration.hpp"
 #include "../Utility.hpp"
-#include "../LcdMenu.hpp"
 #include "MeadeCommandAdapter.hpp"
 #include "WifiControl.hpp"
 #include "adapters/DayTime.hpp"
@@ -30,9 +29,9 @@ const char *MeadeCommandAdapter::store(oat::core::meade::MeadeResponse &response
 /////////////////////////////
 // Create the processor
 /////////////////////////////
-MeadeCommandAdapter *MeadeCommandAdapter::createProcessor(const MeadeCommandPorts &ports, LcdMenu *lcdMenu)
+MeadeCommandAdapter *MeadeCommandAdapter::createProcessor(const MeadeCommandPorts &ports, ports::IDisplay *display)
 {
-    _instance = new MeadeCommandAdapter(ports, lcdMenu);
+    _instance = new MeadeCommandAdapter(ports, display);
     return _instance;
 }
 
@@ -47,7 +46,7 @@ MeadeCommandAdapter *MeadeCommandAdapter::instance()
 /////////////////////////////
 // Constructor
 /////////////////////////////
-MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, LcdMenu *lcdMenu)
+MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, ports::IDisplay *display)
 {
     _config   = ports.configuration;
     _motion   = ports.configuration;  // IMountConfiguration extends IMountMotion
@@ -66,8 +65,8 @@ MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, LcdMenu
         _events->subscribe(this);
     }
 
-    // In case of DISPLAY_TYPE_NONE mode, the lcdMenu is just an empty shell class to save having to null check everywhere
-    _lcdMenu = lcdMenu;
+    // Null on a board with no panel, which is why every use is guarded.
+    _display = display;
 }
 
 MeadeCommandAdapter::~MeadeCommandAdapter()
@@ -158,10 +157,11 @@ uint8_t MeadeCommandAdapter::pendingReplies() const
 void MeadeCommandAdapter::onEnterSerialControl()
 {
     inSerialControl = true;
-    _lcdMenu->setCursor(0, 0);
-    _lcdMenu->printMenu(F("Remote control"));
-    _lcdMenu->setCursor(0, 1);
-    _lcdMenu->printMenu(F(">SELECT to quit"));
+    if (_display != nullptr)
+    {
+        _display->writeLine(0, "Remote control");
+        _display->writeLine(1, ">SELECT to quit");
+    }
 }
 
 /////////////////////////////
@@ -558,8 +558,10 @@ void MeadeCommandAdapter::onDriftAlignment(int duration)
     // The sequence used to run here, synchronously: stop, three 1.5 s delays and three blocking
     // passes, i.e. ~90 s in which the mount answered nothing because the main loop was inside this
     // handler. It is a phase machine in core/DriftAlignmentController now, ticked from `app::MountExecutor::loop()`.
-    _lcdMenu->setCursor(0, 0);
-    _lcdMenu->printMenu(F(">Drift Alignment"));
+    if (_display != nullptr)
+    {
+        _display->writeLine(0, ">Drift Alignment");
+    }
     _motion->startDriftAlignment(duration);
 #else
     (void) duration;
@@ -876,8 +878,7 @@ void MeadeCommandAdapter::onQuitControlMode()
 {
     // :Qq# does not stop motors, just leaves Control mode.
     inSerialControl = false;
-    _lcdMenu->setCursor(0, 0);
-    _lcdMenu->updateDisplay();
+    // The menu row is repainted by the loop on its next pass; nothing to do here.
 }
 
 /////////////////////////////

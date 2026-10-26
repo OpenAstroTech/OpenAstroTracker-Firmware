@@ -1,7 +1,6 @@
 #include "../Configuration.hpp"
 #include "../Utility.hpp"
 #include "adapters/EepromSettingsFormat.hpp"
-#include "../LcdMenu.hpp"
 #include "HomingRunner.hpp"
 #include "EndSwitchMonitor.hpp"
 #include "MountExecutor.hpp"

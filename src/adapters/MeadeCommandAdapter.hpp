@@ -5,6 +5,7 @@
 #include "core/meade/PendingReplies.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IMountConfiguration.hpp"
+#include "ports/IDisplay.hpp"
 #include "ports/IGps.hpp"
 #include "ports/IGyro.hpp"
 #include "ports/IMountEvents.hpp"
@@ -15,7 +16,6 @@
 #include "ports/ITransport.hpp"
 
 // Forward declarations
-class LcdMenu;
 
 /// Everything the command layer needs from the mount, and nothing else.
 ///
@@ -40,7 +40,7 @@ struct MeadeCommandPorts {
 class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::core::IEventSink
 {
   public:
-    static MeadeCommandAdapter *createProcessor(const MeadeCommandPorts &ports, LcdMenu *lcdMenu);
+    static MeadeCommandAdapter *createProcessor(const MeadeCommandPorts &ports, ports::IDisplay *display);
     static MeadeCommandAdapter *instance();
 
     /// Runs one command and returns the bytes to send, or "" when there is nothing to send now.
@@ -67,7 +67,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     ~MeadeCommandAdapter() override;
 
   private:
-    MeadeCommandAdapter(const MeadeCommandPorts &ports, LcdMenu *lcdMenu);
+    MeadeCommandAdapter(const MeadeCommandPorts &ports, ports::IDisplay *display);
 
     /// Hands the reply to the table instead of writing it inline. The handler's own return value
     /// is then ignored, and `processCommand()` reports "no bytes yet" rather than an empty answer.
@@ -244,7 +244,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     ports::ITransport *_origin = nullptr;
     bool _deferredThisCommand  = false;
     oat::core::meade::PendingReplies<> _pending;
-    LcdMenu *_lcdMenu;
+    ports::IDisplay *_display;
     static MeadeCommandAdapter *_instance;
     oat::core::meade::MeadeResponse _response;
 

@@ -45,7 +45,6 @@
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
 #endif
 
-class LcdMenu;
 class TMC2209Stepper;
 
 // Focuser support

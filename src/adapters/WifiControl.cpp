@@ -46,10 +46,9 @@ hal::IpAddress toIp(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 }
 }  // namespace
 
-WifiControl::WifiControl(hal::IWifiStack &stack, void (*mountTick)(), LcdMenu *lcdMenu) : _stack(stack)
+WifiControl::WifiControl(hal::IWifiStack &stack, void (*mountTick)()) : _stack(stack)
 {
     _mountTick = mountTick;
-    _lcdMenu   = lcdMenu;
 }
 
 WifiControl::~WifiControl()

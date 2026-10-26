@@ -6,6 +6,7 @@
 
 #include "../../Configuration.hpp"
 #include "BoardWiring.hpp"
+#include "app/ui/MenuIds.hpp"
 
 #include "adapters/EepromSettingsFormat.hpp"
 #include "adapters/TinyGpsAdapter.hpp"
@@ -183,19 +184,19 @@ adapters::LcdMenuDisplay menuDisplay(lcdPanel, &settingsStore, kMenuColumns, kMe
 
 /// The menu's item table. Caller-owned so the menu itself never allocates.
 core::MenuEntry menuEntries[MAXMENUITEMS];
-LcdMenu lcdMenu(&menuDisplay, menuEntries, MAXMENUITEMS);
+core::MenuModel menuModel(menuEntries, MAXMENUITEMS);
+core::MenuModel *menuModelPort = &menuModel;
 
 adapters::DebouncedButtons lcdButtonSource(lcdKeyPad, clockPort);
-LcdButtons lcdButtons(&lcdButtonSource);
+ports::IButtons *menuButtons = &lcdButtonSource;
 
-/// The display as the screens see it: the same object `lcdMenu` paints through, exposed so a
-/// converted screen can write rows without going through the legacy shim.
+/// The display as the screens see it: the panel the menu row is painted on.
 ports::IDisplay *menuDisplayPort = &menuDisplay;
 
-#else  // Headless: the shims are empty shells, so a board with no panel pays nothing for the UI.
+#else  // Headless: no panel, no model, no keys, so a board without a display pays nothing.
 
-LcdMenu lcdMenu(nullptr, nullptr, 0);
-LcdButtons lcdButtons(nullptr);
+core::MenuModel *menuModelPort   = nullptr;
+ports::IButtons *menuButtons     = nullptr;
 ports::IDisplay *menuDisplayPort = nullptr;
 
 #endif
@@ -322,7 +323,7 @@ struct UiPortsInit {
 
 #if (WIFI_ENABLED == 1)
 hal::Esp32WifiStack wifiStack;
-WifiControl wifiControl(wifiStack, []() { mount.loop(); }, &lcdMenu);
+WifiControl wifiControl(wifiStack, []() { mount.loop(); });
 #endif
 
 /////////////////////////////////

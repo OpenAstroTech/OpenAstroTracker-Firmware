@@ -135,14 +135,15 @@ what would finish it; **[PLAN.md](PLAN.md) Phase 8 is the plan that does all of 
 
 | Still outside | Why it is still there | What would finish it |
 |---|---|---|
-| `LcdMenu`, `LcdButtons` | the framework still owns a `LiquidCrystal` / `LiquidTWI2` / `U8X8_SSD1306` **by value** behind 19 `#if DISPLAY_TYPE`, decodes three keypads inline, and is the last heap allocation in the UI path (`new MenuItem`) | Phase 8.1–8.3: `core/menu/MenuModel` + `core/menu/MenuLine` for the decisions, `core/ButtonDebounce` for the 5 ms rule, and `ports::IDisplay` / `ports::IButtons` adapters over `hal/ICharLcd` and `hal/IButtonMatrix` |
-| `c65`–`c78` screens, `c_buttons.hpp`, `LcdSlewStatus`, `a_inits.hpp` | every screen takes `app::UiPorts`, so none names `Mount` — but they are header-only free functions in one translation unit with 67 compile-time branches, so the host env cannot compile (let alone test) them | Phase 8.8: one file per screen in `src/app/ui/`, Arduino-free, compiled by `[env:native]` and covered by `test_ui`; `c_buttons.hpp` becomes `app::MenuHost`, and the panel/feature `#if`s become runtime checks on the ports |
+| ~~`LcdMenu`, `LcdButtons`~~ | **done** — deleted. The item table is `core::MenuModel` (caller-owned, no heap), the panel is `ports::IDisplay`, the keys are `ports::IButtons`, and what is left of the old façade is `app::MenuSurface`: the cursor and row painting the loop and the composition root still call, over the model and the display the root already builds | — |
+| `c_buttons.hpp` | **the only screen-related file left in `src/`.** Every screen is now a class in `src/app/ui/` (`app::HomeMenu`, `CoordinateMenu` + `RaMenu`/`DecMenu`, `FocusMenu`, `InfoMenu`, `PoiMenu`, `ControlMenu`, `HaMenu`, `CalibrationMenu`, `StartupWizard`, `SlewStatusView`), Arduino-free, compiled by `[env:native]` and covered by `test_ui` (105 cases). What remains is the loop itself: it dispatches keys, applies each screen's `Outcome`, and paints — the `#if`s it holds are the panel/feature selections, which is where they are allowed to be | Phase 8.10: fold the loop into `app::MenuHost` and delete the file |
 | `SSD1306_128x64_Display`, `InfoDisplayRender`, `fonts128x64.h` | the frame already arrives as a `ports::InfoDisplayState` POD and the panel is pushed by `adapters::InfoDisplayPanel`, but the renderer has no port to implement, keeps a 16-entry heap-`String` console ring, and holds the pixel arithmetic untested | Phase 8.4: `core/InfoDisplayLayout` (pixel mapping, frozen by tests) + `core/ConsoleLog` + `adapters::Ssd1306InfoDisplay implements ports::IInfoDisplay` over a `hal::IOledPanel` backend; the font tables move under `hal/arduino/` |
 | `EPROMStore` | it is an instance built by the composition root and it already reads/writes through `ports::IPersistentStore`, but it still sits in `src/` and 882 lines of byte layout have never been host-tested | Phase 8.5: `adapters/EepromSettingsFormat` + `test_adapters` coverage of every accessor, the magic markers and the version migration |
 | `HallSensorHoming`, `EndSwitches` | both take ports already (`ports::IHomingSensor` / `ports::IEndSwitch`, `ports::IStatusFlags`, `app::UiPorts`), so only their address is wrong — and `EndSwitch` runs inside the step-generator ISR, so moving it is not free | Phase 8.6: `core/EndSwitchState` (POD transition, no allocation/logging/vtable) + `app/EndSwitchMonitor` and `app/HomingRunner` |
 | `Gyro` | **done** — deleted in Phase 7: `adapters::Mpu6050Gyro` / `adapters::NullGyro` over `hal::II2cBus`, chosen by the root | — |
-| type overlays (`DayTime`, `Declination`, `Latitude`, `Longitude`, `RightAscension`, `Sidereal`), `Types.hpp`, `inc/Globals.hpp`, `Utility` | they exist for the screens: `String`-based parse/format helpers, the direction/format `#define`s, two UI globals, and the `LOG()`/`OAT_SNPRINTF` macros plus the log ring | Phase 8.7 and 8.10: `core::` value types and formatters, `core/MathUtil.hpp`, values into `core::MountState` / `app::UiSession`, the log ring into `adapters::SerialLogger`, and `OAT_SNPRINTF` into `ports/LogFormat.hpp` |
-| `testmenu` | a `TEST_VERIFY_MODE`-gated factory console, `String`-driven, with no host test | Phase 8.9: `app/test/TestConsole` over `ports::ITransport` + `UiPorts` |
+| ~~type overlays, `Types.hpp`, `a_inits.hpp`~~ | **done** — the four `String`-based overlays live in `adapters/` (they are wire/display formatting, not value types), `Types.hpp` is `core/PortVocabulary.hpp`, and `a_inits.hpp` dissolved into `app/LoopState.hpp`, `MotorWiring.cpp` and `DriverWiring.cpp` | — |
+| `Utility` | the last root file with substance: the `LOG()` macro (181 call sites still), `freeMemory`, `splitStringBy` and the display-mode helpers, plus the **log ring** `:D#` reads | Phase 8.10: replace `LOG()` with `OAT_LOG`, move the ring into `adapters::SerialLogger` behind `ports::ILogRetention`, and the helpers to their remaining callers |
+| ~~`testmenu`~~ | **done** — moved to `app/test/TestMenu.{hpp,cpp}` as a move, not a port conversion: it is a terminal transcript, and it already does everything it does *to* the mount through `UiPorts` | — |
 
 ---
 
@@ -558,9 +559,12 @@ settings store and the driver enable pins.
 - With `DEBUG_LEVEL == DEBUG_NONE` the root installs `adapters::NullLogger` instead of
   `SerialLogger`: `OAT_LOG()` compiles out, so a serial sink would be a vtable and a few bytes of
   the ATmega2560's 8 KB spent on calls that can never happen.
-- The mutable globals the menu screens read (`inStartup`, `okToUpdateMenu`, `quitSerialOnNextButtonRelease`,
-  `RAselect`/`DECselect`/`HAselect`, `gps`) are declared `extern` in `src/a_inits.hpp` and defined
-  here, so that header is safe to include from more than one translation unit.
+- The three loop flags (`inStartup`, `okToUpdateMenu`, `quitSerialOnNextButtonRelease`) are declared
+  in `app/LoopState.hpp` and defined here: they belong to the loop, and the guided startup and the
+  serial host both take the display away from the menu, which is why the menu has to know. The
+  `extern`s for `RAselect`/`DECselect`/`HAselect` and the `TinyGPSPlus gps` global are gone — the
+  screens that read them were converted, and the GPS adapter owns its own decoder (deleting the
+  global gave back 181 B of SRAM on every board with a receiver).
 - `EEPROMStore` keeps its static facade for the menu screens and the Meade adapter. It is handed the
   same `IPersistentStore` and `ILogger` here (`setStore`, `setLogger`), and `Mount` reaches the typed
   settings through `ports::IMountSettings` instead of naming the facade.

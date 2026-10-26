@@ -917,10 +917,17 @@ format, the two sensor helpers and the utility grab-bag.*
   still holding **181 B of SRAM** on every board with a receiver (`ramps` 6806 → 6625 B,
   `rp2040_skr_pico` 11772 → 11552 B, `mksgenlv21` 6816 → 6635 B) because the adapter owns its own
   decoder now.
-- **Remaining:** the last three files — `Utility.{hpp,cpp}` (181 `LOG()` sites still to migrate and
-  the log ring to move into `adapters::SerialLogger`), `LcdMenu.{hpp,cpp}` and
-  `LcdButtons.{hpp,cpp}` (still woven into `c_buttons`, `main.cpp`, `MeadeCommandAdapter`,
-  `WifiControl`, `MountExecutor`), and the loop in `c_buttons.hpp`.
+- ✅ **`LcdMenu` and `LcdButtons` deleted.** The item table is `core::MenuModel`, the panel is
+  `ports::IDisplay`, the keys are `ports::IButtons` — the wiring already built all three, so the
+  shims were pure indirection. What survived is `app::MenuSurface`: the cursor and the row painting
+  the loop and the composition root still call, over the model and the display the root owns. The
+  shims' last two *other* consumers went with them: `adapters::MeadeCommandAdapter` paints its
+  prompts straight onto the display port (and no longer needs `updateDisplay()` — the loop repaints
+  row 0 on its next pass), and `adapters::WifiControl` was storing an `LcdMenu *` it never used.
+  The loop speaks `core::Button` throughout now, so the legacy `lcdButton_t`/`toCoreButton` bridge
+  is gone with the enum that required it.
+- **Remaining:** two files — `Utility.{hpp,cpp}` (181 `LOG()` sites and the log ring for
+  `adapters::SerialLogger`) and the loop in `c_buttons.hpp`.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 
