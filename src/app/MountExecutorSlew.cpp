@@ -1,6 +1,6 @@
 #include "MountExecutor.hpp"
 
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "../core/DecLimitClamp.hpp"
 #include "../core/ManualSlew.hpp"
 #include "../core/RelativeMove.hpp"

@@ -1,5 +1,11 @@
 #pragma once
 
+#include "hal/WarningGuard.hpp"
+
+PUSH_NO_WARNINGS
+#include <WString.h>  // `String`: the Wi-Fi status lines are handed back as one
+POP_NO_WARNINGS
+
 #if (WIFI_ENABLED == 1)
     #include "SerialTransport.hpp"
     #include "TcpConnectionPort.hpp"

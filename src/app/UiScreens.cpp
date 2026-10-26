@@ -1,6 +1,7 @@
 #include "app/UiScreens.hpp"
 
-#include "Utility.hpp"
+#include "hal/arduino/FreeMemory.hpp"
+#include "ports/ILogger.hpp"
 #include "app/BoardWiring.hpp"
 
 namespace app

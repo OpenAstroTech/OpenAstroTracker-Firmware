@@ -3,7 +3,7 @@
 #include "core/types/Latitude.hpp"
 #include "adapters/DayTime.hpp"
 
-#include <Arduino.h>  // `String`, which these overlays parse and format
+#include <WString.h>  // `String`, which these overlays parse and format
 
 /// Latitude overlay — adds Arduino-dependent parsing over core::Latitude.
 /// 90 at north pole, -90 at south pole.

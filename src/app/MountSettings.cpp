@@ -1,6 +1,8 @@
 #include "MountSettings.hpp"
 
-#include "../Utility.hpp"
+#include "core/MathUtil.hpp"
+
+#include "ports/ILogger.hpp"
 
 #if USE_GYRO_LEVEL == 1
     #include "../core/DecLimitClamp.hpp"
@@ -135,13 +137,12 @@ void MountSettings::setBacklashCorrection(int steps)
 
 void MountSettings::setSlewRate(int rate)
 {
-    _settings.setMoveRate(clamp(rate, 1, 4));
+    _settings.setMoveRate(core::clamp(rate, 1, 4));
     float speedFactor[] = {0, 0.05, 0.2, 0.5, 1.0};
     OAT_LOG(&_logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, rate is %d -> %f", _settings.moveRate(), speedFactor[_settings.moveRate()]);
     _axes.dec()->setMaxSpeed(speedFactor[_settings.moveRate()] * _axes.limits().decSpeed);
     _axes.ra()->setMaxSpeed(speedFactor[_settings.moveRate()] * _axes.limits().raSpeed);
-    OAT_LOG(
-        &_logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, new speeds are RA: %f  DEC: %f", _axes.ra()->maxSpeed(), _axes.dec()->maxSpeed());
+    OAT_LOG(&_logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, new speeds are RA: %f  DEC: %f", _axes.ra()->maxSpeed(), _axes.dec()->maxSpeed());
 }
 
 int MountSettings::getSlewRate()

@@ -1,7 +1,15 @@
 #pragma once
 
+#include <stddef.h>
+
 namespace core
 {
+
+/// Element count of a C array. Replaces the `ARRAY_SIZE` macro the deleted `Utility.hpp` carried.
+template <typename T, size_t N> constexpr size_t arraySize(const T (&)[N])
+{
+    return N;
+}
 
 /// Small integer maths the firmware has always had, in one place so the UI and the settings format
 /// can use it without pulling in `Utility.hpp` (which drags the board configuration with it).

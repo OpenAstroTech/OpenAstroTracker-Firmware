@@ -1,9 +1,57 @@
+#include "core/MathUtil.hpp"
 #include "Configuration.hpp"
-#include "Utility.hpp"
 #include "app/MountExecutor.hpp"
 #include "adapters/MeadeCommandAdapter.hpp"
 
 #if TEST_VERIFY_MODE == 1
+
+namespace
+{
+
+/// Splits on `splitChar` into a heap array of `String`s terminated by an empty one. Moved here from
+/// `Utility.cpp`: this console is its only caller, and it is the one place in the firmware that is
+/// allowed to allocate for formatting.
+String *splitStringBy(String str, char splitChar)
+{
+    unsigned int count = 1;  // At least one string if input is non-empty
+
+    // Count occurrences of splitChar to determine the number of splits
+    for (unsigned int i = 0; i < str.length(); i++)
+    {
+        if (str[i] == splitChar)
+        {
+            count++;
+        }
+    }
+
+    // Dynamically allocate memory for the resulting array
+    String *array  = new String[count + 1];  // +1 for the nullptr terminator
+    unsigned int r = 0;                      // Start of the substring
+    unsigned int t = 0;                      // Index in the result array
+
+    // Iterate through the string to split it
+    for (unsigned int i = 0; i < str.length(); i++)
+    {
+        if (str[i] == splitChar)
+        {
+            array[t++] = str.substring(r, i);  // Store substring
+            r          = i + 1;                // Move start to next character
+        }
+    }
+
+    // Add the last part of the string
+    if (r < str.length())
+    {
+        array[t++] = str.substring(r);
+    }
+
+    // Mark the end of the array with ""
+    array[t] = "";
+
+    return array;
+}
+
+}  // namespace
 
     // The bring-up screen reads the menu ports and runs the driver UART test, both of which the
     // composition root owns now.
@@ -198,7 +246,7 @@ String getComponent(const String &comp)
         {F("ENDSW_DEC"), F("End switches on DEC")},
         {F("ENDSW_RA_DEC"), F("End switches on RA and DEC")},
     };
-    auto driverLookup = MappedDict<String, String>(lookupTable, ARRAY_SIZE(lookupTable));
+    auto driverLookup = MappedDict<String, String>(lookupTable, core::arraySize(lookupTable));
 
     String rtn;
     if (driverLookup.tryGet(comp, &rtn))

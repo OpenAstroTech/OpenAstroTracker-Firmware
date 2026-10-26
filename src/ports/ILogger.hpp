@@ -28,3 +28,13 @@ class ILogger
 };
 
 }  // namespace ports
+
+/// The one log sink the firmware installs. Declared next to the port it points at and defined by the
+/// composition root: `OAT_LOG` is for code that owns a logger, `LOG` is for the code that does not —
+/// the sink is a property of the process, not of a component.
+extern ports::ILogger *const logSink;
+
+/// The legacy spelling, now over `OAT_LOG`: same call sites, but the format literal travels as a
+/// `ports::LogFormat` handle (flash on AVR) instead of being built into a `String` at run time, and
+/// the whole call compiles out when nothing is logged.
+#define LOG(level, format, ...) OAT_LOG(logSink, level, format, ##__VA_ARGS__)

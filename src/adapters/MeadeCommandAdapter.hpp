@@ -5,7 +5,14 @@
 #include "core/meade/PendingReplies.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IMountConfiguration.hpp"
+#include "hal/WarningGuard.hpp"
+
+PUSH_NO_WARNINGS
+#include <WString.h>  // `String`: the command handler takes one from the transport
+POP_NO_WARNINGS
+
 #include "ports/IDisplay.hpp"
+#include "ports/ILogRetention.hpp"
 #include "ports/IGps.hpp"
 #include "ports/IGyro.hpp"
 #include "ports/IMountEvents.hpp"
@@ -35,6 +42,8 @@ struct MeadeCommandPorts {
     ports::IGyro *gyro = nullptr;
     /// The GPS receiver, or null on a board without one; `:gT#` answers "not yet" without it.
     ports::IGps *gps = nullptr;
+    /// The retained debug log, or null when nothing is retained; `:D#` says so then.
+    ports::ILogRetention *logRetention = nullptr;
 };
 
 class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::core::IEventSink
@@ -236,6 +245,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     ports::IClock *_clock               = nullptr;
     ports::IGyro *_gyro                 = nullptr;
     ports::IGps *_gps                   = nullptr;
+    ports::ILogRetention *_logRetention = nullptr;
 
     /// Pumps the receiver and, on a fresh fix, sets the site and the clock from it. Shared by
     /// `:gT#` and nothing else: the HA screen does the same through its own port.

@@ -1,6 +1,7 @@
 #include "../inc/Globals.hpp"
 #include "../Configuration.hpp"
-#include "../Utility.hpp"
+#include "core/MathUtil.hpp"
+#include "ports/ILogger.hpp"
 #include "MeadeCommandAdapter.hpp"
 #include "WifiControl.hpp"
 #include "adapters/DayTime.hpp"
@@ -48,15 +49,16 @@ MeadeCommandAdapter *MeadeCommandAdapter::instance()
 /////////////////////////////
 MeadeCommandAdapter::MeadeCommandAdapter(const MeadeCommandPorts &ports, ports::IDisplay *display)
 {
-    _config   = ports.configuration;
-    _motion   = ports.configuration;  // IMountConfiguration extends IMountMotion
-    _axes     = ports.axes;
-    _read     = ports.readModel;
-    _siteTime = ports.siteTime;
-    _events   = ports.events;
-    _clock    = ports.clock;
-    _gyro     = ports.gyro;
-    _gps      = ports.gps;
+    _config       = ports.configuration;
+    _motion       = ports.configuration;  // IMountConfiguration extends IMountMotion
+    _axes         = ports.axes;
+    _read         = ports.readModel;
+    _siteTime     = ports.siteTime;
+    _events       = ports.events;
+    _clock        = ports.clock;
+    _gyro         = ports.gyro;
+    _gps          = ports.gps;
+    _logRetention = ports.logRetention;
 
     // Deferred replies complete on mount events, so the command layer is a subscriber like the
     // status display.
@@ -637,7 +639,15 @@ const char *MeadeCommandAdapter::onGetMountHardwareInfo()
 }
 const char *MeadeCommandAdapter::onGetLogBuffer()
 {
-    _mountStatusScratch = getLogBuffer();
+    if (_logRetention == nullptr)
+    {
+        _mountStatusScratch = F("Debugging disabled.#");
+        return _mountStatusScratch.c_str();
+    }
+
+    char buffer[1024];
+    _logRetention->readLog(buffer, sizeof(buffer));
+    _mountStatusScratch = buffer;
     return _mountStatusScratch.c_str();
 }
 long MeadeCommandAdapter::onGetRaHomingOffset()
@@ -1090,7 +1100,7 @@ bool MeadeCommandAdapter::onHomeRa(int direction, const char *distancePayload)
     int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
     if (distancePayload != nullptr && distancePayload[0] != '\0')
     {
-        distance = clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
+        distance = core::clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
         LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
     }
     return _motion->findHomeByHallSensor(StepperAxis::RA_STEPS, direction, distance);
@@ -1107,7 +1117,7 @@ bool MeadeCommandAdapter::onHomeDec(int direction, const char *distancePayload)
     int distance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
     if (distancePayload != nullptr && distancePayload[0] != '\0')
     {
-        distance = clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
+        distance = core::clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
         LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", distance);
     }
     return _motion->findHomeByHallSensor(StepperAxis::DEC_STEPS, direction, distance);

@@ -10,7 +10,7 @@
 
 #include "adapters/EepromSettingsFormat.hpp"
 #include "adapters/TinyGpsAdapter.hpp"
-#include "Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "app/MountConfigBuilder.hpp"
 #include "hal/InMemoryEeprom.hpp"
 #include "hal/WarningGuard.hpp"
@@ -78,9 +78,12 @@ adapters::ArduinoScheduler schedulerPort;
 hal::ArduinoSerialPort debugSerialPort(DEBUG_SERIAL_PORT);
 adapters::SerialLogger loggerPort(debugSerialPort, arduinoSystemClock, DEBUG_LEVEL);
 ports::ILogger *const logSink = &loggerPort;
+/// `:D#` can only dump what a sink retained; the null object has nothing to dump.
+ports::ILogRetention *const logRetention = &loggerPort;
 #else
 adapters::NullLogger loggerPort;
-ports::ILogger *const logSink = &loggerPort;
+ports::ILogger *const logSink            = &loggerPort;
+ports::ILogRetention *const logRetention = nullptr;
 #endif
 
 // --- the optional levelling sensor ------------------------------------------------------

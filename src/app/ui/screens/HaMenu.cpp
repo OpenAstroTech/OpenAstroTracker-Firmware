@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "core/MathUtil.hpp"
-#include "ports/LogFormat.hpp"
+#include "ports/ILogger.hpp"
 
 namespace
 {

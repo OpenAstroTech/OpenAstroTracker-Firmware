@@ -1,6 +1,6 @@
 #include "./inc/Globals.hpp"
 #include "Configuration.hpp"
-#include "Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "adapters/Declination.hpp"
 
 //////////////////////////////////////////////////////////////////////////////////////

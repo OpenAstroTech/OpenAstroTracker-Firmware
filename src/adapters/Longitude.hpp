@@ -3,7 +3,7 @@
 #include "core/types/Longitude.hpp"
 #include "adapters/DayTime.hpp"
 
-#include <Arduino.h>  // `String`, which these overlays parse and format
+#include <WString.h>  // `String`, which these overlays parse and format
 
 /// Longitude overlay — adds Arduino-dependent formatting and parsing
 /// over core::Longitude.

@@ -1,6 +1,6 @@
 #include "MountExecutor.hpp"
 
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "../core/SiderealClock.hpp"
 
 /// Sidereal degrees per hour, for the guide-pulse rate. File-local: the pulse and drift arithmetic

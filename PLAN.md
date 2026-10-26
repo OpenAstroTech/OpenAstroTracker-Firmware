@@ -926,8 +926,18 @@ format, the two sensor helpers and the utility grab-bag.*
   row 0 on its next pass), and `adapters::WifiControl` was storing an `LcdMenu *` it never used.
   The loop speaks `core::Button` throughout now, so the legacy `lcdButton_t`/`toCoreButton` bridge
   is gone with the enum that required it.
-- **Remaining:** two files — `Utility.{hpp,cpp}` (181 `LOG()` sites and the log ring for
-  `adapters::SerialLogger`) and the loop in `c_buttons.hpp`.
+- ✅ **`Utility.{hpp,cpp}` deleted.** The 181 `LOG()` call sites did not have to change: the macro
+  moved next to the port it talks to (`ports/ILogger.hpp`) and now expands to `OAT_LOG(logSink, …)`,
+  so the format literal travels as a `ports::LogFormat` handle — flash on AVR — instead of being
+  built into a `String` by `formatArg()` on every call, which was the last heap allocation in the
+  logging path. The log ring moved into `adapters::SerialLogger` behind a new
+  `ports::ILogRetention` (`readLog`), and `:D#` reads it through a nullable pointer — absent means
+  the same `"Debugging disabled.#"` answer as before. `freeMemory()` became
+  `hal/arduino/ArduinoFreeMemory.cpp`, `splitStringBy()` moved into its only caller (`app/test`),
+  the `RealTime` class had no users left, and the clamp helpers were already `core::` duplicates.
+  Removing the header also exposed four files that had been relying on it to drag in `<Arduino.h>`:
+  they now include the core (or just `<WString.h>`) themselves.
+- **Remaining:** **one file** — the loop in `c_buttons.hpp`. `src/` holds nothing else.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

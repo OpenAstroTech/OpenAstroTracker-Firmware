@@ -1,9 +1,15 @@
 #include "../Configuration.hpp"
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "WifiControl.hpp"
 #include "MeadeCommandAdapter.hpp"
 
 #if (WIFI_ENABLED == 1)
+
+    #include "hal/WarningGuard.hpp"
+
+PUSH_NO_WARNINGS
+    #include <Arduino.h>  // `millis`
+POP_NO_WARNINGS
 
 namespace
 {

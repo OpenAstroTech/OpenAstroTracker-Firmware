@@ -27,7 +27,9 @@ RULES = {
     "Serial": re.compile(r"(?<![\w.])Serial\s*[.(]"),
     "millis()": re.compile(r"(?<![\w.])millis\s*\(\s*\)"),
     "micros()": re.compile(r"(?<![\w.])micros\s*\(\s*\)"),
-    "LOG() macro": re.compile(r"(?<![\w.])LOG\s*\("),
+    # The legacy macro's definition lives in `ports/ILogger.hpp` next to the sink it feeds; what is
+    # forbidden is a *call* to it from the domain, which is what the lookbehind excludes.
+    "LOG() macro": re.compile(r"(?<!define )(?<![\w.])LOG\s*\("),
     "hal/ include": re.compile(r'#\s*include\s*[<"](?:\.\./)?hal/'),
     "adapters/ include": re.compile(r'#\s*include\s*[<"](?:\.\./)?adapters/'),
     "feature #if": re.compile(

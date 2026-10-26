@@ -4,7 +4,7 @@
 
 #include "../inc/Globals.hpp"
 #include "../../Configuration.hpp"
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "MountExecutor.hpp"
 
 #include "BoardWiring.hpp"
@@ -422,6 +422,7 @@ void setup()
     commandPorts.clock         = &clockPort;
     commandPorts.gyro          = gyro;
     commandPorts.gps           = gpsPort;
+    commandPorts.logRetention  = logRetention;
     MeadeCommandAdapter::createProcessor(commandPorts, menuDisplayPort);
     updateConsoleText(commandProcessorLine, F("Init MEADE handler... OK"));
 

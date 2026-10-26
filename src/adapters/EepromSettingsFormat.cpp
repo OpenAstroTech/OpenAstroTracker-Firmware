@@ -1,7 +1,7 @@
 #include "adapters/EepromSettingsFormat.hpp"
 
 #include "../Constants.hpp"
-#include "ports/LogFormat.hpp"
+#include "ports/ILogger.hpp"
 
 namespace adapters
 {

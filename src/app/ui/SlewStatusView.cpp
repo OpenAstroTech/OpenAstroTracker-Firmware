@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-#include "ports/LogFormat.hpp"
+#include "ports/ILogger.hpp"
 
 namespace
 {

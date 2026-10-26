@@ -1,7 +1,7 @@
 #include "app/MenuSurface.hpp"
 
 #include "Configuration.hpp"
-#include "Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "app/BoardWiring.hpp"
 #include "core/menu/MenuLine.hpp"
 

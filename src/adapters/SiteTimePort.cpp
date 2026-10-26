@@ -3,7 +3,7 @@
 #include "core/SiderealClock.hpp"
 
 #include "../../Configuration.hpp"
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 
 namespace adapters
 {

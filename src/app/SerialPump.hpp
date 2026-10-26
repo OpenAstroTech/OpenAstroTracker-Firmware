@@ -5,6 +5,7 @@
     #include "app/test/TestMenuDefinitions.hpp"
 #endif
 
+#include "core/MathUtil.hpp"
 #include "app/BoardWiring.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
@@ -101,7 +102,7 @@ void processTestState()
                         else
                         {
                             index++;
-                            if (index > ARRAY_SIZE(buffer) - 1)
+                            if (index > core::arraySize(buffer) - 1)
                             {
                                 Serial.println(F("Buffer overflow, too many chars received"));
                                 index = 0;

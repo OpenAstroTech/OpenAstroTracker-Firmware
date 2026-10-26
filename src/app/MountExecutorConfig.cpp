@@ -1,6 +1,6 @@
 #include "MountExecutor.hpp"
 
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "../core/FirmwareVersion.hpp"
 #include "../core/Microsteps.hpp"
 #include "../core/PersistentConfig.hpp"

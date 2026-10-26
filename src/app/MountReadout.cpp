@@ -2,7 +2,7 @@
 
 #include "adapters/DayTime.hpp"
 #include "HomingRunner.hpp"
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "../core/CoordinateFormatter.hpp"
 #include "../core/CoordinateRead.hpp"
 #include "../core/CoordinateText.hpp"

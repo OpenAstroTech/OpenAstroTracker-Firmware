@@ -27,6 +27,7 @@
 #include "StepPump.hpp"
 #include "adapters/NullGyro.hpp"
 #include "ports/IGps.hpp"
+#include "ports/ILogRetention.hpp"
 #include "ports/IGyro.hpp"
 #include "hal/arduino/ArduinoSystemClock.hpp"
 #include "hal/arduino/ArduinoGpioPin.hpp"
@@ -46,6 +47,9 @@ extern ports::IButtons *menuButtons;
 
 /// The menu display, which is also what the screens paint through (null on a headless board).
 extern ports::IDisplay *menuDisplayPort;
+
+/// The retained log `:D#` dumps, or null when the build logs nothing.
+extern ports::ILogRetention *const logRetention;
 
 // --- the infrastructure the domain runs on --------------------------------------------
 
@@ -74,7 +78,6 @@ extern adapters::EepromSettingsFormat eepromStore;
 extern adapters::MountSettingsStore settingsStore;
 
 /// The one log sink, so the wiring modules can log without owning a logger.
-extern ports::ILogger *const logSink;
 
 // --- the mount and everything bound to it ---------------------------------------------
 

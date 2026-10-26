@@ -1,7 +1,7 @@
 #include "DriverWiring.hpp"
 
 #include "../../Configuration.hpp"
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 /// The TMC2209 sense resistor every StepStick on these boards uses.
 constexpr float kRSense = 0.11F;
 

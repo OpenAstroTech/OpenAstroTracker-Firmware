@@ -1,7 +1,7 @@
 #include "EndSwitchMonitor.hpp"
 
 #include "../Configuration.hpp"
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 
 #if DEBUG_LEVEL != 0
 namespace

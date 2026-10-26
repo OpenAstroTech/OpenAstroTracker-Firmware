@@ -1,6 +1,6 @@
 #include "app/ui/screens/HomeMenu.hpp"
 
-#include "ports/LogFormat.hpp"
+#include "ports/ILogger.hpp"
 
 namespace
 {

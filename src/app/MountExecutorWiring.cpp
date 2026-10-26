@@ -1,6 +1,7 @@
+#include "core/MathUtil.hpp"
 #include "MountExecutor.hpp"
 
-#include "../Utility.hpp"
+#include "ports/ILogger.hpp"
 #include "../adapters/Tmc2209Driver.hpp"
 #include "../hal/arduino/ArduinoGpioPin.hpp"
 #include "../libs/MappedDict/MappedDict.hpp"
@@ -43,23 +44,23 @@ void MountExecutor::attachSensors(const AxisBank::Sensors &sensors)
 bool MountExecutor::connectToDriver(const String &driverKind, uint16_t *rmsCurrent)
 {
     MappedDict<String, ports::IMotorDriver *>::DictEntry_t lookupTable[] = {
-        #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         {"RA", _axes.raDriver()},
-        #endif
-        #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #endif
+    #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         {"DEC", _axes.decDriver()},
-        #endif
-        #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #endif
+    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         {"ALT", _axes.altDriver()},
-        #endif
-        #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #endif
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         {"AZ", _axes.azDriver()},
-        #endif
-        #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #endif
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
         {"FOC", _axes.focusDriver()},
-        #endif
+    #endif
     };
-    auto driverLookup = MappedDict<String, ports::IMotorDriver *>(lookupTable, ARRAY_SIZE(lookupTable));
+    auto driverLookup = MappedDict<String, ports::IMotorDriver *>(lookupTable, core::arraySize(lookupTable));
 
     ports::IMotorDriver *driver = nullptr;
     driverLookup.tryGet(driverKind, &driver);

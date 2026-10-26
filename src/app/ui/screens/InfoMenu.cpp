@@ -5,7 +5,7 @@
 
 #include "core/MathUtil.hpp"
 #include "core/types/DayTime.hpp"
-#include "ports/LogFormat.hpp"
+#include "ports/ILogger.hpp"
 
 namespace
 {

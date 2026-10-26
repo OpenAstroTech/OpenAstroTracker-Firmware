@@ -3,7 +3,7 @@
 #include "core/types/Declination.hpp"
 #include "adapters/DayTime.hpp"
 
-#include <Arduino.h>  // `String`, which these overlays parse and format
+#include <WString.h>  // `String`, which these overlays parse and format
 
 /// Declination overlay — adds Arduino-dependent formatting and parsing
 /// over core::Declination.

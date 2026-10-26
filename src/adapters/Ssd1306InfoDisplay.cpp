@@ -3,7 +3,8 @@
 #if (INFO_DISPLAY_TYPE == INFO_DISPLAY_TYPE_I2C_SSD1306_128x64)
 
     #include "../../Configuration.hpp"
-    #include "Utility.hpp"
+    #include "hal/arduino/FreeMemory.hpp"
+#include "ports/ILogger.hpp"
     #include "hal/IOledPanel.hpp"
 
 namespace

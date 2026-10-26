@@ -1,6 +1,13 @@
 #include "../../Configuration.hpp"
-#include "../Utility.hpp"
+#include "hal/WarningGuard.hpp"
+#include "ports/ILogger.hpp"
 #include "InterruptCallback.hpp"
+
+// The timer APIs this file programs belong to the core (`micros`, `add_repeating_timer_us`, the
+// ATmega timers), so it names the core itself rather than relying on a caller having done so.
+PUSH_NO_WARNINGS
+#include <Arduino.h>
+POP_NO_WARNINGS
 
 //////////////////////////////////////
 // This is an hardware-independent abstraction layer over
