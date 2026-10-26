@@ -203,6 +203,23 @@ class FakeMountConfiguration final : public ports::IMountConfiguration
     float decLowerLimit = -10.0F;
     float decUpperLimit = 80.0F;
 
+    float speedCalibration      = 1.0F;
+    float raStepsPerDegree      = 0.0F;
+    float decStepsPerDegree     = 0.0F;
+    int backlash                = 0;
+    float rollCalibrationAngle  = 0.0F;
+    float pitchCalibrationAngle = 0.0F;
+
+    int liveSpeedCalls        = 0;
+    int persistedSpeedCalls   = 0;
+    int setStepsCalls         = 0;
+    int setBacklashCalls      = 0;
+    int setDecLimitCalls      = 0;
+    int clearDecLimitCalls    = 0;
+    bool lastDecLimitWasUpper = false;
+    int setRollCalls          = 0;
+    int setPitchCalls         = 0;
+
     void startSlewing(int) override
     {
     }
@@ -255,12 +272,21 @@ class FakeMountConfiguration final : public ports::IMountConfiguration
         return false;
     }
 
-    float getStepsPerDegree(StepperAxis) override
+    float getStepsPerDegree(StepperAxis which) override
     {
-        return 0.0F;
+        return (which == RA_STEPS) ? raStepsPerDegree : decStepsPerDegree;
     }
-    void setStepsPerDegree(StepperAxis, float) override
+    void setStepsPerDegree(StepperAxis which, float steps) override
     {
+        setStepsCalls++;
+        if (which == RA_STEPS)
+        {
+            raStepsPerDegree = steps;
+        }
+        else
+        {
+            decStepsPerDegree = steps;
+        }
     }
     void setSpeed(StepperAxis, float) override
     {
@@ -278,16 +304,29 @@ class FakeMountConfiguration final : public ports::IMountConfiguration
     }
     float getSpeedCalibration() override
     {
-        return 1.0F;
+        return speedCalibration;
     }
-    void setSpeedCalibration(float, bool) override
+    void setSpeedCalibration(float value, bool saveToStorage) override
     {
+        speedCalibration = value;
+        if (saveToStorage)
+        {
+            persistedSpeedCalls++;
+        }
+        else
+        {
+            liveSpeedCalls++;
+        }
     }
-    void setDecLimitPosition(bool, float) override
+    void setDecLimitPosition(bool upper, float) override
     {
+        setDecLimitCalls++;
+        lastDecLimitWasUpper = upper;
     }
-    void clearDecLimitPosition(bool) override
+    void clearDecLimitPosition(bool upper) override
     {
+        clearDecLimitCalls++;
+        lastDecLimitWasUpper = upper;
     }
     void getDecLimitPositions(float &lowerLimit, float &upperLimit) override
     {
@@ -301,12 +340,32 @@ class FakeMountConfiguration final : public ports::IMountConfiguration
     {
         return 0;
     }
-    void setBacklashCorrection(int) override
+    void setBacklashCorrection(int steps) override
     {
+        setBacklashCalls++;
+        backlash = steps;
     }
     int getBacklashCorrection() override
     {
-        return 0;
+        return backlash;
+    }
+    float getRollCalibrationAngle() override
+    {
+        return rollCalibrationAngle;
+    }
+    void setRollCalibrationAngle(float value) override
+    {
+        setRollCalls++;
+        rollCalibrationAngle = value;
+    }
+    float getPitchCalibrationAngle() override
+    {
+        return pitchCalibrationAngle;
+    }
+    void setPitchCalibrationAngle(float value) override
+    {
+        setPitchCalls++;
+        pitchCalibrationAngle = value;
     }
     void setManualSlewMode(bool) override
     {

@@ -3,7 +3,6 @@
 #include "LcdButtons.hpp"
 #include "app/UiScreens.hpp"
 #include "app/BoardWiring.hpp"
-#include "c76_menuCAL.hpp"
 
 #include "app/ui/screens/DecMenu.hpp"
 #include "app/ui/screens/FocusMenu.hpp"
@@ -40,6 +39,17 @@ bool startupAwaitingHa()
 {
     #if SUPPORT_GUIDED_STARTUP == 1
     return app::startupWizard.step() == app::StartupWizard::Step::WaitForHaCompletion;
+    #else
+    return false;
+    #endif
+}
+
+/// True while the guided startup waits for the level (roll) step, which is the only time the
+/// calibration screen answers to the wizard.
+bool startupAwaitingRoll()
+{
+    #if SUPPORT_GUIDED_STARTUP == 1
+    return app::startupWizard.step() == app::StartupWizard::Step::WaitForRollCompletion;
     #else
     return false;
     #endif
@@ -348,7 +358,54 @@ void loop()
 
     #if SUPPORT_CALIBRATION == 1
                 case Calibration_Menu:
-                    waitForButtonRelease = processCalibrationKeys();
+                    {
+                        app::CalibrationOutcome outcome;
+                        if (menuDisplayPort != nullptr)
+                        {
+                            outcome = app::calibrationMenu.handleKey(screenInput(), ui, gyro, *menuDisplayPort, startupAwaitingRoll());
+                        }
+
+                        if (outcome.suspendMenuUpdate)
+                        {
+                            okToUpdateMenu = false;
+                        }
+                        if (outcome.resumeMenuUpdate)
+                        {
+                            okToUpdateMenu = true;
+                        }
+                        if (outcome.shutdownGyro)
+                        {
+        #if USE_GYRO_LEVEL == 1
+                            gyro->shutdown();
+        #endif
+                        }
+                        if (outcome.resumeStartup)
+                        {
+        #if SUPPORT_GUIDED_STARTUP == 1
+                            app::startupWizard.rollConfirmed();
+                            inStartup = true;
+        #endif
+                        }
+
+                        // The one-off confirmations the screen asked for, painted in order.
+                        for (uint8_t i = 0; i < outcome.messageCount; i++)
+                        {
+                            if ((menuDisplayPort != nullptr) && (outcome.messages[i] != nullptr))
+                            {
+                                menuDisplayPort->writeLine(1, outcome.messages[i]);
+                            }
+                            ui.delay(static_cast<int>(outcome.messageDelays[i]));
+                        }
+
+                        if (outcome.result == app::MenuKeyResult::NextScreen)
+                        {
+                            lcdMenu.setNextActive();
+                        }
+                        else if (outcome.result == app::MenuKeyResult::WaitForRelease)
+                        {
+                            waitForButtonRelease = true;
+                        }
+                    }
                     break;
     #endif
 
@@ -512,7 +569,10 @@ void loop()
     #if SUPPORT_CALIBRATION == 1
                 else if (activeMenu == Calibration_Menu)
                 {
-                    printCalibrationSubmenu();
+                    if (menuDisplayPort != nullptr)
+                    {
+                        app::calibrationMenu.render(ui, gyro, *menuDisplayPort);
+                    }
                 }
     #endif
 

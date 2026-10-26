@@ -73,14 +73,17 @@ class FakeMountMotion final : public ports::IMountMotion
 
     void syncPosition(const core::DayTime &, const core::Declination &) override
     {
+        syncCalls++;
     }
 
     void setTrackingStepperPos(long) override
     {
     }
 
-    void startDriftAlignment(int) override
+    void startDriftAlignment(int duration) override
     {
+        driftAlignmentCalls++;
+        lastDriftDuration = duration;
     }
 
     bool findHomeByHallSensor(StepperAxis, int, int) override
@@ -96,6 +99,9 @@ class FakeMountMotion final : public ports::IMountMotion
     int slewToHomeCalls           = 0;
     int parkCalls                 = 0;
     int setHomeCalls              = 0;
+    int syncCalls                 = 0;
+    int driftAlignmentCalls       = 0;
+    int lastDriftDuration         = 0;
     bool lastSetHomeClearsZeroPos = false;
     bool slewing                  = false;
     bool tracking                 = false;

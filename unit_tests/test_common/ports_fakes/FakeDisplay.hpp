@@ -65,8 +65,15 @@ class FakeDisplay final : public ports::IDisplay
 
     void setBacklight(uint8_t level, bool persist) override
     {
-        (void) persist;
         backlightLevel = level;
+        if (persist)
+        {
+            persistBacklightCalls++;
+        }
+        else
+        {
+            previewBacklightCalls++;
+        }
     }
 
     uint8_t backlight() const override
@@ -85,11 +92,13 @@ class FakeDisplay final : public ports::IDisplay
         return (index < kMaxRows) ? _rows[index] : "";
     }
 
-    uint8_t columnCount    = 16;
-    uint8_t lineWrites     = 0;
-    uint8_t cellWrites     = 0;
-    uint8_t clearCalls     = 0;
-    uint8_t backlightLevel = 0;
+    uint8_t columnCount       = 16;
+    int previewBacklightCalls = 0;
+    int persistBacklightCalls = 0;
+    uint8_t lineWrites        = 0;
+    uint8_t cellWrites        = 0;
+    uint8_t clearCalls        = 0;
+    uint8_t backlightLevel    = 0;
 
   private:
     char _rows[kMaxRows][kMaxColumns + 1] = {};

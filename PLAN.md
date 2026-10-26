@@ -884,9 +884,18 @@ format, the two sensor helpers and the utility grab-bag.*
   screens report instead of assigning `startupState`, and the two facts that change the route
   (level sensor, GPS) are constructor arguments, so the wizard is driven on the host by 10 tests.
   The debug `LOG()` lines the legacy wizard emitted are gone with it; `LOG()` itself dies in 8.10.
-- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.8b (the last
-  screen: CAL), 8.9 (test console), 8.10 (`Utility` and the empty root). The root is down from 47
-  files to 21.
+- ✅ **8.8b — the calibration screen converted; every screen is out of `src/`.** `app::CalibrationMenu`
+  is the sixteen highlights and sixteen action states of `c76_menuCAL.hpp` with the four `#if`
+  families turned into a `Board` value: the entries a board has are decided once, in the constructor,
+  and the highlight ring *is* that list, so walking the menu stays a wrap over what exists without a
+  preprocessor branch in the way. The one-off confirmations became a small queue of rows the loop
+  paints and waits on, which is how the three-line "use CTRL to move" hint survives. Two legacy
+  details are pinned by tests: the level readout is the sensor minus the stored offset with its
+  marker one cell per quarter degree, and `Declination(-2, 42, 11)` is sign-magnitude, so the polar
+  step targets -(2°42'11").
+- **Remaining:** 8.7b (the rest of the type overlays, `Types.hpp`, `inc/Globals`), 8.9 (test console),
+  8.10 (`Utility` and the empty root, which also removes `LcdMenu`/`LcdButtons`). The root is down
+  from 47 files to 20.
 
 **Measured on the current tree** (`ls src/*.{h,cpp,hpp}`, `wc -l`, comment-stripped grep):
 

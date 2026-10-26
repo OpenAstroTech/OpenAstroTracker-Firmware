@@ -49,11 +49,14 @@ class FakeOptionalAxes final : public ports::IMountOptionalAxes
         return running;
     }
 
+    int moveByCalls = 0;
+
     // --- azimuth / altitude ---
     void moveBy(int direction, float arcMinutes) override
     {
         lastMoveDirection = direction;
         lastArcMinutes    = arcMinutes;
+        moveByCalls++;
     }
     void setAZALTHome() override
     {
