@@ -23,10 +23,13 @@ class IDisplay
     /// Brings the panel up and applies the persisted backlight level.
     virtual bool begin() = 0;
 
+    /// Width of the text grid in characters.
     virtual uint8_t columns() const = 0;
 
+    /// Height of the text grid in rows.
     virtual uint8_t rows() const = 0;
 
+    /// Blanks the whole panel.
     virtual void clear() = 0;
 
     /// Replaces one row with `text`, padded or truncated to `columns()`.
@@ -39,6 +42,7 @@ class IDisplay
     /// previews live and only stores the level the operator settles on.
     virtual void setBacklight(uint8_t level, bool persist) = 0;
 
+    /// The current backlight level, in the panel's own units.
     virtual uint8_t backlight() const = 0;
 
     /// The levels this panel accepts, so the menu's brightness screen knows its range.

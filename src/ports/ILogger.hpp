@@ -9,9 +9,8 @@ namespace ports
 
 /// Where diagnostics go.
 ///
-/// `levelFlags` is the firmware's existing bit-mask of debug categories
-/// (`DEBUG_SERIAL`, `DEBUG_MOUNT`, …), so the port can replace the `LOG()` macro
-/// without changing which lines a build prints.
+/// `levelFlags` is the firmware's bit-mask of debug categories (`DEBUG_SERIAL`, `DEBUG_MOUNT`, …),
+/// so the build's `DEBUG_LEVEL` decides which lines are printed.
 class ILogger
 {
   public:
@@ -34,7 +33,8 @@ class ILogger
 /// the sink is a property of the process, not of a component.
 extern ports::ILogger *const logSink;
 
-/// The legacy spelling, now over `OAT_LOG`: same call sites, but the format literal travels as a
-/// `ports::LogFormat` handle (flash on AVR) instead of being built into a `String` at run time, and
-/// the whole call compiles out when nothing is logged.
+/// The process-wide spelling: `LOG` writes through `logSink`, for call sites that do not own a
+/// logger. The format literal travels as a `ports::LogFormat` handle (flash on AVR) instead of
+/// being built into a `String` at run time, and the whole call compiles out when nothing is
+/// logged.
 #define LOG(level, format, ...) OAT_LOG(logSink, level, format, ##__VA_ARGS__)

@@ -16,6 +16,7 @@ class IScheduler
     {
     }
 
+    /// Runs the platform's pending housekeeping once: `yield()` on AVR, a task yield on ESP32.
     virtual void yield() = 0;
 };
 

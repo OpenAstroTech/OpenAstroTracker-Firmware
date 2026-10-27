@@ -18,6 +18,7 @@ class IPersistentStore
     {
     }
 
+    /// Reads one byte. An address that has never been written reads as 0xFF (erased).
     virtual uint8_t readByte(uint16_t address) = 0;
 
     /// Writes one byte. Buffered writes are flushed by `commit()`.

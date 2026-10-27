@@ -14,6 +14,7 @@ class IHomingSensor
     {
     }
 
+    /// True while the sensor sees the magnet.
     virtual bool isTriggered() = 0;
 };
 

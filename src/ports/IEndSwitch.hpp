@@ -14,6 +14,8 @@ class IEndSwitch
     {
     }
 
+    /// True while the switch is closed, in the sense that means "end reached" (the adapter fixes
+    /// the polarity).
     virtual bool isTriggered() = 0;
 };
 

@@ -4,10 +4,10 @@
 /// coordinate-format selectors the readouts use, the axis identifiers and a plain date. Arduino-free
 /// and dependent on nothing, which is what lets every layer include it.
 
-// The direction argument every motion and read-model call takes. These were `#define`s in the
-// mount's header; they are here because they are the vocabulary of the ports, not of one class,
-// and the firmware has always passed them as an or-ed bit set (`EAST | WEST`). The values are
-// pinned to `core::SlewDirection` and `core::CoordinateFormat` by `static_assert` in the executor.
+// The direction argument every motion and read-model call takes. They are the vocabulary of the
+// ports, not of one class, and the firmware passes them as an or-ed bit set (`EAST | WEST`). The
+// values are pinned to `core::SlewDirection` and `core::CoordinateFormat` by `static_assert` in the
+// executor.
 #define NORTH          0x01
 #define EAST           0x02
 #define SOUTH          0x04
@@ -28,20 +28,21 @@
 #define TARGET_STRING  0x08
 #define CURRENT_STRING 0x10
 
+/// Identifies one physical axis, or the RA/DEC pair where a call moves both.
 enum StepperAxis
 {
-    RA_STEPS,
-    DEC_STEPS,
-    RA_AND_DEC_STEPS,
-    AZIMUTH_STEPS,
-    ALTITUDE_STEPS,
-    FOCUS_STEPS
+    RA_STEPS,          ///< Right ascension.
+    DEC_STEPS,         ///< Declination.
+    RA_AND_DEC_STEPS,  ///< Both celestial axes; most calls handle one axis and ignore this value.
+    AZIMUTH_STEPS,     ///< Alt-azimuth base: azimuth.
+    ALTITUDE_STEPS,    ///< Alt-azimuth base: altitude.
+    FOCUS_STEPS        ///< The focuser.
 };
 
 /// A calendar date as the mount keeps it: the local date the operator entered, or the one the
 /// GPS reported. A plain value with no Arduino dependency, so a port can hand it out.
 struct LocalDate {
-    int year;
-    int month;
-    int day;
+    int year;   ///< Full year, e.g. 2026.
+    int month;  ///< 1-12.
+    int day;    ///< 1-31.
 };

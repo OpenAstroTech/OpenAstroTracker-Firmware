@@ -16,6 +16,8 @@ class IEventSink
     {
     }
 
+    /// Called once per queued event from the main-loop dispatch pass. Delivery is synchronous, so
+    /// a handler should be quick; an event published here waits for the next tick.
     virtual void onMountEvent(const types::MountEvent &event) = 0;
 };
 

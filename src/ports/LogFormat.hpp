@@ -5,17 +5,19 @@ namespace ports
 
 /// Opaque handle to a log format string.
 ///
-/// The AVR build keeps 273 log format literals (13.9 KB) in flash. Handing the
-/// implementation a plain `const char*` would move them into the 8 KB of SRAM, so
-/// the port passes this handle instead: the literal stays wherever the toolchain put
-/// it and the adapter knows how to read it back (`F()`/`pgm_read_byte` on AVR, a
-/// plain dereference elsewhere).
+/// The AVR build keeps several hundred log format literals (well over 10 KB) in flash.
+/// Handing the implementation a plain `const char*` would move them into the 8 KB of
+/// SRAM, so the port passes this handle instead: the literal stays wherever the
+/// toolchain put it and the adapter knows how to read it back (`F()`/`pgm_read_byte`
+/// on AVR, a plain dereference elsewhere).
 ///
 /// Construct one with `OAT_LOG_FORMAT(...)` rather than directly, so each platform
 /// picks the right representation.
 class LogFormat
 {
   public:
+    /// Wraps the platform's representation of the literal. Prefer `OAT_LOG_FORMAT(...)`, which
+    /// picks the right representation for the platform.
     explicit LogFormat(const void *text) : _text(text)
     {
     }
@@ -53,13 +55,10 @@ class LogFormat
 #endif
 
 // The level comes from the build's `DEBUG_LEVEL`, so a build that logs nothing emits no call and
-// does not even evaluate the arguments.
+// does not even evaluate the arguments. `OAT_LOG` is one diagnostic line through a
+// `ports::ILogger`: the format literal stays in flash on AVR (`OAT_LOG_FORMAT` is `PSTR()` there)
+// and the whole call compiles out when `DEBUG_LEVEL` is `DEBUG_NONE`.
 #if DEBUG_LEVEL != 0
-    /// One diagnostic line through a `ports::ILogger`.
-    ///
-    /// Same shape as the legacy `LOG()`: the format literal stays in flash on AVR
-    /// (`OAT_LOG_FORMAT` is `PSTR()` there) and the whole call compiles out when `DEBUG_LEVEL` is
-    /// `DEBUG_NONE`.
     #define OAT_LOG(logger, level, format, ...) (logger)->log((level), OAT_LOG_FORMAT(format), ##__VA_ARGS__)
 #else
     #define OAT_LOG(logger, level, format, ...)

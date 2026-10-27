@@ -16,6 +16,8 @@ class IClock
     {
     }
 
+    /// Milliseconds on a free-running counter that wraps at 2^32. Compare deadlines with unsigned
+    /// subtraction (`now() - deadline`), never with `<` on raw values.
     virtual uint32_t now() = 0;
 
     /// Blocks the caller. Only used where the domain genuinely has to wait for
