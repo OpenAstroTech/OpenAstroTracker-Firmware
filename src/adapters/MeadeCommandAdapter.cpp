@@ -83,7 +83,7 @@ MeadeCommandAdapter::~MeadeCommandAdapter()
     }
 }
 
-void MeadeCommandAdapter::deferReply(oat::core::meade::ReplyKind kind, ::core::MountEventType completesOn, uint32_t timeoutMs)
+void MeadeCommandAdapter::deferReply(oat::core::meade::ReplyKind kind, ::types::MountEventType completesOn, uint32_t timeoutMs)
 {
     if (_origin == nullptr)
     {
@@ -119,14 +119,14 @@ void MeadeCommandAdapter::sendPendingReply(const oat::core::meade::PendingReply 
     }
 }
 
-void MeadeCommandAdapter::onMountEvent(const ::core::MountEvent &event)
+void MeadeCommandAdapter::onMountEvent(const ::types::MountEvent &event)
 {
     oat::core::meade::PendingReply reply;
     while (_pending.takeCompleted(event.type, reply))
     {
         // A homing failure is the one event that reports its own outcome; the rest completing at
         // all is the success.
-        const bool succeeded = (event.type == ::core::MountEventType::HomingFinished) ? event.succeeded : true;
+        const bool succeeded = (event.type == ::types::MountEventType::HomingFinished) ? event.succeeded : true;
         LOG(DEBUG_MEADE, "[MEADE]: Deferred reply %u due (%s)", static_cast<unsigned>(reply.correlation), succeeded ? "ok" : "failed");
         sendPendingReply(reply, succeeded);
     }

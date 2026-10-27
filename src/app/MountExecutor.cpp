@@ -142,9 +142,9 @@ void MountExecutor::initializeVariables()
 
 /// Records a fact for the tick boundary. The next `loop()` delivers it, so a subscriber
 /// is never called from inside the code that just changed the mount's state.
-void MountExecutor::publishEvent(core::MountEventType type, bool succeeded)
+void MountExecutor::publishEvent(types::MountEventType type, bool succeeded)
 {
-    core::MountEvent event;
+    types::MountEvent event;
     event.type      = type;
     event.succeeded = succeeded;
     _coordinator.events().publish(event);

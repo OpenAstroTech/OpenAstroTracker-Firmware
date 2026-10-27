@@ -20,7 +20,7 @@ bool MountExecutor::findHomeByHallSensor(StepperAxis axis, int initialDirection,
         const bool started = _axes.raHoming()->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
-            publishEvent(core::MountEventType::HomingStarted);
+            publishEvent(types::MountEventType::HomingStarted);
         }
         return started;
     }
@@ -36,7 +36,7 @@ bool MountExecutor::findHomeByHallSensor(StepperAxis axis, int initialDirection,
         const bool started = _axes.decHoming()->findHomeByHallSensor(initialDirection, searchDistance);
         if (started)
         {
-            publishEvent(core::MountEventType::HomingStarted);
+            publishEvent(types::MountEventType::HomingStarted);
         }
         return started;
     }
@@ -56,7 +56,7 @@ void MountExecutor::processHomingProgress()
         _axes.raHoming()->processHomingProgress();
         if (_axes.raHoming()->isIdleOrComplete())
         {
-            publishEvent(core::MountEventType::HomingFinished, _axes.raHoming()->homingResult() == core::HomingResult::Succeeded);
+            publishEvent(types::MountEventType::HomingFinished, _axes.raHoming()->homingResult() == core::HomingResult::Succeeded);
         }
     }
 
@@ -65,7 +65,7 @@ void MountExecutor::processHomingProgress()
         _axes.decHoming()->processHomingProgress();
         if (_axes.decHoming()->isIdleOrComplete())
         {
-            publishEvent(core::MountEventType::HomingFinished, _axes.decHoming()->homingResult() == core::HomingResult::Succeeded);
+            publishEvent(types::MountEventType::HomingFinished, _axes.decHoming()->homingResult() == core::HomingResult::Succeeded);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace core
+namespace types
 {
 
 /// Facts the mount publishes about what it just did.
@@ -40,18 +40,4 @@ struct MountEvent {
     bool succeeded;  ///< homing outcome; always false for the other events
 };
 
-/// Anything that wants to observe mount events (a status display, a diagnostic log).
-///
-/// Deliberately not nested in `EventBus`: the bus's capacity is an implementation
-/// detail, and a consumer should not have to name it to subscribe.
-class IEventSink
-{
-  public:
-    virtual ~IEventSink()
-    {
-    }
-
-    virtual void onMountEvent(const MountEvent &event) = 0;
-};
-
-}  // namespace core
+}  // namespace types

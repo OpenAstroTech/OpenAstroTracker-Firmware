@@ -6,8 +6,8 @@
 
 using core::Admission;
 using core::MountCoordinator;
-using core::MountEvent;
-using core::MountEventType;
+using types::MountEvent;
+using types::MountEventType;
 using core::MountRequest;
 using core::ParkingPhase;
 using core::SlewIntent;
@@ -36,7 +36,7 @@ struct Fixture {
 };
 
 /// Collects what the coordinator's event bus delivers.
-class RecordingSink final : public core::IEventSink
+class RecordingSink final : public ports::IEventSink
 {
   public:
     void onMountEvent(const MountEvent &event) override

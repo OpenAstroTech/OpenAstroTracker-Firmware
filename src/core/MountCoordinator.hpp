@@ -102,12 +102,12 @@ class MountCoordinator : public ports::IMountEvents
     /// `ports::IMountEvents`: the command layer subscribes so a deferred reply can be sent when
     /// the work behind it finishes. The bus is the coordinator's, so it serves the port itself
     /// rather than making every consumer go through the mount facade.
-    void subscribe(::core::IEventSink *sink) override
+    void subscribe(::ports::IEventSink *sink) override
     {
         _events.subscribe(sink);
     }
 
-    void unsubscribe(::core::IEventSink *sink) override
+    void unsubscribe(::ports::IEventSink *sink) override
     {
         _events.unsubscribe(sink);
     }

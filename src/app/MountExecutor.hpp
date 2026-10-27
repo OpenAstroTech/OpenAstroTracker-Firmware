@@ -480,7 +480,7 @@ class MountExecutor final : public ports::IMountOptionalAxes
     // Reads values from EEPROM that configure the mount (if previously stored)
     void readPersistentData();
 
-    void publishEvent(core::MountEventType type, bool succeeded = false);
+    void publishEvent(types::MountEventType type, bool succeeded = false);
 
     /// Rewrites `STATUS_PARKING`/`STATUS_PARKING_POS` from `_parking`'s phase.
     void applyParkingStatus();

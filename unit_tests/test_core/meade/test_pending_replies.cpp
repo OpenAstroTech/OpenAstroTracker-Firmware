@@ -37,7 +37,7 @@ PendingReply entry()
     PendingReply e;
     e.correlation = 0;
     e.out         = nullptr;
-    e.completesOn = core::MountEventType::SlewArrived;
+    e.completesOn = types::MountEventType::SlewArrived;
     e.kind        = ReplyKind::Silent;
     e.deadlineMs  = 0;
     return e;
@@ -58,7 +58,7 @@ TEST(PendingRepliesTest, AddReturnsANonZeroCorrelationAndKeepsTheEntry)
     PendingReplies<> table;
     RecordingTransport out;
 
-    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, core::MountEventType::SlewArrived, 1000);
+    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, types::MountEventType::SlewArrived, 1000);
 
     ASSERT_NE(0, correlation);
     EXPECT_TRUE(table.contains(correlation));
@@ -71,8 +71,8 @@ TEST(PendingRepliesTest, CorrelationsAreDistinctAndNeverZero)
     PendingReplies<> table;
     RecordingTransport out;
 
-    const uint16_t first  = table.add(&out, ReplyKind::Silent, core::MountEventType::Parked, 1000);
-    const uint16_t second = table.add(&out, ReplyKind::Silent, core::MountEventType::Parked, 1000);
+    const uint16_t first  = table.add(&out, ReplyKind::Silent, types::MountEventType::Parked, 1000);
+    const uint16_t second = table.add(&out, ReplyKind::Silent, types::MountEventType::Parked, 1000);
 
     EXPECT_NE(0, first);
     EXPECT_NE(0, second);
@@ -87,7 +87,7 @@ TEST(PendingRepliesTest, CorrelationWrapsWithoutBecomingZero)
     uint16_t last = 0;
     for (int i = 0; i < 70000; i++)
     {
-        const uint16_t correlation = table.add(&out, ReplyKind::Silent, core::MountEventType::Parked, 1000);
+        const uint16_t correlation = table.add(&out, ReplyKind::Silent, types::MountEventType::Parked, 1000);
         ASSERT_NE(0, correlation);
         last = correlation;
 
@@ -107,9 +107,9 @@ TEST(PendingRepliesTest, AFullTableRefusesRatherThanOverwrites)
     RecordingTransport second;
     RecordingTransport third;
 
-    const uint16_t a = table.add(&first, ReplyKind::Silent, core::MountEventType::Parked, 1000);
-    const uint16_t b = table.add(&second, ReplyKind::Silent, core::MountEventType::Parked, 1000);
-    const uint16_t c = table.add(&third, ReplyKind::Silent, core::MountEventType::Parked, 1000);
+    const uint16_t a = table.add(&first, ReplyKind::Silent, types::MountEventType::Parked, 1000);
+    const uint16_t b = table.add(&second, ReplyKind::Silent, types::MountEventType::Parked, 1000);
+    const uint16_t c = table.add(&third, ReplyKind::Silent, types::MountEventType::Parked, 1000);
 
     EXPECT_NE(0, a);
     EXPECT_NE(0, b);
@@ -125,11 +125,11 @@ TEST(PendingRepliesTest, TakesTheEntryTheEventCompletes)
     RecordingTransport slewOut;
     RecordingTransport focusOut;
 
-    const uint16_t slew  = table.add(&slewOut, ReplyKind::SuccessFlag, core::MountEventType::SlewArrived, 1000);
-    const uint16_t focus = table.add(&focusOut, ReplyKind::SuccessFlag, core::MountEventType::FocusStopped, 1000);
+    const uint16_t slew  = table.add(&slewOut, ReplyKind::SuccessFlag, types::MountEventType::SlewArrived, 1000);
+    const uint16_t focus = table.add(&focusOut, ReplyKind::SuccessFlag, types::MountEventType::FocusStopped, 1000);
 
     PendingReply taken = entry();
-    ASSERT_TRUE(table.takeCompleted(core::MountEventType::FocusStopped, taken));
+    ASSERT_TRUE(table.takeCompleted(types::MountEventType::FocusStopped, taken));
     EXPECT_EQ(focus, taken.correlation);
     EXPECT_EQ(&focusOut, taken.out);
     EXPECT_EQ(ReplyKind::SuccessFlag, taken.kind);
@@ -142,10 +142,10 @@ TEST(PendingRepliesTest, AnEventNoEntryWaitsForCompletesNothing)
 {
     PendingReplies<> table;
     RecordingTransport out;
-    table.add(&out, ReplyKind::Silent, core::MountEventType::SlewArrived, 1000);
+    table.add(&out, ReplyKind::Silent, types::MountEventType::SlewArrived, 1000);
 
     PendingReply taken = entry();
-    EXPECT_FALSE(table.takeCompleted(core::MountEventType::Parked, taken));
+    EXPECT_FALSE(table.takeCompleted(types::MountEventType::Parked, taken));
     EXPECT_EQ(1, static_cast<int>(table.size()));
 }
 
@@ -154,14 +154,14 @@ TEST(PendingRepliesTest, EntriesWaitingOnTheSameEventCompleteOldestFirst)
     PendingReplies<> table;
     RecordingTransport out;
 
-    const uint16_t first  = table.add(&out, ReplyKind::SuccessFlag, core::MountEventType::Parked, 1000);
-    const uint16_t second = table.add(&out, ReplyKind::SuccessFlag, core::MountEventType::Parked, 2000);
+    const uint16_t first  = table.add(&out, ReplyKind::SuccessFlag, types::MountEventType::Parked, 1000);
+    const uint16_t second = table.add(&out, ReplyKind::SuccessFlag, types::MountEventType::Parked, 2000);
 
     PendingReply taken = entry();
-    ASSERT_TRUE(table.takeCompleted(core::MountEventType::Parked, taken));
+    ASSERT_TRUE(table.takeCompleted(types::MountEventType::Parked, taken));
     EXPECT_EQ(first, taken.correlation);
 
-    ASSERT_TRUE(table.takeCompleted(core::MountEventType::Parked, taken));
+    ASSERT_TRUE(table.takeCompleted(types::MountEventType::Parked, taken));
     EXPECT_EQ(second, taken.correlation);
 
     EXPECT_TRUE(table.empty());
@@ -171,7 +171,7 @@ TEST(PendingRepliesTest, ADeadlineExpiresTheEntryAtItsMoment)
 {
     PendingReplies<> table;
     RecordingTransport out;
-    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, core::MountEventType::SlewArrived, 500);
+    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, types::MountEventType::SlewArrived, 500);
 
     PendingReply taken = entry();
     EXPECT_FALSE(table.takeExpired(499, taken));
@@ -189,7 +189,7 @@ TEST(PendingRepliesTest, ADeadlineSurvivesTheMillisecondCounterWrapping)
     PendingReplies<> table;
     RecordingTransport out;
     const uint32_t deadline    = 0xFFFFFFFFu - 10u;
-    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, core::MountEventType::SlewArrived, deadline);
+    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, types::MountEventType::SlewArrived, deadline);
 
     PendingReply taken = entry();
     EXPECT_FALSE(table.takeExpired(deadline - 1u, taken));
@@ -202,12 +202,12 @@ TEST(PendingRepliesTest, TheTableHandsBackWhatItStored)
     PendingReplies<> table;
     RecordingTransport out;
 
-    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, core::MountEventType::HomingFinished, 1234);
+    const uint16_t correlation = table.add(&out, ReplyKind::SuccessFlag, types::MountEventType::HomingFinished, 1234);
 
     PendingReply taken = entry();
     ASSERT_TRUE(table.take(correlation, taken));
     EXPECT_EQ(&out, taken.out);
-    EXPECT_EQ(core::MountEventType::HomingFinished, taken.completesOn);
+    EXPECT_EQ(types::MountEventType::HomingFinished, taken.completesOn);
     EXPECT_EQ(ReplyKind::SuccessFlag, taken.kind);
     EXPECT_EQ(1234u, taken.deadlineMs);
 }
@@ -216,8 +216,8 @@ TEST(PendingRepliesTest, ClearForgetsEveryReply)
 {
     PendingReplies<> table;
     RecordingTransport out;
-    table.add(&out, ReplyKind::Silent, core::MountEventType::Parked, 1000);
-    table.add(&out, ReplyKind::Silent, core::MountEventType::Parked, 1000);
+    table.add(&out, ReplyKind::Silent, types::MountEventType::Parked, 1000);
+    table.add(&out, ReplyKind::Silent, types::MountEventType::Parked, 1000);
 
     table.clear();
 
@@ -230,8 +230,8 @@ TEST(PendingRepliesTest, ClearForDropsOnlyOnePeersReplies)
     RecordingTransport serial;
     RecordingTransport wifi;
 
-    const uint16_t keep = table.add(&serial, ReplyKind::Silent, core::MountEventType::Parked, 1000);
-    table.add(&wifi, ReplyKind::Silent, core::MountEventType::Parked, 1000);
+    const uint16_t keep = table.add(&serial, ReplyKind::Silent, types::MountEventType::Parked, 1000);
+    table.add(&wifi, ReplyKind::Silent, types::MountEventType::Parked, 1000);
 
     table.clearFor(&wifi);
 
@@ -245,11 +245,11 @@ TEST(PendingRepliesTest, AReleasedSlotIsReusable)
     RecordingTransport first;
     RecordingTransport second;
 
-    const uint16_t a = table.add(&first, ReplyKind::Silent, core::MountEventType::Parked, 1000);
+    const uint16_t a = table.add(&first, ReplyKind::Silent, types::MountEventType::Parked, 1000);
     PendingReply taken;
     ASSERT_TRUE(table.take(a, taken));
 
-    const uint16_t b = table.add(&second, ReplyKind::Silent, core::MountEventType::Parked, 2000);
+    const uint16_t b = table.add(&second, ReplyKind::Silent, types::MountEventType::Parked, 2000);
     EXPECT_NE(0, b);
     EXPECT_TRUE(table.contains(b));
 }

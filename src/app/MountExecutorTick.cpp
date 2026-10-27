@@ -83,7 +83,7 @@ void MountExecutor::loop()
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running ");
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser is stopped, but was running, disabling");
         disableFocusMotor();
-        publishEvent(core::MountEventType::FocusStopped);
+        publishEvent(types::MountEventType::FocusStopped);
     }
 
     if (tick.guiding)
@@ -126,7 +126,7 @@ void MountExecutor::loop()
 
         if (_coordinator.slew().wasRunning())
         {
-            publishEvent(core::MountEventType::SlewArrived);
+            publishEvent(types::MountEventType::SlewArrived);
             OAT_LOG(_deps.logger,
                     DEBUG_MOUNT | DEBUG_STEPPERS,
                     "[MOUNT]: Loop: Reached target. RA:%ld, DEC:%ld",
@@ -277,7 +277,7 @@ void MountExecutor::loop()
                 noInterrupts();
                 setStatus(STATUS_PARKED);
                 interrupts();
-                publishEvent(core::MountEventType::Parked);
+                publishEvent(types::MountEventType::Parked);
                 _coordinator.parking().markParked();
                 applyParkingStatus();
             }

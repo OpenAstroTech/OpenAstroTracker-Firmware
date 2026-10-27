@@ -1,6 +1,7 @@
 #pragma once
 
-#include "core/MountEvent.hpp"
+#include "types/MountEvent.hpp"
+#include "ports/IEventSink.hpp"
 #include "core/meade/MeadeParser.hpp"
 #include "core/meade/PendingReplies.hpp"
 #include "ports/IClock.hpp"
@@ -52,7 +53,7 @@ struct MeadeCommandPorts {
     void *serialControlContext                               = nullptr;
 };
 
-class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::core::IEventSink
+class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::ports::IEventSink
 {
   public:
     static MeadeCommandAdapter *createProcessor(const MeadeCommandPorts &ports, ports::IDisplay *display);
@@ -76,8 +77,8 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     /// The number of replies still owed. Diagnostics and tests.
     uint8_t pendingReplies() const;
 
-    /// `core::IEventSink`: the deferred replies complete here.
-    void onMountEvent(const ::core::MountEvent &event) override;
+    /// `ports::IEventSink`: the deferred replies complete here.
+    void onMountEvent(const ::types::MountEvent &event) override;
 
     ~MeadeCommandAdapter() override;
 
@@ -88,7 +89,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::c
     /// is then ignored, and `processCommand()` reports "no bytes yet" rather than an empty answer.
     /// A full table declines the deferral, so the handler's inline answer goes out instead: a host
     /// waiting on a reply that will never come is worse than an immediate, conventional answer.
-    void deferReply(oat::core::meade::ReplyKind kind, ::core::MountEventType completesOn, uint32_t timeoutMs);
+    void deferReply(oat::core::meade::ReplyKind kind, ::types::MountEventType completesOn, uint32_t timeoutMs);
 
     /// Formats and writes one deferred reply.
     void sendPendingReply(const oat::core::meade::PendingReply &reply, bool succeeded);

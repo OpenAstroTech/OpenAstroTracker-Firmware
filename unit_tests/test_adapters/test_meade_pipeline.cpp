@@ -95,7 +95,7 @@ class DeferredHandlers : public fakes::StubMeadeHandlers
     DeferredHandlers(meade::PendingReplies<> &pending,
                      ports::ITransport &out,
                      meade::ReplyKind kind,
-                     ::core::MountEventType completesOn,
+                     ::types::MountEventType completesOn,
                      uint32_t deadlineMs)
         : _pending(pending), _out(out), _kind(kind), _completesOn(completesOn), _deadlineMs(deadlineMs)
     {
@@ -117,7 +117,7 @@ class DeferredHandlers : public fakes::StubMeadeHandlers
     meade::PendingReplies<> &_pending;
     ports::ITransport &_out;
     meade::ReplyKind _kind;
-    ::core::MountEventType _completesOn;
+    ::types::MountEventType _completesOn;
     uint32_t _deadlineMs;
     uint16_t _correlation = 0;
 };
@@ -199,7 +199,7 @@ TEST(MeadePipelineTest, ADeferredHandlerWritesNothingInlineAndAnswersOnTheEvent)
     fakes::FakeSerialPort port;
     Transport transport(port, false);
     meade::PendingReplies<> pending;
-    DeferredHandlers handlers(pending, transport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::Parked, 60000);
+    DeferredHandlers handlers(pending, transport, meade::ReplyKind::SuccessFlag, ::types::MountEventType::Parked, 60000);
 
     port.feed(":hP#");
     ASSERT_TRUE(transport.hasCommand());
@@ -222,7 +222,7 @@ TEST(MeadePipelineTest, ADeferredHandlerWritesNothingInlineAndAnswersOnTheEvent)
 
     // The mount finishes parking; the reply goes out on the transport that asked.
     meade::PendingReply reply;
-    ASSERT_TRUE(pending.takeCompleted(::core::MountEventType::Parked, reply));
+    ASSERT_TRUE(pending.takeCompleted(::types::MountEventType::Parked, reply));
     reply.out->writeResponse("1");
 
     EXPECT_EQ("1", port.output());
@@ -234,7 +234,7 @@ TEST(MeadePipelineTest, ADeferredHandlerAnswersFailureWhenTheDeadlinePasses)
     fakes::FakeSerialPort port;
     Transport transport(port, false);
     meade::PendingReplies<> pending;
-    DeferredHandlers handlers(pending, transport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::Parked, 2000);
+    DeferredHandlers handlers(pending, transport, meade::ReplyKind::SuccessFlag, ::types::MountEventType::Parked, 2000);
 
     port.feed(":hP#");
     ASSERT_TRUE(transport.hasCommand());
@@ -264,8 +264,8 @@ TEST(MeadePipelineTest, ADeferredReplyForOnePeerNeverReachesAnother)
     meade::PendingReplies<> pending;
 
     const uint16_t serialCorrelation
-        = pending.add(&serialTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::SlewArrived, 5000);
-    const uint16_t wifiCorrelation = pending.add(&wifiTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::SlewArrived, 5000);
+        = pending.add(&serialTransport, meade::ReplyKind::SuccessFlag, ::types::MountEventType::SlewArrived, 5000);
+    const uint16_t wifiCorrelation = pending.add(&wifiTransport, meade::ReplyKind::SuccessFlag, ::types::MountEventType::SlewArrived, 5000);
     ASSERT_NE(serialCorrelation, wifiCorrelation);
 
     meade::PendingReply reply;
@@ -285,8 +285,8 @@ TEST(MeadePipelineTest, APeerThatDisconnectsOwesNothingAfterwards)
     Transport wifiTransport(wifiPort, false);
     meade::PendingReplies<> pending;
 
-    pending.add(&serialTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::Parked, 5000);
-    const uint16_t wifi = pending.add(&wifiTransport, meade::ReplyKind::SuccessFlag, ::core::MountEventType::Parked, 5000);
+    pending.add(&serialTransport, meade::ReplyKind::SuccessFlag, ::types::MountEventType::Parked, 5000);
+    const uint16_t wifi = pending.add(&wifiTransport, meade::ReplyKind::SuccessFlag, ::types::MountEventType::Parked, 5000);
 
     pending.clearFor(&wifiTransport);
 

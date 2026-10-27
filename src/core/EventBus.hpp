@@ -2,7 +2,8 @@
 
 #include <stdint.h>
 
-#include "MountEvent.hpp"
+#include "types/MountEvent.hpp"
+#include "ports/IEventSink.hpp"
 
 namespace core
 {
@@ -35,7 +36,7 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
     /// Adds a subscriber. The same sink twice is a no-op rather than a duplicate delivery, and
     /// a full bus drops the newcomer: a subscriber that cannot be registered is a
     /// configuration mistake the caller sees through `hasSubscriber()`, not a runtime fault.
-    void subscribe(IEventSink *sink)
+    void subscribe(ports::IEventSink *sink)
     {
         if ((sink == nullptr) || hasSubscriber(sink))
         {
@@ -53,7 +54,7 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
     }
 
     /// Removes one subscriber, leaving the others in place.
-    void unsubscribe(IEventSink *sink)
+    void unsubscribe(ports::IEventSink *sink)
     {
         for (uint8_t i = 0; i < Sinks; i++)
         {
@@ -85,7 +86,7 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
         return false;
     }
 
-    bool hasSubscriber(const IEventSink *sink) const
+    bool hasSubscriber(const ports::IEventSink *sink) const
     {
         for (uint8_t i = 0; i < Sinks; i++)
         {
@@ -97,7 +98,7 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
         return false;
     }
 
-    void publish(const MountEvent &event)
+    void publish(const types::MountEvent &event)
     {
         if (_count == Capacity)
         {
@@ -125,7 +126,7 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
         uint8_t toDeliver = _count;
         while (toDeliver-- != 0)
         {
-            const MountEvent event = _queue[_head];
+            const types::MountEvent event = _queue[_head];
             _head                  = next(_head);
             _count--;
             for (uint8_t i = 0; i < Sinks; i++)
@@ -150,11 +151,11 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
         return (uint8_t) ((index + 1u) & (Capacity - 1u));
     }
 
-    MountEvent _queue[Capacity] = {};
+    types::MountEvent _queue[Capacity] = {};
     uint8_t _head               = 0;
     uint8_t _tail               = 0;
     uint8_t _count              = 0;
-    IEventSink *_sinks[Sinks]   = {};
+    ports::IEventSink *_sinks[Sinks]   = {};
     bool _dispatching           = false;
 };
 

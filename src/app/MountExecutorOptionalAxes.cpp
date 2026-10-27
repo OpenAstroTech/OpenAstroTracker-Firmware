@@ -48,7 +48,7 @@ void MountExecutor::park()
     _coordinator.parking().beginHoming();
     startSlewingToHome();
     applyParkingStatus();
-    publishEvent(core::MountEventType::ParkingStarted);
+    publishEvent(types::MountEventType::ParkingStarted);
 }
 
 /////////////////////////////////
@@ -183,7 +183,7 @@ void MountExecutor::focusMoveBy(long steps)
             _coordinator.focus().position() + steps);
     enableFocusMotor();
     _coordinator.focus().moveBy(steps);
-    publishEvent(core::MountEventType::FocusMoving);
+    publishEvent(types::MountEventType::FocusMoving);
 }
 
 /////////////////////////////////

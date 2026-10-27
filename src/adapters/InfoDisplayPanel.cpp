@@ -15,16 +15,16 @@ void InfoDisplayPanel::begin()
     _events.subscribe(this);
 }
 
-void InfoDisplayPanel::onMountEvent(const ::core::MountEvent &event)
+void InfoDisplayPanel::onMountEvent(const ::types::MountEvent &event)
 {
     switch (event.type)
     {
-        case ::core::MountEventType::GuidingStarted:
+        case ::types::MountEventType::GuidingStarted:
             _guiding = true;
             _dirty   = true;  // one frame at the start of the pulse, as the guide path used to draw
             break;
 
-        case ::core::MountEventType::GuidingStopped:
+        case ::types::MountEventType::GuidingStopped:
             _guiding = false;
             _dirty   = true;
             break;

@@ -119,7 +119,7 @@ void MountExecutor::beginSlew(const core::SlewStartPlan &plan, core::SlewIntent 
 
     _coordinator.slew().begin(intent);
     setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
-    publishEvent(core::MountEventType::SlewStarted);
+    publishEvent(types::MountEventType::SlewStarted);
     // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
     setDecMicrosteps(_config.decSlewMicrosteps);
     _coordinator.slew().noteRunning(true);
@@ -226,7 +226,7 @@ void MountExecutor::setSpeed(StepperAxis which, float speedDegsPerSec)
                     speedDegsPerSec);
             enableFocusMotor();
             _coordinator.focus().runAtSpeed(speedDegsPerSec);
-            publishEvent(core::MountEventType::FocusMoving);
+            publishEvent(types::MountEventType::FocusMoving);
         }
         else
         {
@@ -277,7 +277,7 @@ void MountExecutor::startSlewing(int direction)
         _coordinator.tracking().applySpeed();
 
         setStatusFlag(STATUS_TRACKING);
-        publishEvent(core::MountEventType::TrackingStarted);
+        publishEvent(types::MountEventType::TrackingStarted);
         return;
     }
 
@@ -339,7 +339,7 @@ void MountExecutor::stopSlewing(int direction)
     {
         // Turn off tracking
         clearStatusFlag(STATUS_TRACKING);
-        publishEvent(core::MountEventType::TrackingStopped);
+        publishEvent(types::MountEventType::TrackingStopped);
 
         OAT_LOG(_deps.logger, DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: TRK stepper stop()");
         _coordinator.tracking().stop();
@@ -536,7 +536,7 @@ void MountExecutor::moveStepperBy(StepperAxis direction, long steps)
             // slew is in flight: the step generator reads that bit.
             setRaMicrosteps(_config.raSlewMicrosteps);
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
-            publishEvent(core::MountEventType::SlewStarted);
+            publishEvent(types::MountEventType::SlewStarted);
             _coordinator.slew().noteRunning(true);
             moveSteppersTo(_axes.ra()->currentPosition() + steps, 0, direction);
             _coordinator.slew().setTotalMove(1.0f * _axes.ra()->distanceToGo(), _coordinator.slew().totalDecSteps());
@@ -544,7 +544,7 @@ void MountExecutor::moveStepperBy(StepperAxis direction, long steps)
 
         case DEC_STEPS:
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
-            publishEvent(core::MountEventType::SlewStarted);
+            publishEvent(types::MountEventType::SlewStarted);
             // Normal state for DEC is guide microstepping, so switch to slew microstepping here.
             setDecMicrosteps(_config.decSlewMicrosteps);
             _coordinator.slew().noteRunning(true);

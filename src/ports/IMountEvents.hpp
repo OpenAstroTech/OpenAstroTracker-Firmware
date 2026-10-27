@@ -1,10 +1,6 @@
 #pragma once
 
-namespace core
-{
-class IEventSink;
-
-}  // namespace core
+#include "IEventSink.hpp"
 
 namespace ports
 {
@@ -21,8 +17,8 @@ class IMountEvents
     {
     }
 
-    virtual void subscribe(::core::IEventSink *sink)   = 0;
-    virtual void unsubscribe(::core::IEventSink *sink) = 0;
+    virtual void subscribe(IEventSink *sink)   = 0;
+    virtual void unsubscribe(IEventSink *sink) = 0;
 };
 
 }  // namespace ports

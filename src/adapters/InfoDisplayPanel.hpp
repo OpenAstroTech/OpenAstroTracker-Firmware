@@ -1,6 +1,7 @@
 #pragma once
 
-#include "core/MountEvent.hpp"
+#include "types/MountEvent.hpp"
+#include "ports/IEventSink.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IInfoDisplay.hpp"
 #include "ports/IMountEvents.hpp"
@@ -28,7 +29,7 @@ namespace adapters
 ///   serial ring buffer, which is what produced ASCOM driver timeouts.
 /// * During a guide pulse: one frame when the pulse starts (the `GuidingStarted` event), nothing
 ///   until it stops. The old code got the same shape by returning early from the loop.
-class InfoDisplayPanel final : private ::core::IEventSink
+class InfoDisplayPanel final : private ::ports::IEventSink
 {
   public:
     /// Highest frame rate a transition may ask for, whatever the slew bucket says.
@@ -44,7 +45,7 @@ class InfoDisplayPanel final : private ::core::IEventSink
     void tick();
 
   private:
-    void onMountEvent(const ::core::MountEvent &event) override;
+    void onMountEvent(const ::types::MountEvent &event) override;
     void render();
     int refreshRateHz();
     bool anyAxisSlewing();

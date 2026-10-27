@@ -57,7 +57,7 @@ void MountExecutor::stopGuiding(bool ra, bool dec)
     {
         OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: Clear guiding state");
         clearStatusFlag(STATUS_GUIDE_PULSE_MASK);
-        publishEvent(core::MountEventType::GuidingStopped);
+        publishEvent(types::MountEventType::GuidingStopped);
     }
     else
     {
@@ -246,7 +246,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
     }
     if (!wasGuiding && _coordinator.state().test(STATUS_GUIDE_PULSE))
     {
-        publishEvent(core::MountEventType::GuidingStarted);
+        publishEvent(types::MountEventType::GuidingStarted);
     }
 
     OAT_LOG(_deps.logger, DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: < Guide Pulse");

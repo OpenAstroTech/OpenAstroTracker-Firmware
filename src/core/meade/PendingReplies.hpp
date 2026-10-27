@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "core/MountEvent.hpp"
+#include "types/MountEvent.hpp"
 #include "ports/ITransport.hpp"
 
 namespace oat
@@ -35,7 +35,7 @@ struct PendingReply {
     /// written to the serial port that issued the next command.
     ports::ITransport *out;
     /// Which mount event completes the work.
-    ::core::MountEventType completesOn;
+    ::types::MountEventType completesOn;
     /// What to say when it does.
     ReplyKind kind;
     /// `IClock` milliseconds after which the reply is answered as failed.
@@ -65,7 +65,7 @@ template <uint8_t Capacity = 4> class PendingReplies
   public:
     /// Reserves a slot. Returns the correlation id, or 0 when the table is full — the caller
     /// must then answer the command immediately rather than leave the host waiting forever.
-    uint16_t add(ports::ITransport *out, ReplyKind kind, ::core::MountEventType completesOn, uint32_t deadlineMs)
+    uint16_t add(ports::ITransport *out, ReplyKind kind, ::types::MountEventType completesOn, uint32_t deadlineMs)
     {
         for (uint8_t i = 0; i < Capacity; i++)
         {
@@ -88,7 +88,7 @@ template <uint8_t Capacity = 4> class PendingReplies
     }
 
     /// Takes the oldest entry that `event` completes, if any.
-    bool takeCompleted(::core::MountEventType event, PendingReply &out)
+    bool takeCompleted(::types::MountEventType event, PendingReply &out)
     {
         for (uint8_t i = 0; i < Capacity; i++)
         {
