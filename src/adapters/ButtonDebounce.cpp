@@ -1,6 +1,6 @@
-#include "core/ButtonDebounce.hpp"
+#include "adapters/ButtonDebounce.hpp"
 
-namespace core
+namespace adapters
 {
 
 ButtonDebounce::ButtonDebounce() : _raw(types::Button::Invalid), _committed(types::Button::None), _reported(types::Button::None), _rawSince(0)
@@ -43,4 +43,4 @@ bool ButtonDebounce::changed(types::Button *out)
     return true;
 }
 
-}  // namespace core
+}  // namespace adapters

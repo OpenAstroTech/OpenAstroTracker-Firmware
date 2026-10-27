@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/ButtonDebounce.hpp"
+#include "adapters/ButtonDebounce.hpp"
 #include "hal/IButtonMatrix.hpp"
 #include "ports/IButtons.hpp"
 #include "ports/IClock.hpp"
@@ -29,7 +29,7 @@ class DebouncedButtons final : public ports::IButtons
 
     hal::IButtonMatrix &_matrix;
     ports::IClock &_clock;
-    core::ButtonDebounce _debounce;
+    adapters::ButtonDebounce _debounce;
 };
 
 }  // namespace adapters

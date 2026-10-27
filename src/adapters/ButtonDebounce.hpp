@@ -4,7 +4,7 @@
 
 #include "types/Button.hpp"
 
-namespace core
+namespace adapters
 {
 
 /// Commits a raw key once it has been stable for a moment.
@@ -36,4 +36,4 @@ class ButtonDebounce
     uint32_t _rawSince;
 };
 
-}  // namespace core
+}  // namespace adapters

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../../Configuration.hpp"
-#include "core/ConsoleLog.hpp"
-#include "core/InfoDisplayLayout.hpp"
+#include "adapters/ConsoleLog.hpp"
+#include "adapters/InfoDisplayLayout.hpp"
 #include "hal/WarningGuard.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IInfoDisplay.hpp"
@@ -30,8 +30,8 @@ namespace adapters
 class Ssd1306InfoDisplay final : public ports::IInfoDisplay
 {
   public:
-    static constexpr int kMaxConsoleLines     = core::ConsoleLog::kCapacity;
-    static constexpr int kConsoleVisibleLines = core::ConsoleLog::kVisible;
+    static constexpr int kMaxConsoleLines     = adapters::ConsoleLog::kCapacity;
+    static constexpr int kConsoleVisibleLines = adapters::ConsoleLog::kVisible;
 
     Ssd1306InfoDisplay(hal::IOledPanel &panel, ports::IClock &clock);
 
@@ -67,11 +67,11 @@ class Ssd1306InfoDisplay final : public ports::IInfoDisplay
 
     /// The panel's own scale geometry. The DEC span is the one thing that differs per product:
     /// the mount and explorer firmware map the whole circle, the tracker half of it.
-    core::InfoDisplayScale scale() const;
+    adapters::InfoDisplayScale scale() const;
 
     hal::IOledPanel &_panel;
     ports::IClock &_clock;
-    core::ConsoleLog _console;
+    adapters::ConsoleLog _console;
     bool _consoleMode;
     char _commLetter;
     long _lastNumCmds;

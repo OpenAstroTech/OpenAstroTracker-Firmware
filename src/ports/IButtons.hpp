@@ -9,7 +9,7 @@ namespace ports
 
 /// The navigation keys, debounced and edge-reported.
 ///
-/// Debouncing lives in the adapter (`core::ButtonDebounce`), so a screen sees a committed key and a
+/// Debouncing lives in the adapter (`adapters::ButtonDebounce`), so a screen sees a committed key and a
 /// single edge per press however the keys are wired: a resistive ladder, discrete GPIOs or a
 /// joystick behind an I2C expander.
 class IButtons

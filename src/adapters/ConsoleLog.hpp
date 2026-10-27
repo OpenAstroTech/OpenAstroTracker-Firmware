@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-namespace core
+namespace adapters
 {
 
 /// The boot console's fixed-capacity line ring.
@@ -42,4 +42,4 @@ class ConsoleLog
     int _count;
 };
 
-}  // namespace core
+}  // namespace adapters

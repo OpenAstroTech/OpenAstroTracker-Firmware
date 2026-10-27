@@ -53,7 +53,7 @@ Ssd1306InfoDisplay::Ssd1306InfoDisplay(hal::IOledPanel &panel, ports::IClock &cl
 {
 }
 
-core::InfoDisplayScale Ssd1306InfoDisplay::scale() const
+adapters::InfoDisplayScale Ssd1306InfoDisplay::scale() const
 {
     #if defined(OAM) || defined(OAE)
     constexpr float bottomDec = -180.0f;
@@ -254,8 +254,8 @@ void Ssd1306InfoDisplay::drawProgressBar(int percRA, int percDEC)
 {
     _panel.setColor(hal::OledColor::White);
     _panel.drawVerticalLine(127, 60, 4);
-    _panel.fillRect(0, 60, core::progressBarWidth(percRA), 2);
-    _panel.fillRect(0, 62, core::progressBarWidth(percDEC), 2);
+    _panel.fillRect(0, 60, adapters::progressBarWidth(percRA), 2);
+    _panel.fillRect(0, 62, adapters::progressBarWidth(percDEC), 2);
 }
 
 void Ssd1306InfoDisplay::drawStepperState(const char *name, bool active, int xoff, int width, int textOffX)
@@ -365,17 +365,17 @@ void Ssd1306InfoDisplay::drawCoordinates(const ports::InfoDisplayState &state)
 
 int Ssd1306InfoDisplay::xRAPixel(float ra) const
 {
-    return core::xRAPixel(scale(), ra);
+    return adapters::xRAPixel(scale(), ra);
 }
 
 int Ssd1306InfoDisplay::yDECPixel(float dec) const
 {
-    return core::yDECPixel(scale(), dec);
+    return adapters::yDECPixel(scale(), dec);
 }
 
 void Ssd1306InfoDisplay::drawMountPosition(const ports::InfoDisplayState &state)
 {
-    const core::InfoDisplayScale g = scale();
+    const adapters::InfoDisplayScale g = scale();
     _panel.setColor(hal::OledColor::White);
     _panel.setFont(hal::OledFont::Bitmap3x5);
 
@@ -404,7 +404,7 @@ void Ssd1306InfoDisplay::drawMountPosition(const ports::InfoDisplayState &state)
     _panel.drawString(g.decScalePos + 3, yDECPixel(180.0f) - 2, "180");
 
     // DEC position marker
-    const int yMark = yDECPixel(core::markerDecDegrees(state.decSteps, state.decStepsPerDegree));
+    const int yMark = yDECPixel(adapters::markerDecDegrees(state.decSteps, state.decStepsPerDegree));
     _panel.setPixel(g.decScalePos - 2, yMark);
     _panel.drawVerticalLine(g.decScalePos - 3, yMark - 1, 3);
     _panel.drawVerticalLine(g.decScalePos - 4, yMark - 2, 5);
@@ -431,7 +431,7 @@ void Ssd1306InfoDisplay::drawMountPosition(const ports::InfoDisplayState &state)
 
     // RA position marker
     const int xMark = xRAPixel(
-        core::markerRaHours(state.trkSteps, state.raSteps, state.raStepsPerDegree, RA_TRACKING_MICROSTEPPING, RA_SLEW_MICROSTEPPING));
+        adapters::markerRaHours(state.trkSteps, state.raSteps, state.raStepsPerDegree, RA_TRACKING_MICROSTEPPING, RA_SLEW_MICROSTEPPING));
     _panel.setPixel(xMark, g.raScalePos - 2);
     _panel.drawHorizontalLine(xMark - 1, g.raScalePos - 3, 3);
     _panel.drawHorizontalLine(xMark - 2, g.raScalePos - 4, 5);

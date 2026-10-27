@@ -1,6 +1,6 @@
 #pragma once
 
-namespace core
+namespace adapters
 {
 
 /// The geometry of the 128x64 status panel's two scales.
@@ -43,4 +43,4 @@ float markerRaHours(long trackingSteps, long slewSteps, float raStepsPerDegree, 
 /// DEC degrees a position marker sits at, from the slew step counter.
 float markerDecDegrees(long decSteps, float decStepsPerDegree);
 
-}  // namespace core
+}  // namespace adapters

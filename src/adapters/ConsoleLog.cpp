@@ -1,6 +1,6 @@
-#include "core/ConsoleLog.hpp"
+#include "adapters/ConsoleLog.hpp"
 
-namespace core
+namespace adapters
 {
 
 ConsoleLog::ConsoleLog() : _count(0)
@@ -69,4 +69,4 @@ void ConsoleLog::copyUpper(char *destination, const char *source)
     destination[i] = '\0';
 }
 
-}  // namespace core
+}  // namespace adapters

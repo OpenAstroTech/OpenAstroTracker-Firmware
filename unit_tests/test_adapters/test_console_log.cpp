@@ -3,9 +3,9 @@
 #include <cstdio>
 #include <string>
 
-#include "core/ConsoleLog.hpp"
+#include "adapters/ConsoleLog.hpp"
 
-using core::ConsoleLog;
+using adapters::ConsoleLog;
 
 TEST(ConsoleLogTest, StartsEmpty)
 {

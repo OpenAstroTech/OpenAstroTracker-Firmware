@@ -1,8 +1,8 @@
-#include "core/InfoDisplayLayout.hpp"
+#include "adapters/InfoDisplayLayout.hpp"
 
 #include <math.h>
 
-namespace core
+namespace adapters
 {
 
 int xRAPixel(const InfoDisplayScale &scale, float raHours)
@@ -35,4 +35,4 @@ float markerDecDegrees(long decSteps, float decStepsPerDegree)
     return decSteps / decStepsPerDegree;
 }
 
-}  // namespace core
+}  // namespace adapters

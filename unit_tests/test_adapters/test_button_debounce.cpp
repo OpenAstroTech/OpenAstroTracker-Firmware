@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "core/ButtonDebounce.hpp"
+#include "adapters/ButtonDebounce.hpp"
 
 using types::Button;
-using core::ButtonDebounce;
+using adapters::ButtonDebounce;
 
 TEST(ButtonDebounceTest, StartsOnNoKey)
 {
