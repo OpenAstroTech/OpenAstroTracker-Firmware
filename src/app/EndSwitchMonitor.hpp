@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Configuration.hpp"
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 #include "UiPorts.hpp"
 #include "core/EndSwitchState.hpp"
 #include "ports/IEndSwitch.hpp"

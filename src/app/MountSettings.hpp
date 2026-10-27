@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../Configuration.hpp"
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 #include "../core/MountCoordinator.hpp"
 #include "../core/MountRuntimeSettings.hpp"
 #include "../ports/ILogger.hpp"

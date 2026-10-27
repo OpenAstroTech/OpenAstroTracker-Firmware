@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 
 namespace core
 {

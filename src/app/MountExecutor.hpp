@@ -10,7 +10,7 @@ POP_NO_WARNINGS
 #include "adapters/Declination.hpp"
 #include "adapters/Latitude.hpp"
 #include "adapters/Longitude.hpp"
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 #include "AxisBank.hpp"
 #include "BoardPresence.hpp"
 #include "MountReadout.hpp"
@@ -55,7 +55,7 @@ class TMC2209Stepper;
 // the controller that acts on them. The aliases keep the public menu and Meade names.
 //
 // The direction bits, coordinate-format selectors and status masks this header used to define
-// now live where their owners are: the bits in `core/PortVocabulary.hpp` (they are the ports' vocabulary),
+// now live where their owners are: the bits in `ports/PortVocabulary.hpp` (they are the ports' vocabulary),
 // the status masks in `core/MountState.hpp` (they alias `core::StatusBit`).
 using types::FOCUS_BACKWARD;
 using types::FOCUS_FORWARD;

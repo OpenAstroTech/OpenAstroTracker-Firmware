@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "types/DayTime.hpp"
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 #include "types/Declination.hpp"
 
 namespace ports

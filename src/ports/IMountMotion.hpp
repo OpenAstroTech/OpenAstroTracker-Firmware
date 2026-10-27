@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 #include "types/DayTime.hpp"
 #include "types/Declination.hpp"
 

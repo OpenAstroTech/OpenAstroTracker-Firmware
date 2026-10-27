@@ -5,7 +5,7 @@ PUSH_NO_WARNINGS
 POP_NO_WARNINGS
 
 #include "../../Configuration.hpp"
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 #include "../core/MountConfig.hpp"
 #include "../core/MountCoordinator.hpp"
 #include "../core/MountRuntimeSettings.hpp"

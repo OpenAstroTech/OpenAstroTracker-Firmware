@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "IMountMotion.hpp"
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 
 namespace ports
 {

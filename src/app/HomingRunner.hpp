@@ -5,7 +5,7 @@
 PUSH_NO_WARNINGS
 #include <WString.h>
 POP_NO_WARNINGS
-#include "core/PortVocabulary.hpp"
+#include "ports/PortVocabulary.hpp"
 #include "UiPorts.hpp"
 #include "core/HomingController.hpp"
 #include "ports/IHomingSensor.hpp"
