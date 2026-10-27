@@ -19,9 +19,6 @@ template <typename T, size_t N> constexpr size_t arraySize(const T (&)[N])
     return N;
 }
 
-// Small integer maths the firmware has always had, in one place so the UI and the settings format
-// can use it without pulling in `Utility.hpp` (which drags the board configuration with it).
-
 /// Adds @p adjustBy to @p current and wraps the result into the inclusive range
 /// [@p minimum, @p maximum].
 ///
