@@ -11,7 +11,7 @@ POP_NO_WARNINGS
 #include "adapters/Latitude.hpp"
 #include "adapters/Longitude.hpp"
 #include "core/FocusController.hpp"
-#include "core/meade/MeadeParser.hpp"
+#include "adapters/meade/MeadeParser.hpp"
 
 #include <stdarg.h>
 #include <string.h>
@@ -19,11 +19,11 @@ POP_NO_WARNINGS
 #if USE_GPS == 1
 #endif
 
-namespace meade = oat::core::meade;
+namespace meade = adapters::meade;
 
 MeadeCommandAdapter *MeadeCommandAdapter::_instance = nullptr;
 
-const char *MeadeCommandAdapter::store(oat::core::meade::MeadeResponse &response)
+const char *MeadeCommandAdapter::store(adapters::meade::MeadeResponse &response)
 {
     _response = response;
     return _response.c_str();
@@ -83,7 +83,7 @@ MeadeCommandAdapter::~MeadeCommandAdapter()
     }
 }
 
-void MeadeCommandAdapter::deferReply(oat::core::meade::ReplyKind kind, ::types::MountEventType completesOn, uint32_t timeoutMs)
+void MeadeCommandAdapter::deferReply(adapters::meade::ReplyKind kind, ::types::MountEventType completesOn, uint32_t timeoutMs)
 {
     if (_origin == nullptr)
     {
@@ -101,7 +101,7 @@ void MeadeCommandAdapter::deferReply(oat::core::meade::ReplyKind kind, ::types::
     LOG(DEBUG_MEADE, "[MEADE]: Reply deferred, %lu ms budget", static_cast<unsigned long>(timeoutMs));
 }
 
-void MeadeCommandAdapter::sendPendingReply(const oat::core::meade::PendingReply &reply, bool succeeded)
+void MeadeCommandAdapter::sendPendingReply(const adapters::meade::PendingReply &reply, bool succeeded)
 {
     if (reply.out == nullptr)
     {
@@ -110,18 +110,18 @@ void MeadeCommandAdapter::sendPendingReply(const oat::core::meade::PendingReply 
 
     switch (reply.kind)
     {
-        case oat::core::meade::ReplyKind::SuccessFlag:
+        case adapters::meade::ReplyKind::SuccessFlag:
             reply.out->writeResponse(succeeded ? "1" : "0");
             break;
 
-        case oat::core::meade::ReplyKind::Silent:
+        case adapters::meade::ReplyKind::Silent:
             break;  // the slot existed to hold the transport and the deadline, not to say anything
     }
 }
 
 void MeadeCommandAdapter::onMountEvent(const ::types::MountEvent &event)
 {
-    oat::core::meade::PendingReply reply;
+    adapters::meade::PendingReply reply;
     while (_pending.takeCompleted(event.type, reply))
     {
         // A homing failure is the one event that reports its own outcome; the rest completing at
@@ -139,7 +139,7 @@ void MeadeCommandAdapter::tick()
         return;
     }
 
-    oat::core::meade::PendingReply reply;
+    adapters::meade::PendingReply reply;
     while (_pending.takeExpired(_clock->now(), reply))
     {
         LOG(DEBUG_MEADE, "[MEADE]: Deferred reply %u timed out", static_cast<unsigned>(reply.correlation));
@@ -600,9 +600,9 @@ float MeadeCommandAdapter::onGetAzStepsPerDegree()
     return _config->getStepsPerDegree(AZIMUTH_STEPS);
 }
 
-oat::core::meade::ExtraDecLimits MeadeCommandAdapter::onGetDecLimits()
+adapters::meade::ExtraDecLimits MeadeCommandAdapter::onGetDecLimits()
 {
-    oat::core::meade::ExtraDecLimits lim;
+    adapters::meade::ExtraDecLimits lim;
     _config->getDecLimitPositions(lim.lo, lim.hi);
     return lim;
 }
@@ -628,16 +628,16 @@ const char *MeadeCommandAdapter::onGetAutoHomingStates()
     return _read->getAutoHomingStates();
 }
 
-oat::core::meade::ExtraAzAltPositions MeadeCommandAdapter::onGetAzAltPositions()
+adapters::meade::ExtraAzAltPositions MeadeCommandAdapter::onGetAzAltPositions()
 {
-    oat::core::meade::ExtraAzAltPositions p;
+    adapters::meade::ExtraAzAltPositions p;
     _axes->getAZALTPositions(p.az, p.alt);
     return p;
 }
 
-oat::core::meade::ExtraStepperCoords MeadeCommandAdapter::onGetTargetCoordinatePositions(float raCoord, float decCoord)
+adapters::meade::ExtraStepperCoords MeadeCommandAdapter::onGetTargetCoordinatePositions(float raCoord, float decCoord)
 {
-    oat::core::meade::ExtraStepperCoords pos;
+    adapters::meade::ExtraStepperCoords pos;
     _read->calculateStepperPositions(raCoord, decCoord, pos.raPos, pos.decPos);
     return pos;
 }
@@ -676,20 +676,20 @@ bool MeadeCommandAdapter::onGetHemisphere()
     return _read->isNorthernHemisphere();
 }
 
-oat::core::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
+adapters::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
 {
     types::DayTime ha = _read->calculateHa();
-    oat::core::meade::ExtraHms t;
+    adapters::meade::ExtraHms t;
     t.hours   = ha.getHours();
     t.minutes = ha.getMinutes();
     t.seconds = ha.getSeconds();
     return t;
 }
 
-oat::core::meade::ExtraHms MeadeCommandAdapter::onGetLocalSiderealTime()
+adapters::meade::ExtraHms MeadeCommandAdapter::onGetLocalSiderealTime()
 {
     types::DayTime lst = _read->calculateLst();
-    oat::core::meade::ExtraHms t;
+    adapters::meade::ExtraHms t;
     t.hours   = lst.getHours();
     t.minutes = lst.getMinutes();
     t.seconds = lst.getSeconds();
@@ -795,9 +795,9 @@ bool MeadeCommandAdapter::onLevelIsAvailable()
 #endif
 }
 
-oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetReferenceAngles()
+adapters::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetReferenceAngles()
 {
-    oat::core::meade::ExtraPitchRoll pr;
+    adapters::meade::ExtraPitchRoll pr;
 #if USE_GYRO_LEVEL == 1
     pr.pitch = _config->getPitchCalibrationAngle();
     pr.roll  = _config->getRollCalibrationAngle();
@@ -805,9 +805,9 @@ oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetReferenceAngles(
     return pr;
 }
 
-oat::core::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetCurrentAngles()
+adapters::meade::ExtraPitchRoll MeadeCommandAdapter::onLevelGetCurrentAngles()
 {
-    oat::core::meade::ExtraPitchRoll pr;
+    adapters::meade::ExtraPitchRoll pr;
 #if USE_GYRO_LEVEL == 1
     const ports::GyroAngles angles = _gyro->angles();
     pr.pitch                       = angles.pitch;
@@ -1001,17 +1001,17 @@ bool MeadeCommandAdapter::onFocusGetState()
 
 namespace
 {
-byte toMountDirection(oat::core::meade::MoveDirection dir)
+byte toMountDirection(adapters::meade::MoveDirection dir)
 {
     switch (dir)
     {
-        case oat::core::meade::MoveDirection::North:
+        case adapters::meade::MoveDirection::North:
             return NORTH;
-        case oat::core::meade::MoveDirection::South:
+        case adapters::meade::MoveDirection::South:
             return SOUTH;
-        case oat::core::meade::MoveDirection::West:
+        case adapters::meade::MoveDirection::West:
             return WEST;
-        case oat::core::meade::MoveDirection::East:
+        case adapters::meade::MoveDirection::East:
         default:
             return EAST;
     }
@@ -1033,7 +1033,7 @@ void MeadeCommandAdapter::onTrackingOff()
     _motion->stopSlewing(TRACKING);
 }
 
-void MeadeCommandAdapter::onGuidePulse(oat::core::meade::MoveDirection dir, int durationMs)
+void MeadeCommandAdapter::onGuidePulse(adapters::meade::MoveDirection dir, int durationMs)
 {
     _motion->guidePulse(toMountDirection(dir), durationMs);
 }
@@ -1084,24 +1084,24 @@ void MeadeCommandAdapter::onSlewSouth()
     _motion->startSlewing(SOUTH);
 }
 
-void MeadeCommandAdapter::onMoveStepper(oat::core::meade::MovementAxis axis, long steps)
+void MeadeCommandAdapter::onMoveStepper(adapters::meade::MovementAxis axis, long steps)
 {
     LOG(DEBUG_MEADE, "[MEADE]: MoveStepper: %l steps on axis %d", steps, static_cast<int>(axis));
     switch (axis)
     {
-        case oat::core::meade::MovementAxis::Ra:
+        case adapters::meade::MovementAxis::Ra:
             _motion->moveStepperBy(RA_STEPS, steps);
             break;
-        case oat::core::meade::MovementAxis::Dec:
+        case adapters::meade::MovementAxis::Dec:
             _motion->moveStepperBy(DEC_STEPS, steps);
             break;
-        case oat::core::meade::MovementAxis::Azimuth:
+        case adapters::meade::MovementAxis::Azimuth:
             _motion->moveStepperBy(AZIMUTH_STEPS, steps);
             break;
-        case oat::core::meade::MovementAxis::Altitude:
+        case adapters::meade::MovementAxis::Altitude:
             _motion->moveStepperBy(ALTITUDE_STEPS, steps);
             break;
-        case oat::core::meade::MovementAxis::Focus:
+        case adapters::meade::MovementAxis::Focus:
             _motion->moveStepperBy(FOCUS_STEPS, steps);
             break;
     }

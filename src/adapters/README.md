@@ -15,8 +15,8 @@ Thin glue binding domain [`../ports/`](../ports/) to [`../hal/`](../hal/) backen
 | `Tmc2209Driver` | `IMotorDriver` | `TMC2209Stepper` (UART or software serial) |
 | `NullMotorDriver` | `IMotorDriver` | nothing — the null object for non-UART drivers |
 | `TinyGpsAdapter` | `IGps` | `TinyGPSPlus` + a `Stream` |
-| `MeadeCommandAdapter` | `oat::core::meade::IMeadeHandlers` | the parser in [`../core/meade/`](../core/meade/) |
-| `SerialTransport<Capacity>` | `ITransport` | `hal::ISerialPort` + `core::meade::CommandAssembler` |
+| `MeadeCommandAdapter` | `adapters::meade::IMeadeHandlers` | the parser in [`../adapters/meade/`](../adapters/meade/) |
+| `SerialTransport<Capacity>` | `ITransport` | `hal::ISerialPort` + `adapters::meade::CommandAssembler` |
 
 Four of them (`Tmc2209Driver`, `TinyGpsAdapter`, `ArduinoScheduler`, `MeadeCommandAdapter`)
 need Arduino or a hardware library, so the `native` env excludes them from its

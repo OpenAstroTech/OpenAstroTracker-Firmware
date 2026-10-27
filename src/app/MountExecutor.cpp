@@ -27,7 +27,7 @@ static_assert(static_cast<uint8_t>(core::SlewDirection::West) == WEST, "directio
 static_assert(static_cast<uint8_t>(core::SlewDirection::Tracking) == TRACKING, "direction value drift: Tracking");
 #include "../core/CoordinateMath.hpp"
 #include "../core/ActivityState.hpp"
-#include "../core/meade/MountStatusReport.hpp"
+#include "../adapters/meade/MountStatusReport.hpp"
 #include "../core/CoordinateRead.hpp"
 #include "../core/DecLimitClamp.hpp"
 #include "../core/FirmwareVersion.hpp"

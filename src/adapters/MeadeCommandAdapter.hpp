@@ -2,8 +2,8 @@
 
 #include "types/MountEvent.hpp"
 #include "ports/IEventSink.hpp"
-#include "core/meade/MeadeParser.hpp"
-#include "core/meade/PendingReplies.hpp"
+#include "adapters/meade/MeadeParser.hpp"
+#include "adapters/meade/PendingReplies.hpp"
 #include "ports/IClock.hpp"
 #include "ports/IMountConfiguration.hpp"
 #include "hal/WarningGuard.hpp"
@@ -53,7 +53,7 @@ struct MeadeCommandPorts {
     void *serialControlContext                               = nullptr;
 };
 
-class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::ports::IEventSink
+class MeadeCommandAdapter : private adapters::meade::IMeadeHandlers, public ::ports::IEventSink
 {
   public:
     static MeadeCommandAdapter *createProcessor(const MeadeCommandPorts &ports, ports::IDisplay *display);
@@ -89,49 +89,49 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::p
     /// is then ignored, and `processCommand()` reports "no bytes yet" rather than an empty answer.
     /// A full table declines the deferral, so the handler's inline answer goes out instead: a host
     /// waiting on a reply that will never come is worse than an immediate, conventional answer.
-    void deferReply(oat::core::meade::ReplyKind kind, ::types::MountEventType completesOn, uint32_t timeoutMs);
+    void deferReply(adapters::meade::ReplyKind kind, ::types::MountEventType completesOn, uint32_t timeoutMs);
 
     /// Formats and writes one deferred reply.
-    void sendPendingReply(const oat::core::meade::PendingReply &reply, bool succeeded);
+    void sendPendingReply(const adapters::meade::PendingReply &reply, bool succeeded);
 
     // Persist a freshly-built response across the handler return.
     // The returned pointer is valid until the next call to `store`.
-    const char *store(oat::core::meade::MeadeResponse &response);
+    const char *store(adapters::meade::MeadeResponse &response);
 
     // IMeadeGetHandlers overrides. Each method returns a typed domain value;
     // the parser layer handles all Meade wire formatting.
     const char *onFirmwareVersion() override;
     const char *onProductName() override;
-    oat::core::meade::RaCoordinate onCurrentRa() override;
-    oat::core::meade::RaCoordinate onTargetRa() override;
-    oat::core::meade::DecCoordinate onCurrentDec() override;
-    oat::core::meade::DecCoordinate onTargetDec() override;
+    adapters::meade::RaCoordinate onCurrentRa() override;
+    adapters::meade::RaCoordinate onTargetRa() override;
+    adapters::meade::DecCoordinate onCurrentDec() override;
+    adapters::meade::DecCoordinate onTargetDec() override;
     const char *onMountStatus() override;
     bool onIsSlewing() override;
     bool onIsTracking() override;
     bool onIsGuiding() override;
-    oat::core::meade::MeadeLatitude onSiteLatitude() override;
-    oat::core::meade::MeadeLongitude onSiteLongitude() override;
+    adapters::meade::MeadeLatitude onSiteLatitude() override;
+    adapters::meade::MeadeLongitude onSiteLongitude() override;
     int onUtcOffset() override;
-    oat::core::meade::MeadeLocalTime onLocalTime() override;
-    oat::core::meade::MeadeLocalDate onLocalDate() override;
-    oat::core::meade::MeadeClockFormat onClockFormat() override;
-    oat::core::meade::MeadeTrackingRate onTrackingRate() override;
+    adapters::meade::MeadeLocalTime onLocalTime() override;
+    adapters::meade::MeadeLocalDate onLocalDate() override;
+    adapters::meade::MeadeClockFormat onClockFormat() override;
+    adapters::meade::MeadeTrackingRate onTrackingRate() override;
     const char *onSiteName(uint8_t index) override;
 
     // IMeadeSetHandlers overrides. Each method receives a parser-validated
     // typed value and returns whether the mount accepted it.
-    bool onSetTargetDec(oat::core::meade::DecCoordinate dec) override;
-    bool onSetTargetRa(oat::core::meade::RaCoordinate ra) override;
-    bool onSetLocalSiderealTime(oat::core::meade::MeadeLocalTime lst) override;
+    bool onSetTargetDec(adapters::meade::DecCoordinate dec) override;
+    bool onSetTargetRa(adapters::meade::RaCoordinate ra) override;
+    bool onSetLocalSiderealTime(adapters::meade::MeadeLocalTime lst) override;
     bool onSetHomePoint() override;
     bool onSetHourAngle(uint8_t hours, uint8_t minutes) override;
-    bool onSyncCoordinates(oat::core::meade::DecCoordinate dec, oat::core::meade::RaCoordinate ra) override;
-    bool onSetSiteLatitude(oat::core::meade::MeadeLatitude lat) override;
-    bool onSetSiteLongitude(oat::core::meade::MeadeLongitude lon) override;
+    bool onSyncCoordinates(adapters::meade::DecCoordinate dec, adapters::meade::RaCoordinate ra) override;
+    bool onSetSiteLatitude(adapters::meade::MeadeLatitude lat) override;
+    bool onSetSiteLongitude(adapters::meade::MeadeLongitude lon) override;
     bool onSetUtcOffset(int hours) override;
-    bool onSetLocalTime(oat::core::meade::MeadeLocalTime t) override;
-    bool onSetLocalDate(oat::core::meade::MeadeLocalDate d) override;
+    bool onSetLocalTime(adapters::meade::MeadeLocalTime t) override;
+    bool onSetLocalDate(adapters::meade::MeadeLocalDate d) override;
 
     // IMeadeQuitHandlers overrides. All callbacks are side-effect only; the
     // dispatcher emits an empty wire response regardless.
@@ -179,7 +179,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::p
     void onStartSlewToTarget() override;
     void onTrackingOn() override;
     void onTrackingOff() override;
-    void onGuidePulse(oat::core::meade::MoveDirection dir, int durationMs) override;
+    void onGuidePulse(adapters::meade::MoveDirection dir, int durationMs) override;
     void onMoveAzAltHome() override;
     void onMoveAzimuth(float arcMinutes) override;
     void onMoveAltitude(float arcMinutes) override;
@@ -187,7 +187,7 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::p
     void onSlewWest() override;
     void onSlewNorth() override;
     void onSlewSouth() override;
-    void onMoveStepper(oat::core::meade::MovementAxis axis, long steps) override;
+    void onMoveStepper(adapters::meade::MovementAxis axis, long steps) override;
     bool onHomeRa(int direction, const char *distancePayload) override;
     bool onHomeDec(int direction, const char *distancePayload) override;
 
@@ -198,22 +198,22 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::p
     float onGetDecStepsPerDegree() override;
     float onGetAltStepsPerDegree() override;
     float onGetAzStepsPerDegree() override;
-    oat::core::meade::ExtraDecLimits onGetDecLimits() override;
+    adapters::meade::ExtraDecLimits onGetDecLimits() override;
     float onGetTrackingSpeedCalibration() override;
     float onGetRemainingSafeTime() override;
     float onGetTrackingSpeed() override;
     int onGetBacklashSteps() override;
     const char *onGetAutoHomingStates() override;
-    oat::core::meade::ExtraAzAltPositions onGetAzAltPositions() override;
-    oat::core::meade::ExtraStepperCoords onGetTargetCoordinatePositions(float raCoord, float decCoord) override;
+    adapters::meade::ExtraAzAltPositions onGetAzAltPositions() override;
+    adapters::meade::ExtraStepperCoords onGetTargetCoordinatePositions(float raCoord, float decCoord) override;
     const char *onGetStepperInfo() override;
     const char *onGetMountHardwareInfo() override;
     const char *onGetLogBuffer() override;
     long onGetRaHomingOffset() override;
     long onGetDecHomingOffset() override;
     bool onGetHemisphere() override;
-    oat::core::meade::ExtraHms onGetHourAngle() override;
-    oat::core::meade::ExtraHms onGetLocalSiderealTime() override;
+    adapters::meade::ExtraHms onGetHourAngle() override;
+    adapters::meade::ExtraHms onGetLocalSiderealTime() override;
     const char *onGetNetworkStatus() override;
     void onSetRaStepsPerDegree(float v) override;
     void onSetDecStepsPerDegree(float v) override;
@@ -232,8 +232,8 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::p
     void onSetRaHomingOffset(long v) override;
     void onSetDecHomingOffset(long v) override;
     bool onLevelIsAvailable() override;
-    oat::core::meade::ExtraPitchRoll onLevelGetReferenceAngles() override;
-    oat::core::meade::ExtraPitchRoll onLevelGetCurrentAngles() override;
+    adapters::meade::ExtraPitchRoll onLevelGetReferenceAngles() override;
+    adapters::meade::ExtraPitchRoll onLevelGetCurrentAngles() override;
     float onLevelGetTemperature() override;
     void onLevelSetReferencePitch(float v) override;
     void onLevelSetReferenceRoll(float v) override;
@@ -266,10 +266,10 @@ class MeadeCommandAdapter : private oat::core::meade::IMeadeHandlers, public ::p
     // The transport the current command arrived on; null for commands the firmware issues itself.
     ports::ITransport *_origin = nullptr;
     bool _deferredThisCommand  = false;
-    oat::core::meade::PendingReplies<> _pending;
+    adapters::meade::PendingReplies<> _pending;
     ports::IDisplay *_display;
     static MeadeCommandAdapter *_instance;
-    oat::core::meade::MeadeResponse _response;
+    adapters::meade::MeadeResponse _response;
 
     // Storage backing the pointer-returning Get callbacks (firmware/product
     // names use string literals; mount status / site name use these buffers).

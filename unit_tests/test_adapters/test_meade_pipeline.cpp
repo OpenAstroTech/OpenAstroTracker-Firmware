@@ -16,12 +16,12 @@
 #include <string>
 
 #include "adapters/SerialTransport.hpp"
-#include "core/meade/MeadeParser.hpp"
-#include "core/meade/PendingReplies.hpp"
+#include "adapters/meade/MeadeParser.hpp"
+#include "adapters/meade/PendingReplies.hpp"
 #include "../test_common/hal_fakes/FakeSerialPort.hpp"
 #include "../test_common/meade_fakes/StubMeadeHandlers.hpp"
 
-namespace meade = oat::core::meade;
+namespace meade = adapters::meade;
 
 namespace
 {

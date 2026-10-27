@@ -3,19 +3,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "core/meade/CommandAssembler.hpp"
+#include "adapters/meade/CommandAssembler.hpp"
 #include "hal/ISerialPort.hpp"
 #include "ports/ITransport.hpp"
 
 namespace adapters
 {
 
-namespace meade = oat::core::meade;
-
 /// `ports::ITransport` over any `hal::ISerialPort`: the serial control path, and the shape the
 /// Wi-Fi transport will copy.
 ///
-/// It owns framing (through `core::meade::CommandAssembler`), the ACK reply the LX200 protocol
+/// It owns framing (through `adapters::meade::CommandAssembler`), the ACK reply the LX200 protocol
 /// expects for a `0x06` probe, and the reply write. It owns no interpretation: the command goes
 /// out as text and the adapter above decides what it means.
 ///

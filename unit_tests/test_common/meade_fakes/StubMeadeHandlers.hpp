@@ -11,14 +11,14 @@
 // It is deliberately not `final` and its callbacks are deliberately not `final`: a test that
 // cares about one callback derives from this and overrides it.
 
-#include "core/meade/MeadeParser.hpp"
+#include "adapters/meade/MeadeParser.hpp"
 
 namespace fakes
 {
-namespace meade = oat::core::meade;
+namespace meade = adapters::meade;
 using namespace meade;  // the handler vocabulary (RaCoordinate, MoveDirection, ...)
 
-class StubMeadeHandlers : public oat::core::meade::IMeadeHandlers
+class StubMeadeHandlers : public adapters::meade::IMeadeHandlers
 {
   public:
     /// Name of the last callback that fired, or null before the first command.

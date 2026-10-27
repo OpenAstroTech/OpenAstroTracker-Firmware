@@ -8,7 +8,7 @@
 #include "../core/CoordinateText.hpp"
 #include "../core/CoordinateMath.hpp"
 #include "../core/ActivityState.hpp"
-#include "../core/meade/MountStatusReport.hpp"
+#include "../adapters/meade/MountStatusReport.hpp"
 #include "../core/SlewProgressReport.hpp"
 #include "../core/SiderealClock.hpp"
 #include "../ports/IClock.hpp"
@@ -290,12 +290,12 @@ String MountReadout::getStatusStateString()
 
 const char *MountReadout::getStatusString()
 {
-    // The field order lives in core::meade; this gathers the facts and keeps the buffer.
+    // The field order lives in adapters::meade; this gathers the facts and keeps the buffer.
     const bool trackingAxis = _coordinator.state().test(STATUS_TRACKING);
     const bool raRunning    = _axes.ra()->isRunning();
     const bool decRunning   = _axes.dec()->isRunning();
 
-    oat::core::meade::MountStatusFacts facts {};
+    adapters::meade::MountStatusFacts facts {};
     _infoStatusScratch = getStatusStateString();
     facts.activity     = _infoStatusScratch.c_str();
 
@@ -333,7 +333,7 @@ const char *MountReadout::getStatusString()
     facts.decText  = decText(COMPACT_STRING | CURRENT_STRING);
 
     char buffer[160] = {0};
-    if (!oat::core::meade::formatMountStatus(buffer, sizeof(buffer), facts))
+    if (!adapters::meade::formatMountStatus(buffer, sizeof(buffer), facts))
     {
         // The readout the host already has is better than a truncated line.
         return _readoutScratch.c_str();
