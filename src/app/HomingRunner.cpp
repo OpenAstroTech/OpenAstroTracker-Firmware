@@ -4,6 +4,7 @@
 #include "../Configuration.hpp"
 #include "ports/ILogger.hpp"
 #include "../core/MountState.hpp"
+#include "../hal/CriticalSection.hpp"
 #include "../libs/MappedDict/MappedDict.hpp"
 
 namespace app
@@ -85,11 +86,28 @@ String HallSensorHoming::getLastResult() const
 // CTOR
 //
 /////////////////////////////////
-HallSensorHoming::HallSensorHoming(app::UiPorts &ports, ports::IStatusFlags &status, StepperAxis axis, ports::IHomingSensor &sensor)
-    : _ui(ports), _status(status), _axis(axis), _sensor(sensor), _savedRate(0), _wasTracking(ports.motion->isSlewingTRK())
+HallSensorHoming::HallSensorHoming(app::UiPorts &ports, core::MountState &state, StepperAxis axis, ports::IHomingSensor &sensor)
+    : _ui(ports), _state(state), _axis(axis), _sensor(sensor), _savedRate(0), _wasTracking(ports.motion->isSlewingTRK())
 {
     // `_wasTracking` is re-read at the start of every run; see findHomeByHallSensor(), because one
     // instance now serves every homing attempt instead of one per attempt.
+}
+
+/////////////////////////////////
+//
+// setStatus / clearStatus
+//
+/////////////////////////////////
+void HallSensorHoming::setStatus(uint16_t bits)
+{
+    const hal::CriticalSection lock;
+    _state.set(bits);
+}
+
+void HallSensorHoming::clearStatus(uint16_t bits)
+{
+    const hal::CriticalSection lock;
+    _state.clear(bits);
 }
 
 /////////////////////////////////
@@ -113,7 +131,7 @@ bool HallSensorHoming::findHomeByHallSensor(int initialDirection, int searchDist
                       sensorIsActive());
 
     _ui.config->setSlewRate(4);
-    _status.set(STATUS_FINDING_HOME);
+    setStatus(STATUS_FINDING_HOME);
 
     LOG(DEBUG_STEPPERS,
         "[HOMING]: Start homing procedure. Axis %d, StepsPerDegree: %l, SearchDist: %d",
@@ -161,7 +179,7 @@ void HallSensorHoming::processHomingProgress()
         case core::HomingAction::Succeeded:
             _ui.motion->setHome(false);
             _ui.config->setSlewRate(_savedRate);
-            _status.clear(STATUS_FINDING_HOME);
+            clearStatus(STATUS_FINDING_HOME);
             if (_wasTracking)
             {
                 _ui.motion->startSlewing(TRACKING);
@@ -170,8 +188,8 @@ void HallSensorHoming::processHomingProgress()
 
         case core::HomingAction::Failed:
             _ui.config->setSlewRate(_savedRate);
-            _status.clear(STATUS_FINDING_HOME);
-            _status.set(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
+            clearStatus(STATUS_FINDING_HOME);
+            setStatus(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             _ui.motion->moveStepperTo(_axis, _controller.startPosition());
             break;
     }

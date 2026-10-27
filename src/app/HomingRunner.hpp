@@ -8,8 +8,8 @@ POP_NO_WARNINGS
 #include "ports/PortVocabulary.hpp"
 #include "UiPorts.hpp"
 #include "core/HomingController.hpp"
+#include "core/MountState.hpp"
 #include "ports/IHomingSensor.hpp"
-#include "ports/IStatusFlags.hpp"
 
 namespace app
 {
@@ -23,7 +23,7 @@ namespace app
 class HallSensorHoming
 {
   public:
-    HallSensorHoming(UiPorts &ports, ports::IStatusFlags &status, StepperAxis axis, ports::IHomingSensor &sensor);
+    HallSensorHoming(UiPorts &ports, core::MountState &state, StepperAxis axis, ports::IHomingSensor &sensor);
 
     bool findHomeByHallSensor(int initialDirection, int searchDistanceDegrees);
 
@@ -42,11 +42,18 @@ class HallSensorHoming
   private:
     bool sensorIsActive() const;
 
+    /// Status writes take the interrupt guard the removed status-flags adapter used: the homing
+    /// state machine can run from the step-pump context, and `MountState`'s read-modify-write is
+    /// not atomic on AVR.
+    void setStatus(uint16_t bits);
+
+    void clearStatus(uint16_t bits);
+
     void logTransition(core::HomingState previous, const core::HomingStep &step);
 
     core::HomingController _controller;
     UiPorts &_ui;
-    ports::IStatusFlags &_status;
+    core::MountState &_state;
     StepperAxis _axis;
     ports::IHomingSensor &_sensor;
     uint8_t _savedRate;
