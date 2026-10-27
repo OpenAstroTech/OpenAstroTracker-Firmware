@@ -79,7 +79,7 @@ TEST(EventBusTest, CarriesTheOutcome)
     bus.subscribe(&sink);
 
     types::MountEvent homed = event(types::MountEventType::HomingFinished);
-    homed.succeeded        = true;
+    homed.succeeded         = true;
     bus.publish(homed);
     bus.dispatch();
 

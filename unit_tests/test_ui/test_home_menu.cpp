@@ -5,8 +5,8 @@
 
 using app::HomeMenu;
 using app::MenuKeyResult;
-using types::Button;
 using fakes::FakeDisplay;
+using types::Button;
 
 namespace
 {

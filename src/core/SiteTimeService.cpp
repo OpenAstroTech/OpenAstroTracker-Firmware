@@ -32,7 +32,7 @@ void SiteTimeService::setLatitude(const types::Latitude &latitude)
     _store.storeLatitude(latitude);
 
     // Reconfiguring the hemisphere stops the axes and inverts their direction pins, so the mount
-    // does it; all this adapter knows is that the sign matters.
+    // does it; all this service knows is that the sign matters.
     if (_observer.valid())
     {
         _observer.onChanged(_observer.context, latitude.getTotalHours() > 0);
@@ -94,7 +94,6 @@ void SiteTimeService::setLST(const types::DayTime &lst)
 {
     _siteTime.setLst(lst);
     _siteTime.adjustRaZeroPoint(_constants.raZeroPointShiftHours);
-
 }
 
 void SiteTimeService::setHA(const types::DayTime &ha)

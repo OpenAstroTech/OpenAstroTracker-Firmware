@@ -11,11 +11,11 @@ using app::HaMenu;
 using app::HaMenuOutcome;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountReadModel;
 using fakes::FakeMountSettings;
 using fakes::FakeSiteTime;
+using types::Button;
 
 namespace
 {

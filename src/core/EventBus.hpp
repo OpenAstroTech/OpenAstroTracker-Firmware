@@ -127,7 +127,7 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
         while (toDeliver-- != 0)
         {
             const types::MountEvent event = _queue[_head];
-            _head                  = next(_head);
+            _head                         = next(_head);
             _count--;
             for (uint8_t i = 0; i < Sinks; i++)
             {
@@ -152,11 +152,11 @@ template <uint8_t Capacity, uint8_t Sinks = 2> class EventBus
     }
 
     types::MountEvent _queue[Capacity] = {};
-    uint8_t _head               = 0;
-    uint8_t _tail               = 0;
-    uint8_t _count              = 0;
+    uint8_t _head                      = 0;
+    uint8_t _tail                      = 0;
+    uint8_t _count                     = 0;
     ports::IEventSink *_sinks[Sinks]   = {};
-    bool _dispatching           = false;
+    bool _dispatching                  = false;
 };
 
 }  // namespace core

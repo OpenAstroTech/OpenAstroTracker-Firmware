@@ -12,11 +12,11 @@ using app::MenuKeyResult;
 using app::StartupAction;
 using app::StartupOutcome;
 using app::StartupWizard;
-using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountMotion;
 using fakes::FakeMountReadModel;
 using fakes::FakeSiteTime;
+using types::Button;
 
 namespace
 {

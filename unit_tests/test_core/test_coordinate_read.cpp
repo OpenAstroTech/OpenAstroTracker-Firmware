@@ -33,7 +33,7 @@ TEST(CoordinateReadTest, RaMovesBackwardsOneDegreeAtATime)
     // 360 steps at 360 steps/degree is one degree, i.e. 1 / 14.959 hours of RA. The sign is
     // negative because the RA ring turns the other way.
     const float hoursPerDegree = 1.0f / core::kSiderealDegreesPerHour;
-    const types::DayTime ra     = core::currentRa(factsAt(360, 0, 1.0f, 0.0f));
+    const types::DayTime ra    = core::currentRa(factsAt(360, 0, 1.0f, 0.0f));
     EXPECT_NEAR(1.0f - hoursPerDegree, ra.getTotalHours(), 0.001f);
 }
 

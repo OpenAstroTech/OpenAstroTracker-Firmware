@@ -11,10 +11,10 @@
 using app::MenuKeyInput;
 using app::MenuKeyResult;
 using app::PoiMenu;
-using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountMotion;
 using fakes::FakeMountReadModel;
+using types::Button;
 
 namespace
 {

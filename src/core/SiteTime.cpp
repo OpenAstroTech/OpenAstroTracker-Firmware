@@ -32,7 +32,7 @@ types::DayTime SiteTime::utcTimeAt(unsigned long nowMillis) const
 
 types::DayTime SiteTime::lstAt(unsigned long nowMillis) const
 {
-    const types::DayTime utc          = utcTimeAt(nowMillis);
+    const types::DayTime utc   = utcTimeAt(nowMillis);
     const CalendarDate date    = localDateAt(nowMillis);
     const CalendarDate utcDate = localToUtcDate(date, localTimeAt(nowMillis).getTotalSeconds(), _localUtcOffset);
 

@@ -390,8 +390,8 @@ class FakeSiteTime final : public ports::IMountSiteTime
     types::Longitude siteLongitude = types::Longitude(-1.25F);
     types::DayTime localTime       = types::DayTime(21, 30, 15);
     types::DayTime utcTime         = types::DayTime(20, 30, 15);
-    LocalDate localDate           = {2024, 7, 9};
-    int utcOffset                 = 1;
+    LocalDate localDate            = {2024, 7, 9};
+    int utcOffset                  = 1;
 
     /// The last hour angle written, and how many times it was written.
     types::DayTime lastHa;

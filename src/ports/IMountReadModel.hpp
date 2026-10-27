@@ -16,7 +16,7 @@ namespace ports
 /// strings a host polls. Keeping it separate from `IMountMotion` is what lets a test drive the
 /// command layer with a static read model and no axes at all.
 ///
-/// The coordinates are `core::` values on purpose. The Arduino-aware `DayTime` / `Declination`
+/// The coordinates are `types::` values on purpose. The Arduino-aware `DayTime` / `Declination`
 /// overlays in `src/` derive from them, so a `core::` return cannot be overridden by the overlay
 /// by value (covariance only works through pointers and references). The adapter converts at the
 /// call site, which is where the wire format is decided anyway.

@@ -16,7 +16,7 @@ namespace ports
 /// are also the values that make every other coordinate mean something, so the read side belongs
 /// beside the write side.
 ///
-/// Typed on `core::` values for the same reason `IMountReadModel` is: the `src/` overlays derive
+/// Typed on `types::` values for the same reason `IMountReadModel` is: the `src/` overlays derive
 /// from them and a port cannot be overridden by a method whose *parameter* is the derived type —
 /// parameter types must match exactly. Callers keep using the overlays; they convert implicitly
 /// on the way in and explicitly on the way out.
@@ -35,14 +35,14 @@ class IMountSiteTime
 
     virtual types::DayTime getLocalTime() = 0;
     virtual types::DayTime getUtcTime()   = 0;
-    virtual LocalDate getLocalDate()     = 0;
+    virtual LocalDate getLocalDate()      = 0;
 
     /// The offset the mount adds to local time to reach UTC. The Meade wire carries the inverse
     /// (`:GG#` is UTC-offset, not UTC-to-local), which the adapter flips in one place.
     virtual int getLocalUtcOffset() const      = 0;
     virtual void setLocalUtcOffset(int offset) = 0;
 
-    virtual void setLocalStartTime(const types::DayTime &time)    = 0;
+    virtual void setLocalStartTime(const types::DayTime &time)   = 0;
     virtual void setLocalStartDate(int year, int month, int day) = 0;
 
     /// Sets the local sidereal time (`:St#`) / the hour angle (`:SH#`) and re-derives the

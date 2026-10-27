@@ -10,7 +10,7 @@ POP_NO_WARNINGS
 #include "adapters/Declination.hpp"
 #include "adapters/Latitude.hpp"
 #include "adapters/Longitude.hpp"
-#include "core/FocusController.hpp"
+#include "types/FocuserDirection.hpp"
 #include "adapters/meade/MeadeParser.hpp"
 
 #include <stdarg.h>
@@ -306,7 +306,7 @@ meade::MeadeLatitude MeadeCommandAdapter::onSiteLatitude()
 meade::MeadeLongitude MeadeCommandAdapter::onSiteLongitude()
 {
     const types::Longitude lon = _siteTime->longitude();
-    const int degrees         = lon.getHours();
+    const int degrees          = lon.getHours();
     return meade::MeadeLongitude {
         static_cast<uint16_t>(degrees < 0 ? -degrees : degrees),
         static_cast<uint8_t>(lon.getMinutes()),

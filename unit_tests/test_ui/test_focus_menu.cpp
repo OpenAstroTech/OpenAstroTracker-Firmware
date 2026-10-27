@@ -7,9 +7,9 @@
 using app::FocusMenu;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeOptionalAxes;
+using types::Button;
 
 namespace
 {

@@ -192,25 +192,25 @@ class FakeOptionalAxes final : public ports::IMountOptionalAxes
         return false;
     }
 
-    bool running                         = false;
-    float speed                          = 1.0f;
-    long position                        = 0;
-    long lastMoveBy                      = 0;
-    int lastRate                         = 0;
-    int continuousCalls                  = 0;
-    int stopCalls                        = 0;
-    int azAltHomingCalls                 = 0;
-    long azimuth                         = 0;
-    long altitude                        = 0;
-    int lastMoveDirection                = 0;
-    float lastArcMinutes                 = 0.0f;
-    bool azAltHomeSet                    = false;
-    float stepsPerDegree                 = 100.0f;
-    float lastSpeed                      = 1.0f;
-    float speedCalibration               = 1.0f;
-    int slewRate                         = 2;
-    long homingOffset                    = 0;
-    int backlash                         = 0;
+    bool running                          = false;
+    float speed                           = 1.0f;
+    long position                         = 0;
+    long lastMoveBy                       = 0;
+    int lastRate                          = 0;
+    int continuousCalls                   = 0;
+    int stopCalls                         = 0;
+    int azAltHomingCalls                  = 0;
+    long azimuth                          = 0;
+    long altitude                         = 0;
+    int lastMoveDirection                 = 0;
+    float lastArcMinutes                  = 0.0f;
+    bool azAltHomeSet                     = false;
+    float stepsPerDegree                  = 100.0f;
+    float lastSpeed                       = 1.0f;
+    float speedCalibration                = 1.0f;
+    int slewRate                          = 2;
+    long homingOffset                     = 0;
+    int backlash                          = 0;
     types::FocuserDirection lastDirection = types::FOCUS_FORWARD;
 };
 

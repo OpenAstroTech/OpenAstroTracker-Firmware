@@ -12,13 +12,13 @@ using app::CalibrationMenu;
 using app::CalibrationOutcome;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountConfiguration;
 using fakes::FakeMountMotion;
 using fakes::FakeMountReadModel;
 using fakes::FakeOptionalAxes;
 using fakes::FakeSiteTime;
+using types::Button;
 
 namespace
 {

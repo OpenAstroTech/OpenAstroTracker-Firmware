@@ -8,8 +8,8 @@ using app::DecMenu;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
 using app::RaMenu;
-using types::Button;
 using fakes::FakeDisplay;
+using types::Button;
 
 namespace
 {

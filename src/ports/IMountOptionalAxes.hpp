@@ -22,14 +22,14 @@ class IMountOptionalAxes : public IMountConfiguration
     }
 
     // --- focuser ---
-    virtual void focusMoveBy(long steps)                               = 0;
-    virtual void focusSetStepperPosition(long steps)                   = 0;
-    virtual long focusGetStepperPosition()                             = 0;
-    virtual void focusSetSpeedByRate(int rate)                         = 0;
-    virtual float getFocusSpeed() const                                = 0;
+    virtual void focusMoveBy(long steps)                                = 0;
+    virtual void focusSetStepperPosition(long steps)                    = 0;
+    virtual long focusGetStepperPosition()                              = 0;
+    virtual void focusSetSpeedByRate(int rate)                          = 0;
+    virtual float getFocusSpeed() const                                 = 0;
     virtual void focusContinuousMove(types::FocuserDirection direction) = 0;
-    virtual void focusStop()                                           = 0;
-    virtual bool isRunningFocus() const                                = 0;
+    virtual void focusStop()                                            = 0;
+    virtual bool isRunningFocus() const                                 = 0;
 
     // --- azimuth / altitude ---
     virtual void moveBy(int direction, float arcMinutes) = 0;

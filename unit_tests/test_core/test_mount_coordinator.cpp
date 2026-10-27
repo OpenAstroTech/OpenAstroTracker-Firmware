@@ -6,12 +6,12 @@
 
 using core::Admission;
 using core::MountCoordinator;
-using types::MountEvent;
-using types::MountEventType;
 using core::MountRequest;
 using core::ParkingPhase;
 using core::SlewIntent;
 using core::StatusBit;
+using types::MountEvent;
+using types::MountEventType;
 
 namespace
 {

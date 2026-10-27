@@ -130,7 +130,7 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
 app::MenuKeyInput screenInput()
 {
     types::Button edgeKey    = types::Button::None;
-    const bool changed      = (menuButtons != nullptr) && menuButtons->keyChanged(&edgeKey);
+    const bool changed       = (menuButtons != nullptr) && menuButtons->keyChanged(&edgeKey);
     const types::Button held = (menuButtons != nullptr) ? menuButtons->pressed() : types::Button::None;
     return app::MenuKeyInput {changed ? edgeKey : types::Button::None, held};
 }

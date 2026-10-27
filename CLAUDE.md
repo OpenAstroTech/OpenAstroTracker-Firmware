@@ -69,16 +69,17 @@ python scripts/MeadeCommandParser.py
 
 | Layer | Directory | Contains |
 |---|---|---|
-| **core/** | `src/core/` | Pure domain: controllers (`MountCoordinator` + tracking/slew/guiding/homing/focus/parking/az-alt/drift-alignment), `MountState`, `EventBus`, `SiteTime`, the Meade parser (`core/meade/`), the menu model and value types. No Arduino, no `String`, no `millis()` — host-tested. |
+| **types/** | `src/types/` | Dependency-free value vocabulary (`DayTime`, `RightAscension`, `Declination`, `Latitude`, `Longitude`, `MathUtil`, `Button`, `FocuserDirection`, `MountEvent`). Standard headers only — every other layer may name these. |
+| **core/** | `src/core/` | Pure domain: controllers (`MountCoordinator` + tracking/slew/guiding/homing/focus/parking/az-alt/drift-alignment), `MountState`, `EventBus`, `SiteTime`/`SiteTimeService`, the menu model. No Arduino, no `String`, no `millis()`, no board config — host-tested. |
 | **ports/** | `src/ports/` | Pure abstract interfaces the domain needs (`IMountMotion`, `IMountReadModel`, `IMountConfiguration`, `IMountSiteTime`, `IDisplay`, `IButtons`, `IClock`, `ILogger`, `IStepperAxis`, …). |
 | **hal/** | `src/hal/` | Hardware abstraction and one backend per platform (`arduino/`, `avr/`, `esp32/`, `rp2040/`): pin toggles, UART, EEPROM, timer services, stepper engines, panels. |
-| **adapters/** | `src/adapters/` | Port implementations that stitch HAL together: `MeadeCommandAdapter`, `StepperAxis`, `EepromSettingsFormat`/`MountSettingsStore`, `SerialLogger`, displays, GPS, Wi-Fi, and the `String`-based wire/format overlays. |
+| **adapters/** | `src/adapters/` | Port implementations that stitch HAL together: `MeadeCommandAdapter`, the Meade protocol driver (`adapters/meade/`), `StepperAxis`, `EepromSettingsFormat`/`MountSettingsStore`, `SerialLogger`, displays, GPS, Wi-Fi, the `String`-based wire/format overlays, and the presentation/input helpers (`InfoDisplayLayout`, `ConsoleLog`, `ButtonDebounce`). |
 | **app/** | `src/app/` | Composition root and device policy: `main.cpp` (`setup`/`loop`), `BoardWiring`, `MotorWiring`/`DriverWiring`/`SensorWiring`, `MountExecutor` + `AxisBank`/`MountReadout`/`MountSettings`/`StepPump`, and the Arduino-free, host-tested UI (`app/ui/` screens + `MenuHost`). |
 
-Dependencies point inward: `app → adapters → ports`, `app → hal`, `core → ports`. `core/` and `ports/` may not include `hal/`, `adapters/` or `<Arduino.h>`; `scripts/check_architecture.py` enforces that (and the same rules for `src/app/ui/`).
+Dependencies point inward: `app → adapters → ports → types`, `app → hal`, `core → ports → types`. `core/` and `ports/` may not include `hal/`, `adapters/` or `<Arduino.h>`; `adapters/` never includes `core/`; `types/` includes nothing but the standard headers. `scripts/check_architecture.py` enforces the `core/`/`ports/`/`app/ui` rules.
 
 - **`app::MountExecutor`** (`src/app/MountExecutor*.cpp`) — the actuator side: axes, drivers, microstep switching and the hardware side effects. The decision layer is `core::MountCoordinator`.
-- **`adapters::MeadeCommandAdapter`** (`src/adapters/`) — the Meade LX200 command layer; the parse itself is `core/meade/`.
+- **`adapters::MeadeCommandAdapter`** (`src/adapters/`) — the Meade LX200 command layer; the parse itself is `adapters/meade/`.
 - **`adapters::EepromSettingsFormat`** (`src/adapters/`) — the persisted format over `ports::IPersistentStore`; magic markers `0xCE`/`0xCF` live in `hal/EepromLayout.hpp`.
 
 ### Entry Point

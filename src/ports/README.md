@@ -28,6 +28,9 @@ Adapters in [`../adapters/`](../adapters/) implement these ports on top of [`../
 | `ITransport.hpp` | line-oriented command input and reply output |
 | `IGps.hpp` | the receiver's `GpsFix` |
 | `IGyro.hpp` | the base's `GyroAngles` |
+| `IMountEvents.hpp` | subscribe/unsubscribe to the mount's event stream |
+| `IEventSink.hpp` | anything that wants to observe `types::MountEvent`s (the subscription contract) |
+| `PortVocabulary.hpp` | the words the ports are written in: direction bits, coordinate-format selectors, `StepperAxis`, `LocalDate` |
 
 ## Two contracts worth knowing
 
