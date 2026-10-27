@@ -8,7 +8,7 @@ using app::DecMenu;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
 using app::RaMenu;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 
 namespace
@@ -27,29 +27,29 @@ app::MenuKeyInput heldOnly(Button key)
 class RecordingReadModel final : public ports::IMountReadModel
 {
   public:
-    core::DayTime currentRA() const override
+    types::DayTime currentRA() const override
     {
         return ra;
     }
-    core::Declination currentDEC() const override
+    types::Declination currentDEC() const override
     {
         return dec;
     }
-    core::DayTime &targetRA() override
+    types::DayTime &targetRA() override
     {
         return ra;
     }
-    core::Declination &targetDEC() override
+    types::Declination &targetDEC() override
     {
         return dec;
     }
-    core::DayTime calculateHa() override
+    types::DayTime calculateHa() override
     {
-        return core::DayTime();
+        return types::DayTime();
     }
-    core::DayTime calculateLst() override
+    types::DayTime calculateLst() override
     {
-        return core::DayTime();
+        return types::DayTime();
     }
     void calculateStepperPositions(float, float, long &raPos, long &decPos) override
     {
@@ -60,9 +60,9 @@ class RecordingReadModel final : public ports::IMountReadModel
     {
         return 0.0f;
     }
-    core::DayTime hourAngle() override
+    types::DayTime hourAngle() override
     {
-        return core::DayTime();
+        return types::DayTime();
     }
     long getCurrentStepperPosition(StepperAxis) override
     {
@@ -138,8 +138,8 @@ class RecordingReadModel final : public ports::IMountReadModel
     {
     }
 
-    core::DayTime ra;
-    core::Declination dec;
+    types::DayTime ra;
+    types::Declination dec;
     bool idle                = true;
     const char *raTextValue  = "12:34:56#....";
     const char *decTextValue = "  45*06:07#..";
@@ -214,7 +214,7 @@ class ScreenMotion final : public ports::IMountMotion
     void setHome(bool) override
     {
     }
-    void syncPosition(const core::DayTime &, const core::Declination &) override
+    void syncPosition(const types::DayTime &, const types::Declination &) override
     {
     }
     void setTrackingStepperPos(long) override

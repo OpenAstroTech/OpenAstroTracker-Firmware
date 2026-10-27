@@ -33,7 +33,7 @@ class FakeOptionalAxes final : public ports::IMountOptionalAxes
     {
         return speed;
     }
-    void focusContinuousMove(core::FocuserDirection direction) override
+    void focusContinuousMove(types::FocuserDirection direction) override
     {
         lastDirection = direction;
         running       = true;
@@ -178,7 +178,7 @@ class FakeOptionalAxes final : public ports::IMountOptionalAxes
     void setHome(bool) override
     {
     }
-    void syncPosition(const core::DayTime &, const core::Declination &) override
+    void syncPosition(const types::DayTime &, const types::Declination &) override
     {
     }
     void setTrackingStepperPos(long) override
@@ -211,7 +211,7 @@ class FakeOptionalAxes final : public ports::IMountOptionalAxes
     int slewRate                         = 2;
     long homingOffset                    = 0;
     int backlash                         = 0;
-    core::FocuserDirection lastDirection = core::FOCUS_FORWARD;
+    types::FocuserDirection lastDirection = types::FOCUS_FORWARD;
 };
 
 }  // namespace fakes

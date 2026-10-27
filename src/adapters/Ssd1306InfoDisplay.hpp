@@ -53,7 +53,7 @@ class Ssd1306InfoDisplay final : public ports::IInfoDisplay
     void drawHeader();
     void drawConsole();
     void drawIndicators(const ports::InfoDisplayState &state);
-    void drawTime(const char *label, const core::DayTime &time);
+    void drawTime(const char *label, const types::DayTime &time);
     void drawProgressBar(int percRA, int percDEC);
     void drawStepperState(const char *name, bool active, int xoff, int width, int textOffX = 0);
     void drawStepperStates(const ports::InfoDisplayState &state);

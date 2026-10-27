@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/MathUtil.hpp"
-#include "core/types/DayTime.hpp"
-#include "core/types/Latitude.hpp"
-#include "core/types/Longitude.hpp"
+#include "types/MathUtil.hpp"
+#include "types/DayTime.hpp"
+#include "types/Latitude.hpp"
+#include "types/Longitude.hpp"
 #include "hal/EepromLayout.hpp"
 #include "ports/ILogger.hpp"
 #include "ports/IPersistentStore.hpp"
@@ -45,8 +45,8 @@ class EepromSettingsFormat
     void initialize();
     void clearConfiguration();
 
-    core::DayTime getHATime();
-    void storeHATime(const core::DayTime &ha);
+    types::DayTime getHATime();
+    void storeHATime(const types::DayTime &ha);
 
     int getUtcOffset();
     void storeUtcOffset(int utcOffset);
@@ -72,11 +72,11 @@ class EepromSettingsFormat
     int16_t getBacklashCorrectionSteps();
     void storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps);
 
-    core::Latitude getLatitude();
-    void storeLatitude(const core::Latitude &latitude);
+    types::Latitude getLatitude();
+    void storeLatitude(const types::Latitude &latitude);
 
-    core::Longitude getLongitude();
-    void storeLongitude(const core::Longitude &longitude);
+    types::Longitude getLongitude();
+    void storeLongitude(const types::Longitude &longitude);
 
     float getPitchCalibrationAngle();
     void storePitchCalibrationAngle(float pitchCalibrationAngle);

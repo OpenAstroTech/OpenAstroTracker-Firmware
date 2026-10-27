@@ -3,8 +3,8 @@
 #include <math.h>
 #include <string.h>
 
-#include "core/MathUtil.hpp"
-#include "core/types/DayTime.hpp"
+#include "types/MathUtil.hpp"
+#include "types/DayTime.hpp"
 #include "ports/ILogger.hpp"
 
 namespace
@@ -40,20 +40,20 @@ MenuKeyResult InfoMenu::handleKey(const MenuKeyInput &input)
 {
     switch (input.edge)
     {
-        case core::Button::Down:
-            _index = static_cast<uint8_t>(core::adjustWrap(_index, 1, 0, kEntryCount));
+        case types::Button::Down:
+            _index = static_cast<uint8_t>(types::adjustWrap(_index, 1, 0, kEntryCount));
             break;
 
-        case core::Button::Up:
-            _index = static_cast<uint8_t>(core::adjustWrap(_index, -1, 0, kEntryCount));
+        case types::Button::Up:
+            _index = static_cast<uint8_t>(types::adjustWrap(_index, -1, 0, kEntryCount));
             break;
 
-        case core::Button::Select:
-        case core::Button::Left:
-            _subIndex = static_cast<uint8_t>(core::adjustWrap(_subIndex, 1, 0, subPageCount(_index) - 1));
+        case types::Button::Select:
+        case types::Button::Left:
+            _subIndex = static_cast<uint8_t>(types::adjustWrap(_subIndex, 1, 0, subPageCount(_index) - 1));
             break;
 
-        case core::Button::Right:
+        case types::Button::Right:
             return MenuKeyResult::NextScreen;
 
         default:
@@ -146,7 +146,7 @@ void InfoMenu::render(ports::IMountReadModel &read,
             {
                 // No sensor on this board: step over the entry instead of painting an empty row,
                 // which is what the legacy screen did.
-                _index = static_cast<uint8_t>(core::adjustWrap(_index, 1, 0, kEntryCount));
+                _index = static_cast<uint8_t>(types::adjustWrap(_index, 1, 0, kEntryCount));
                 return;
             }
             break;
@@ -178,7 +178,7 @@ void InfoMenu::render(ports::IMountReadModel &read,
                 const unsigned long msPerDay = 60UL * 60UL * 24UL * 1000UL;
                 const int days               = static_cast<int>(now / msPerDay);
                 const unsigned long today    = now - (static_cast<unsigned long>(days) * msPerDay);
-                const core::DayTime elapsed(static_cast<double>(today) / (1000.0 * 3600.0));
+                const types::DayTime elapsed(static_cast<double>(today) / (1000.0 * 3600.0));
                 OAT_SNPRINTF(
                     row, sizeof(row), "Up: %dd %02d:%02d:%02d", days, elapsed.getHours(), elapsed.getMinutes(), elapsed.getSeconds());
             }
@@ -193,14 +193,14 @@ void InfoMenu::render(ports::IMountReadModel &read,
 
         case 10:
             {
-                const core::DayTime utc = siteTime.getUtcTime();
+                const types::DayTime utc = siteTime.getUtcTime();
                 OAT_SNPRINTF(row, sizeof(row), "UTC: %02d:%02d:%02d", utc.getHours(), utc.getMinutes(), utc.getSeconds());
             }
             break;
 
         case 11:
             {
-                const core::DayTime local = siteTime.getLocalTime();
+                const types::DayTime local = siteTime.getLocalTime();
                 OAT_SNPRINTF(row, sizeof(row), "Time: %02d:%02d:%02d", local.getHours(), local.getMinutes(), local.getSeconds());
             }
             break;
@@ -211,14 +211,14 @@ void InfoMenu::render(ports::IMountReadModel &read,
 
         case 13:
             {
-                const core::DayTime lst = read.calculateLst();
+                const types::DayTime lst = read.calculateLst();
                 OAT_SNPRINTF(row, sizeof(row), "LST: %02d:%02d:%02d", lst.getHours(), lst.getMinutes(), lst.getSeconds());
             }
             break;
 
         case 14:
             {
-                const core::DayTime ha = read.calculateHa();
+                const types::DayTime ha = read.calculateHa();
                 OAT_SNPRINTF(row, sizeof(row), "HA: %02d:%02d:%02d", ha.getHours(), ha.getMinutes(), ha.getSeconds());
             }
             break;

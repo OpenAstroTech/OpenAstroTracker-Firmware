@@ -22,9 +22,9 @@ MenuKeyResult CoordinateMenu::handleKey(const MenuKeyInput &input, UiPorts &port
 {
     ports::IMountReadModel &read = *ports.read;
 
-    if ((input.held == core::Button::Up) || (input.held == core::Button::Down))
+    if ((input.held == types::Button::Up) || (input.held == types::Button::Down))
     {
-        const int step = (input.held == core::Button::Up) ? 1 : -1;
+        const int step = (input.held == types::Button::Up) ? 1 : -1;
 
         switch (_field)
         {
@@ -79,11 +79,11 @@ MenuKeyResult CoordinateMenu::handleKey(const MenuKeyInput &input, UiPorts &port
 
     switch (input.edge)
     {
-        case core::Button::Left:
+        case types::Button::Left:
             _field = static_cast<uint8_t>((_field + 1) % kFieldCount);
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Select:
+        case types::Button::Select:
             if (ports.motion->isSlewingRAorDEC())
             {
                 ports.motion->stopSlewing(ALL_DIRECTIONS);
@@ -99,7 +99,7 @@ MenuKeyResult CoordinateMenu::handleKey(const MenuKeyInput &input, UiPorts &port
             }
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Right:
+        case types::Button::Right:
             return MenuKeyResult::NextScreen;
 
         default:

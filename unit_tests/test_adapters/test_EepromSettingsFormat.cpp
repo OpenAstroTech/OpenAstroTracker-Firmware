@@ -60,9 +60,9 @@ TEST(EepromSettingsFormatTest, TheSiteTimeValuesSurviveARoundTrip)
 {
     Fixture f;
 
-    f.format.storeLatitude(core::Latitude(52.5f));
-    f.format.storeLongitude(core::Longitude(-13.25f));
-    f.format.storeHATime(core::DayTime(7, 30, 0));
+    f.format.storeLatitude(types::Latitude(52.5f));
+    f.format.storeLongitude(types::Longitude(-13.25f));
+    f.format.storeHATime(types::DayTime(7, 30, 0));
     f.format.storeUtcOffset(2);
     f.format.storeBrightness(77);
 

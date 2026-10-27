@@ -155,7 +155,7 @@ void Ssd1306InfoDisplay::drawConsole()
     }
 }
 
-void Ssd1306InfoDisplay::drawTime(const char *label, const core::DayTime &time)
+void Ssd1306InfoDisplay::drawTime(const char *label, const types::DayTime &time)
 {
     char achTemp[24];
     _panel.setColor(hal::OledColor::White);
@@ -203,7 +203,7 @@ void Ssd1306InfoDisplay::drawIndicators(const ports::InfoDisplayState &state)
         {
             case 0:
                 {
-                    core::DayTime dt(state.hoursToLimit);
+                    types::DayTime dt(state.hoursToLimit);
                     drawTime("REM ", dt);
                 }
                 break;
@@ -218,7 +218,7 @@ void Ssd1306InfoDisplay::drawIndicators(const ports::InfoDisplayState &state)
                     long msPerDay = 60L * 60 * 24 * 1000;
                     int days      = (int) (now / msPerDay);
                     now -= days * msPerDay;
-                    core::DayTime elapsed(1.0 * now / (1000.0 * 3600.0));
+                    types::DayTime elapsed(1.0 * now / (1000.0 * 3600.0));
                     drawTime("UPT ", elapsed);
                 }
                 break;

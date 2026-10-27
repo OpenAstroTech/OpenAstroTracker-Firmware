@@ -1,23 +1,23 @@
 #pragma once
 
-#include "core/types/DayTime.hpp"
+#include "types/DayTime.hpp"
 
 // A class to handle hours, minutes, seconds in a unified manner, allowing
 // addition of hours, minutes, seconds, other times and conversion to string.
 
 #include <WString.h>  // `String`, which these overlays parse and format
 
-/// Thin overlay over core::DayTime that adds Arduino-dependent methods
+/// Thin overlay over types::DayTime that adds Arduino-dependent methods
 /// (String-based parsing, formatting, logging).
-class DayTime : public core::DayTime
+class DayTime : public types::DayTime
 {
   public:
     // Inherit constructors from core
-    using core::DayTime::DayTime;
+    using types::DayTime::DayTime;
 
     /// Copies the pure value. Used when a `ports` accessor hands back a
-    /// `core::DayTime` and the caller holds the Arduino-aware overlay.
-    DayTime(const core::DayTime &other) : core::DayTime(other)
+    /// `types::DayTime` and the caller holds the Arduino-aware overlay.
+    DayTime(const types::DayTime &other) : types::DayTime(other)
     {
     }
 

@@ -3,8 +3,8 @@
 #include <stdint.h>
 
 #include "core/PortVocabulary.hpp"
-#include "core/types/DayTime.hpp"
-#include "core/types/Declination.hpp"
+#include "types/DayTime.hpp"
+#include "types/Declination.hpp"
 
 namespace ports
 {
@@ -52,7 +52,7 @@ class IMountMotion
     /// Declares the current position to be the given coordinates (`:CM#` / `:CS#`), without
     /// moving. The mirror image of `setHome()`: one re-anchors the coordinates to where the axes
     /// are, the other the axes to where the coordinates are.
-    virtual void syncPosition(const core::DayTime &ra, const core::Declination &dec) = 0;
+    virtual void syncPosition(const types::DayTime &ra, const types::Declination &dec) = 0;
 
     /// Moves the tracking engine's idea of its own position, for the `:XT#` calibration.
     virtual void setTrackingStepperPos(long stepPos) = 0;

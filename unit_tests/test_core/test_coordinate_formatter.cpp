@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 #include <string.h>
 #include "core/CoordinateFormatter.hpp"
-#include "core/types/RightAscension.hpp"
-#include "core/types/Declination.hpp"
+#include "types/RightAscension.hpp"
+#include "types/Declination.hpp"
 
-using core::Declination;
-using core::RightAscension;
+using types::Declination;
+using types::RightAscension;
 
 TEST(CoordinateFormatterTest, FormatRABasic)
 {

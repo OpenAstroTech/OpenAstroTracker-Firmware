@@ -22,17 +22,17 @@ SiteTimePort::SiteTimePort(
 {
 }
 
-core::Latitude SiteTimePort::latitude() const
+types::Latitude SiteTimePort::latitude() const
 {
     return _siteTime.latitude();
 }
 
-core::Longitude SiteTimePort::longitude() const
+types::Longitude SiteTimePort::longitude() const
 {
     return _siteTime.longitude();
 }
 
-void SiteTimePort::setLatitude(const core::Latitude &latitude)
+void SiteTimePort::setLatitude(const types::Latitude &latitude)
 {
     OAT_LOG(&_logger, DEBUG_GENERAL, "[MOUNT]: Setting latitude to %fs", latitude.getTotalHours());
     _siteTime.setLatitude(latitude);
@@ -46,7 +46,7 @@ void SiteTimePort::setLatitude(const core::Latitude &latitude)
     }
 }
 
-void SiteTimePort::setLongitude(const core::Longitude &longitude)
+void SiteTimePort::setLongitude(const types::Longitude &longitude)
 {
     OAT_LOG(&_logger, DEBUG_GENERAL, "[MOUNT]: Setting longitude to %fs", longitude.getTotalHours());
     _siteTime.setLongitude(longitude);
@@ -55,12 +55,12 @@ void SiteTimePort::setLongitude(const core::Longitude &longitude)
     reanchorSiderealTime();
 }
 
-core::DayTime SiteTimePort::getLocalTime()
+types::DayTime SiteTimePort::getLocalTime()
 {
     return _siteTime.localTimeAt(_clock.now());
 }
 
-core::DayTime SiteTimePort::getUtcTime()
+types::DayTime SiteTimePort::getUtcTime()
 {
     return _siteTime.utcTimeAt(_clock.now());
 }
@@ -84,7 +84,7 @@ void SiteTimePort::setLocalUtcOffset(int offset)
     reanchorSiderealTime();
 }
 
-void SiteTimePort::setLocalStartTime(const core::DayTime &time)
+void SiteTimePort::setLocalStartTime(const types::DayTime &time)
 {
     _siteTime.setLocalStartTime(time, _clock.now());
 
@@ -98,13 +98,13 @@ void SiteTimePort::setLocalStartDate(int year, int month, int day)
     reanchorSiderealTime();
 }
 
-void SiteTimePort::setLST(const core::DayTime &lst)
+void SiteTimePort::setLST(const types::DayTime &lst)
 {
     _siteTime.setLst(lst);
     _siteTime.adjustRaZeroPoint(RA_ZERO_POINT_SHIFT_HOURS);
 
 #if DEBUG_LEVEL != 0
-    const core::DayTime reanchored = _siteTime.lst();
+    const types::DayTime reanchored = _siteTime.lst();
     OAT_LOG(&_logger,
             DEBUG_MOUNT,
             "[MOUNT]: Set LST and ZeroPosRA to: %02d:%02d:%02d",
@@ -114,7 +114,7 @@ void SiteTimePort::setLST(const core::DayTime &lst)
 #endif
 }
 
-void SiteTimePort::setHA(const core::DayTime &ha)
+void SiteTimePort::setHA(const types::DayTime &ha)
 {
     OAT_LOG(&_logger, DEBUG_MOUNT, "[MOUNT]: setHA:  HA is %02d:%02d:%02d", ha.getHours(), ha.getMinutes(), ha.getSeconds());
     setLST(core::SiderealClock::lstFromHourAngle(ha, POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));

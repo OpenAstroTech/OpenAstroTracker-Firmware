@@ -2,7 +2,7 @@
 
 #include "DayTime.hpp"
 
-namespace core
+namespace types
 {
 
 /// Pure Latitude coordinate. Range: -90° to +90° (clamped).
@@ -20,4 +20,4 @@ class Latitude : public DayTime
     virtual void checkHours() override;
 };
 
-}  // namespace core
+}  // namespace types

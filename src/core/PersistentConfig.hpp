@@ -22,8 +22,8 @@ struct PersistedSettings {
     float speedFactor           = 0.0f;
     int backlashCorrectionSteps = 0;
 
-    Latitude latitude;
-    Longitude longitude;
+    types::Latitude latitude;
+    types::Longitude longitude;
     int utcOffset = 0;
 
     float pitchCalibrationAngle = 0.0f;

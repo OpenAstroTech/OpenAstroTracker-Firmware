@@ -12,7 +12,7 @@ using app::CalibrationMenu;
 using app::CalibrationOutcome;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountConfiguration;
 using fakes::FakeMountMotion;
@@ -329,7 +329,7 @@ TEST(CalibrationMenuTest, ThePolarStepTargetsPolarisAndParksAfterwards)
 {
     CalibrationMenu menu(plainBoard());
     Harness harness;
-    harness.siteTime.siteLatitude = core::Latitude(52.5F);
+    harness.siteTime.siteLatitude = types::Latitude(52.5F);
 
     menu.handleKey(pressed(Button::Select), harness.ports, nullptr, harness.display, false);
     EXPECT_EQ(CalibrationMenu::State::PolarWaitCenter, menu.state());

@@ -5,20 +5,20 @@
 //////////////////////////////////////////////////////////////////////////////////////
 //
 // Longitude — Arduino-dependent overlay methods
-// Pure arithmetic is in core::Longitude (src/core/types/Longitude.hpp/.cpp)
+// Pure arithmetic is in types::Longitude (src/types/Longitude.hpp/.cpp)
 //
 // -180..180 range, 0 is at the prime meridian (through Greenwich),
 // negative going west, positive going east
 
-Longitude::Longitude(const Longitude &other) : core::Longitude(other)
+Longitude::Longitude(const Longitude &other) : types::Longitude(other)
 {
 }
 
-Longitude::Longitude(int h, int m, int s) : core::Longitude(h, m, s)
+Longitude::Longitude(int h, int m, int s) : types::Longitude(h, m, s)
 {
 }
 
-Longitude::Longitude(float inDegrees) : core::Longitude(inDegrees)
+Longitude::Longitude(float inDegrees) : types::Longitude(inDegrees)
 {
 }
 

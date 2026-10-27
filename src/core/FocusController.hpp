@@ -3,16 +3,10 @@
 #include <stdint.h>
 
 #include "ports/IStepperAxis.hpp"
+#include "types/FocuserDirection.hpp"
 
 namespace core
 {
-
-/// Which way the focuser turns when it runs continuously.
-enum FocuserDirection
-{
-    FOCUS_BACKWARD = -1,
-    FOCUS_FORWARD  = 1,
-};
 
 /// What the focuser is doing. `Continuous` is kept because the step generator still has
 /// a branch for it, but nothing selects it today: continuous motion runs through
@@ -152,7 +146,7 @@ class FocusController
     }
 
     /// Runs continuously at the selected rate. The caller has enabled the driver.
-    void startContinuous(FocuserDirection direction)
+    void startContinuous(types::FocuserDirection direction)
     {
         runAtSpeed((float) direction * _maxRateSpeed);
     }

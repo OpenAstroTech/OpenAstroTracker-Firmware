@@ -9,7 +9,7 @@
 
 namespace app
 {
-void MountExecutor::syncPosition(const core::DayTime &ra, const core::Declination &dec)
+void MountExecutor::syncPosition(const types::DayTime &ra, const types::Declination &dec)
 {
     long solutions[6];
     _targetDEC = Declination(dec);

@@ -5,7 +5,7 @@
 namespace core
 {
 
-void SiteTime::setLocalStartTime(const DayTime &localTime, unsigned long nowMillis)
+void SiteTime::setLocalStartTime(const types::DayTime &localTime, unsigned long nowMillis)
 {
     _localStartTime = localTime;
     _startSetMillis = nowMillis;
@@ -16,23 +16,23 @@ void SiteTime::adjustRaZeroPoint(float hours)
     _raZeroPoint.addHours(hours);
 }
 
-DayTime SiteTime::localTimeAt(unsigned long nowMillis) const
+types::DayTime SiteTime::localTimeAt(unsigned long nowMillis) const
 {
-    DayTime timeLocal = _localStartTime;
+    types::DayTime timeLocal = _localStartTime;
     timeLocal.addSeconds((nowMillis - _startSetMillis) / 1000);
     return timeLocal;
 }
 
-DayTime SiteTime::utcTimeAt(unsigned long nowMillis) const
+types::DayTime SiteTime::utcTimeAt(unsigned long nowMillis) const
 {
-    DayTime timeUTC = localTimeAt(nowMillis);
+    types::DayTime timeUTC = localTimeAt(nowMillis);
     timeUTC.addHours(-_localUtcOffset);
     return timeUTC;
 }
 
-DayTime SiteTime::lstAt(unsigned long nowMillis) const
+types::DayTime SiteTime::lstAt(unsigned long nowMillis) const
 {
-    const DayTime utc          = utcTimeAt(nowMillis);
+    const types::DayTime utc          = utcTimeAt(nowMillis);
     const CalendarDate date    = localDateAt(nowMillis);
     const CalendarDate utcDate = localToUtcDate(date, localTimeAt(nowMillis).getTotalSeconds(), _localUtcOffset);
 

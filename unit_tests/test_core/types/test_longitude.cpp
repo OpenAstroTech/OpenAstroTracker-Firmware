@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "core/types/Longitude.hpp"
+#include "types/Longitude.hpp"
 
-using core::Longitude;
+using types::Longitude;
 
 TEST(LongitudeTest, DefaultConstructor)
 {

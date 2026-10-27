@@ -1,4 +1,4 @@
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 #include "HomingRunner.hpp"
 
 #include "../Configuration.hpp"
@@ -31,7 +31,7 @@ String HallSensorHoming::getHomingState(core::HomingState state) const
         {core::HomingState::NotActive, F("NOT_ACTIVE")},
     };
 
-    auto strLookup = MappedDict<core::HomingState, String>(lookupTable, core::arraySize(lookupTable));
+    auto strLookup = MappedDict<core::HomingState, String>(lookupTable, types::arraySize(lookupTable));
     String rtnStr;
     if (strLookup.tryGet(state, &rtnStr))
     {
@@ -71,7 +71,7 @@ String HallSensorHoming::getLastResult() const
         {core::HomingResult::CantFindSensorEnd, F("CANT FIND SENSOR END")},
     };
 
-    auto strLookup = MappedDict<core::HomingResult, String>(lookupTable, core::arraySize(lookupTable));
+    auto strLookup = MappedDict<core::HomingResult, String>(lookupTable, types::arraySize(lookupTable));
     String rtnStr;
     if (strLookup.tryGet(_controller.result(), &rtnStr))
     {

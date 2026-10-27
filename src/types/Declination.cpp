@@ -1,6 +1,6 @@
 #include "Declination.hpp"
 
-namespace core
+namespace types
 {
 
 Declination::Declination() : DayTime()
@@ -80,4 +80,4 @@ long Declination::celestialSecondsFrom(uint16_t degrees, uint8_t minutes, uint8_
     return negative ? -magnitude : magnitude;
 }
 
-}  // namespace core
+}  // namespace types

@@ -4,7 +4,7 @@
 
 #include "DayTime.hpp"
 
-namespace core
+namespace types
 {
 
 /// Pure Declination coordinate. Range: -180° to +180° (arc-seconds),
@@ -50,4 +50,4 @@ class Declination : public DayTime
     static long const arcSecondsPerHemisphere = 180L * 60L * 60L;  // Arc-seconds in 180 degrees
 };
 
-}  // namespace core
+}  // namespace types

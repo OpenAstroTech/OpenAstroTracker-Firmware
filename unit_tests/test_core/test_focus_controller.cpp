@@ -75,12 +75,12 @@ TEST(FocusControllerTest, ContinuousMotionRunsToAFarTargetInTheGivenDirection)
     focus.attach(&axis);
     focus.initialize(1000.0f);
 
-    focus.startContinuous(core::FOCUS_FORWARD);
+    focus.startContinuous(types::FOCUS_FORWARD);
     EXPECT_EQ(300000, axis.targetPosition());
     EXPECT_FLOAT_EQ(1000.0f, axis.maxSpeed());
     EXPECT_EQ(core::FocusMode::ToTarget, focus.mode());
 
-    focus.startContinuous(core::FOCUS_BACKWARD);
+    focus.startContinuous(types::FOCUS_BACKWARD);
     EXPECT_EQ(-300000, axis.targetPosition());
 }
 
@@ -102,7 +102,7 @@ TEST(FocusControllerTest, RunAtZeroSpeedStopsTheAxisAndLeavesTheModeAlone)
     core::FocusController focus;
     focus.attach(&axis);
     focus.initialize(1000.0f);
-    focus.startContinuous(core::FOCUS_FORWARD);
+    focus.startContinuous(types::FOCUS_FORWARD);
 
     focus.runAtSpeed(0.0f);
 

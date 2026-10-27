@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-namespace core
+namespace types
 {
 
 /// Pure (no Arduino deps) 24-hour time value stored as total seconds.
@@ -90,4 +90,4 @@ inline int fsign(float num)
     return num < 0.0f ? -1 : 1;
 }
 
-}  // namespace core
+}  // namespace types

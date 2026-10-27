@@ -2,7 +2,7 @@
 
 #include "DayTime.hpp"
 
-namespace core
+namespace types
 {
 
 /// Pure Right Ascension coordinate. Range: 0h to 24h (wrapped).
@@ -27,4 +27,4 @@ class RightAscension : public DayTime
     virtual void checkHours() override;
 };
 
-}  // namespace core
+}  // namespace types

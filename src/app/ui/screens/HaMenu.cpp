@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 #include "ports/ILogger.hpp"
 
 namespace
@@ -46,18 +46,18 @@ bool HaMenu::applyFix(ports::IGps &gps, UiPorts &ports)
         return false;
     }
 
-    core::DayTime utcNow(fix.hour, fix.minute, fix.second);
+    types::DayTime utcNow(fix.hour, fix.minute, fix.second);
     utcNow.addHours(ports.siteTime->getLocalUtcOffset());
     ports.siteTime->setLocalStartTime(utcNow);
     ports.siteTime->setLocalStartDate(fix.year, fix.month, fix.day);
-    ports.siteTime->setLatitude(core::Latitude(static_cast<float>(fix.latitude)));
-    ports.siteTime->setLongitude(core::Longitude(static_cast<float>(fix.longitude)));
+    ports.siteTime->setLatitude(types::Latitude(static_cast<float>(fix.latitude)));
+    ports.siteTime->setLongitude(types::Longitude(static_cast<float>(fix.longitude)));
     return true;
 }
 
 void HaMenu::adjustHourAngle(UiPorts &ports, int direction) const
 {
-    core::DayTime ha(ports.read->hourAngle());
+    types::DayTime ha(ports.read->hourAngle());
     if (_field == 0)
     {
         ha.addHours(direction);
@@ -75,20 +75,20 @@ MenuKeyResult HaMenu::handleKey(
     if (gps == nullptr)
     {
         // The plain editor: the arrows repeat while held, then a key change ends the repeat.
-        if ((input.held == core::Button::Up) || (input.held == core::Button::Down))
+        if ((input.held == types::Button::Up) || (input.held == types::Button::Down))
         {
-            adjustHourAngle(ports, (input.held == core::Button::Up) ? 1 : -1);
+            adjustHourAngle(ports, (input.held == types::Button::Up) ? 1 : -1);
             ports.delay(static_cast<int>(kRepeatDelayMs));
             return MenuKeyResult::Ignored;
         }
 
         switch (input.edge)
         {
-            case core::Button::Left:
-                _field = static_cast<uint8_t>(core::adjustWrap(_field, 1, 0, 1));
+            case types::Button::Left:
+                _field = static_cast<uint8_t>(types::adjustWrap(_field, 1, 0, 1));
                 return MenuKeyResult::WaitForRelease;
 
-            case core::Button::Select:
+            case types::Button::Select:
                 ports.settings->storeHATime(ports.read->hourAngle());
                 outcome.haStored = true;
                 if (startupWaitingForHa)
@@ -97,7 +97,7 @@ MenuKeyResult HaMenu::handleKey(
                 }
                 return MenuKeyResult::WaitForRelease;
 
-            case core::Button::Right:
+            case types::Button::Right:
                 return startupWaitingForHa ? MenuKeyResult::WaitForRelease : MenuKeyResult::NextScreen;
 
             default:
@@ -128,7 +128,7 @@ MenuKeyResult HaMenu::handleKey(
         }
     }
 
-    if (input.edge == core::Button::None)
+    if (input.edge == types::Button::None)
     {
         return MenuKeyResult::Ignored;
     }
@@ -136,41 +136,41 @@ MenuKeyResult HaMenu::handleKey(
     switch (_state)
     {
         case State::StartingGps:
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 gps->begin();  // start over
             }
-            else if ((input.edge == core::Button::Up) || (input.edge == core::Button::Down))
+            else if ((input.edge == types::Button::Up) || (input.edge == types::Button::Down))
             {
                 _state = State::ShowingSet;
             }
             break;
 
         case State::ShowingSync:
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 _state = State::StartingGps;
                 gps->begin();
             }
-            else if ((input.edge == core::Button::Up) || (input.edge == core::Button::Down))
+            else if ((input.edge == types::Button::Up) || (input.edge == types::Button::Down))
             {
                 _state = State::ShowingSet;
             }
             break;
 
         case State::ShowingSet:
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 _state = State::EnterManually;
             }
-            else if ((input.edge == core::Button::Up) || (input.edge == core::Button::Down))
+            else if ((input.edge == types::Button::Up) || (input.edge == types::Button::Down))
             {
                 _state = State::ShowingSync;
             }
             break;
 
         case State::EnterManually:
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 ports.settings->storeHATime(ports.read->hourAngle());
                 outcome.haStored = true;
@@ -180,17 +180,17 @@ MenuKeyResult HaMenu::handleKey(
                     outcome.resumeStartup = true;
                 }
             }
-            else if (input.edge == core::Button::Up)
+            else if (input.edge == types::Button::Up)
             {
                 adjustHourAngle(ports, 1);
             }
-            else if (input.edge == core::Button::Down)
+            else if (input.edge == types::Button::Down)
             {
                 adjustHourAngle(ports, -1);
             }
-            else if (input.edge == core::Button::Left)
+            else if (input.edge == types::Button::Left)
             {
-                _field = static_cast<uint8_t>(core::adjustWrap(_field, 1, 0, 1));
+                _field = static_cast<uint8_t>(types::adjustWrap(_field, 1, 0, 1));
             }
             break;
 
@@ -198,7 +198,7 @@ MenuKeyResult HaMenu::handleKey(
             break;
     }
 
-    if (input.edge == core::Button::Right)
+    if (input.edge == types::Button::Right)
     {
         // The legacy screen treats RIGHT differently per state: it stops listening when the
         // receiver is still running, and otherwise leaves.
@@ -220,7 +220,7 @@ MenuKeyResult HaMenu::handleKey(
 
 void HaMenu::render(ports::IMountReadModel &read, ports::IDisplay &display) const
 {
-    const core::DayTime hourAngle = read.hourAngle();
+    const types::DayTime hourAngle = read.hourAngle();
     char row[20];
 
     switch (_state)

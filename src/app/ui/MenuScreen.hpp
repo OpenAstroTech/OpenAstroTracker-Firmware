@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "core/Button.hpp"
+#include "types/Button.hpp"
 
 namespace app
 {
@@ -13,8 +13,8 @@ namespace app
 /// now. Screens that auto-repeat on a held key need the second one; screens that act on presses
 /// need the first.
 struct MenuKeyInput {
-    core::Button edge;
-    core::Button held;
+    types::Button edge;
+    types::Button held;
 };
 
 /// What a screen wants the menu loop to do after it handled a key.

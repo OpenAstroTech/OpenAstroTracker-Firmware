@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "core/Button.hpp"
+#include "types/Button.hpp"
 
 namespace core
 {
@@ -22,17 +22,17 @@ class ButtonDebounce
 
     /// Feeds one poll. `nowMs` is a free-running millisecond counter, so the comparison is an
     /// unsigned subtraction that survives the wrap.
-    void update(Button raw, uint32_t nowMs);
+    void update(types::Button raw, uint32_t nowMs);
 
-    Button committed() const;
+    types::Button committed() const;
 
     /// True once per change of the committed key, with the new key in `out`.
-    bool changed(Button *out);
+    bool changed(types::Button *out);
 
   private:
-    Button _raw;
-    Button _committed;
-    Button _reported;
+    types::Button _raw;
+    types::Button _committed;
+    types::Button _reported;
     uint32_t _rawSince;
 };
 

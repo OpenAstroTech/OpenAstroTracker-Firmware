@@ -7,7 +7,7 @@
 using app::FocusMenu;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeOptionalAxes;
 
@@ -73,7 +73,7 @@ TEST(FocusMenuTest, HoldingUpRunsTheFocuserBackwards)
     menu.handleKey(held(Button::Up), axes);
 
     EXPECT_EQ(1, axes.continuousCalls);
-    EXPECT_EQ(core::FOCUS_BACKWARD, axes.lastDirection);
+    EXPECT_EQ(types::FOCUS_BACKWARD, axes.lastDirection);
 }
 
 TEST(FocusMenuTest, HoldingDownRunsTheFocuserForwards)
@@ -85,7 +85,7 @@ TEST(FocusMenuTest, HoldingDownRunsTheFocuserForwards)
 
     menu.handleKey(held(Button::Down), axes);
 
-    EXPECT_EQ(core::FOCUS_FORWARD, axes.lastDirection);
+    EXPECT_EQ(types::FOCUS_FORWARD, axes.lastDirection);
 }
 
 TEST(FocusMenuTest, ReleasingTheKeyStopsTheFocuser)

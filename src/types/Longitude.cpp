@@ -1,6 +1,6 @@
 #include "Longitude.hpp"
 
-namespace core
+namespace types
 {
 
 Longitude::Longitude() : DayTime()
@@ -31,4 +31,4 @@ void Longitude::checkHours()
     }
 }
 
-}  // namespace core
+}  // namespace types

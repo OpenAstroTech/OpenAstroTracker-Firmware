@@ -5,18 +5,18 @@
 //////////////////////////////////////////////////////////////////////////////////////
 //
 // Latitude — Arduino-dependent overlay methods
-// Pure arithmetic is in core::Latitude (src/core/types/Latitude.hpp/.cpp)
+// Pure arithmetic is in types::Latitude (src/types/Latitude.hpp/.cpp)
 //
 // 90 is north pole, -90 is south pole
-Latitude::Latitude(const Latitude &other) : core::Latitude(other)
+Latitude::Latitude(const Latitude &other) : types::Latitude(other)
 {
 }
 
-Latitude::Latitude(int h, int m, int s) : core::Latitude(h, m, s)
+Latitude::Latitude(int h, int m, int s) : types::Latitude(h, m, s)
 {
 }
 
-Latitude::Latitude(float inDegrees) : core::Latitude(inDegrees)
+Latitude::Latitude(float inDegrees) : types::Latitude(inDegrees)
 {
 }
 
@@ -24,7 +24,7 @@ char achBufLat[32];
 
 const char *Latitude::ToString() const
 {
-    return core::DayTime::formatString(achBufLat, "{+}{d}:{m}:{s}");
+    return types::DayTime::formatString(achBufLat, "{+}{d}:{m}:{s}");
 }
 
 Latitude Latitude::ParseFromMeade(String const &s)

@@ -4,7 +4,7 @@
 
 ///////////////////////////////////
 // DayTime — Arduino-dependent overlay methods
-// Pure arithmetic is in core::DayTime (src/core/types/DayTime.hpp/.cpp)
+// Pure arithmetic is in types::DayTime (src/types/DayTime.hpp/.cpp)
 
 // Parses the RA or DEC from a string that has an optional sign, a two digit degree, a seperator, a two digit minute, a seperator and a two digit second.
 // Does not correct for hemisphere (derived class Declination takes care of that)
@@ -112,4 +112,4 @@ const char *DayTime::ToString() const
 
 // ParseFromMeade, formatString, formatStringImpl, printTwoDigits
 // were previously here. formatString/formatStringImpl/printTwoDigits
-// are now in core::DayTime (pure).
+// are now in types::DayTime (pure).

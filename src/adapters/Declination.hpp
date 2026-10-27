@@ -1,24 +1,24 @@
 #pragma once
 
-#include "core/types/Declination.hpp"
+#include "types/Declination.hpp"
 #include "adapters/DayTime.hpp"
 
 #include <WString.h>  // `String`, which these overlays format
 
-/// Declination overlay — Arduino-dependent formatting over `core::Declination`.
+/// Declination overlay — Arduino-dependent formatting over `types::Declination`.
 ///
 /// The axis↔celestial conversion depends on the hemisphere the site is in, so every method that
 /// crosses that boundary takes it as an argument: the caller has it (the read model, the command
 /// adapter) and this class deliberately holds no copy of a runtime fact.
-class Declination : public core::Declination
+class Declination : public types::Declination
 {
   public:
-    using core::Declination::Declination;
+    using types::Declination::Declination;
 
-    /// Copies the pure value. Used where a port hands back a `core::Declination` and the
+    /// Copies the pure value. Used where a port hands back a `types::Declination` and the
     /// caller holds the Arduino-aware overlay — the same convenience `DayTime` and
     /// `Latitude` already carry.
-    Declination(const core::Declination &other) : core::Declination(other)
+    Declination(const types::Declination &other) : types::Declination(other)
     {
     }
 

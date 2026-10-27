@@ -20,28 +20,28 @@ namespace core
 class SiteTime
 {
   public:
-    Latitude latitude() const
+    types::Latitude latitude() const
     {
         return _latitude;
     }
 
-    Longitude longitude() const
+    types::Longitude longitude() const
     {
         return _longitude;
     }
 
-    void setLatitude(const Latitude &latitude)
+    void setLatitude(const types::Latitude &latitude)
     {
         _latitude = latitude;
     }
 
-    void setLongitude(const Longitude &longitude)
+    void setLongitude(const types::Longitude &longitude)
     {
         _longitude = longitude;
     }
 
     /// Local sidereal time.
-    DayTime lst() const
+    types::DayTime lst() const
     {
         return _lst;
     }
@@ -49,7 +49,7 @@ class SiteTime
     /// Sets the sidereal time **and** the right-ascension zero point, which is what the mount has
     /// always done: home RA is "wherever the sky was when the session was set up". A sync moves
     /// the zero point on its own, which is why the two are separate fields.
-    void setLst(const DayTime &lst)
+    void setLst(const types::DayTime &lst)
     {
         _lst         = lst;
         _raZeroPoint = lst;
@@ -57,12 +57,12 @@ class SiteTime
 
     /// Right ascension of the home position, in hours. Offset from `lst()` by whatever syncs have
     /// applied.
-    DayTime raZeroPoint() const
+    types::DayTime raZeroPoint() const
     {
         return _raZeroPoint;
     }
 
-    void setRaZeroPoint(const DayTime &zeroPoint)
+    void setRaZeroPoint(const types::DayTime &zeroPoint)
     {
         _raZeroPoint = zeroPoint;
     }
@@ -81,7 +81,7 @@ class SiteTime
     }
 
     /// The local time the session started at, and the millisecond tick it was set on.
-    DayTime localStartTime() const
+    types::DayTime localStartTime() const
     {
         return _localStartTime;
     }
@@ -91,7 +91,7 @@ class SiteTime
         return _startSetMillis;
     }
 
-    void setLocalStartTime(const DayTime &localTime, unsigned long nowMillis);
+    void setLocalStartTime(const types::DayTime &localTime, unsigned long nowMillis);
 
     CalendarDate localStartDate() const
     {
@@ -104,10 +104,10 @@ class SiteTime
     }
 
     /// Local time `nowMillis` milliseconds after the start time.
-    DayTime localTimeAt(unsigned long nowMillis) const;
+    types::DayTime localTimeAt(unsigned long nowMillis) const;
 
     /// Local time `nowMillis` milliseconds after the start time, less the UTC offset.
-    DayTime utcTimeAt(unsigned long nowMillis) const;
+    types::DayTime utcTimeAt(unsigned long nowMillis) const;
 
     /// The local calendar date `nowMillis` milliseconds after the start time. A day rolls over at
     /// local midnight, so a partial day still counts as one.
@@ -117,14 +117,14 @@ class SiteTime
     ///
     /// The sidereal formula wants the *UTC* calendar date, which differs from the local date for
     /// |UTC offset| hours each day, so the local date is converted before it is used.
-    DayTime lstAt(unsigned long nowMillis) const;
+    types::DayTime lstAt(unsigned long nowMillis) const;
 
   private:
-    Latitude _latitude;
-    Longitude _longitude;
-    DayTime _lst;
-    DayTime _raZeroPoint;
-    DayTime _localStartTime;
+    types::Latitude _latitude;
+    types::Longitude _longitude;
+    types::DayTime _lst;
+    types::DayTime _raZeroPoint;
+    types::DayTime _localStartTime;
     unsigned long _startSetMillis = 0;
     CalendarDate _localStartDate  = {0, 0, 0};
     int _localUtcOffset           = 0;

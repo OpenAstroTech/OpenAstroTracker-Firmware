@@ -12,7 +12,7 @@ using app::MenuKeyResult;
 using app::StartupAction;
 using app::StartupOutcome;
 using app::StartupWizard;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountMotion;
 using fakes::FakeMountReadModel;
@@ -175,8 +175,8 @@ TEST(StartupWizardTest, TheHourAngleConfirmationSetsHomeAndCopiesTheTarget)
     wizard.handleKey(pressed(Button::Select), harness.ports);                    // Yes -> SetHaTime
     wizard.handleKey(MenuKeyInput {Button::None, Button::None}, harness.ports);  // -> WaitForHaCompletion
 
-    harness.read.haTime         = core::DayTime(7, 15, 0);
-    harness.read.currentRaValue = core::DayTime(3, 4, 5);
+    harness.read.haTime         = types::DayTime(7, 15, 0);
+    harness.read.currentRaValue = types::DayTime(3, 4, 5);
 
     // The HA screen reports the confirmation; the wizard applies it on its next pass.
     wizard.haConfirmed();

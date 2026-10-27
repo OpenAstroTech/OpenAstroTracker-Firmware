@@ -27,10 +27,10 @@
 
 #if DISPLAY_TYPE > 0
     #if LCD_BUTTON_TEST == 1
-core::Button lastKey = core::Button::None;
+types::Button lastKey = types::Button::None;
     #endif
 
-core::Button lcd_key;
+types::Button lcd_key;
 unsigned long lastTrackingStatusPrint = 0;
 
 /// The converted screens own their own selection and field cursor.
@@ -129,10 +129,10 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
 /// What the loop hands a converted screen: the key that just settled and the key held now.
 app::MenuKeyInput screenInput()
 {
-    core::Button edgeKey    = core::Button::None;
+    types::Button edgeKey    = types::Button::None;
     const bool changed      = (menuButtons != nullptr) && menuButtons->keyChanged(&edgeKey);
-    const core::Button held = (menuButtons != nullptr) ? menuButtons->pressed() : core::Button::None;
-    return app::MenuKeyInput {changed ? edgeKey : core::Button::None, held};
+    const types::Button held = (menuButtons != nullptr) ? menuButtons->pressed() : types::Button::None;
+    return app::MenuKeyInput {changed ? edgeKey : types::Button::None, held};
 }
 
 void loop()
@@ -142,7 +142,7 @@ void loop()
 
     menu.setCursor(0, 0);
     menu.printMenu("Key Diagnostic");
-    lcd_key       = (menuButtons != nullptr) ? menuButtons->pressed() : core::Button::None;
+    lcd_key       = (menuButtons != nullptr) ? menuButtons->pressed() : types::Button::None;
     const int key = static_cast<int>(lcd_key);
     bool changed  = (menuButtons != nullptr) && menuButtons->keyChanged(&lastKey);
 
@@ -154,22 +154,22 @@ void loop()
     String state = String(buf);
     switch (lcd_key)
     {
-        case core::Button::None:
+        case types::Button::None:
             state += "None";
             break;
-        case core::Button::Select:
+        case types::Button::Select:
             state += "Select";
             break;
-        case core::Button::Left:
+        case types::Button::Left:
             state += "Left";
             break;
-        case core::Button::Right:
+        case types::Button::Right:
             state += "Right";
             break;
-        case core::Button::Up:
+        case types::Button::Up:
             state += "Up";
             break;
-        case core::Button::Down:
+        case types::Button::Down:
             state += "Down";
             break;
         default:
@@ -225,15 +225,15 @@ void loop()
         #endif
     if (uiSession.serialControl)
     {
-        core::Button serialKey = core::Button::None;
+        types::Button serialKey = types::Button::None;
         if ((menuButtons != nullptr) && menuButtons->keyChanged(&serialKey))
         {
             lcd_key = serialKey;
-            if (lcd_key == core::Button::Select)
+            if (lcd_key == types::Button::Select)
             {
                 quitSerialOnNextButtonRelease = true;
             }
-            else if ((lcd_key == core::Button::None) && quitSerialOnNextButtonRelease)
+            else if ((lcd_key == types::Button::None) && quitSerialOnNextButtonRelease)
             {
                 MeadeCommandAdapter::instance()->processCommand(":Qq#");
                 quitSerialOnNextButtonRelease = false;
@@ -306,7 +306,7 @@ void loop()
     #else
                 case Home_Menu:
                     {
-                        core::Button homeKey = core::Button::None;
+                        types::Button homeKey = types::Button::None;
                         if ((menuButtons != nullptr) && menuButtons->keyChanged(&homeKey))
                         {
                             const app::MenuKeyResult result = homeMenu.handleKey(homeKey, *ui.motion);
@@ -494,14 +494,14 @@ void loop()
 
         if (waitForButtonRelease)
         {
-            if ((menuButtons != nullptr) && (menuButtons->pressed() != core::Button::None))
+            if ((menuButtons != nullptr) && (menuButtons->pressed() != types::Button::None))
             {
                 do
                 {
-                    core::Button waitKey = core::Button::None;
+                    types::Button waitKey = types::Button::None;
                     if (menuButtons->keyChanged(&waitKey))
                     {
-                        if (waitKey == core::Button::None)
+                        if (waitKey == types::Button::None)
                         {
                             break;
                         }

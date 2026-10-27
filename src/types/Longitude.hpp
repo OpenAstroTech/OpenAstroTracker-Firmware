@@ -2,7 +2,7 @@
 
 #include "DayTime.hpp"
 
-namespace core
+namespace types
 {
 
 /// Pure Longitude coordinate. Range: -180° to +180° (wrapped).
@@ -20,4 +20,4 @@ class Longitude : public DayTime
     virtual void checkHours() override;
 };
 
-}  // namespace core
+}  // namespace types

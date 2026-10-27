@@ -71,7 +71,7 @@ class FakeMountMotion final : public ports::IMountMotion
         lastSetHomeClearsZeroPos = clearZeroPos;
     }
 
-    void syncPosition(const core::DayTime &, const core::Declination &) override
+    void syncPosition(const types::DayTime &, const types::Declination &) override
     {
         syncCalls++;
     }

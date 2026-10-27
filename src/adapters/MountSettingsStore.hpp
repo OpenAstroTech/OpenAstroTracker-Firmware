@@ -20,12 +20,12 @@ class MountSettingsStore final : public ports::IMountSettings
     {
     }
 
-    core::DayTime getHATime() override
+    types::DayTime getHATime() override
     {
         return _store.getHATime();
     }
 
-    void storeHATime(const core::DayTime &ha) override
+    void storeHATime(const types::DayTime &ha) override
     {
         _store.storeHATime(DayTime(ha));
     }
@@ -110,22 +110,22 @@ class MountSettingsStore final : public ports::IMountSettings
         _store.storeBacklashCorrectionSteps(steps);
     }
 
-    core::Latitude getLatitude() override
+    types::Latitude getLatitude() override
     {
         return _store.getLatitude();
     }
 
-    void storeLatitude(const core::Latitude &latitude) override
+    void storeLatitude(const types::Latitude &latitude) override
     {
         _store.storeLatitude(Latitude(latitude));
     }
 
-    core::Longitude getLongitude() override
+    types::Longitude getLongitude() override
     {
         return _store.getLongitude();
     }
 
-    void storeLongitude(const core::Longitude &longitude) override
+    void storeLongitude(const types::Longitude &longitude) override
     {
         _store.storeLongitude(Longitude(longitude));
     }

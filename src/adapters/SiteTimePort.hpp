@@ -39,17 +39,17 @@ class SiteTimePort final : public ports::IMountSiteTime
     SiteTimePort(
         core::SiteTime &siteTime, ports::IClock &clock, ports::IMountSettings &store, ports::ILogger &logger, LatitudeObserver observer);
 
-    core::Latitude latitude() const override;
+    types::Latitude latitude() const override;
 
-    core::Longitude longitude() const override;
+    types::Longitude longitude() const override;
 
-    void setLatitude(const core::Latitude &latitude) override;
+    void setLatitude(const types::Latitude &latitude) override;
 
-    void setLongitude(const core::Longitude &longitude) override;
+    void setLongitude(const types::Longitude &longitude) override;
 
-    core::DayTime getLocalTime() override;
+    types::DayTime getLocalTime() override;
 
-    core::DayTime getUtcTime() override;
+    types::DayTime getUtcTime() override;
 
     LocalDate getLocalDate() override;
 
@@ -57,13 +57,13 @@ class SiteTimePort final : public ports::IMountSiteTime
 
     void setLocalUtcOffset(int offset) override;
 
-    void setLocalStartTime(const core::DayTime &time) override;
+    void setLocalStartTime(const types::DayTime &time) override;
 
     void setLocalStartDate(int year, int month, int day) override;
 
-    void setLST(const core::DayTime &lst) override;
+    void setLST(const types::DayTime &lst) override;
 
-    void setHA(const core::DayTime &ha) override;
+    void setHA(const types::DayTime &ha) override;
 
   private:
     /// Re-derives the sidereal time from the clock and the current site, which resets the RA

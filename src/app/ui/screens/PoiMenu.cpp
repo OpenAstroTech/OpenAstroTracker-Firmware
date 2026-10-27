@@ -3,8 +3,8 @@
 #include <stdlib.h>
 
 #include "app/ui/PointOfInterestTable.hpp"
-#include "core/MathUtil.hpp"
-#include "core/types/Declination.hpp"
+#include "types/MathUtil.hpp"
+#include "types/Declination.hpp"
 
 namespace
 {
@@ -12,11 +12,11 @@ namespace
 /// 90° minus the celestial arc-seconds in the north, 90° plus them in the south.
 ///
 /// The southern branch keeps the positive sign, which is *not* what
-/// `core::Declination::celestialToAxisSeconds()` produces — that one negates for the southern
+/// `types::Declination::celestialToAxisSeconds()` produces — that one negates for the southern
 /// hemisphere, matching how a wire declination is parsed into an axis coordinate. The two only
 /// differ south of the equator, the legacy screen used this one, and changing it here would change
 /// where a southern mount slews. Recorded as a legacy quirk rather than fixed.
-core::Declination axisDeclinationFor(const app::PointOfInterest &point, bool northernHemisphere)
+types::Declination axisDeclinationFor(const app::PointOfInterest &point, bool northernHemisphere)
 {
     long celestialSeconds = ((60L * abs(point.decDegrees)) + point.decMinutes) * 60L + point.decSeconds;
     if (point.decDegrees < 0)
@@ -25,7 +25,7 @@ core::Declination axisDeclinationFor(const app::PointOfInterest &point, bool nor
     }
 
     const long quarterTurn = 90L * 60L * 60L;
-    return core::Declination::fromTotalSeconds(northernHemisphere ? (quarterTurn - celestialSeconds) : (quarterTurn + celestialSeconds));
+    return types::Declination::fromTotalSeconds(northernHemisphere ? (quarterTurn - celestialSeconds) : (quarterTurn + celestialSeconds));
 }
 
 }  // namespace
@@ -39,7 +39,7 @@ MenuKeyResult PoiMenu::handleKey(const MenuKeyInput &input,
 {
     switch (input.edge)
     {
-        case core::Button::Select:
+        case types::Button::Select:
             {
                 const PointOfInterest &point = kPointsOfInterest[_selected];
 
@@ -65,16 +65,16 @@ MenuKeyResult PoiMenu::handleKey(const MenuKeyInput &input,
             }
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Left:
-        case core::Button::Down:
-            _selected = static_cast<uint16_t>(core::adjustWrap(_selected, 1, 0, kParkPointOfInterest));
+        case types::Button::Left:
+        case types::Button::Down:
+            _selected = static_cast<uint16_t>(types::adjustWrap(_selected, 1, 0, kParkPointOfInterest));
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Up:
-            _selected = static_cast<uint16_t>(core::adjustWrap(_selected, -1, 0, kParkPointOfInterest));
+        case types::Button::Up:
+            _selected = static_cast<uint16_t>(types::adjustWrap(_selected, -1, 0, kParkPointOfInterest));
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Right:
+        case types::Button::Right:
             return MenuKeyResult::NextScreen;
 
         default:

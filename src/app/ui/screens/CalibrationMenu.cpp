@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 #include "ports/ILogger.hpp"
 
 namespace
@@ -116,7 +116,7 @@ void CalibrationMenu::moveHighlight(int direction, UiPorts &ports, ports::IDispl
         }
     }
 
-    index  = core::adjustWrap(index, direction, 0, static_cast<int>(_ringSize) - 1);
+    index  = types::adjustWrap(index, direction, 0, static_cast<int>(_ringSize) - 1);
     _state = _ring[index];
 
     // The value edited by an entry is read back from the mount when the entry is selected: the
@@ -148,13 +148,13 @@ void CalibrationMenu::moveHighlight(int direction, UiPorts &ports, ports::IDispl
 
 bool CalibrationMenu::updateProgressive(long &value, int minimumDelay, const MenuKeyInput &input, UiPorts &ports)
 {
-    if (input.held != core::Button::Up && input.held != core::Button::Down)
+    if (input.held != types::Button::Up && input.held != types::Button::Down)
     {
         _repeatDelay = kInitialRepeatDelay;
         return true;
     }
 
-    value += (input.held == core::Button::Up) ? 1 : -1;
+    value += (input.held == types::Button::Up) ? 1 : -1;
     ports.delay(_repeatDelay);
 
     // The longer the key is held, the faster the value runs: 6% off the delay per step, floored.
@@ -165,18 +165,18 @@ bool CalibrationMenu::updateProgressive(long &value, int minimumDelay, const Men
 
 bool CalibrationMenu::updateSpeedCalibration(const MenuKeyInput &input, UiPorts &ports)
 {
-    if (input.held != core::Button::Up && input.held != core::Button::Down)
+    if (input.held != types::Button::Up && input.held != types::Button::Down)
     {
         _repeatDelay = kInitialRepeatDelay;
         return true;
     }
 
     // A ten-thousandth at a time, guarding the 16-bit signed range the legacy editor assumed.
-    if (input.held == core::Button::Up && _speedCalibration < 32760.0F)
+    if (input.held == types::Button::Up && _speedCalibration < 32760.0F)
     {
         _speedCalibration += 1.0F;
     }
-    else if (input.held == core::Button::Down && _speedCalibration > -32760.0F)
+    else if (input.held == types::Button::Down && _speedCalibration > -32760.0F)
     {
         _speedCalibration -= 1.0F;
     }
@@ -188,12 +188,12 @@ bool CalibrationMenu::updateSpeedCalibration(const MenuKeyInput &input, UiPorts 
     return false;
 }
 
-void CalibrationMenu::updatePolarDrive(core::Button held, UiPorts &ports)
+void CalibrationMenu::updatePolarDrive(types::Button held, UiPorts &ports)
 {
-    const bool up    = (held == core::Button::Up);
-    const bool down  = (held == core::Button::Down);
-    const bool right = (held == core::Button::Right);
-    const bool left  = (held == core::Button::Left);
+    const bool up    = (held == types::Button::Up);
+    const bool down  = (held == types::Button::Down);
+    const bool right = (held == types::Button::Right);
+    const bool left  = (held == types::Button::Left);
 
     if (_board.hasAltitude && (up || down))
     {
@@ -210,7 +210,7 @@ void CalibrationMenu::updatePolarDrive(core::Button held, UiPorts &ports)
         }
     }
 
-    if (held != core::Button::None)
+    if (held != types::Button::None)
     {
         return;
     }
@@ -288,7 +288,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
                 long value = _azimuthMinutes;
                 if (!updateProgressive(value, kMinimumRepeatDelay, input, ports))
                 {
-                    _azimuthMinutes = core::clamp(static_cast<int>(value), -60, 60);
+                    _azimuthMinutes = types::clamp(static_cast<int>(value), -60, 60);
                     return outcome;
                 }
             }
@@ -299,7 +299,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
                 long value = _altitudeMinutes;
                 if (!updateProgressive(value, kMinimumRepeatDelay, input, ports))
                 {
-                    _altitudeMinutes = core::clamp(static_cast<int>(value), -60, 60);
+                    _altitudeMinutes = types::clamp(static_cast<int>(value), -60, 60);
                     return outcome;
                 }
             }
@@ -338,7 +338,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
                     uint8_t minimum = 0;
                     uint8_t maximum = 255;
                     display.backlightRange(&minimum, &maximum);
-                    _brightness = core::clamp(static_cast<int>(value), static_cast<int>(minimum), static_cast<int>(maximum));
+                    _brightness = types::clamp(static_cast<int>(value), static_cast<int>(minimum), static_cast<int>(maximum));
                     display.setBacklight(static_cast<uint8_t>(_brightness), false);
                     return outcome;
                 }
@@ -353,12 +353,12 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
     }
 
-    if (input.edge == core::Button::None)
+    if (input.edge == types::Button::None)
     {
         return outcome;
     }
 
-    const core::Button key = input.edge;
+    const types::Button key = input.edge;
 
     if (isHighlight(_state))
     {
@@ -368,7 +368,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
     switch (_state)
     {
         case State::PolarWaitCenter:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 _state = State::PolarWaitHome;
                 addMessage(outcome, "Aligned, homing", kAlignmentDelay);
@@ -376,13 +376,13 @@ CalibrationOutcome CalibrationMenu::handleKey(
                 // Pointing at Polaris, so say so, then park: the DEC axis is now along the pole.
                 const int hemisphere = (ports.siteTime->latitude().getTotalHours() >= 0.0F) ? 90 : -90;
                 ports.motion->syncPosition(ports.read->currentRA(),
-                                           core::Declination(kPolarisDecDegrees - hemisphere, kPolarisDecMinutes, kPolarisDecSeconds));
+                                           types::Declination(kPolarisDecDegrees - hemisphere, kPolarisDecMinutes, kPolarisDecSeconds));
                 ports.motion->startSlewingToHome();
             }
             break;
 
         case State::PolarWaitHome:
-            if (key == core::Button::Right)
+            if (key == types::Button::Right)
             {
                 ports.motion->stopSlewing(ALL_DIRECTIONS);
                 ports.waitUntilStopped(ALL_DIRECTIONS);
@@ -393,19 +393,19 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::DriftWait:
-            if (key == core::Button::Down || key == core::Button::Left)
+            if (key == types::Button::Down || key == types::Button::Left)
             {
-                _driftSubIndex = static_cast<uint8_t>(core::adjustWrap(_driftSubIndex, 1, 0, 3));
+                _driftSubIndex = static_cast<uint8_t>(types::adjustWrap(_driftSubIndex, 1, 0, 3));
             }
-            else if (key == core::Button::Up)
+            else if (key == types::Button::Up)
             {
-                _driftSubIndex = static_cast<uint8_t>(core::adjustWrap(_driftSubIndex, -1, 0, 3));
+                _driftSubIndex = static_cast<uint8_t>(types::adjustWrap(_driftSubIndex, -1, 0, 3));
             }
-            else if (key == core::Button::Select)
+            else if (key == types::Button::Select)
             {
                 _state = State::DriftRunning;
             }
-            else if (key == core::Button::Right)
+            else if (key == types::Button::Right)
             {
                 _state         = State::HighlightDrift;
                 _driftSubIndex = 1;
@@ -413,10 +413,10 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::SpeedCalibration:
-            if (key == core::Button::Select || key == core::Button::Right)
+            if (key == types::Button::Select || key == types::Button::Right)
             {
                 ports.config->setSpeedCalibration(1.0F + (_speedCalibration / 10000.0F), true);
-                if (key == core::Button::Right)
+                if (key == types::Button::Right)
                 {
                     outcome.result       = MenuKeyResult::NextScreen;
                     outcome.shutdownGyro = _board.hasLevelSensor;
@@ -430,13 +430,13 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::RaStepCalibration:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 ports.config->setStepsPerDegree(RA_STEPS, 0.1F * static_cast<float>(_raStepsPerDegree));
                 addMessage(outcome, "RA steps stored", kStoredDelay);
                 _state = State::HighlightRaSteps;
             }
-            else if (key == core::Button::Right)
+            else if (key == types::Button::Right)
             {
                 outcome.result       = MenuKeyResult::NextScreen;
                 outcome.shutdownGyro = _board.hasLevelSensor;
@@ -445,13 +445,13 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::DecStepCalibration:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 ports.config->setStepsPerDegree(DEC_STEPS, 0.1F * static_cast<float>(_decStepsPerDegree));
                 addMessage(outcome, "DEC steps stored.", kStoredDelay);
                 _state = State::HighlightDecSteps;
             }
-            else if (key == core::Button::Right)
+            else if (key == types::Button::Right)
             {
                 outcome.result       = MenuKeyResult::NextScreen;
                 outcome.shutdownGyro = _board.hasLevelSensor;
@@ -460,13 +460,13 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::BacklashCalibration:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 ports.config->setBacklashCorrection(_backlashSteps);
                 addMessage(outcome, "Backlash stored.", kStoredDelay);
                 _state = State::HighlightBacklash;
             }
-            else if (key == core::Button::Right)
+            else if (key == types::Button::Right)
             {
                 outcome.result       = MenuKeyResult::NextScreen;
                 outcome.shutdownGyro = _board.hasLevelSensor;
@@ -475,7 +475,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::AzimuthAdjustment:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 if (_azimuthMinutes == 0)
                 {
@@ -490,7 +490,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::AltitudeAdjustment:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 if (_altitudeMinutes == 0)
                 {
@@ -505,7 +505,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::RollOffsetCalibration:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 if (startupWaitingForRoll)
                 {
@@ -521,11 +521,11 @@ CalibrationOutcome CalibrationMenu::handleKey(
                     display.writeLine(0, "Set as level?");
                 }
             }
-            else if (key == core::Button::Left && !startupWaitingForRoll)
+            else if (key == types::Button::Left && !startupWaitingForRoll)
             {
                 _state = State::HighlightRoll;
             }
-            else if (key == core::Button::Right && !startupWaitingForRoll)
+            else if (key == types::Button::Right && !startupWaitingForRoll)
             {
                 outcome.result       = MenuKeyResult::NextScreen;
                 outcome.shutdownGyro = true;
@@ -534,7 +534,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::RollOffsetConfirm:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 if (_setLevelOffset && (gyro != nullptr))
                 {
@@ -543,24 +543,24 @@ CalibrationOutcome CalibrationMenu::handleKey(
                 _state                   = State::HighlightRoll;
                 outcome.resumeMenuUpdate = true;
             }
-            else if (key == core::Button::Left)
+            else if (key == types::Button::Left)
             {
                 _setLevelOffset = !_setLevelOffset;
             }
             break;
 
         case State::PitchOffsetCalibration:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 _state                    = State::PitchOffsetConfirm;
                 outcome.suspendMenuUpdate = true;
                 display.writeLine(0, "Set as level?");
             }
-            else if (key == core::Button::Left)
+            else if (key == types::Button::Left)
             {
                 _state = State::HighlightPitch;
             }
-            else if (key == core::Button::Right)
+            else if (key == types::Button::Right)
             {
                 outcome.result       = MenuKeyResult::NextScreen;
                 outcome.shutdownGyro = true;
@@ -569,7 +569,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::PitchOffsetConfirm:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 if (_setLevelOffset && (gyro != nullptr))
                 {
@@ -578,20 +578,20 @@ CalibrationOutcome CalibrationMenu::handleKey(
                 _state                   = State::HighlightPitch;
                 outcome.resumeMenuUpdate = true;
             }
-            else if (key == core::Button::Left)
+            else if (key == types::Button::Left)
             {
                 _setLevelOffset = !_setLevelOffset;
             }
             break;
 
         case State::BacklightCalibration:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 display.setBacklight(static_cast<uint8_t>(_brightness), true);
                 addMessage(outcome, "Level stored.", kStoredDelay);
                 _state = State::HighlightBacklight;
             }
-            else if (key == core::Button::Right)
+            else if (key == types::Button::Right)
             {
                 outcome.result       = MenuKeyResult::NextScreen;
                 outcome.shutdownGyro = _board.hasLevelSensor;
@@ -600,13 +600,13 @@ CalibrationOutcome CalibrationMenu::handleKey(
             break;
 
         case State::UtcOffsetCalibration:
-            if (key == core::Button::Select)
+            if (key == types::Button::Select)
             {
                 ports.siteTime->setLocalUtcOffset(_utcOffset);
                 addMessage(outcome, "UTC stored.", kStoredDelay);
                 _state = State::HighlightUtcOffset;
             }
-            else if (key == core::Button::Right)
+            else if (key == types::Button::Right)
             {
                 outcome.result       = MenuKeyResult::NextScreen;
                 outcome.shutdownGyro = _board.hasLevelSensor;
@@ -619,11 +619,11 @@ CalibrationOutcome CalibrationMenu::handleKey(
             {
                 const bool upper = (_state == State::DecUpperLimitConfirm);
 
-                if ((key == core::Button::Down) || (key == core::Button::Left) || (key == core::Button::Up))
+                if ((key == types::Button::Down) || (key == types::Button::Left) || (key == types::Button::Up))
                 {
-                    _limitIndex = static_cast<uint8_t>(core::adjustWrap(_limitIndex, 1, 0, 2));
+                    _limitIndex = static_cast<uint8_t>(types::adjustWrap(_limitIndex, 1, 0, 2));
                 }
-                else if (key == core::Button::Select)
+                else if (key == types::Button::Select)
                 {
                     if (_limitIndex == 0)
                     {
@@ -644,7 +644,7 @@ CalibrationOutcome CalibrationMenu::handleKey(
                     outcome.resumeMenuUpdate = true;
                     _state                   = upper ? State::HighlightDecUpperLimit : State::HighlightDecLowerLimit;
                 }
-                else if (key == core::Button::Right)
+                else if (key == types::Button::Right)
                 {
                     _state                   = upper ? State::HighlightDecUpperLimit : State::HighlightDecLowerLimit;
                     outcome.resumeMenuUpdate = true;
@@ -659,31 +659,31 @@ CalibrationOutcome CalibrationMenu::handleKey(
     return outcome;
 }
 
-CalibrationOutcome CalibrationMenu::handleHighlightKey(const core::Button key,
+CalibrationOutcome CalibrationMenu::handleHighlightKey(const types::Button key,
                                                        UiPorts &ports,
                                                        ports::IDisplay &display,
                                                        CalibrationOutcome outcome)
 {
     outcome.result = MenuKeyResult::WaitForRelease;
 
-    if (key == core::Button::Down)
+    if (key == types::Button::Down)
     {
         moveHighlight(1, ports, display);
         return outcome;
     }
-    if (key == core::Button::Up)
+    if (key == types::Button::Up)
     {
         moveHighlight(-1, ports, display);
         return outcome;
     }
-    if (key == core::Button::Right)
+    if (key == types::Button::Right)
     {
         outcome.result       = MenuKeyResult::NextScreen;
         outcome.shutdownGyro = _board.hasLevelSensor;
         _state               = _ring[0];
         return outcome;
     }
-    if (key != core::Button::Select)
+    if (key != types::Button::Select)
     {
         return outcome;
     }
@@ -698,7 +698,7 @@ CalibrationOutcome CalibrationMenu::handleHighlightKey(const core::Button key,
                 // the DEC axis along the pole-to-Polaris line so the AZ/ALT nudge can align it.
                 ports.read->targetRA().set(_board.polarisRaHours, _board.polarisRaMinutes, _board.polarisRaSeconds);
                 const int hemisphere    = (ports.siteTime->latitude().getTotalHours() >= 0.0F) ? 90 : -90;
-                ports.read->targetDEC() = core::Declination(kPolarDecDegrees - hemisphere, kPolarDecMinutes, kPolarDecSeconds);
+                ports.read->targetDEC() = types::Declination(kPolarDecDegrees - hemisphere, kPolarDecMinutes, kPolarDecSeconds);
                 ports.motion->startSlewingToTarget();
                 outcome.suspendMenuUpdate = true;
             }
@@ -765,7 +765,7 @@ CalibrationOutcome CalibrationMenu::handleHighlightKey(const core::Button key,
 void CalibrationMenu::paintIndicator(char *row, float angle)
 {
     // "R: -------------": the reading sits at columns 8-10, the marker one cell per quarter degree.
-    angle = core::clamp(angle, -9.9F, 9.9F);
+    angle = types::clamp(angle, -9.9F, 9.9F);
 
     for (int i = 0; i < 5; i++)
     {
@@ -779,7 +779,7 @@ void CalibrationMenu::paintIndicator(char *row, float angle)
     row[9]  = reading[1];
     row[10] = reading[2];
 
-    const int position = core::clamp(static_cast<int>(roundf(angle * 4.0F)), -5, 5);
+    const int position = types::clamp(static_cast<int>(roundf(angle * 4.0F)), -5, 5);
     if (position != 0)
     {
         row[position + ((position < 0) ? 8 : 10)] = (position < 0) ? '>' : '<';

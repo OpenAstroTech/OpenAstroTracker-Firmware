@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-namespace core
+namespace types
 {
 
 /// Element count of a C array. Replaces the `ARRAY_SIZE` macro the deleted `Utility.hpp` carried.
@@ -80,4 +80,4 @@ inline float clamp(float value, float minimum, float maximum)
     return value;
 }
 
-}  // namespace core
+}  // namespace types

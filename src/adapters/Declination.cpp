@@ -25,8 +25,8 @@
 // Declination    -180    -150   -120    -90    -60   -30     0     30    60    90   120   150    180
 
 // Pure arithmetic (constructors, set, addDegrees, getTotalDegrees, checkHours) is in
-// core::Declination (src/core/types/Declination.hpp/.cpp). The hemisphere corrections on the way
-// to and from the celestial frame are core::Declination::axisToCelestialSeconds() and friends.
+// types::Declination (src/types/Declination.hpp/.cpp). The hemisphere corrections on the way
+// to and from the celestial frame are types::Declination::axisToCelestialSeconds() and friends.
 
 namespace
 {
@@ -36,8 +36,8 @@ char achBufDeg[32];
 
 const char *Declination::ToString(bool northernHemisphere) const
 {
-    long celestialSeconds = core::Declination::axisToCelestialSeconds(totalSeconds, northernHemisphere);
-    core::DayTime::formatString(achBufDeg, "{d}*{m}:{s}", &celestialSeconds);
+    long celestialSeconds = types::Declination::axisToCelestialSeconds(totalSeconds, northernHemisphere);
+    types::DayTime::formatString(achBufDeg, "{d}*{m}:{s}", &celestialSeconds);
 
     const size_t used      = strlen(achBufDeg);
     const size_t remaining = sizeof(achBufDeg) - used;
@@ -53,7 +53,7 @@ Declination Declination::fromCelestialSeconds(long celestialSeconds, bool northe
 {
     // The sign lives in the total, so there is no zero-degrees blind spot here.
     Declination result;
-    result.totalSeconds = core::Declination::celestialToAxisSeconds(celestialSeconds, northernHemisphere);
+    result.totalSeconds = types::Declination::celestialToAxisSeconds(celestialSeconds, northernHemisphere);
     result.checkHours();
     return result;
 }
@@ -61,7 +61,7 @@ Declination Declination::fromCelestialSeconds(long celestialSeconds, bool northe
 Declination Declination::FromSeconds(long seconds, bool northernHemisphere)
 {
     const auto secondsFloat                 = static_cast<float>(seconds);
-    const auto arcSecondsPerHemisphereFloat = static_cast<float>(core::Declination::arcSecondsPerHemisphere);
+    const auto arcSecondsPerHemisphereFloat = static_cast<float>(types::Declination::arcSecondsPerHemisphere);
     if (northernHemisphere)
     {
         return Declination(((arcSecondsPerHemisphereFloat / 2.0f) - secondsFloat) / 3600.0f);

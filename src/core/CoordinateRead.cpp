@@ -3,7 +3,7 @@
 namespace core
 {
 
-DayTime currentRa(const PositionFacts &facts)
+types::DayTime currentRa(const PositionFacts &facts)
 {
     // u-steps/degree * degrees/hour = u-steps/hour
     const float stepsPerSiderealHour = facts.raStepsPerDegree * kSiderealDegreesPerHour;
@@ -30,12 +30,12 @@ DayTime currentRa(const PositionFacts &facts)
         hourPos -= 24;
     }
 
-    return DayTime(hourPos);
+    return types::DayTime(hourPos);
 }
 
-Declination currentDec(const PositionFacts &facts)
+types::Declination currentDec(const PositionFacts &facts)
 {
-    return Declination((facts.decSteps / facts.decStepsPerDegree) + facts.zeroPosDecDegrees);
+    return types::Declination((facts.decSteps / facts.decStepsPerDegree) + facts.zeroPosDecDegrees);
 }
 
 }  // namespace core

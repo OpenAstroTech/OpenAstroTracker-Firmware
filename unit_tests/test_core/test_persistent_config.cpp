@@ -15,8 +15,8 @@ fakes::FakeMountSettings populatedStore()
     store.altStepsPerDegree       = 44.0f;
     store.speedFactor             = 1.5f;
     store.backlashCorrectionSteps = 7;
-    store.latitude                = core::Latitude(52.5f);
-    store.longitude               = core::Longitude(13.25f);
+    store.latitude                = types::Latitude(52.5f);
+    store.longitude               = types::Longitude(13.25f);
     store.utcOffset               = 2;
     store.pitchCalibrationAngle   = 0.75f;
     store.rollCalibrationAngle    = -0.25f;

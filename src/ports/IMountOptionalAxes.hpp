@@ -27,7 +27,7 @@ class IMountOptionalAxes : public IMountConfiguration
     virtual long focusGetStepperPosition()                             = 0;
     virtual void focusSetSpeedByRate(int rate)                         = 0;
     virtual float getFocusSpeed() const                                = 0;
-    virtual void focusContinuousMove(core::FocuserDirection direction) = 0;
+    virtual void focusContinuousMove(types::FocuserDirection direction) = 0;
     virtual void focusStop()                                           = 0;
     virtual bool isRunningFocus() const                                = 0;
 

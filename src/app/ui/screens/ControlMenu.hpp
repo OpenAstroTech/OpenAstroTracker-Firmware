@@ -64,14 +64,14 @@ class ControlMenu
 
     /// The held-key slewing state machine: when the held key changes, stop both axes and start the
     /// one the key names.
-    void updateManualSlew(core::Button held, ports::IMountMotion &motion);
+    void updateManualSlew(types::Button held, ports::IMountMotion &motion);
 
-    static int directionFor(core::Button key);
+    static int directionFor(types::Button key);
 
     State _state = State::HighlightManual;
 
     /// The key that is currently commanding the mount.
-    core::Button _commandedKey = core::Button::None;
+    types::Button _commandedKey = types::Button::None;
 
     bool _setZeroPoint = true;
 

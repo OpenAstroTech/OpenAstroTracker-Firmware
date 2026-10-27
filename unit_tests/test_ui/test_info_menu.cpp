@@ -10,7 +10,7 @@ using app::InfoMenu;
 using app::InfoMenuEnvironment;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountConfiguration;
 using fakes::FakeMountReadModel;
@@ -133,8 +133,8 @@ TEST(InfoMenuTest, TheLocationRowCarriesTheHemispheres)
 {
     InfoMenu menu;
     Sources sources;
-    sources.siteTime.siteLatitude  = core::Latitude(-33.9F);
-    sources.siteTime.siteLongitude = core::Longitude(151.2F);
+    sources.siteTime.siteLatitude  = types::Latitude(-33.9F);
+    sources.siteTime.siteLongitude = types::Longitude(151.2F);
     menu.enter();
     selectEntry(menu, 3);
 
@@ -209,8 +209,8 @@ TEST(InfoMenuTest, TheClockRowsReadTheSiteTime)
     InfoMenu menu;
     Sources sources;
     sources.siteTime.localDate            = {2024, 7, 9};
-    sources.siteTime.utcTime              = core::DayTime(20, 30, 15);
-    sources.siteTime.localTime            = core::DayTime(21, 30, 15);
+    sources.siteTime.utcTime              = types::DayTime(20, 30, 15);
+    sources.siteTime.localTime            = types::DayTime(21, 30, 15);
     sources.siteTime.utcOffset            = 1;
     const InfoMenuEnvironment environment = environmentWithGyro(20.0F);
     menu.enter();
@@ -229,8 +229,8 @@ TEST(InfoMenuTest, TheDerivedSkyRowsComeFromTheReadModel)
 {
     InfoMenu menu;
     Sources sources;
-    sources.read.lstTime                  = core::DayTime(11, 22, 33);
-    sources.read.haTime                   = core::DayTime(1, 2, 3);
+    sources.read.lstTime                  = types::DayTime(11, 22, 33);
+    sources.read.haTime                   = types::DayTime(1, 2, 3);
     const InfoMenuEnvironment environment = environmentWithGyro(20.0F);
     menu.enter();
     selectEntry(menu, 13);

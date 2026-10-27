@@ -20,33 +20,33 @@ void ControlMenu::enter()
 {
     _state        = State::HighlightManual;
     _setZeroPoint = true;
-    _commandedKey = core::Button::None;
+    _commandedKey = types::Button::None;
 }
 
 void ControlMenu::startManual()
 {
     _state        = State::Manual;
-    _commandedKey = core::Button::None;
+    _commandedKey = types::Button::None;
 }
 
-int ControlMenu::directionFor(core::Button key)
+int ControlMenu::directionFor(types::Button key)
 {
     switch (key)
     {
-        case core::Button::Up:
+        case types::Button::Up:
             return NORTH;
-        case core::Button::Down:
+        case types::Button::Down:
             return SOUTH;
-        case core::Button::Left:
+        case types::Button::Left:
             return WEST;
-        case core::Button::Right:
+        case types::Button::Right:
             return EAST;
         default:
             return 0;
     }
 }
 
-void ControlMenu::updateManualSlew(core::Button held, ports::IMountMotion &motion)
+void ControlMenu::updateManualSlew(types::Button held, ports::IMountMotion &motion)
 {
     if (_commandedKey == held)
     {
@@ -73,42 +73,42 @@ ControlMenuOutcome ControlMenu::handleKey(const MenuKeyInput &input,
     switch (_state)
     {
         case State::HighlightManual:
-            if (input.edge == core::Button::None)
+            if (input.edge == types::Button::None)
             {
                 return outcome;
             }
             outcome.result = MenuKeyResult::WaitForRelease;
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 _state = State::Manual;
                 motion.stopSlewing(ALL_DIRECTIONS);
             }
-            else if ((input.edge == core::Button::Down) || (input.edge == core::Button::Up))
+            else if ((input.edge == types::Button::Down) || (input.edge == types::Button::Up))
             {
                 _state = State::HighlightSerial;
             }
-            else if (input.edge == core::Button::Right)
+            else if (input.edge == types::Button::Right)
             {
                 outcome.result = MenuKeyResult::NextScreen;
             }
             return outcome;
 
         case State::HighlightSerial:
-            if (input.edge == core::Button::None)
+            if (input.edge == types::Button::None)
             {
                 return outcome;
             }
             outcome.result = MenuKeyResult::WaitForRelease;
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 outcome.serialChanged = true;
                 outcome.serialActive  = !serialActive;
             }
-            else if ((input.edge == core::Button::Down) || (input.edge == core::Button::Up))
+            else if ((input.edge == types::Button::Down) || (input.edge == types::Button::Up))
             {
                 _state = State::HighlightManual;
             }
-            else if (input.edge == core::Button::Right)
+            else if (input.edge == types::Button::Right)
             {
                 if (serialActive)
                 {
@@ -122,7 +122,7 @@ ControlMenuOutcome ControlMenu::handleKey(const MenuKeyInput &input,
         case State::Manual:
             updateManualSlew(input.held, motion);
 
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 outcome.result = MenuKeyResult::WaitForRelease;
                 if (startupAwaitingPole)
@@ -139,12 +139,12 @@ ControlMenuOutcome ControlMenu::handleKey(const MenuKeyInput &input,
             return outcome;
 
         case State::ConfirmHome:
-            if (input.edge == core::Button::None)
+            if (input.edge == types::Button::None)
             {
                 return outcome;
             }
             outcome.result = MenuKeyResult::WaitForRelease;
-            if (input.edge == core::Button::Select)
+            if (input.edge == types::Button::Select)
             {
                 if (_setZeroPoint)
                 {
@@ -167,7 +167,7 @@ ControlMenuOutcome ControlMenu::handleKey(const MenuKeyInput &input,
                 outcome.resumeMenuUpdate = true;
                 _setZeroPoint            = true;
             }
-            else if (input.edge == core::Button::Left)
+            else if (input.edge == types::Button::Left)
             {
                 _setZeroPoint = !_setZeroPoint;
             }

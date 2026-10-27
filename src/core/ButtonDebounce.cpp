@@ -3,11 +3,11 @@
 namespace core
 {
 
-ButtonDebounce::ButtonDebounce() : _raw(Button::Invalid), _committed(Button::None), _reported(Button::None), _rawSince(0)
+ButtonDebounce::ButtonDebounce() : _raw(types::Button::Invalid), _committed(types::Button::None), _reported(types::Button::None), _rawSince(0)
 {
 }
 
-void ButtonDebounce::update(Button raw, uint32_t nowMs)
+void ButtonDebounce::update(types::Button raw, uint32_t nowMs)
 {
     if (raw != _raw)
     {
@@ -23,12 +23,12 @@ void ButtonDebounce::update(Button raw, uint32_t nowMs)
     }
 }
 
-Button ButtonDebounce::committed() const
+types::Button ButtonDebounce::committed() const
 {
     return _committed;
 }
 
-bool ButtonDebounce::changed(Button *out)
+bool ButtonDebounce::changed(types::Button *out)
 {
     if (_committed == _reported)
     {

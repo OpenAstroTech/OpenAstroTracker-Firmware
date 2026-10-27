@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "app/ui/MenuScreen.hpp"
-#include "core/Button.hpp"
+#include "types/Button.hpp"
 #include "ports/IDisplay.hpp"
 #include "ports/IMountMotion.hpp"
 

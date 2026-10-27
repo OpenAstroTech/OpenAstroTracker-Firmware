@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace core
+namespace types
 {
 
 /// The keys the menu panel reports.
@@ -20,4 +20,4 @@ enum class Button : uint8_t
     Invalid,
 };
 
-}  // namespace core
+}  // namespace types

@@ -2,9 +2,9 @@
 
 #include <stdint.h>
 
-#include "core/types/DayTime.hpp"
-#include "core/types/Latitude.hpp"
-#include "core/types/Longitude.hpp"
+#include "types/DayTime.hpp"
+#include "types/Latitude.hpp"
+#include "types/Longitude.hpp"
 
 namespace ports
 {
@@ -24,8 +24,8 @@ class IMountSettings
     {
     }
 
-    virtual core::DayTime getHATime()                 = 0;
-    virtual void storeHATime(const core::DayTime &ha) = 0;
+    virtual types::DayTime getHATime()                 = 0;
+    virtual void storeHATime(const types::DayTime &ha) = 0;
 
     virtual int getUtcOffset()                 = 0;
     virtual void storeUtcOffset(int utcOffset) = 0;
@@ -53,11 +53,11 @@ class IMountSettings
     virtual int16_t getBacklashCorrectionSteps()             = 0;
     virtual void storeBacklashCorrectionSteps(int16_t steps) = 0;
 
-    virtual core::Latitude getLatitude()                       = 0;
-    virtual void storeLatitude(const core::Latitude &latitude) = 0;
+    virtual types::Latitude getLatitude()                       = 0;
+    virtual void storeLatitude(const types::Latitude &latitude) = 0;
 
-    virtual core::Longitude getLongitude()                        = 0;
-    virtual void storeLongitude(const core::Longitude &longitude) = 0;
+    virtual types::Longitude getLongitude()                        = 0;
+    virtual void storeLongitude(const types::Longitude &longitude) = 0;
 
     virtual float getPitchCalibrationAngle()             = 0;
     virtual void storePitchCalibrationAngle(float angle) = 0;

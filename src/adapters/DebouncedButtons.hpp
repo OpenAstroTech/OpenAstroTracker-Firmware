@@ -11,16 +11,16 @@ namespace adapters
 /// `ports::IButtons` over any button matrix.
 ///
 /// The matrix reports what is held; this decides when it counts. The mapping from `hal::Button` to
-/// `core::Button` is a cast because the two enumerations describe the same five keys in the same
+/// `types::Button` is a cast because the two enumerations describe the same five keys in the same
 /// order, which `static_assert`s below keep true.
 class DebouncedButtons final : public ports::IButtons
 {
   public:
     DebouncedButtons(hal::IButtonMatrix &matrix, ports::IClock &clock);
 
-    core::Button pressed() override;
+    types::Button pressed() override;
 
-    bool keyChanged(core::Button *out) override;
+    bool keyChanged(types::Button *out) override;
 
     uint16_t rawValue() override;
 

@@ -1,6 +1,6 @@
 #include "DayTime.hpp"
 
-namespace core
+namespace types
 {
 
 DayTime::DayTime()
@@ -268,4 +268,4 @@ const char *DayTime::formatString(char *targetBuffer, const char *format, long *
     return formatStringImpl(targetBuffer, format, sgn, degs, mins, secs);
 }
 
-}  // namespace core
+}  // namespace types

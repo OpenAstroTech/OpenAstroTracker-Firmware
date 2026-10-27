@@ -57,9 +57,9 @@ class TMC2209Stepper;
 // The direction bits, coordinate-format selectors and status masks this header used to define
 // now live where their owners are: the bits in `core/PortVocabulary.hpp` (they are the ports' vocabulary),
 // the status masks in `core/MountState.hpp` (they alias `core::StatusBit`).
-using core::FOCUS_BACKWARD;
-using core::FOCUS_FORWARD;
-using FocuserDirection = core::FocuserDirection;
+using types::FOCUS_BACKWARD;
+using types::FOCUS_FORWARD;
+using FocuserDirection = types::FocuserDirection;
 
 //////////////////////////////////////////////////////////////////
 //
@@ -235,19 +235,19 @@ class MountExecutor final : public ports::IMountOptionalAxes
     const DayTime HA() const;
 
     // Get a reference to the target RA value.
-    core::DayTime &targetRA();
+    types::DayTime &targetRA();
 
     // Get a reference to the target DEC value.
-    core::Declination &targetDEC();
+    types::Declination &targetDEC();
 
     // Get current RA value.
-    core::DayTime currentRA() const;
+    types::DayTime currentRA() const;
 
     // Get current DEC value.
-    core::Declination currentDEC() const;
+    types::Declination currentDEC() const;
 
     // Set the current RA and DEC position to be the given coordinates
-    void syncPosition(const core::DayTime &ra, const core::Declination &dec);
+    void syncPosition(const types::DayTime &ra, const types::Declination &dec);
 
     void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
 
@@ -360,7 +360,7 @@ class MountExecutor final : public ports::IMountOptionalAxes
     void commandReceived();
     // --- ports::IMountReadModel (UI-facing reads) ------------------------------------------
 
-    core::DayTime hourAngle();
+    types::DayTime hourAngle();
     long getCurrentStepperPosition(StepperAxis axis);
     bool isAxisRunning(StepperAxis axis);
     const char *raText(uint8_t type, uint8_t active = 0);
@@ -450,8 +450,8 @@ class MountExecutor final : public ports::IMountOptionalAxes
     // Let the mount know that the system has finished booting
     void bootComplete();
 
-    core::DayTime calculateLst();
-    core::DayTime calculateHa();
+    types::DayTime calculateLst();
+    types::DayTime calculateHa();
 
     // Returns NOT_SLEWING, SLEWING_DEC, SLEWING_RA, or SLEWING_BOTH. SLEWING_TRACKING is an overlaid bit.
     byte slewStatus() const;

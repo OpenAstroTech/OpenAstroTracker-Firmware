@@ -37,40 +37,40 @@ class FakeMountReadModel : public ports::IMountReadModel
     int raPercentValue  = 100;
     int decPercentValue = 100;
 
-    core::DayTime lstTime;
-    core::DayTime haTime;
+    types::DayTime lstTime;
+    types::DayTime haTime;
 
     /// What the screen last asked for, so a test can assert the flag words.
     mutable uint8_t lastRaType    = 0;
     mutable uint8_t lastDecType   = 0;
     mutable long lastPositionAxis = 0;
 
-    core::DayTime currentRA() const override
+    types::DayTime currentRA() const override
     {
         return currentRaValue;
     }
 
-    core::Declination currentDEC() const override
+    types::Declination currentDEC() const override
     {
-        return core::Declination();
+        return types::Declination();
     }
 
-    core::DayTime &targetRA() override
+    types::DayTime &targetRA() override
     {
         return targetRaValue;
     }
 
-    core::Declination &targetDEC() override
+    types::Declination &targetDEC() override
     {
         return targetDecValue;
     }
 
-    core::DayTime calculateHa() override
+    types::DayTime calculateHa() override
     {
         return haTime;
     }
 
-    core::DayTime calculateLst() override
+    types::DayTime calculateLst() override
     {
         return lstTime;
     }
@@ -86,7 +86,7 @@ class FakeMountReadModel : public ports::IMountReadModel
         return 0.0F;
     }
 
-    core::DayTime hourAngle() override
+    types::DayTime hourAngle() override
     {
         return haTime;
     }
@@ -196,9 +196,9 @@ class FakeMountReadModel : public ports::IMountReadModel
     }
 
     /// The target the screen writes, and the current position it reads.
-    core::DayTime targetRaValue;
-    core::DayTime currentRaValue;
-    core::Declination targetDecValue;
+    types::DayTime targetRaValue;
+    types::DayTime currentRaValue;
+    types::Declination targetDecValue;
 };
 
 /// A `ports::IMountConfiguration` whose only interesting answers are the four the status screen
@@ -265,7 +265,7 @@ class FakeMountConfiguration final : public ports::IMountConfiguration
     void setHome(bool) override
     {
     }
-    void syncPosition(const core::DayTime &, const core::Declination &) override
+    void syncPosition(const types::DayTime &, const types::Declination &) override
     {
     }
     void setTrackingStepperPos(long) override
@@ -386,38 +386,38 @@ class FakeMountConfiguration final : public ports::IMountConfiguration
 class FakeSiteTime final : public ports::IMountSiteTime
 {
   public:
-    core::Latitude siteLatitude   = core::Latitude(52.5F);
-    core::Longitude siteLongitude = core::Longitude(-1.25F);
-    core::DayTime localTime       = core::DayTime(21, 30, 15);
-    core::DayTime utcTime         = core::DayTime(20, 30, 15);
+    types::Latitude siteLatitude   = types::Latitude(52.5F);
+    types::Longitude siteLongitude = types::Longitude(-1.25F);
+    types::DayTime localTime       = types::DayTime(21, 30, 15);
+    types::DayTime utcTime         = types::DayTime(20, 30, 15);
     LocalDate localDate           = {2024, 7, 9};
     int utcOffset                 = 1;
 
     /// The last hour angle written, and how many times it was written.
-    core::DayTime lastHa;
+    types::DayTime lastHa;
     int setHaCalls = 0;
 
-    core::Latitude latitude() const override
+    types::Latitude latitude() const override
     {
         return siteLatitude;
     }
-    core::Longitude longitude() const override
+    types::Longitude longitude() const override
     {
         return siteLongitude;
     }
-    void setLatitude(const core::Latitude &value) override
+    void setLatitude(const types::Latitude &value) override
     {
         siteLatitude = value;
     }
-    void setLongitude(const core::Longitude &value) override
+    void setLongitude(const types::Longitude &value) override
     {
         siteLongitude = value;
     }
-    core::DayTime getLocalTime() override
+    types::DayTime getLocalTime() override
     {
         return localTime;
     }
-    core::DayTime getUtcTime() override
+    types::DayTime getUtcTime() override
     {
         return utcTime;
     }
@@ -433,16 +433,16 @@ class FakeSiteTime final : public ports::IMountSiteTime
     {
         utcOffset = offset;
     }
-    void setLocalStartTime(const core::DayTime &) override
+    void setLocalStartTime(const types::DayTime &) override
     {
     }
     void setLocalStartDate(int, int, int) override
     {
     }
-    void setLST(const core::DayTime &) override
+    void setLST(const types::DayTime &) override
     {
     }
-    void setHA(const core::DayTime &value) override
+    void setHA(const types::DayTime &value) override
     {
         lastHa = value;
         setHaCalls++;

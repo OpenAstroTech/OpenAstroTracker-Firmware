@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "core/Button.hpp"
+#include "types/Button.hpp"
 
 namespace ports
 {
@@ -20,10 +20,10 @@ class IButtons
     }
 
     /// The key held right now, once it has settled.
-    virtual core::Button pressed() = 0;
+    virtual types::Button pressed() = 0;
 
     /// True once per change of the committed key, with the new key in `out`.
-    virtual bool keyChanged(core::Button *out) = 0;
+    virtual bool keyChanged(types::Button *out) = 0;
 
     /// Raw reading of a resistive ladder, for the key diagnostic screen. 0 when the panel has none.
     virtual uint16_t rawValue() = 0;

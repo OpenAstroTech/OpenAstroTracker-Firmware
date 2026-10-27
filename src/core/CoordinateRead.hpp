@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/types/DayTime.hpp"
-#include "core/types/Declination.hpp"
+#include "types/DayTime.hpp"
+#include "types/Declination.hpp"
 
 namespace core
 {
@@ -28,9 +28,9 @@ constexpr float kSiderealDegreesPerHour = 14.95904348958f;
 
 /// Current right ascension from the two axes. A mount whose DEC is below the pole is read on the
 /// other side of the sky, which is the 12-hour flip.
-DayTime currentRa(const PositionFacts &facts);
+types::DayTime currentRa(const PositionFacts &facts);
 
 /// Current declination from the DEC axis.
-Declination currentDec(const PositionFacts &facts);
+types::Declination currentDec(const PositionFacts &facts);
 
 }  // namespace core

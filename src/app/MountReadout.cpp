@@ -199,7 +199,7 @@ const char *MountReadout::getMountHardwareInfo()
     return _readoutScratch.c_str();
 }
 
-core::DayTime MountReadout::currentRA() const
+types::DayTime MountReadout::currentRA() const
 {
     // The arithmetic lives in core::currentRa; this gathers the six numbers it needs.
     core::PositionFacts facts;
@@ -212,7 +212,7 @@ core::DayTime MountReadout::currentRA() const
     return core::currentRa(facts);
 }
 
-core::Declination MountReadout::currentDEC() const
+types::Declination MountReadout::currentDEC() const
 {
     // u-steps / u-steps/deg = deg; the arithmetic lives in core::currentDec.
     core::PositionFacts facts;
@@ -590,7 +590,7 @@ void MountReadout::fillInfoDisplayState(ports::InfoDisplayState &state)
     state.statusText = panelStatusText();
 }
 
-core::DayTime MountReadout::calculateLst()
+types::DayTime MountReadout::calculateLst()
 {
     return _siteTime.lstAt(_clock.now());
 }
@@ -606,12 +606,12 @@ const DayTime MountReadout::HA() const
     return ha;
 }
 
-core::DayTime &MountReadout::targetRA()
+types::DayTime &MountReadout::targetRA()
 {
     return _targetRa;
 }
 
-core::Declination &MountReadout::targetDEC()
+types::Declination &MountReadout::targetDEC()
 {
     return _targetDec;
 }
@@ -788,7 +788,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
     OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPost: ResultTarget Steps RA: %ld, DEC: %ld", targetRASteps, targetDECSteps);
 }
 
-core::DayTime MountReadout::hourAngle()
+types::DayTime MountReadout::hourAngle()
 {
     return HA();
 }
@@ -803,7 +803,7 @@ float MountReadout::plannedDecSteps() const
     return _coordinator.slew().totalDecSteps();
 }
 
-core::DayTime MountReadout::calculateHa()
+types::DayTime MountReadout::calculateHa()
 {
     DayTime lst = calculateLst();
     OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());

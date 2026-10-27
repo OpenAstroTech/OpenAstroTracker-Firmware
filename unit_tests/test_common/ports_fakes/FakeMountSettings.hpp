@@ -16,12 +16,12 @@ class FakeMountSettings final : public ports::IMountSettings
     /// How many times the hour angle was persisted.
     int storeHaCalls = 0;
 
-    core::DayTime getHATime() override
+    types::DayTime getHATime() override
     {
         return haTime;
     }
 
-    void storeHATime(const core::DayTime &value) override
+    void storeHATime(const types::DayTime &value) override
     {
         haTime = value;
         storeHaCalls++;
@@ -107,22 +107,22 @@ class FakeMountSettings final : public ports::IMountSettings
         backlashCorrectionSteps = value;
     }
 
-    core::Latitude getLatitude() override
+    types::Latitude getLatitude() override
     {
         return latitude;
     }
 
-    void storeLatitude(const core::Latitude &value) override
+    void storeLatitude(const types::Latitude &value) override
     {
         latitude = value;
     }
 
-    core::Longitude getLongitude() override
+    types::Longitude getLongitude() override
     {
         return longitude;
     }
 
-    void storeLongitude(const core::Longitude &value) override
+    void storeLongitude(const types::Longitude &value) override
     {
         longitude = value;
     }
@@ -223,7 +223,7 @@ class FakeMountSettings final : public ports::IMountSettings
         clearCount++;
     }
 
-    core::DayTime haTime;
+    types::DayTime haTime;
     int utcOffset                   = 0;
     uint8_t brightness              = 0;
     float raStepsPerDegree          = 0.0f;
@@ -232,8 +232,8 @@ class FakeMountSettings final : public ports::IMountSettings
     float altStepsPerDegree         = 0.0f;
     float speedFactor               = 0.0f;
     int16_t backlashCorrectionSteps = 0;
-    core::Latitude latitude;
-    core::Longitude longitude;
+    types::Latitude latitude;
+    types::Longitude longitude;
     float pitchCalibrationAngle = 0.0f;
     float rollCalibrationAngle  = 0.0f;
     float decLowerLimit         = 0.0f;

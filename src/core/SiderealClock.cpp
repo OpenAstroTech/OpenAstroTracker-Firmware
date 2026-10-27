@@ -62,23 +62,23 @@ double SiderealClock::calculateHaDegrees(double lstTotalHours, int polarisRaHour
     return lstDeg;
 }
 
-DayTime SiderealClock::localSiderealTime(double longitude, int year, int month, int day, float utcHours)
+types::DayTime SiderealClock::localSiderealTime(double longitude, int year, int month, int day, float utcHours)
 {
     const int deltaJd   = calculateDeltaJd(year, month, day);
     const double deltaJ = static_cast<double>(deltaJd) + (static_cast<double>(utcHours) / 24.0);
-    return DayTime(static_cast<float>(calculateTheta(deltaJ, longitude, utcHours) / 15.0));
+    return types::DayTime(static_cast<float>(calculateTheta(deltaJ, longitude, utcHours) / 15.0));
 }
 
-DayTime SiderealClock::hourAngle(float lstHours, int polarisRaHour, int polarisRaMinute, int polarisRaSecond)
+types::DayTime SiderealClock::hourAngle(float lstHours, int polarisRaHour, int polarisRaMinute, int polarisRaSecond)
 {
     const float lstDegrees
         = static_cast<float>(calculateHaDegrees(static_cast<double>(lstHours), polarisRaHour, polarisRaMinute, polarisRaSecond));
-    return DayTime(lstDegrees / 15.0f);
+    return types::DayTime(lstDegrees / 15.0f);
 }
 
-DayTime SiderealClock::lstFromHourAngle(const DayTime &ha, int polarisRaHour, int polarisRaMinute, int polarisRaSecond)
+types::DayTime SiderealClock::lstFromHourAngle(const types::DayTime &ha, int polarisRaHour, int polarisRaMinute, int polarisRaSecond)
 {
-    DayTime lst(polarisRaHour, polarisRaMinute, polarisRaSecond);
+    types::DayTime lst(polarisRaHour, polarisRaMinute, polarisRaSecond);
     lst.addTime(ha);
     return lst;
 }

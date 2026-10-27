@@ -4,7 +4,7 @@ POP_NO_WARNINGS
 
 #include "MountSettings.hpp"
 
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 
 #include "ports/ILogger.hpp"
 
@@ -140,7 +140,7 @@ void MountSettings::setBacklashCorrection(int steps)
 
 void MountSettings::setSlewRate(int rate)
 {
-    _settings.setMoveRate(core::clamp(rate, 1, 4));
+    _settings.setMoveRate(types::clamp(rate, 1, 4));
     float speedFactor[] = {0, 0.05, 0.2, 0.5, 1.0};
     OAT_LOG(&_logger, DEBUG_MOUNT, "[MOUNT]: setSlewRate, rate is %d -> %f", _settings.moveRate(), speedFactor[_settings.moveRate()]);
     _axes.dec()->setMaxSpeed(speedFactor[_settings.moveRate()] * _axes.limits().decSpeed);

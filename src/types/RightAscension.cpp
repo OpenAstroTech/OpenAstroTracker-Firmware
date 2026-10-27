@@ -1,6 +1,6 @@
 #include "RightAscension.hpp"
 
-namespace core
+namespace types
 {
 
 RightAscension::RightAscension() : DayTime()
@@ -52,4 +52,4 @@ void RightAscension::checkHours()
     }
 }
 
-}  // namespace core
+}  // namespace types

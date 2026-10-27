@@ -2,7 +2,7 @@
 
 #include "core/ButtonDebounce.hpp"
 
-using core::Button;
+using types::Button;
 using core::ButtonDebounce;
 
 TEST(ButtonDebounceTest, StartsOnNoKey)

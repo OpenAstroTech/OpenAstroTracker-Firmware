@@ -1,6 +1,6 @@
 #include "Latitude.hpp"
 
-namespace core
+namespace types
 {
 
 Latitude::Latitude() : DayTime()
@@ -31,4 +31,4 @@ void Latitude::checkHours()
     }
 }
 
-}  // namespace core
+}  // namespace types

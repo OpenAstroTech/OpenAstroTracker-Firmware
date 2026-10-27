@@ -265,15 +265,15 @@ void EepromSettingsFormat::clearConfiguration()
 }
 
 // Return the saved Hour Angle (HA)
-core::DayTime EepromSettingsFormat::getHATime()
+types::DayTime EepromSettingsFormat::getHATime()
 {
     // There is no item flag for HA - it is assumed to always be present
 
-    return core::DayTime(readUint8(HA_HOUR_ADDR), readUint8(HA_MINUTE_ADDR), 0);
+    return types::DayTime(readUint8(HA_HOUR_ADDR), readUint8(HA_MINUTE_ADDR), 0);
 }
 
 // Store the Hour Angle (HA)
-void EepromSettingsFormat::storeHATime(const core::DayTime &ha)
+void EepromSettingsFormat::storeHATime(const types::DayTime &ha)
 {
     // There is no item flag for HA - it is assumed to always be present
 
@@ -547,7 +547,7 @@ void EepromSettingsFormat::storeSpeedFactor(float speedFactor)
 {
     // Store the fractional speed factor since it is a number very close to 1
     int32_t val = (speedFactor - 1.0f) * 10000.0f;
-    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = types::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Speed Factor to %ld (%f)", val, speedFactor);
 
     // Speed factor bytes are in split locations :-(
@@ -587,15 +587,15 @@ void EepromSettingsFormat::storeBacklashCorrectionSteps(int16_t backlashCorrecti
     commit();  // Complete the transaction
 }
 
-// Return the stored location core::Latitude.
+// Return the stored location types::Latitude.
 // If it is not present then the default value of 45 degrees North is returned.
-core::Latitude EepromSettingsFormat::getLatitude()
+types::Latitude EepromSettingsFormat::getLatitude()
 {
-    core::Latitude latitude(45.0);  // Default value (degrees, +ve is North)
+    types::Latitude latitude(45.0);  // Default value (degrees, +ve is North)
 
     if (isPresent(LATITUDE_FLAG))
     {
-        latitude = core::Latitude(1.0f * readInt16(LATITUDE_ADDR) / 100.0f);
+        latitude = types::Latitude(1.0f * readInt16(LATITUDE_ADDR) / 100.0f);
         OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Latitude marker OK! Latitude is %.4f hours", latitude.getTotalHours());
     }
     else
@@ -606,11 +606,11 @@ core::Latitude EepromSettingsFormat::getLatitude()
     return latitude;  // Object
 }
 
-// Store the configured location core::Latitude.
-void EepromSettingsFormat::storeLatitude(const core::Latitude &latitude)
+// Store the configured location types::Latitude.
+void EepromSettingsFormat::storeLatitude(const types::Latitude &latitude)
 {
     int32_t val = static_cast<int32_t>(roundf(latitude.getTotalHours() * 100.0f));
-    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = types::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing latitude as %ld (%f)", val, latitude.getTotalHours());
 
     updateInt16(LATITUDE_ADDR, val);
@@ -618,15 +618,15 @@ void EepromSettingsFormat::storeLatitude(const core::Latitude &latitude)
     commit();  // Complete the transaction
 }
 
-// Return the stored location core::Longitude.
+// Return the stored location types::Longitude.
 // If it is not present then the default value of 100 degrees East is returned.
-core::Longitude EepromSettingsFormat::getLongitude()
+types::Longitude EepromSettingsFormat::getLongitude()
 {
-    core::Longitude longitude(100.0);  // Default value (degrees, +ve is East)
+    types::Longitude longitude(100.0);  // Default value (degrees, +ve is East)
 
     if (isPresent(LONGITUDE_FLAG))
     {
-        longitude = core::Longitude(1.0f * readInt16(LONGITUDE_ADDR) / 100.0f);
+        longitude = types::Longitude(1.0f * readInt16(LONGITUDE_ADDR) / 100.0f);
         OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Longitude marker OK! Longitude is %.4f hours", longitude.getTotalHours());
     }
     else
@@ -637,11 +637,11 @@ core::Longitude EepromSettingsFormat::getLongitude()
     return longitude;  // Object
 }
 
-// Store the configured location core::Longitude.
-void EepromSettingsFormat::storeLongitude(const core::Longitude &longitude)
+// Store the configured location types::Longitude.
+void EepromSettingsFormat::storeLongitude(const types::Longitude &longitude)
 {
     int32_t val = static_cast<int32_t>(roundf(longitude.getTotalHours() * 100.0f));
-    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = types::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing longitude as %ld (%f)", val, longitude.getTotalHours());
 
     updateInt16(LONGITUDE_ADDR, val);
@@ -673,7 +673,7 @@ float EepromSettingsFormat::getPitchCalibrationAngle()
 void EepromSettingsFormat::storePitchCalibrationAngle(float pitchCalibrationAngle)
 {
     int32_t val = (pitchCalibrationAngle * 100) + 16384;
-    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = types::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Pitch calibration %ld (%f)", val, pitchCalibrationAngle);
 
     updateInt16(PITCH_OFFSET_ADDR, val);
@@ -705,7 +705,7 @@ float EepromSettingsFormat::getRollCalibrationAngle()
 void EepromSettingsFormat::storeRollCalibrationAngle(float rollCalibrationAngle)
 {
     int32_t val = (rollCalibrationAngle * 100) + 16384;
-    val         = core::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
+    val         = types::clamp(val, (int32_t) INT16_MIN, (int32_t) INT16_MAX);
     OAT_LOG(&_log, DEBUG_EEPROM, "[EEPROM]: Storing Roll calibration %ld (%f)", val, rollCalibrationAngle);
 
     updateInt16(ROLL_OFFSET_ADDR, val);

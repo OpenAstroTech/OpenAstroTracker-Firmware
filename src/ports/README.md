@@ -4,8 +4,8 @@ Domain-level interfaces consumed by [`../core/`](../core/): what the domain *nee
 (axis position, persistent value, "now", a log sink, a transport, …).
 
 Pure C++ interfaces only. No Arduino, no hardware libraries, no `#ifdef` feature flags.
-A port may name a value type from [`../core/types/`](../core/types/) when that type is the
-vocabulary it speaks (`IMountSettings` and `core::DayTime`); nothing else from `core/` is allowed.
+A port may name a value type from [`../types/`](../types/) when that type is the
+vocabulary it speaks (`IMountSettings` and `types::DayTime`); nothing else from `core/` is allowed.
 Adapters in [`../adapters/`](../adapters/) implement these ports on top of [`../hal/`](../hal/).
 
 ## Catalogue

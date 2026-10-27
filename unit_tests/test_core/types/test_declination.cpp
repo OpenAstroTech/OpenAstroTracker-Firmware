@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "core/types/Declination.hpp"
+#include "types/Declination.hpp"
 
-using core::Declination;
+using types::Declination;
 
 TEST(DeclinationTest, DefaultConstructor)
 {
@@ -173,11 +173,11 @@ TEST(DeclinationTest, CelestialWireRoundTrip)
     {
         for (const WireDec &wire : cases)
         {
-            const long celestial = core::DayTime::joinSeconds(wire.deg, wire.min, wire.sec);
+            const long celestial = types::DayTime::joinSeconds(wire.deg, wire.min, wire.sec);
             const Declination onAxis(Declination::fromTotalSeconds(Declination::celestialToAxisSeconds(celestial, north)));
 
             int deg, min, sec;
-            core::DayTime::splitSeconds(Declination::axisToCelestialSeconds(onAxis.getTotalSeconds(), north), deg, min, sec);
+            types::DayTime::splitSeconds(Declination::axisToCelestialSeconds(onAxis.getTotalSeconds(), north), deg, min, sec);
 
             EXPECT_EQ(wire.deg, deg) << "north=" << north << " deg=" << wire.deg;
             EXPECT_EQ(wire.min, min) << "north=" << north << " deg=" << wire.deg;
@@ -199,8 +199,8 @@ TEST(DeclinationTest, CelestialSecondsFromKeepsTheSignOfZeroDegrees)
     EXPECT_EQ(0L, Declination::celestialSecondsFrom(0, 0, 0, false));
 
     // Whole degrees still join the way the signed-degrees form did.
-    EXPECT_EQ(core::DayTime::joinSeconds(-5, 30, 0), Declination::celestialSecondsFrom(5, 30, 0, true));
-    EXPECT_EQ(core::DayTime::joinSeconds(89, 59, 59), Declination::celestialSecondsFrom(89, 59, 59, false));
+    EXPECT_EQ(types::DayTime::joinSeconds(-5, 30, 0), Declination::celestialSecondsFrom(5, 30, 0, true));
+    EXPECT_EQ(types::DayTime::joinSeconds(89, 59, 59), Declination::celestialSecondsFrom(89, 59, 59, false));
 }
 
 TEST(DeclinationTest, ZeroDegreesSouthLandsOneDegreeFromWhereSignedDegreesPutIt)
@@ -209,7 +209,7 @@ TEST(DeclinationTest, ZeroDegreesSouthLandsOneDegreeFromWhereSignedDegreesPutIt)
     // decFromWire used to flatten the parser's sign flag back into a signed
     // `deg`, so "-00*30:00" reached the join as joinSeconds(0, 30, 0) -- the
     // same value as "+00*30:00", one whole degree away from the truth.
-    const long viaSignedDegrees = Declination::celestialToAxisSeconds(core::DayTime::joinSeconds(0, 30, 0), true);
+    const long viaSignedDegrees = Declination::celestialToAxisSeconds(types::DayTime::joinSeconds(0, 30, 0), true);
     const long viaSeparateSign  = Declination::celestialToAxisSeconds(Declination::celestialSecondsFrom(0, 30, 0, true), true);
 
     EXPECT_EQ(322200L, viaSignedDegrees);
@@ -218,7 +218,7 @@ TEST(DeclinationTest, ZeroDegreesSouthLandsOneDegreeFromWhereSignedDegreesPutIt)
 
     // Southern mounts have the same blind spot on the same input, mirrored:
     // the signed-degrees path is the one that lands 1 degree out.
-    EXPECT_EQ(-325800L, Declination::celestialToAxisSeconds(core::DayTime::joinSeconds(0, 30, 0), false));
+    EXPECT_EQ(-325800L, Declination::celestialToAxisSeconds(types::DayTime::joinSeconds(0, 30, 0), false));
     EXPECT_EQ(-322200L, Declination::celestialToAxisSeconds(Declination::celestialSecondsFrom(0, 30, 0, true), false));
 }
 

@@ -3,9 +3,9 @@
 #include <stdint.h>
 
 #include "core/PortVocabulary.hpp"
-#include "core/types/DayTime.hpp"
-#include "core/types/Latitude.hpp"
-#include "core/types/Longitude.hpp"
+#include "types/DayTime.hpp"
+#include "types/Latitude.hpp"
+#include "types/Longitude.hpp"
 
 namespace ports
 {
@@ -27,14 +27,14 @@ class IMountSiteTime
     {
     }
 
-    virtual core::Latitude latitude() const   = 0;
-    virtual core::Longitude longitude() const = 0;
+    virtual types::Latitude latitude() const   = 0;
+    virtual types::Longitude longitude() const = 0;
 
-    virtual void setLatitude(const core::Latitude &latitude)    = 0;
-    virtual void setLongitude(const core::Longitude &longitude) = 0;
+    virtual void setLatitude(const types::Latitude &latitude)    = 0;
+    virtual void setLongitude(const types::Longitude &longitude) = 0;
 
-    virtual core::DayTime getLocalTime() = 0;
-    virtual core::DayTime getUtcTime()   = 0;
+    virtual types::DayTime getLocalTime() = 0;
+    virtual types::DayTime getUtcTime()   = 0;
     virtual LocalDate getLocalDate()     = 0;
 
     /// The offset the mount adds to local time to reach UTC. The Meade wire carries the inverse
@@ -42,13 +42,13 @@ class IMountSiteTime
     virtual int getLocalUtcOffset() const      = 0;
     virtual void setLocalUtcOffset(int offset) = 0;
 
-    virtual void setLocalStartTime(const core::DayTime &time)    = 0;
+    virtual void setLocalStartTime(const types::DayTime &time)    = 0;
     virtual void setLocalStartDate(int year, int month, int day) = 0;
 
     /// Sets the local sidereal time (`:St#`) / the hour angle (`:SH#`) and re-derives the
     /// mount's internal clock from it.
-    virtual void setLST(const core::DayTime &lst) = 0;
-    virtual void setHA(const core::DayTime &ha)   = 0;
+    virtual void setLST(const types::DayTime &lst) = 0;
+    virtual void setHA(const types::DayTime &ha)   = 0;
 };
 
 }  // namespace ports

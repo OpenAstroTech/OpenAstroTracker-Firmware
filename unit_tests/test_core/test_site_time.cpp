@@ -12,7 +12,7 @@ constexpr unsigned long kOneDay    = 86400UL * 1000UL;
 TEST(SiteTimeTest, LocalTimeAdvancesWithTheClock)
 {
     core::SiteTime site;
-    site.setLocalStartTime(core::DayTime(20, 30, 0), 5000);
+    site.setLocalStartTime(types::DayTime(20, 30, 0), 5000);
 
     EXPECT_NEAR(20.5f, site.localTimeAt(5000).getTotalHours(), 0.001f);
     EXPECT_NEAR(20.5f + 90.0f / 3600.0f, site.localTimeAt(5000 + 90 * kOneSecond).getTotalHours(), 0.001f);
@@ -21,7 +21,7 @@ TEST(SiteTimeTest, LocalTimeAdvancesWithTheClock)
 TEST(SiteTimeTest, UtcTimeSubtractsTheOffset)
 {
     core::SiteTime site;
-    site.setLocalStartTime(core::DayTime(20, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(20, 0, 0), 0);
     site.setLocalUtcOffset(2);
 
     EXPECT_NEAR(18.0f, site.utcTimeAt(0).getTotalHours(), 0.001f);
@@ -30,7 +30,7 @@ TEST(SiteTimeTest, UtcTimeSubtractsTheOffset)
 TEST(SiteTimeTest, UtcTimeHandlesANegativeOffset)
 {
     core::SiteTime site;
-    site.setLocalStartTime(core::DayTime(20, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(20, 0, 0), 0);
     site.setLocalUtcOffset(-5);
 
     EXPECT_NEAR(1.0f, site.utcTimeAt(0).getTotalHours(), 0.001f);
@@ -40,7 +40,7 @@ TEST(SiteTimeTest, DateDoesNotRollBeforeLocalMidnight)
 {
     core::SiteTime site;
     site.setLocalStartDate({2024, 3, 10});
-    site.setLocalStartTime(core::DayTime(22, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(22, 0, 0), 0);
 
     const core::CalendarDate date = site.localDateAt(30 * 60 * kOneSecond);  // 22:30 local
 
@@ -53,7 +53,7 @@ TEST(SiteTimeTest, DateRollsAtLocalMidnight)
 {
     core::SiteTime site;
     site.setLocalStartDate({2024, 3, 10});
-    site.setLocalStartTime(core::DayTime(22, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(22, 0, 0), 0);
 
     const core::CalendarDate date = site.localDateAt(3 * 3600 * kOneSecond);  // 01:00 local
 
@@ -66,7 +66,7 @@ TEST(SiteTimeTest, DateRollsAcrossAMonthBoundary)
 {
     core::SiteTime site;
     site.setLocalStartDate({2024, 2, 28});
-    site.setLocalStartTime(core::DayTime(12, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(12, 0, 0), 0);
 
     const core::CalendarDate date = site.localDateAt(kOneDay);  // noon the next day
 
@@ -79,10 +79,10 @@ TEST(SiteTimeTest, LstMatchesTheSiderealFormulaForTheUtcInstant)
 {
     // J2000.0: 2000-01-01 12:00 UTC at Greenwich gives a sidereal time of about 18h 41m 50s.
     core::SiteTime site;
-    site.setLongitude(core::Longitude(0.0f));
+    site.setLongitude(types::Longitude(0.0f));
     site.setLocalUtcOffset(0);
     site.setLocalStartDate({2000, 1, 1});
-    site.setLocalStartTime(core::DayTime(12, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(12, 0, 0), 0);
 
     const float lst = site.lstAt(0).getTotalHours();
 
@@ -94,10 +94,10 @@ TEST(SiteTimeTest, LstUsesTheUtcDateNotTheLocalOne)
     // 01:00 local at UTC+2 is 23:00 UTC on the *previous* day; using the local date here would
     // shift the answer by nearly 24 sidereal hours.
     core::SiteTime site;
-    site.setLongitude(core::Longitude(13.0f));
+    site.setLongitude(types::Longitude(13.0f));
     site.setLocalUtcOffset(2);
     site.setLocalStartDate({2024, 6, 15});
-    site.setLocalStartTime(core::DayTime(1, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(1, 0, 0), 0);
 
     const float lst = site.lstAt(0).getTotalHours();
 
@@ -109,10 +109,10 @@ TEST(SiteTimeTest, LstAdvancesAtTheSiderealRate)
 {
     // One solar hour advances sidereal time by 1.0027 hours, because the sidereal day is shorter.
     core::SiteTime site;
-    site.setLongitude(core::Longitude(-70.0f));
+    site.setLongitude(types::Longitude(-70.0f));
     site.setLocalUtcOffset(-5);
     site.setLocalStartDate({2024, 2, 1});
-    site.setLocalStartTime(core::DayTime(20, 0, 0), 0);
+    site.setLocalStartTime(types::DayTime(20, 0, 0), 0);
 
     const float start  = site.lstAt(0).getTotalHours();
     const float anHour = site.lstAt(3600UL * 1000UL).getTotalHours();
@@ -130,7 +130,7 @@ TEST(SiteTimeTest, SettingTheSiderealTimeAlsoSetsTheRaZeroPoint)
 {
     // Home RA is wherever the sky was when the session started; that has always been the rule.
     core::SiteTime site;
-    site.setLst(core::DayTime(7, 30, 0));
+    site.setLst(types::DayTime(7, 30, 0));
 
     EXPECT_NEAR(7.5f, site.lst().getTotalHours(), 0.001f);
     EXPECT_NEAR(7.5f, site.raZeroPoint().getTotalHours(), 0.001f);
@@ -139,7 +139,7 @@ TEST(SiteTimeTest, SettingTheSiderealTimeAlsoSetsTheRaZeroPoint)
 TEST(SiteTimeTest, ASyncMovesTheZeroPointButNotTheClock)
 {
     core::SiteTime site;
-    site.setLst(core::DayTime(7, 30, 0));
+    site.setLst(types::DayTime(7, 30, 0));
 
     site.adjustRaZeroPoint(1.25f);
 
@@ -150,7 +150,7 @@ TEST(SiteTimeTest, ASyncMovesTheZeroPointButNotTheClock)
 TEST(SiteTimeTest, AdjustingTheZeroPointWrapsThroughMidnight)
 {
     core::SiteTime site;
-    site.setLst(core::DayTime(23, 0, 0));
+    site.setLst(types::DayTime(23, 0, 0));
 
     site.adjustRaZeroPoint(3.0f);
 
@@ -161,10 +161,10 @@ TEST(SiteTimeTest, ReSettingTheSiderealTimeDiscardsTheSyncOffset)
 {
     // Setting LST resets the zero point, which is what a new session does.
     core::SiteTime site;
-    site.setLst(core::DayTime(7, 0, 0));
+    site.setLst(types::DayTime(7, 0, 0));
     site.adjustRaZeroPoint(2.0f);
 
-    site.setLst(core::DayTime(9, 0, 0));
+    site.setLst(types::DayTime(9, 0, 0));
 
     EXPECT_NEAR(9.0f, site.raZeroPoint().getTotalHours(), 0.001f);
 }

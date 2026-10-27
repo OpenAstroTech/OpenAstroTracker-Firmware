@@ -1,4 +1,4 @@
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 #include "Configuration.hpp"
 #include "app/MountExecutor.hpp"
 #include "adapters/MeadeCommandAdapter.hpp"
@@ -253,7 +253,7 @@ String getComponent(const String &comp)
         {F("ENDSW_DEC"), F("End switches on DEC")},
         {F("ENDSW_RA_DEC"), F("End switches on RA and DEC")},
     };
-    auto driverLookup = MappedDict<String, String>(lookupTable, core::arraySize(lookupTable));
+    auto driverLookup = MappedDict<String, String>(lookupTable, types::arraySize(lookupTable));
 
     String rtn;
     if (driverLookup.tryGet(comp, &rtn))

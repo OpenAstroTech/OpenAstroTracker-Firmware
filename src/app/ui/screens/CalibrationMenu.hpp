@@ -119,7 +119,7 @@ class CalibrationMenu
 
     /// The shared behaviour of the menu rows: UP/DOWN walk the ring, SELECT opens the entry, RIGHT
     /// leaves the screen.
-    CalibrationOutcome handleHighlightKey(core::Button key, UiPorts &ports, ports::IDisplay &display, CalibrationOutcome outcome);
+    CalibrationOutcome handleHighlightKey(types::Button key, UiPorts &ports, ports::IDisplay &display, CalibrationOutcome outcome);
 
     /// Moves the highlight by `direction` through the entries this board has, refreshing the value
     /// the newly selected entry edits.
@@ -132,7 +132,7 @@ class CalibrationMenu
     bool updateSpeedCalibration(const MenuKeyInput &input, UiPorts &ports);
 
     /// The polar-alignment step's manual AZ/ALT drive, which acts on the held key.
-    void updatePolarDrive(core::Button held, UiPorts &ports);
+    void updatePolarDrive(types::Button held, UiPorts &ports);
 
     void paintIndicator(char *row, float angle);
 

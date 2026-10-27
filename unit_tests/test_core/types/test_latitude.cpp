@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "core/types/Latitude.hpp"
+#include "types/Latitude.hpp"
 
-using core::Latitude;
+using types::Latitude;
 
 TEST(LatitudeTest, DefaultConstructor)
 {

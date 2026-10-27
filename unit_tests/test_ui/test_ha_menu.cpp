@@ -11,7 +11,7 @@ using app::HaMenu;
 using app::HaMenuOutcome;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountReadModel;
 using fakes::FakeMountSettings;
@@ -266,7 +266,7 @@ TEST(HaMenuTest, ManualEntryAdjustsTheHourOrTheMinuteOnEachPress)
     Harness harness;
     FakeGps gps;
     HaMenuOutcome outcome;
-    harness.read.haTime     = core::DayTime(5, 30, 0);
+    harness.read.haTime     = types::DayTime(5, 30, 0);
     harness.siteTime.lastHa = harness.read.haTime;
     menu.enter(true);
 
@@ -317,7 +317,7 @@ TEST(HaMenuTest, WithoutAReceiverTheArrowsRepeatWhileHeld)
     HaMenu menu;
     Harness harness;
     HaMenuOutcome outcome;
-    harness.read.haTime = core::DayTime(5, 30, 0);
+    harness.read.haTime = types::DayTime(5, 30, 0);
     menu.enter(false);
 
     // A held key repeats the step; the edge is what the released / changed key produces.

@@ -2,9 +2,9 @@
 
 #include <stdint.h>
 
-#include "core/types/DayTime.hpp"
+#include "types/DayTime.hpp"
 #include "core/PortVocabulary.hpp"
-#include "core/types/Declination.hpp"
+#include "types/Declination.hpp"
 
 namespace ports
 {
@@ -27,17 +27,17 @@ class IMountReadModel
     {
     }
 
-    virtual core::DayTime currentRA() const      = 0;
-    virtual core::Declination currentDEC() const = 0;
+    virtual types::DayTime currentRA() const      = 0;
+    virtual types::Declination currentDEC() const = 0;
 
     /// Mutable references: `:Sr#` / `:Sd#` write the target in place, and the mount has always
     /// exposed it that way. A setter pair would need the same storage and one more entry point.
-    virtual core::DayTime &targetRA()      = 0;
-    virtual core::Declination &targetDEC() = 0;
+    virtual types::DayTime &targetRA()      = 0;
+    virtual types::Declination &targetDEC() = 0;
 
     /// Hour angle and local sidereal time, both derived from the clock and the site.
-    virtual core::DayTime calculateHa()  = 0;
-    virtual core::DayTime calculateLst() = 0;
+    virtual types::DayTime calculateHa()  = 0;
+    virtual types::DayTime calculateLst() = 0;
 
     /// Converts a celestial coordinate into stepper positions without moving anything.
     virtual void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos) = 0;
@@ -46,7 +46,7 @@ class IMountReadModel
     virtual float checkRALimit() = 0;
 
     /// Hour angle as the mount currently reports it (the value `:GH#` sends).
-    virtual core::DayTime hourAngle() = 0;
+    virtual types::DayTime hourAngle() = 0;
 
     /// Current stepper position of one axis, in its own microsteps. The `int` overload takes a
     /// movement direction (`WEST`, `NORTH`, `TRACKING`) as the menu screens do.

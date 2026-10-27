@@ -5,7 +5,7 @@
 
 using app::HomeMenu;
 using app::MenuKeyResult;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 
 namespace
@@ -63,7 +63,7 @@ class RecordingMotion final : public ports::IMountMotion
     void setHome(bool) override
     {
     }
-    void syncPosition(const core::DayTime &, const core::Declination &) override
+    void syncPosition(const types::DayTime &, const types::Declination &) override
     {
     }
     void setTrackingStepperPos(long) override

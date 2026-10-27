@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "core/types/RightAscension.hpp"
+#include "types/RightAscension.hpp"
 
-using core::RightAscension;
+using types::RightAscension;
 
 TEST(RightAscensionTest, DefaultConstructor)
 {

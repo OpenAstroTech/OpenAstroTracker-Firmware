@@ -125,7 +125,7 @@ bool readLongitude(Cursor &c, MeadeLongitude &out)
     }
 
     // Reject anything outside one full circle, which nothing downstream does:
-    // core::Longitude(int, int, int) never calls checkHours(), and
+    // types::Longitude(int, int, int) never calls checkHours(), and
     // EEPROMStore::storeLongitude clamps degrees*100 into an int16, which destroys
     // the mod-360 equivalence and persists a genuinely wrong site across reboots.
     if ((ddd >= 360) || (mm >= 60))

@@ -11,7 +11,7 @@ using app::ControlMenu;
 using app::ControlMenuOutcome;
 using app::MenuKeyInput;
 using app::MenuKeyResult;
-using core::Button;
+using types::Button;
 using fakes::FakeDisplay;
 using fakes::FakeMountMotion;
 using fakes::FakeMountReadModel;

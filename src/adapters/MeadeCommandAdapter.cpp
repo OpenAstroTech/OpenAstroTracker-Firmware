@@ -2,7 +2,7 @@ PUSH_NO_WARNINGS
 #include <Arduino.h>
 POP_NO_WARNINGS
 #include "../Configuration.hpp"
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 #include "ports/ILogger.hpp"
 #include "MeadeCommandAdapter.hpp"
 #include "WifiControl.hpp"
@@ -201,7 +201,7 @@ const char *MeadeCommandAdapter::onProductName()
 
 namespace
 {
-meade::RaCoordinate raFrom(const core::DayTime &t)
+meade::RaCoordinate raFrom(const types::DayTime &t)
 {
     return meade::RaCoordinate {
         static_cast<uint8_t>(t.getHours()),
@@ -210,7 +210,7 @@ meade::RaCoordinate raFrom(const core::DayTime &t)
     };
 }
 
-meade::DecCoordinate decFrom(const core::Declination &d, bool northernHemisphere)
+meade::DecCoordinate decFrom(const types::Declination &d, bool northernHemisphere)
 {
     // The mount stores DEC as an axis coordinate (0 = pole above the mount);
     // Meade clients expect celestial declination. Apply the hemisphere
@@ -218,9 +218,9 @@ meade::DecCoordinate decFrom(const core::Declination &d, bool northernHemisphere
     //
     // The split folds the sign into `deg`, where anything between 0 and -1
     // degrees comes back as +0. Read the sign off the undivided total.
-    const long celestialSeconds = core::Declination::axisToCelestialSeconds(d.getTotalSeconds(), northernHemisphere);
+    const long celestialSeconds = types::Declination::axisToCelestialSeconds(d.getTotalSeconds(), northernHemisphere);
     int deg, min, sec;
-    core::DayTime::splitSeconds(celestialSeconds, deg, min, sec);
+    types::DayTime::splitSeconds(celestialSeconds, deg, min, sec);
     return meade::DecCoordinate {
         static_cast<uint16_t>(deg < 0 ? -deg : deg),
         static_cast<uint8_t>(min),
@@ -236,7 +236,7 @@ Declination decFromWire(meade::DecCoordinate const &d, bool northernHemisphere)
     // here would lose it again for "-00*30:00", which is the whole point of the
     // separate flag. celestialSecondsFrom is the declination counterpart of
     // siteSecondsFrom below.
-    return Declination::fromCelestialSeconds(core::Declination::celestialSecondsFrom(d.degrees, d.minutes, d.seconds, d.negative),
+    return Declination::fromCelestialSeconds(types::Declination::celestialSecondsFrom(d.degrees, d.minutes, d.seconds, d.negative),
                                              northernHemisphere);
 }
 
@@ -292,7 +292,7 @@ bool MeadeCommandAdapter::onIsGuiding()
 
 meade::MeadeLatitude MeadeCommandAdapter::onSiteLatitude()
 {
-    const core::Latitude lat = _siteTime->latitude();
+    const types::Latitude lat = _siteTime->latitude();
     // getHours() folds the sign into the degrees component, so a site between
     // 0 and -1 degrees reports as +0. Read the sign off the total instead.
     const int degrees = lat.getHours();
@@ -305,7 +305,7 @@ meade::MeadeLatitude MeadeCommandAdapter::onSiteLatitude()
 
 meade::MeadeLongitude MeadeCommandAdapter::onSiteLongitude()
 {
-    const core::Longitude lon = _siteTime->longitude();
+    const types::Longitude lon = _siteTime->longitude();
     const int degrees         = lon.getHours();
     return meade::MeadeLongitude {
         static_cast<uint16_t>(degrees < 0 ? -degrees : degrees),
@@ -321,7 +321,7 @@ int MeadeCommandAdapter::onUtcOffset()
 
 meade::MeadeLocalTime MeadeCommandAdapter::onLocalTime()
 {
-    core::DayTime time = _siteTime->getLocalTime();
+    types::DayTime time = _siteTime->getLocalTime();
     return meade::MeadeLocalTime {
         static_cast<uint8_t>(time.getHours()),
         static_cast<uint8_t>(time.getMinutes()),
@@ -376,12 +376,12 @@ bool MeadeCommandAdapter::acquireGpsFix()
         return false;
     }
 
-    core::DayTime utcNow(fix.hour, fix.minute, fix.second);
+    types::DayTime utcNow(fix.hour, fix.minute, fix.second);
     utcNow.addHours(_siteTime->getLocalUtcOffset());
     _siteTime->setLocalStartTime(utcNow);
     _siteTime->setLocalStartDate(fix.year, fix.month, fix.day);
-    _siteTime->setLatitude(core::Latitude(static_cast<float>(fix.latitude)));
-    _siteTime->setLongitude(core::Longitude(static_cast<float>(fix.longitude)));
+    _siteTime->setLatitude(types::Latitude(static_cast<float>(fix.latitude)));
+    _siteTime->setLongitude(types::Longitude(static_cast<float>(fix.longitude)));
     return true;
 }
 
@@ -455,7 +455,7 @@ bool MeadeCommandAdapter::onSetTargetRa(meade::RaCoordinate ra)
 bool MeadeCommandAdapter::onSetLocalSiderealTime(meade::MeadeLocalTime lst)
 {
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received LST: %u:%u:%u", lst.hours, lst.minutes, lst.seconds);
-    _siteTime->setLST(core::DayTime(static_cast<int>(lst.hours), static_cast<int>(lst.minutes), static_cast<int>(lst.seconds)));
+    _siteTime->setLST(types::DayTime(static_cast<int>(lst.hours), static_cast<int>(lst.minutes), static_cast<int>(lst.seconds)));
     return true;
 }
 
@@ -468,7 +468,7 @@ bool MeadeCommandAdapter::onSetHomePoint()
 bool MeadeCommandAdapter::onSetHourAngle(uint8_t hours, uint8_t minutes)
 {
     LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received HA: %u:%u:0", hours, minutes);
-    _siteTime->setHA(core::DayTime(static_cast<int>(hours), static_cast<int>(minutes), 0));
+    _siteTime->setHA(types::DayTime(static_cast<int>(hours), static_cast<int>(minutes), 0));
     return true;
 }
 
@@ -506,7 +506,7 @@ bool MeadeCommandAdapter::onSetUtcOffset(int hours)
 
 bool MeadeCommandAdapter::onSetLocalTime(meade::MeadeLocalTime t)
 {
-    _siteTime->setLocalStartTime(core::DayTime(static_cast<int>(t.hours), static_cast<int>(t.minutes), static_cast<int>(t.seconds)));
+    _siteTime->setLocalStartTime(types::DayTime(static_cast<int>(t.hours), static_cast<int>(t.minutes), static_cast<int>(t.seconds)));
     return true;
 }
 
@@ -678,7 +678,7 @@ bool MeadeCommandAdapter::onGetHemisphere()
 
 oat::core::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
 {
-    core::DayTime ha = _read->calculateHa();
+    types::DayTime ha = _read->calculateHa();
     oat::core::meade::ExtraHms t;
     t.hours   = ha.getHours();
     t.minutes = ha.getMinutes();
@@ -688,7 +688,7 @@ oat::core::meade::ExtraHms MeadeCommandAdapter::onGetHourAngle()
 
 oat::core::meade::ExtraHms MeadeCommandAdapter::onGetLocalSiderealTime()
 {
-    core::DayTime lst = _read->calculateLst();
+    types::DayTime lst = _read->calculateLst();
     oat::core::meade::ExtraHms t;
     t.hours   = lst.getHours();
     t.minutes = lst.getMinutes();
@@ -914,7 +914,7 @@ void MeadeCommandAdapter::onFocusContinuousIn()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove IN");
-    _axes->focusContinuousMove(core::FOCUS_BACKWARD);
+    _axes->focusContinuousMove(types::FOCUS_BACKWARD);
 #endif
 }
 
@@ -922,7 +922,7 @@ void MeadeCommandAdapter::onFocusContinuousOut()
 {
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     LOG(DEBUG_MEADE, "[MEADE]: Focus focusContinuousMove OUT");
-    _axes->focusContinuousMove(core::FOCUS_FORWARD);
+    _axes->focusContinuousMove(types::FOCUS_FORWARD);
 #endif
 }
 
@@ -1113,7 +1113,7 @@ bool MeadeCommandAdapter::onHomeRa(int direction, const char *distancePayload)
     int distance = RA_HOMING_SENSOR_SEARCH_DEGREES;
     if (distancePayload != nullptr && distancePayload[0] != '\0')
     {
-        distance = core::clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
+        distance = types::clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
         LOG(DEBUG_MEADE, "[MEADE]: RA AutoHome by %dh", distance);
     }
     return _motion->findHomeByHallSensor(StepperAxis::RA_STEPS, direction, distance);
@@ -1130,7 +1130,7 @@ bool MeadeCommandAdapter::onHomeDec(int direction, const char *distancePayload)
     int distance = DEC_HOMING_SENSOR_SEARCH_DEGREES;
     if (distancePayload != nullptr && distancePayload[0] != '\0')
     {
-        distance = core::clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
+        distance = types::clamp(static_cast<int>(strtol(distancePayload, nullptr, 10)), 5, 75);
         LOG(DEBUG_MEADE, "[MEADE]: DEC AutoHome by %dh", distance);
     }
     return _motion->findHomeByHallSensor(StepperAxis::DEC_STEPS, direction, distance);

@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
-#include "core/types/DayTime.hpp"
+#include "types/DayTime.hpp"
 
-using core::DayTime;
+using types::DayTime;
 
 TEST(DayTimeTest, DefaultConstructor)
 {

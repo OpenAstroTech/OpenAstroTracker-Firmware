@@ -1,4 +1,4 @@
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 #include "MountExecutor.hpp"
 
 #include "ports/ILogger.hpp"
@@ -60,7 +60,7 @@ bool MountExecutor::connectToDriver(const String &driverKind, uint16_t *rmsCurre
         {"FOC", _axes.focusDriver()},
     #endif
     };
-    auto driverLookup = MappedDict<String, ports::IMotorDriver *>(lookupTable, core::arraySize(lookupTable));
+    auto driverLookup = MappedDict<String, ports::IMotorDriver *>(lookupTable, types::arraySize(lookupTable));
 
     ports::IMotorDriver *driver = nullptr;
     driverLookup.tryGet(driverKind, &driver);

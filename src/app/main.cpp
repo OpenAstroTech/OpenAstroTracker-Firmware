@@ -350,14 +350,14 @@ void setup()
 
     // Check for EEPROM reset (Button down during boot)
     long lcdCheckStart = millis();
-    if ((menuButtons != nullptr) && (menuButtons->pressed() == core::Button::Down))
+    if ((menuButtons != nullptr) && (menuButtons->pressed() == types::Button::Down))
     {
         // Wait for button release
         menu.setCursor(13, 1);
         menu.printMenu(F("CLR"));
         LOG(DEBUG_INFO, "[SYSTEM]: DOWN pressed, waiting for button release!");
         bool timedOut = false;
-        while ((menuButtons != nullptr) && (menuButtons->pressed() != core::Button::None))
+        while ((menuButtons != nullptr) && (menuButtons->pressed() != types::Button::None))
         {
             delay(10);
             // Wait 3s maximum for button to be released.

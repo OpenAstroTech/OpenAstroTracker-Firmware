@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#include "core/types/DayTime.hpp"
+#include "types/DayTime.hpp"
 
 namespace ports
 {
@@ -46,7 +46,7 @@ struct InfoDisplayState {
     float latitudeHours;
     float longitudeHours;
     float hoursToLimit;
-    core::DayTime lst;
+    types::DayTime lst;
 
     /// Pre-formatted coordinate strings, in the display's own wire shape.
     char raText[24];

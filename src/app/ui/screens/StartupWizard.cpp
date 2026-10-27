@@ -1,6 +1,6 @@
 #include "app/ui/screens/StartupWizard.hpp"
 
-#include "core/MathUtil.hpp"
+#include "types/MathUtil.hpp"
 
 namespace
 {
@@ -87,18 +87,18 @@ StartupOutcome StartupWizard::handleKey(const MenuKeyInput &input, UiPorts &port
         return outcome;
     }
 
-    if (input.edge == core::Button::None)
+    if (input.edge == types::Button::None)
     {
         return outcome;
     }
 
     outcome.result = MenuKeyResult::WaitForRelease;
-    if (input.edge == core::Button::Left)
+    if (input.edge == types::Button::Left)
     {
         _homeAnswer = static_cast<HomeAnswer>((static_cast<int>(_homeAnswer) + 1) % 3);
         return outcome;
     }
-    if (input.edge != core::Button::Select)
+    if (input.edge != types::Button::Select)
     {
         return outcome;
     }
@@ -142,7 +142,7 @@ void StartupWizard::applyHourAngleConfirmation(UiPorts &ports)
     // The mount is where it is: that becomes home, and the hour angle the operator just set is
     // written back so the two agree.
     ports.motion->setHome(true);
-    const core::DayTime hourAngle = ports.read->hourAngle();
+    const types::DayTime hourAngle = ports.read->hourAngle();
     ports.siteTime->setHA(hourAngle);
     ports.read->targetRA() = ports.read->currentRA();
 }

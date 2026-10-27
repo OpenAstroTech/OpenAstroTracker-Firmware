@@ -29,21 +29,21 @@ MenuKeyResult FocusMenu::handleKey(const MenuKeyInput &input, ports::IMountOptio
     if (_state == State::Adjust)
     {
         // Holding UP/DOWN drives the focuser continuously; releasing it stops.
-        if (input.held == core::Button::Up)
+        if (input.held == types::Button::Up)
         {
             if (!axes.isRunningFocus())
             {
-                axes.focusContinuousMove(core::FOCUS_BACKWARD);
+                axes.focusContinuousMove(types::FOCUS_BACKWARD);
             }
         }
-        else if (input.held == core::Button::Down)
+        else if (input.held == types::Button::Down)
         {
             if (!axes.isRunningFocus())
             {
-                axes.focusContinuousMove(core::FOCUS_FORWARD);
+                axes.focusContinuousMove(types::FOCUS_FORWARD);
             }
         }
-        else if (input.held == core::Button::None)
+        else if (input.held == types::Button::None)
         {
             if (axes.isRunningFocus())
             {
@@ -54,11 +54,11 @@ MenuKeyResult FocusMenu::handleKey(const MenuKeyInput &input, ports::IMountOptio
 
     switch (input.edge)
     {
-        case core::Button::Select:
+        case types::Button::Select:
             _state = (_state == State::Adjust) ? State::Highlight : State::Adjust;
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Right:
+        case types::Button::Right:
             if (_state == State::Adjust)
             {
                 if (_rateIndex < kMaxRate)
@@ -70,7 +70,7 @@ MenuKeyResult FocusMenu::handleKey(const MenuKeyInput &input, ports::IMountOptio
             }
             return MenuKeyResult::NextScreen;
 
-        case core::Button::Left:
+        case types::Button::Left:
             if (_state == State::Adjust)
             {
                 if (_rateIndex > 0)

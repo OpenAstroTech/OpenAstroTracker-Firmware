@@ -10,8 +10,8 @@ POP_NO_WARNINGS
 #include "../core/MountCoordinator.hpp"
 #include "../core/MountRuntimeSettings.hpp"
 #include "../core/SiteTime.hpp"
-#include "../core/types/DayTime.hpp"
-#include "../core/types/Declination.hpp"
+#include "../types/DayTime.hpp"
+#include "../types/Declination.hpp"
 #include "adapters/DayTime.hpp"
 #include "adapters/Declination.hpp"
 #include "../ports/IClock.hpp"
@@ -74,8 +74,8 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
                  bool &bootComplete,
                  RaLimitQuery raLimit);
 
-    core::DayTime currentRA() const;
-    core::Declination currentDEC() const;
+    types::DayTime currentRA() const;
+    types::Declination currentDEC() const;
 
     String RAString(byte type, byte active = 0);
     String DECString(byte type, byte active = 0);
@@ -98,14 +98,14 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
     bool isRunningALT() const;
     long getCurrentStepperPosition(StepperAxis which);
     long getCurrentStepperPosition(int direction);
-    core::DayTime calculateLst();
-    core::DayTime calculateHa();
+    types::DayTime calculateLst();
+    types::DayTime calculateHa();
 
     /// The targets are the executor's storage, handed out writable because `:Sr#`/`:Sd#` write them
     /// in place — the port has always exposed them that way.
-    core::DayTime &targetRA();
-    core::Declination &targetDEC();
-    core::DayTime hourAngle();
+    types::DayTime &targetRA();
+    types::Declination &targetDEC();
+    types::DayTime hourAngle();
 
     void calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos);
     void calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps, long pSolutions[6] = nullptr) const;

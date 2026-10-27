@@ -123,8 +123,8 @@ void MountExecutor::initializeVariables()
     _coordinator.tracking().detach();
     _coordinator.focus().detach();
 
-    _siteTime.setLatitude(core::Latitude(_coordinator.state().isNorthernHemisphere() ? 45.0f : -45.0f));
-    _siteTime.setLongitude(core::Longitude(100.0));
+    _siteTime.setLatitude(types::Latitude(_coordinator.state().isNorthernHemisphere() ? 45.0f : -45.0f));
+    _siteTime.setLongitude(types::Longitude(100.0));
     _zeroPosDEC = 0.0f;
 
     _coordinator.slew().clearTotalMove();
@@ -240,12 +240,12 @@ float MountExecutor::checkRALimit()
 }
 
 /////////////////////////////////
-core::DayTime MountExecutor::currentRA() const
+types::DayTime MountExecutor::currentRA() const
 {
     return _readout.currentRA();
 }
 
-core::Declination MountExecutor::currentDEC() const
+types::Declination MountExecutor::currentDEC() const
 {
     return _readout.currentDEC();
 }
@@ -350,17 +350,17 @@ long MountExecutor::getCurrentStepperPosition(int direction)
     return _readout.getCurrentStepperPosition(direction);
 }
 
-core::DayTime MountExecutor::calculateLst()
+types::DayTime MountExecutor::calculateLst()
 {
     return _readout.calculateLst();
 }
 
-core::DayTime &MountExecutor::targetRA()
+types::DayTime &MountExecutor::targetRA()
 {
     return _readout.targetRA();
 }
 
-core::Declination &MountExecutor::targetDEC()
+types::Declination &MountExecutor::targetDEC()
 {
     return _readout.targetDEC();
 }

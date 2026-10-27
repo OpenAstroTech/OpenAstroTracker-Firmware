@@ -24,7 +24,7 @@ MenuKeyResult HomeMenu::handleKey(const MenuKeyInput &input, ports::IMountMotion
 {
     switch (input.edge)
     {
-        case core::Button::Select:
+        case types::Button::Select:
             if (_selection == 0)
             {
                 motion.startSlewingToHome();
@@ -39,17 +39,17 @@ MenuKeyResult HomeMenu::handleKey(const MenuKeyInput &input, ports::IMountMotion
             }
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Up:
-        case core::Button::Down:
-        case core::Button::Left:
+        case types::Button::Up:
+        case types::Button::Down:
+        case types::Button::Left:
             _selection = static_cast<uint8_t>(1 - _selection);
             return MenuKeyResult::WaitForRelease;
 
-        case core::Button::Right:
+        case types::Button::Right:
             return MenuKeyResult::NextScreen;
 
-        case core::Button::None:
-        case core::Button::Invalid:
+        case types::Button::None:
+        case types::Button::Invalid:
         default:
             return MenuKeyResult::Ignored;
     }
