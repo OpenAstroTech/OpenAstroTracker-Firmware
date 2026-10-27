@@ -20,7 +20,7 @@
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/InfoDisplayPanel.hpp"
 #include "adapters/MountSettingsStore.hpp"
-#include "adapters/SiteTimePort.hpp"
+#include "core/SiteTimeService.hpp"
 #include "UiPorts.hpp"
 #include "UiSession.hpp"
 #include "StepPump.hpp"
@@ -89,9 +89,9 @@ extern app::MountExecutor mount;
 /// The site/time port the menus and the command layer use. Reaching the mount only for its
 /// `SiteTime` and its settings store is what keeps those consumers off the facade.
 #ifdef ESP32
-extern DRAM_ATTR adapters::SiteTimePort siteTimePort;
+extern DRAM_ATTR core::SiteTimeService siteTimePort;
 #else
-extern adapters::SiteTimePort siteTimePort;
+extern core::SiteTimeService siteTimePort;
 #endif
 
 /// The controllers the mount drives, owned here so the rest of the firmware can reach the

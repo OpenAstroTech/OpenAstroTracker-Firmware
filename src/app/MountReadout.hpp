@@ -45,7 +45,7 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
     /// `checkRALimit()` is the one read this class cannot make for itself: reaching the limit *stops
     /// the tracker*, so the decision belongs to the motion executor and the answer is asked for
     /// through this callback. A function pointer and a context rather than a virtual, for the same
-    /// reason `SiteTimePort::LatitudeObserver` is one: a vtable costs SRAM on AVR.
+    /// reason `SiteTimeService::LatitudeObserver` is one: a vtable costs SRAM on AVR.
     struct RaLimitQuery {
         void *context;
         float (*hoursToLimit)(void *context);

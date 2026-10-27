@@ -33,7 +33,7 @@ class MountSettings
     /// The tracking rate has to be recomputed when a setting changes while the mount is tracking.
     /// That is a motion consequence, so the executor answers it through this callback rather than
     /// this class reaching for the slew status — the same shape as
-    /// `MountReadout::RaLimitQuery` and `SiteTimePort::LatitudeObserver`. A function pointer and a
+    /// `MountReadout::RaLimitQuery` and `SiteTimeService::LatitudeObserver`. A function pointer and a
     /// context, not a virtual, because a vtable costs SRAM on AVR.
     struct TrackingQuery {
         void *context;

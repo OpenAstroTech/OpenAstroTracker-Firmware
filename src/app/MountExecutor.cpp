@@ -70,7 +70,7 @@ namespace app
 namespace
 {
 /// The readout cannot evaluate the RA limit itself — reaching it stops the tracker — so the
-/// executor answers through this thunk. Same shape as `SiteTimePort::LatitudeObserver`.
+/// executor answers through this thunk. Same shape as `SiteTimeService::LatitudeObserver`.
 float hoursToLimitThunk(void *context)
 {
     return static_cast<MountExecutor *>(context)->checkRALimit();

@@ -21,7 +21,7 @@
 #include "adapters/NullLogger.hpp"
 #include "adapters/SerialLogger.hpp"
 #include "adapters/Mpu6050Gyro.hpp"
-#include "adapters/SiteTimePort.hpp"
+#include "core/SiteTimeService.hpp"
 #include "hal/esp32/Esp32WifiStack.hpp"
 #include "hal/arduino/ArduinoI2cBus.hpp"
 #include "adapters/DebouncedButtons.hpp"
@@ -290,9 +290,11 @@ void onLatitudeChanged(void *context, bool northernHemisphere)
 }  // namespace
 
 #ifdef ESP32
-DRAM_ATTR adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, settingsStore, *logSink, {&mount, &onLatitudeChanged});
+DRAM_ATTR core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, settingsStore, {&mount, &onLatitudeChanged},
+                                     {RA_ZERO_POINT_SHIFT_HOURS, POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND});
 #else
-adapters::SiteTimePort siteTimePort(mount.siteTime(), clockPort, settingsStore, *logSink, {&mount, &onLatitudeChanged});
+core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, settingsStore, {&mount, &onLatitudeChanged},
+                                     {RA_ZERO_POINT_SHIFT_HOURS, POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND});
 #endif
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)

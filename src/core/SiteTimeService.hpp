@@ -1,12 +1,11 @@
 #pragma once
 
-#include "core/SiteTime.hpp"
+#include "SiteTime.hpp"
 #include "ports/IClock.hpp"
-#include "ports/ILogger.hpp"
 #include "ports/IMountSettings.hpp"
 #include "ports/IMountSiteTime.hpp"
 
-namespace adapters
+namespace core
 {
 
 /// `ports::IMountSiteTime` over the session's site and time state.
@@ -18,8 +17,8 @@ namespace adapters
 ///
 /// That last one is a motion consequence of a site change, so it is injected as a plain
 /// callback rather than being implemented here: a function pointer and a context keep this
-/// adapter off the mount's type (and cost no vtable, which on AVR is SRAM).
-class SiteTimePort final : public ports::IMountSiteTime
+/// service off the mount's type (and cost no vtable, which on AVR is SRAM).
+class SiteTimeService final : public ports::IMountSiteTime
 {
   public:
     /// What to call when the latitude changes sign, i.e. when the axes have to be turned around.
@@ -33,11 +32,30 @@ class SiteTimePort final : public ports::IMountSiteTime
         }
     };
 
+    /// The build-time values a write needs but that live in the board configuration: the RA ring's
+    /// zero-point offset and Polaris' catalogue position. They are injected rather than read from
+    /// `Configuration.hpp` so this service stays board-free and host-testable; the defaults match
+    /// the firmware's long-standing assumptions.
+    struct Constants {
+        Constants(float shiftHours = 0.0f, int polarisHour = 3, int polarisMin = 0, int polarisSec = 8)
+            : raZeroPointShiftHours(shiftHours), polarisRaHour(polarisHour), polarisRaMinute(polarisMin), polarisRaSecond(polarisSec)
+        {
+        }
+
+        float raZeroPointShiftHours;
+        int polarisRaHour;
+        int polarisRaMinute;
+        int polarisRaSecond;
+    };
+
     /// A callback that does nothing, for a board that never changes hemisphere.
     static LatitudeObserver noObserver();
 
-    SiteTimePort(
-        core::SiteTime &siteTime, ports::IClock &clock, ports::IMountSettings &store, ports::ILogger &logger, LatitudeObserver observer);
+    SiteTimeService(core::SiteTime &siteTime,
+                    ports::IClock &clock,
+                    ports::IMountSettings &store,
+                    LatitudeObserver observer,
+                    Constants constants = Constants());
 
     types::Latitude latitude() const override;
 
@@ -74,8 +92,8 @@ class SiteTimePort final : public ports::IMountSiteTime
     core::SiteTime &_siteTime;
     ports::IClock &_clock;
     ports::IMountSettings &_store;
-    ports::ILogger &_logger;
     LatitudeObserver _observer;
+    Constants _constants;
 };
 
-}  // namespace adapters
+}  // namespace core
