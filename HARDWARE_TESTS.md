@@ -23,8 +23,9 @@ than at "the mount".
 | ESP32 (`esp32`) | the FreeRTOS stepper-task path, Wi-Fi transport |
 | RP2040 (`rp2040_skr_pico`) | the PIO/timer path |
 
-Build with `pio run -e <env> -t upload`. AVR builds are **headless by design** (§11.6) —
-no LCD, no info display. ESP32 and RP2040 keep theirs, so run §9.4/§9.5 on those.
+Build with `pio run -e <env> -t upload`. AVR builds are **headless by default** (§11.6) —
+no LCD, no info display — except `mksgenlv21`, which keeps its LCD keypad shield. ESP32,
+RP2040 and `mksgenlv21` keep theirs, so run §9.4/§9.5 on those.
 
 ### 1.2 Rig
 
@@ -215,10 +216,13 @@ reviewer does not "fix" them back:
    terminator, so a too-long command could run as a shorter valid one. If a host driver turns
    out to rely on that, it was relying on a bug — but note it, because it is the only change
    here that alters what a command *does*.
-6. **AVR has no display** (all sections). `DISPLAY_TYPE` and `INFO_DISPLAY_TYPE` are forced to
-   `NONE` on `__AVR_ATmega2560__` builds: the display stack does not fit beside the refactor's
-   runtime configuration, and with it restored the board sat at 94.9 % of flash. Run every
-   display case on ESP32/RP2040, and treat a headless AVR board as correct.
+6. **AVR has no display, except `mksgenlv21`** (all sections). `DISPLAY_TYPE` and
+   `INFO_DISPLAY_TYPE` are forced to `NONE` on `ramps` and `mksgenlv1/v2`: the display stack
+   does not fit beside the refactor's runtime configuration, and with it restored `ramps` sat
+   at 94.9 % of flash. `mksgenlv21` is exempt and runs its LCD keypad shield (81 % flash,
+   68 % SRAM); it only fits because the stepper ramps moved their interval tables to flash.
+   Run every display case on ESP32/RP2040 and on `mksgenlv21`, and treat the other AVR boards
+   as correctly headless.
 7. **The microstep rates and steps-per-degree defaults are runtime data** (8.2, 8.3, 2.1).
    They come from `app::buildMountConfig()` at boot instead of being compile-time constants.
    Externally identical — but it is why 8.2/8.3 deserve attention: a wrong value there is now
@@ -252,8 +256,9 @@ reviewer does not "fix" them back:
 
 ## 12. What cannot be covered here
 
-- The **AVR display restore** (§7.3 of the plan): display support is currently compiled out of
-  AVR builds to fit flash. Restoring it is a separate change and needs its own pass of 9.4/9.5.
+- The **AVR display restore beyond `mksgenlv21`** (§7.3 of the plan): display support is
+  compiled out of `ramps` and `mksgenlv1/v2` to fit flash. Restoring those needs its own pass
+  of 9.4/9.5; `mksgenlv21`'s LCD keypad shield is live and does need 9.4/9.5 run on it.
 - **Timing-sensitive ISR work**: the AVR timer/ISR vectors were not moved, so nothing new to
   test there — but 9.8 confirms the refactored `loop()` did not disturb them.
 - **Long-duration soak** (hours of tracking) is useful but is not a merge gate; note it in §10

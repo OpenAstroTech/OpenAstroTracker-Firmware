@@ -146,10 +146,8 @@ BOARD_SUPPORT = {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
         "DISPLAY_TYPE": [
-            # TEMPORARY: Configuration.hpp forces DISPLAY_TYPE_NONE on AVR, so the
-            # other variants would build identical firmware. Restore this list
-            # together with that override.
-            "DISPLAY_TYPE_NONE"
+            "DISPLAY_TYPE_NONE",
+            "DISPLAY_TYPE_LCD_KEYPAD"
         ],
     }),
     "mksgenlv2": update_dict(BUILD_FLAGS, {

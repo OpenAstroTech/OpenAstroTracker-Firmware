@@ -58,7 +58,7 @@
 #endif
 
 /**
- * @brief AVR builds are headless by design.
+ * @brief AVR builds are headless by default.
  *
  * An ATmega2560 build with a display runs at 94.9 % of its 255 KB of flash before the
  * application does anything else, which is what made the Phase 4 work impossible to land.
@@ -69,11 +69,15 @@
  * alone, so a board that wants its display back is one deletion away — and needs the flash
  * found elsewhere first (GPS is −8.5 KB, the gyro −7.8 KB, both measured).
  *
- * Affected: every `__AVR_ATmega2560__` build (ramps, mksgenlv1/v2/v21). ESP32 and RP2040
- * are untouched and keep their displays. See PLAN.md for the measurements.
+ * `mksgenlv21` is exempt: its display costs 34 KB of flash and 1.8 KB of SRAM, which leaves it
+ * at 81 % flash and 68 % SRAM. The SRAM figure is only reachable because the stepper ramps keep
+ * their interval tables in flash (`hal/avr/ProgmemRamp.hpp`); with them in RAM the board links
+ * at 102 % of SRAM. Affected: `ramps`, `mksgenlv1`, `mksgenlv2`; ESP32 and RP2040 are untouched
+ * and keep their displays. See PLAN.md for the measurements.
  */
-#if defined(__AVR_ATmega2560__) && ((DISPLAY_TYPE != DISPLAY_TYPE_NONE) || (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE))
-    #warning "AVR builds are headless by design: this board would have a display, but the ATmega2560 flash budget does not allow it."
+#if defined(__AVR_ATmega2560__) && (BOARD != BOARD_AVR_MKS_GEN_L_V21)                                                                      \
+    && ((DISPLAY_TYPE != DISPLAY_TYPE_NONE) || (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE))
+    #warning "AVR builds are headless by default: this board would have a display, but the ATmega2560 flash budget does not allow it."
     #undef DISPLAY_TYPE
     #undef INFO_DISPLAY_TYPE
     #define DISPLAY_TYPE      DISPLAY_TYPE_NONE

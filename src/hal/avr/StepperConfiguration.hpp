@@ -12,6 +12,7 @@
 PUSH_NO_WARNINGS
         #include "Stepper.h"
         #include "InterruptAccelStepper.h"
+        #include "ProgmemRamp.hpp"
 POP_NO_WARNINGS
     #endif
 
@@ -37,7 +38,7 @@ struct Ra {
     using interrupt = IntervalInterrupt<Timer::TIMER_3>;
     using driver    = Driver<pin_step, pin_dir>;
 
-    using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+    using ramp_slew = hal::ProgmemAccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
     using ramp_trk  = ConstantRamp<interrupt::FREQ>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
@@ -68,7 +69,7 @@ struct Dec {
     using interrupt = IntervalInterrupt<Timer::TIMER_4>;
     using driver    = Driver<pin_step, pin_dir>;
 
-    using ramp_slew = AccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+    using ramp_slew = hal::ProgmemAccelerationRamp<256, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
     using ramp_trk  = ConstantRamp<interrupt::FREQ>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
@@ -88,7 +89,7 @@ struct Az {
     using interrupt = IntervalInterrupt<Timer::TIMER_1>;
     using driver    = Driver<pin_step, pin_dir>;
 
-    using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+    using ramp_slew = hal::ProgmemAccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
         #endif
@@ -107,7 +108,7 @@ struct Alt {
     using interrupt = IntervalInterrupt<Timer::TIMER_5>;
     using driver    = Driver<pin_step, pin_dir>;
 
-    using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+    using ramp_slew = hal::ProgmemAccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
         #endif
@@ -126,7 +127,7 @@ struct Focus {
     using interrupt = IntervalInterrupt<Timer::TIMER_5>;
     using driver    = Driver<pin_step, pin_dir>;
 
-    using ramp_slew = AccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
+    using ramp_slew = hal::ProgmemAccelerationRamp<64, interrupt::FREQ, UINT32(SPEED_SLEW), UINT32(ACCEL_SLEW)>;
 
     using stepper_slew = Stepper<interrupt, driver, ramp_slew>;
         #endif
