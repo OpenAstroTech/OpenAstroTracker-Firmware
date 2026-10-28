@@ -15,6 +15,11 @@
     // minimal stepping frequency (steps/s) based on cpu frequency, timer counter overflow and max amount of overflows
     #define MIN_STEPS_PER_SEC (static_cast<float>(F_CPU) / (static_cast<long>(UINT16_MAX) * static_cast<long>(UINT8_MAX)))
 
+// This engine is `hal/`, the bottom of the dependency graph, so it owns no logger: `ports/` is what
+// the layers above ask for, and an adapter composes this backend rather than the other way round.
+// Its call traces used to go through the domain `LOG()` macro; the caller that drives the engine
+// (`app::MountExecutor`) already logs the same requests at `DEBUG_STEPPERS`, so the engine stays
+// silent and HAL stays free of `ports/`.
 template <typename STEPPER> class InterruptAccelStepper
 {
   private:
@@ -30,9 +35,6 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void moveTo(long absolute)
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] moveTo(%l)", STEPPER::TIMER_ID, absolute);
-        LOG(DEBUG_STEPPERS, "[IAS-%d] relative=%l", STEPPER::TIMER_ID, absolute - STEPPER::getPosition());
-
         _target = absolute;
 
         STEPPER::moveTo(_max_speed, _target);
@@ -40,8 +42,6 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void move(long relative)
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] move(%l)", STEPPER::TIMER_ID, relative);
-
         _target = STEPPER::getPosition() + relative;
 
         moveTo(_target);
@@ -49,7 +49,6 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void setMaxSpeed(float speed)
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] setMaxSpeed(%f)", STEPPER::TIMER_ID, speed);
         _max_speed = fabsf(speed);
     }
 
@@ -65,12 +64,10 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void setSpeed(float speed)
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] setSpeed(%f)", STEPPER::TIMER_ID, speed);
         _speed = speed;
 
         if (fabsf(speed) < MIN_STEPS_PER_SEC)
         {
-            LOG(DEBUG_STEPPERS, "[IAS-%d] setSpeed(%f) - speed is too low (%f). Stopping.", STEPPER::TIMER_ID, speed, MIN_STEPS_PER_SEC);
             STEPPER::stop();
         }
         else
@@ -101,7 +98,6 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void setCurrentPosition(long position)
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] setCurrentPosition(%l)", STEPPER::TIMER_ID, position);
         STEPPER::setPosition(position);
     }
 
@@ -116,7 +112,6 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void runToPosition()
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] runToPosition(%l)", STEPPER::TIMER_ID, _target);
         while (isRunning())
         {
             yield();
@@ -125,14 +120,12 @@ template <typename STEPPER> class InterruptAccelStepper
 
     void runToNewPosition(long position)
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] runToNewPosition(%l)", STEPPER::TIMER_ID, position);
         moveTo(position);
         runToPosition();
     }
 
     void stop()
     {
-        LOG(DEBUG_STEPPERS, "[IAS-%d] stop()", STEPPER::TIMER_ID);
         STEPPER::stop();
     }
 

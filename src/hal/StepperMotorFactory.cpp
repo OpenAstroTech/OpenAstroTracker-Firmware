@@ -1,7 +1,6 @@
 #include "StepperMotorFactory.hpp"
 
 #include "../../Configuration.hpp"
-#include "ports/ILogger.hpp"
 
 // The interrupt engines only exist on the AVR core *and* only when the interrupt stepper library
 // is selected: `avr/StepperConfiguration.hpp` declares them under `NEW_STEPPER_LIB`. An ATmega2560

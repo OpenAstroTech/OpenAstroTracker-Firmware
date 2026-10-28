@@ -11,6 +11,11 @@ that consumes it inverts the dependency arrow. `ports/` speaks `types/` and noth
 `src/app/ui/` obeys the same rules (PLAN.md 8.8): it is compiled by `[env:native]` and
 host-tested, so a menu screen may reach hardware only through a port.
 
+`hal/` is the bottom layer, so it may not name `ports/`: an adapter composes a HAL backend to
+satisfy a port, which makes the port the *consumer* of the hardware capability, not something
+the capability depends on. HAL is scanned with that rule only — it is where the Arduino headers
+and the feature `#if`s are supposed to live.
+
 Usage:
     python scripts/check_architecture.py          # exit 1 and list violations
     python scripts/check_architecture.py -v       # also print the files scanned
@@ -22,7 +27,6 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SCANNED_DIRS = ("src/core", "src/ports", "src/app/ui")
 SUFFIXES = (".h", ".hpp", ".cpp")
 
 # Name -> pattern. Matched against the code with comments removed, so prose that mentions
@@ -45,11 +49,22 @@ RULES = {
     ),
 }
 
-# Directory -> extra rules for the files under it. `ports/` is what the domain needs, so it may
-# name `types/` and nothing above it: a `core/` include there would make the arrow circular.
-SCOPED_RULES = {
+# Directory -> the rules applied to the files under it.
+#
+# `core/`, `ports/` and `app/ui/` are the host-testable layers: the hardware-free set above plus
+# the one layering rule each has of its own. `hal/` gets its layering rule *only*, because the
+# hardware APIs and the platform feature `#if`s are exactly what that layer exists to use.
+SCANNED_RULES = {
+    "src/core": RULES,
+    "src/app/ui": RULES,
     "src/ports": {
-        "core/ include": re.compile(r'#\s*include\s*[<"](?:\.\./)?core/'),
+        **RULES,
+        # A port names `types/` and nothing that consumes it.
+        "core/ include": re.compile(r'#\s*include\s*[<"](?:\.\./)*core/'),
+    },
+    "src/hal": {
+        # The bottom layer: backends expose capabilities, they do not ask for domain interfaces.
+        "ports/ include": re.compile(r'#\s*include\s*[<"](?:\.\./)*ports/'),
     },
 }
 
@@ -67,25 +82,24 @@ def strip_comments(text: str) -> str:
 def scan(verbose: bool) -> int:
     violations = 0
     scanned = 0
-    for directory in SCANNED_DIRS:
+    for directory, rules in SCANNED_RULES.items():
         base = ROOT / directory
         if not base.is_dir():
             print(f"check-architecture: missing {directory}", file=sys.stderr)
             return 1
-        rules = list(RULES.items()) + list(SCOPED_RULES.get(directory, {}).items())
         for path in sorted(base.rglob("*")):
             if path.suffix not in SUFFIXES:
                 continue
             scanned += 1
             code = strip_comments(path.read_text(encoding="utf-8", errors="ignore"))
-            for rule, pattern in rules:
+            for rule, pattern in rules.items():
                 for match in pattern.finditer(code):
                     line = code.count("\n", 0, match.start()) + 1
                     rel = path.relative_to(ROOT)
                     print(f"{rel}:{line}: {rule}: {match.group(0).strip()[:70]}")
                     violations += 1
     if verbose:
-        print(f"check-architecture: scanned {scanned} files in {', '.join(SCANNED_DIRS)}")
+        print(f"check-architecture: scanned {scanned} files in {', '.join(SCANNED_RULES)}")
     return violations
 
 

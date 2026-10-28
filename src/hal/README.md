@@ -64,4 +64,9 @@ Backends may include hardware libraries; interface headers may not.
 HAL knows about hardware capabilities and platform backends, never about go-to policy,
 RA/DEC semantics, or domain state machines.
 
-See [PLAN.md](../../PLAN.md) for the target architecture.
+HAL is the bottom layer, so it never includes [`../ports/`](../ports/) (checked by
+[`scripts/check_architecture.py`](../../scripts/check_architecture.py)): composing a backend to
+satisfy a port is the adapter's job. There is consequently no logger here — a backend that needs
+to trace something reports it to its caller, which logs it.
+
+See [ARCHITECTURE.md](../../ARCHITECTURE.md) for how the layers fit together.

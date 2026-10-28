@@ -1,6 +1,5 @@
 #include "../../Configuration.hpp"
 #include "hal/WarningGuard.hpp"
-#include "ports/ILogger.hpp"
 #include "InterruptCallback.hpp"
 
 // The timer APIs this file programs belong to the core (`micros`, `add_repeating_timer_us`, the
