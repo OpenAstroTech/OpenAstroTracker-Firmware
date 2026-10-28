@@ -409,6 +409,7 @@ OpenAstroTracker-Firmware/
 | `adapters/` never includes `core/`: the Meade driver and the presentation helpers reach the domain only through `ports/` and `types/` | Code review — the whole point of moving the protocol and the vocabulary out of `core/` |
 | From PLAN.md Phase 8.8: `src/app/ui/` obeys the same rules as `core/` (it is compiled by `[env:native]` and host-tested), so a menu screen may reach hardware only through a port | `scripts/check_architecture.py` scans `src/app/ui` with the `core/` rule set |
 | `core/` and `ports/` never include `hal/` or `adapters/` (the dependency arrow only points down) | `scripts/check_architecture.py`, run by the `architecture` CI job |
+| `ports/` never includes `core/`: a port names the `types/` vocabulary it speaks and nothing that consumes it, so the arrow cannot turn back on itself | `scripts/check_architecture.py`, run by the `architecture` CI job |
 | Time comes from `IClock`; no direct `millis()` below `adapters/` | Interface contract |
 | Logging goes through `ILogger`; no direct `Serial.print()` below `adapters/` | Interface contract |
 | Configuration macros are read only in `app/` | CI grep check |

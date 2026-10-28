@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IMountConfiguration.hpp"
-#include "core/FocusController.hpp"
+#include "types/FocuserDirection.hpp"
 
 namespace ports
 {

@@ -5,6 +5,9 @@
 reach for a hardware API, a platform type, or a compile-time feature switch: that is what
 keeps them host-testable and what makes the `#ifdef`-free promise of Phase 4 achievable.
 
+`ports/` may also not name `core/`: a port describes a need, so pointing it at the layer
+that consumes it inverts the dependency arrow. `ports/` speaks `types/` and nothing else.
+
 `src/app/ui/` obeys the same rules (PLAN.md 8.8): it is compiled by `[env:native]` and
 host-tested, so a menu screen may reach hardware only through a port.
 
@@ -42,6 +45,14 @@ RULES = {
     ),
 }
 
+# Directory -> extra rules for the files under it. `ports/` is what the domain needs, so it may
+# name `types/` and nothing above it: a `core/` include there would make the arrow circular.
+SCOPED_RULES = {
+    "src/ports": {
+        "core/ include": re.compile(r'#\s*include\s*[<"](?:\.\./)?core/'),
+    },
+}
+
 
 def _blank_block_comment(match: "re.Match[str]") -> str:
     """Replace a block comment with its own newlines, so line numbers stay meaningful."""
@@ -61,12 +72,13 @@ def scan(verbose: bool) -> int:
         if not base.is_dir():
             print(f"check-architecture: missing {directory}", file=sys.stderr)
             return 1
+        rules = list(RULES.items()) + list(SCOPED_RULES.get(directory, {}).items())
         for path in sorted(base.rglob("*")):
             if path.suffix not in SUFFIXES:
                 continue
             scanned += 1
             code = strip_comments(path.read_text(encoding="utf-8", errors="ignore"))
-            for rule, pattern in RULES.items():
+            for rule, pattern in rules:
                 for match in pattern.finditer(code):
                     line = code.count("\n", 0, match.start()) + 1
                     rel = path.relative_to(ROOT)
