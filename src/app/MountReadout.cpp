@@ -399,32 +399,26 @@ String MountReadout::homingStateText(bool present, const HallSensorHoming *senso
 
 const char *MountReadout::raText(uint8_t type, uint8_t active)
 {
-    RAString(type, active);
+    DayTime ra;
+    if ((type & TARGET_STRING) == TARGET_STRING)
+    {
+        ra = _targetRa;
+    }
+    else
+    {
+        ra = currentRA();
+    }
+
+    const core::CoordinateFormat format = core::coordinateFormat(type);
+    core::formatRA(scratchBuffer, sizeof(scratchBuffer), ra, core::raFormat(format));
+    if (format == core::CoordinateFormat::LcdMenu)
+    {
+        core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/false);
+    }
     return scratchBuffer;
 }
 
 const char *MountReadout::decText(uint8_t type, uint8_t active)
-{
-    DECString(type, active);
-    return scratchBuffer;
-}
-
-ports::InfoDisplayActivity MountReadout::activity()
-{
-    return ports::InfoDisplayActivity {isAxisRunning(RA_STEPS), isAxisRunning(DEC_STEPS)};
-}
-
-bool MountReadout::getStepperProgress(int &raPercentage, int &decPercentage)
-{
-    // The rules live in core::SlewProgressReport; this gathers the four numbers it needs.
-    const core::SlewProgress progress = core::SlewProgressReport::evaluate(
-        _coordinator.slew().totalRaSteps(), _coordinator.slew().totalDecSteps(), _axes.ra()->distanceToGo(), _axes.dec()->distanceToGo());
-    raPercentage  = progress.raPercent;
-    decPercentage = progress.decPercent;
-    return progress.inProgress;
-}
-
-String MountReadout::DECString(byte type, byte active)
 {
     Declination dec;
     if ((type & TARGET_STRING) == TARGET_STRING)
@@ -444,28 +438,22 @@ String MountReadout::DECString(byte type, byte active)
         core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/true);
     }
 
-    return String(scratchBuffer);
+    return scratchBuffer;
 }
 
-String MountReadout::RAString(byte type, byte active)
+ports::InfoDisplayActivity MountReadout::activity()
 {
-    DayTime ra;
-    if ((type & TARGET_STRING) == TARGET_STRING)
-    {
-        ra = _targetRa;
-    }
-    else
-    {
-        ra = currentRA();
-    }
+    return ports::InfoDisplayActivity {isAxisRunning(RA_STEPS), isAxisRunning(DEC_STEPS)};
+}
 
-    const core::CoordinateFormat format = core::coordinateFormat(type);
-    core::formatRA(scratchBuffer, sizeof(scratchBuffer), ra, core::raFormat(format));
-    if (format == core::CoordinateFormat::LcdMenu)
-    {
-        core::insertLcdMenuCursor(scratchBuffer, active, /*hasSignColumn=*/false);
-    }
-    return String(scratchBuffer);
+bool MountReadout::getStepperProgress(int &raPercentage, int &decPercentage)
+{
+    // The rules live in core::SlewProgressReport; this gathers the four numbers it needs.
+    const core::SlewProgress progress = core::SlewProgressReport::evaluate(
+        _coordinator.slew().totalRaSteps(), _coordinator.slew().totalDecSteps(), _axes.ra()->distanceToGo(), _axes.dec()->distanceToGo());
+    raPercentage  = progress.raPercent;
+    decPercentage = progress.decPercent;
+    return progress.inProgress;
 }
 
 float MountReadout::getStepsPerDegree(StepperAxis which)
@@ -580,11 +568,10 @@ void MountReadout::fillInfoDisplayState(ports::InfoDisplayState &state)
     state.lst            = calculateLst();
 
     // The panel's coordinate text is the LCD shape the renderer drew before, produced here so the
-    // renderer needs no formatter and no mount.
-    const String raText  = RAString(LCD_STRING | CURRENT_STRING);
-    const String decText = DECString(LCD_STRING | CURRENT_STRING);
-    snprintf(state.raText, sizeof(state.raText), "%s", raText.c_str());
-    snprintf(state.decText, sizeof(state.decText), "%s", decText.c_str());
+    // renderer needs no formatter and no mount. Both reads share one scratch buffer, so each result
+    // is copied into `state` before the next call overwrites it.
+    snprintf(state.raText, sizeof(state.raText), "%s", raText(LCD_STRING | CURRENT_STRING));
+    snprintf(state.decText, sizeof(state.decText), "%s", decText(LCD_STRING | CURRENT_STRING));
 
     // The status line outlives this call because it is copied into the scratch above.
     state.statusText = panelStatusText();

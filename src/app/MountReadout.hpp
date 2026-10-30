@@ -36,7 +36,7 @@ class EndSwitch;
 /// without re-sequencing anything.
 ///
 /// Two members are scratch, and they are here because the strings this class returns point into
-/// them: `scratchBuffer` backs `RAString`/`DECString` and the two `*Text` port methods, and
+/// them: `scratchBuffer` backs the two `*Text` port methods, and
 /// `_readoutScratch`/`_infoStatusScratch` back the status strings. The rule the ports state —
 /// "valid until the next call to the same method" — is unchanged by the move.
 class MountReadout final : public ports::IMountReadModel, public ports::IInfoDisplaySource
@@ -77,8 +77,6 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
     types::DayTime currentRA() const;
     types::Declination currentDEC() const;
 
-    String RAString(byte type, byte active = 0);
-    String DECString(byte type, byte active = 0);
     const char *raText(uint8_t type, uint8_t active = 0);
     const char *decText(uint8_t type, uint8_t active = 0);
 

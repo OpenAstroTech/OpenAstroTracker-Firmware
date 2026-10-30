@@ -250,16 +250,6 @@ types::Declination MountExecutor::currentDEC() const
     return _readout.currentDEC();
 }
 
-String MountExecutor::RAString(byte type, byte active)
-{
-    return _readout.RAString(type, active);
-}
-
-String MountExecutor::DECString(byte type, byte active)
-{
-    return _readout.DECString(type, active);
-}
-
 const char *MountExecutor::raText(uint8_t type, uint8_t active)
 {
     return _readout.raText(type, active);

@@ -324,12 +324,6 @@ class MountExecutor final : public ports::IMountOptionalAxes
     // Stops given guide operations in progress.
     void stopGuiding(bool ra = true, bool dec = true);
 
-    // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
-    String DECString(byte type, byte active = 0);
-
-    // Return a string of DEC in the given format. For LCDSTRING, active determines where the cursor is
-    String RAString(byte type, byte active = 0);
-
     // Returns string (singfle word) representing the mounts status.
     String getStatusStateString();
 
