@@ -4,16 +4,17 @@ Helper script for parsingt the header file of MEADE
 USAGE:
  - Ensure you have a Python interperter working for VSCode
  - Execute this file by pressing the little green "Play" button in the top-right corner
- - Output will be written to "./scripts/MeadeToWikiOutput.txt" directory
+ - Output will be written to "MeadeToWikiOutput.txt", next to this script
  - Copy entire content of the file and paste it on the wiki page
 """
 
 import os
 import re
 
-MEADE_CPP = os.path.join("..", "src", "core", "meade", "MeadeProtocol.hpp")
-VERSION_FILE = os.path.join("..", "Version.h")
 MODULE_PATH = os.path.dirname(os.path.realpath(__file__))
+MEADE_DOC = os.path.join("..", "docs", "MEADE-PROTOCOL.md")
+VERSION_FILE = os.path.join("..", "Version.h")
+WIKI_OUTPUT = os.path.join(MODULE_PATH, "MeadeToWikiOutput.txt")
 START_LINE = 0
 END_LINE = 0
 
@@ -128,8 +129,8 @@ def check_command_sepparator(line):
 # PARSE MEADE COMMANDS
 # ***************************************************************
 
-# Meade cpp File
-with open(os.path.join(MODULE_PATH, MEADE_CPP)) as f:
+# Meade protocol reference
+with open(os.path.join(MODULE_PATH, MEADE_DOC)) as f:
     content = f.readlines()
 content = [x.strip() for x in content]
 
@@ -242,8 +243,7 @@ version_content = [x.strip() for x in version_content]
 
 for line in version_content:
     if "#define VERSION" in line:
-        CURRENT_VERSION = line.replace("#define VERSION ", "")
-        CURRENT_VERSION = CURRENT_VERSION.replace("\"", "")
+        CURRENT_VERSION = line.split('"')[1]
         print(f"Found current version: {CURRENT_VERSION}")
 
 if CURRENT_VERSION == "0.0":
@@ -255,7 +255,7 @@ def output_wiki():
     Writes content to a MeadeToWikiOutput.txt file 
     """
 
-    f = open("./scripts/MeadeToWikiOutput.txt", "w")
+    f = open(WIKI_OUTPUT, "w")
     
     f.write("> AUTOMATICALLY GENERATED FROM FIRMWARE - DO NOT EDIT\n")
     f.write("{.is-danger}\n\n")
@@ -317,7 +317,7 @@ def output_wiki():
     f.write("{.is-warning}\n\n")
 
     f.close()
-    print("File written to: ./scripts/MeadeToWikiOutput.txt")
+    print("File written to: " + WIKI_OUTPUT)
 
 if __name__ == "__main__":
     output_wiki()
