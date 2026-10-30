@@ -134,9 +134,18 @@ belongs in them.
 
 **Steps.**
 
-- [ ] Move the five axis-init blocks into `DriverWiring::initDriverPins()`; replace each block with
+- [x] Move the five axis-init blocks into `DriverWiring::initDriverPins()`; replace each block with
       one call. Build `ramps` + `esp32` + `rp2040_skr_pico` — the RP2040 baud branch is the one
       behaviour that differs per platform.
+      *(Done as `initDriverPins(DriverAxis)` over a `AxisPinPlan` descriptor, so `main.cpp` keeps no
+      pin `#if` at all. The enum values are named `RightAscension`/`Declination`/… rather than
+      `RA`/`DEC` because `Print.h` defines `DEC` as a macro. The UART `begin()` goes through one
+      templated `beginDriverUart()` — the concrete type differs per platform (`HardwareSerial` on
+      AVR/ESP32, `SerialUART` on RP2040), so a `Stream *` member could not call `begin()`.
+      Verified by extracting the ordered `pinMode`/`digitalWrite`/`begin` actions from the old
+      blocks: 32 actions, and the new path performs the same ones in the same order per axis.
+      `main.cpp` 544 -> 441 lines, its `#if|#ifdef|#elif` count 80 -> **51**, already under the
+      target.)*
 - [ ] Move the two homing-sensor `pinMode` blocks into `SensorWiring`.
 - [ ] Move the splash + EEPROM-clear-on-DOWN sequence into `MenuSurface` (it already owns
       `startup()` and `printMenu()`), leaving one call in `setup()`.
@@ -146,6 +155,9 @@ belongs in them.
       only, so `src/app/UiScreens.cpp` may keep the feature `#if`s — but do not move any of it
       *into* `src/app/ui/`.
 - [ ] Delete the duplicated `#if RA_DRIVER_TYPE/DEC_DRIVER_TYPE` block at 507–513.
+      *(Checked: that block is `#if UART_CONNECTION_TEST_TX` calling `mount.testRA_UART_TX()` /
+      `testDEC_UART_TX()`. It re-uses the same driver-type condition but does a different job, so
+      deleting it would remove the UART TX bring-up test. Left alone — the premise was wrong.)*
 - [ ] `grep -cE '^\s*#\s*(if|ifdef|ifndef|elif)' src/app/main.cpp` should land under ~60.
 
 **Verification.**
