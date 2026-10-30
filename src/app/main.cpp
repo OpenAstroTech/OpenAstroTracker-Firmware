@@ -169,133 +169,30 @@ void setup()
     //   Microstepping/driver pins
     /////////////////////////////////
     int raLine = addConsoleText(F("Init RA axis..."));
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing RA microstepping/driver pins...");
-    pinMode(RA_EN_PIN, OUTPUT);
-    digitalWrite(RA_EN_PIN, LOW);  // ENABLE, LOW to enable
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
-    #if defined(RA_MS0_PIN)
-    digitalWrite(RA_MS0_PIN, HIGH);  // MS0
-    #endif
-    #if defined(RA_MS1_PIN)
-    digitalWrite(RA_MS1_PIN, HIGH);  // MS1
-    #endif
-    #if defined(RA_MS2_PIN)
-    digitalWrite(RA_MS2_PIN, HIGH);  // MS2
-    #endif
-#endif
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for RA...");
-    // include TMC2209 UART pins
-    #if defined(RA_DIAG_PIN)
-    pinMode(RA_DIAG_PIN, INPUT);
-    #endif
-
-    #ifdef RA_SERIAL_PORT
-        #ifdef OAE
-    RA_SERIAL_PORT.begin(57600, SERIAL_8N1, RA_RX_PIN, RA_TX_PIN);
-        #elif defined(ARDUINO_ARCH_RP2040)
-    RA_SERIAL_PORT.begin(115200);   // TMCStepper requires 115200 baud on RP2040
-        #else
-    RA_SERIAL_PORT.begin(57600);   // Start HardwareSerial comms with driver
-        #endif
-    //
-    #endif
-#endif
+    app::initDriverPins(app::DriverAxis::RightAscension);
     updateConsoleText(raLine, F("Init RA axis... OK"));
 
     int decLine = addConsoleText(F("Init DEC axis..."));
     LOG(DEBUG_ANY, "[SYSTEM]: Initializing DEC driver pin %s...", String(DEC_EN_PIN).c_str());
-    pinMode(DEC_EN_PIN, OUTPUT);
-    digitalWrite(DEC_EN_PIN, LOW);  // ENABLE, LOW to enable
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE || DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC
-    #if defined(DEC_MS0_PIN)
-    digitalWrite(DEC_MS0_PIN, HIGH);  // MS1
-    #endif
-    #if defined(DEC_MS1_PIN)
-    digitalWrite(DEC_MS1_PIN, HIGH);  // MS2
-    #endif
-    #if defined(DEC_MS2_PIN)
-    digitalWrite(DEC_MS2_PIN, HIGH);  // MS3
-    #endif
-#endif
-
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for DEC...");
-    // include TMC2209 UART pins
-    #if defined(DEC_DIAG_PIN)
-    pinMode(DEC_DIAG_PIN, INPUT);
-    #endif
-    #ifdef DEC_SERIAL_PORT
-        #ifdef OAE
-    DEC_SERIAL_PORT.begin(57600, SERIAL_8N1, DEC_RX_PIN, DEC_TX_PIN);
-        #elif defined(ARDUINO_ARCH_RP2040)
-    DEC_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
-        #else
-    DEC_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
-        #endif
-    #endif
-#endif
+    app::initDriverPins(app::DriverAxis::Declination);
     updateConsoleText(decLine, F("Init DEC axis... OK"));
     LOG(DEBUG_ANY, "[SYSTEM]: RA/DEC init complete...");
 
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     int azLine = addConsoleText(F("Init AZ axis..."));
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing AZ microstepping/driver pins...");
-    pinMode(AZ_EN_PIN, OUTPUT);
-    digitalWrite(AZ_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        // include TMC2209 UART pins
-        #if defined(AZ_DIAG_PIN)
-    pinMode(AZ_DIAG_PIN, INPUT);
-        #endif
-        #ifdef AZ_SERIAL_PORT
-            #if defined(ARDUINO_ARCH_RP2040)
-    AZ_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
-            #else
-    AZ_SERIAL_PORT.begin(57600);     // Start HardwareSerial comms with driver
-            #endif
-        #endif
-    #endif
+    app::initDriverPins(app::DriverAxis::Azimuth);
     updateConsoleText(azLine, F("Init AZ axis... OK"));
 #endif
 
 #if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
     int altLine = addConsoleText(F("Init ALT axis..."));
-    LOG(DEBUG_ANY, "[SYSTEM]: Initializing ALT microstepping/driver pins...");
-    pinMode(ALT_EN_PIN, OUTPUT);
-    digitalWrite(ALT_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        // include TMC2209 UART pins
-        #if defined(ALT_DIAG_PIN)
-    pinMode(ALT_DIAG_PIN, INPUT);
-        #endif
-        #ifdef ALT_SERIAL_PORT
-            #if defined(ARDUINO_ARCH_RP2040)
-    ALT_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
-            #else
-    ALT_SERIAL_PORT.begin(57600);    // Start HardwareSerial comms with driver
-            #endif
-        #endif
-    #endif
+    app::initDriverPins(app::DriverAxis::Altitude);
     updateConsoleText(altLine, F("Init ALT axis... OK"));
 #endif
 
 #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
     int focusLine = addConsoleText(F("Init Focuser..."));
-    LOG(DEBUG_FOCUS, "[FOCUS]: setup(): focus disabling enable pin");
-    pinMode(FOCUS_EN_PIN, OUTPUT);
-    digitalWrite(FOCUS_EN_PIN, HIGH);  // Logic HIGH to disable the driver initally
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        // include TMC2209 UART pins
-        #ifdef FOCUS_SERIAL_PORT
-    LOG(DEBUG_FOCUS, "[FOCUS]: setup(): focus TMC2209U starting comms");
-            #if defined(ARDUINO_ARCH_RP2040)
-    FOCUS_SERIAL_PORT.begin(115200);  // TMCStepper requires 115200 baud on RP2040
-            #else
-    FOCUS_SERIAL_PORT.begin(57600);  // Start HardwareSerial comms with driver
-            #endif
-        #endif
-    #endif
+    app::initDriverPins(app::DriverAxis::Focuser);
     updateConsoleText(focusLine, F("Init Focuser... OK"));
 #endif
 

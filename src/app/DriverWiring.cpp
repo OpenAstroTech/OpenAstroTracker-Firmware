@@ -338,3 +338,221 @@ void attachDrivers(app::MountExecutor &mount)
 }
 
 }  // namespace app
+
+namespace
+{
+/// No pin: the board does not have this line.
+constexpr int kNoPin = -1;
+
+/// What `initDriverPins()` needs to know about one axis, and nothing else.
+struct AxisPinPlan {
+    const char *startupLog;  ///< Logged before the pins are touched; nullptr for a silent axis.
+    const char *uartLog;     ///< Logged when the axis has a hardware UART to open; may be nullptr.
+    bool logsAtFocusLevel;   ///< Those two go through `DEBUG_FOCUS` rather than `DEBUG_ANY`.
+    int enablePin;
+    bool enableIsLow;     ///< LOW enables RA/DEC; HIGH is the idle state for AZ/ALT/focus.
+    int ms0, ms1, ms2;    ///< Microstep-select lines, `kNoPin` when absent or unused.
+    int diag;             ///< TMC2209 DIAG input, `kNoPin` when absent.
+    void (*beginUart)();  ///< Opens this axis's hardware UART; nullptr when it has none.
+};
+
+/// Opens a driver UART at the baud this platform wants. One copy for five axes: it was written out
+/// per axis before, so changing it meant changing five blocks. Templated because the concrete type
+/// differs — `HardwareSerial` on AVR/ESP32, `SerialUART` on RP2040.
+template <typename SerialType> void beginDriverUart(SerialType &uart, int rxPin, int txPin)
+{
+    (void) rxPin;
+    (void) txPin;
+#ifdef OAE
+    // The OAE ESP32 carrier picks its UART pins at run time, so they go to begin().
+    uart.begin(57600, SERIAL_8N1, rxPin, txPin);
+#elif defined(ARDUINO_ARCH_RP2040)
+    uart.begin(115200);  // TMCStepper requires 115200 baud on RP2040
+#else
+    uart.begin(57600);  // Start HardwareSerial comms with driver
+#endif
+}
+
+AxisPinPlan axisPlan(app::DriverAxis axis)
+{
+    AxisPinPlan plan = {};
+    plan.ms0 = plan.ms1 = plan.ms2 = kNoPin;
+    plan.diag                      = kNoPin;
+    plan.beginUart                 = nullptr;
+
+    switch (axis)
+    {
+        case app::DriverAxis::RightAscension:
+            plan.startupLog  = "[SYSTEM]: Initializing RA microstepping/driver pins...";
+            plan.uartLog     = "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for RA...";
+            plan.enablePin   = RA_EN_PIN;
+            plan.enableIsLow = true;
+#if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (RA_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
+    #ifdef RA_MS0_PIN
+            plan.ms0 = RA_MS0_PIN;
+    #endif
+    #ifdef RA_MS1_PIN
+            plan.ms1 = RA_MS1_PIN;
+    #endif
+    #ifdef RA_MS2_PIN
+            plan.ms2 = RA_MS2_PIN;
+    #endif
+#endif
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #ifdef RA_DIAG_PIN
+            plan.diag = RA_DIAG_PIN;
+    #endif
+    #ifdef RA_SERIAL_PORT
+        #ifdef OAE
+            plan.beginUart = []() { beginDriverUart(RA_SERIAL_PORT, RA_RX_PIN, RA_TX_PIN); };
+        #else
+            plan.beginUart = []() { beginDriverUart(RA_SERIAL_PORT, -1, -1); };
+        #endif
+    #endif
+#endif
+            break;
+
+        case app::DriverAxis::Declination:
+            // The DEC startup line carries its pin number, so `setup()` logs it at the call site.
+            plan.startupLog  = nullptr;
+            plan.uartLog     = "[SYSTEM]: Initializing TMC2209 UART pins and Serial port for DEC...";
+            plan.enablePin   = DEC_EN_PIN;
+            plan.enableIsLow = true;
+#if (DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_STANDALONE) || (DEC_DRIVER_TYPE == DRIVER_TYPE_A4988_GENERIC)
+    #ifdef DEC_MS0_PIN
+            plan.ms0 = DEC_MS0_PIN;
+    #endif
+    #ifdef DEC_MS1_PIN
+            plan.ms1 = DEC_MS1_PIN;
+    #endif
+    #ifdef DEC_MS2_PIN
+            plan.ms2 = DEC_MS2_PIN;
+    #endif
+#endif
+#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+    #ifdef DEC_DIAG_PIN
+            plan.diag = DEC_DIAG_PIN;
+    #endif
+    #ifdef DEC_SERIAL_PORT
+        #ifdef OAE
+            plan.beginUart = []() { beginDriverUart(DEC_SERIAL_PORT, DEC_RX_PIN, DEC_TX_PIN); };
+        #else
+            plan.beginUart = []() { beginDriverUart(DEC_SERIAL_PORT, -1, -1); };
+        #endif
+    #endif
+#endif
+            break;
+
+        case app::DriverAxis::Azimuth:
+#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
+            plan.startupLog  = "[SYSTEM]: Initializing AZ microstepping/driver pins...";
+            plan.enablePin   = AZ_EN_PIN;
+            plan.enableIsLow = false;
+    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #ifdef AZ_DIAG_PIN
+            plan.diag = AZ_DIAG_PIN;
+        #endif
+        #ifdef AZ_SERIAL_PORT
+            plan.beginUart = []() { beginDriverUart(AZ_SERIAL_PORT, -1, -1); };
+        #endif
+    #endif
+#endif
+            break;
+
+        case app::DriverAxis::Altitude:
+#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
+            plan.startupLog  = "[SYSTEM]: Initializing ALT microstepping/driver pins...";
+            plan.enablePin   = ALT_EN_PIN;
+            plan.enableIsLow = false;
+    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #ifdef ALT_DIAG_PIN
+            plan.diag = ALT_DIAG_PIN;
+        #endif
+        #ifdef ALT_SERIAL_PORT
+            plan.beginUart = []() { beginDriverUart(ALT_SERIAL_PORT, -1, -1); };
+        #endif
+    #endif
+#endif
+            break;
+
+        case app::DriverAxis::Focuser:
+#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
+            plan.startupLog       = "[FOCUS]: setup(): focus disabling enable pin";
+            plan.uartLog          = "[FOCUS]: setup(): focus TMC2209U starting comms";
+            plan.logsAtFocusLevel = true;
+            plan.enablePin        = FOCUS_EN_PIN;
+            plan.enableIsLow      = false;
+    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+        #ifdef FOCUS_SERIAL_PORT
+            plan.beginUart = []() { beginDriverUart(FOCUS_SERIAL_PORT, -1, -1); };
+        #endif
+    #endif
+#endif
+            break;
+    }
+
+    return plan;
+}
+
+}  // namespace
+
+namespace app
+{
+
+void initDriverPins(DriverAxis axis)
+{
+    const AxisPinPlan plan = axisPlan(axis);
+
+    if (plan.startupLog != nullptr)
+    {
+        if (plan.logsAtFocusLevel)
+        {
+            LOG(DEBUG_FOCUS, "%s", plan.startupLog);
+        }
+        else
+        {
+            LOG(DEBUG_ANY, "%s", plan.startupLog);
+        }
+    }
+
+    pinMode(plan.enablePin, OUTPUT);
+    digitalWrite(plan.enablePin, plan.enableIsLow ? LOW : HIGH);
+
+    // The MS lines are only wired on the standalone drivers; a UART driver takes its microstep
+    // count over the serial link instead.
+    if (plan.ms0 != kNoPin)
+    {
+        digitalWrite(plan.ms0, HIGH);
+    }
+    if (plan.ms1 != kNoPin)
+    {
+        digitalWrite(plan.ms1, HIGH);
+    }
+    if (plan.ms2 != kNoPin)
+    {
+        digitalWrite(plan.ms2, HIGH);
+    }
+    if (plan.diag != kNoPin)
+    {
+        pinMode(plan.diag, INPUT);
+    }
+
+    if (plan.beginUart == nullptr)
+    {
+        return;
+    }
+    if (plan.uartLog != nullptr)
+    {
+        if (plan.logsAtFocusLevel)
+        {
+            LOG(DEBUG_FOCUS, "%s", plan.uartLog);
+        }
+        else
+        {
+            LOG(DEBUG_ANY, "%s", plan.uartLog);
+        }
+    }
+    plan.beginUart();
+}
+
+}  // namespace app
