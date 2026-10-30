@@ -204,19 +204,28 @@ belongs.
 
 **Steps.**
 
-- [ ] Extract `configureTmc2209()` from the hardware-serial RA variant (it is the one without the
-      extra `beginSerial`/`mstep_reg_select`/`pdn_disable` preamble).
-- [ ] Verify the software-serial variant produces the same register values; the `semin`/`microsteps`
-      reordering is a no-op (`semin` and `microsteps` touch different registers), but say so in the
-      commit message rather than silently reordering.
-- [ ] Convert RA first. `SW_SERIAL_UART` is a per-board constant
-      (`boards/*/pins_*.h[pp]`): `RAMPS`/`MKS_GEN_L_V1..V21` build the software-serial path,
-      every other board the hardware-serial one. Build `ramps` **and** `rp2040_skr_pico` — both
-      paths must compile, and both must still go through `testDriverConnection` when
-      `UART_CONNECTION_TEST_TXRX == 1`.
-- [ ] Repeat for DEC, AZ, ALT, FOCUS. AZ/ALT/FOCUS keep their axis-specific extras
-      (`AZ_MOTOR_HOLD_SETTING / 100.0`, `FOCUS_EN_PIN` LOW-to-enable) at the call site.
-- [ ] `wc -l src/app/DriverWiring.cpp` should land near 300.
+- [x] Extract `configureTmc2209()` — now `buildTmc2209Axis()` — from the hardware-serial RA variant.
+      A `Tmc2209Traits` struct carries the three register writes that are genuinely per-axis
+      (`pdn_disable`, DEC's `iholddelay`/`TPOWERDOWN`, RA's `fclktrim`); everything else is one
+      sequence.
+- [x] Verify the software-serial variant produces the same register values. Done mechanically: the
+      ten old bodies and the new shared sequence were extracted as ordered call lists and diffed.
+      8/10 match exactly; the two software-serial axes differ only by (a) `semin` before vs after
+      `microsteps` — different registers, inert — and (b) one extra `pdn_disable` that repeats the
+      value the preamble already set.
+- [x] Convert RA first, then DEC, AZ, ALT, FOCUS. Both `SW_SERIAL_UART` values build.
+- [x] `wc -l src/app/DriverWiring.cpp` — **574 -> 340**.
+
+*(Two things the plan missed, both found by checking rather than trusting it. First: DEC's two
+variants had **already diverged** — only the hardware-serial one ever programmed
+`iholddelay`/`TPOWERDOWN`, so unifying the sequence would have changed the standstill hold current
+on RAMPS/MKS boards. Preserved behind `kDecStandstillPowerDown` and flagged as a follow-up rather
+than silently "fixed". Second: the shared helpers are guarded by a `HAS_TMC2209_AXIS` `#if`, because
+a board running A4988s throughout would otherwise define them and never call them, which `-Werror`
+rejects. Transport selection collapsed to one `TMC2209_PORT(axis)` macro, so `attachDrivers()` lost
+its ten `#if` blocks. Measured on `ramps`: flash 173 766 -> 173 530 bytes, RAM 3 588 -> 3 626 — the
++38 bytes are the five initialised `Tmc2209Axis` aggregates, which AVR cannot keep in flash because
+they hold pointers.)*
 
 **Verification.** `pio run -e ramps -e rp2040_skr_pico -e oaeboardv1 -e esp32` covers both
 `SW_SERIAL_UART` values. `gitnexus impact(attachDrivers)` reports **1 upstream caller, LOW** — the
