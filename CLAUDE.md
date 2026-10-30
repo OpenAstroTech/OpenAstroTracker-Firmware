@@ -74,7 +74,7 @@ python scripts/MeadeCommandParser.py
 | **ports/** | `src/ports/` | Pure abstract interfaces the domain needs (`IMountMotion`, `IMountReadModel`, `IMountConfiguration`, `IMountSiteTime`, `IDisplay`, `IButtons`, `IClock`, `ILogger`, `IStepperAxis`, …). |
 | **hal/** | `src/hal/` | Hardware abstraction and one backend per platform (`arduino/`, `avr/`, `esp32/`, `rp2040/`): pin toggles, UART, EEPROM, timer services, stepper engines, panels. |
 | **adapters/** | `src/adapters/` | Port implementations that stitch HAL together: `MeadeCommandAdapter`, the Meade protocol driver (`adapters/meade/`), `StepperAxis`, `EepromSettingsFormat`/`MountSettingsStore`, `SerialLogger`, displays, GPS, Wi-Fi, the `String`-based wire/format overlays, and the presentation/input helpers (`InfoDisplayLayout`, `ConsoleLog`, `ButtonDebounce`). |
-| **app/** | `src/app/` | Composition root and device policy: `main.cpp` (`setup`/`loop`), `BoardWiring`, `MotorWiring`/`DriverWiring`/`SensorWiring`, `MountExecutor` + `AxisBank`/`MountReadout`/`MountSettings`/`StepPump`, and the Arduino-free, host-tested UI (`app/ui/` screens + `MenuHost`). |
+| **app/** | `src/app/` | Composition root and device policy: `main.cpp` (`setup`), `MenuHost.hpp` (`loop`), `BoardWiring`, `MotorWiring`/`DriverWiring`/`SensorWiring`, `MountExecutor` + `AxisBank`/`MountReadout`/`MountSettings`/`StepPump`, and the Arduino-free, host-tested UI (`app/ui/` screens + `MenuHost`). |
 
 Dependencies point inward: `app → adapters → ports → types`, `app → hal`, `core → ports → types`. `core/` and `ports/` may not include `hal/`, `adapters/` or `<Arduino.h>`; `adapters/` never includes `core/`; `types/` includes nothing but the standard headers. `scripts/check_architecture.py` enforces the `core/`/`ports/`/`app/ui` rules.
 
@@ -84,7 +84,7 @@ Dependencies point inward: `app → adapters → ports → types`, `app → hal`
 
 ### Entry Point
 
-`src/app/main.cpp` defines `setup()` and `loop()`; `OpenAstroTracker-Firmware.ino` is an empty Arduino-IDE stub kept only as a sketch anchor. `app/BoardWiring.cpp` owns the object graph.
+`src/app/main.cpp` defines `setup()`; `loop()` lives in `src/app/MenuHost.hpp` (two definitions: the display build and the no-display fallback, behind one `#if`). `OpenAstroTracker-Firmware.ino` is an empty Arduino-IDE stub kept only as a sketch anchor. `app/BoardWiring.cpp` owns the object graph.
 
 ### Stepper Control
 
