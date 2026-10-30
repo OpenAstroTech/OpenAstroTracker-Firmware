@@ -19,7 +19,7 @@ namespace
 
 // The readers below have always required an explicit sign, and this keeps
 // that grammar byte-for-byte unchanged. It is a description of the parser as
-// it stands, not of the protocol: MeadeProtocol.hpp documents the sign as
+// it stands, not of the protocol: docs/MEADE-PROTOCOL.md documents the sign as
 // optional for `:Sg`, where an unsigned value means 0..360 going westward.
 // That form is rejected here, exactly as it was before this change.
 bool readMandatorySign(Cursor &c, int &sign)
@@ -109,7 +109,7 @@ long westwardToEastPositiveArcminutes(long arcminutes)
 // function deliberately does not answer.
 bool readLongitude(Cursor &c, MeadeLongitude &out)
 {
-    // The sign is optional, and both forms mean the same thing. MeadeProtocol.hpp
+    // The sign is optional, and both forms mean the same thing. docs/MEADE-PROTOCOL.md
     // documents :Sg/:Gg as east-negative, so the legacy unsigned 0..360 westward
     // count that INDI sends is simply the sign == +1 case of the signed form:
     // east = wrap(-value) either way, with no branch between them.
@@ -149,7 +149,7 @@ bool readLongitude(Cursor &c, MeadeLongitude &out)
 // site offset unset.
 bool readUtcOffset(Cursor &c, int &out)
 {
-    // The sign is required, as MeadeProtocol.hpp specifies -- an unsigned offset
+    // The sign is required, as docs/MEADE-PROTOCOL.md specifies -- an unsigned offset
     // would be indistinguishable from a client that forgot the sign, and half of
     // those are wrong by twice the offset.
     int sign;

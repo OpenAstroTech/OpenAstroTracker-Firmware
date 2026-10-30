@@ -448,7 +448,7 @@ TEST(MeadeSet, site_longitude_unsigned_beyond_int16_arcminutes_is_rejected)
 
 // Two-digit degrees are refused on both paths. Pre-#291 DayTime::ParseFromMeade took
 // two or three, so this is stricter than the legacy parser for a client that sends
-// ":Sg97*34#"; nothing observed on the wire does, MeadeProtocol.hpp documents "DDD",
+// ":Sg97*34#"; nothing observed on the wire does, docs/MEADE-PROTOCOL.md documents "DDD",
 // and Cursor never backtracks, so accepting either width means hand-rolling the digit
 // reads. Relaxing it should relax the signed path at the same time.
 TEST(MeadeSet, site_longitude_unsigned_two_digit_degrees_does_not_call_handler)

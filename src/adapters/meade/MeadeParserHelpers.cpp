@@ -241,7 +241,7 @@ void writeLatitude(MeadeResponse &r, const MeadeLatitude &l)
 
 void writeLongitude(MeadeResponse &r, const MeadeLongitude &l)
 {
-    // :Gg is east-negative (MeadeProtocol.hpp), while MeadeLongitude is
+    // :Gg is east-negative (docs/MEADE-PROTOCOL.md), while MeadeLongitude is
     // east-positive, so the sign flips on the way out. This has to move with
     // readLongitude: if only one side flips, a client sets its site, reads it
     // back mirrored, and pushes the mirror straight back on the next connect.

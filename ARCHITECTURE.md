@@ -216,7 +216,6 @@ OpenAstroTracker-Firmware/
 │   │   ├── MeadeCommandAdapter.hpp/.cpp # IMeadeHandlers    <- the six mount ports (done)
 │   │   ├── meade/                        # the LX200 protocol driver (driving adapter)
 │   │   │   ├── MeadeParser.cpp/.hpp
-│   │   │   ├── MeadeProtocol.hpp
 │   │   │   ├── MeadeParserHelpers.cpp/.hpp
 │   │   │   ├── CommandAssembler.hpp      # byte stream -> whole commands
 │   │   │   ├── PendingReplies.hpp        # deferred replies owed to a host
@@ -394,6 +393,7 @@ OpenAstroTracker-Firmware/
 │           └── FakeEeprom.hpp           #   hal::IEeprom
 │
 └── docs/
+    ├── MEADE-PROTOCOL.md                # the LX200 command reference (the wiki generator's source)
     └── RP2040-WIRING.md
 ```
 
@@ -550,7 +550,7 @@ starves the AVR serial ring buffer, freezes the display and skips coordinator ti
 
 **One bounded exception, and it is not a wait loop for the mount.** `:gTnnn#` (GPS) probes the GPS
 once and gives up after at most 250 ms, answering `0` for "not ready yet" — which
-`MeadeProtocol.hpp` documents as the answer to retry on. It cannot become deferred: the GPS is
+`docs/MEADE-PROTOCOL.md` documents as the answer to retry on. It cannot become deferred: the GPS is
 pumped by the Ha/GPS menu screen, so in serial control there is nothing to produce the fix and the
 reply would only ever arrive on its deadline. Making it truly asynchronous needs a GPS tick in the
 main loop, which is a separate change and unverifiable without the hardware.

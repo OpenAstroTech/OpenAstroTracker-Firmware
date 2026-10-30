@@ -234,7 +234,7 @@ reviewer does not "fix" them back:
 9. **`:gT#` no longer waits for a fix.** It answers `0` ("not ready") after at most 250 ms and
     the host asks again, instead of holding the whole command layer for up to two minutes. A
     host that relied on a single long `:gT#` returning `1` must now retry — which is what
-    `MeadeProtocol.hpp` documented for `:gTnnn#` all along. Verify with a cold GPS: repeated
+    `docs/MEADE-PROTOCOL.md` documented for `:gTnnn#` all along. Verify with a cold GPS: repeated
     `:gT#` must each answer promptly, then start answering `1` once the fix arrives.
 10. **A menu wait no longer runs the mount's update path** (9.5). `Mount::delay()` used to call
    `loop()` while waiting; it is now a plain bounded wait, so during a menu calibration the mount

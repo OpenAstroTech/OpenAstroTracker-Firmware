@@ -392,7 +392,7 @@ bool MeadeCommandAdapter::onStartGpsAcquisition(const char *timeoutPayload)
     // It used to busy-wait for up to two minutes inside the handler, with the main loop and the
     // whole command layer stopped — no `:D#`, no `:Q#`, nothing. The protocol already defines the
     // answer for "not yet": this returns 0 and the host asks again, which is what
-    // `MeadeProtocol.hpp` documents for `:gTnnn#` ("by using a low timeout, you can avoid long
+    // `docs/MEADE-PROTOCOL.md` documents for `:gTnnn#` ("by using a low timeout, you can avoid long
     // pauses and let the user know that it's not ready yet").
     unsigned long budgetMs = 2UL * 60UL * 1000UL;
     if (timeoutPayload != nullptr && timeoutPayload[0] != '\0')
