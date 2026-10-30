@@ -387,14 +387,18 @@ taking `ports::IMountSettings&`, so testability is unchanged — a fake port sti
 
 **Steps.**
 
-- [ ] Make `EepromSettingsFormat final : public ports::IMountSettings`; add `override` to the 41
+- [x] Make `EepromSettingsFormat final : public ports::IMountSettings`; add `override` to the 41
       matching methods. The compiler verifies the list is complete — this is the whole point.
-- [ ] Delete `src/adapters/MountSettingsStore.hpp`.
-- [ ] `BoardWiring.{hpp,cpp}`: `extern adapters::MountSettingsStore settingsStore;` →
+- [x] Delete `src/adapters/MountSettingsStore.hpp`.
+- [x] `BoardWiring.{hpp,cpp}`: `extern adapters::MountSettingsStore settingsStore;` →
       pass `eepromStore` where `settingsStore` was passed.
-- [ ] Update `src/adapters/README.md`'s table row and the "exception" paragraph.
-- [ ] Grep for any remaining `MountSettingsStore` reference (there are 4: the two `BoardWiring`
+- [x] Update `src/adapters/README.md`'s table row and the "exception" paragraph.
+- [x] Grep for any remaining `MountSettingsStore` reference (there are 4: the two `BoardWiring`
       files, the README, and the header itself).
+
+*(Measured on `ramps`: flash 178 676 → 175 968 bytes, RAM 3 762 → 3 760. The deleted header's
+claim that "an optimising build collapses it" was false — −2 708 bytes. Also retires the
+`DayTime(ha)` re-wrap that the store did on `storeHATime`.)*
 
 **Verification.** `pio test -e native` (the settings tests already exist and are the guard),
 `pio run -e ramps -e esp32`, `python scripts/check_architecture.py`.

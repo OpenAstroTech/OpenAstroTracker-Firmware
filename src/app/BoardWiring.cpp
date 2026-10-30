@@ -17,7 +17,6 @@
 #include "hal/arduino/ArduinoEeprom.hpp"
 
 #include "adapters/EepromPersistentStore.hpp"
-#include "adapters/MountSettingsStore.hpp"
 #include "adapters/NullLogger.hpp"
 #include "adapters/SerialLogger.hpp"
 #include "adapters/Mpu6050Gyro.hpp"
@@ -141,7 +140,6 @@ adapters::EepromSettingsFormat::AxisDefaults makeSettingsDefaults()
 
 const adapters::EepromSettingsFormat::AxisDefaults settingsDefaults = makeSettingsDefaults();
 adapters::EepromSettingsFormat eepromStore(persistentStore, *logSink, settingsDefaults);
-adapters::MountSettingsStore settingsStore(eepromStore);
 
 // --- the menu display and its keys -----------------------------------------------------
 //
@@ -183,7 +181,7 @@ hal::JoystickButtons lcdKeyPad(lcdJoyXPin, lcdJoyYPin, lcdJoyPushPin);
 
 #if DISPLAY_TYPE > 0
 
-adapters::LcdMenuDisplay menuDisplay(lcdPanel, &settingsStore, kMenuColumns, kMenuRows, lcdBacklightRange);
+adapters::LcdMenuDisplay menuDisplay(lcdPanel, &eepromStore, kMenuColumns, kMenuRows, lcdBacklightRange);
 
 /// The menu's item table. Caller-owned so the menu itself never allocates.
 core::MenuEntry menuEntries[MAXMENUITEMS];
@@ -230,7 +228,7 @@ app::MountDeps makeMountDeps()
     deps.clock     = &clockPort;
     deps.scheduler = &schedulerPort;
     deps.logger    = logSink;
-    deps.settings  = &settingsStore;
+    deps.settings  = &eepromStore;
 #if (RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART) && (UART_CONNECTION_TEST_TXRX == 1)
     deps.raEnablePin = &raEnablePin;
 #endif
@@ -290,10 +288,10 @@ void onLatitudeChanged(void *context, bool northernHemisphere)
 }  // namespace
 
 #ifdef ESP32
-DRAM_ATTR core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, settingsStore, {&mount, &onLatitudeChanged},
+DRAM_ATTR core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, eepromStore, {&mount, &onLatitudeChanged},
                                      {RA_ZERO_POINT_SHIFT_HOURS, POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND});
 #else
-core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, settingsStore, {&mount, &onLatitudeChanged},
+core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, eepromStore, {&mount, &onLatitudeChanged},
                                      {RA_ZERO_POINT_SHIFT_HOURS, POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND});
 #endif
 
@@ -321,7 +319,7 @@ struct UiPortsInit {
         ui.motion    = &mount;
         ui.config    = &mount;
         ui.read      = &mount.readout();
-        ui.settings  = &settingsStore;
+        ui.settings  = &eepromStore;
         ui.siteTime  = &siteTimePort;
         ui.axes      = &mount;
         ui.clock     = &clockPort;

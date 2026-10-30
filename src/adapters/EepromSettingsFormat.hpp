@@ -5,6 +5,7 @@
 #include "types/Latitude.hpp"
 #include "types/Longitude.hpp"
 #include "hal/EepromLayout.hpp"
+#include "ports/IMountSettings.hpp"
 #include "ports/ILogger.hpp"
 #include "ports/IPersistentStore.hpp"
 
@@ -20,7 +21,7 @@ namespace adapters
 ///
 /// The layout itself (magic markers, flags, addresses) lives in `hal/EepromLayout.hpp` so it can be
 /// pinned by a test without touching a single uint8_t of storage.
-class EepromSettingsFormat
+class EepromSettingsFormat final : public ports::IMountSettings
 {
   public:
     /// The uncalibrated values a fresh store answers with, and the microstep settings the stored
@@ -43,67 +44,67 @@ class EepromSettingsFormat
     EepromSettingsFormat(ports::IPersistentStore &persistent, ports::ILogger &logger, const AxisDefaults &defaults);
 
     void initialize();
-    void clearConfiguration();
+    void clearConfiguration() override;
 
-    types::DayTime getHATime();
-    void storeHATime(const types::DayTime &ha);
+    types::DayTime getHATime() override;
+    void storeHATime(const types::DayTime &ha) override;
 
-    int getUtcOffset();
-    void storeUtcOffset(int utcOffset);
+    int getUtcOffset() override;
+    void storeUtcOffset(int utcOffset) override;
 
-    uint8_t getBrightness();
-    void storeBrightness(uint8_t brightness);
+    uint8_t getBrightness() override;
+    void storeBrightness(uint8_t brightness) override;
 
-    float getRAStepsPerDegree();
-    void storeRAStepsPerDegree(float raStepsPerDegree);
+    float getRAStepsPerDegree() override;
+    void storeRAStepsPerDegree(float raStepsPerDegree) override;
 
-    float getDECStepsPerDegree();
-    void storeDECStepsPerDegree(float decStepsPerDegree);
+    float getDECStepsPerDegree() override;
+    void storeDECStepsPerDegree(float decStepsPerDegree) override;
 
-    float getAZStepsPerDegree();
-    void storeAZStepsPerDegree(float azStepsPerDegree);
+    float getAZStepsPerDegree() override;
+    void storeAZStepsPerDegree(float azStepsPerDegree) override;
 
-    float getALTStepsPerDegree();
-    void storeALTStepsPerDegree(float altStepsPerDegree);
+    float getALTStepsPerDegree() override;
+    void storeALTStepsPerDegree(float altStepsPerDegree) override;
 
-    float getSpeedFactor();
-    void storeSpeedFactor(float speed);
+    float getSpeedFactor() override;
+    void storeSpeedFactor(float speed) override;
 
-    int16_t getBacklashCorrectionSteps();
-    void storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps);
+    int16_t getBacklashCorrectionSteps() override;
+    void storeBacklashCorrectionSteps(int16_t backlashCorrectionSteps) override;
 
-    types::Latitude getLatitude();
-    void storeLatitude(const types::Latitude &latitude);
+    types::Latitude getLatitude() override;
+    void storeLatitude(const types::Latitude &latitude) override;
 
-    types::Longitude getLongitude();
-    void storeLongitude(const types::Longitude &longitude);
+    types::Longitude getLongitude() override;
+    void storeLongitude(const types::Longitude &longitude) override;
 
-    float getPitchCalibrationAngle();
-    void storePitchCalibrationAngle(float pitchCalibrationAngle);
+    float getPitchCalibrationAngle() override;
+    void storePitchCalibrationAngle(float pitchCalibrationAngle) override;
 
-    float getRollCalibrationAngle();
-    void storeRollCalibrationAngle(float rollCalibrationAngle);
+    float getRollCalibrationAngle() override;
+    void storeRollCalibrationAngle(float rollCalibrationAngle) override;
 
-    float getDECLowerLimit();
-    void storeDECLowerLimit(float decLowerLimit);
+    float getDECLowerLimit() override;
+    void storeDECLowerLimit(float decLowerLimit) override;
 
-    float getDECUpperLimit();
-    void storeDECUpperLimit(float decUpperLimit);
+    float getDECUpperLimit() override;
+    void storeDECUpperLimit(float decUpperLimit) override;
 
-    int32_t getRAHomingOffset();
-    void storeRAHomingOffset(int32_t raHomingOffset);
+    int32_t getRAHomingOffset() override;
+    void storeRAHomingOffset(int32_t raHomingOffset) override;
 
-    int32_t getDECHomingOffset();
-    void storeDECHomingOffset(int32_t decHomingOffset);
+    int32_t getDECHomingOffset() override;
+    void storeDECHomingOffset(int32_t decHomingOffset) override;
 
-    int16_t getLastFlashedVersion();
-    void storeLastFlashedVersion(int16_t lastVersion);
+    int16_t getLastFlashedVersion() override;
+    void storeLastFlashedVersion(int16_t lastVersion) override;
 
-    int32_t getAZPosition();
-    void storeAZPosition(int32_t azPosition);
+    int32_t getAZPosition() override;
+    void storeAZPosition(int32_t azPosition) override;
 
-    int32_t getALTPosition();
-    void storeALTPosition(int32_t altPosition);
+    int32_t getALTPosition() override;
+    void storeALTPosition(int32_t altPosition) override;
 
   private:
     // The storage format itself (magic markers, flags, addresses) lives in

@@ -19,7 +19,6 @@
 #include "adapters/EepromSettingsFormat.hpp"
 #include "adapters/ArduinoScheduler.hpp"
 #include "adapters/InfoDisplayPanel.hpp"
-#include "adapters/MountSettingsStore.hpp"
 #include "core/SiteTimeService.hpp"
 #include "UiPorts.hpp"
 #include "UiSession.hpp"
@@ -69,12 +68,9 @@ extern ports::IGps *gpsPort;
 
 // --- persistence -----------------------------------------------------------------------
 
-/// The on-device settings format. One instance, built here so nothing else constructs or
-/// statically reaches for it.
+/// The on-device settings format, and the `ports::IMountSettings` the domain consumes: the
+/// class implements that port directly, so there is no separate facade object.
 extern adapters::EepromSettingsFormat eepromStore;
-
-/// The typed view of `eepromStore` the domain consumes.
-extern adapters::MountSettingsStore settingsStore;
 
 /// The one log sink, so the wiring modules can log without owning a logger.
 
