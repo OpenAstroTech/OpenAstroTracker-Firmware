@@ -584,12 +584,8 @@ types::DayTime MountReadout::calculateLst()
 
 const DayTime MountReadout::HA() const
 {
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: Get HA.");
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: Polaris adjust: %s", DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND).ToString());
     DayTime ha = DayTime(_siteTime.lst());
-    // LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: LST: %s", DayTime(_siteTime.lst()).ToString());
     ha.subtractTime(DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
-    // LOG(DEBUG_MOUNT, "[MOUNT]: GetHA: LST-Polaris is HA %s", ha.ToString());
     return ha;
 }
 

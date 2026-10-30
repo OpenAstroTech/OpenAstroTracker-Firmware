@@ -431,9 +431,6 @@ void MountExecutor::setHome(bool clearZeroPos)
         startSlewing(TRACKING);
     }
 
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: currentRA is %s", currentRA().ToString());
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: targetRA is %s", targetRA().ToString());
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePre: zeroPos is %s", DayTime(_siteTime.raZeroPoint()).ToString());
     _siteTime.setRaZeroPoint(clearZeroPos ? DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst());
 #if defined(OAM) || defined(OAE)
     _siteTime.adjustRaZeroPoint(6.0f);  // shift all coordinates by 90° for EQ mount movement
@@ -454,10 +451,6 @@ void MountExecutor::setHome(bool clearZeroPos)
         _coordinator.parking().clear();
         applyParkingStatus();
     }
-
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: currentRA is %s", currentRA().ToString());
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: zeroPos is %s", DayTime(_siteTime.raZeroPoint()).ToString());
-    //LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: setHomePost: targetRA is %s", targetRA().ToString());
 }
 
 /////////////////////////////////

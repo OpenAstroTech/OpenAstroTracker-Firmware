@@ -196,7 +196,6 @@ bool EepromSettingsFormat::isPresent(ItemFlag item)
             res);
 
     // Data is only present if both magic marker and item flag are present
-    //return ((marker & (MAGIC_MARKER_MASK | item)) == (MAGIC_MARKER_VALUE | item));
     return res;
 }
 

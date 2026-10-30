@@ -42,8 +42,6 @@ void MountExecutor::loop()
     }
 #endif
 
-    // LOG(DEBUG_MOUNT, "[MOUNT]: Focuser running:  %d", _axes.focus()->isRunning());
-
     if (_coordinator.focus().isRunning())
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[MOUNT]: Loop: Focuser running at speed %f", _coordinator.focus().speed());

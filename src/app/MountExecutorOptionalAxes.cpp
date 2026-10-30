@@ -157,7 +157,6 @@ void MountExecutor::focusSetSpeedByRate(int rate)
     if (_coordinator.focus().isRunning())
     {
         OAT_LOG(_deps.logger, DEBUG_FOCUS, "[FOCUS]: focusSetSpeedByRate: stepper is already running so should adjust speed?");
-        //_axes.focus()->setSpeed(_coordinator.focus().rateFactor() * _axes.limits().focusSpeed);
     }
 }
 
