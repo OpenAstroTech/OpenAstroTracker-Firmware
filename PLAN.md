@@ -66,16 +66,26 @@ Suggested order: **quick wins → R5 → R4 → R2 → R1 → R3**.
       `../src/core/meade/MeadeProtocol.hpp`, a path that has not existed since the Meade protocol
       moved to `adapters/meade/`. Point it at `MODULE_PATH`-relative `../docs/MEADE-PROTOCOL.md`
       so it no longer depends on the caller's cwd.
-- [ ] **Delete the dead `RAString`/`DECString` pair.** `MountReadout::RAString/DECString`
+- [x] **Delete the dead `RAString`/`DECString` pair.** `MountReadout::RAString/DECString`
       ([MountReadout.hpp:80](/Users/andre/repos/OpenAstroTech/OpenAstroTracker-Firmware/src/app/MountReadout.hpp:80))
       and their `MountExecutor` forwarders
       ([MountExecutor.hpp:328](/Users/andre/repos/OpenAstroTech/OpenAstroTracker-Firmware/src/app/MountExecutor.hpp:328))
       have **no callers**; the `const char *raText()/decText()` pair superseded them.
-- [ ] **Fix `CLAUDE.md`.** It claims `src/app/main.cpp` defines `setup()` **and** `loop()`.
+      *(Correction found while implementing: only the two `MountExecutor` forwarders were dead.
+      `MountReadout::'s` pair still had three internal callers — `raText`/`decText` wrapped it, and
+      `fillInfoDisplayState` copied its `String` to guard against `scratchBuffer` aliasing. Done as
+      the same deletion with the formatting bodies moved into `raText`/`decText`, which removes two
+      `String` heap allocations per panel refresh.)*
+- [x] **Fix `CLAUDE.md`.** It claims `src/app/main.cpp` defines `setup()` **and** `loop()`.
       `loop()` actually lives in `src/app/MenuHost.hpp` (lines 138 and 620). Correct the doc now;
       R3 moves both into `main.cpp` for real.
-- [ ] **Triage the 18 commented-out code lines and 6 `TODO`/`FIXME`/`HACK` markers** in `src/`
+- [~] **Triage the 18 commented-out code lines and 6 `TODO`/`FIXME`/`HACK` markers** in `src/`
       (excluding `src/libs/`): delete or convert to an issue. They are noise at every re-read.
+      *(Commented-out code deleted: 13 lines — the `//LOG(...)` scaffolding in `MountExecutorSlew`,
+      `MountExecutorTick` and `MountReadout`, the duplicated `return` in `EepromSettingsFormat`,
+      and the dead `focus()->setSpeed()` call. The 5 `TODO`s were left in place by decision: all
+      five are genuine open questions (slew-mode check in `setSpeed`, guide steps vs `GoHome`, DEC
+      guide pulses, Southern-hemisphere direction), not stale notes.)*
 
 Verify: `pio run -e ramps` + `pio test -e native` still green.
 
