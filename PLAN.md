@@ -330,19 +330,28 @@ has an Arduino `String` keeps a one-line `String` overload in the same header th
 
 **Steps.**
 
-- [ ] Add `src/adapters/DayTimeText.{hpp,cpp}` with the free functions; re-implement them by
-      moving the bodies of `adapters/DayTime.cpp`, `Declination.cpp`, `Latitude.cpp`,
-      `Longitude.cpp` verbatim, changing only the parameter type and the namespace.
-- [ ] Convert the call sites that parse/format for the wire, in this order (largest first):
-      `app/MountReadout.cpp` (9 call sites), `app/MountExecutorSlew.cpp` (6),
-      `app/MountExecutorConfig.cpp` (2), `adapters/MeadeCommandAdapter.cpp` (2),
-      `adapters/meade/MeadeParserSet.cpp` (1).
-- [ ] Delete the four overlay headers/sources and their `String` constructors.
-- [ ] Remove the four `-<adapters/...>` exclusions from `[env:native]`'s `build_src_filter` — the
-      new files are plain `char *`/`std` and must compile on the host.
-- [ ] Add `unit_tests/test_adapters/test_DayTimeText.cpp` (round-trip both Meade forms, negative
-      declination below one degree, hemisphere flip). This is the test that cannot exist today.
-- [ ] Drop the redundant `DayTime(ha)` wrap in `MountSettingsStore` (or let R5 delete the class).
+- [x] Add `src/adapters/DayTimeText.{hpp,cpp}` with the free functions. The bodies moved verbatim,
+      with two corrections the `String` removal needed: `snprintf("%.Nf")` in place of
+      `String(float, N)`, and a 48-byte buffer because the old 32 truncated
+      `-180:00:00 (-180.0000, -180.0000)`.
+      *(The two Meade parsers and `Longitude::formatStringForMeade` were **not** carried over: they
+      had no callers, so re-adding them would have recreated dead code. `Declination::FromSeconds`
+      and `fromCelestialSeconds` became `decFromCelestialArcSeconds` / `decFromCelestialSeconds`.)*
+- [x] Convert the call sites that parse/format for the wire: `app/MountReadout.cpp`,
+      `app/MountExecutorConfig.cpp`, `adapters/MeadeCommandAdapter.cpp`. `MountExecutorSlew.cpp`
+      only needed its `DayTime`/`Declination` spellings qualified; `MeadeParserSet.cpp` needed
+      nothing (its mention was a comment).
+- [x] Delete the four overlay headers/sources and their `String` constructors.
+- [x] Remove the four `-<adapters/...>` exclusions from `[env:native]`'s `build_src_filter`.
+- [x] Add `unit_tests/test_adapters/test_DayTimeText.cpp` (9 cases). This is the test that could
+      not exist today.
+- [x] Drop the redundant `DayTime(ha)` wrap — R5 deleted the class it lived in.
+
+*(Measured on `ramps`: flash 175 968 -> 173 766 bytes, RAM 3 760 -> 3 588. Output was verified
+**byte-identical** to the deleted overlays by compiling the old classes from `HEAD` against a
+minimal `String` shim and diffing: 8/8 strings matched. Two pre-existing oddities are now pinned by
+tests rather than fixed — `formatLatitude` emits a double sign (`++45:00:00`) and `%{d}` emits one
+for declination. Both only reach DEBUG logs.)*
 
 **Verification.** `pio test -e native` **now covers the formatters** — that is the point.
 `pio run -e ramps -e esp32`, `python scripts/check_architecture.py` (these files live in
