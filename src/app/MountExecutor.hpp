@@ -7,9 +7,6 @@ POP_NO_WARNINGS
 // Arduino first: `String` is `arduino::String` on RP2040, and the value-type overlays below
 // forward-declare it. Including them before Arduino.h makes that declaration a conflict there.
 
-#include "adapters/Declination.hpp"
-#include "adapters/Latitude.hpp"
-#include "adapters/Longitude.hpp"
 #include "ports/PortVocabulary.hpp"
 #include "AxisBank.hpp"
 #include "BoardPresence.hpp"
@@ -232,7 +229,7 @@ class MountExecutor final : public ports::IMountOptionalAxes
     float getTrackedHours() const;
 
     // The hour angle derived from the current sidereal time and the pole star's RA.
-    const DayTime HA() const;
+    const types::DayTime HA() const;
 
     // Get a reference to the target RA value.
     types::DayTime &targetRA();
@@ -527,10 +524,10 @@ class MountExecutor final : public ports::IMountOptionalAxes
     /// Latitude, longitude, local sidereal time and the session clock, in one object.
     core::SiteTime _siteTime;
 
-    DayTime _targetRA;
+    types::DayTime _targetRA;
     long _currentRAStepperPosition;
 
-    Declination _targetDEC;
+    types::Declination _targetDEC;
     // The DEC offset from home position
     float _zeroPosDEC;
     long _lastTRKCheck;

@@ -6,10 +6,7 @@ POP_NO_WARNINGS
 #include "ports/ILogger.hpp"
 #include "MeadeCommandAdapter.hpp"
 #include "WifiControl.hpp"
-#include "adapters/DayTime.hpp"
-#include "adapters/Declination.hpp"
-#include "adapters/Latitude.hpp"
-#include "adapters/Longitude.hpp"
+#include "adapters/DayTimeText.hpp"
 #include "types/FocuserDirection.hpp"
 #include "adapters/meade/MeadeParser.hpp"
 
@@ -229,14 +226,14 @@ meade::DecCoordinate decFrom(const types::Declination &d, bool northernHemispher
     };
 }
 
-Declination decFromWire(meade::DecCoordinate const &d, bool northernHemisphere)
+types::Declination decFromWire(meade::DecCoordinate const &d, bool northernHemisphere)
 {
     // The parser keeps sign and magnitude apart, and they stay apart all the way
     // into the join. Flattening `negative` back into a signed degrees component
     // here would lose it again for "-00*30:00", which is the whole point of the
     // separate flag. celestialSecondsFrom is the declination counterpart of
     // siteSecondsFrom below.
-    return Declination::fromCelestialSeconds(types::Declination::celestialSecondsFrom(d.degrees, d.minutes, d.seconds, d.negative),
+    return adapters::decFromCelestialSeconds(types::Declination::celestialSecondsFrom(d.degrees, d.minutes, d.seconds, d.negative),
                                              northernHemisphere);
 }
 
@@ -441,14 +438,16 @@ void MeadeCommandAdapter::onSyncToTarget()
 bool MeadeCommandAdapter::onSetTargetDec(meade::DecCoordinate dec)
 {
     _read->targetDEC() = decFromWire(dec, _read->isNorthernHemisphere());
-    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target DEC: %s", Declination(_read->targetDEC()).ToString(_read->isNorthernHemisphere()));
+    LOG(DEBUG_MEADE,
+        "[MEADE]: SetInfo: Received Target DEC: %s",
+        adapters::formatDeclination(_read->targetDEC(), _read->isNorthernHemisphere()));
     return true;
 }
 
 bool MeadeCommandAdapter::onSetTargetRa(meade::RaCoordinate ra)
 {
     _read->targetRA().set(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
-    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", DayTime(_read->targetRA()).ToString());
+    LOG(DEBUG_MEADE, "[MEADE]: SetInfo: Received Target RA: %s", adapters::formatDayTime(_read->targetRA()));
     return true;
 }
 
@@ -474,15 +473,15 @@ bool MeadeCommandAdapter::onSetHourAngle(uint8_t hours, uint8_t minutes)
 
 bool MeadeCommandAdapter::onSyncCoordinates(meade::DecCoordinate dec, meade::RaCoordinate ra)
 {
-    Declination decValue = decFromWire(dec, _read->isNorthernHemisphere());
-    DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
+    types::Declination decValue = decFromWire(dec, _read->isNorthernHemisphere());
+    types::DayTime raValue(static_cast<int>(ra.hours), static_cast<int>(ra.minutes), static_cast<int>(ra.seconds));
     _motion->syncPosition(raValue, decValue);
     return true;
 }
 
 bool MeadeCommandAdapter::onSetSiteLatitude(meade::MeadeLatitude lat)
 {
-    Latitude value;
+    types::Latitude value;
     value.addSeconds(siteSecondsFrom(lat.degrees, lat.minutes, lat.negative));
     _siteTime->setLatitude(value);
     return true;
@@ -490,7 +489,7 @@ bool MeadeCommandAdapter::onSetSiteLatitude(meade::MeadeLatitude lat)
 
 bool MeadeCommandAdapter::onSetSiteLongitude(meade::MeadeLongitude lon)
 {
-    Longitude value;
+    types::Longitude value;
     value.addSeconds(siteSecondsFrom(lon.degrees, lon.minutes, lon.negative));
     _siteTime->setLongitude(value);
     return true;

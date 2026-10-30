@@ -467,7 +467,7 @@ void setup()
     mount.readConfiguration();
 
     // Read other persisted values and set in mount
-    DayTime haTime(eepromStore.getHATime());
+    const types::DayTime haTime = eepromStore.getHATime();
 
     LOG(DEBUG_INFO, "[SYSTEM]: SpeedCal: %s", String(mount.getSpeedCalibration(), 5).c_str());
     LOG(DEBUG_INFO, "[SYSTEM]: TRKSpeed: %s", String(mount.getSpeed(TRACKING), 5).c_str());

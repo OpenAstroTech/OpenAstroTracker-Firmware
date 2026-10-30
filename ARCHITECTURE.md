@@ -225,10 +225,7 @@ OpenAstroTracker-Firmware/
 │   │   ├── InfoDisplayLayout.cpp/.hpp   # RA/DEC -> panel pixels, markers, progress bar
 │   │   ├── ConsoleLog.cpp/.hpp          # the boot console's fixed-capacity line ring
 │   │   ├── ButtonDebounce.hpp/.cpp      # raw key + time -> committed key
-│   │   ├── DayTime.cpp/.hpp             # String-based overlays over types::
-│   │   ├── Declination.cpp/.hpp
-│   │   ├── Latitude.cpp/.hpp
-│   │   ├── Longitude.cpp/.hpp
+│   │   ├── DayTimeText.cpp/.hpp         # the `%s` renderings for debug logs (no subclassing)
 │   │   ├── WifiControl.hpp/.cpp          # Meade over TCP + SkyFi UDP discovery (done)
 │   │   ├── TcpConnectionPort.hpp/.cpp    # ISerialPort over ITcpConnection (done)
 │   │   ├── InfoDisplayPanel.hpp/.cpp    # IEventSink + refresh policy -> IInfoDisplay (PLAN.md 8.4)

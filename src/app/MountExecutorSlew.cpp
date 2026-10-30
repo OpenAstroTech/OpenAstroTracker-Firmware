@@ -12,8 +12,8 @@ namespace app
 void MountExecutor::syncPosition(const types::DayTime &ra, const types::Declination &dec)
 {
     long solutions[6];
-    _targetDEC = Declination(dec);
-    _targetRA  = DayTime(ra);
+    _targetDEC = types::Declination(dec);
+    _targetRA  = types::DayTime(ra);
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: syncPosition: Target Sync is RA: %f  and DEC: %f",
@@ -27,7 +27,7 @@ void MountExecutor::syncPosition(const types::DayTime &ra, const types::Declinat
     OAT_LOG(_deps.logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: syncPosition: ZeroPos values RA: %f  and DEC: %f)",
-            DayTime(_siteTime.raZeroPoint()).getTotalHours(),
+            types::DayTime(_siteTime.raZeroPoint()).getTotalHours(),
             _zeroPosDEC);
 
     // The declination the stepper position maps to, before the correction: negative when the
@@ -40,7 +40,10 @@ void MountExecutor::syncPosition(const types::DayTime &ra, const types::Declinat
         ra.getTotalHours(), currentRA().getTotalHours(), dec.getTotalDegrees(), currentDEC().getTotalDegrees(), degreePos);
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: AdjustRA is %f", adjustment.raHours);
     _siteTime.adjustRaZeroPoint(adjustment.raHours);
-    OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: ZeroPosRA is now %f", DayTime(_siteTime.raZeroPoint()).getTotalHours());
+    OAT_LOG(_deps.logger,
+            DEBUG_COORD_CALC,
+            "[MOUNT]: syncPosition: ZeroPosRA is now %f",
+            types::DayTime(_siteTime.raZeroPoint()).getTotalHours());
 
     _zeroPosDEC += adjustment.decDegrees;
     OAT_LOG(_deps.logger, DEBUG_COORD_CALC, "[MOUNT]: syncPosition: _zeroPosDEC adjusted by: %f", adjustment.decDegrees);
@@ -431,7 +434,7 @@ void MountExecutor::setHome(bool clearZeroPos)
         startSlewing(TRACKING);
     }
 
-    _siteTime.setRaZeroPoint(clearZeroPos ? DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst());
+    _siteTime.setRaZeroPoint(clearZeroPos ? types::DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst());
 #if defined(OAM) || defined(OAE)
     _siteTime.adjustRaZeroPoint(6.0f);  // shift all coordinates by 90° for EQ mount movement
 #endif

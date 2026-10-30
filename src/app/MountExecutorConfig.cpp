@@ -1,5 +1,6 @@
 #include "MountExecutor.hpp"
 
+#include "adapters/DayTimeText.hpp"
 #include "ports/ILogger.hpp"
 #include "../core/FirmwareVersion.hpp"
 #include "../core/Microsteps.hpp"
@@ -71,10 +72,10 @@ void MountExecutor::readPersistentData()
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Backlash correction is %d", _settings.backlashCorrectionSteps());
 
     _siteTime.setLatitude(stored.latitude);
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Latitude is %s", Latitude(_siteTime.latitude()).ToString());
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Latitude is %s", adapters::formatLatitude(_siteTime.latitude()));
 
     _siteTime.setLongitude(stored.longitude);
-    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Longitude is %s", Longitude(_siteTime.longitude()).ToString());
+    OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Longitude is %s", adapters::formatLongitude(_siteTime.longitude()));
 
     _siteTime.setLocalUtcOffset(stored.utcOffset);
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: UTC offset is %d", _siteTime.localUtcOffset());

@@ -136,7 +136,7 @@ void MountExecutor::initializeVariables()
 
     _siteTime.setLocalUtcOffset(0);
     _siteTime.setLocalStartDate({2021, 1, 1});
-    _siteTime.setLocalStartTime(DayTime(0), static_cast<unsigned long>(-1));
+    _siteTime.setLocalStartTime(types::DayTime(0), static_cast<unsigned long>(-1));
     _lastTRKCheck = 0;
 }
 
@@ -208,7 +208,7 @@ float MountExecutor::checkRALimit()
     // The arithmetic and the folding live in core::RaTrackingLimit; the side effect — stopping the
     // tracker — stays here, because it owns the axes.
     core::RaLimitFacts facts;
-    facts.homeRaHours        = DayTime(_siteTime.raZeroPoint()).getTotalHours() + getTrackedHours();
+    facts.homeRaHours        = types::DayTime(_siteTime.raZeroPoint()).getTotalHours() + getTrackedHours();
     facts.currentRaHours     = currentRA().getTotalHours();
     facts.decAxisDegrees     = (_axes.dec()->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;
     facts.northernHemisphere = _coordinator.state().isNorthernHemisphere();
@@ -220,7 +220,7 @@ float MountExecutor::checkRALimit()
             DEBUG_MOUNT_VERBOSE,
             "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f), remaining: %f",
             facts.homeRaHours,
-            DayTime(_siteTime.raZeroPoint()).getTotalHours(),
+            types::DayTime(_siteTime.raZeroPoint()).getTotalHours(),
             getTrackedHours(),
             result.remainingHours);
 

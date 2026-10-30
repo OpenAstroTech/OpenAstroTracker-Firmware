@@ -12,8 +12,6 @@ POP_NO_WARNINGS
 #include "../core/SiteTime.hpp"
 #include "../types/DayTime.hpp"
 #include "../types/Declination.hpp"
-#include "adapters/DayTime.hpp"
-#include "adapters/Declination.hpp"
 #include "../ports/IClock.hpp"
 #include "../ports/ILogger.hpp"
 #include "../ports/IMountReadModel.hpp"
@@ -65,8 +63,8 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
                  core::MountRuntimeSettings &settings,
                  const core::MountConfig &config,
                  core::SiteTime &siteTime,
-                 DayTime &targetRa,
-                 Declination &targetDec,
+                 types::DayTime &targetRa,
+                 types::Declination &targetDec,
                  float &zeroPosDec,
                  ports::IClock &clock,
                  ports::ILogger &logger,
@@ -124,7 +122,7 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
     void commandReceived() override;
 
     float getTrackedHours() const;
-    const DayTime HA() const;
+    const types::DayTime HA() const;
 
     /// `ports::IInfoDisplaySource`: the one frame the status panel draws.
     void fillInfoDisplayState(ports::InfoDisplayState &state) override;
@@ -149,8 +147,8 @@ class MountReadout final : public ports::IMountReadModel, public ports::IInfoDis
     core::MountRuntimeSettings &_settings;
     const core::MountConfig &_config;
     core::SiteTime &_siteTime;
-    DayTime &_targetRa;
-    Declination &_targetDec;
+    types::DayTime &_targetRa;
+    types::Declination &_targetDec;
     float &_zeroPosDec;
     ports::IClock &_clock;
     ports::ILogger &_logger;

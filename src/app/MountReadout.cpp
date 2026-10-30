@@ -1,6 +1,6 @@
 #include "MountReadout.hpp"
 
-#include "adapters/DayTime.hpp"
+#include "adapters/DayTimeText.hpp"
 #include "HomingRunner.hpp"
 #include "ports/ILogger.hpp"
 #include "../core/CoordinateFormatter.hpp"
@@ -12,7 +12,6 @@
 #include "../core/SlewProgressReport.hpp"
 #include "../core/SiderealClock.hpp"
 #include "../ports/IClock.hpp"
-#include "adapters/Declination.hpp"
 
 // slewStatus()
 #define SLEWING_DEC      B00000010
@@ -29,8 +28,8 @@ MountReadout::MountReadout(AxisBank &axes,
                            core::MountRuntimeSettings &settings,
                            const core::MountConfig &config,
                            core::SiteTime &siteTime,
-                           DayTime &targetRa,
-                           Declination &targetDec,
+                           types::DayTime &targetRa,
+                           types::Declination &targetDec,
                            float &zeroPosDec,
                            ports::IClock &clock,
                            ports::ILogger &logger,
@@ -207,7 +206,7 @@ types::DayTime MountReadout::currentRA() const
     facts.decSteps          = _axes.dec()->currentPosition();
     facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
-    facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
+    facts.zeroPosRaHours    = types::DayTime(_siteTime.raZeroPoint()).getTotalHours();
     facts.zeroPosDecDegrees = _zeroPosDec;
     return core::currentRa(facts);
 }
@@ -220,7 +219,7 @@ types::Declination MountReadout::currentDEC() const
     facts.decSteps          = _axes.dec()->currentPosition();
     facts.raStepsPerDegree  = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree = _settings.stepsPerDegree(DEC_STEPS);
-    facts.zeroPosRaHours    = DayTime(_siteTime.raZeroPoint()).getTotalHours();
+    facts.zeroPosRaHours    = types::DayTime(_siteTime.raZeroPoint()).getTotalHours();
     facts.zeroPosDecDegrees = _zeroPosDec;
     return core::currentDec(facts);
 }
@@ -399,7 +398,7 @@ String MountReadout::homingStateText(bool present, const HallSensorHoming *senso
 
 const char *MountReadout::raText(uint8_t type, uint8_t active)
 {
-    DayTime ra;
+    types::DayTime ra;
     if ((type & TARGET_STRING) == TARGET_STRING)
     {
         ra = _targetRa;
@@ -420,14 +419,14 @@ const char *MountReadout::raText(uint8_t type, uint8_t active)
 
 const char *MountReadout::decText(uint8_t type, uint8_t active)
 {
-    Declination dec;
+    types::Declination dec;
     if ((type & TARGET_STRING) == TARGET_STRING)
     {
         dec = _targetDec;
     }
     else
     {
-        dec = Declination(currentDEC());
+        dec = types::Declination(currentDEC());
     }
 
     const core::CoordinateFormat format = core::coordinateFormat(type);
@@ -582,10 +581,10 @@ types::DayTime MountReadout::calculateLst()
     return _siteTime.lstAt(_clock.now());
 }
 
-const DayTime MountReadout::HA() const
+const types::DayTime MountReadout::HA() const
 {
-    DayTime ha = DayTime(_siteTime.lst());
-    ha.subtractTime(DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
+    types::DayTime ha = types::DayTime(_siteTime.lst());
+    ha.subtractTime(types::DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
     return ha;
 }
 
@@ -628,10 +627,10 @@ bool MountReadout::isNorthernHemisphere() const
 
 void MountReadout::calculateStepperPositions(float raCoord, float decCoord, long &raPos, long &decPos)
 {
-    DayTime savedRA      = _targetRa;
-    Declination savedDec = _targetDec;
-    _targetRa            = DayTime(raCoord);
-    _targetDec           = Declination::FromSeconds(decCoord * 3600.0f, isNorthernHemisphere());
+    const types::DayTime savedRA      = _targetRa;
+    const types::Declination savedDec = _targetDec;
+    _targetRa                         = types::DayTime(raCoord);
+    _targetDec                        = adapters::decFromCelestialArcSeconds(decCoord * 3600.0f, isNorthernHemisphere());
     calculateRAandDECSteppers(raPos, decPos);
     _targetRa  = savedRA;
     _targetDec = savedDec;
@@ -642,14 +641,14 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
     OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersPre: Current : RA: %s, DEC: %s",
-            DayTime(currentRA()).ToString(),
-            Declination(currentDEC()).ToString(isNorthernHemisphere()));
+            adapters::formatDayTime(currentRA()),
+            adapters::formatDeclination(currentDEC(), isNorthernHemisphere()));
     OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersPre: Target  : RA: %s, DEC: %s",
-            _targetRa.ToString(),
-            _targetDec.ToString(isNorthernHemisphere()));
-    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", DayTime(_siteTime.raZeroPoint()).ToString());
+            adapters::formatDayTime(_targetRa),
+            adapters::formatDeclination(_targetDec, isNorthernHemisphere()));
+    OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroRA  : %s", adapters::formatDayTime(_siteTime.raZeroPoint()));
     OAT_LOG(&_logger, DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersPre: ZeroDEC : %f", _zeroPosDec);
     OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
@@ -657,16 +656,16 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
             _axes.ra()->currentPosition(),
             _axes.dec()->currentPosition(),
             _axes.tracking()->currentPosition());
-    DayTime raTarget      = _targetRa;
-    Declination decTarget = _targetDec;
+    types::DayTime raTarget      = _targetRa;
+    types::Declination decTarget = _targetDec;
 
     // Calculate how far from the home position this new target is.
-    raTarget.subtractTime(DayTime(_siteTime.raZeroPoint()));
+    raTarget.subtractTime(types::DayTime(_siteTime.raZeroPoint()));
     OAT_LOG(&_logger,
             DEBUG_COORD_CALC,
             "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
-            raTarget.ToString(),
-            _targetDec.ToString(isNorthernHemisphere()));
+            adapters::formatDayTime(raTarget),
+            adapters::formatDeclination(_targetDec, isNorthernHemisphere()));
 
     // Total hours of tracking-to-date
     const float trackedHours = getTrackedHours();
@@ -679,7 +678,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
     core::SlewGeometryFacts facts;
     facts.targetRaHours      = _targetRa.getTotalHours();
     facts.targetDecDegrees   = decTarget.getTotalDegrees();
-    facts.zeroPosRaHours     = DayTime(_siteTime.raZeroPoint()).getTotalHours();
+    facts.zeroPosRaHours     = types::DayTime(_siteTime.raZeroPoint()).getTotalHours();
     facts.zeroPosDecDegrees  = _zeroPosDec;
     facts.trackedHours       = trackedHours;
     facts.raStepsPerDegree   = _settings.stepsPerDegree(RA_STEPS);
@@ -700,7 +699,7 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
             "[MOUNT]: CalcSteppersIn: Target hrs pos RA: Delta:%f (moveRA: %f), DEC: %s (moveDEC: %f)",
             geometry.homeTargetDeltaRA,
             geometry.moveRA,
-            decTarget.ToString(isNorthernHemisphere()),
+            adapters::formatDeclination(decTarget, isNorthernHemisphere()),
             geometry.moveDEC);
 
     /*
@@ -788,10 +787,10 @@ float MountReadout::plannedDecSteps() const
 
 types::DayTime MountReadout::calculateHa()
 {
-    DayTime lst = calculateLst();
-    OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", lst.ToString());
-    DayTime ha = core::SiderealClock::hourAngle(lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
-    OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: HA is: %s", ha.ToString());
+    types::DayTime lst = calculateLst();
+    OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", adapters::formatDayTime(lst));
+    types::DayTime ha = core::SiderealClock::hourAngle(lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
+    OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: HA is: %s", adapters::formatDayTime(ha));
     return ha;
 }
 
