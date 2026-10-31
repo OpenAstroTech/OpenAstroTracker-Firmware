@@ -54,14 +54,22 @@ ports::IGps *gpsPort = &gpsAdapter;
 ports::IGps *gpsPort = nullptr;
 #endif
 
+namespace
+{
+/// A guided startup owns the display from boot, so the flag starts set on boards that have one.
+LoopState makeLoopState()
+{
+    LoopState state = {};
 #if SUPPORT_GUIDED_STARTUP == 1
-bool inStartup = true;  // Start with a guided startup
-#else
-bool inStartup       = false;  // Start with a guided startup
+    state.inStartup = true;
 #endif
+    state.okToUpdateMenu                = true;   // Suppresses rendering the first line of the menu.
+    state.quitSerialOnNextButtonRelease = false;  // SELECT quits serial mode on its next release.
+    return state;
+}
+}  // namespace
 
-bool okToUpdateMenu                = true;   // Can be used to supress rendering the first line of the menu.
-bool quitSerialOnNextButtonRelease = false;  // Used to detect SELECT button to quit Serial mode.
+LoopState loopState = makeLoopState();
 
 // The infrastructure the domain runs on. Declared before `mount` so it is
 // constructed first; all of these are stateless or trivially initialised.

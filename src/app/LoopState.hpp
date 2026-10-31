@@ -1,15 +1,20 @@
 #pragma once
 
-/// The flags the menu loop owns.
+/// The flags the menu loop owns, in one object.
 ///
-/// They are defined once, in `app/BoardWiring.cpp`, and read from the loop and from the serial path.
-/// They are here rather than in a screen because they are not a screen's business: the guided
-/// startup and the serial host both take the display away from the menu, and the menu has to know.
-extern bool inStartup;  ///< The guided startup wizard is driving the display.
+/// They were three free `bool`s with the same prefixless names in every scope that read them; they
+/// are always read and written together, so they travel together.
+struct LoopState {
+    /// The guided startup wizard is driving the display.
+    bool inStartup;
 
-/// False while a screen has taken the display over with its own prompt, so the loop stops repainting
-/// the menu underneath it.
-extern bool okToUpdateMenu;
+    /// False while a screen has taken the display over with its own prompt, so the loop stops
+    /// repainting the menu underneath it.
+    bool okToUpdateMenu;
 
-/// Set when the SELECT key means "leave serial mode" on its next release.
-extern bool quitSerialOnNextButtonRelease;
+    /// Set when the SELECT key means "leave serial mode" on its next release.
+    bool quitSerialOnNextButtonRelease;
+};
+
+/// Defined once, in `app/BoardWiring.cpp`, and read from the loop and from the serial path.
+extern LoopState loopState;

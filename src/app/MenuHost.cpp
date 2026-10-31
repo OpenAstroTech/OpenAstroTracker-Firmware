@@ -78,8 +78,8 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
     switch (outcome.action)
     {
         case app::StartupAction::HandOverToControlMenu:
-            inStartup      = false;
-            okToUpdateMenu = false;
+            loopState.inStartup      = false;
+            loopState.okToUpdateMenu = false;
             if (outcome.caption != nullptr && menuDisplayPort != nullptr)
             {
                 menuDisplayPort->writeLine(0, outcome.caption);
@@ -89,7 +89,7 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
             break;
 
         case app::StartupAction::HandOverToCalibration:
-            inStartup = false;
+            loopState.inStartup = false;
             if (outcome.caption != nullptr && menuDisplayPort != nullptr)
             {
                 menuDisplayPort->writeLine(0, outcome.caption);
@@ -98,7 +98,7 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
             break;
 
         case app::StartupAction::HandOverToHaMenu:
-            inStartup = false;
+            loopState.inStartup = false;
             if (outcome.caption != nullptr && menuDisplayPort != nullptr)
             {
                 menuDisplayPort->writeLine(0, outcome.caption);
@@ -107,8 +107,8 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
             break;
 
         case app::StartupAction::Completed:
-            inStartup      = false;
-            okToUpdateMenu = true;
+            loopState.inStartup      = false;
+            loopState.okToUpdateMenu = true;
     #if TRACK_ON_BOOT == 1
             ui.motion->startSlewing(TRACKING);
     #endif
@@ -201,7 +201,7 @@ void menuLoop()
 
     // Update the LCD display
     unsigned long now = millis();
-    if (!uiSession.serialControl && okToUpdateMenu && !inStartup && !ui.motion->isSlewingRAorDEC())
+    if (!uiSession.serialControl && loopState.okToUpdateMenu && !loopState.inStartup && !ui.motion->isSlewingRAorDEC())
     {
         // Main menu display
         menu.updateDisplay();
@@ -232,12 +232,12 @@ void menuLoop()
             lcd_key = serialKey;
             if (lcd_key == types::Button::Select)
             {
-                quitSerialOnNextButtonRelease = true;
+                loopState.quitSerialOnNextButtonRelease = true;
             }
-            else if ((lcd_key == types::Button::None) && quitSerialOnNextButtonRelease)
+            else if ((lcd_key == types::Button::None) && loopState.quitSerialOnNextButtonRelease)
             {
                 MeadeCommandAdapter::instance()->processCommand(":Qq#");
-                quitSerialOnNextButtonRelease = false;
+                loopState.quitSerialOnNextButtonRelease = false;
             }
         }
         serialLoop();
@@ -249,7 +249,7 @@ void menuLoop()
 
     // Handle the keys
     #if SUPPORT_GUIDED_STARTUP == 1
-        if (inStartup)
+        if (loopState.inStartup)
         {
             const app::StartupOutcome outcome = app::startupWizard.handleKey(screenInput(), ui);
             applyStartupOutcome(outcome);
@@ -355,7 +355,7 @@ void menuLoop()
                         {
     #if SUPPORT_GUIDED_STARTUP == 1
                             app::startupWizard.haConfirmed();
-                            inStartup = true;
+                            loopState.inStartup = true;
     #endif
                         }
 
@@ -381,11 +381,11 @@ void menuLoop()
 
                         if (outcome.suspendMenuUpdate)
                         {
-                            okToUpdateMenu = false;
+                            loopState.okToUpdateMenu = false;
                         }
                         if (outcome.resumeMenuUpdate)
                         {
-                            okToUpdateMenu = true;
+                            loopState.okToUpdateMenu = true;
                         }
                         if (outcome.shutdownGyro)
                         {
@@ -397,7 +397,7 @@ void menuLoop()
                         {
         #if SUPPORT_GUIDED_STARTUP == 1
                             app::startupWizard.rollConfirmed();
-                            inStartup = true;
+                            loopState.inStartup = true;
         #endif
                         }
 
@@ -450,17 +450,17 @@ void menuLoop()
                         }
                         if (outcome.suspendMenuUpdate)
                         {
-                            okToUpdateMenu = false;
+                            loopState.okToUpdateMenu = false;
                         }
                         if (outcome.resumeMenuUpdate)
                         {
-                            okToUpdateMenu = true;
+                            loopState.okToUpdateMenu = true;
                         }
                         if (outcome.resumeStartup)
                         {
         #if SUPPORT_GUIDED_STARTUP == 1
                             app::startupWizard.poleConfirmed();
-                            inStartup = true;
+                            loopState.inStartup = true;
         #endif
                         }
                         if (outcome.result == app::MenuKeyResult::NextScreen)
@@ -519,7 +519,7 @@ void menuLoop()
         menu.setCursor(0, 1);
 
     #if SUPPORT_GUIDED_STARTUP == 1
-        if (inStartup)
+        if (loopState.inStartup)
         {
             if (menuDisplayPort != nullptr)
             {
