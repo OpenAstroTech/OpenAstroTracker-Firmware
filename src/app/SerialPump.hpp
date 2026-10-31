@@ -30,4 +30,15 @@ void serialLoop();
 /// Called by the Arduino core when the port has data.
 void serialEvent();
     #endif
+#else
+/// A build without serial control has no host listening and no transport to drain, so both bodies
+/// are no-ops. That lets the menu loop ask the question once, at run time, instead of wrapping the
+/// serial branch in its own `#if`.
+inline void processSerialData()
+{
+}
+
+inline void serialLoop()
+{
+}
 #endif

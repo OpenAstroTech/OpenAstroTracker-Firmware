@@ -28,12 +28,12 @@ extern SlewStatusView slewStatusView;
 extern PoiMenu poiMenu;
     #endif
 
-    #if SUPPORT_INFO_DISPLAY == 1
+/// The INFO screen is not optional on a board with a display: `Configuration_adv.hpp` defines
+/// `SUPPORT_INFO_DISPLAY` to 1 whenever `DISPLAY_TYPE != DISPLAY_TYPE_NONE`.
 extern InfoMenu infoMenu;
 
 /// The board facts the status screen shows, gathered from wherever this board keeps them.
 InfoMenuEnvironment infoEnvironment();
-    #endif
 
 extern ControlMenu controlMenu;
 extern HaMenu haMenu;

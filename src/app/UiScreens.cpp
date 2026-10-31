@@ -32,9 +32,7 @@ CalibrationMenu::Board calibrationBoard()
     board.hasAltitude   = true;
     board.altitudeSpeed = ALT_STEPPER_SPEED;
     #endif
-    #if USE_GYRO_LEVEL == 1
-    board.hasLevelSensor = true;
-    #endif
+    board.hasLevelSensor = kHasGyro;
 
     board.polarisRaHours   = POLARIS_RA_HOUR;
     board.polarisRaMinutes = POLARIS_RA_MINUTE;
@@ -52,7 +50,6 @@ StartupWizard startupWizard(USE_GYRO_LEVEL == 1, USE_GPS == 1);
 PoiMenu poiMenu;
     #endif
 
-    #if SUPPORT_INFO_DISPLAY == 1
 InfoMenu infoMenu;
 
 InfoMenuEnvironment infoEnvironment()
@@ -60,13 +57,13 @@ InfoMenuEnvironment infoEnvironment()
     InfoMenuEnvironment environment;
     environment.version         = VERSION;
     environment.freeMemoryBytes = freeMemory();
-        #if USE_GYRO_LEVEL == 1
-    environment.gyroTemperatureC = gyro->temperature();
-    environment.hasGyro          = true;
-        #endif
+    if (kHasGyro)
+    {
+        environment.gyroTemperatureC = gyro->temperature();
+        environment.hasGyro          = true;
+    }
     return environment;
 }
-    #endif
 
 #endif  // DISPLAY_TYPE > 0
 
@@ -84,21 +81,14 @@ void registerMenuItems(MenuSurface &surface)
 
     surface.addItem("HA", HA_Menu);
 
-    #if SUPPORT_MANUAL_CONTROL == 1
     surface.addItem("CTRL", Control_Menu);
-    #endif
-
-    #if SUPPORT_CALIBRATION == 1
     surface.addItem("CAL", Calibration_Menu);
-    #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
     surface.addItem("FOC", Focuser_Menu);
     #endif
 
-    #if SUPPORT_INFO_DISPLAY == 1
     surface.addItem("INFO", Status_Menu);
-    #endif
 #else
     (void) surface;  // no panel, no menu
 #endif
@@ -106,11 +96,7 @@ void registerMenuItems(MenuSurface &surface)
 
 bool serialHostOwnsDisplay()
 {
-#if SUPPORT_SERIAL_CONTROL == 1
-    return uiSession.serialControl;
-#else
-    return false;
-#endif
+    return kHasSerialControl && uiSession.serialControl;
 }
 
 }  // namespace app

@@ -23,4 +23,22 @@ constexpr bool kHasDecEndSwitch = (USE_DEC_END_SWITCH == 1);
 constexpr bool kHasRaHoming     = (USE_HALL_SENSOR_RA_AUTOHOME == 1);
 constexpr bool kHasDecHoming    = (USE_HALL_SENSOR_DEC_AUTOHOME == 1);
 
+/// A board may have neither, either or both, and the boot sequence brings the group up as one
+/// step, so it asks the group question once instead of repeating the two switches.
+constexpr bool kHasEndSwitch    = kHasRaEndSwitch || kHasDecEndSwitch;
+constexpr bool kHasHomingSensor = kHasRaHoming || kHasDecHoming;
+
+/// The menu panel, and the "start tracking as soon as the boot finishes" switch. Both are board
+/// facts the boot sequence reads once, so neither has to appear as its own `#if` in `AppBootstrap`.
+constexpr bool kHasMenu     = (DISPLAY_TYPE != DISPLAY_TYPE_NONE);
+constexpr bool kTrackOnBoot = (TRACK_ON_BOOT == 1);
+
+/// Software features a build may leave out. They are compile-time facts like the rest: a call site
+/// reads the constant, and the compiler drops the branch, so the menu code says `if
+/// (kHasGuidedStartup)` instead of wrapping each question in its own `#if`.
+constexpr bool kHasGuidedStartup = (SUPPORT_GUIDED_STARTUP == 1);
+constexpr bool kHasSerialControl = (SUPPORT_SERIAL_CONTROL == 1);
+constexpr bool kHasGyro          = (USE_GYRO_LEVEL == 1);
+constexpr bool kHasGps           = (USE_GPS == 1);
+
 }  // namespace app

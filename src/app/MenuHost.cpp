@@ -13,9 +13,8 @@
 #include "ui/screens/PoiMenu.hpp"
 #include "ui/screens/RaMenu.hpp"
 
-#if SUPPORT_SERIAL_CONTROL == 1
-    #include "SerialPump.hpp"
-#endif
+#include "adapters/MeadeCommandAdapter.hpp"
+#include "SerialPump.hpp"
 
 namespace app
 {
@@ -42,33 +41,33 @@ app::FocusMenu focusMenu;
 /// screen reports back to it.
 bool startupAwaitingHa()
 {
-    #if SUPPORT_GUIDED_STARTUP == 1
+    if (!kHasGuidedStartup)
+    {
+        return false;
+    }
     return app::startupWizard.step() == app::StartupWizard::Step::WaitForHaCompletion;
-    #else
-    return false;
-    #endif
 }
 
 /// True while the guided startup waits for the level (roll) step, which is the only time the
 /// calibration screen answers to the wizard.
 bool startupAwaitingRoll()
 {
-    #if SUPPORT_GUIDED_STARTUP == 1
+    if (!kHasGuidedStartup)
+    {
+        return false;
+    }
     return app::startupWizard.step() == app::StartupWizard::Step::WaitForRollCompletion;
-    #else
-    return false;
-    #endif
 }
 
 /// True while the guided startup waits for the pole alignment, which changes what SELECT means in
 /// the control menu.
 bool startupAwaitingPole()
 {
-    #if SUPPORT_GUIDED_STARTUP == 1
+    if (!kHasGuidedStartup)
+    {
+        return false;
+    }
     return app::startupWizard.step() == app::StartupWizard::Step::WaitForPoleCompletion;
-    #else
-    return false;
-    #endif
 }
 
 /// Applies what the startup wizard asked for. The wizard knows the sequence; the menu, the flags and
@@ -109,9 +108,10 @@ void applyStartupOutcome(const app::StartupOutcome &outcome)
         case app::StartupAction::Completed:
             loopState.inStartup      = false;
             loopState.okToUpdateMenu = true;
-    #if TRACK_ON_BOOT == 1
-            ui.motion->startSlewing(TRACKING);
-    #endif
+            if (kTrackOnBoot)
+            {
+                ui.motion->startSlewing(TRACKING);
+            }
             menu.setActive(RA_Menu);
             menu.updateDisplay();
             break;
@@ -216,14 +216,13 @@ void menuLoop()
 
     menu.setCursor(0, 1);
 
-    #if SUPPORT_SERIAL_CONTROL == 1
-        #if defined(ARDUINO_ARCH_RP2040)
+    #if defined(ARDUINO_ARCH_RP2040)
     // On RP2040, the Philhower core does not reliably call serialEvent() for the
     // USB CDC Serial port when a host application opens the port and immediately
     // sends data (e.g. OATControl). Poll explicitly on every loop() iteration so
     // that commands are always processed regardless of the serial-control state.
     processSerialData();
-        #endif
+    #endif
     if (uiSession.serialControl)
     {
         types::Button serialKey = types::Button::None;
@@ -243,13 +242,11 @@ void menuLoop()
         serialLoop();
     }
     else
-    #endif
     {
         bool waitForButtonRelease = false;
 
-    // Handle the keys
-    #if SUPPORT_GUIDED_STARTUP == 1
-        if (loopState.inStartup)
+        // Handle the keys
+        if (kHasGuidedStartup && loopState.inStartup)
         {
             const app::StartupOutcome outcome = app::startupWizard.handleKey(screenInput(), ui);
             applyStartupOutcome(outcome);
@@ -259,7 +256,6 @@ void menuLoop()
             }
         }
         else
-    #endif
         {
             switch (menu.getActive())
             {
@@ -345,18 +341,20 @@ void menuLoop()
                                 menuDisplayPort->writeLine(1, "Stored.");
                             }
                             ui.delay(500);
-    #if USE_GPS == 0
-                            // Without a receiver, storing the hour angle is also what makes the
-                            // mount start tracking; with one, the receiver is already running.
-                            ui.motion->startSlewing(TRACKING);
-    #endif
+                            if (!kHasGps)
+                            {
+                                // Without a receiver, storing the hour angle is also what makes the
+                                // mount start tracking; with one, the receiver is already running.
+                                ui.motion->startSlewing(TRACKING);
+                            }
                         }
                         if (haOutcome.resumeStartup)
                         {
-    #if SUPPORT_GUIDED_STARTUP == 1
-                            app::startupWizard.haConfirmed();
-                            loopState.inStartup = true;
-    #endif
+                            if (kHasGuidedStartup)
+                            {
+                                app::startupWizard.haConfirmed();
+                                loopState.inStartup = true;
+                            }
                         }
 
                         if (result == app::MenuKeyResult::NextScreen)
@@ -370,7 +368,6 @@ void menuLoop()
                     }
                     break;
 
-    #if SUPPORT_CALIBRATION == 1
                 case Calibration_Menu:
                     {
                         app::CalibrationOutcome outcome;
@@ -389,16 +386,18 @@ void menuLoop()
                         }
                         if (outcome.shutdownGyro)
                         {
-        #if USE_GYRO_LEVEL == 1
-                            gyro->shutdown();
-        #endif
+                            if (kHasGyro)
+                            {
+                                gyro->shutdown();
+                            }
                         }
                         if (outcome.resumeStartup)
                         {
-        #if SUPPORT_GUIDED_STARTUP == 1
-                            app::startupWizard.rollConfirmed();
-                            loopState.inStartup = true;
-        #endif
+                            if (kHasGuidedStartup)
+                            {
+                                app::startupWizard.rollConfirmed();
+                                loopState.inStartup = true;
+                            }
                         }
 
                         // The one-off confirmations the screen asked for, painted in order.
@@ -421,7 +420,6 @@ void menuLoop()
                         }
                     }
                     break;
-    #endif
 
     #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
                 case Focuser_Menu:
@@ -439,7 +437,6 @@ void menuLoop()
                     break;
     #endif
 
-    #if SUPPORT_MANUAL_CONTROL == 1
                 case Control_Menu:
                     {
                         const app::ControlMenuOutcome outcome
@@ -458,10 +455,11 @@ void menuLoop()
                         }
                         if (outcome.resumeStartup)
                         {
-        #if SUPPORT_GUIDED_STARTUP == 1
-                            app::startupWizard.poleConfirmed();
-                            loopState.inStartup = true;
-        #endif
+                            if (kHasGuidedStartup)
+                            {
+                                app::startupWizard.poleConfirmed();
+                                loopState.inStartup = true;
+                            }
                         }
                         if (outcome.result == app::MenuKeyResult::NextScreen)
                         {
@@ -473,9 +471,7 @@ void menuLoop()
                         }
                     }
                     break;
-    #endif
 
-    #if SUPPORT_INFO_DISPLAY == 1
                 case Status_Menu:
                     {
                         const app::MenuKeyResult result = app::infoMenu.handleKey(screenInput());
@@ -489,7 +485,6 @@ void menuLoop()
                         }
                     }
                     break;
-    #endif
             }
         }
 
@@ -518,8 +513,7 @@ void menuLoop()
         // Input handled, do output
         menu.setCursor(0, 1);
 
-    #if SUPPORT_GUIDED_STARTUP == 1
-        if (loopState.inStartup)
+        if (kHasGuidedStartup && loopState.inStartup)
         {
             if (menuDisplayPort != nullptr)
             {
@@ -527,7 +521,6 @@ void menuLoop()
             }
         }
         else
-    #endif
         {
             if (!uiSession.serialControl)
             {
@@ -571,7 +564,6 @@ void menuLoop()
                         app::haMenu.render(*ui.read, *menuDisplayPort);
                     }
                 }
-    #if SUPPORT_MANUAL_CONTROL == 1
                 else if (activeMenu == Control_Menu)
                 {
                     if (menuDisplayPort != nullptr)
@@ -579,8 +571,6 @@ void menuLoop()
                         app::controlMenu.render(*ui.read, app::serialHostOwnsDisplay(), ui.clock->now(), *menuDisplayPort);
                     }
                 }
-    #endif
-    #if SUPPORT_CALIBRATION == 1
                 else if (activeMenu == Calibration_Menu)
                 {
                     if (menuDisplayPort != nullptr)
@@ -588,7 +578,6 @@ void menuLoop()
                         app::calibrationMenu.render(ui, gyro, *menuDisplayPort);
                     }
                 }
-    #endif
 
     #if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
                 else if (activeMenu == Focuser_Menu)
@@ -600,7 +589,6 @@ void menuLoop()
                 }
     #endif
 
-    #if SUPPORT_INFO_DISPLAY == 1
                 else if (activeMenu == Status_Menu)
                 {
                     if (menuDisplayPort != nullptr)
@@ -609,7 +597,6 @@ void menuLoop()
                         app::infoMenu.render(*ui.read, *ui.config, *ui.siteTime, environment, ui.clock->now(), *menuDisplayPort);
                     }
                 }
-    #endif
             }
         }
     }
