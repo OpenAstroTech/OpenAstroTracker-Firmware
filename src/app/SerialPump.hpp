@@ -7,11 +7,10 @@
 /// `MenuHost.cpp` and `main.cpp` now both including it — the loop moved out of the old
 /// define-everything `MenuHost.hpp` — that became a duplicate-symbol link error, which is the
 /// failure mode R3 exists to remove.
-
-#if TEST_VERIFY_MODE == 1
-    #include "app/test/TestMenu.hpp"
-    #include "app/test/TestMenuDefinitions.hpp"
-#endif
+///
+/// `TestMenuDefinitions.hpp` is deliberately *not* included here: it defines `mainTestMenu` and the
+/// axis menus, so every translation unit that saw it emitted its own copy. It belongs in
+/// `SerialPump.cpp`, which is the one file that drives the test menu.
 
 #include "types/MathUtil.hpp"
 #include "app/BoardWiring.hpp"
