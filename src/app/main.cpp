@@ -209,13 +209,7 @@ void setup()
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1 || USE_HALL_SENSOR_DEC_AUTOHOME == 1
     int homingLine = addConsoleText(F("Init homing sensors..."));
-    #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    pinMode(RA_HOMING_SENSOR_PIN, INPUT);
-    #endif
-
-    #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
-    #endif
+    app::initHomingSensorPins();
     updateConsoleText(homingLine, F("Init homing sensors... OK"));
 #endif
 
@@ -232,74 +226,19 @@ void setup()
     int lcdLine = addConsoleText(F("Init LCD..."));
     menu.startup();
 
-    // Show a splash screen
-    menu.setCursor(0, 0);
-    #ifdef OAM
-    menu.printMenu(F(" OpenAstroMount"));
-    #elif defined(OAE)
-    menu.printMenu(F("OpenAstroExplorer"));
-    #else
-    menu.printMenu(F("OpenAstroTracker"));
-    #endif
-    menu.setCursor(5, 1);
-    menu.printMenu(VERSION);
-    delay(1000);  // Pause on splash screen
+    menu.showSplash();
 
-    // Check for EEPROM reset (Button down during boot)
-    long lcdCheckStart = millis();
-    if ((menuButtons != nullptr) && (menuButtons->pressed() == types::Button::Down))
+    // Check for EEPROM reset (button down during boot). The surface paints the request; clearing
+    // the store is the mount's, so it stays here.
+    if (menu.awaitFactoryResetRequest())
     {
-        // Wait for button release
-        menu.setCursor(13, 1);
-        menu.printMenu(F("CLR"));
-        LOG(DEBUG_INFO, "[SYSTEM]: DOWN pressed, waiting for button release!");
-        bool timedOut = false;
-        while ((menuButtons != nullptr) && (menuButtons->pressed() != types::Button::None))
-        {
-            delay(10);
-            // Wait 3s maximum for button to be released.
-            if (millis() - lcdCheckStart > 3000)
-            {
-                LOG(DEBUG_INFO, "[SYSTEM]: Timedout waiting for button release. LCD not installed?");
-                timedOut = true;
-                break;
-            }
-        }
-        if (!timedOut)
-        {
-            LOG(DEBUG_INFO, "[SYSTEM]: Erasing configuration in EEPROM!");
-            mount.clearConfiguration();
-            LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
-        }
+        LOG(DEBUG_INFO, "[SYSTEM]: Erasing configuration in EEPROM!");
+        mount.clearConfiguration();
+        LOG(DEBUG_INFO, "[SYSTEM]: Button released, continuing");
     }
 
-    // Create the LCD top-level menu items
-    menu.addItem("RA", RA_Menu);
-    menu.addItem("DEC", DEC_Menu);
+    app::registerMenuItems(menu);
 
-    #if SUPPORT_POINTS_OF_INTEREST == 1
-    menu.addItem("GO", POI_Menu);
-    #else
-    menu.addItem("GO", Home_Menu);
-    #endif
-
-    menu.addItem("HA", HA_Menu);
-
-    #if SUPPORT_MANUAL_CONTROL == 1
-    menu.addItem("CTRL", Control_Menu);
-    #endif
-
-    #if SUPPORT_CALIBRATION == 1
-    menu.addItem("CAL", Calibration_Menu);
-    #endif
-
-    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
-    menu.addItem("FOC", Focuser_Menu);
-    #endif
-
-    #if SUPPORT_INFO_DISPLAY == 1
-    menu.addItem("INFO", Status_Menu);
-    #endif
     updateConsoleText(lcdLine, F("Init LCD... OK"));
 
 #endif  // DISPLAY_TYPE > 0

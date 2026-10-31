@@ -73,4 +73,14 @@ void attachSensors(app::MountExecutor &mount)
     mount.attachSensors(sensors);
 }
 
+void initHomingSensorPins()
+{
+#if USE_HALL_SENSOR_RA_AUTOHOME == 1
+    pinMode(RA_HOMING_SENSOR_PIN, INPUT);
+#endif
+#if USE_HALL_SENSOR_DEC_AUTOHOME == 1
+    pinMode(DEC_HOMING_SENSOR_PIN, INPUT);
+#endif
+}
+
 }  // namespace app

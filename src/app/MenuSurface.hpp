@@ -27,6 +27,14 @@ class MenuSurface
     /// Brings the panel up and empties the item table.
     void startup();
 
+    /// Paints the boot splash and pauses on it.
+    void showSplash();
+
+    /// Waits for a held DOWN key to be released, for at most three seconds. True when the operator
+    /// asked for a factory reset: painting the request is this object's job, performing it is the
+    /// caller's.
+    bool awaitFactoryResetRequest();
+
     /// Appends an item. A full table drops the item and logs it.
     void addItem(const char *display, uint8_t id);
 

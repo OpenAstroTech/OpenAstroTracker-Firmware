@@ -28,6 +28,45 @@ void MenuSurface::startup()
     }
 }
 
+void MenuSurface::showSplash()
+{
+    setCursor(0, 0);
+#ifdef OAM
+    printMenu(F(" OpenAstroMount"));
+#elif defined(OAE)
+    printMenu(F("OpenAstroExplorer"));
+#else
+    printMenu(F("OpenAstroTracker"));
+#endif
+    setCursor(5, 1);
+    printMenu(VERSION);
+    delay(1000);  // Pause on splash screen
+}
+
+bool MenuSurface::awaitFactoryResetRequest()
+{
+    if ((menuButtons == nullptr) || (menuButtons->pressed() != types::Button::Down))
+    {
+        return false;
+    }
+
+    const long checkStart = millis();
+    setCursor(13, 1);
+    printMenu(F("CLR"));
+    LOG(DEBUG_INFO, "[SYSTEM]: DOWN pressed, waiting for button release!");
+    while ((menuButtons != nullptr) && (menuButtons->pressed() != types::Button::None))
+    {
+        delay(10);
+        // Wait 3s maximum for the button to be released.
+        if (millis() - checkStart > 3000)
+        {
+            LOG(DEBUG_INFO, "[SYSTEM]: Timedout waiting for button release. LCD not installed?");
+            return false;
+        }
+    }
+    return true;
+}
+
 void MenuSurface::addItem(const char *display, uint8_t id)
 {
     if ((menuModelPort != nullptr) && !menuModelPort->add(display, id))

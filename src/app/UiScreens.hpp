@@ -2,6 +2,8 @@
 
 #include "Configuration.hpp"
 
+#include "MenuSurface.hpp"
+#include "app/ui/MenuIds.hpp"
 #include "UiSession.hpp"
 
 #include "app/ui/SlewStatusView.hpp"
@@ -39,6 +41,13 @@ extern CalibrationMenu calibrationMenu;
 extern StartupWizard startupWizard;
 
 #endif  // DISPLAY_TYPE > 0
+
+/// Registers the top-level menu items on the given surface.
+///
+/// The feature switches here are the same ones that decide which screens exist above, which is why
+/// the ladder lives beside them rather than in `setup()`: one place answers "does this board have a
+/// focuser menu".
+void registerMenuItems(MenuSurface &surface);
 
 /// True while a serial host owns the display; a board without serial control never is.
 bool serialHostOwnsDisplay();

@@ -70,6 +70,40 @@ InfoMenuEnvironment infoEnvironment()
 
 #endif  // DISPLAY_TYPE > 0
 
+void registerMenuItems(MenuSurface &surface)
+{
+#if DISPLAY_TYPE > 0
+    surface.addItem("RA", RA_Menu);
+    surface.addItem("DEC", DEC_Menu);
+
+    #if SUPPORT_POINTS_OF_INTEREST == 1
+    surface.addItem("GO", POI_Menu);
+    #else
+    surface.addItem("GO", Home_Menu);
+    #endif
+
+    surface.addItem("HA", HA_Menu);
+
+    #if SUPPORT_MANUAL_CONTROL == 1
+    surface.addItem("CTRL", Control_Menu);
+    #endif
+
+    #if SUPPORT_CALIBRATION == 1
+    surface.addItem("CAL", Calibration_Menu);
+    #endif
+
+    #if FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE
+    surface.addItem("FOC", Focuser_Menu);
+    #endif
+
+    #if SUPPORT_INFO_DISPLAY == 1
+    surface.addItem("INFO", Status_Menu);
+    #endif
+#else
+    (void) surface;  // no panel, no menu
+#endif
+}
+
 bool serialHostOwnsDisplay()
 {
 #if SUPPORT_SERIAL_CONTROL == 1
