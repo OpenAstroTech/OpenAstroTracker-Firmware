@@ -402,6 +402,8 @@ OpenAstroTracker-Firmware/
 |------|-------------|
 | `core/` never includes `<Arduino.h>`, `String`, `Serial`, `millis()`, `LOG()`, or a board pin header | `scripts/check_architecture.py`, run by the `architecture` CI job |
 | `core/` and `ports/` contain zero feature `#ifdef`s | `scripts/check_architecture.py`, run by the `architecture` CI job |
+| `src/app/main.cpp` contains zero conditional directives: the entry point starts the app and runs it, and every board decision lives in `app/AppBootstrap.cpp` or a wiring module | `scripts/check_architecture.py` (PLAN.md Phase 9) |
+| Guards outside `hal/`, the `app/` wiring modules and `Configuration*.hpp` may only select **which hardware a build uses and how it is configured** — the audit rule of PLAN.md §4.3 | Code review, backed by the census in PLAN.md §0 |
 | `types/` depends on nothing but the standard headers; it never includes `core/`, `ports/`, `hal/` or `adapters/` | Code review — it is the bottom of the dependency graph |
 | `adapters/` never includes `core/`: the Meade driver and the presentation helpers reach the domain only through `ports/` and `types/` | Code review — the whole point of moving the protocol and the vocabulary out of `core/` |
 | From PLAN.md Phase 8.8: `src/app/ui/` obeys the same rules as `core/` (it is compiled by `[env:native]` and host-tested), so a menu screen may reach hardware only through a port | `scripts/check_architecture.py` scans `src/app/ui` with the `core/` rule set |

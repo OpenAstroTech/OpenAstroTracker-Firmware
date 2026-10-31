@@ -16,6 +16,11 @@ satisfy a port, which makes the port the *consumer* of the hardware capability, 
 the capability depends on. HAL is scanned with that rule only — it is where the Arduino headers
 and the feature `#if`s are supposed to live.
 
+`src/app/main.cpp` is held to the strictest rule of all: **no conditional directive at all**. The
+entry point is the sketch and nothing else, so it cannot drift back into a board-specific boot
+sequence (PLAN.md Phase 9). Everything the boot needs lives in `app/AppBootstrap.cpp`, where each
+board guard sits beside the wiring it selects.
+
 Usage:
     python scripts/check_architecture.py          # exit 1 and list violations
     python scripts/check_architecture.py -v       # also print the files scanned
@@ -68,6 +73,12 @@ SCANNED_RULES = {
     },
 }
 
+# Files that may contain no preprocessor conditional at all. The entry point is the sketch and
+# nothing else: it starts the app and runs it, so every board decision belongs in the boot
+# sequence or the wiring modules it calls (PLAN.md Phase 9).
+CONDITIONAL_FREE_FILES = ("src/app/main.cpp",)
+ANY_CONDITIONAL = re.compile(r"^\s*#\s*(?:if|ifdef|ifndef|elif)\b", re.M)
+
 
 def _blank_block_comment(match: "re.Match[str]") -> str:
     """Replace a block comment with its own newlines, so line numbers stay meaningful."""
@@ -98,8 +109,21 @@ def scan(verbose: bool) -> int:
                     rel = path.relative_to(ROOT)
                     print(f"{rel}:{line}: {rule}: {match.group(0).strip()[:70]}")
                     violations += 1
+
+    for relative in CONDITIONAL_FREE_FILES:
+        path = ROOT / relative
+        if not path.is_file():
+            print(f"check-architecture: missing {relative}", file=sys.stderr)
+            return 1
+        scanned += 1
+        code = strip_comments(path.read_text(encoding="utf-8", errors="ignore"))
+        for match in ANY_CONDITIONAL.finditer(code):
+            line = code.count("\n", 0, match.start()) + 1
+            print(f"{relative}:{line}: conditional directive: the entry point carries none ({match.group(0).strip()})")
+            violations += 1
+
     if verbose:
-        print(f"check-architecture: scanned {scanned} files in {', '.join(SCANNED_RULES)}")
+        print(f"check-architecture: scanned {scanned} files in {', '.join(SCANNED_RULES)} and {', '.join(CONDITIONAL_FREE_FILES)}")
     return violations
 
 
