@@ -286,18 +286,29 @@ one instance each), but make them *owned and reachable* rather than *ambient*:
 
 **Steps.**
 
-- [ ] `git mv src/app/MenuHost.hpp src/app/MenuHost.cpp`; add a declarations-only header that
-      `main.cpp` includes.
-- [ ] Rename `loop()` → `app::menuLoop()`; add `void loop()` to `main.cpp` calling it. Do the same
-      for the `#else` (no-display) variant.
-- [ ] Move `MenuHost.cpp`'s five object definitions next to `UiScreens.cpp`'s singletons, or into
+- [x] `git mv src/app/MenuHost.hpp src/app/MenuHost.cpp`; add a declarations-only header that
+      `main.cpp` includes. `SerialPump.hpp` had the same defect and had to be split with it (see
+      the note below).
+- [x] Rename `loop()` → `app::menuLoop()`; add `void loop()` to `main.cpp` calling it. The
+      `#else` (no-display) variant is the same one call, because `menuLoop()` picks its body with
+      the same `#if` the two definitions used.
+- [x] Move `MenuHost.cpp`'s five object definitions next to `UiScreens.cpp`'s singletons, or into
       `MenuHost.cpp`'s anonymous namespace if they are file-local (check the `#if LCD_BUTTON_TEST`
-      and `#if DISPLAY_TYPE > 0` guards first).
+      and `#if DISPLAY_TYPE > 0` guards first). They were file-local — nothing outside referenced
+      `lcd_key`, `lastTrackingStatusPrint`, `homeMenu`, `raMenu`, `decMenu` or `focusMenu` — so they
+      went into the anonymous namespace with the five helpers.
 - [ ] Bundle `LoopState.hpp`'s bools into `struct LoopState { bool inStartup; bool okToUpdateMenu;
       bool quitSerialOnNextButtonRelease; }` and update the ~handful of readers.
-- [ ] Confirm no header in `src/app/` contains a top-level object definition:
+- [x] Confirm no header in `src/app/` contains a top-level object definition:
       `grep -nE "^[A-Za-z_][A-Za-z0-9_:<>* ]+ [A-Za-z_][A-Za-z0-9_]*;" src/app/*.hpp` should return
       only `extern` lines.
+
+*(`SerialPump.hpp` was the second define-everything header, and R3 could not land without splitting
+it: it defined `serialLoop()`, `serialEvent()` and `processSerialData()`, so the moment `MenuHost.cpp`
+and `main.cpp` both included it the link failed with four duplicate symbols. `main.cpp` also lost the
+transitive includes the old header was quietly supplying — `UiScreens.hpp` for `registerMenuItems`,
+`MeadeCommandAdapter.hpp` for `MeadeCommandPorts` — and now names them itself, which is the whole
+point of the change.)*
 
 **Verification.** `pio run -e ramps -e esp32 -e mksgenlv21` (the display and no-display variants
 differ by `DISPLAY_TYPE`, so at least one env of each is required) and
