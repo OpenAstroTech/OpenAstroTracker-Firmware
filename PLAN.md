@@ -155,7 +155,7 @@ belongs in them.
       `scripts/check_architecture.py` scans `src/core`, `src/ports`, `src/hal` and `src/app/ui`
       only, so `src/app/UiScreens.cpp` may keep the feature `#if`s — but do not move any of it
       *into* `src/app/ui/`.
-- [ ] Delete the duplicated `#if RA_DRIVER_TYPE/DEC_DRIVER_TYPE` block at 507–513.
+- [x] **Investigated, not deleted — the premise was wrong.** The "duplicated" block at 507–513
       *(Checked: that block is `#if UART_CONNECTION_TEST_TX` calling `mount.testRA_UART_TX()` /
       `testDEC_UART_TX()`. It re-uses the same driver-type condition but does a different job, so
       deleting it would remove the UART TX bring-up test. Left alone — the premise was wrong.)*
@@ -310,6 +310,12 @@ and `main.cpp` both included it the link failed with four duplicate symbols. `ma
 transitive includes the old header was quietly supplying — `UiScreens.hpp` for `registerMenuItems`,
 `MeadeCommandAdapter.hpp` for `MeadeCommandPorts` — and now names them itself, which is the whole
 point of the change.)*
+
+*(R3 needed a third header split that the plan did not list: `TestMenuDefinitions.hpp` defines
+`mainTestMenu` and the axis menus, and `SerialPump.hpp` included it. Both `MenuHost.cpp` and
+`SerialPump.cpp` then emitted them, and only `python matrix_build.py -b ramps` — not the five
+default environments, all of which are `TEST_VERIFY_MODE == 0` — could see the duplicate-symbol
+link error. The include now lives in `SerialPump.cpp` alone.)*
 
 **Verification.** `pio run -e ramps -e esp32 -e mksgenlv21` (the display and no-display variants
 differ by `DISPLAY_TYPE`, so at least one env of each is required) and
