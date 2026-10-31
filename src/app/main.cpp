@@ -33,7 +33,8 @@
     #include "../hal/InterruptCallback.hpp"
 #endif
 #include "MenuHost.hpp"
-#include "../app/SerialPump.hpp"
+#include "UiScreens.hpp"
+#include "adapters/MeadeCommandAdapter.hpp"
 
 void setup()
 {
@@ -377,4 +378,11 @@ void setup()
 #if TEST_VERIFY_MODE == 1
     TestMenu::getCurrentMenu()->display();
 #endif
+}
+
+/// The Arduino sketch entry point. The dispatch itself is `app::menuLoop()`, which lives with the
+/// screens; this is the one line the core needs to find.
+void loop()
+{
+    app::menuLoop();
 }
