@@ -146,10 +146,11 @@ belongs in them.
       blocks: 32 actions, and the new path performs the same ones in the same order per axis.
       `main.cpp` 544 -> 441 lines, its `#if|#ifdef|#elif` count 80 -> **51**, already under the
       target.)*
-- [ ] Move the two homing-sensor `pinMode` blocks into `SensorWiring`.
-- [ ] Move the splash + EEPROM-clear-on-DOWN sequence into `MenuSurface` (it already owns
-      `startup()` and `printMenu()`), leaving one call in `setup()`.
-- [ ] Move the `menu.addItem(...)` ladder into `UiScreens::registerMenuItems()` (next to the
+- [x] Move the two homing-sensor `pinMode` blocks into `SensorWiring::initHomingSensorPins()`.
+- [x] Move the splash + EEPROM-clear-on-DOWN sequence into `MenuSurface` as `showSplash()` and
+      `awaitFactoryResetRequest()`. The latter reports the answer; `mount.clearConfiguration()`
+      stays in `setup()` because the store is the mount's.
+- [x] Move the `menu.addItem(...)` ladder into `UiScreens::registerMenuItems()` (next to the
       `extern` singletons it registers). This is safe from the layering checker:
       `scripts/check_architecture.py` scans `src/core`, `src/ports`, `src/hal` and `src/app/ui`
       only, so `src/app/UiScreens.cpp` may keep the feature `#if`s — but do not move any of it
@@ -158,7 +159,8 @@ belongs in them.
       *(Checked: that block is `#if UART_CONNECTION_TEST_TX` calling `mount.testRA_UART_TX()` /
       `testDEC_UART_TX()`. It re-uses the same driver-type condition but does a different job, so
       deleting it would remove the UART TX bring-up test. Left alone — the premise was wrong.)*
-- [ ] `grep -cE '^\s*#\s*(if|ifdef|ifndef|elif)' src/app/main.cpp` should land under ~60.
+- [x] `grep -cE '^\s*#\s*(if|ifdef|ifndef|elif)' src/app/main.cpp` lands at **42** (from 80), and
+      the file at 380 lines (from 544).
 
 **Verification.**
 
