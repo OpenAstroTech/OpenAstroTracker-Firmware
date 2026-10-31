@@ -115,6 +115,16 @@ commands are unreachable and must link their bodies. Reverted; the guards stay. 
 evidence for the plan's rule that the AVR budget admits compile-time facts, not virtual queries, for
 optional hardware.
 
+**Enforced in CI.** `scripts/check_architecture.py` now also scans `src/app/main.cpp` for any
+conditional directive, so Phase 9 cannot regress silently. The remaining `#if`s are held to the
+classifier in §4.3 by review, with the census in §0 as the baseline to compare against.
+
+**Not worth converting.** `MountReadout.cpp` (27) builds the `:Gm#` hardware-identification string,
+which ARCHITECTURE.md calls the immovable contract: each guard selects *which literal* to emit, and a
+runtime alternative would move the literals into AVR RAM. `DriverWiring.cpp` (47) and
+`BoardWiring.cpp` (34) are the driver registers and the backend selection themselves — the two things
+§2.1 says to keep.
+
 ---
 
 ## 1. Baseline measurements
