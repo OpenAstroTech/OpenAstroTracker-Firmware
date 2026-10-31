@@ -297,8 +297,9 @@ one instance each), but make them *owned and reachable* rather than *ambient*:
       and `#if DISPLAY_TYPE > 0` guards first). They were file-local — nothing outside referenced
       `lcd_key`, `lastTrackingStatusPrint`, `homeMenu`, `raMenu`, `decMenu` or `focusMenu` — so they
       went into the anonymous namespace with the five helpers.
-- [ ] Bundle `LoopState.hpp`'s bools into `struct LoopState { bool inStartup; bool okToUpdateMenu;
-      bool quitSerialOnNextButtonRelease; }` and update the ~handful of readers.
+- [x] Bundle `LoopState.hpp`'s bools into `struct LoopState { bool inStartup; bool okToUpdateMenu;
+      bool quitSerialOnNextButtonRelease; }` and update the ~handful of readers. It was 24 sites in
+      two files, not a handful; the conditional initial value moved into `makeLoopState()`.
 - [x] Confirm no header in `src/app/` contains a top-level object definition:
       `grep -nE "^[A-Za-z_][A-Za-z0-9_:<>* ]+ [A-Za-z_][A-Za-z0-9_]*;" src/app/*.hpp` should return
       only `extern` lines.
