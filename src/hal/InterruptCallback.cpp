@@ -36,9 +36,7 @@ POP_NO_WARNINGS
         #error Unrecognized board selected. Either implement interrupt code or define the board here.
     #endif
 
-    #if defined(ESP32)
-
-    #elif defined __AVR_ATmega2560__
+    #if defined __AVR_ATmega2560__
 
 bool InterruptCallback::setInterval(float intervalMs, interrupt_callback_p callback, void *payload)
 {

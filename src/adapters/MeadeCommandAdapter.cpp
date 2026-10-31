@@ -13,9 +13,6 @@ POP_NO_WARNINGS
 #include <stdarg.h>
 #include <string.h>
 
-#if USE_GPS == 1
-#endif
-
 namespace meade = adapters::meade;
 
 MeadeCommandAdapter *MeadeCommandAdapter::_instance = nullptr;

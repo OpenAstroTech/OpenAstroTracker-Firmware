@@ -42,9 +42,6 @@ POP_NO_WARNINGS
 #include "../ports/IScheduler.hpp"
 #include "../ports/IStepperAxis.hpp"
 
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-#endif
-
 class TMC2209Stepper;
 
 // Focuser support
@@ -154,46 +151,6 @@ class MountExecutor final : public ports::IMountOptionalAxes
     bool connectToDriver(const String &driverKind, uint16_t *rmsCurrent = nullptr);
 
 #endif
-#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // Configure the RA Driver (TMC2209 UART only)
-    #if SW_SERIAL_UART == 0
-    #elif SW_SERIAL_UART == 1
-    #endif
-#endif
-#if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-    // Configure the DEC Driver (TMC2209 UART only)
-    #if SW_SERIAL_UART == 0
-    #elif SW_SERIAL_UART == 1
-    #endif
-#endif
-
-// Configure the AZ driver.
-#if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if AZ_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        #if SW_SERIAL_UART == 0
-        #elif SW_SERIAL_UART == 1
-        #endif
-    #endif
-#endif
-
-// Configure the ALT driver.
-#if (ALT_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if ALT_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        #if SW_SERIAL_UART == 0
-        #elif SW_SERIAL_UART == 1
-        #endif
-    #endif
-#endif
-
-// Configure the Focus driver.
-#if (FOCUS_STEPPER_TYPE != STEPPER_TYPE_NONE)
-    #if FOCUS_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-        #if SW_SERIAL_UART == 0
-        #elif SW_SERIAL_UART == 1
-        #endif
-    #endif
-#endif
-
     // Get the current RA tracking speed factor
     float getSpeedCalibration();
 
@@ -516,8 +473,6 @@ class MountExecutor final : public ports::IMountOptionalAxes
     // `hal/` and are built by the composition root's factories, never named here.
     Coordinator &_coordinator;
 
-#if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
-#endif
     /// The live, EEPROM-backed motion settings: u-steps/degree, backlash, slew rate, DEC limits.
     core::MountRuntimeSettings _settings;
 

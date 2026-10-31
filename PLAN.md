@@ -69,28 +69,34 @@ leading space in `" OpenAstroMount"` would visibly change the splash. It needs a
 
 | Area | Baseline | Now |
 |------|---------:|----:|
-| `src/app/` | 324 | **289** |
+| `src/app/` | 324 | **268** |
 | `src/app/main.cpp` | 42 | **0** |
+| `src/app/MountExecutor.hpp` | 31 | **11** |
 | `src/app/MenuHost.cpp` | 28 | **9** |
 | `src/app/UiScreens.cpp` | 15 | **8** |
 | `src/app/AppBootstrap.cpp` | — | 34 (moved out of `main.cpp`) |
+| `src/adapters/` | 53 | **52** |
+| `src/hal/` | 55 | **54** |
 | `src/core/`, `src/types/` | 0 | 0 |
 | `src/ports/` | 3 | 3 |
-| `src/adapters/` | 53 | 53 |
-| `src/hal/` | 55 | 55 |
 
 Mechanisms used so far, all of them free at run time (the compiler folds the constant and drops the
 branch):
 
 - **Board/feature facts** — `BoardPresence.hpp` now also carries `kHasGuidedStartup`,
   `kHasSerialControl`, `kHasGyro`, `kHasGps`. The menu loop asks `if (kHasGuidedStartup && …)` and
-  `if (!kHasGps)` instead of wrapping each question in its own `#if`.
+  `if (!kHasGps)` instead of wrapping each question in its own `#if`; `BoardWiring`'s initial
+  `LoopState` reads `kHasGuidedStartup` instead of guarding one assignment.
 - **Null-object header fallbacks** — `SerialPump.hpp` declares no-op `serialLoop()` /
   `processSerialData()` for builds without serial control, so `menuLoop()` no longer needs a
   `#if SUPPORT_SERIAL_CONTROL` around its serial branch.
 - **Deleting tautologies** — inside `#if DISPLAY_TYPE > 0`, `Configuration_adv.hpp` hard-codes
   `SUPPORT_MANUAL_CONTROL`, `SUPPORT_CALIBRATION` and `SUPPORT_INFO_DISPLAY` to `1`, so their guards
   in `MenuHost.cpp` and `UiScreens.{hpp,cpp}` were dead weight and are gone.
+- **Deleting dead blocks** — `MountExecutor.hpp` carried five empty "Configure the X Driver"
+  conditional blocks (the declarations moved to `DriverWiring` long ago) plus two empty
+  `INFO_DISPLAY` blocks: 20 directives removed with no code change. `InterruptCallback.cpp` and
+  `MeadeCommandAdapter.cpp` each had one more empty block.
 
 Flash/RAM cost of the whole exercise, measured on `ramps`: **173 554 → 173 628 bytes of program
 (+74 B, +0.04 %), 3629 bytes of RAM (unchanged)** — the delta is section alignment, not new code.
@@ -100,6 +106,14 @@ The 9 guards left in `MenuHost.cpp` are the ones that *must* stay preprocessor: 
 declaration, the RP2040 poll, and the two `SUPPORT_POINTS_OF_INTEREST` / two `FOCUS_STEPPER_TYPE`
 branches that choose *which screen object exists* — converting those would either move a string into
 RAM or link a screen a build does not have.
+
+**Rejected after measuring — a runtime gyro capability.** The eight `#if USE_GYRO_LEVEL == 1` guards
+in `MeadeCommandAdapter` looked removable: `ports::IGyro::isPresent()` already exists and
+`NullGyro` answers for a sensor-less board. Adding an `isAvailable()` capability and branching on it
+at run time cost **+502 B of flash** on `ramps`, because the compiler can no longer prove the level
+commands are unreachable and must link their bodies. Reverted; the guards stay. This is the concrete
+evidence for the plan's rule that the AVR budget admits compile-time facts, not virtual queries, for
+optional hardware.
 
 ---
 

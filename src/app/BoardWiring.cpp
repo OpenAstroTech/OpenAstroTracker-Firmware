@@ -56,13 +56,11 @@ ports::IGps *gpsPort = nullptr;
 
 namespace
 {
-/// A guided startup owns the display from boot, so the flag starts set on boards that have one.
+/// A guided startup owns the display from boot, so the flag starts set on builds that have one.
 LoopState makeLoopState()
 {
-    LoopState state = {};
-#if SUPPORT_GUIDED_STARTUP == 1
-    state.inStartup = true;
-#endif
+    LoopState state                     = {};
+    state.inStartup                     = app::kHasGuidedStartup;
     state.okToUpdateMenu                = true;   // Suppresses rendering the first line of the menu.
     state.quitSerialOnNextButtonRelease = false;  // SELECT quits serial mode on its next release.
     return state;
