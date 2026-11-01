@@ -1,6 +1,8 @@
 #include "types/MathUtil.hpp"
 #include "MountExecutor.hpp"
 
+#include "ConfigBuilder.hpp"
+
 #include "ports/ILogger.hpp"
 #include "../adapters/Tmc2209Driver.hpp"
 #include "../hal/arduino/ArduinoGpioPin.hpp"
@@ -98,10 +100,12 @@ bool MountExecutor::connectToDriver(const String &driverKind, uint16_t *rmsCurre
     #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void MountExecutor::testRA_UART_TX()
 {
+    const core::AxisMechanicsConfig mechanics = buildAxisMechanicsConfig();
     //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
-    const int speed = (RA_STEPPER_SPEED / 2) / 0.715255737f;
+    const int speed = (mechanics.ra.speed / 2) / 0.715255737f;
     //Duration in ms to move X degrees at half of the max speed
-    const int duration = UART_CONNECTION_TEST_TX_DEG * (_settings.stepsPerDegree(RA_STEPS) / (RA_STEPPER_SPEED / 2)) * 1000;
+    const int duration
+        = buildDriverConfig().uartConnectionTestTxDeg * (_settings.stepsPerDegree(RA_STEPS) / (mechanics.ra.speed / 2)) * 1000;
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching RA driver to microsteps(%d) for UART test",
@@ -119,10 +123,12 @@ void MountExecutor::testRA_UART_TX()
     #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
 void MountExecutor::testDEC_UART_TX()
 {
+    const core::AxisMechanicsConfig mechanics = buildAxisMechanicsConfig();
     //microsteps per driver clock tick (From TMC2209 datasheet: v[Hz] (microstep/s) = VACTUAL[2209] * 0.715Hz)
-    const int speed = (DEC_STEPPER_SPEED / 2) / 0.715255737f;
+    const int speed = (mechanics.dec.speed / 2) / 0.715255737f;
     //Duration in ms to move X degrees at half of the max speed
-    const int duration = UART_CONNECTION_TEST_TX_DEG * (_settings.stepsPerDegree(DEC_STEPS) / (DEC_STEPPER_SPEED / 2)) * 1000;
+    const int duration
+        = buildDriverConfig().uartConnectionTestTxDeg * (_settings.stepsPerDegree(DEC_STEPS) / (mechanics.dec.speed / 2)) * 1000;
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS,
             "[STEPPERS]: uartTest: Switching DEC driver to microsteps(%d) for UART test",

@@ -11,6 +11,7 @@
 #include "adapters/EepromSettingsFormat.hpp"
 #include "adapters/TinyGpsAdapter.hpp"
 #include "ports/ILogger.hpp"
+#include "app/ConfigBuilder.hpp"
 #include "app/MountConfigBuilder.hpp"
 #include "hal/InMemoryEeprom.hpp"
 #include "hal/WarningGuard.hpp"
@@ -258,10 +259,12 @@ app::MountDeps makeMountDeps()
 // `app::mountCoordinator` where a consumer only needs the controller half.
 #ifdef ESP32
 DRAM_ATTR app::MountExecutor::Coordinator mountCoordinator(&clockPort,
-                                                           SIDEREAL_SECONDS_PER_DAY,
+                                                           app::buildSiteConfig().siderealSecondsPerDay,
                                                            app::buildMountConfig().trackingMicrostepRatio());
 #else
-app::MountExecutor::Coordinator mountCoordinator(&clockPort, SIDEREAL_SECONDS_PER_DAY, app::buildMountConfig().trackingMicrostepRatio());
+app::MountExecutor::Coordinator mountCoordinator(&clockPort,
+                                                 app::buildSiteConfig().siderealSecondsPerDay,
+                                                 app::buildMountConfig().trackingMicrostepRatio());
 #endif
 
 #ifdef ESP32
@@ -294,11 +297,23 @@ void onLatitudeChanged(void *context, bool northernHemisphere)
 }  // namespace
 
 #ifdef ESP32
-DRAM_ATTR core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, eepromStore, {&mount, &onLatitudeChanged},
-                                     {RA_ZERO_POINT_SHIFT_HOURS, POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND});
+DRAM_ATTR core::SiteTimeService siteTimePort(mount.siteTime(),
+                                             clockPort,
+                                             eepromStore,
+                                             {&mount, &onLatitudeChanged},
+                                             {app::buildSiteConfig().raZeroPointShiftHours,
+                                              app::buildSiteConfig().polarisRaHour,
+                                              app::buildSiteConfig().polarisRaMinute,
+                                              app::buildSiteConfig().polarisRaSecond});
 #else
-core::SiteTimeService siteTimePort(mount.siteTime(), clockPort, eepromStore, {&mount, &onLatitudeChanged},
-                                     {RA_ZERO_POINT_SHIFT_HOURS, POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND});
+core::SiteTimeService siteTimePort(mount.siteTime(),
+                                   clockPort,
+                                   eepromStore,
+                                   {&mount, &onLatitudeChanged},
+                                   {app::buildSiteConfig().raZeroPointShiftHours,
+                                    app::buildSiteConfig().polarisRaHour,
+                                    app::buildSiteConfig().polarisRaMinute,
+                                    app::buildSiteConfig().polarisRaSecond});
 #endif
 
 #if defined(ESP32) || !defined(NEW_STEPPER_LIB)

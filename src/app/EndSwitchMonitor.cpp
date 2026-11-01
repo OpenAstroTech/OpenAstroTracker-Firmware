@@ -1,6 +1,7 @@
 #include "EndSwitchMonitor.hpp"
 
 #include "../Configuration.hpp"
+#include "ConfigBuilder.hpp"
 #include "ports/ILogger.hpp"
 
 #if DEBUG_LEVEL != 0
@@ -78,8 +79,10 @@ void EndSwitchMonitor::checkSwitchState()
                 _ui.motion->stopSlewing(stopSlewDir);
                 _ui.waitUntilStopped(_dir);
 
-                const long currentPos      = _ui.read->getCurrentStepperPosition(_dir);
-                const long backSlewDegrees = (_axis == StepperAxis::DEC_STEPS) ? DEC_ENDSWITCH_BACKSLEW_DEG : RA_ENDSWITCH_BACKSLEW_DEG;
+                const long currentPos            = _ui.read->getCurrentStepperPosition(_dir);
+                const core::SensorConfig sensors = buildSensorConfig();
+                const long backSlewDegrees
+                    = (_axis == StepperAxis::DEC_STEPS) ? sensors.decEndSwitchBackslewDegrees : sensors.raEndSwitchBackslewDegrees;
                 const long distance
                     = core::backOffDistance(_posWhenTriggered, currentPos, backSlewDegrees, _ui.config->getStepsPerDegree(_axis));
 

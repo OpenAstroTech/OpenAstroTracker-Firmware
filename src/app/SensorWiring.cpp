@@ -2,6 +2,7 @@
 
 #include "BoardWiring.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "ports/ILogger.hpp"
 #include "EndSwitchMonitor.hpp"
 #include "HomingRunner.hpp"
@@ -46,28 +47,34 @@ void attachSensors(app::MountExecutor &mount)
 {
     app::AxisBank::Sensors sensors;
 
+    const core::SensorConfig config = buildSensorConfig();
+
 #if USE_RA_END_SWITCH == 1
-    sensors.raEndSwitch = new EndSwitchMonitor(ui,
-                                        StepperAxis::RA_STEPS,
-                                        makeEndSwitch(RA_ENDSWITCH_EAST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE),
-                                        makeEndSwitch(RA_ENDSWITCH_WEST_SENSOR_PIN, RA_END_SWITCH_ACTIVE_STATE));
+    const int raEndSwitchState = config.raEndSwitchActiveState;
+    sensors.raEndSwitch        = new EndSwitchMonitor(ui,
+                                               StepperAxis::RA_STEPS,
+                                               makeEndSwitch(RA_ENDSWITCH_EAST_SENSOR_PIN, raEndSwitchState),
+                                               makeEndSwitch(RA_ENDSWITCH_WEST_SENSOR_PIN, raEndSwitchState));
 #endif
 
 #if USE_DEC_END_SWITCH == 1
-    sensors.decEndSwitch = new EndSwitchMonitor(ui,
-                                         StepperAxis::DEC_STEPS,
-                                         makeEndSwitch(DEC_ENDSWITCH_DOWN_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE),
-                                         makeEndSwitch(DEC_ENDSWITCH_UP_SENSOR_PIN, DEC_END_SWITCH_ACTIVE_STATE));
+    const int decEndSwitchState = config.decEndSwitchActiveState;
+    sensors.decEndSwitch        = new EndSwitchMonitor(ui,
+                                                StepperAxis::DEC_STEPS,
+                                                makeEndSwitch(DEC_ENDSWITCH_DOWN_SENSOR_PIN, decEndSwitchState),
+                                                makeEndSwitch(DEC_ENDSWITCH_UP_SENSOR_PIN, decEndSwitchState));
 #endif
 
 #if USE_HALL_SENSOR_RA_AUTOHOME == 1
-    sensors.raHoming = new HallSensorHoming(
-        ui, mountCoordinator.state(), StepperAxis::RA_STEPS, makeHomingSensor(RA_HOMING_SENSOR_PIN, RA_HOMING_SENSOR_ACTIVE_STATE));
+    const int raHomingState = config.raHomingSensorActiveState;
+    sensors.raHoming
+        = new HallSensorHoming(ui, mountCoordinator.state(), StepperAxis::RA_STEPS, makeHomingSensor(RA_HOMING_SENSOR_PIN, raHomingState));
 #endif
 
 #if USE_HALL_SENSOR_DEC_AUTOHOME == 1
-    sensors.decHoming = new HallSensorHoming(
-        ui, mountCoordinator.state(), StepperAxis::DEC_STEPS, makeHomingSensor(DEC_HOMING_SENSOR_PIN, DEC_HOMING_SENSOR_ACTIVE_STATE));
+    const int decHomingState = config.decHomingSensorActiveState;
+    sensors.decHoming        = new HallSensorHoming(
+        ui, mountCoordinator.state(), StepperAxis::DEC_STEPS, makeHomingSensor(DEC_HOMING_SENSOR_PIN, decHomingState));
 #endif
 
     mount.attachSensors(sensors);

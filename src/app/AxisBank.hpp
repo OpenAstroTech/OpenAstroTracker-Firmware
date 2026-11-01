@@ -205,8 +205,9 @@ class AxisBank
     HallSensorHoming *_decHoming = nullptr;
 
     core::AxisLimits _limits {};
-    // Set in the constructor: `AZIMUTH_STEPS_PER_REV` expands to an expression containing `PI`,
-    // which only exists once Arduino.h is in scope, and a header cannot rely on that.
+    // Set in the constructor: the AZ/ALT steps-per-rev come from the board's configuration, whose
+    // expressions contain `PI` and only exist once Arduino.h is in scope, and a header cannot rely
+    // on that.
     float _stepsPerAzDegree  = 0.0f;
     float _stepsPerAltDegree = 0.0f;
 };

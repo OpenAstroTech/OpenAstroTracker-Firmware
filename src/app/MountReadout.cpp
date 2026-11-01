@@ -1,5 +1,6 @@
 #include "MountReadout.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "adapters/DayTimeText.hpp"
 #include "HomingRunner.hpp"
 #include "ports/ILogger.hpp"
@@ -102,7 +103,8 @@ const char *MountReadout::getStepperInfo()
 
 const char *MountReadout::getMountHardwareInfo()
 {
-    String ret = F("Unknown,");
+    const core::AxisMechanicsConfig mechanics = buildAxisMechanicsConfig();
+    String ret                                = F("Unknown,");
 #if defined(ESP32)
     ret = F("ESP32,");
 #elif defined(__AVR_ATmega2560__)
@@ -113,13 +115,13 @@ const char *MountReadout::getMountHardwareInfo()
 
     ret += F("NEMA|");
 
-    ret += String(RA_PULLEY_TEETH) + "|";
-    ret += String(RA_STEPPER_SPR) + ",";
+    ret += String(mechanics.raPulleyTeeth) + "|";
+    ret += String(mechanics.raStepperSpr) + ",";
 
     ret += F("NEMA|");
 
-    ret += String(DEC_PULLEY_TEETH) + "|";
-    ret += String(DEC_STEPPER_SPR) + ",";
+    ret += String(mechanics.decPulleyTeeth) + "|";
+    ret += String(mechanics.decStepperSpr) + ",";
 
 #if USE_GPS == 1
     ret += F("GPS,");
@@ -583,8 +585,9 @@ types::DayTime MountReadout::calculateLst()
 
 const types::DayTime MountReadout::HA() const
 {
-    types::DayTime ha = types::DayTime(_siteTime.lst());
-    ha.subtractTime(types::DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND));
+    const core::SiteConfig site = buildSiteConfig();
+    types::DayTime ha           = types::DayTime(_siteTime.lst());
+    ha.subtractTime(types::DayTime(site.polarisRaHour, site.polarisRaMinute, site.polarisRaSecond));
     return ha;
 }
 
@@ -675,6 +678,8 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
             _axes.tracking()->currentPosition(),
             trackedHours);
 
+    const core::LimitConfig limits = buildLimitConfig();
+
     core::SlewGeometryFacts facts;
     facts.targetRaHours      = _targetRa.getTotalHours();
     facts.targetDecDegrees   = decTarget.getTotalDegrees();
@@ -683,8 +688,8 @@ void MountReadout::calculateRAandDECSteppers(long &targetRASteps, long &targetDE
     facts.trackedHours       = trackedHours;
     facts.raStepsPerDegree   = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree  = _settings.stepsPerDegree(DEC_STEPS);
-    facts.raLimitLeftHours   = RA_LIMIT_LEFT;
-    facts.raLimitRightHours  = RA_LIMIT_RIGHT;
+    facts.raLimitLeftHours   = limits.raLimitLeftHours;
+    facts.raLimitRightHours  = limits.raLimitRightHours;
     facts.northernHemisphere = isNorthernHemisphere();
 
     const core::SlewGeometry geometry = core::buildSlewGeometry(facts);
@@ -787,9 +792,10 @@ float MountReadout::plannedDecSteps() const
 
 types::DayTime MountReadout::calculateHa()
 {
-    types::DayTime lst = calculateLst();
+    const core::SiteConfig site = buildSiteConfig();
+    types::DayTime lst          = calculateLst();
     OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: Calculating HA from LST: %s", adapters::formatDayTime(lst));
-    types::DayTime ha = core::SiderealClock::hourAngle(lst.getTotalHours(), POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND);
+    types::DayTime ha = core::SiderealClock::hourAngle(lst.getTotalHours(), site.polarisRaHour, site.polarisRaMinute, site.polarisRaSecond);
     OAT_LOG(&_logger, DEBUG_INFO, "[MOUNT]: HA is: %s", adapters::formatDayTime(ha));
     return ha;
 }

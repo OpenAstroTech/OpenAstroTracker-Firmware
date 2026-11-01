@@ -1,4 +1,5 @@
 #include "../Configuration.hpp"
+#include "ConfigBuilder.hpp"
 #include "ports/ILogger.hpp"
 #include "adapters/EepromSettingsFormat.hpp"
 #include "HomingRunner.hpp"
@@ -109,7 +110,7 @@ void MountExecutor::initializeVariables()
 {
     // We are now defaulting to northern hemisphere at 45deg. Switching is now supported
     // at runtime when the Latitude is received via Meade command.
-    _coordinator.state().setNorthernHemisphere(NORTHERN_HEMISPHERE == 1);
+    _coordinator.state().setNorthernHemisphere(buildSiteConfig().northernHemisphere);
 
     // u-steps per degree when slewing, plus the motion tuning defaults
     _settings.reset(_config.defaultRaStepsPerDegree, _config.defaultDecStepsPerDegree);
@@ -212,7 +213,7 @@ float MountExecutor::checkRALimit()
     facts.currentRaHours     = currentRA().getTotalHours();
     facts.decAxisDegrees     = (_axes.dec()->currentPosition() / _settings.stepsPerDegree(DEC_STEPS)) + _zeroPosDEC;
     facts.northernHemisphere = _coordinator.state().isNorthernHemisphere();
-    facts.limitHours         = RA_TRACKING_LIMIT;
+    facts.limitHours         = buildLimitConfig().raTrackingLimitHours;
 
     const core::RaLimitResult result = core::RaTrackingLimit::evaluate(facts);
 

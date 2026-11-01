@@ -4,6 +4,7 @@ POP_NO_WARNINGS
 
 #include "AxisBank.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "../adapters/NullMotorDriver.hpp"
 
 namespace
@@ -17,8 +18,9 @@ namespace app
 {
 AxisBank::AxisBank()
 {
-    _stepsPerAzDegree  = AZIMUTH_STEPS_PER_REV / 360.0f;
-    _stepsPerAltDegree = ALTITUDE_STEPS_PER_REV / 360.0f;
+    const core::AxisMechanicsConfig mechanics = buildAxisMechanicsConfig();
+    _stepsPerAzDegree                         = mechanics.azimuthStepsPerRev / 360.0f;
+    _stepsPerAltDegree                        = mechanics.altitudeStepsPerRev / 360.0f;
     reset();
 }
 

@@ -1,5 +1,6 @@
 #include "MountExecutor.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "ports/ILogger.hpp"
 #include "../core/DecLimitClamp.hpp"
 #include "../core/ManualSlew.hpp"
@@ -297,13 +298,15 @@ void MountExecutor::startSlewing(int direction)
     setRaMicrosteps(_config.raSlewMicrosteps);
     setDecMicrosteps(_config.decSlewMicrosteps);
 
+    const core::LimitConfig limits = buildLimitConfig();
+
     core::ManualSlewFacts facts;
     facts.raStepsPerDegree       = _settings.stepsPerDegree(RA_STEPS);
     facts.decStepsPerDegree      = _settings.stepsPerDegree(DEC_STEPS);
-    facts.raPhysicalLimitDegrees = RA_PHYSICAL_LIMIT;
-    facts.raTrackingLimitDegrees = RA_TRACKING_LIMIT;
-    facts.decLimitUpDegrees      = DEC_LIMIT_UP;
-    facts.decLimitDownDegrees    = DEC_LIMIT_DOWN;
+    facts.raPhysicalLimitDegrees = limits.raPhysicalLimitDegrees;
+    facts.raTrackingLimitDegrees = limits.raTrackingLimitHours;
+    facts.decLimitUpDegrees      = limits.decLimitUpDegrees;
+    facts.decLimitDownDegrees    = limits.decLimitDownDegrees;
     facts.decUpperLimitSteps     = _settings.decUpperLimitSteps();
     facts.decLowerLimitSteps     = _settings.decLowerLimitSteps();
     facts.trackedHours           = getTrackedHours();
@@ -425,7 +428,8 @@ void MountExecutor::waitUntilAllStopped()
 void MountExecutor::setHome(bool clearZeroPos)
 {
     OAT_LOG(_deps.logger, DEBUG_MOUNT, "[MOUNT]: setHome() called. Stopping steppers");
-    bool wasTracking = isSlewingTRK();
+    const core::SiteConfig site = buildSiteConfig();
+    bool wasTracking            = isSlewingTRK();
     stopSlewing(ALL_DIRECTIONS);
     waitUntilStopped(ALL_DIRECTIONS);
     if (wasTracking)
@@ -434,7 +438,8 @@ void MountExecutor::setHome(bool clearZeroPos)
         startSlewing(TRACKING);
     }
 
-    _siteTime.setRaZeroPoint(clearZeroPos ? types::DayTime(POLARIS_RA_HOUR, POLARIS_RA_MINUTE, POLARIS_RA_SECOND) : calculateLst());
+    _siteTime.setRaZeroPoint(clearZeroPos ? types::DayTime(site.polarisRaHour, site.polarisRaMinute, site.polarisRaSecond)
+                                          : calculateLst());
 #if defined(OAM) || defined(OAE)
     _siteTime.adjustRaZeroPoint(6.0f);  // shift all coordinates by 90° for EQ mount movement
 #endif

@@ -1,5 +1,6 @@
 #include "MountExecutor.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "adapters/DayTimeText.hpp"
 #include "ports/ILogger.hpp"
 #include "../core/FirmwareVersion.hpp"
@@ -88,10 +89,14 @@ void MountExecutor::readPersistentData()
     OAT_LOG(_deps.logger, DEBUG_INFO, "[MOUNT]: EEPROM: Roll Offset is %f", _persisted.getRollCalibrationAngle());
 #endif
 
-    const core::DecLimits limits = core::decLimitsFromStored(
-        stored.decLowerLimitDegrees, stored.decUpperLimitDegrees, _settings.stepsPerDegree(DEC_STEPS), DEC_LIMIT_DOWN, DEC_LIMIT_UP);
-    _settings.setDecLowerLimitSteps(limits.lowerSteps);
-    _settings.setDecUpperLimitSteps(limits.upperSteps);
+    const core::LimitConfig limits  = buildLimitConfig();
+    const core::DecLimits decLimits = core::decLimitsFromStored(stored.decLowerLimitDegrees,
+                                                                stored.decUpperLimitDegrees,
+                                                                _settings.stepsPerDegree(DEC_STEPS),
+                                                                limits.decLimitDownDegrees,
+                                                                limits.decLimitUpDegrees);
+    _settings.setDecLowerLimitSteps(decLimits.lowerSteps);
+    _settings.setDecUpperLimitSteps(decLimits.upperSteps);
     OAT_LOG(_deps.logger,
             DEBUG_INFO,
             "[MOUNT]: EEPROM: DEC limits read as %ld -> %ld",
@@ -116,13 +121,14 @@ void MountExecutor::configureHemisphere(bool inNorthern, bool force)
 {
     if ((_coordinator.state().isNorthernHemisphere() != inNorthern) || force)
     {
-        bool wasTracking = isSlewingTRK();
+        bool wasTracking                 = isSlewingTRK();
+        const bool raInvertedOnThisBoard = buildAxisMechanicsConfig().ra.invertDirection;
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Hemisphere changed (or forced update) to %s.", inNorthern ? "northern" : "southern");
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Stopping all steppers.");
         stopSlewing(ALL_DIRECTIONS | TRACKING);
         waitUntilStopped(ALL_DIRECTIONS);
         _coordinator.state().setNorthernHemisphere(inNorthern);
-        bool invertDir = inNorthern ? (RA_INVERT_DIR == 1) : (RA_INVERT_DIR != 1);
+        bool invertDir = inNorthern ? raInvertedOnThisBoard : !raInvertedOnThisBoard;
         OAT_LOG(_deps.logger, DEBUG_ANY, "[SYSTEM]: Configured RA steppers, DIR Invert is %d", invertDir);
         _axes.ra()->setPinsInverted(invertDir, false, false);
         _axes.tracking()->setPinsInverted(invertDir, false, false);

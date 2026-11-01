@@ -20,15 +20,53 @@ previous `PLAN.md`; this is **Phase 11**.
 
 ## 0. Progress log
 
+### Phase 11: **complete**
+
 | Step | Status |
 |------|--------|
-| 1. `core/` value structs | **planned** |
-| 2. `app/build*Config()` builders | **planned** |
-| 3. Thread structs through `MountExecutor` / `MountReadout` / `MountSettings` | **planned** |
-| 4. Rewire `MotorWiring` / `DriverWiring` / `SensorWiring` | **planned** |
-| 5. Rewire `AppBootstrap` / `BoardWiring` / `SerialPump` | **planned** |
-| 6. Extend `BoardPresence` `constexpr` facts | **planned** |
-| 7. Verification (matrix build, `pio test -e native`, `check_architecture.py`, clang-format) | **planned** |
+| 1. `core/` value structs | **done** — 7 headers + `unit_tests/test_core/test_app_config.cpp` |
+| 2. `app/build*Config()` builders | **done** — one `src/app/ConfigBuilder.hpp` |
+| 3. Thread structs through `MountExecutor` / `MountReadout` / `MountSettings` | **done, differently** — read inline at the point of use, see below |
+| 4. Rewire `MotorWiring` / `DriverWiring` / `SensorWiring` | **done for `MotorWiring` and `SensorWiring`; `DriverWiring` rejected after measuring** (§5.6) |
+| 5. Rewire `AppBootstrap` / `BoardWiring` / `SerialPump` | **done** |
+| 6. Extend `BoardPresence` `constexpr` facts | **not done** — a `constexpr bool` cannot appear in an `#if`, and every remaining consumer needs one (§5.7) |
+| 7. Verification | **done** — see §6 · Result |
+
+What landed:
+
+- **Seven `core/` value structs**, all plain aggregates with default member initializers, no Arduino
+  and no board macro: `SiteConfig`, `LimitConfig`, `GuideConfig`, `SensorConfig`,
+  `AxisMechanicsConfig`, `DriverConfig`, `CommsConfig`.
+- **One builder header**, [`src/app/ConfigBuilder.hpp`](src/app/ConfigBuilder.hpp), holding
+  `buildSiteConfig()`, `buildLimitConfig()`, `buildGuideConfig()`, `buildSensorConfig()`,
+  `buildAxisMechanicsConfig()`, `buildDriverConfig()` and `buildCommsConfig()` — the only place in
+  `src/app/` that reads these macro groups.
+- **Consumers switched to fields and facts**: `MountExecutor` (hemisphere, RA tracking limit),
+  `MountExecutorConfig` (DEC limits, RA invert), `MountExecutorGuide` (pulse multipliers),
+  `MountExecutorSlew` (travel limits, Polaris zero point), `MountExecutorOptionalAxes`
+  (steps per arc-minute, always-on), `MountExecutorWiring` (UART test speeds), `MountSettings`
+  (DEC limit defaults), `MountReadout` (mount limits, Polaris, pulley teeth and stepper SPR),
+  `AxisBank` and `MotorWiring` (gearing, speeds, invert flags), `SensorWiring` and
+  `EndSwitchMonitor` (switch polarity and back-off), `BoardWiring` (sidereal day, RA zero shift,
+  Polaris), `AppBootstrap` (baud rates), `SerialPump` (debug flags), `UiScreens` (Polaris, gyro/GPS
+  facts).
+
+**Measured cost (AVR `-O2`, both boards with AZ/ALT/Focus enabled):**
+
+| Environment | Flash before | Flash after | RAM before | RAM after |
+|-------------|-------------:|------------:|-----------:|----------:|
+| `ramps` (headless, `DEBUG_NONE`) | 173 628 | **173 464** (−164 B) | 3 629 | 3 629 |
+| `mksgenlv21` (LCD keypad, `DEBUG_NONE`) | 206 130 | **205 960** (−170 B) | 5 381 | 5 381 |
+
+The structs are local, immediately consumed, and therefore constant-folded and eliminated — the
+saving is the removed double-expansion of the macro expressions.
+
+**Deviation from §4 step 3 — the structs are not stored on `MountExecutor`.** Threading them
+through the constructor was tried first and costs SRAM, not flash: `MountConfig` is already stored
+by value, and a second ~200-byte aggregate in a global object cannot be folded away. Instead each
+consumer calls the builder inline at the point of use
+(`app::buildLimitConfig().decLimitUpDegrees`), exactly as `app::buildMountConfig()` was already
+used in `BoardWiring`. The macro is still named exactly once, which is what the step was for.
 
 ---
 
@@ -181,21 +219,11 @@ struct AxisMechanicsConfig {
 > string is found to report them, a readout-only field can be added in step 4.
 
 ```cpp
-// src/core/DriverConfig.hpp
+// src/core/DriverConfig.hpp  (as shipped — see §5.6 for why the register values are not here)
 namespace core {
-struct AxisDriverSpec {
-    int rmsCurrent;        // *_RMSCURRENT (mA)
-    int stallValue;        // *_STALL_VALUE
-    float holdMultiplier;  // *_MOTOR_HOLD_SETTING / 100
-    bool stealthMode;      // *_UART_STEALTH_MODE
-    bool audioFeedback;    // *_AUDIO_FEEDBACK
-};
 struct DriverConfig {
-    AxisDriverSpec ra, dec, az, alt, focus;  // meaningful only for TMC2209-UART axes
-    bool useVref;                   // USE_VREF
-    bool uartConnectionTestTxRx;    // UART_CONNECTION_TEST_TXRX
-    bool uartConnectionTestTx;      // UART_CONNECTION_TEST_TX
-    float uartConnectionTestTxDeg;  // UART_CONNECTION_TEST_TX_DEG
+    bool azAlwaysOn, altAlwaysOn, focusAlwaysOn;
+    float uartConnectionTestTxDeg;   // UART_CONNECTION_TEST_TX_DEG
 };
 }
 ```
@@ -232,7 +260,7 @@ One builder header is acceptable (e.g. the existing placeholder
 struct — choose the former unless it grows past ~80 lines; the builders are mechanical and belong
 together.
 
-### 3.3 Compile-time facts (extend `app::BoardPresence`)
+### 3.3 Compile-time facts (extend `app::BoardPresence`) — *not shipped, see §5.7*
 
 Add `constexpr` facts that the remaining `#if` chains can read instead of the raw macros:
 
@@ -277,7 +305,7 @@ not linked by anything — to satisfy `-Werror` (unused static functions) the he
 step 3 immediately, so land steps 2+3 in one change or guard the builders with their first
 consumer.
 
-### Step 3 — thread structs through `MountExecutor`
+### Step 3 — thread structs through `MountExecutor` *(superseded — see §0)*
 
 - Extend the `MountExecutor` constructor to take the new structs it needs (or a single
   `core::MountBuildConfig` bundle holding `MountConfig` + the new ones — decide once; the bundle is
@@ -302,7 +330,7 @@ consumer.
 
 **Gate:** `ramps`, `esp32`, `mksgenlv21`, `rp2040_skr_pico` build; `pio test -e native` green.
 
-### Step 4 — rewire the three wiring modules
+### Step 4 — rewire the three wiring modules *(DriverWiring rejected — see §5.6)*
 
 - [`MotorWiring.cpp`](src/app/MotorWiring.cpp): `attachSteppers()` takes
   `const core::AxisMechanicsConfig &` and `const core::MountConfig &` and fills `core::AxisLimits`
@@ -349,7 +377,7 @@ driver-type combinations are all exercised.
 
 **Gate:** all six board envs build; `check_architecture.py` clean.
 
-### Step 6 — finish the `BoardPresence` facts
+### Step 6 — finish the `BoardPresence` facts *(dropped — see §5.7)*
 
 Add the `constexpr` driver/display facts from §3.3; sweep the remaining raw presence tests in
 [`BoardWiring.cpp`](src/app/BoardWiring.cpp), [`MenuHost.cpp`](src/app/MenuHost.cpp),
@@ -408,6 +436,61 @@ comments; no struct field is needed.
 
 ---
 
+### 5.6 TMC2209 register values stay in `DriverWiring.cpp` — rejected after measuring
+
+The per-axis register values (`*_RMSCURRENT`, `*_STALL_VALUE`, `*_MOTOR_HOLD_SETTING`,
+`*_UART_STEALTH_MODE`, `*_MICROSTEPPING`, `USE_VREF`) were the largest single cluster, so they were
+the obvious target. Every route through a config struct was measured on `ramps` and **cost flash**:
+
+| Attempt | Flash on `ramps` |
+|---------|-----------------:|
+| baseline (macros read inside `build*Driver`) | 173 626 |
+| the two RA values passed as struct fields from `attachDrivers` | 173 246 |
+| `holdMultiplier`/`spreadCycle` also passed from the struct | 174 602 |
+| `const core::AxisDriverSpec &` parameter | 174 752 |
+| whole struct + `__attribute__((always_inline))` chain | 175 688 |
+| `bool useVref` as a `Tmc2209Axis` field instead of `#if USE_VREF == 0` | 174 680 |
+| `buildAxisMechanicsConfig().azMicrosteps` for the AZ driver alone | 174 650 |
+
+The reason is structural: these values feed `buildTmc2209Axis()`, which is not inlined, so a struct
+reaches it through memory and GCC cannot constant-fold the field into the register write. A
+scalar-returning helper folds; a field of an aggregate does not.
+
+The one profitable row (−380 B) passed *two* RA values as scalars while every other axis still read
+its macros — with the optional axes also converted the same file came back to +1 042 B, so the
+saving does not survive contact with the boards that have AZ/ALT/Focus. Not worth a half-converted
+file for 380 B. **Rejected**: `DriverWiring.cpp` keeps its macro reads (once per axis, in one
+file), and `core::DriverConfig` carries only the flag values the app actually reads
+(`*_ALWAYS_ON`, `UART_CONNECTION_TEST_TX_DEG`).
+
+### 5.7 `app::BoardPresence` facts cannot replace `#if` predicates
+
+A `constexpr bool` is a C++ value; `#if` is resolved by the preprocessor before types exist. Every
+remaining macro read in `src/app/` that survives is either an `#if` *predicate* (which no constant
+can replace) or an `#if` around an *object definition* whose existence it selects. Adding
+`kHasRaTmcUart` and friends would therefore have had no consumer, so step 6 was dropped rather than
+left as dead API. Where a runtime `if` was possible it was used instead
+(`if (mechanics.dec.invertDirection)`, `if (!buildDriverConfig().azAlwaysOn)`,
+`StartupWizard startupWizard(kHasGyro, kHasGps)`).
+
+### 5.8 The EEPROM defaults keep their macros
+
+`makeSettingsDefaults()` in [`src/app/BoardWiring.cpp`](src/app/BoardWiring.cpp) builds the
+`const` defaults struct the store answers with on a blank EEPROM. Reading them through
+`buildMountConfig()`/`buildAxisMechanicsConfig()` costs **+1 078 B of flash** on `ramps`
+(173 626 → 174 704) for the same reason as §5.6: the aggregate is materialised into a `const`
+global. The function is one short block of literals; the macros stay.
+
+### 5.9 String assembly keeps its `#if` chains
+
+`MountReadout::getStepperInfo()`/`getMountHardwareInfo()` and the `TestMenu` banners emit a
+*different short string* per driver type, display type and feature. Converting those chains to
+`if (kDisplayType == …)` would compile **every** branch's literal into every build — the previous
+phase measured a similar conversion at +502 B, and here the literals are the bulk of the code. They
+stay preprocessor.
+
+---
+
 ## 6. Verification
 
 | Check | Command | What it proves |
@@ -421,6 +504,25 @@ comments; no struct field is needed.
 Success = all six envs build, matrix passes, `pio test -e native` green, `check_architecture.py`
 clean, and the §0 census shows each `Configuration*.hpp` macro read by `app/` in exactly one
 builder or `BoardPresence` fact (with the §5 exceptions).
+
+### Result
+
+| Check | Outcome |
+|-------|---------|
+| `pio run -e ramps` | **PASS** — 173 464 B flash (−164 B), 3 629 B RAM (unchanged) |
+| `pio run -e mksgenlv21` | **PASS** — 205 960 B flash (−170 B), 5 381 B RAM (unchanged) |
+| `pio run -e esp32` | **PASS** — 990 145 B flash, 50 192 B RAM |
+| `pio run -e oaeboardv1` | **PASS** — 396 269 B flash, 23 140 B RAM |
+| `pio run -e rp2040_skr_pico` | **PASS** — 131 668 B flash, 11 420 B RAM |
+| `python3 matrix_build.py -b ramps` | **PASS** — 192/192 configurations |
+| `pio test -e native` | **PASS** — 957 cases (950 before, +7 for the new structs) |
+| `python3 scripts/check_architecture.py` | **PASS** |
+| `clang-format` (v12) on every touched file | **PASS** — only the pre-existing deltas that `HEAD` already had |
+| `-D UART_CONNECTION_TEST_TX=1` build | **PASS** — the converted VACTUAL self-test path compiles |
+
+`mksgenlv1`, `mksgenlv2` and `rp2040_jackw01` are not buildable in this checkout: their
+`Configuration_local_*.hpp` are untracked, which is pre-existing and unrelated (§0 of the previous
+phase).
 
 ---
 

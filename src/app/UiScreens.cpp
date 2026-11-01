@@ -3,6 +3,7 @@
 #include "hal/arduino/FreeMemory.hpp"
 #include "ports/ILogger.hpp"
 #include "app/BoardWiring.hpp"
+#include "app/ConfigBuilder.hpp"
 
 namespace app
 {
@@ -34,9 +35,10 @@ CalibrationMenu::Board calibrationBoard()
     #endif
     board.hasLevelSensor = kHasGyro;
 
-    board.polarisRaHours   = POLARIS_RA_HOUR;
-    board.polarisRaMinutes = POLARIS_RA_MINUTE;
-    board.polarisRaSeconds = POLARIS_RA_SECOND;
+    const core::SiteConfig site = buildSiteConfig();
+    board.polarisRaHours        = site.polarisRaHour;
+    board.polarisRaMinutes      = site.polarisRaMinute;
+    board.polarisRaSeconds      = site.polarisRaSecond;
     return board;
 }
 
@@ -44,7 +46,7 @@ CalibrationMenu calibrationMenu(calibrationBoard());
 
 /// The wizard's route depends on two board facts, which is why it is built here rather than in the
 /// screen.
-StartupWizard startupWizard(USE_GYRO_LEVEL == 1, USE_GPS == 1);
+StartupWizard startupWizard(kHasGyro, kHasGps);
 
     #if SUPPORT_POINTS_OF_INTEREST == 1
 PoiMenu poiMenu;

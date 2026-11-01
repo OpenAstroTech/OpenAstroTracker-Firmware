@@ -1,5 +1,6 @@
 #include "MountExecutor.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "ports/ILogger.hpp"
 
 namespace app
@@ -54,16 +55,18 @@ void MountExecutor::park()
 /////////////////////////////////
 void MountExecutor::moveBy(int direction, float arcMinutes)
 {
+    const core::AxisMechanicsConfig mechanics = buildAxisMechanicsConfig();
+
     if (kHasAzStepper && direction == AZIMUTH_STEPS)
     {
         enableAzMotor();
-        long stepsToMove = arcMinutes * AZIMUTH_STEPS_PER_ARC_MINUTE;
+        long stepsToMove = arcMinutes * mechanics.azimuthStepsPerArcMinute;
         _axes.az()->move(stepsToMove);
     }
     if (kHasAltStepper && direction == ALTITUDE_STEPS)
     {
         enableAltMotor();
-        long stepsToMove = arcMinutes * ALTITUDE_STEPS_PER_ARC_MINUTE;
+        long stepsToMove = arcMinutes * mechanics.altitudeStepsPerArcMinute;
         _axes.alt()->move(stepsToMove);
     }
 }
@@ -96,12 +99,12 @@ void MountExecutor::disableAzAltMotors()
         }
     }
 
-    if (AZ_ALWAYS_ON == 0 && kHasAzStepper)
+    if (!buildDriverConfig().azAlwaysOn && kHasAzStepper)
     {
         _deps.azEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
     }
 
-    if (ALT_ALWAYS_ON == 0 && kHasAltStepper)
+    if (!buildDriverConfig().altAlwaysOn && kHasAltStepper)
     {
         _deps.altEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
     }
@@ -204,7 +207,7 @@ void MountExecutor::disableFocusMotor()
     _axes.focus()->stop();
     waitUntilStopped(FOCUSING);
 
-    if (FOCUSER_ALWAYS_ON == 0 && kHasFocusStepper)
+    if (!buildDriverConfig().focusAlwaysOn && kHasFocusStepper)
     {
         _deps.focusEnablePin->write(hal::PinLevel::High);  // Logic HIGH to disable driver
     }

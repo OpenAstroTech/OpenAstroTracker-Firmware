@@ -7,6 +7,7 @@
 
 #include "types/MathUtil.hpp"
 #include "app/BoardWiring.hpp"
+#include "app/ConfigBuilder.hpp"
 #include "app/UiScreens.hpp"
 
 #if SUPPORT_SERIAL_CONTROL == 1
@@ -134,7 +135,8 @@ namespace
 adapters::SerialTransport<> &serialTransport()
 {
     static hal::ArduinoSerialPort port(Serial);
-    static adapters::SerialTransport<> transport(port, (DEBUG_LEVEL == DEBUG_NONE) || (DEBUG_SEPARATE_SERIAL == 1));
+    const core::CommsConfig comms = app::buildCommsConfig();
+    static adapters::SerialTransport<> transport(port, (comms.debugLevel == DEBUG_NONE) || comms.debugSeparateSerial);
     return transport;
 }
 }  // namespace

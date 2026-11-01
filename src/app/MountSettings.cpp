@@ -4,6 +4,7 @@ POP_NO_WARNINGS
 
 #include "MountSettings.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "types/MathUtil.hpp"
 
 #include "ports/ILogger.hpp"
@@ -224,10 +225,11 @@ void MountSettings::setDecLimitPosition(bool upper, float limitAngle)
 
 void MountSettings::clearDecLimitPosition(bool upper)
 {
+    const core::LimitConfig limits = buildLimitConfig();
     if (upper)
     {
-        _settings.setDecUpperLimitSteps(DEC_LIMIT_UP * _settings.stepsPerDegree(DEC_STEPS));
-        _store.storeDECUpperLimit(DEC_LIMIT_UP);
+        _settings.setDecUpperLimitSteps(limits.decLimitUpDegrees * _settings.stepsPerDegree(DEC_STEPS));
+        _store.storeDECUpperLimit(limits.decLimitUpDegrees);
         OAT_LOG(&_logger,
                 DEBUG_MOUNT,
                 "[MOUNT]: clearDecLimitPosition(Upper): limit DEC: %ld -> %ld",
@@ -236,8 +238,8 @@ void MountSettings::clearDecLimitPosition(bool upper)
     }
     else
     {
-        _settings.setDecLowerLimitSteps(-(DEC_LIMIT_DOWN * _settings.stepsPerDegree(DEC_STEPS)));
-        _store.storeDECLowerLimit(DEC_LIMIT_DOWN);
+        _settings.setDecLowerLimitSteps(-(limits.decLimitDownDegrees * _settings.stepsPerDegree(DEC_STEPS)));
+        _store.storeDECLowerLimit(limits.decLimitDownDegrees);
         OAT_LOG(&_logger,
                 DEBUG_MOUNT,
                 "[MOUNT]: clearDecLimitPosition(Lower): limit DEC: %ld -> %ld",

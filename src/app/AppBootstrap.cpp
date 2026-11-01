@@ -6,6 +6,7 @@
 
 #include "AppBootstrap.hpp"
 #include "BoardWiring.hpp"
+#include "ConfigBuilder.hpp"
 #include "DriverWiring.hpp"
 #include "MenuSurface.hpp"
 #include "MotorWiring.hpp"
@@ -55,7 +56,7 @@ void startDebug()
 void startSerial()
 {
 #if !defined(OAT_DEBUG_BUILD)
-    Serial.begin(SERIAL_BAUDRATE);
+    Serial.begin(app::buildCommsConfig().serialBaudrate);
     #if defined(ARDUINO_ARCH_RP2040)
     // OATControl (and other apps using C# SerialPort) open the port with DTR=false.
     // The Philhower USB CDC SerialUSB::write() gates TX on tud_cdc_connected() which
@@ -68,7 +69,7 @@ void startSerial()
     Serial.ignoreFlowControl(true);
     #endif
     #if DEBUG_LEVEL != 0 && DEBUG_SEPARATE_SERIAL == 1
-    DEBUG_SERIAL_PORT.begin(DEBUG_SERIAL_BAUDRATE);
+    DEBUG_SERIAL_PORT.begin(app::buildCommsConfig().debugSerialBaudrate);
     #endif
     // RP2040 USB CDC: give a console up to 3 seconds to attach so the boot
     // log stays visible. Bounded, never infinite: a mount powered externally
@@ -138,7 +139,7 @@ void startGps()
     GPS_SERIAL_PORT.setTX(RP2040_GPS_TX_PIN);
     GPS_SERIAL_PORT.setRX(RP2040_GPS_RX_PIN);
     #endif
-    GPS_SERIAL_PORT.begin(GPS_BAUD_RATE);
+    GPS_SERIAL_PORT.begin(app::buildCommsConfig().gpsBaudrate);
     updateConsoleText(gpsLine, F("Initialize GPS... OK"));
 #endif
 }

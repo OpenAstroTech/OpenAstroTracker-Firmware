@@ -1,5 +1,6 @@
 #include "MountExecutor.hpp"
 
+#include "ConfigBuilder.hpp"
 #include "ports/ILogger.hpp"
 #include "../core/SiderealClock.hpp"
 
@@ -71,6 +72,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
 #if (DEBUG_LEVEL != DEBUG_NONE)
     const char *directionName = "-NE-S---W";
 #endif
+    const core::GuideConfig guide = buildGuideConfig();
     OAT_LOG(_deps.logger,
             DEBUG_STEPPERS | DEBUG_GUIDE,
             "[GUIDE]: guidePulse: > Guide Pulse %c for %dms requested",
@@ -119,9 +121,9 @@ void MountExecutor::guidePulse(byte direction, int duration)
         // RA stepper moves at either 2.5x sidereal rate or 0.5x sidereal rate.
         // Also compensate for microstepping mode change between slew & guiding/tracking
         const core::GuideAxisGeometry raGeometry
-            = {_settings.stepsPerDegree(RA_STEPS), _config.raTrackingMicrosteps(), _config.raSlewMicrosteps, RA_PULSE_MULTIPLIER};
+            = {_settings.stepsPerDegree(RA_STEPS), _config.raTrackingMicrosteps(), _config.raSlewMicrosteps, guide.raPulseMultiplier};
         const core::GuideAxisGeometry decGeometry
-            = {_settings.stepsPerDegree(DEC_STEPS), _config.decGuidingMicrosteps(), _config.decSlewMicrosteps, DEC_PULSE_MULTIPLIER};
+            = {_settings.stepsPerDegree(DEC_STEPS), _config.decGuidingMicrosteps(), _config.decSlewMicrosteps, guide.decPulseMultiplier};
 
         // TODO: Do we need to track how many steps the steppers took and add them to the GoHome calculation?
         // If so, we need to remember where we were when we started the guide pulse. Then at the end,
@@ -213,7 +215,7 @@ void MountExecutor::guidePulse(byte direction, int duration)
                             DEBUG_STEPPERS | DEBUG_GUIDE,
                             "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
                             pulse.targetSpeed,
-                            RA_PULSE_MULTIPLIER);
+                            guide.raPulseMultiplier);
                     _axes.tracking()->setSpeed(pulse.targetSpeed);  // Faster than siderael
                     setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
                     _coordinator.guiding().startRa(duration);
@@ -235,8 +237,8 @@ void MountExecutor::guidePulse(byte direction, int duration)
                     OAT_LOG(_deps.logger,
                             DEBUG_STEPPERS | DEBUG_GUIDE,
                             "[GUIDE]: guidePulse:   RA  guide speed     : %f (%f x adjusted speed)",
-                            (2.0 - RA_PULSE_MULTIPLIER * pulse.adjustedSpeed),
-                            (2.0 - RA_PULSE_MULTIPLIER));
+                            (2.0 - guide.raPulseMultiplier * pulse.adjustedSpeed),
+                            (2.0 - guide.raPulseMultiplier));
                     _axes.tracking()->setSpeed(pulse.targetSpeed);  // Slower than siderael
                     setStatusFlag(STATUS_GUIDE_PULSE | STATUS_GUIDE_PULSE_RA);
                     _coordinator.guiding().startRa(duration);
