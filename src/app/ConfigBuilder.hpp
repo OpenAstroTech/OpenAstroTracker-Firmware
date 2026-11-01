@@ -119,6 +119,8 @@ inline core::AxisMechanicsConfig buildAxisMechanicsConfig()
     config.raTransmission  = RA_TRANSMISSION;
     config.decTransmission = DEC_TRANSMISSION;
 
+    config.stepperServiceIntervalMs = STEPPER_CONTROL_INTERVAL_MS;
+
 #if (AZ_STEPPER_TYPE != STEPPER_TYPE_NONE)
     config.az.speed                 = AZ_STEPPER_SPEED;
     config.az.acceleration          = AZ_STEPPER_ACCELERATION;

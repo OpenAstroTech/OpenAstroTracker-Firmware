@@ -77,6 +77,9 @@ TEST(AxisMechanicsConfigTest, AbsentAxesStartEmpty)
     EXPECT_EQ(16, mechanics.decPulleyTeeth);
     EXPECT_EQ(400, mechanics.raStepperSpr);
     EXPECT_EQ(400, mechanics.decStepperSpr);
+
+    // The 2 kHz default the AVR timer and the RP2040 service loop both use.
+    EXPECT_FLOAT_EQ(0.5f, mechanics.stepperServiceIntervalMs);
 }
 
 // The driver policy is per-board, not per-axis: a board that wants a coil energised while idle

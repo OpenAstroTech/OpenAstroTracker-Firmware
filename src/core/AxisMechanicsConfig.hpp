@@ -51,6 +51,11 @@ struct AxisMechanicsConfig {
     float azimuthStepsPerArcMinute  = 0.0f;
     float altitudeStepsPerRev       = 0.0f;
     float altitudeStepsPerArcMinute = 0.0f;
+
+    /// How often the platform services the stepper engines, in milliseconds: the AVR timer period
+    /// and the RP2040 interval. It belongs with the mechanics because it is the resolution the step
+    /// timing is generated at, not a communication setting.
+    float stepperServiceIntervalMs = 0.5f;
 };
 
 }  // namespace core

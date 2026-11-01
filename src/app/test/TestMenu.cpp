@@ -1,5 +1,6 @@
 #include "types/MathUtil.hpp"
 #include "Configuration.hpp"
+#include "app/MountConfigBuilder.hpp"
 #include "app/MountExecutor.hpp"
 #include "adapters/MeadeCommandAdapter.hpp"
 
@@ -14,7 +15,6 @@
 
 namespace
 {
-
 /// Splits on `splitChar` into a heap array of `String`s terminated by an empty one. Moved here from
 /// `Utility.cpp`: this console is its only caller, and it is the one place in the firmware that is
 /// allowed to allocate for formatting.
@@ -290,19 +290,21 @@ void printStepperInfo(StepperAxis axis, String info)
         Serial.print(*stp);
         Serial.println(F(" steps/revolution"));
     }
+    const core::MountConfig motion = app::buildMountConfig();
+
     Serial.print(F("    Slew Microsteps: "));
-    Serial.println(axis == RA_STEPS ? RA_SLEW_MICROSTEPPING : DEC_SLEW_MICROSTEPPING);
+    Serial.println(axis == RA_STEPS ? motion.raSlewMicrosteps : motion.decSlewMicrosteps);
     if (axis == RA_STEPS)
     {
         Serial.print(F("Tracking Microsteps: "));
-        Serial.println(RA_TRACKING_MICROSTEPPING);
+        Serial.println(motion.raTrackingMicrosteps());
         Serial.print(F("     Tracking Speed: "));
         Serial.println(ui.config->getSpeed(TRACKING));
     }
     else
     {
         Serial.print(F(" Guiding Microsteps: "));
-        Serial.println(DEC_GUIDE_MICROSTEPPING);
+        Serial.println(motion.decGuidingMicrosteps());
     }
 
     Serial.print(F("       Steps/degree: "));

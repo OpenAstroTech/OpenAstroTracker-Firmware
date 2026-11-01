@@ -55,11 +55,39 @@ What landed:
 
 | Environment | Flash before | Flash after | RAM before | RAM after |
 |-------------|-------------:|------------:|-----------:|----------:|
-| `ramps` (headless, `DEBUG_NONE`) | 173 628 | **173 464** (−164 B) | 3 629 | 3 629 |
+| `ramps` (headless, `DEBUG_NONE`) | 173 628 | **173 416** (−212 B) | 3 629 | 3 629 |
 | `mksgenlv21` (LCD keypad, `DEBUG_NONE`) | 206 130 | **205 960** (−170 B) | 5 381 | 5 381 |
 
 The structs are local, immediately consumed, and therefore constant-folded and eliminated — the
 saving is the removed double-expansion of the macro expressions.
+
+### Phase 11b — the leftovers the census still showed
+
+After the first pass, the census over `src/app/` still listed value reads outside the builders. Two
+of the three groups were worth converting:
+
+| Change | Environment | Flash before | Flash after |
+|--------|-------------|-------------:|------------:|
+| `STEPPER_CONTROL_INTERVAL_MS` → `AxisMechanicsConfig::stepperServiceIntervalMs` (read in `AppBootstrap`'s timer setup) | `ramps` | 173 464 | **173 416** (−48 B) |
+| the three `*_MICROSTEPPING` reads in `TestMenu.cpp` → `app::buildMountConfig()` | `ramps` with `-D TEST_VERIFY_MODE=1` | 191 678 | **191 636** (−42 B, −6 B RAM) |
+
+The third group — the two `*_STEPS_PER_ARC_MINUTE` reads in the AZ/ALT move handlers of
+`TestMenu.cpp` — was **rejected**: routing them through `buildAxisMechanicsConfig()` costs
+**+1 072 B** in the same `TEST_VERIFY_MODE` build, for the §5.6 reason. The test menu is a bring-up
+diagnostic compiled only when `TEST_VERIFY_MODE` is set, so it keeps those two macros.
+
+**Census after Phase 11b** (config-macro occurrences in `src/app/`, comments excluded):
+
+| | before Phase 11 | after |
+|---|---:|---:|
+| whole of `src/app/` | 416 | 370 |
+| — of which the readers (`ConfigBuilder.hpp`, `MountConfigBuilder.hpp`) | 6 | 71 |
+| — of which consumers | 410 | **299** |
+
+The 299 that remain are, without exception: `#if` predicates selecting hardware or an object
+(§5.1, §5.2), the feature-fact `constexpr`s in `BoardPresence.hpp`, the `DriverWiring` register
+cluster (§5.6), `makeSettingsDefaults()` (§5.8), the string-assembly chains (§5.9), and the two
+`TestMenu` arc-minute reads above.
 
 **Deviation from §4 step 3 — the structs are not stored on `MountExecutor`.** Threading them
 through the constructor was tried first and costs SRAM, not flash: `MountConfig` is already stored
@@ -489,6 +517,14 @@ global. The function is one short block of literals; the macros stay.
 phase measured a similar conversion at +502 B, and here the literals are the bulk of the code. They
 stay preprocessor.
 
+### 5.10 `TestMenu`'s AZ/ALT move handlers keep their macros
+
+The bring-up diagnostic prints and applies `AZIMUTH_STEPS_PER_ARC_MINUTE` /
+`ALTITUDE_STEPS_PER_ARC_MINUTE` for the two polar axes. Reading them through
+`buildAxisMechanicsConfig()` costs **+1 072 B** on `ramps` with `-D TEST_VERIFY_MODE=1` (191 678 →
+192 750) — the aggregate is materialised again (§5.6). The two reads stay macros; the rest of the
+file's values did move to `buildMountConfig()` (Phase 11b).
+
 ---
 
 ## 6. Verification
@@ -509,7 +545,7 @@ builder or `BoardPresence` fact (with the §5 exceptions).
 
 | Check | Outcome |
 |-------|---------|
-| `pio run -e ramps` | **PASS** — 173 464 B flash (−164 B), 3 629 B RAM (unchanged) |
+| `pio run -e ramps` | **PASS** — 173 416 B flash (−212 B), 3 629 B RAM (unchanged) |
 | `pio run -e mksgenlv21` | **PASS** — 205 960 B flash (−170 B), 5 381 B RAM (unchanged) |
 | `pio run -e esp32` | **PASS** — 990 145 B flash, 50 192 B RAM |
 | `pio run -e oaeboardv1` | **PASS** — 396 269 B flash, 23 140 B RAM |
@@ -519,6 +555,7 @@ builder or `BoardPresence` fact (with the §5 exceptions).
 | `python3 scripts/check_architecture.py` | **PASS** |
 | `clang-format` (v12) on every touched file | **PASS** — only the pre-existing deltas that `HEAD` already had |
 | `-D UART_CONNECTION_TEST_TX=1` build | **PASS** — the converted VACTUAL self-test path compiles |
+| `-D TEST_VERIFY_MODE=1` build | **PASS** — 191 636 B flash (−42 B), 4 425 B RAM (−6 B) |
 
 `mksgenlv1`, `mksgenlv2` and `rp2040_jackw01` are not buildable in this checkout: their
 `Configuration_local_*.hpp` are untracked, which is pre-existing and unrelated (§0 of the previous
