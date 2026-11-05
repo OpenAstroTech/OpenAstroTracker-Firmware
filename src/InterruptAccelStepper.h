@@ -75,7 +75,7 @@ template <typename STEPPER> class InterruptAccelStepper
         }
         else
         {
-            STEPPER::moveTo(_speed, INT32_MAX);
+            STEPPER::move(_speed);
         }
     }
 
