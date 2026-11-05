@@ -4,6 +4,15 @@
 
 using core::SiderealClock;
 
+// Compose the two core primitives exactly as Sidereal::calculateByDateAndTime
+// does in the firmware, and return local sidereal time in hours.
+static double lstHours(int year, int month, int day, float utcHours, double longitude)
+{
+    const int deltaJd   = SiderealClock::calculateDeltaJd(year, month, day);
+    const double deltaJ = deltaJd + (utcHours / 24.0);
+    return SiderealClock::calculateTheta(deltaJ, longitude, utcHours) / 15.0;
+}
+
 // Known-good values sourced from stargazing.net/kepler/altaz.html
 TEST(SiderealClockTest, DeltaJdJ2000)
 {
@@ -32,6 +41,44 @@ TEST(SiderealClockTest, DeltaJdMonotonic)
     int d1 = SiderealClock::calculateDeltaJd(2023, 1, 1);
     int d2 = SiderealClock::calculateDeltaJd(2023, 12, 31);
     EXPECT_LT(d1, d2);
+}
+
+// Reference GMST values computed independently with the Meeus formula
+// (280.46061837 + 360.98564736629 * (JD - 2451545.0)), 0.01 h tolerance.
+TEST(SiderealClockTest, LstAtJ2000Epoch)
+{
+    // 2000-01-01 12:00 UTC at Greenwich
+    EXPECT_NEAR(18.6974, lstHours(2000, 1, 1, 12.0f, 0.0), 0.01);
+}
+
+TEST(SiderealClockTest, LstAtMarchEquinox)
+{
+    // 2024-03-20 12:00 UTC at Greenwich
+    EXPECT_NEAR(23.9008, lstHours(2024, 3, 20, 12.0f, 0.0), 0.01);
+}
+
+TEST(SiderealClockTest, LstAtJuneSolstice)
+{
+    // 2024-06-20 12:00 UTC at Greenwich
+    EXPECT_NEAR(5.9461, lstHours(2024, 6, 20, 12.0f, 0.0), 0.01);
+}
+
+TEST(SiderealClockTest, LstAtSeptemberEquinox)
+{
+    // 2024-09-22 12:00 UTC at Greenwich
+    EXPECT_NEAR(12.1228, lstHours(2024, 9, 22, 12.0f, 0.0), 0.01);
+}
+
+TEST(SiderealClockTest, LstAtDecemberSolstice)
+{
+    // 2024-12-21 12:00 UTC at Greenwich
+    EXPECT_NEAR(18.0367, lstHours(2024, 12, 21, 12.0f, 0.0), 0.01);
+}
+
+TEST(SiderealClockTest, LstShiftsEastWithLongitudeAndWraps)
+{
+    // 13.5 deg east of Greenwich advances LST by 0.9 h, past 24 h here
+    EXPECT_NEAR(0.8008, lstHours(2024, 3, 20, 12.0f, 13.5), 0.01);
 }
 
 TEST(SiderealClockTest, ThetaOutputInRange)

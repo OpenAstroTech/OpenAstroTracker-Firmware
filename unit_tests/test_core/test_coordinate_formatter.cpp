@@ -11,7 +11,7 @@ TEST(CoordinateFormatterTest, FormatRABasic)
 {
     RightAscension ra(12, 34, 56);
     char buf[32];
-    core::formatRA(buf, ra, "%02d:%02d:%02d#");
+    core::formatRA(buf, sizeof(buf), ra, "%02d:%02d:%02d#");
     EXPECT_STREQ("12:34:56#", buf);
 }
 
@@ -19,7 +19,7 @@ TEST(CoordinateFormatterTest, FormatRAPadded)
 {
     RightAscension ra(5, 7, 9);
     char buf[32];
-    core::formatRA(buf, ra, "%02d:%02d:%02d#");
+    core::formatRA(buf, sizeof(buf), ra, "%02d:%02d:%02d#");
     EXPECT_STREQ("05:07:09#", buf);
 }
 
@@ -27,7 +27,7 @@ TEST(CoordinateFormatterTest, FormatRALcdStyle)
 {
     RightAscension ra(23, 59, 59);
     char buf[32];
-    core::formatRA(buf, ra, " %02dh %02dm %02ds");
+    core::formatRA(buf, sizeof(buf), ra, " %02dh %02dm %02ds");
     EXPECT_STREQ(" 23h 59m 59s", buf);
 }
 
@@ -53,4 +53,21 @@ TEST(CoordinateFormatterTest, FormatDECCompact)
     char buf[32];
     core::formatDEC(buf, dec, "{d}{m}{s}");
     EXPECT_STREQ("+053000", buf);
+}
+
+TEST(CoordinateFormatterTest, FormatRATruncatesToBuffer)
+{
+    RightAscension ra(12, 34, 56);
+    char buf[8];
+    core::formatRA(buf, sizeof(buf), ra, "%02d:%02d:%02d#");
+    EXPECT_STREQ("12:34:5", buf);
+}
+
+TEST(CoordinateFormatterTest, FormatRAFitsMountScratchBuffer)
+{
+    // Mount::scratchBuffer is 24 bytes; the longest RA format must fit.
+    RightAscension ra(23, 59, 59);
+    char buf[24];
+    core::formatRA(buf, sizeof(buf), ra, " %02dh %02dm %02ds");
+    EXPECT_STREQ(" 23h 59m 59s", buf);
 }

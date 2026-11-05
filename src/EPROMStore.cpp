@@ -8,16 +8,16 @@ POP_NO_WARNINGS
 #include "EPROMStore.hpp"
 
 // The platform-independant EEPROM class
-
-// Steps/deg are normalized to this value and stored.
-const float SteppingStorageNormalized = 25600.0;
+//
+// The on-device layout (addresses, flags, magic markers) is defined in hal::eeprom.
+using namespace hal::eeprom;
 
 ///////////////////////////////////////
 // PLATFORM-SPECIFIC IMPLEMENTATIONS
 
 #if USE_DUMMY_EEPROM == true
 
-static uint8_t dummyEepromStorage[EEPROMStore::STORE_SIZE];
+static uint8_t dummyEepromStorage[STORE_SIZE];
 
 // Initialize the EEPROM object for ESP boards, setting aside storage
 void EEPROMStore::initialize()
