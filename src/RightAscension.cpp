@@ -10,7 +10,7 @@
 //
 // RA is 0–24h, always non-negative, wrapping at 24h.
 
-char achBufRA[32];
+char achBufRA[64];
 
 const char *RightAscension::ToString() const
 {

@@ -27,7 +27,7 @@
 // Pure arithmetic (constructors, set, addDegrees, getTotalDegrees, checkHours)
 // is in core::Declination (src/core/types/Declination.hpp/.cpp).
 
-char achBufDeg[32];
+char achBufDeg[64];
 
 // Convert to a standard string (like 14:45:06), specifying separators if needed
 const char *Declination::ToDisplayString(char sep1, char sep2) const

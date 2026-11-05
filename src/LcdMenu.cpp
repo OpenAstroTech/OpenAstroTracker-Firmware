@@ -420,22 +420,22 @@ void LcdMenu::printMenu(String line)
     #if DISPLAY_TYPE != DISPLAY_TYPE_LCD_JOY_I2C_SSD1306
 
 // The right arrow bitmap
-byte LcdMenu::RightArrowBitmap[8] = {B00000, B01000, B01100, B01110, B01100, B01000, B00000, B00000};
+byte LcdMenu::RightArrowBitmap[8] = {0b00000, 0b01000, 0b01100, 0b01110, 0b01100, 0b01000, 0b00000, 0b00000};
 
 // The left arrow bitmap
-byte LcdMenu::LeftArrowBitmap[8] = {B00000, B00010, B00110, B01110, B00110, B00010, B00000, B00000};
+byte LcdMenu::LeftArrowBitmap[8] = {0b00000, 0b00010, 0b00110, 0b01110, 0b00110, 0b00010, 0b00000, 0b00000};
 
-byte LcdMenu::UpArrowBitmap[8] = {B00100, B01110, B11111, B00100, B00100, B00100, B00100, B00100};
+byte LcdMenu::UpArrowBitmap[8] = {0b00100, 0b01110, 0b11111, 0b00100, 0b00100, 0b00100, 0b00100, 0b00100};
 
-byte LcdMenu::DownArrowBitmap[8] = {B000100, B000100, B000100, B000100, B000100, B011111, B001110, B000100};
+byte LcdMenu::DownArrowBitmap[8] = {0b000100, 0b000100, 0b000100, 0b000100, 0b000100, 0b011111, 0b001110, 0b000100};
 
-byte LcdMenu::DegreesBitmap[8] = {B01100, B10010, B10010, B01100, B00000, B00000, B00000, B00000};
+byte LcdMenu::DegreesBitmap[8] = {0b01100, 0b10010, 0b10010, 0b01100, 0b00000, 0b00000, 0b00000, 0b00000};
 
-byte LcdMenu::MinutesBitmap[8] = {B01000, B01000, B01000, B00000, B00000, B00000, B00000, B00000};
+byte LcdMenu::MinutesBitmap[8] = {0b01000, 0b01000, 0b01000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000};
 
-byte LcdMenu::TrackingBitmap[8] = {B10111, B00010, B10010, B00010, B10111, B00101, B10110, B00101};
+byte LcdMenu::TrackingBitmap[8] = {0b10111, 0b00010, 0b10010, 0b00010, 0b10111, 0b00101, 0b10110, 0b00101};
 
-byte LcdMenu::NoTrackingBitmap[8] = {B10000, B00000, B10000, B00010, B10000, B00000, B10000, B00000};
+byte LcdMenu::NoTrackingBitmap[8] = {0b10000, 0b00000, 0b10000, 0b00010, 0b10000, 0b00000, 0b10000, 0b00000};
 
     #endif
 
