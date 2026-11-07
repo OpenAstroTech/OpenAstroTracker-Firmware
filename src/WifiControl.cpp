@@ -51,7 +51,7 @@ void WifiControl::startInfrastructureMode()
     WiFi.begin(WIFI_INFRASTRUCTURE_MODE_SSID, WIFI_INFRASTRUCTURE_MODE_WPAKEY);
 }
 
-void WifiControl::startAccessPointMode()
+bool WifiControl::startAccessPointMode()
 {
     LOG(DEBUG_WIFI, "[WIFI]: Starting AP Mode Wifi");
     IPAddress local_ip(192, 168, 1, 1);
@@ -67,10 +67,11 @@ void WifiControl::startAccessPointMode()
     if (!WiFi.softAP(WIFI_HOSTNAME, WIFI_AP_MODE_WPAKEY))
     {
         LOG(DEBUG_WIFI, "[WIFI]: AP mode could not be started!");
-        return;
+        return false;
     }
 
     establishServers();
+    return true;
 }
 
 String wifiStatus(int status)
@@ -111,10 +112,12 @@ String WifiControl::getStatus()
     }
     else if (WIFI_MODE == WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP)
     {
-        result += "Infra-Fail-To-AP,";
+        result += _failedOver ? "Access Point," : "Infra-Fail-To-AP,";
     }
 
-    if (WIFI_MODE != WIFI_MODE_AP_ONLY)
+    // Station-interface fields only apply while we are (still) running as a station
+    bool stationMode = (WIFI_MODE != WIFI_MODE_AP_ONLY) && !_failedOver;
+    if (stationMode)
     {
         result += wifiStatus(WiFi.status()) + ",";
     }
@@ -124,7 +127,7 @@ String WifiControl::getStatus()
     #endif
 
     result += getIP() + ":" + WIFI_PORT + ",";
-    if (WIFI_MODE != WIFI_MODE_AP_ONLY)
+    if (stationMode)
     {
         result += String(WIFI_INFRASTRUCTURE_MODE_SSID) + ",";
     }
@@ -147,9 +150,15 @@ void WifiControl::establishServers()
 
 String WifiControl::getIP()
 {
-    return WIFI_MODE == WIFI_MODE_DISABLED  ? "NONE"
-           : WIFI_MODE == WIFI_MODE_AP_ONLY ? WiFi.softAPIP().toString()
-                                            : WiFi.localIP().toString();
+    if (WIFI_MODE == WIFI_MODE_DISABLED)
+    {
+        return "NONE";
+    }
+    if (WIFI_MODE == WIFI_MODE_AP_ONLY || _failedOver)
+    {
+        return WiFi.softAPIP().toString();
+    }
+    return WiFi.localIP().toString();
 }
 
 void WifiControl::clearCmd()
@@ -165,7 +174,8 @@ void WifiControl::loop()
         return;
     }
 
-    if (WIFI_MODE != WIFI_MODE_AP_ONLY)
+    // Monitor the station interface until we operate as an access point
+    if (WIFI_MODE != WIFI_MODE_AP_ONLY && !_failedOver)
     {
         if (_status != WiFi.status())
         {
@@ -184,8 +194,12 @@ void WifiControl::loop()
         if (_status != WL_CONNECTED)
         {
             infraToAPFailover();
-            return;
         }
+    }
+
+    if (_tcpServer == nullptr || _udp == nullptr)
+    {
+        return;
     }
 
     _mount->loop();
@@ -196,13 +210,16 @@ void WifiControl::loop()
 
 void WifiControl::infraToAPFailover()
 {
-    if (_infraStart != 0 && !WiFi.isConnected() && _infraStart + _infraWait < millis())
+    if (_infraStart != 0 && !WiFi.isConnected() && millis() - _infraStart > _infraWait)
     {
         WiFi.disconnect();
-        startAccessPointMode();
         _infraStart = 0;
+        if (startAccessPointMode())
+        {
+            _failedOver = true;
 
-        LOG(DEBUG_WIFI, "[WIFI]: Could not connect to Infra, Starting AP.");
+            LOG(DEBUG_WIFI, "[WIFI]: Could not connect to Infra, Starting AP.");
+        }
     }
 }
 
