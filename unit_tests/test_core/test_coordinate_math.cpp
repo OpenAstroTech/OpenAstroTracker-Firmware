@@ -89,3 +89,29 @@ TEST(CoordinateMathTest, BoundaryExactlyAtLimit)
     EXPECT_EQ(static_cast<long>(-3.0f * 1000.0f), result.targetRASteps);
     EXPECT_EQ(static_cast<long>(30.0f * 500.0f), result.targetDECSteps);
 }
+
+// Expected values are derived from the length of the sidereal day (86164.0905 s), not from the code.
+TEST(UntrackedRaHoursTest, ZeroWhileTrackingWithNoOffTime)
+{
+    EXPECT_FLOAT_EQ(0.0f, core::untrackedRaHours(0.0f, 0UL));
+}
+
+TEST(UntrackedRaHoursTest, RunningOffPeriodAdvancesAtSiderealRate)
+{
+    // 30 s stopped (FW12, night 2): RA must advance 30 s * 86400 / 86164.0905 = 30.0821 s
+    EXPECT_NEAR(30.0821f / 3600.0f, core::untrackedRaHours(0.0f, 30000UL), 1e-6f);
+    // One sidereal day stopped is exactly 24 h of RA
+    EXPECT_NEAR(24.0f, core::untrackedRaHours(0.0f, 86164091UL), 1e-4f);
+}
+
+TEST(UntrackedRaHoursTest, CompletedAndRunningOffTimeAdd)
+{
+    // 1 h completed + 1 h running = 2 solar hours = 2.0054758 RA hours
+    EXPECT_NEAR(2.0054758f, core::untrackedRaHours(1.0f, 3600000UL), 1e-5f);
+}
+
+TEST(UntrackedRaHoursTest, CatchUpCancelsTheSlewTime)
+{
+    // A 20 s slew whose catch-up (20 s) has already been subtracted leaves nothing
+    EXPECT_NEAR(0.0f, core::untrackedRaHours(-20.0f / 3600.0f, 20000UL), 1e-6f);
+}

@@ -7,6 +7,7 @@
 #include "Mount.hpp"
 #include "Sidereal.hpp"
 #include "core/CalendarMath.hpp"
+#include "core/CoordinateMath.hpp"
 #include "libs/MappedDict/MappedDict.hpp"
 
 PUSH_NO_WARNINGS
@@ -105,6 +106,8 @@ void Mount::initializeVariables()
 
     _compensateForTrackerOff = false;
     _trackerStoppedAt        = 0;
+    _trackingOffSince        = 0;
+    _untrackedHours          = 0;
 
     _totalDECMove            = 0;
     _totalRAMove             = 0;
@@ -1335,7 +1338,17 @@ void Mount::setLST(const DayTime &lst)
 #if defined(OAM) || defined(OAE)
     _zeroPosRA.addHours(6);  // shift allcoordinates by 90° for EQ mount movement
 #endif
-    LOG(DEBUG_MOUNT, "[MOUNT]: Set LST and ZeroPosRA to: %s", _LST.ToString());
+    // The above is the RA of the home position right now. _zeroPosRA is the RA of RA stepper position zero, and
+    // the tracking stepper has turned that away from home by what it has tracked since homing (see startSlewingToHome).
+    if (_stepperTRK != nullptr)
+    {
+        const float trackedSlewSteps = _stepperTRK->currentPosition() * (1.0f * RA_SLEW_MICROSTEPPING / RA_TRACKING_MICROSTEPPING);
+        _zeroPosRA.addSeconds(-lroundf(3600.0f * trackedSlewSteps / (_stepsPerRADegree * siderealDegreesInHour)));
+    }
+    // _zeroPosRA is valid as of now, so the time not tracked starts counting from here.
+    _untrackedHours   = 0;
+    _trackingOffSince = millis();
+    LOG(DEBUG_MOUNT, "[MOUNT]: Set LST to: %s, ZeroPosRA to %s", _LST.ToString(), _zeroPosRA.ToString());
 }
 
 /////////////////////////////////
@@ -1418,7 +1431,7 @@ const DayTime Mount::currentRA() const
     float stepsPerSiderealHour = _stepsPerRADegree * siderealDegreesInHour;              // u-steps/degree * degrees/hr = u-steps/hr
     float hourPos              = -_stepperRA->currentPosition() / stepsPerSiderealHour;  // u-steps / u-steps/hr = hr
 
-    hourPos += _zeroPosRA.getTotalHours();
+    hourPos += zeroPosRA().getTotalHours();
 
     const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
     if (degreePos < 0)
@@ -1550,9 +1563,11 @@ void Mount::startSlewingToTarget()
         {
             LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
             stopSlewing(TRACKING);
-            _trackerStoppedAt        = millis();
-            _compensateForTrackerOff = true;
         }
+        // The target was calculated for this moment, so catch up the duration of the slew on arrival,
+        // whether or not tracking was on before it.
+        _trackerStoppedAt        = millis();
+        _compensateForTrackerOff = true;
 
 // Set RA to slew microsteps for TMC2209 UART once the TRK stepper has stopped
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -2589,6 +2604,12 @@ void Mount::startSlewing(int direction)
 #endif
             _stepperTRK->setSpeed(_trackingSpeed);
 
+            if (!isTracking())
+            {
+                // The sky moved on while tracking was off. Keep that time for zeroPosRA().
+                _untrackedHours += (millis() - _trackingOffSince) / 3600000.0f;
+            }
+
             // Turn on tracking
             setStatusFlag(STATUS_TRACKING);
         }
@@ -2696,6 +2717,10 @@ void Mount::stopSlewing(int direction)
     if (direction & TRACKING)
     {
         // Turn off tracking
+        if (isTracking())
+        {
+            _trackingOffSince = millis();
+        }
         clearStatusFlag(STATUS_TRACKING);
 
         LOG(DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: TRK stepper stop()");
@@ -3274,6 +3299,8 @@ void Mount::loop()
                         elapsed,
                         compensationSteps);
                     _stepperTRK->runToNewPosition(_stepperTRK->currentPosition() + compensationSteps);
+                    // The mount has caught up with the sky for that part of the time tracking was off.
+                    _untrackedHours -= elapsed / 3600000.0f;
 
                     LOG(DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
                     _compensateForTrackerOff = false;
@@ -3284,6 +3311,11 @@ void Mount::loop()
                     LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Not finding home, so start tracking");
                     startSlewing(TRACKING);
                 }
+            }
+            else
+            {
+                // Parking: no catch-up, now or after a later slew. zeroPosRA() accounts for the time not tracked.
+                _compensateForTrackerOff = false;
             }
 
 // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
@@ -3578,6 +3610,10 @@ void Mount::setHome(bool clearZeroPos)
     _stepperTRK->setCurrentPosition(0);
     _stepperGUIDE->setCurrentPosition(0);
 
+    // _zeroPosRA is valid as of now, so the time not tracked starts counting from here.
+    _untrackedHours   = 0;
+    _trackingOffSince = millis();
+
     _targetRA      = currentRA();
     _slewingToHome = false;
     _slewingToPark = false;
@@ -3648,7 +3684,8 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     Declination decTarget = _targetDEC;
 
     // Calculate how far from the home position this new target is.
-    raTarget.subtractTime(_zeroPosRA);
+    const DayTime zeroRA = zeroPosRA();
+    raTarget.subtractTime(zeroRA);
     LOG(DEBUG_COORD_CALC,
         "[MOUNT]: CalcSteppersIn: Adjust RA by ZeroPosRA. New Target RA: %s, DEC: %s",
         raTarget.ToString(),
@@ -3663,7 +3700,7 @@ void Mount::calculateRAandDECSteppers(long &targetRASteps, long &targetDECSteps,
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: Tracked time is %l steps (%f h).", _stepperTRK->currentPosition(), trackedHours);
 
     // The current RA of the home position, taking tracking-to-date into account
-    float homeRA = _zeroPosRA.getTotalHours() + trackedHours;
+    float homeRA = zeroRA.getTotalHours() + trackedHours;
     LOG(DEBUG_COORD_CALC, "[MOUNT]: CalcSteppersIn: homeRA adjusted by elasped tracking actually represents %f h", homeRA);
 
     // Delta between target RA and home position with a normalized range of -12 hr to 12 hr
@@ -4350,6 +4387,22 @@ void Mount::testUART_vactual(TMC2209Stepper *driver, int _speed, int _duration)
     #endif
 #endif
 
+/////////////////////////////////
+//
+// zeroPosRA
+//
+// _zeroPosRA is the RA of RA stepper position zero as of the last setHome()/setLST()/sync. It stays
+// valid while the mount tracks. While tracking is off (parked, stopped, slewing) the sky moves on, and
+// the RA of every stepper position advances with it.
+/////////////////////////////////
+DayTime Mount::zeroPosRA() const
+{
+    const unsigned long offMs = isTracking() ? 0 : millis() - _trackingOffSince;
+    DayTime zero              = _zeroPosRA;
+    zero.addSeconds(lroundf(3600.0f * core::untrackedRaHours(_untrackedHours, offMs)));
+    return zero;
+}
+
 float Mount::getTrackedHours() const
 {
     return (_trackingSpeed > 0) ? ((_stepperTRK->currentPosition() / _trackingSpeed) / 3600.0F) : 0.0F;  // steps / steps/s / 3600 = hours
@@ -4363,15 +4416,13 @@ float Mount::getTrackedHours() const
 float Mount::checkRALimit()
 {
     const float trackedHours = getTrackedHours();
-    const float homeRA       = _zeroPosRA.getTotalHours() + trackedHours;
     const float RALimit      = RA_TRACKING_LIMIT;
-    LOG(DEBUG_MOUNT_VERBOSE,
-        "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)",
-        homeRA,
-        _zeroPosRA.getTotalHours(),
-        trackedHours);
-    const float degreePos = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
-    float hourPos         = currentRA().getTotalHours();
+    const float degreePos    = (_stepperDEC->currentPosition() / _stepsPerDECDegree) + _zeroPosDEC;
+    // Read the position first: it and homeRA must use the same zeroPosRA(), which advances while tracking is off.
+    float hourPos      = currentRA().getTotalHours();
+    const float zeroRA = zeroPosRA().getTotalHours();
+    const float homeRA = zeroRA + trackedHours;
+    LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)", homeRA, zeroRA, trackedHours);
     LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: degreePosDec: %f , RA hourpos : %f)", degreePos, hourPos);
     if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
     {

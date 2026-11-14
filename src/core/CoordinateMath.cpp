@@ -42,4 +42,11 @@ SlewResult calculateStepperPositions(const SlewGeometry &geo)
     return result;
 }
 
+float untrackedRaHours(float completedOffHours, unsigned long currentOffMs)
+{
+    // The sky turns once per sidereal day: 86400 s / 86164.0905 s RA hours per solar hour.
+    const float siderealHoursPerSolarHour = 1.00273791f;
+    return (completedOffHours + static_cast<float>(currentOffMs) / 3600000.0f) * siderealHoursPerSolarHour;
+}
+
 }  // namespace core

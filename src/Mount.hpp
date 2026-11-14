@@ -541,6 +541,9 @@ class Mount
 
     void autoCalcHa();
 
+    // The RA of RA stepper position zero right now: _zeroPosRA moved on by the time tracking was off.
+    DayTime zeroPosRA() const;
+
   private:
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
@@ -669,6 +672,8 @@ class Mount
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
+    unsigned long _trackingOffSince;  // millis() when tracking was last switched off. Only used while not tracking
+    float _untrackedHours;            // Completed tracking-off time (hours) since the last setHome()/setLST()
     volatile int _mountStatus;
 
     char scratchBuffer[24];
