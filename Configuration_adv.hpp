@@ -358,9 +358,9 @@
     #ifndef AZ_CIRCUMFERENCE
         #ifdef OAE
             // Roughly from the joint to the rod placement is 70mm
-            #define AZ_CIRCUMFERENCE 56.0f * 2 * PI
+            #define AZ_CIRCUMFERENCE 57.0f * 2 * PI
             #ifndef AZ_ROD_PITCH
-                #define AZ_ROD_PITCH 0.5
+                #define AZ_ROD_PITCH 0.8
             #endif
             #define AZIMUTH_STEPS_PER_REV                                                                                                  \
                 +(AZ_CORRECTION_FACTOR * (AZ_CIRCUMFERENCE / AZ_ROD_PITCH) * AZ_STEPPER_SPR * AZ_MICROSTEPPING)  // Actually u-steps/rev
