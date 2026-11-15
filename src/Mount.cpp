@@ -2624,6 +2624,15 @@ void Mount::startSlewing(int direction)
 
         if (direction & TRACKING)
         {
+            if (_stepperRA->isRunning())
+            {
+                // An RA slew is running: its remaining steps are sized for slew microstepping, so the
+                // switch to tracking microstepping below would shrink them, and TRK would fight the
+                // slew for the motor. Refuse; tracking starts when the slew ends (or during the
+                // post-slew catch-up, which is safe: TRK is stepped to a stop first below).
+                LOG(DEBUG_STEPPERS | DEBUG_MOUNT, "[MOUNT]: startSlewing(TRACKING) refused while an RA slew is running");
+                return;
+            }
 // Start tracking
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
             LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: Tracking: Switching RA driver to microsteps(%d)", RA_TRACKING_MICROSTEPPING);
