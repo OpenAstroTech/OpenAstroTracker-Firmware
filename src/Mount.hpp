@@ -544,6 +544,11 @@ class Mount
     // The RA of RA stepper position zero right now: _zeroPosRA moved on by the time tracking was off.
     DayTime zeroPosRA() const;
 
+    // The catch-up move of TRK after a slew (non-blocking, see Mount.cpp)
+    void startTrackerCatchUp();
+    void endTrackerCatchUp();
+    void finishTrackerCatchUp();
+
   private:
     LcdMenu *_lcdMenu;
 #if (INFO_DISPLAY_TYPE != INFO_DISPLAY_TYPE_NONE)
@@ -672,6 +677,9 @@ class Mount
     unsigned long _lastDisplayUpdate;
     unsigned long _trackerStoppedAt;
     bool _compensateForTrackerOff;
+    volatile bool _trackerCatchingUp;  // TRK is running the catch-up move after a slew. Read by interruptLoop()
+    long _catchUpStartPos;             // TRK position when the catch-up started
+    bool _trackAfterSlew;              // Start tracking when the slew ends. A full stop clears it
     unsigned long _trackingOffSince;  // millis() when tracking was last switched off. Only used while not tracking
     float _untrackedHours;            // Completed tracking-off time (hours) since the last setHome()/setLST()
     volatile int _mountStatus;

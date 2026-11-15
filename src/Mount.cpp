@@ -105,6 +105,9 @@ void Mount::initializeVariables()
     _zeroPosDEC        = 0.0f;
 
     _compensateForTrackerOff = false;
+    _trackerCatchingUp       = false;
+    _catchUpStartPos         = 0;
+    _trackAfterSlew          = true;
     _trackerStoppedAt        = 0;
     _trackingOffSince        = 0;
     _untrackedHours          = 0;
@@ -265,6 +268,7 @@ void Mount::configureHemisphere(bool inNorthern, bool force)
 {
     if ((inNorthernHemisphere != inNorthern) || force)
     {
+        finishTrackerCatchUp();
         bool wasTracking = isSlewingTRK();
         LOG(DEBUG_ANY, "[SYSTEM]: Hemisphere changed (or forced update) to %s.", inNorthern ? "northern" : "southern");
         LOG(DEBUG_ANY, "[SYSTEM]: Stopping all steppers.");
@@ -1543,6 +1547,7 @@ void Mount::syncPosition(DayTime ra, Declination dec)
 void Mount::startSlewingToTarget()
 {
     stopGuiding();
+    finishTrackerCatchUp();
 
     // Make sure we're slewing at full speed on a GoTo
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToTarget: Set DEC to MaxSpeed(%l)", _maxDECSpeed);
@@ -1585,6 +1590,7 @@ void Mount::startSlewingToTarget()
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
     _stepperWasRunning = true;
+    _trackAfterSlew    = true;
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
     _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
@@ -1601,6 +1607,7 @@ void Mount::startSlewingToTarget()
 void Mount::startSlewingToHome()
 {
     stopGuiding();
+    finishTrackerCatchUp();
 
     // Make sure we're slewing at full speed on a GoTo
     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewingToHome: Set DEC to MaxSpeed(%l)", _maxDECSpeed);
@@ -1649,6 +1656,7 @@ void Mount::startSlewingToHome()
     _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
     _stepperWasRunning = true;
+    _trackAfterSlew    = true;
     moveSteppersTo(targetRAPosition, targetDECPosition, RA_AND_DEC_STEPS);  // u-steps (in slew mode)
     _totalDECMove = static_cast<float>(_stepperDEC->distanceToGo());
     _totalRAMove  = static_cast<float>(_stepperRA->distanceToGo());
@@ -1718,9 +1726,10 @@ void Mount::guidePulse(byte direction, int duration)
     // Deliberately not using isSlewingTRK() here: slewStatus() reports NOT_SLEWING while any guide pulse
     // is running, so that check would silently drop every pulse arriving during an active one (e.g. from
     // clients that send pulses back-to-back without waiting for completion, like INDI/EKOS).
-    if (!isTracking())
+    // Tracking can be on while DEC is still slewing. A pulse then would stall that slew (see interruptLoop()).
+    if (!isTracking() || (_mountStatus & STATUS_SLEWING))
     {
-        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: Not tracking (at limit?), ignoring guide pulse");
+        LOG(DEBUG_STEPPERS | DEBUG_GUIDE, "[GUIDE]: guidePulse: Not tracking (at limit?) or slewing, ignoring guide pulse");
     }
     else
     {
@@ -1909,6 +1918,7 @@ void Mount::setManualSlewMode(bool state)
 {
     if (state)
     {
+        finishTrackerCatchUp();
         stopSlewing(ALL_DIRECTIONS);
         stopSlewing(TRACKING);
         waitUntilStopped(ALL_DIRECTIONS);
@@ -2340,6 +2350,7 @@ void Mount::focusStop()
 /////////////////////////////////
 void Mount::setTrackingStepperPos(long stepPos)
 {
+    finishTrackerCatchUp();
     _stepperTRK->setCurrentPosition(stepPos);
 }
 
@@ -2494,7 +2505,8 @@ byte Mount::slewStatus() const
     {
         return NOT_SLEWING;
     }
-    byte slewState = _stepperRA->isRunning() ? SLEWING_RA : NOT_SLEWING;
+    // The catch-up after a slew moves the RA motor too (through TRK), so it counts as slewing RA.
+    byte slewState = (_stepperRA->isRunning() || _trackerCatchingUp) ? SLEWING_RA : NOT_SLEWING;
     slewState |= _stepperDEC->isRunning() ? SLEWING_DEC : NOT_SLEWING;
 
     slewState |= (_mountStatus & STATUS_TRACKING) ? SLEWING_TRACKING : NOT_SLEWING;
@@ -2602,16 +2614,29 @@ void Mount::startSlewing(int direction)
             LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: Tracking: Switching RA driver to microsteps(%d)", RA_TRACKING_MICROSTEPPING);
             _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
 #endif
-            _stepperTRK->setSpeed(_trackingSpeed);
-
             if (!isTracking())
             {
                 // The sky moved on while tracking was off. Keep that time for zeroPosRA().
                 _untrackedHours += (millis() - _trackingOffSince) / 3600000.0f;
             }
+            // Tracking takes over from a catch-up that is still running, and replaces one that is still due.
+            // Let TRK stop first: the stepper task must not be in the middle of a goto step when the
+            // tracking speed is set below.
+            if (_trackerCatchingUp)
+            {
+                _stepperTRK->stop();
+                while (_stepperTRK->isRunning())
+                {
+                    yield();  // TRK is stepped by the stepper task
+                }
+                endTrackerCatchUp();
+            }
+            _compensateForTrackerOff = false;
 
-            // Turn on tracking
+            // Turn on tracking. Set the flag before the speed: while TRK has a speed and the flag is not set,
+            // interruptLoop() runs TRK in goto mode, which would replace the tracking speed.
             setStatusFlag(STATUS_TRACKING);
+            _stepperTRK->setSpeed(_trackingSpeed);
         }
         else
         {
@@ -2620,19 +2645,26 @@ void Mount::startSlewing(int direction)
 
             // Set move rate to last commanded slew rate
             setSlewRate(_moveRate);
-            if (isSlewingTRK())
+            _trackAfterSlew = true;
+            // Only an RA slew needs the RA motor. Tracking carries on during a DEC slew.
+            if (direction & (EAST | WEST))
             {
-                stopSlewing(TRACKING);
-                _trackerStoppedAt        = millis();
-                _compensateForTrackerOff = true;
-                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %l", _trackerStoppedAt);
-            }
+                finishTrackerCatchUp();
+                if (isSlewingTRK())
+                {
+                    stopSlewing(TRACKING);
+                    _trackerStoppedAt        = millis();
+                    _compensateForTrackerOff = true;
+                    _trackAfterSlew          = true;
+                    LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %l", _trackerStoppedAt);
+                }
 
 // Change microstep mode for slewing
 #if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
-            LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: Slewing: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
-            _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
+                LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: Slewing: Switching RA driver to microsteps(%d)", RA_SLEW_MICROSTEPPING);
+                _driverRA->microsteps(RA_SLEW_MICROSTEPPING == 1 ? 0 : RA_SLEW_MICROSTEPPING);
 #endif
+            }
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
             // Since normal state for DEC is guide microstepping, switch to slew microstepping here.
             LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: Slewing: Switching DEC driver to microsteps(%d)", DEC_SLEW_MICROSTEPPING);
@@ -2723,6 +2755,11 @@ void Mount::stopSlewing(int direction)
         }
         clearStatusFlag(STATUS_TRACKING);
 
+        // A stop that includes tracking is a full stop: no catch-up after the slew, and tracking stays off.
+        // A catch-up that is running is cut short here; loop() books the steps it made once TRK has stopped.
+        _compensateForTrackerOff = false;
+        _trackAfterSlew          = false;
+
         LOG(DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: TRK stepper stop()");
         _stepperTRK->stop();
     }
@@ -2737,6 +2774,7 @@ void Mount::stopSlewing(int direction)
     {
         LOG(DEBUG_STEPPERS, "[STEPPERS]: stopSlewing: RA stepper stop()");
         _stepperRA->stop();
+        _correctForBacklash = false;
         if (isFindingHome())
         {
             clearStatusFlag(STATUS_FINDING_HOME);
@@ -2917,6 +2955,8 @@ long Mount::getHomingOffset(StepperAxis axis)
 #if (USE_HALL_SENSOR_RA_AUTOHOME == 1) || (USE_HALL_SENSOR_DEC_AUTOHOME == 1)
 bool Mount::findHomeByHallSensor(StepperAxis axis, int initialDirection, int searchDistance)
 {
+    // End a catch-up here, on the command side: the homing steps run in the stepper task, which cannot wait for TRK.
+    finishTrackerCatchUp();
     #if USE_HALL_SENSOR_RA_AUTOHOME == 1
     if (axis == StepperAxis::RA_STEPS)
     {
@@ -3054,6 +3094,14 @@ void Mount::interruptLoop()
     {
         _stepperTRK->runSpeed();
     }
+    else if (_trackerCatchingUp)
+    {
+        // After a slew, the tracker is advanced by the distance it would have travelled during the slew
+        // if it had been tracking. That move uses goto mode (moveTo()), so we need to use run(), since
+        // runSpeed() only advances the stepper when it is in constant speed mode. On a goto it starts
+        // as soon as RA has arrived, so it also runs while DEC is still slewing.
+        _stepperTRK->run();
+    }
 
     if (_mountStatus & STATUS_SLEWING)
     {
@@ -3068,14 +3116,11 @@ void Mount::interruptLoop()
             _stepperRA->run();
         }
     }
-    else if (!(_mountStatus & STATUS_TRACKING) && (_stepperTRK->isRunning()))
+    else if (!(_mountStatus & STATUS_TRACKING) && !_trackerCatchingUp && (_stepperTRK->isRunning()))
     {
         // If we are not tracking, but the tracking stepper is running, we need to let it move.
-        // This can happen when we need to compensate for a slew (during which the tracker is
-        // stopped). After the slew, the tracker is advanced by the distance it would have
-        // travelled during the slew if it had been tracking.
-        // That compensation uses goto mode (using runToNewPosition()), so we need to use run(),
-        // since runSpeed() only advances the stepper when it is in constant speed mode.
+        // This happens when tracking is stopped: stop() makes TRK decelerate in goto mode.
+        // Not during a slew: the RA driver is in slew microstepping then.
         _stepperTRK->run();
     }
 
@@ -3220,6 +3265,12 @@ void Mount::loop()
         return;
     }
 
+    if (_trackerCatchingUp && !_stepperTRK->isRunning())
+    {
+        // The catch-up move is done, or a stop has cut it short.
+        finishTrackerCatchUp();
+    }
+
     if (_stepperDEC->isRunning())
     {
         decStillRunning = true;
@@ -3228,6 +3279,30 @@ void Mount::loop()
     if (_stepperRA->isRunning())
     {
         raStillRunning = true;
+    }
+
+    if (!raStillRunning && (_mountStatus & STATUS_SLEWING_TO_TARGET))
+    {
+        if (_correctForBacklash)
+        {
+            // RA stopped short of the target on purpose (see moveSteppersTo()). Run the rest now, still in slew microstepping.
+            LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
+                "[MOUNT]: Loop:   RA reached %l. Compensating for backlash by %d",
+                _stepperRA->currentPosition(),
+                _backlashCorrectionSteps);
+            _correctForBacklash = false;
+            _stepperRA->moveTo(_stepperRA->currentPosition() + _backlashCorrectionSteps);
+            raStillRunning = _stepperRA->isRunning();
+        }
+        else if (decStillRunning && _compensateForTrackerOff && !isParking() && !_slewingToHome && !isFindingHome())
+        {
+            // Goto: RA has arrived and DEC is still slewing. Catch up and track now instead of waiting for DEC.
+#if RA_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
+            LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: RA arrived. RA driver setMicrosteps(%d)", RA_TRACKING_MICROSTEPPING);
+            _driverRA->microsteps(RA_TRACKING_MICROSTEPPING == 1 ? 0 : RA_TRACKING_MICROSTEPPING);
+#endif
+            startTrackerCatchUp();
+        }
     }
 
     if (raStillRunning || decStillRunning)
@@ -3245,7 +3320,11 @@ void Mount::loop()
         //
         // Arrived at target after Slew!
         //
-        clearStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET | STATUS_SLEWING_MANUAL);
+        if (!_trackerCatchingUp)
+        {
+            // The mount reports slewing until the catch-up is done.
+            clearStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET | STATUS_SLEWING_MANUAL);
+        }
 
         if (_stepperWasRunning)
         {
@@ -3288,25 +3367,14 @@ void Mount::loop()
             if (!isParking())
             {
                 LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Not parking");
-                if (_compensateForTrackerOff)
+                if (_compensateForTrackerOff && !isFindingHome())  // If we're homing, RA must stay in Slew configuration
                 {
-                    now                             = millis();
-                    unsigned long elapsed           = now - _trackerStoppedAt;
-                    unsigned long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
-                    LOG(DEBUG_STEPPERS,
-                        "[STEPPERS]: loop: Arrived at %lms. Tracking was off for %lms (%l steps), compensating.",
-                        now,
-                        elapsed,
-                        compensationSteps);
-                    _stepperTRK->runToNewPosition(_stepperTRK->currentPosition() + compensationSteps);
-                    // The mount has caught up with the sky for that part of the time tracking was off.
-                    _untrackedHours -= elapsed / 3600000.0f;
-
-                    LOG(DEBUG_STEPPERS, "[STEPPERS]: loop: compensation complete.");
-                    _compensateForTrackerOff = false;
+                    startTrackerCatchUp();
                 }
+                _compensateForTrackerOff = false;
 
-                if (!isFindingHome())  // If we're homing, RA must stay in Slew configuration
+                // After a catch-up, loop() starts tracking once it is done. After a full stop, tracking stays off.
+                if (!_trackerCatchingUp && _trackAfterSlew && !isFindingHome())
                 {
                     LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Not finding home, so start tracking");
                     startSlewing(TRACKING);
@@ -3323,24 +3391,6 @@ void Mount::loop()
             LOG(DEBUG_STEPPERS, "[STEPPERS]: Loop: Arrived. DEC driver setMicrosteps(%d)", DEC_GUIDE_MICROSTEPPING);
             _driverDEC->microsteps(DEC_GUIDE_MICROSTEPPING == 1 ? 0 : DEC_GUIDE_MICROSTEPPING);
 #endif
-
-            if (_correctForBacklash)
-            {
-                LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
-                    "[MOUNT]: Loop:   Reached target at %d. Compensating for backlash by %d",
-                    (int) _currentRAStepperPosition,
-                    _backlashCorrectionSteps);
-                _currentRAStepperPosition += _backlashCorrectionSteps;
-                _stepperRA->runToNewPosition(_currentRAStepperPosition);
-                _correctForBacklash = false;
-                LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Backlash correction done. Pos: %d", _currentRAStepperPosition);
-            }
-            else
-            {
-                LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
-                    "[MOUNT]: Loop:   Reached target at %d, no backlash compensation needed",
-                    _currentRAStepperPosition);
-            }
 
             LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slew2Park:%d, Slew2Home:%d", _slewingToPark, _slewingToHome);
             if (_slewingToHome)
@@ -3380,11 +3430,7 @@ void Mount::loop()
                         interrupts();
                     }
                 }
-                else
-                {
-                    LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Slewed home, not parking, so restart tracking.");
-                    startSlewing(TRACKING);
-                }
+                // Slewed home, not parking: tracking was restarted above, or will be once the catch-up is done.
                 _slewingToHome = false;
 // Reset DEC to guide microstepping so that guiding is always ready and no switch is neccessary on guide pulses.
 #if DEC_DRIVER_TYPE == DRIVER_TYPE_TMC2209_UART
@@ -3587,6 +3633,7 @@ void Mount::getDecLimitPositions(float &lowerLimit, float &upperLimit)
 void Mount::setHome(bool clearZeroPos)
 {
     LOG(DEBUG_MOUNT, "[MOUNT]: setHome() called. Stopping steppers");
+    finishTrackerCatchUp();
     bool wasTracking = isSlewingTRK();
     stopSlewing(ALL_DIRECTIONS);
     waitUntilStopped(ALL_DIRECTIONS);
@@ -3888,6 +3935,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
             break;
 
         case RA_STEPS:
+            finishTrackerCatchUp();
             if (steps != 0)
             {
                 // Only stop tracking if we're actually tracking and going to slew somewhere else, otherwise the
@@ -3909,6 +3957,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
 #endif
             setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
             _stepperWasRunning = true;
+            _trackAfterSlew    = true;
             moveSteppersTo(_stepperRA->currentPosition() + steps, 0, direction);
             _totalRAMove = 1.0f * _stepperRA->distanceToGo();
             break;
@@ -3922,6 +3971,7 @@ void Mount::moveStepperBy(StepperAxis direction, long steps)
                 _driverDEC->microsteps(DEC_SLEW_MICROSTEPPING == 1 ? 0 : DEC_SLEW_MICROSTEPPING);
 #endif
                 _stepperWasRunning = true;
+                _trackAfterSlew    = true;
                 moveSteppersTo(0, _stepperDEC->currentPosition() + steps, direction);
                 _totalDECMove = 1.0f * _stepperDEC->distanceToGo();
             }
@@ -4401,6 +4451,78 @@ DayTime Mount::zeroPosRA() const
     DayTime zero              = _zeroPosRA;
     zero.addSeconds(lroundf(3600.0f * core::untrackedRaHours(_untrackedHours, offMs)));
     return zero;
+}
+
+/////////////////////////////////
+//
+// startTrackerCatchUp
+//
+// Tracking was off during the RA slew. Advance TRK by the distance it would have tracked in that time.
+// The move is non-blocking: the stepper task (interruptLoop()) steps TRK, and loop() calls
+// finishTrackerCatchUp() once TRK has stopped. The RA driver must be in tracking microstepping.
+/////////////////////////////////
+void Mount::startTrackerCatchUp()
+{
+    if (isTracking())
+    {
+        // Tracking was switched on during the slew. A goto move of TRK would replace the tracking speed.
+        _compensateForTrackerOff = false;
+        return;
+    }
+    const unsigned long elapsed  = millis() - _trackerStoppedAt;
+    const long compensationSteps = _trackingSpeed * elapsed / 1000.0f;
+    LOG(DEBUG_STEPPERS, "[STEPPERS]: Tracking was off for %lms (%l steps), compensating.", elapsed, compensationSteps);
+    _compensateForTrackerOff = false;
+    _catchUpStartPos         = _stepperTRK->currentPosition();
+    _stepperTRK->moveTo(_catchUpStartPos + compensationSteps);
+    // The mount reports slewing until the catch-up is done.
+    setStatusFlag(STATUS_SLEWING | STATUS_SLEWING_TO_TARGET);
+    _trackerCatchingUp = true;
+}
+
+/////////////////////////////////
+//
+// endTrackerCatchUp
+//
+// Books the catch-up by the steps TRK actually made, so a catch-up that was cut short stays
+// consistent with zeroPosRA().
+/////////////////////////////////
+void Mount::endTrackerCatchUp()
+{
+    if (_trackerCatchingUp)
+    {
+        _trackerCatchingUp = false;
+        if (_trackingSpeed > 0)
+        {
+            // The mount has caught up with the sky for that part of the time tracking was off.
+            _untrackedHours -= (_stepperTRK->currentPosition() - _catchUpStartPos) / _trackingSpeed / 3600.0f;
+        }
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: compensation complete.");
+    }
+}
+
+/////////////////////////////////
+//
+// finishTrackerCatchUp
+//
+// Ends a catch-up, stopping it first if it is still running, and starts tracking unless a full stop
+// was requested. TRK and RA drive the same motor, so call this before RA slews or TRK is reset.
+/////////////////////////////////
+void Mount::finishTrackerCatchUp()
+{
+    if (_trackerCatchingUp)
+    {
+        _stepperTRK->stop();
+        while (_stepperTRK->isRunning())
+        {
+            yield();  // TRK is stepped by the stepper task
+        }
+        endTrackerCatchUp();
+        if (_trackAfterSlew && !isFindingHome())
+        {
+            startSlewing(TRACKING);
+        }
+    }
 }
 
 float Mount::getTrackedHours() const
