@@ -680,8 +680,8 @@ class Mount
     volatile bool _trackerCatchingUp;  // TRK is running the catch-up move after a slew. Read by interruptLoop()
     long _catchUpStartPos;             // TRK position when the catch-up started
     bool _trackAfterSlew;              // Start tracking when the slew ends. A full stop clears it
-    unsigned long _trackingOffSince;  // millis() when tracking was last switched off. Only used while not tracking
-    float _untrackedHours;            // Completed tracking-off time (hours) since the last setHome()/setLST()
+    unsigned long _trackingOffSince;   // millis() when tracking was last switched off. Only used while not tracking
+    float _untrackedHours;             // Completed tracking-off time (hours) since the last setHome()/setLST()
     volatile int _mountStatus;
 
     char scratchBuffer[24];
