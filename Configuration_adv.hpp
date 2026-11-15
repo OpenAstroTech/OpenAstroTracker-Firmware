@@ -283,6 +283,15 @@
 
 ////////////////////////////
 //
+// PARKING
+// Set to 1 to switch the RA and DEC drivers off while the mount is parked. They switch back on when anything moves.
+// Only for OAM and OAE: their gearboxes hold the axes without power. An OAT loses its position.
+#ifndef RA_DEC_OFF_WHEN_PARKED
+    #define RA_DEC_OFF_WHEN_PARKED 0
+#endif
+
+////////////////////////////
+//
 // INVERT AXIS
 // Set to 1 or 0 to invert motor directions
 #ifndef RA_INVERT_DIR
