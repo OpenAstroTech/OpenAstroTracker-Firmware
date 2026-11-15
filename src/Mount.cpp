@@ -1352,7 +1352,10 @@ void Mount::setLST(const DayTime &lst)
     // _zeroPosRA is valid as of now, so the time not tracked starts counting from here.
     _untrackedHours   = 0;
     _trackingOffSince = millis();
-    LOG(DEBUG_MOUNT, "[MOUNT]: Set LST to: %s, ZeroPosRA to %s", _LST.ToString(), _zeroPosRA.ToString());
+    // Two LOG calls: DayTime::ToString() formats into one shared static buffer, so both
+    // values in a single call would print the same (last-evaluated) string.
+    LOG(DEBUG_MOUNT, "[MOUNT]: Set LST to: %s", _LST.ToString());
+    LOG(DEBUG_MOUNT, "[MOUNT]: Set ZeroPosRA to: %s", _zeroPosRA.ToString());
 }
 
 /////////////////////////////////
@@ -1568,6 +1571,12 @@ void Mount::startSlewingToTarget()
         {
             LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
             stopSlewing(TRACKING);
+            // Wait until TRK has really stopped: the stepper task may still be emitting deceleration
+            // steps, and a step that lands after the microstep switch below is physically oversized.
+            while (_stepperTRK->isRunning())
+            {
+                yield();  // TRK is stepped by the stepper task
+            }
         }
         // The target was calculated for this moment, so catch up the duration of the slew on arrival,
         // whether or not tracking was on before it.
@@ -1637,6 +1646,12 @@ void Mount::startSlewingToHome()
         // mount::loop() code won't detect the end of the slewing operation...
         LOG(DEBUG_STEPPERS, "[MOUNT]: Stop tracking (NEMA steppers)");
         stopSlewing(TRACKING);
+        // Wait until TRK has really stopped: the stepper task may still be emitting deceleration
+        // steps, and a step that lands after the microstep switch below is physically oversized.
+        while (_stepperTRK->isRunning())
+        {
+            yield();  // TRK is stepped by the stepper task
+        }
         _trackerStoppedAt        = millis();
         _compensateForTrackerOff = true;
 
@@ -2653,9 +2668,14 @@ void Mount::startSlewing(int direction)
                 if (isSlewingTRK())
                 {
                     stopSlewing(TRACKING);
+                    // Wait until TRK has really stopped: the stepper task may still be emitting deceleration
+                    // steps, and a step that lands after the microstep switch below is physically oversized.
+                    while (_stepperTRK->isRunning())
+                    {
+                        yield();  // TRK is stepped by the stepper task
+                    }
                     _trackerStoppedAt        = millis();
                     _compensateForTrackerOff = true;
-                    _trackAfterSlew          = true;
                     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %l", _trackerStoppedAt);
                 }
 
