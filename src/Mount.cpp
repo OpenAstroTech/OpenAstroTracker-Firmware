@@ -2685,6 +2685,7 @@ void Mount::startSlewing(int direction)
                     }
                     _trackerStoppedAt        = millis();
                     _compensateForTrackerOff = true;
+                    _trackAfterSlew          = true;  // stopSlewing(TRACKING) cleared it
                     LOG(DEBUG_STEPPERS, "[STEPPERS]: startSlewing: stopped TRK at %l", _trackerStoppedAt);
                 }
 
