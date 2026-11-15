@@ -471,7 +471,8 @@
         #error "RA_DEC_OFF_WHEN_PARKED is only for OAM and OAE. An OAT loses its position when its steppers are switched off."
     #endif
     #if (UART_CONNECTION_TEST_TXRX == 1)
-        #error "RA_DEC_OFF_WHEN_PARKED cannot be combined with UART_CONNECTION_TEST_TXRX: unparking would re-enable a driver that the test disabled."
+        #error                                                                                                                             \
+            "RA_DEC_OFF_WHEN_PARKED cannot be combined with UART_CONNECTION_TEST_TXRX: unparking would re-enable a driver that the test disabled."
     #endif
     #if defined(RP2040_SHARED_EN_PIN)
         #error "RA_DEC_OFF_WHEN_PARKED needs separate RA and DEC enable pins. This board shares one enable pin across all axes."
