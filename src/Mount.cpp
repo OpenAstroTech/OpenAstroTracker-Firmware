@@ -2841,13 +2841,18 @@ void Mount::stopSlewing(int direction)
         {
             clearStatusFlag(STATUS_FINDING_HOME);
         }
-        // Stopping the RA axis kills any park/home slew in progress. Clear the park-slew state
+    }
+
+    if ((direction & ALL_DIRECTIONS) != 0)
+    {
+        // Stopping the RA or DEC axis kills any park/home slew in progress. Clear the park-slew state
         // here, or loop()'s arrival block (pumped by waitUntilAllStopped() on a :Q#) would run
         // the "arrived at park position" code at the aborted position and park there - with
         // RA_DEC_OFF_WHEN_PARKED it would also switch the drivers off mid-sky.
+        // loop() itself gets here through setHome() on arrival at home, and restores the state.
         _slewingToHome = false;
         _slewingToPark = false;
-        clearStatusFlag(STATUS_PARKING);
+        clearStatusFlag(STATUS_PARKING | STATUS_PARKING_POS);
     }
 }
 
@@ -3409,12 +3414,15 @@ void Mount::loop()
                 // If we're on the second part of the slew to parking, don't set home here
                 if (!_slewingToPark)
                 {
-                    bool saveHomeSlew = _slewingToHome;
+                    // setHome() stops the axes, which cancels a park (see stopSlewing()). This park goes on.
+                    bool saveHomeSlew        = _slewingToHome;
+                    const int saveParkStatus = _mountStatus & (STATUS_PARKING | STATUS_PARKING_POS);
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Was Parking, not slewing to park so stop tracking and set home. SlewToHome: %d",
                         _slewingToHome);
                     setHome(false);
                     _slewingToHome = saveHomeSlew;
+                    setStatusFlag(saveParkStatus);
                 }
                 else
                 {
