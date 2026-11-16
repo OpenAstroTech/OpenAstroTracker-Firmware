@@ -2841,6 +2841,13 @@ void Mount::stopSlewing(int direction)
         {
             clearStatusFlag(STATUS_FINDING_HOME);
         }
+        // Stopping the RA axis kills any park/home slew in progress. Clear the park-slew state
+        // here, or loop()'s arrival block (pumped by waitUntilAllStopped() on a :Q#) would run
+        // the "arrived at park position" code at the aborted position and park there - with
+        // RA_DEC_OFF_WHEN_PARKED it would also switch the drivers off mid-sky.
+        _slewingToHome = false;
+        _slewingToPark = false;
+        clearStatusFlag(STATUS_PARKING);
     }
 }
 
