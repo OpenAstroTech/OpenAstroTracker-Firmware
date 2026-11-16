@@ -2628,9 +2628,11 @@ void Mount::startSlewing(int direction)
             {
                 // An RA slew is running: its remaining steps are sized for slew microstepping, so the
                 // switch to tracking microstepping below would shrink them, and TRK would fight the
-                // slew for the motor. Refuse; tracking starts when the slew ends (or during the
-                // post-slew catch-up, which is safe: TRK is stepped to a stop first below).
-                LOG(DEBUG_STEPPERS | DEBUG_MOUNT, "[MOUNT]: startSlewing(TRACKING) refused while an RA slew is running");
+                // slew for the motor. Refuse for now, but arm _trackAfterSlew so tracking starts when
+                // the slew ends (deferred, not dropped - e.g. :MT0# then :MT1# during one slew).
+                _trackAfterSlew = true;
+                LOG(DEBUG_STEPPERS | DEBUG_MOUNT,
+                    "[MOUNT]: startSlewing(TRACKING) deferred: RA slew is running, tracking starts when it ends");
                 return;
             }
 // Start tracking
