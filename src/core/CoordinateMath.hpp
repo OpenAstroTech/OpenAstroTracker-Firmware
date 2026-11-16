@@ -31,4 +31,10 @@ struct SlewResult {
 /// - Solution 3: flip when past lower limit (moveRA += 12, moveDEC = -moveDEC)
 SlewResult calculateStepperPositions(const SlewGeometry &geo);
 
+/// RA hours the sky has moved past a mount while its tracker was off.
+/// completedOffHours: finished tracker-off time in (solar) hours. Can be slightly negative
+///                    right after a post-slew catch-up has been subtracted from it.
+/// currentOffMs:      length of the tracker-off period that is still running (0 while tracking).
+float untrackedRaHours(float completedOffHours, unsigned long currentOffMs);
+
 }  // namespace core
