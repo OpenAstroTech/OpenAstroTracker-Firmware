@@ -45,6 +45,7 @@ jobs:
           - mksgenlv2
           - mksgenlv1
           - esp32
+          - oaeboardv1
           - ramps
           - rp2040_jackw01
           - rp2040_skr_pico

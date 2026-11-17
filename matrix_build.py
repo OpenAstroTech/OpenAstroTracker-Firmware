@@ -31,6 +31,7 @@ RP2040_BOARDS = [
 ]
 BOARDS = AVR_BOARDS + [
     "esp32",
+    "oaeboardv1",
 ] + RP2040_BOARDS
 
 STEPPER_TYPES = [
@@ -78,6 +79,14 @@ BUILD_FLAGS = {
     "INFO_DISPLAY_TYPE": INFO_DISPLAY_TYPES,
     "TEST_VERIFY_MODE": BOOLEAN_VALUES,
     "DEBUG_LEVEL": ["DEBUG_NONE", "DEBUG_ANY"],
+    "RA_DEC_OFF_WHEN_PARKED": BOOLEAN_VALUES,
+    "WIFI_ENABLED": BOOLEAN_VALUES,
+    "WIFI_MODE": [
+        "WIFI_MODE_DISABLED",
+        "WIFI_MODE_INFRASTRUCTURE",
+        "WIFI_MODE_AP_ONLY",
+        "WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP",
+    ],
     "RA_MOTOR_CURRENT_RATING": "1",
     "RA_OPERATING_CURRENT_SETTING": "1",
     "DEC_MOTOR_CURRENT_RATING": "1",
@@ -119,6 +128,8 @@ BOARD_SUPPORT = {
     "esp32": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": [0],
+        "WIFI_ENABLED": [0, 1],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_JOY_I2C_SSD1306"
@@ -142,9 +153,55 @@ BOARD_SUPPORT = {
             "STEPPER_TYPE_NONE"
         ],
     }),
+    # OAE v1: EQ mount with on-board TMC2209s wired for UART (no MS pins routed) for RA/DEC
+    # and on-board A4988s for AZ/ALT. All four steppers are always present on the board.
+    # No display/GPS/gyro/focus by default. This job exists to compile the OAE-only code
+    # paths (OAE geometry, RA_DEC_OFF_WHEN_PARKED, AZ/ALT drivers) that no other board covers.
+    "oaeboardv1": update_dict(BUILD_FLAGS, {
+        "USE_GPS": [0],
+        "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": BOOLEAN_VALUES,
+        "WIFI_ENABLED": [0],
+        "WIFI_MODE": [
+            "WIFI_MODE_DISABLED"
+        ],
+        # No LCD menu display: the joystick sense pins are not routed by default
+        "DISPLAY_TYPE": [
+            "DISPLAY_TYPE_NONE"
+        ],
+        "RA_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "DEC_DRIVER_TYPE": [
+            "DRIVER_TYPE_TMC2209_UART"
+        ],
+        "AZ_STEPPER_TYPE": [
+            "STEPPER_TYPE_ENABLED"
+        ],
+        "AZ_DRIVER_TYPE": [
+            "DRIVER_TYPE_A4988_GENERIC"
+        ],
+        "ALT_STEPPER_TYPE": [
+            "STEPPER_TYPE_ENABLED"
+        ],
+        "ALT_DRIVER_TYPE": [
+            "DRIVER_TYPE_A4988_GENERIC"
+        ],
+        "FOCUS_DRIVER_TYPE": [
+            "DRIVER_TYPE_NONE"
+        ],
+        "FOCUS_STEPPER_TYPE": [
+            "STEPPER_TYPE_NONE"
+        ],
+    }),
     "mksgenlv21": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": [0],
+        "WIFI_ENABLED": [0],
+        "WIFI_MODE": [
+            "WIFI_MODE_DISABLED"
+        ],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_KEYPAD"
@@ -153,6 +210,11 @@ BOARD_SUPPORT = {
     "mksgenlv2": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": [0],
+        "WIFI_ENABLED": [0],
+        "WIFI_MODE": [
+            "WIFI_MODE_DISABLED"
+        ],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_KEYPAD"
@@ -161,6 +223,11 @@ BOARD_SUPPORT = {
     "mksgenlv1": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": [0],
+        "WIFI_ENABLED": [0],
+        "WIFI_MODE": [
+            "WIFI_MODE_DISABLED"
+        ],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_KEYPAD"
@@ -175,6 +242,11 @@ BOARD_SUPPORT = {
     "ramps": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": [0],
+        "WIFI_ENABLED": [0],
+        "WIFI_MODE": [
+            "WIFI_MODE_DISABLED"
+        ],
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE",
             "DISPLAY_TYPE_LCD_KEYPAD"
@@ -183,6 +255,11 @@ BOARD_SUPPORT = {
     "rp2040_jackw01": update_dict(BUILD_FLAGS, {
         "USE_GPS": [0],
         "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": [0],
+        "WIFI_ENABLED": [0],
+        "WIFI_MODE": [
+            "WIFI_MODE_DISABLED"
+        ],
         # No LCD menu display support on RP2040 (enforced by ConfigurationValidation)
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE"
@@ -212,6 +289,11 @@ BOARD_SUPPORT = {
     }),
     "rp2040_skr_pico": update_dict(BUILD_FLAGS, {
         "USE_GYRO_LEVEL": [0],
+        "RA_DEC_OFF_WHEN_PARKED": [0],
+        "WIFI_ENABLED": [0],
+        "WIFI_MODE": [
+            "WIFI_MODE_DISABLED"
+        ],
         # No LCD menu display support on RP2040 (enforced by ConfigurationValidation)
         "DISPLAY_TYPE": [
             "DISPLAY_TYPE_NONE"
@@ -269,6 +351,12 @@ SHORT_STRINGS = {
     "FOCUS_STEPPER_TYPE": "FOCUS_STEPPER",
     "FOCUS_DRIVER_TYPE": "FOCUS_DRIVER",
     "DISPLAY_TYPE": "DISPLAY",
+    "RA_DEC_OFF_WHEN_PARKED": "RA_DEC_OFF",
+    "WIFI_ENABLED": "WIFI",
+    "WIFI_MODE_DISABLED": "DISABLED",
+    "WIFI_MODE_INFRASTRUCTURE": "INFRASTRUCTURE",
+    "WIFI_MODE_AP_ONLY": "AP_ONLY",
+    "WIFI_MODE_ATTEMPT_INFRASTRUCTURE_FAIL_TO_AP": "FAIL_TO_AP",
 }
 
 
@@ -359,11 +447,11 @@ def set_ci_constraints(problem):
     problem.addConstraint(InSetConstraint({"DISPLAY_TYPE_NONE", "DISPLAY_TYPE_LCD_KEYPAD"}), ["DISPLAY_TYPE"])
     # problem.addConstraint(InSetConstraint({"DRIVER_TYPE_ULN2003"}), ["ALT_DRIVER_TYPE"])
 
-    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21, esp32 and rp2040_skr_pico only
-    # (just to reduce compile times)
+    # Restrict INFO_DISPLAY_TYPE_I2C_SSD1306_128x64 to mksgenlv21, esp32, oaeboardv1 and
+    # rp2040_skr_pico only (just to reduce compile times)
     def info_display_constraint(board, info_display):
         if info_display == "INFO_DISPLAY_TYPE_I2C_SSD1306_128x64":
-            return board in ["mksgenlv21", "esp32", "rp2040_skr_pico"]
+            return board in ["mksgenlv21", "esp32", "oaeboardv1", "rp2040_skr_pico"]
         return True
     problem.addConstraint(info_display_constraint, ["BOARD", "INFO_DISPLAY_TYPE"])
 
@@ -375,6 +463,34 @@ def set_ci_constraints(problem):
         return True
 
     problem.addConstraint(skr_pico_gps_display_constraint, ["BOARD", "USE_GPS", "INFO_DISPLAY_TYPE"])
+
+    # Wifi mode must be consistent with WIFI_ENABLED (and vice versa)
+    def wifi_mode_matches_wifi_enabled(wifi_enabled, wifi_mode):
+        if wifi_enabled == 1:
+            return wifi_mode != "WIFI_MODE_DISABLED"
+        return wifi_mode == "WIFI_MODE_DISABLED"
+
+    problem.addConstraint(wifi_mode_matches_wifi_enabled, ["WIFI_ENABLED", "WIFI_MODE"])
+
+    # Wifi builds only run on one canonical carrier configuration (no displays, UART
+    # drivers, no test verify) so that the enabled/disabled split adds one solution
+    # per wifi mode instead of multiplying the matrix
+    def wifi_carrier_constraint(board, wifi_enabled, display, info_display, dec_driver, test_verify, debug_level):
+        if wifi_enabled != 1:
+            return True
+        if board != "esp32":
+            return False
+        return (
+                display == "DISPLAY_TYPE_NONE" and
+                info_display == "INFO_DISPLAY_TYPE_NONE" and
+                dec_driver == "DRIVER_TYPE_TMC2209_UART" and
+                test_verify == 0 and
+                debug_level == "DEBUG_NONE"
+        )
+
+    problem.addConstraint(
+        wifi_carrier_constraint,
+        ["BOARD", "WIFI_ENABLED", "DISPLAY_TYPE", "INFO_DISPLAY_TYPE", "DEC_DRIVER_TYPE", "TEST_VERIFY_MODE", "DEBUG_LEVEL"])
 
 
 def print_solutions_matrix(solutions, short_strings=False):
