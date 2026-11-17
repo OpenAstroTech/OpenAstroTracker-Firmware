@@ -107,7 +107,7 @@ class EndSwitch;
 #define CURRENT_STRING 0b10000
 
 //mountstatus
-#define STATUS_PARKED            0b0000000000000000
+#define STATUS_PARKED            0b0000000000000001  // At the park position, nothing moving. setStatusFlag() clears it.
 #define STATUS_SLEWING           0b0000000000000010
 #define STATUS_SLEWING_TO_TARGET 0b0000000000000100
 #define STATUS_SLEWING_FREE      0b0000000000000010
@@ -398,6 +398,8 @@ class Mount
     void setStatus(int state);
     void setStatusFlag(int flag);
     void clearStatusFlag(int flag);
+    void leaveParkedState();
+    void enterParkedState();
 
     // Get the current speed of the stepper. NORTH, WEST, TRACKING
     float getSpeed(int direction);

@@ -1890,6 +1890,7 @@ void Mount::runDriftAlignmentPhase(int direction, int durationSecs)
 
     // Calculate the speed at which it takes the given duration to cover the steps.
     float speed = numSteps / durationSecs;
+    leaveParkedState();  // Moves RA without setting a status flag
     switch (direction)
     {
         case EAST:
@@ -2378,6 +2379,7 @@ void Mount::setStatus(int state)
 
 void Mount::setStatusFlag(int flag)
 {
+    leaveParkedState();
     noInterrupts();
     _mountStatus |= flag;
     interrupts();
@@ -2390,6 +2392,33 @@ void Mount::clearStatusFlag(int flag)
     interrupts();
 }
 
+// Called before anything moves the RA or DEC axis: the mount is no longer parked.
+void Mount::leaveParkedState()
+{
+    if (_mountStatus & STATUS_PARKED)
+    {
+        clearStatusFlag(STATUS_PARKED);
+#if RA_DEC_OFF_WHEN_PARKED == 1
+        LOG(DEBUG_STEPPERS, "[STEPPERS]: leaveParkedState: Switching RA and DEC drivers on");
+        digitalWrite(RA_EN_PIN, LOW);  // Logic LOW to enable driver
+        digitalWrite(DEC_EN_PIN, LOW);
+#endif
+    }
+}
+
+// Called once the mount has arrived at the park position.
+void Mount::enterParkedState()
+{
+    setStatus(STATUS_PARKED);
+    _slewingToPark           = false;  // Else the next slew to finish would park again
+    _compensateForTrackerOff = false;  // Else a move straight from park catches up the whole time parked
+#if RA_DEC_OFF_WHEN_PARKED == 1
+    LOG(DEBUG_STEPPERS, "[STEPPERS]: enterParkedState: Switching RA and DEC drivers off");
+    digitalWrite(RA_EN_PIN, HIGH);  // Logic HIGH to disable driver
+    digitalWrite(DEC_EN_PIN, HIGH);
+#endif
+}
+
 /////////////////////////////////
 //
 // getStatusString
@@ -2398,7 +2427,7 @@ void Mount::clearStatusFlag(int flag)
 String Mount::getStatusStateString()
 {
     String status;
-    if (_mountStatus == STATUS_PARKED)
+    if (_mountStatus & STATUS_PARKED)
     {
         status = F("Parked");
     }
@@ -2512,7 +2541,7 @@ String Mount::getStatusString()
 /////////////////////////////////
 byte Mount::slewStatus() const
 {
-    if (_mountStatus == STATUS_PARKED)
+    if ((_mountStatus & ~STATUS_PARKED) == 0)  // Parked or idle
     {
         return NOT_SLEWING;
     }
@@ -2621,6 +2650,7 @@ void Mount::startSlewing(int direction)
     if (!isParking())
     {
         stopGuiding();
+        leaveParkedState();  // Before moveTo() below, which runs ahead of setStatusFlag()
 
         if (direction & TRACKING)
         {
@@ -2811,6 +2841,18 @@ void Mount::stopSlewing(int direction)
         {
             clearStatusFlag(STATUS_FINDING_HOME);
         }
+    }
+
+    if ((direction & ALL_DIRECTIONS) != 0)
+    {
+        // Stopping the RA or DEC axis kills any park/home slew in progress. Clear the park-slew state
+        // here, or loop()'s arrival block (pumped by waitUntilAllStopped() on a :Q#) would run
+        // the "arrived at park position" code at the aborted position and park there - with
+        // RA_DEC_OFF_WHEN_PARKED it would also switch the drivers off mid-sky.
+        // loop() itself gets here through setHome() on arrival at home, and restores the state.
+        _slewingToHome = false;
+        _slewingToPark = false;
+        clearStatusFlag(STATUS_PARKING | STATUS_PARKING_POS);
     }
 }
 
@@ -3372,12 +3414,15 @@ void Mount::loop()
                 // If we're on the second part of the slew to parking, don't set home here
                 if (!_slewingToPark)
                 {
-                    bool saveHomeSlew = _slewingToHome;
+                    // setHome() stops the axes, which cancels a park (see stopSlewing()). This park goes on.
+                    bool saveHomeSlew        = _slewingToHome;
+                    const int saveParkStatus = _mountStatus & (STATUS_PARKING | STATUS_PARKING_POS);
                     LOG(DEBUG_MOUNT | DEBUG_STEPPERS,
                         "[MOUNT]: Loop:   Was Parking, not slewing to park so stop tracking and set home. SlewToHome: %d",
                         _slewingToHome);
                     setHome(false);
                     _slewingToHome = saveHomeSlew;
+                    setStatusFlag(saveParkStatus);
                 }
                 else
                 {
@@ -3457,9 +3502,7 @@ void Mount::loop()
                     else
                     {
                         LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Already at Parking pos, so done.");
-                        noInterrupts();
-                        setStatus(STATUS_PARKED);
-                        interrupts();
+                        enterParkedState();
                     }
                 }
                 // Slewed home, not parking: tracking was restarted above, or will be once the catch-up is done.
@@ -3473,10 +3516,7 @@ void Mount::loop()
             else if (_slewingToPark)
             {
                 LOG(DEBUG_MOUNT | DEBUG_STEPPERS, "[MOUNT]: Loop:   Arrived at park position...");
-                noInterrupts();
-                setStatus(STATUS_PARKED);
-                interrupts();
-                _slewingToPark = false;
+                enterParkedState();
             }
             _totalDECMove = _totalRAMove = 0;
 
