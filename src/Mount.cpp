@@ -2696,8 +2696,8 @@ void Mount::startSlewing(int direction)
         }
         else
         {
-            // Start slewing
-            int sign = inNorthernHemisphere ? 1 : -1;
+            // Start slewing. No hemisphere sign here: RA stepper space is the same in both hemispheres (the RA DIR pin
+            // is inverted for the south in configureHemisphere()), so WEST is always positive, like gotos and tracking.
 
             // Set move rate to last commanded slew rate
             setSlewRate(_moveRate);
@@ -2780,9 +2780,9 @@ void Mount::startSlewing(int direction)
                 long targetEastPos = _stepsPerRADegree * 15.0 * (RA_PHYSICAL_LIMIT + trackedHours);
                 LOG(DEBUG_STEPPERS,
                     "[STEPPERS]: startSlewing(E): initial targetMoveTo is %l (adjusted for %fh tracked)",
-                    -sign * targetEastPos,
+                    -targetEastPos,
                     trackedHours);
-                _stepperRA->moveTo(-sign * targetEastPos);
+                _stepperRA->moveTo(-targetEastPos);
                 setStatusFlag(STATUS_SLEWING);
             }
             if (direction & WEST)
@@ -2791,9 +2791,9 @@ void Mount::startSlewing(int direction)
                 long targetWestPos = _stepsPerRADegree * 15.0 * (min(RA_PHYSICAL_LIMIT, RA_TRACKING_LIMIT) - trackedHours);
                 LOG(DEBUG_STEPPERS,
                     "[STEPPERS]: startSlewing(W): initial targetMoveTo is %l (adjusted for %fh tracked)",
-                    sign * targetWestPos,
+                    targetWestPos,
                     trackedHours);
-                _stepperRA->moveTo(sign * targetWestPos);
+                _stepperRA->moveTo(targetWestPos);
                 setStatusFlag(STATUS_SLEWING);
             }
         }
@@ -4618,7 +4618,7 @@ float Mount::checkRALimit()
     const float homeRA = zeroRA + trackedHours;
     LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: homeRA: %f (ZeroPos: %f + TrkHrs: %f)", homeRA, zeroRA, trackedHours);
     LOG(DEBUG_MOUNT_VERBOSE, "[MOUNT]: checkRALimit: degreePosDec: %f , RA hourpos : %f)", degreePos, hourPos);
-    if (inNorthernHemisphere ? degreePos < 0 : degreePos > 0)
+    if (degreePos < 0)
     {
         hourPos -= 12;
         if (hourPos < 0)
