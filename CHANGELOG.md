@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.14.1](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/compare/v1.14.0...v1.14.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* Fix wrong AZ values for OAE ([#320](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/320)) ([aa3b686](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/aa3b686b9ae84d70a5fb5c4393196fc15c2b9454))
+* **mount:** Parked status, optional RA/DEC off when parked ([#323](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/323)) ([9be0002](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/9be0002751c88de28142e88ff2d0f015a6ef9a98))
+* **mount:** southern hemisphere tracking limit, manual E/W slews and :XGC/POI targets ([#332](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/332)) ([f47cbcb](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/f47cbcbab991efd153cc224d9b1bb852f5bffd93))
+* **mount:** Two fixes to RA tracking and the reported RA on OAT/OAM/OAE. ([#322](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/issues/322)) ([63f88b3](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/commit/63f88b3eed63d28e2a23aca2f0d5d7d0a47d5178))
+
 ## [1.14.0](https://github.com/OpenAstroTech/OpenAstroTracker-Firmware/compare/v1.13.22...v1.14.0) (2026-11-05)
 
 
