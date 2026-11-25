@@ -33,6 +33,11 @@
 // Include the user-specific local configuration
 #include "LocalConfiguration.hpp"
 
+// The OAE board implies the OAE hardware variant, unless the local configuration defined it already.
+#if (BOARD == BOARD_OAE_V1) && !defined(OAE)
+    #define OAE
+#endif
+
 /**
  * Use default values for any parameters the user didn't provide.
  */
