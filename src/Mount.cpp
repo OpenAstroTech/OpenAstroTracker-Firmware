@@ -3190,11 +3190,13 @@ void Mount::interruptLoop()
             _stepperRA->run();
         }
     }
-    else if (!(_mountStatus & STATUS_TRACKING) && !_trackerCatchingUp && (_stepperTRK->isRunning()))
+    if (!(_mountStatus & STATUS_TRACKING) && !_trackerCatchingUp && !_stepperRA->isRunning() && _stepperTRK->isRunning())
     {
         // If we are not tracking, but the tracking stepper is running, we need to let it move.
         // This happens when tracking is stopped: stop() makes TRK decelerate in goto mode.
-        // Not during a slew: the RA driver is in slew microstepping then.
+        // This must not depend on STATUS_SLEWING: the flag can be set while we wait for TRK to stop
+        // (catch-up cut short by a new slew, or DEC slewing).
+        // Not while RA itself is moving: the RA driver is in slew microstepping then.
         _stepperTRK->run();
     }
 
